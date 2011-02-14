@@ -1,12 +1,23 @@
-"""passlib.hash.mysql_323 - MySQL OLD_PASSWORD
+"""passlib.hash.mysql
 
-This implements Mysql's OLD_PASSWORD algorithm, introduced in version 3.2.3, deprecated in version 4.1.
+MySQL 3.2.3 / OLD_PASSWORD()
 
-See :mod:`passlib.hash.mysql_41` for the new algorithm was put in place in version 4.1
+    This implements Mysql's OLD_PASSWORD algorithm, introduced in version 3.2.3, deprecated in version 4.1.
 
-This algorithm is known to be very insecure, and should only be used to verify existing password hashes.
+    See :mod:`passlib.hash.mysql_41` for the new algorithm was put in place in version 4.1
 
-http://djangosnippets.org/snippets/1508/
+    This algorithm is known to be very insecure, and should only be used to verify existing password hashes.
+
+    http://djangosnippets.org/snippets/1508/
+
+MySQL 4.1.1 / NEW PASSWORD
+    This implements Mysql new PASSWORD algorithm, introduced in version 4.1.
+
+    This function is unsalted, and therefore not very secure against rainbow attacks.
+    It should only be used when dealing with mysql passwords,
+    for all other purposes, you should use a salted hash function.
+
+    Description taken from http://dev.mysql.com/doc/refman/6.0/en/password-hashing.html
 """
 #=========================================================
 #imports
@@ -24,6 +35,7 @@ from passlib.utils.handlers import BaseHandler
 #local
 __all__ = [
     'MySQL_323',
+    'MySQL_41',
 ]
 
 #=========================================================
@@ -91,6 +103,57 @@ class MySQL_323(BaseHandler):
 
 autodocument(MySQL_323)
 register_crypt_handler(MySQL_323)
+
+#=========================================================
+#handler
+#=========================================================
+class MySQL_41(BaseHandler):
+    #=========================================================
+    #algorithm information
+    #=========================================================
+    name = "mysql_41"
+    setting_kwds = ()
+
+    #=========================================================
+    #formatting
+    #=========================================================
+    _pat = re.compile(r"^\*[0-9A-F]{40}$", re.I)
+
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash and cls._pat.match(hash))
+
+    #=========================================================
+    #backend
+    #=========================================================
+    #NOTE: using default genconfig() method
+
+    @classmethod
+    def genhash(cls, secret, config):
+        if config and not cls.identify(config):
+            raise ValueError, "not a mysql-41 hash"
+        #FIXME: no idea if mysql has a policy about handling unicode passwords
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
+
+    #=========================================================
+    #helpers
+    #=========================================================
+    #NOTE: using default encrypt() method
+
+    @classmethod
+    def verify(cls, secret, hash):
+        if not hash:
+            raise ValueError, "no hash specified"
+        return hash.upper() == cls.genhash(secret, hash)
+
+    #=========================================================
+    #eoc
+    #=========================================================
+
+autodocument(MySQL_41)
+register_crypt_handler(MySQL_41)
 #=========================================================
 #eof
 #=========================================================

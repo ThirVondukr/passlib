@@ -9,8 +9,7 @@ from logging import getLogger
 #site
 #pkg
 from passlib.tests.handler_utils import _HandlerTestCase
-from passlib.hash.mysql_323 import MySQL_323
-from passlib.hash.mysql_41 import MySQL_41
+from passlib.hash.mysql import MySQL_323, MySQL_41
 #module
 log = getLogger(__name__)
 
