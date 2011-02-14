@@ -33,29 +33,6 @@ This module is not suitable for production use, as it's incredibly slow.
 The bcrypt unit-tests in passlib.tests.test_bcrypt
 will test all bcrypt backends found, not just the preferred one,
 in order to ensure no impedance mismatch.
-
-Usage
-=====
-This class attempts to be compatible with py-bcrypt
-(at least as far as passlib is concerned),
-since this is merely a fallback for passlib when py-bcrypt
-is not available::
-
-        import passlib._bcrypt as bcrypt
-
-        # Hash a password for the first time
-        hashed = bcrypt.hashpw(password, bcrypt.gensalt())
-
-        # gensalt's log_rounds parameter determines the complexity
-        # the work factor is 2**log_rounds, and the default is 12
-        hashed = bcrypt.hashpw(password, bcrypt.gensalt(10))
-
-        # Check that an unencrypted password matches one that has
-        # previously been hashed
-        if bcrypt.hashpw(plaintext, hashed) == hashed:
-                print "It matches"
-        else:
-                print "It does not match"
 """
 #=========================================================
 #imports
@@ -472,26 +449,6 @@ def decode_base64(s):
 #=========================================================
 #helpers
 #=========================================================
-##def streamtoword(data, offp):
-##    """Cycically extract a word of key material
-##    :param data:	the string to extract the data from
-##    :param offp:	a "pointer" (as a one-entry array) to the current offset into data
-##    :returns: the next word of material from data
-##    """
-##    # data byte[]
-##    # offp int[]
-##    #return int
-##    word = 0
-##    off = offp[0]
-##    dlen = len(data)
-##
-##    for i in xrange(0, 4):
-##        word = (word << 8) | ord(data[off])
-##        off = (off + 1) % dlen
-##
-##    offp[0] = off
-##    return word
-
 def iter_cyclic_words(data):
     """return generator which translates bytes into sequence of word-sized ints;
     cyclically restarting at beginning when it reaches end"""
@@ -519,12 +476,6 @@ def iter_cyclic_words(data):
         if off == dlen:
             off = 0
         assert off < dlen
-
-def encode_hash(minor, rounds, salt, chk=None):
-    "helper for formatting hash string"
-    if not minor or minor == '\x00':
-        minor = ''
-    return '$2%s$%02d$%s%s' % (minor, rounds, salt, chk or '')
 
 #=========================================================
 #base bcrypt helper
@@ -664,8 +615,6 @@ def raw_bcrypt(password, ident, salt, log_rounds):
                 P[i], P[i+1] = l,r = encipher(l,r)
             for i in RSLEN_S2:
                 S[i], S[i+1] = l,r = encipher(l,r)
-        if rounds % 10 == 0:
-            print rounds
 
     #
     #encipher constant data

@@ -24,7 +24,10 @@ except ImportError:
 from passlib.base import register_crypt_handler
 from passlib.utils import autodocument, os_crypt
 from passlib.utils.handlers import BackendExtHandler
+
+#TODO: make this a lazy import, generally don't want to load it.
 from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
+
 #pkg
 #local
 __all__ = [
