@@ -91,13 +91,46 @@ class BytesTest(TestCase):
             self.assertEqual(utils.bytes_to_list('\x00\x00\x01', order="native"), [0, 0, 1])
 
 #=========================================================
-#test des library
+#test slow_bcrypt module
+#=========================================================
+from passlib.utils import _slow_bcrypt as slow_bcrypt
+
+class BCryptUtilTest(TestCase):
+    "test passlib.utils._slow_bcrypt utility funcs"
+
+    def test_encode64(self):
+        encode = slow_bcrypt.encode_base64
+        self.assertFunctionResults(encode, [
+            ('', ''),
+            ('..', '\x00'),
+            ('...', '\x00\x00'),
+            ('....', '\x00\x00\x00'),
+            ('9u', '\xff'),
+            ('996', '\xff\xff'),
+            ('9999', '\xff\xff\xff'),
+            ])
+
+    def test_decode64(self):
+        decode = slow_bcrypt.decode_base64
+        self.assertFunctionResults(decode, [
+            ('', ''),
+            ('\x00', '..'),
+            ('\x00\x00', '...'),
+            ('\x00\x00\x00', '....'),
+            ('\xff', '9u', ),
+            ('\xff\xff','996'),
+            ('\xff\xff\xff','9999'),
+            ])
+
+
+#=========================================================
+#test des module
 #=========================================================
 class DesTest(TestCase):
 
     #test vectors taken from http://www.skepticfiles.org/faq/testdes.htm
 
-    #(key, plaintext, ciphertext) all as 64 bit
+    #data is list of (key, plaintext, ciphertext), all as 64 bit hex string
     test_des_vectors = [
         (line[4:20], line[21:37], line[38:54])
         for line in

@@ -1,11 +1,11 @@
 ==================================================================
-:mod:`passlib.hash.bcrypt` - BCrypt
+:mod:`passlib.drivers.bcrypt` - BCrypt
 ==================================================================
 
-.. module:: passlib.hash.bcrypt
+.. module:: passlib.drivers.bcrypt
     :synopsis: BCrypt
 
-BCrypt was developed to replace :mod:`~passlib.hash.md5_crypt` for BSD systems.
+BCrypt was developed to replace :mod:`~passlib.drivers.md5_crypt` for BSD systems.
 It uses a modified version of the Blowfish stream cipher. Featuring
 a large salt and variable number of rounds, it's currently the default
 password hash for many systems (notably BSD), and has no known weaknesses.

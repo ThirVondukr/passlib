@@ -46,7 +46,7 @@ implementation of OpenBSD's BCrypt algorithm, written by Damien Miller,
 and released under a BSD license.
 
 :mod:`passlib.utils._slow_bcrypt` is a python translation of this code,
-which is used as a fallback backend for :mod:`passlib.hash.bCrypt`
+which is used as a fallback backend for :mod:`passlib.drivers.bCrypt`
 when the external python library `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_
 is not installed.
 
@@ -68,7 +68,7 @@ This is the license and copyright for jBCrypt::
 
 MD5-Crypt
 ---------
-The fallback pure-python implementation contained in :mod:`passlib.hash.md5_crypt`
+The fallback pure-python implementation contained in :mod:`passlib.drivers.md5_crypt`
 was derived from the
 `FreeBSD md5-crypt <http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_,
 implementation which was released under the following license::

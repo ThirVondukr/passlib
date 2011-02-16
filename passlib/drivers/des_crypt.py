@@ -1,4 +1,4 @@
-"""passlib.hash.des_crypt - traditional unix (DES) crypt
+"""passlib.drivers.des_crypt - traditional unix (DES) crypt
 
 .. note::
 
@@ -58,14 +58,14 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument, classproperty, os_crypt
-from passlib.utils.handlers import BackendExtHandler, ExtHandler
+from passlib.utils.drivers import BackendExtHash, ExtHash
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
 __all__ = [
-    "DesCrypt",
+    "des_crypt",
+    "bsdi_crypt",
 ]
 
 #=========================================================
@@ -134,7 +134,7 @@ def raw_ext_crypt(secret, rounds, salt):
 #=========================================================
 #handler
 #=========================================================
-class DesCrypt(BackendExtHandler):
+class des_crypt(BackendExtHash):
     #=========================================================
     #class attrs
     #=========================================================
@@ -203,18 +203,17 @@ class DesCrypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(DesCrypt)
-register_crypt_handler(DesCrypt)
+autodocument(des_crypt)
 
 #=========================================================
 #handler
 #=========================================================
 #XXX: rename this to BSDiCrypt?
-class ExtDesCrypt(ExtHandler):
+class bsdi_crypt(ExtHash):
     #=========================================================
     #class attrs
     #=========================================================
-    name = "ext_des_crypt"
+    name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
 
     min_salt_chars = max_salt_chars = 4
@@ -277,8 +276,7 @@ class ExtDesCrypt(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(ExtDesCrypt)
-register_crypt_handler(ExtDesCrypt)
+autodocument(bsdi_crypt)
 #=========================================================
 #eof
 #=========================================================

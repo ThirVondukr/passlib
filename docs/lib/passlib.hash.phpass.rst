@@ -1,8 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.phpass` - PHPass Portable Hash
+:mod:`passlib.drivers.phpass` - PHPass Portable Hash
 ==================================================================
 
-.. module:: passlib.hash.phpass
+.. module:: passlib.drivers.phpass
     :synopsis: PHPass Portable Hash
 
 This algorithm is used primarily by PHP software

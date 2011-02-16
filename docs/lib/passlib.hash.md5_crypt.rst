@@ -1,8 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.md5_crypt` - MD5 Crypt
+:mod:`passlib.drivers.md5_crypt` - MD5 Crypt
 ==================================================================
 
-.. module:: passlib.hash.md5_crypt
+.. module:: passlib.drivers.md5_crypt
     :synopsis: MD5 Crypt
 
 This algorithm was developed to replace the aging des-crypt.
@@ -13,13 +13,13 @@ algorithm which it's based around is considered broken,
 though pre-image attacks are currently only theoretical.
 Despite this, MD5-Crypt itself is not considered broken,
 and is still considered ok to use, though new applications
-should use a stronger scheme (eg :mod:`~passlib.hash.sha512_crypt`) if possible.
+should use a stronger scheme (eg :mod:`~passlib.drivers.sha512_crypt`) if possible.
 
 Usage
 =====
 This module can be used directly as follows::
 
-    >>> from passlib.hash import md5_crypt as mc
+    >>> from passlib.drivers.import md5_crypt as mc
 
     >>> mc.encrypt("password") #generate new salt, encrypt password
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'

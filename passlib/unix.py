@@ -5,7 +5,7 @@
 #=========================================================
 #pkg
 from passlib.base import CryptContext, register_crypt_handler
-from passlib.utils.handlers import CryptHandler
+from passlib.utils.drivers import CryptHandler
 #local
 __all__ = [
     "default_context",
@@ -74,7 +74,7 @@ linux_context = CryptContext([ "unix_disabled", "des_crypt", "md5_crypt", "sha25
 
 #referencing source via -http://fxr.googlebit.com
 # freebsd 6,7,8 - des, md5, bcrypt, nthash
-# netbsd - des, ext, md5, bcrypt, sha1 
+# netbsd - des, ext, md5, bcrypt, sha1
 # openbsd - des, ext, md5, bcrypt
 bsd_context = CryptContext(["unix_disabled",  "nthash", "des_crypt", "ext_des_crypt", "md5_crypt", "bcrypt"])
 freebsd_context = CryptContext([ "unix_disabled",  "des_crypt", "nthash", "md5_crypt", "bcrypt"])

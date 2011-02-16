@@ -480,7 +480,7 @@ def iter_cyclic_words(data):
 #=========================================================
 #base bcrypt helper
 #
-#interface designed only for use by passlib.hash.bcrypt.BCrypt
+#interface designed only for use by passlib.drivers.bcrypt.BCrypt
 #probably not suitable for other purposes
 #=========================================================
 

@@ -1,5 +1,5 @@
 ============================================
-:mod:`passlib.hash` - Password Hash Schemes
+:mod:`passlib.drivers. - Password Hash Schemes
 ============================================
 
 .. module:: passlib.hash
@@ -15,7 +15,7 @@ While many applications may find it easier to use a :class:`CryptContext`
 instance, or retreive handlers via :func:`get_crypt_handler`, they can
 also be imported and used directly from this package:
 
-    >>> from passlib.hash import md5_crypt
+    >>> from passlib.drivers.import md5_crypt
     >>> hash = md5_crypt.encrypt("password")
 
 Passlib contains the following builtin password algorithms:
@@ -29,24 +29,24 @@ the :ref:`modular crypt format <modular-crypt-format>`.
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.des_crypt
-    passlib.hash.ext_des_crypt
-    passlib.hash.md5_crypt
-    passlib.hash.bcrypt
-    passlib.hash.sha1_crypt
-    passlib.hash.sha256_crypt
-    passlib.hash.sha512_crypt
+    passlib.drivers.des_crypt
+    passlib.drivers.ext_des_crypt
+    passlib.drivers.md5_crypt
+    passlib.drivers.bcrypt
+    passlib.drivers.sha1_crypt
+    passlib.drivers.sha256_crypt
+    passlib.drivers.sha512_crypt
 
 .. toctree::
     :hidden:
 
-    passlib.hash.sun_md5_crypt
+    passlib.drivers.sun_md5_crypt
 
 .. todo::
 
     These aren't fully implemented / tested yet:
 
-    * :mod:`~passlib.hash.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
+    * :mod:`~passlib.drivers.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
 
 Non-Standard Unix-Compatible Schemes
 ------------------------------------
@@ -58,9 +58,9 @@ the modular crypt format.
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.apr_md5_crypt
-    passlib.hash.phpass
-    passlib.hash.nthash
+    passlib.drivers.apr_md5_crypt
+    passlib.drivers.phpass
+    passlib.drivers.nthash
 
 Other Schemes
 -------------
@@ -71,6 +71,6 @@ not seen outside those specific contexts:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.mysql_323
-    passlib.hash.mysql_41
-    passlib.hash.postgres_md5
+    passlib.drivers.mysql_323
+    passlib.drivers.mysql_41
+    passlib.drivers.postgres_md5

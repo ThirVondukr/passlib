@@ -1,8 +1,8 @@
 =====================================================================
-:mod:`passlib.hash.mysql_41` - MySQL 4.1 password hash
+:mod:`passlib.drivers.mysql_41` - MySQL 4.1 password hash
 =====================================================================
 
-.. module:: passlib.hash.mysql_41
+.. module:: passlib.drivers.mysql_41
     :synopsis: MySQL 4.1 password hash
 
 .. warning::
@@ -14,7 +14,7 @@
 This module implements the second of MySQL's password hash functions,
 used to store it's user account passwords. Introduced in MySQL 4.1.1
 under the function ``PASSWORD()``, it replaced the previous
-algorithm (:mod:`~passlib.hash.mysql_323`) as the default
+algorithm (:mod:`~passlib.drivers.mysql_323`) as the default
 used by MySQL, and is still in active use under MySQL 5.
 Lacking any sort of salt, and using only 2 rounds
 of the common SHA1 message digest, it's not very secure,
@@ -26,7 +26,7 @@ Usage
 Users will most likely find the frontends provided by :mod:`passlib.sqldb`
 to be more useful than accessing this module directly.
 That aside, this module can be used directly in the same manner
-as :mod:`~passlib.hash.mysql_323`.
+as :mod:`~passlib.drivers.mysql_323`.
 
 Functions
 =========

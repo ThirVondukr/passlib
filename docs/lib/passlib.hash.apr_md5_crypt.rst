@@ -1,11 +1,11 @@
 ==================================================================
-:mod:`passlib.hash.apr_md5_crypt` - Apache MD5-Crypt password hash
+:mod:`passlib.drivers.apr_md5_crypt` - Apache MD5-Crypt password hash
 ==================================================================
 
-.. module:: passlib.hash.apr_md5_crypt
+.. module:: passlib.drivers.apr_md5_crypt
     :synopsis: Apache MD5-Crypt variant
 
-This format is a variation of :mod:`~passlib.hash.md5_crypt`,
+This format is a variation of :mod:`~passlib.drivers.md5_crypt`,
 primarily used by the Apache webserver in ``htpasswd`` files.
 It contains only minor changes to md5-crypt, and should
 be considered just as strong / weak as md5-crypt itself.
@@ -19,7 +19,7 @@ it's internal hash calculation. Thus, hashes generated
 by this and md5-crypt are in no way compatible with eachother
 (they will not even have the same checksum for the same salt).
 
-For details about usage & algorithm, see :mod:`~passlib.hash.md5_crypt`.
+For details about usage & algorithm, see :mod:`~passlib.drivers.md5_crypt`.
 
 References
 ==========

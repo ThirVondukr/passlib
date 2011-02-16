@@ -10,8 +10,8 @@ from logging import getLogger
 #site
 #pkg
 from passlib.utils import rng, getrandstr
-from passlib.utils.handlers import ExtHandler, StaticHandler
-from passlib.tests.handler_utils import _HandlerTestCase
+from passlib.utils.drivers import ExtHash, StaticHash
+from passlib.tests.utils import HandlerCase
 #module
 log = getLogger(__name__)
 
@@ -20,7 +20,7 @@ log = getLogger(__name__)
 # to test the unittests themselves, as well as other
 # parts of passlib. they shouldn't be used as actual password schemes.
 #=========================================================
-class UnsaltedHash(StaticHandler):
+class UnsaltedHash(StaticHash):
     "example algorithm which lacks a salt"
     name = "unsalted_example"
 
@@ -42,7 +42,7 @@ class UnsaltedHash(StaticHandler):
     def calc_checksum(self, secret):
         return hashlib.sha1("boblious" + secret).hexdigest()
 
-class SaltedHash(ExtHandler):
+class SaltedHash(ExtHash):
     "example algorithm with a salt"
     name = "salted_example"
     setting_kwds = ("salt",)
@@ -69,18 +69,18 @@ class SaltedHash(ExtHandler):
         return hashlib.sha1(self.salt + secret + self.salt).hexdigest()
 
 #=========================================================
-#test sample algorithms - really a self-test of _HandlerTestCase
+#test sample algorithms - really a self-test of HandlerCase
 #=========================================================
 
 #TODO: provide data samples for algorithms
 # (positive knowns, negative knowns, invalid identify)
 
-class UnsaltedHashTest(_HandlerTestCase):
+class UnsaltedHashTest(HandlerCase):
     handler = UnsaltedHash
 
     known_correct = []
 
-class SaltedHashTest(_HandlerTestCase):
+class SaltedHashTest(HandlerCase):
     handler = SaltedHash
 
     known_correct = []

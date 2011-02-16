@@ -16,6 +16,12 @@ import passlib.utils.pbkdf2 as mod
 log = getLogger(__name__)
 
 #=========================================================
+#
+#=========================================================
+
+#TODO: should we bother testing hmac_sha1() function?
+
+#=========================================================
 #test activate backend (stored in mod._crypt)
 #=========================================================
 class _Pbkdf2BackendTest(TestCase):

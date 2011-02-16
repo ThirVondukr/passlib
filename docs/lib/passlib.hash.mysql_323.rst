@@ -1,8 +1,8 @@
 ========================================================================
-:mod:`passlib.hash.mysql_323` - MySQL 3.2.3 password hash
+:mod:`passlib.drivers.mysql_323` - MySQL 3.2.3 password hash
 ========================================================================
 
-.. module:: passlib.hash.mysql_323
+.. module:: passlib.drivers.mysql_323
     :synopsis: MySQL 3.2.3 password hash
 
 .. warning::
@@ -15,7 +15,7 @@ This module implements the first of MySQL's password hash functions,
 used to store it's user account passwords. Introduced in MySQL 3.2.3
 under the function ``PASSWORD()``, this function was renamed
 to ``OLD_PASSWORD()`` under MySQL 4.1, when a newer password
-hash algorithm was introduced (see :mod:`~passlib.hash.mysql_41`).
+hash algorithm was introduced (see :mod:`~passlib.drivers.mysql_41`).
 Lacking any sort of salt, it's simplistic algorithm amounts to
 little more than a checksum, and should not be used for *any*
 purpose but verifying existing MySQL 3.2.3 - 4.0 password hashes.
@@ -26,7 +26,7 @@ Users will most likely find the frontends provided by :mod:`passlib.sqldb`
 to be more useful than accessing this module directly.
 That aside, this module can be used directly as follows::
 
-    >>> from passlib.hash import mysql_323 as mold
+    >>> from passlib.drivers.import mysql_323 as mold
 
     >>> mold.encrypt("password") #encrypt password
     '5d2e19393cc5ef67'

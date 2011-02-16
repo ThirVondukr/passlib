@@ -1,12 +1,12 @@
 ===================================================================
-:mod:`passlib.hash.sha512_crypt` - SHA-512 Crypt 
+:mod:`passlib.drivers.sha512_crypt` - SHA-512 Crypt 
 ===================================================================
 
-.. module:: passlib.hash.sha512_crypt
+.. module:: passlib.drivers.sha512_crypt
     :synopsis: SHA-512 Crypt
 
 SHA-512 Crypt and SHA-256 Crypt were developed as a response
-to :mod:`~passlib.hash.bcrypt`. They are descendants of :mod:`~passlib.hash.md5_crypt`,
+to :mod:`~passlib.drivers.bcrypt`. They are descendants of :mod:`~passlib.drivers.md5_crypt`,
 and incorporate many changes: replaced MD5 with newer message digest algorithms,
 some internal cleanups in MD5-Crypt's rounds algorithm,
 and the introduction of a variable rounds parameter.

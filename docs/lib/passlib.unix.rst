@@ -13,19 +13,19 @@ tailor to the hashes supported on various unix systems.
 .. object:: linux_context
 
     this should recognize the hashes used on most linux systems:
-    :mod:`~passlib.hash.des_crypt`,
-    :mod:`~passlib.hash.md5_crypt`,
-    :mod:`~passlib.hash.sha256_crypt`, and
-    :mod:`~passlib.hash.sha512_crypt` (used as the default).
+    :mod:`~passlib.drivers.des_crypt`,
+    :mod:`~passlib.drivers.md5_crypt`,
+    :mod:`~passlib.drivers.sha256_crypt`, and
+    :mod:`~passlib.drivers.sha512_crypt` (used as the default).
 
 .. object:: bsd_context
 
     this should recognize the hashes used on most bsd systems:
-    :mod:`~passlib.hash.des_crypt`,
-    :mod:`~passlib.hash.ext_des_crypt`,
-    :mod:`~passlib.hash.nthash`,
-    :mod:`~passlib.hash.md5_crypt`,
-    :mod:`~passlib.hash.bcrypt` (used as the default).
+    :mod:`~passlib.drivers.des_crypt`,
+    :mod:`~passlib.drivers.ext_des_crypt`,
+    :mod:`~passlib.drivers.nthash`,
+    :mod:`~passlib.drivers.md5_crypt`,
+    :mod:`~passlib.drivers.bcrypt` (used as the default).
 
 .. note::
 
@@ -47,7 +47,7 @@ Usage
 Modular Crypt Format
 ====================
 A vast majority of the schemes used on unix systems (and supported by this library)
-follow the "Modular Crypt Format", introduced around the time :mod:`~passlib.hash.md5_crypt` was developed.
+follow the "Modular Crypt Format", introduced around the time :mod:`~passlib.drivers.md5_crypt` was developed.
 This scheme allows hashes generates by multiple schemes to co-exist within a database,
 by requiring that all hash string begin with a unique prefix ``$identifier$``;
 where ``identifier`` is a short alphanumeric string globally identifying
@@ -63,7 +63,7 @@ In fact, for the most part they avoid using any characters except
 this can be violated on some systems if the user intervenes.
 
 .. note::
-    :mod:`passlib.hash.des_crypt` and :mod:`passlib.hash.ext_des_crypt`
+    :mod:`passlib.drivers.des_crypt` and :mod:`passlib.drivers.ext_des_crypt`
     do not follow this protocol, since they predate it by many years.
 
 OS Format Support
@@ -74,12 +74,12 @@ are known to support which schemes:
 =================================== =========== =========== =========== ===========
 Scheme                              Linux       FreeBSD     NetBSD      OpenBSD
 =================================== =========== =========== =========== ===========
-:mod:`~passlib.hash.nthash`                     y
-:mod:`~passlib.hash.des_crypt`      y           y           y           y
-:mod:`~passlib.hash.ext_des_crypt`                          y           y
-:mod:`~passlib.hash.md5_crypt`      y           y           y           y
-:mod:`~passlib.hash.bcrypt`                     y           y           y
-:mod:`~passlib.hash.sha1_crypt`                             y
-:mod:`~passlib.hash.sha256_crypt`   y
-:mod:`~passlib.hash.sha512_crypt`   y
+:mod:`~passlib.drivers.nthash`                     y
+:mod:`~passlib.drivers.des_crypt`      y           y           y           y
+:mod:`~passlib.drivers.ext_des_crypt`                          y           y
+:mod:`~passlib.drivers.md5_crypt`      y           y           y           y
+:mod:`~passlib.drivers.bcrypt`                     y           y           y
+:mod:`~passlib.drivers.sha1_crypt`                             y
+:mod:`~passlib.drivers.sha256_crypt`   y
+:mod:`~passlib.drivers.sha512_crypt`   y
 =================================== =========== =========== =========== ===========
