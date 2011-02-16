@@ -10,8 +10,7 @@ from logging import getLogger
 #pkg
 from passlib.tests.handler_utils import _HandlerTestCase, create_backend_case
 from passlib.tests.utils import enable_option
-from passlib.hash.md5_crypt import Md5Crypt
-from passlib.hash.apr_md5_crypt import AprMd5Crypt
+from passlib.hash.md5_crypt import Md5Crypt, AprMd5Crypt
 #module
 log = getLogger(__name__)
 

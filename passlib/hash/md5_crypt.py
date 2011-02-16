@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument, os_crypt
-from passlib.utils.handlers import BackendExtHandler
+from passlib.utils.handlers import ExtHandler, BackendExtHandler
 #pkg
 #local
 __all__ = [
@@ -23,10 +23,11 @@ __all__ = [
 #=========================================================
 def raw_md5_crypt(secret, salt, apr=False):
     "perform raw md5 encryption"
-    #NOTE: regarding 'apr' format: really, apache? you had to invent a whole new "$apr1$" format,
+    #NOTE: regarding 'apr' format:
+    # really, apache? you had to invent a whole new "$apr1$" format,
     # when all you did was change the ident incorporated into the hash?
     # would love to find webpage explaining why just using a portable
-    # implementation of $1$ wasn't sufficient.
+    # implementation of $1$ wasn't sufficient. *nothing* else was changed.
 
     #validate secret
     if not isinstance(secret, str):
@@ -64,21 +65,27 @@ def raw_md5_crypt(secret, salt, apr=False):
         idx >>= 1
     result = h.digest()
 
+    #next:
     # do 1000 rounds of md5 to make things harder.
-    # each round we do digest of content,
+    # each round we do digest of round-specific content,
     # where content is formed from concatenation of...
-    #   idx % 2 => secret else result
-    #   idx % 3 => salt
-    #   idx % 7 => secret
-    #   idx % 2 => result else secret
-    # first we pre-compute some strings and hashes to speed up calculation
+    #   secret if round % 2 else result
+    #   salt if round % 3
+    #   secret if round % 7
+    #   result if round % 2 else secret
+    #
+    #NOTE:
+    # instead of doing this directly, this implementation
+    # pre-computes all the combinations of strings & md5 hash objects
+    # that will be needed, in order to perform round operations as fast as possible
+    # (each round consists of one hash create/copy + 1 update + 1 digest)
     secret_secret = secret*2
     salt_secret = salt+secret
     salt_secret_secret = salt + secret*2
     secret_hash = md5(secret).copy
-    secret_secret_hash = md5(secret*2).copy
+    secret_secret_hash = md5(secret_secret).copy
     secret_salt_hash = md5(secret+salt).copy
-    secret_salt_secret_hash = md5(secret+salt+secret).copy
+    secret_salt_secret_hash = md5(secret+salt_secret).copy
     for idx in xrange(1000):
         if idx & 1:
             if idx % 3:
@@ -190,6 +197,65 @@ class Md5Crypt(BackendExtHandler):
 
 autodocument(Md5Crypt)
 register_crypt_handler(Md5Crypt)
+
+#=========================================================
+#apache variant of md5-crypt
+#=========================================================
+class AprMd5Crypt(ExtHandler):
+    #=========================================================
+    #algorithm information
+    #=========================================================
+    name = "apr_md5_crypt"
+    setting_kwds = ("salt",)
+
+    min_salt_chars = 0
+    max_salt_chars = 8
+
+    checksum_chars = 22
+
+    #=========================================================
+    #internal helpers
+    #=========================================================
+    _pat = re.compile(r"""
+        ^
+        \$apr1
+        \$(?P<salt>[A-Za-z0-9./]{,8})
+        (\$(?P<chk>[A-Za-z0-9./]{22})?)?
+        $
+        """, re.X)
+
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash) and hash.startswith("$apr1$")
+
+    @classmethod
+    def from_string(cls, hash):
+        if not hash:
+            raise ValueError, "no hash specified"
+        m = cls._pat.match(hash)
+        if not m:
+            raise ValueError, "invalid md5-crypt hash"
+        salt, chk = m.group("salt", "chk")
+        return cls(salt=salt, checksum=chk, strict=bool(chk))
+
+    def to_string(self):
+        return "$apr1$%s$%s" % (self.salt, self.checksum or '')
+
+    #=========================================================
+    #primary interface
+    #=========================================================
+    def calc_checksum(self, secret):
+        #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return raw_md5_crypt(secret, self.salt, apr=True)
+
+    #=========================================================
+    #eoc
+    #=========================================================
+
+autodocument(AprMd5Crypt)
+register_crypt_handler(AprMd5Crypt)
 #=========================================================
 #eof
 #=========================================================
