@@ -131,6 +131,21 @@ def list_crypt_handlers():
     return sorted(_builtin_names.union(x for x in dir(_hmod) if not x.startswith("_")))
 
 #=========================================================
+#proxy object
+#=========================================================
+class PasslibHashProxy(object):
+    def __getattr__(self, attr):
+        if not attr.startswith("_"):
+            handler = get_crypt_handler(attr, None)
+            if handler is not None:
+                setattr(self, attr, handler)
+                return handler
+        raise AttributeError, "unknown password hash: %r" % (attr,)
+
+import sys
+sys.modules['passlib.schemes'] = schemes = PasslibHashProxy()
+
+#=========================================================
 #policy
 #=========================================================
 def parse_policy_key(key):
