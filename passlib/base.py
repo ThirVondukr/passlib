@@ -88,7 +88,9 @@ _drivers = _hashmod.__dict__
 _driver_locations = {
     "apr_md5_crypt":    ("passlib.drivers.md5_crypt",   "apr_md5_crypt"),
     "bcrypt":           ("passlib.drivers.bcrypt",      "bcrypt"),
+    "bigcrypt":         ("passlib.drivers.des_crypt",   "bigcrypt"),
     "bsdi_crypt":       ("passlib.drivers.des_crypt",   "bsdi_crypt"),
+    "crypt16":          ("passlib.drivers.des_crypt",   "crypt16"),
     "des_crypt":        ("passlib.drivers.des_crypt",   "des_crypt"),
     "md5_crypt":        ("passlib.drivers.md5_crypt",   "md5_crypt"),
     "mysql323":         ("passlib.drivers.mysql",       "mysql323"),

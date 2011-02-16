@@ -70,6 +70,22 @@ OsCrypt_BCryptTest = create_backend_case(BCryptTest, "os_crypt")
 Builtin_BCryptTest = create_backend_case(BCryptTest, "builtin") if enable_option("slow") else None
 
 #=========================================================
+#bigcrypt
+#=========================================================
+from passlib.drivers.des_crypt import bigcrypt
+
+class BigCryptTest(HandlerCase):
+    handler = bigcrypt
+
+    #TODO: find an authortative source of test vectors
+    known_correct = [
+        ("passphrase", "qiyh4XPJGsOZ2MEAyLkfWqeQ"),
+        ]
+
+    #omit des_crypt from known other, it looks like bigcrypt
+    known_other = filter(lambda row: row[0] != "des_crypt", HandlerCase.known_other)
+
+#=========================================================
 #bsdi crypt
 #=========================================================
 from passlib.drivers.des_crypt import bsdi_crypt
@@ -88,6 +104,20 @@ class BSDiCryptTest(HandlerCase):
         #bad char in otherwise correctly formatted hash
        "_K1.!crsmZxOLzfJH8iw"
     ]
+
+#=========================================================
+#crypt16
+#=========================================================
+from passlib.drivers.des_crypt import crypt16
+
+class Crypt16Test(HandlerCase):
+    handler = crypt16
+    secret_chars = 16
+
+    #TODO: find an authortative source of test vectors
+    known_correct = [
+        ("passphrase", "qi8H8R7OM4xMUNMPuRAZxlY."),
+        ]
 
 #=========================================================
 #des crypt
