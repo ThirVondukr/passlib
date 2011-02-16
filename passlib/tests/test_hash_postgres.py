@@ -9,7 +9,7 @@ from logging import getLogger
 #site
 #pkg
 from passlib.tests.handler_utils import _HandlerTestCase
-from passlib.hash.postgres_md5 import PostgresMD5
+from passlib.hash.postgres import PostgresMD5
 #module
 log = getLogger(__name__)
 

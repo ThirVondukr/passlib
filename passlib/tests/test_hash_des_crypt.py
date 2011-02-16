@@ -10,8 +10,7 @@ from logging import getLogger
 #pkg
 from passlib.tests.utils import TestCase, enable_option
 from passlib.tests.handler_utils import _HandlerTestCase
-from passlib.hash.des_crypt import DesCrypt
-from passlib.hash.ext_des_crypt import ExtDesCrypt
+from passlib.hash.des_crypt import DesCrypt, ExtDesCrypt
 #module
 log = getLogger(__name__)
 
