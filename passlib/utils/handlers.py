@@ -10,6 +10,7 @@ import hashlib
 import logging; log = logging.getLogger(__name__)
 import time
 import os
+from warnings import warn
 #site
 #libs
 from passlib.utils import classproperty, h64, getrandstr, rng, is_crypt_handler

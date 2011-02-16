@@ -15,65 +15,51 @@ import warnings
 #site
 #pkg
 from passlib.tests.utils import TestCase, enable_option
-from passlib.tests.handler_utils import _HandlerTestCase
-import passlib.hash.sha256_crypt as mod2
-from passlib.hash.sha512_crypt import Sha512Crypt
+from passlib.tests.handler_utils import _HandlerTestCase, create_backend_case
+from passlib.hash.sha2_crypt import SHA256Crypt, SHA512Crypt
 #module
 log = getLogger(__name__)
 
 #=========================================================
 #test sha256-crypt
 #=========================================================
-class Sha256CryptTest(_HandlerTestCase):
-    handler = mod2
+class SHA256CryptTest(_HandlerTestCase):
+    handler = SHA256Crypt
     supports_unicode = True
 
-    known_correct = (
+    known_correct = [
         ('', '$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3'),
         (' ', '$5$rounds=10376$I5lNtXtRmf.OoMd8$Ko3AI1VvTANdyKhBPavaRjJzNpSatKU6QVN9uwS9MH.'),
         ('test', '$5$rounds=11858$WH1ABM5sKhxbkgCK$aTQsjPkz0rBsH3lQlJxw9HDTDXPKBxC0LlVeV69P.t1'),
         ('Compl3X AlphaNu3meric', '$5$rounds=10350$o.pwkySLCzwTdmQX$nCMVsnF3TXWcBPOympBUUSQi6LGGloZoOsVJMGJ09UB'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$5$rounds=11944$9dhlu07dQMRWvTId$LyUI5VWkGFwASlzntk1RLurxX54LUhgAcJZIt0pYGT7'),
         (u'with unic\u00D6de', '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
-        )
-    known_invalid = (
+        ]
+
+    known_identified_invalid = [
         #bad char in otherwise correct hash
         '$5$rounds=10428$uy/:jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMeZGsGx2aBvxTvDFI613c3',
-    )
 
-    known_identified_invalid = (
         #zero-padded rounds
        '$5$rounds=010428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3',
-    )
+    ]
 
-if mod2.backend != "builtin" and enable_option("all-backends"):
-
-    #monkeypatch sha256-crypt mod so it uses builtin backend
-
-    class BuiltinSha256CryptTest(Sha256CryptTest):
-        case_prefix = "sha256-crypt (builtin backend)"
-
-        def setUp(self):
-            self.tmp = mod2.crypt
-            mod2.crypt = None
-
-        def cleanUp(self):
-            mod2.crypt = self.tmp
+BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 
 #=========================================================
 #test sha512-crypt
 #=========================================================
-class Sha512CryptTest(_HandlerTestCase):
-    handler = Sha512Crypt
+class SHA512CryptTest(_HandlerTestCase):
+    handler = SHA512Crypt
     supports_unicode = True
 
-    known_correct = (
+    known_correct = [
         ('', '$6$rounds=11021$KsvQipYPWpr93wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1'),
         (' ', '$6$rounds=11104$ED9SA4qGmd57Fq2m$q/.PqACDM/JpAHKmr86nkPzzuR5.YpYa8ZJJvI8Zd89ZPUYTJExsFEIuTYbM7gAGcQtTkCEhBKmp1S1QZwaXx0'),
         ('test', '$6$rounds=11531$G/gkPn17kHYo0gTF$Kq.uZBHlSBXyzsOJXtxJruOOH4yc0Is13uY7yK0PvAvXxbvc1w8DO1RzREMhKsc82K/Jh8OquV8FZUlreYPJk1'),
         ('Compl3X AlphaNu3meric', '$6$rounds=10787$wakX8nGKEzgJ4Scy$X78uqaX1wYXcSCtS4BVYw2trWkvpa8p7lkAtS9O/6045fK4UB2/Jia0Uy/KzCpODlfVxVNZzCCoV9s2hoLfDs/'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$6$rounds=11065$5KXQoE1bztkY5IZr$Jf6krQSUKKOlKca4hSW07MSerFFzVIZt/N3rOTsUgKqp7cUdHrwV8MoIVNCk9q9WL3ZRMsdbwNXpVk0gVxKtz1'),
-        )
+        ]
 
     known_identified_invalid = [
         #zero-padded rounds
@@ -121,11 +107,11 @@ class Sha512CryptTest(_HandlerTestCase):
         "verify sha512-crypt passes specification test vectors"
         handler = self.handler
 
-        #NOTE: the 'roundstoolow' vector is known to raise a warning, which we silence here
+        #NOTE: the 'roundstoolow' test vector is known to raise a warning, which we silence here
         if catch_warnings:
             ctx = catch_warnings()
             ctx.__enter__()
-        warnings.filterwarnings("ignore", "sha512_crypt algorithm does not allow less than 1000 rounds: 10")
+        warnings.filterwarnings("ignore", "sha512_crypt does not allow less than 1000 rounds: 10", UserWarning)
 
         for config, secret, hash in self.cases512:
             #make sure we got expected result back
@@ -139,17 +125,7 @@ class Sha512CryptTest(_HandlerTestCase):
         if catch_warnings:
             ctx.__exit__(None,None,None)
 
-if Sha512Crypt.get_backend() != "builtin" and enable_option("all-backends"):
-
-    class BuiltinSha512CryptTest(Sha512CryptTest):
-        case_prefix = "sha512-crypt (builtin backend)"
-
-        def setUp(self):
-            self.tmp = self.handler.get_backend()
-            self.handler.set_backend("builtin")
-
-        def cleanUp(self):
-            self.handler.set_backend(self.tmp)
+BuiltinSHA512CryptTest = create_backend_case(SHA512CryptTest, "builtin")
 #=========================================================
 #EOF
 #=========================================================
