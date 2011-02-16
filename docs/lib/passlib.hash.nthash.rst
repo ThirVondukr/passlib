@@ -1,8 +1,8 @@
 ==================================================================
-:mod:`passlib.drivers.nthash` - Windows NT-HASH for Unix
+:mod:`passlib.hash.nthash` - Windows NT-HASH for Unix
 ==================================================================
 
-.. module:: passlib.drivers.nthash
+.. module:: passlib.hash.nthash
     :synopsis: Windows NT-HASH for Unix
 
 .. warning::

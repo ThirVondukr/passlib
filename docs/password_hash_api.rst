@@ -23,7 +23,7 @@ and other parts have been kept intentionally non-commital, in order to allow
 flexibility of implementation.
 
 All of the schemes built into passlib implement this interface;
-most them as modules within the :mod:`passlib.drivers. package.
+most them as modules within the :mod:`passlib.hash. package.
 
 Overview
 ========
@@ -66,7 +66,7 @@ Informational Attributes
 
         All handlers built into passlib are implemented as modules
         whose path corresponds to the name, with an underscore replacing the hyphen.
-        For example, ``des-crypt`` is stored as the module ``passlib.drivers.des_crypt``.
+        For example, ``des-crypt`` is stored as the module ``passlib.hash.des_crypt``.
 
 .. attribute:: setting_kwds
 

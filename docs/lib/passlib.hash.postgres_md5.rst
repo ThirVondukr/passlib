@@ -1,8 +1,8 @@
 ==================================================================
-:mod:`passlib.drivers.postgres_md5` - PostgreSQL MD5 password hash
+:mod:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
 
-.. module:: passlib.drivers.postgres_md5
+.. module:: passlib.hash.postgres_md5
     :synopsis: PostgreSQL MD5 password hash
 
 .. warning::
@@ -24,7 +24,7 @@ Users will most likely find the frontend provided by :mod:`passlib.sqldb`
 to be more useful than accessing this module directly.
 That aside, this module can be used directly as follows::
 
-    >>> from passlib.drivers.import postgres_md5 as pm
+    >>> from passlib.hash.import postgres_md5 as pm
 
     >>> pm.encrypt("password", "username") #encrypt password using specified username
     'md55a231fcdb710d73268c4f44283487ba2'

@@ -15,7 +15,7 @@ This module contains routines for encrypting blocks of data using the DES algori
 
 They do not support multi-block operation or decryption,
 since they are designed for use in password hash algorithms
-such as :mod:`~passlib.drivers.des_crypt` and :mod:`~passlib.drivers.ext_des_crypt`.
+such as :mod:`~passlib.hash.des_crypt` and :mod:`~passlib.hash.ext_des_crypt`.
 
 .. autofunction:: expand_des_key
 .. autofunction:: des_encrypt_block

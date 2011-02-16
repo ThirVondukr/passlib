@@ -1,8 +1,8 @@
 =======================================================================
-:mod:`passlib.drivers.des_crypt` - Tradtional Unix (DES) Crypt
+:mod:`passlib.hash.des_crypt` - Tradtional Unix (DES) Crypt
 =======================================================================
 
-.. module:: passlib.drivers.des_crypt
+.. module:: passlib.hash.des_crypt
     :synopsis: Traditional Unix (DES) Crypt
 
 .. warning::
@@ -20,7 +20,7 @@ Usage
 =====
 This module can be used directly as follows::
 
-    >>> from passlib.drivers.import des_crypt as dc
+    >>> from passlib.hash.import des_crypt as dc
 
     >>> dc.encrypt("password") #generate new salt, encrypt password
     'JQMuyS6H.AGMo'

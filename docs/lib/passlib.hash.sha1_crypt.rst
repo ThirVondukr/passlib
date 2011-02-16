@@ -1,8 +1,8 @@
 ===================================================================
-:mod:`passlib.drivers.sha1_crypt` - SHA-1 Crypt
+:mod:`passlib.hash.sha1_crypt` - SHA-1 Crypt
 ===================================================================
 
-.. module:: passlib.drivers.sha1_crypt
+.. module:: passlib.hash.sha1_crypt
     :synopsis: SHA-1 Crypt
 
 SHA1-Crypt is a hash algorithm introduced by NetBSD in 2004.
@@ -12,7 +12,7 @@ and supports a large salt and variable number of rounds.
 Usage
 =====
 Supporting a variable sized salt and variable number of rounds,
-this scheme is used in exactly the same way as :mod:`~passlib.drivers.sha512_crypt`.
+this scheme is used in exactly the same way as :mod:`~passlib.hash.sha512_crypt`.
 
 Functions
 =========
@@ -54,7 +54,7 @@ as well as providing some of the advancements made in PDKDF2).
 
 * the checksum is then rendered into hash-64 format
   using an ordering that roughly corresponds to big-endian
-  encoding of 24-bit chunks (see :data:`passlib.drivers.sha1_crypt._chk_offsets` for exact byte order).
+  encoding of 24-bit chunks (see :data:`passlib.hash.sha1_crypt._chk_offsets` for exact byte order).
 
 Deviations
 ==========

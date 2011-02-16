@@ -17,7 +17,7 @@ The following libraries are not required, but will be used if found:
 
     * If installed, `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ will be
       used instead of PassLib's slower pure-python bcrypt implementation.
-      (see :mod:`passlib.drivers.bcrypt`).
+      (see :mod:`passlib.hash.bcrypt`).
       *This is strongly recommended, as the builtin implementation is VERY slow*.
 
     * stdlib ``crypt.crypt()`` will be used if present, and if the underlying
