@@ -310,6 +310,9 @@ except NotImplementedError:
 
 def genseed(value=None):
     "generate prng seed value from system resources"
+    #if value is rng, extract a bunch of bits from it's state
+    if hasattr(value, "getrandbits"):
+        value = value.getrandbits(256)
     text = "%s %s %s %.15f %s" % (
         value,
             #if user specified a seed value (eg current rng state), mix it in
@@ -319,7 +322,7 @@ def genseed(value=None):
 
         id(object()),
             #id of a freshly created object.
-            #(at least 2 bytes of which are hard to predict)
+            #(at least 2 bytes of which should be hard to predict)
 
         time.time(),
             #the current time, to whatever precision os uses
@@ -330,9 +333,11 @@ def genseed(value=None):
     #hash it all up and return it as int
     return long(sha256(text).hexdigest(), 16)
 
-rng = random.Random(genseed())
-
-#NOTE: to reseed rng: rng.seed(genseed(rng.getrandbits(32*8)))
+if has_urandom:
+    rng = random.SystemRandom()
+else:
+    #NOTE: to reseed - rng.seed(genseed(rng))
+    rng = random.Random(genseed())
 
 #-----------------------------------------------------------------------
 # some rng helpers
