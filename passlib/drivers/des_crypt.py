@@ -334,7 +334,7 @@ class bigcrypt(ExtHash):
         end = len(secret)
         while idx < end:
             next = idx + 8
-            chk += raw_crypt(secret[idx:next], chk[:2])
+            chk += raw_crypt(secret[idx:next], chk[-11:-9])
             idx = next
         return chk
 

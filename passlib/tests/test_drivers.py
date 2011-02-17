@@ -77,10 +77,12 @@ from passlib.drivers.des_crypt import bigcrypt
 class BigCryptTest(HandlerCase):
     handler = bigcrypt
 
-    #TODO: find an authortative source of test vectors
+    #TODO: find an authortative source of test vectors,
+    #these were found in docs and messages on the web.
     known_correct = [
-        ("passphrase", "qiyh4XPJGsOZ2MEAyLkfWqeQ"),
-        ]
+        ("passphrase",               "qiyh4XPJGsOZ2MEAyLkfWqeQ"),
+        ("This is very long passwd", "f8.SVpL2fvwjkAnxn8/rgTkwvrif6bjYB5c"),
+    ]
 
     #omit des_crypt from known other, it looks like bigcrypt
     known_other = filter(lambda row: row[0] != "des_crypt", HandlerCase.known_other)
@@ -115,10 +117,17 @@ class Crypt16Test(HandlerCase):
     secret_chars = 16
 
     #TODO: find an authortative source of test vectors
+    #instead of just msgs around the web
+    #   (eg http://seclists.org/bugtraq/1999/Mar/76)
     known_correct = [
-        ("passphrase", "qi8H8R7OM4xMUNMPuRAZxlY."),
+        ("passphrase",  "qi8H8R7OM4xMUNMPuRAZxlY."),
+        ("printf",      "aaCjFz4Sh8Eg2QSqAReePlq6"),
+        ("printf",      "AA/xje2RyeiSU0iBY3PDwjYo"),
+        ("LOLOAQICI82QB4IP", "/.FcK3mad6JwYt8LVmDqz9Lc"),
+        ("LOLOAQICI",   "/.FcK3mad6JwYSaRHJoTPzY2"),
+        ("LOLOAQIC",    "/.FcK3mad6JwYelhbtlysKy6"),
+        ("L",           "/.CIu/PzYCkl6elhbtlysKy6"),
         ]
-
 #=========================================================
 #des crypt
 #=========================================================

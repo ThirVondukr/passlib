@@ -20,20 +20,29 @@ also be imported and used directly from this package:
 
 Passlib contains the following builtin password algorithms:
 
-..
-    XXX: should we have an "archaic" section for des/bsdi/bigcrypt/crypt16?
-
-Standard Unix Schemes
----------------------
-All these schemes are/were used by various unix flavors to store user passwords.
-Because of this, all these schemes (except des-crypt and ext-des-crypt) follow
-the :ref:`modular crypt format <modular-crypt-format>`.
+Archaic Unix Schemes
+--------------------
+All these schemes are/were used by various unix flavors to store user passwords;
+most are based on the DES block cipher,
+and predate the arrival of the :ref:`modular crypt format <modular-crypt-format>`.
+There are all considered insecure (at best).
 
 .. toctree::
     :maxdepth: 1
 
     passlib.hash.des_crypt
     passlib.hash.bsdi_crypt
+    passlib.hash.bigcrypt
+    passlib.hash.crypt16
+
+Standard Unix Schemes
+---------------------
+All these schemes are currently used by various unix flavors to store user passwords.
+They all follow the :ref:`modular crypt format <modular-crypt-format>` for encoding idenfiable hashes.
+
+.. toctree::
+    :maxdepth: 1
+
     passlib.hash.md5_crypt
     passlib.hash.bcrypt
     passlib.hash.sha1_crypt
@@ -43,16 +52,12 @@ the :ref:`modular crypt format <modular-crypt-format>`.
 .. toctree::
     :hidden:
 
-    passlib.hash.bigcrypt
-    passlib.hash.crypt16
     passlib.hash.sun_md5_crypt
 
 .. todo::
 
     These aren't fully implemented / tested yet:
 
-    * :class:`~passlib.hash.bigcrypt`
-    * :class:`~passlib.hash.crypt16`
     * :class:`~passlib.hash.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
 
 Non-Standard Unix-Compatible Schemes

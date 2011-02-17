@@ -5,12 +5,21 @@ PassLib |release| documentation
 Introduction
 ============
 Passlib is a collection of routines for managing password hashes
-as found in unix /etc/shadow files, as returned by stdlib `crypt()`,
-as stored in mysql and postgres, and various other contexts.
+in wide variety of different uses:
+
+    * cross-platform replacement for stdlib ``crypt()``.
+    * encrypting & verifying most known hash formats used by:
+        - Linux & BSD shadow files
+        - Apache htpasswd files
+        - MySQL & PostgreSQL user account tables
+    * drop-in secure hashing for new python applications
+    * quickly building a configurable hashing policy
+      for existing python applications and existing hashing schemes.
 
 A quick sample of some of the more frequently used modules:
 
     * :mod:`passlib` -- password hashing algorithms
+    * :mod:`passlib.hash` -- module containing all supported password hashes
 
     ... see the :doc:`library overview <overview>` for a complete list.
 
