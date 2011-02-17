@@ -26,13 +26,14 @@ from warnings import warn
 #site
 from pkg_resources import resource_string
 #libs
-import passlib.hash as _hmod
-from passlib.utils import abstractclassmethod, Undef, is_crypt_handler, splitcomma, rng
+##import passlib.drivers.as _hmod
+from passlib.utils import Undef, is_crypt_handler, splitcomma, rng
 #pkg
 #local
 __all__ = [
     #global registry
     'register_crypt_handler',
+    'register_crypt_location',
     'get_crypt_handler',
     'list_crypt_handlers'
 
@@ -42,20 +43,81 @@ __all__ = [
 ]
 
 #=========================================================
+#proxy object
+#=========================================================
+class PasslibHashProxy(object):
+    """proxy module passlib.hash
+
+    this module is in fact an object which lazy-loads
+    the requested password hash algorithm from wherever it has been stored.
+    it acts as a thin wrapper around :func:`passlib.base.get_crypt_handler`.
+    """
+    __name__ = "passlib.hash"
+    __package__ = None
+
+    def __getattr__(self, attr):
+        if attr.startswith("_"):
+            raise AttributeError, "unknown attribute: %r" % (attr,)
+        handler = get_crypt_handler(attr, None)
+        if handler is None:
+            raise AttributeError, "unknown password hash: %r" % (attr,)
+        setattr(self, attr, handler)
+        return handler
+
+    def __repr__(self):
+        return "<proxy module 'passlib.hash'>"
+
+    def __dir__(self):
+        "report list of all actual attrs, PLUS all known algorithms that haven't been loaded"
+        attrs = set(dir(self.__class__))
+        attrs.update(self.__dict__)
+        attrs.update(_driver_locations)
+        return sorted(attrs)
+
+#NOTE: this is inserted into sys.modules by passlib/__init__.py
+_hashmod = PasslibHashProxy()
+
+#=========================================================
 #global registry
 #=========================================================
 
-#list of builtin hashes (for list_crypt_handlers, to work around lazy loading)
-#XXX: could write some code in setup.py that generates this from package listing.
-_builtin_names = set([
-    "apr_md5_crypt", "bcrypt", "des_crypt", "ext_des_crypt",
-    "md5_crypt", "mysql_323", "mysql_41", "postgres_md5",
-    "sha256_crypt", "sha512_crypt", "sun_md5_crypt",
-    ])
+#: dict mapping hash names -> loaded driver objects (uses passlib.hash.__dict__ so the two will always be in sync)
+_drivers = _hashmod.__dict__
+
+#: dict mapping hash names -> (module name, None | class name) that should be location of driver
+_driver_locations = {
+    "apr_md5_crypt":    ("passlib.drivers.md5_crypt",   "apr_md5_crypt"),
+    "bcrypt":           ("passlib.drivers.bcrypt",      "bcrypt"),
+    "bigcrypt":         ("passlib.drivers.des_crypt",   "bigcrypt"),
+    "bsdi_crypt":       ("passlib.drivers.des_crypt",   "bsdi_crypt"),
+    "crypt16":          ("passlib.drivers.des_crypt",   "crypt16"),
+    "des_crypt":        ("passlib.drivers.des_crypt",   "des_crypt"),
+    "md5_crypt":        ("passlib.drivers.md5_crypt",   "md5_crypt"),
+    "mysql323":         ("passlib.drivers.mysql",       "mysql323"),
+    "mysql41":          ("passlib.drivers.mysql",       "mysql41"),
+    "nthash":           ("passlib.drivers.nthash",      "nthash"),
+    "phpass":           ("passlib.drivers.phpass",      "phpass"),
+    "postgres_md5":     ("passlib.drivers.postgres",    "postgres_md5"),
+    "postgres_plaintext":("passlib.drivers.postgres",   "postgres_plaintext"),
+    "sha1_crypt":       ("passlib.drivers.sha1_crypt",  "sha1_crypt"),
+    "sha256_crypt":     ("passlib.drivers.sha2_crypt",  "sha256_crypt"),
+    "sha512_crypt":     ("passlib.drivers.sha2_crypt",  "sha512_crypt"),
+    "sun_md5_crypt":    ("passlib.drivers.sun_md5_crypt","sun_md5_crypt"),
+}
+
+def register_crypt_location(name, path):
+    "register location to lazy-load driver when requested"
+    global _driver_locations
+    if ':' in path:
+        modname, modattr = path.split(":")
+    else:
+        modname = path
+        modattr = None
+    _driver_locations[name] = (modname, modattr)
 
 def register_crypt_handler(obj, force=False):
     "register CryptHandler handler"
-    global _hmod
+    global _drivers
 
     #validate obj
     if not is_crypt_handler(obj):
@@ -72,7 +134,7 @@ def register_crypt_handler(obj, force=False):
         raise ValueError, "invalid characters in name (only underscore, a-z, 0-9 allowed): %r" % (name,)
 
     #check for existing handler
-    other = getattr(_hmod, name, None)
+    other = _drivers.get(name)
     if other:
         if other is obj:
             return #already registered
@@ -82,37 +144,62 @@ def register_crypt_handler(obj, force=False):
             raise ValueError, "handler already registered for name %r: %r" % (name, other)
 
     #put handler into hash module
-    setattr(_hmod, name, obj)
+    _drivers[name] = obj
     log.info("registered crypt handler %r: %r", name, obj)
 
 def get_crypt_handler(name, default=Undef):
     "resolve crypt algorithm name"
-    global _hmod
+    global _drivers, _driver_locations
 
-    #normalize name
+    #check if handler loaded
+    handler = _drivers.get(name)
+    if handler:
+        return handler
+
+    #normalize name (and if changed, check dict again)
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names be lower-case, and use underscores instead of hyphens: %r => %r" % (name, alt))
         name = alt
 
-    #check if handler loaded
-    handler = getattr(_hmod, name, None)
-    if handler:
+        #check if handler loaded
+        handler = _drivers.get(name)
+        if handler:
+            return handler
+
+    #check if lazy load mapping has been specified for this driver
+    route = _driver_locations.get(name)
+    if route:
+        modname, modattr = route
+
+        #try to load the module - any import errors indicate runtime config,
+        # either missing packages, or bad path provided to register_crypt_location()
+        mod = __import__(modname, None, None, ['dummy'], 0)
+
+        #first check if importing module triggered register_crypt_handler(),
+        #though this is discouraged due to it's magical implicitness
+        handler = _drivers.get(name)
+        if handler:
+            #XXX: issue deprecation warning here?
+            assert is_crypt_handler(handler), "unexpected object: name=%r object=%r" % (name, handler)
+            return handler
+
+        #if attribute specified, assume *that's* the handler, otherwise assume the module itself.
+        if modattr:
+            handler = getattr(mod, modattr)
+        else:
+            handler = mod
+
+        #XXX: can this ever happen under legitimate circumstances?
+        if handler.name != name:
+            raise RuntimeError, "handler name does not match expected name: %r vs %r" % (handler.name, name)
+
+        #run through register_crypt_handler, to validate it
+        register_crypt_handler(handler)
+
         return handler
 
-    #try to lazy load from passlib.hash.xxx
-    try:
-        mod = __import__("passlib.hash." + name, None, None, ['dummy'], 0)
-    except ImportError, err:
-        #make sure we don't hide failure to import dependancy
-        if str(err) != "No module named " + name:
-            raise
-    else:
-        #<mod> should now be value store in _hmod.name,
-        #we call register_crypt_handler() as sanity check to be sure.
-        #(will raise ValueError/TypeError if something went wrong)
-        register_crypt_handler(mod)
-        return mod
+    #TODO: check egg entry points under name "passlib.hash"
 
     #fail!
     if default is Undef:
@@ -122,8 +209,7 @@ def get_crypt_handler(name, default=Undef):
 
 def list_crypt_handlers():
     "return sorted list of all known crypt algorithm names"
-    global _hmod, _builtin_names
-    return sorted(_builtin_names.union(x for x in dir(_hmod) if not x.startswith("_")))
+    return filter(lambda x: not x.startswith("_"), dir(_hashmod))
 
 #=========================================================
 #policy

@@ -31,6 +31,10 @@ The copyright & license for that source is as follows::
     simple password protection.
     @version $Id: UnixCrypt2.txt,v 1.1.1.1 2005/09/13 22:20:13 christos Exp $
     @author Greg Wilkins (gregw)
+
+netbsd des-crypt implementation,
+which has some nice notes on how this all works -
+    http://fxr.googlebit.com/source/lib/libcrypt/crypt.c?v=NETBSD-CURRENT
 """
 
 #TODO: could use an accelerated C version of this module to speed up lmhash, des-crypt, and ext-des-crypt

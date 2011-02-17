@@ -1,12 +1,11 @@
 ===================================================================
-:mod:`passlib.hash.sha512_crypt` - SHA-512 Crypt 
+:class:`passlib.hash.sha512_crypt` - SHA-512 Crypt
 ===================================================================
 
-.. module:: passlib.hash.sha512_crypt
-    :synopsis: SHA-512 Crypt
+.. currentmodule:: passlib.hash
 
 SHA-512 Crypt and SHA-256 Crypt were developed as a response
-to :mod:`~passlib.hash.bcrypt`. They are descendants of :mod:`~passlib.hash.md5_crypt`,
+to :class:`~passlib.hash.bcrypt`. They are descendants of :class:`~passlib.hash.md5_crypt`,
 and incorporate many changes: replaced MD5 with newer message digest algorithms,
 some internal cleanups in MD5-Crypt's rounds algorithm,
 and the introduction of a variable rounds parameter.
@@ -22,11 +21,7 @@ Usage
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: sha512_crypt
 
 Format & Algorithm
 ==================

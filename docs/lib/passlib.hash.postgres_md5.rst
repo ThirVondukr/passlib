@@ -1,9 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
+:class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
 
-.. module:: passlib.hash.postgres_md5
-    :synopsis: PostgreSQL MD5 password hash
+.. currentmodule:: passlib.hash
 
 .. warning::
 
@@ -43,11 +42,7 @@ That aside, this module can be used directly as follows::
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: postgres_md5
 
 Format & Algorithm
 ==================

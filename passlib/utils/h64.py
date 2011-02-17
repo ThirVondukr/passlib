@@ -131,6 +131,7 @@ def decode_int6(value):
 
 def decode_int12(value):
     "decode 2 chars of hash-64 format used by crypt, returning 12-bit integer"
+    #NOTE: this is optimized form of decode_int(value) for 4 chars
     try:
         return (decode_6bit(value[1])<<6)+decode_6bit(value[0])
     except KeyError:
@@ -138,11 +139,13 @@ def decode_int12(value):
 
 def encode_int12(value):
     "encode 2 chars of hash-64 format from a 12-bit integer"
+    #NOTE: this is optimized form of encode_int(value,2)
     return  encode_6bit(value & 0x3f) + encode_6bit((value>>6) & 0x3f)
 
 #---------------------------------------------------------------------
 def decode_int18(value):
     "decode 3 chars of hash-64 format, returning 18-bit integer"
+    #NOTE: this is optimized form of decode_int(value) for 3 chars
     return (
         decode_6bit(value[0]) +
         (decode_6bit(value[1])<<6) +
@@ -151,6 +154,7 @@ def decode_int18(value):
 
 def encode_int18(value):
     "encode 18-bit integer into 3 chars of hash-64 format"
+    #NOTE: this is optimized form of encode_int(value,3)
     return (
         encode_6bit(value & 0x3f) +
         encode_6bit((value>>6) & 0x3f) +
@@ -160,7 +164,8 @@ def encode_int18(value):
 #---------------------------------------------------------------------
 
 def decode_int24(value):
-    "decode 4 chars of hash-64 format, returning 24-bit integer"
+    "decode 4 chars of hash-64 format in little-endian order, returning 24-bit integer"
+    #NOTE: this is optimized form of decode_int(value) for 4 chars
     try:
         return  decode_6bit(value[0]) +\
                 (decode_6bit(value[1])<<6)+\
@@ -170,7 +175,8 @@ def decode_int24(value):
         raise ValueError, "invalid character"
 
 def encode_int24(value):
-    "encode 4 chars of hash-64 format from a 24-bit integer"
+    "encode 4 chars of hash-64 format in little-endian order, from a 24-bit integer"
+    #NOTE: this is optimized form of encode_int(value,4)
     return  encode_6bit(value & 0x3f) + \
             encode_6bit((value>>6) & 0x3f) + \
             encode_6bit((value>>12) & 0x3f) + \
@@ -179,32 +185,48 @@ def encode_int24(value):
 #---------------------------------------------------------------------
 
 def decode_int64(value):
-    "decode 64-bit integer from 11 chars of hash-64 format"
+    "decode 64-bit integer from 11 chars of hash-64 format in little-endian order"
     return decode_int(value)
 
 def encode_int64(value):
-    "encode 64-bit integer to hash-64 format, returning 11 chars"
-    return encode_int(value)
+    "encode 64-bit integer to hash-64 format, returning 11 chars in little-endian order"
+    return encode_int(value, 11)
+
+def decode_dc_int64(value):
+    "decode 64-bit integer from 11 chars of hash-64 format using des-crypt -specific format"
+    #NOTE: lower 2 bits of last char are ignored (should be 0)
+    return decode_int(value, 11, True)>>2
+
+def encode_dc_int64(value):
+    "encode 64-bit integer to hash-64 format, returning 11 chars using des-crypt -specific format"
+    #NOTE: insert 2 padding bits as lsb, to make 66 bits total
+    return encode_int(value<<2,11,True)
 
 #---------------------------------------------------------------------
 
-def decode_int(source):
-    "decode hash-64 format used by crypt into integer"
+def decode_int(source, big=False):
+    "decode hash-64 format used by crypt into integer; ``big`` flag indicates big-endian instead of little-endian"
     #FORMAT: little-endian, each char contributes 6 bits,
     # char value = index in H64_CHARS string
+    if not big:
+        source = reversed(source)
     try:
         out = 0
-        for c in reversed(source):
+        for c in source:
                 out = (out<<6) + decode_6bit(c)
         return out
     except KeyError:
         raise ValueError, "invalid character in string"
 
-def encode_int(value, count):
-    "encode integer into hash-64 format"
+def encode_int(value, count, big=False):
+    "encode integer into hash-64 format; ``big`` flag indicates big-endian instead of little-endian"
+    if big:
+        itr = xrange(6*count-6, -6, -6)
+    else:
+        itr = xrange(0, 6*count, 6)
     return _sjoin(
         encode_6bit((value>>off) & 0x3f)
-        for off in xrange(0, 6*count, 6)
+        for off in itr
     )
 
 #=================================================================================

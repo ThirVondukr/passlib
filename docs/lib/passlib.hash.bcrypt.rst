@@ -1,11 +1,10 @@
 ==================================================================
-:mod:`passlib.hash.bcrypt` - BCrypt
+:class:`passlib.hash.bcrypt` - BCrypt
 ==================================================================
 
-.. module:: passlib.hash.bcrypt
-    :synopsis: BCrypt
+.. currentmodule:: passlib.hash
 
-BCrypt was developed to replace :mod:`~passlib.hash.md5_crypt` for BSD systems.
+BCrypt was developed to replace :class:`~passlib.hash.md5_crypt` for BSD systems.
 It uses a modified version of the Blowfish stream cipher. Featuring
 a large salt and variable number of rounds, it's currently the default
 password hash for many systems (notably BSD), and has no known weaknesses.
@@ -24,11 +23,7 @@ Usage
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: bcrypt
 
 Format & Algorithm
 ==================

@@ -14,24 +14,41 @@ import time
 from warnings import warn
 #site
 #pkg
-import passlib.utils.h64
 #local
 __all__ = [
     #decorators
     "classproperty",
-    "abstractmethod",
-    "abstractclassmethod",
+##    "memoized_class_property",
+##    "abstractmethod",
+##    "abstractclassmethod",
+
+    #misc
+    'os_crypt',
+
+    #tests
+    'is_crypt_handler',
+    'is_crypt_context',
 
     #byte manipulation
     "bytes_to_list",
     "list_to_bytes",
     "xor_bytes",
 
-    #misc helpers
-    'gen_salt',
-    'norm_salt',
-    'norm_rounds',
+    #random
+    'rng',
+    'getrandbytes',
+    'getrandstr',
 ]
+
+#=================================================================================
+#os crypt helpers
+#=================================================================================
+try:
+    #NOTE: just doing this import once, for all the various hashes that need it.
+    from crypt import crypt as os_crypt
+except ImportError:
+    os_crypt = None
+
 #=================================================================================
 #decorators
 #=================================================================================
@@ -44,31 +61,45 @@ class classproperty(object):
     def __get__(self, obj, cls):
         return self.im_func(cls)
 
-def abstractmethod(func):
-    """Method decorator which indicates this is a placeholder method which
-    should be overridden by subclass.
+#works but not used
+##class memoized_class_property(object):
+##    """function decorator which calls function as classmethod, and replaces itself with result for current and all future invocations"""
+##    def __init__(self, func):
+##        self.im_func = func
+##
+##    def __get__(self, obj, cls):
+##        func = self.im_func
+##        value = func(cls)
+##        setattr(cls, func.__name__, value)
+##        return value
 
-    If called directly, this method will raise an :exc:`NotImplementedError`.
-    """
-    msg = "object %(self)r method %(name)r is abstract, and must be subclassed"
-    def wrapper(self, *args, **kwds):
-        text = msg % dict(self=self, name=wrapper.__name__)
-        raise NotImplementedError(text)
-    update_wrapper(wrapper, func)
-    return wrapper
+#works but not used...
+##def abstractmethod(func):
+##    """Method decorator which indicates this is a placeholder method which
+##    should be overridden by subclass.
+##
+##    If called directly, this method will raise an :exc:`NotImplementedError`.
+##    """
+##    msg = "object %(self)r method %(name)r is abstract, and must be subclassed"
+##    def wrapper(self, *args, **kwds):
+##        text = msg % dict(self=self, name=wrapper.__name__)
+##        raise NotImplementedError(text)
+##    update_wrapper(wrapper, func)
+##    return wrapper
 
-def abstractclassmethod(func):
-    """Class Method decorator which indicates this is a placeholder method which
-    should be overridden by subclass, and must be a classmethod.
-
-    If called directly, this method will raise an :exc:`NotImplementedError`.
-    """
-    msg = "class %(cls)r method %(name)r is abstract, and must be subclassed"
-    def wrapper(cls, *args, **kwds):
-        text = msg % dict(cls=cls, name=wrapper.__name__)
-        raise NotImplementedError(text)
-    update_wrapper(wrapper, func)
-    return classmethod(wrapper)
+#works but not used...
+##def abstractclassmethod(func):
+##    """Class Method decorator which indicates this is a placeholder method which
+##    should be overridden by subclass, and must be a classmethod.
+##
+##    If called directly, this method will raise an :exc:`NotImplementedError`.
+##    """
+##    msg = "class %(cls)r method %(name)r is abstract, and must be subclassed"
+##    def wrapper(cls, *args, **kwds):
+##        text = msg % dict(cls=cls, name=wrapper.__name__)
+##        raise NotImplementedError(text)
+##    update_wrapper(wrapper, func)
+##    return classmethod(wrapper)
 
 Undef = object() #singleton used as default kwd value in some functions
 
@@ -279,6 +310,9 @@ except NotImplementedError:
 
 def genseed(value=None):
     "generate prng seed value from system resources"
+    #if value is rng, extract a bunch of bits from it's state
+    if hasattr(value, "getrandbits"):
+        value = value.getrandbits(256)
     text = "%s %s %s %.15f %s" % (
         value,
             #if user specified a seed value (eg current rng state), mix it in
@@ -288,7 +322,7 @@ def genseed(value=None):
 
         id(object()),
             #id of a freshly created object.
-            #(at least 2 bytes of which are hard to predict)
+            #(at least 2 bytes of which should be hard to predict)
 
         time.time(),
             #the current time, to whatever precision os uses
@@ -299,9 +333,11 @@ def genseed(value=None):
     #hash it all up and return it as int
     return long(sha256(text).hexdigest(), 16)
 
-rng = random.Random(genseed())
-
-#NOTE: to reseed rng: rng.seed(genseed(rng.getrandbits(32*8)))
+if has_urandom:
+    rng = random.SystemRandom()
+else:
+    #NOTE: to reseed - rng.seed(genseed(rng))
+    rng = random.Random(genseed())
 
 #-----------------------------------------------------------------------
 # some rng helpers
@@ -350,122 +386,65 @@ def getrandstr(rng, charset, count):
 #=================================================================================
 #misc helpers
 #=================================================================================
-def norm_rounds(rounds, default_rounds, min_rounds, max_rounds, name="this crypt"):
-    """helper routine for normalizing rounds
+class dict_proxy(object):
+    def __init__(self, source):
+        self.__source = source
 
-    * falls back to :attr:`default_rounds`
-    * raises ValueError if no fallback
-    * clips to min_rounds / max_rounds
-    * issues warnings if rounds exists min/max
+    def __getattr__(self, key):
+        try:
+            return self.__source[key]
+        except KeyError:
+            raise AttributeError, "attribute not found: %r" % (key,)
 
-    :returns: normalized rounds value
-    """
-    if rounds is None:
-        rounds = default_rounds
-        if rounds is None:
-            raise ValueError, "rounds must be specified explicitly"
-
-    if rounds > max_rounds:
-        warn("%s algorithm does not allow more than %d rounds: %d" % (name, max_rounds, rounds))
-        rounds = max_rounds
-
-    if rounds < min_rounds:
-        warn("%s algorithm does not allow less than %d rounds: %d" % (name, min_rounds, rounds))
-        rounds = min_rounds
-
-    return rounds
-
-def gen_salt(count, charset=h64.CHARS):
-    "generate salt string of *count* chars using specified *charset*"
-    global rng
-    return getrandstr(rng, charset, count)
-
-def norm_salt(salt, min_chars, max_chars=None, default_chars=None, charset=h64.CHARS, gen_charset=None, name="specified"):
-    """helper to normalize & validate user-provided salt string
-
-    required salt_charset & salt_chars attrs to be filled in,
-    along with optional min_salt_chars attr (defaults to salt_chars).
-
-    * generates salt if none provided
-    * clips salt to maximum length of salt_chars
-
-    :arg salt: user-provided salt
-    :arg min_chars: minimum number of chars in salt
-    :arg max_chars: maximum number of chars in salt (if omitted, same as min_chars)
-    :param charset: character set that salt MUST be subset of (defaults to :)
-    :param gen_charset: optional character set to restrict to when generating new salts (defaults to charset)
-    :param name: optional name of handler, for inserting into error messages
-
-    :raises ValueError:
-
-        * if salt contains chars that aren't in salt_charset.
-        * if salt contains less than min_salt_chars characters.
-
-    :returns:
-        resulting or generated salt
-    """
-    #generate one if needed
-    if salt is None:
-        return gen_salt(default_chars or max_chars or min_chars, gen_charset or charset)
-
-    #check character set
-    for c in salt:
-        if c not in charset:
-            raise ValueError, "invalid character in %s salt: %r"  % (name, c)
-
-    #check min size
-    if len(salt) < min_chars:
-        raise ValueError, "%s salt must be at least %d chars" % (name, min_chars)
-
-    if max_chars is None:
-        max_chars = min_chars
-    if len(salt) > max_chars:
-        #automatically clip things to specified number of chars
-        return salt[:max_chars]
-    else:
-        return salt
-
-def autodocument(scope, salt_charset="[./0-9A-Za-z]", context_doc=''):
+def autodocument(scope, salt_charset="[./0-9A-Za-z]", settings_doc='', context_doc=''):
     """helper to auto-generate documentation for password hash handler
 
     :arg scope: dict containing encrypt/verify/etc functions (module scope or class dict)
     """
+    #check for class
+    if not hasattr(scope, "__dict__"):
+        scope = dict_proxy(scope)
 
-    name = scope['name']
+    #extract info
+    name = scope.name
 
-    setting_kwds = scope['setting_kwds']
+    setting_kwds = scope.setting_kwds
     has_salt = 'salt' in setting_kwds
     has_rounds = 'rounds' in setting_kwds
     has_other = any(c for c in setting_kwds if c not in ("salt", "rounds"))
 
     if has_salt:
-        max_salt_chars = scope["max_salt_chars"]
-        min_salt_chars = scope["min_salt_chars"]
+        max_salt_chars = scope.max_salt_chars
+        min_salt_chars = scope.min_salt_chars
 
     if has_rounds:
-        default_rounds = scope['default_rounds']
-        min_rounds = scope['min_rounds']
-        max_rounds = scope['max_rounds']
-        rounds_cost = scope['rounds_cost']
+        default_rounds = scope.default_rounds
+        min_rounds = scope.min_rounds
+        max_rounds = scope.max_rounds
+        rounds_cost = scope.rounds_cost
         assert rounds_cost in ("linear","log2")
         log_rounds = (rounds_cost == "log2")
 
-    context_kwds = scope['context_kwds']
-
-    encrypt = scope['encrypt']
-    if not encrypt.__doc__:
-        pass
+    context_kwds = scope.context_kwds
 
     if context_doc:
         context_doc = context_doc.rstrip() + "\n"
+    if settings_doc:
+        settings_doc = settings_doc.rstrip() + "\n"
+
+    def get_func(name):
+        func = getattr(scope, name)
+        if hasattr(func, "im_func"):
+            func = func.im_func
+        return func
 
     #--------------------------------------------------------------
     #generate genconfig docstring
     #--------------------------------------------------------------
-    genconfig = scope['genconfig']
+    genconfig = get_func("genconfig")
     if not genconfig.__doc__:
         if setting_kwds:
-            if has_other:
+            if has_other and not settings_doc:
                 raise NotImplementedError, "can't auto generate genconfig docs w/ unknown setting_kwds"
             d = "generate %(name)s configuration string\n\n" % dict(name=name)
 
@@ -484,6 +463,9 @@ def autodocument(scope, salt_charset="[./0-9A-Za-z]", context_doc=''):
                 if log_rounds:
                     d += """    %(name)s's rounds value is logarithmic, the actual number of rounds used is ``2**rounds``.\n""" % dict(name=name)
 
+            if settings_doc:
+                d += settings_doc + "\n"
+
             d += """\n:raises ValueError: if invalid settings are passed in\n\n"""
             d += """:returns:\n    %(name)s configuration string\n""" % dict(name=name)
         else:
@@ -497,7 +479,7 @@ def autodocument(scope, salt_charset="[./0-9A-Za-z]", context_doc=''):
     #--------------------------------------------------------------
     #generate genhash docstring
     #--------------------------------------------------------------
-    genhash = scope['genhash']
+    genhash = get_func("genhash")
     if not genhash.__doc__:
         if context_kwds and not context_doc:
             raise NotImplementedError, "context_doc must be defined"
@@ -536,7 +518,7 @@ def autodocument(scope, salt_charset="[./0-9A-Za-z]", context_doc=''):
     #--------------------------------------------------------------
     #generate encrypt docstring
     #--------------------------------------------------------------
-    encrypt = scope['encrypt']
+    encrypt = get_func("encrypt")
     if not encrypt.__doc__:
         if context_kwds and not context_doc:
             raise NotImplementedError, "context_doc must be defined"
@@ -556,7 +538,7 @@ it has the same effect as ``genhash(secret,genconfig(**settings))``
     #--------------------------------------------------------------
     #generate identify docstring
     #--------------------------------------------------------------
-    identify = scope['identify']
+    identify = get_func("identify")
     if not identify.__doc__:
         if setting_kwds:
             cstr = " or configuration"
@@ -580,7 +562,7 @@ it has the same effect as ``genhash(secret,genconfig(**settings))``
     #--------------------------------------------------------------
     #generate verify docstring
     #--------------------------------------------------------------
-    verify = scope['verify']
+    verify = get_func("verify")
     if not verify.__doc__:
         if context_kwds and not context_doc:
             raise NotImplementedError, "context_doc must be defined"

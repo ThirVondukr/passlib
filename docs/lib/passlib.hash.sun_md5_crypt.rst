@@ -1,9 +1,8 @@
-===============================================================
-:mod:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt password hash
-===============================================================
+=================================================================
+:class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt password hash
+=================================================================
 
-.. module:: passlib.hash.sun_md5_crypt
-    :synopsis: Sun MD5 Crypt
+.. currentmodule:: passlib.hash
 
 .. warning::
 
@@ -16,7 +15,7 @@
 This algorithm is used by Solaris, as a replacement for the aging des-crypt.
 It is mainly used on later versions of Solaris, and is not found many other
 places. While based on the MD5 message digest, it has very little at all
-in common with the :mod:`~passlib.hash.md5_crypt` algorithm. It supports
+in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
 32 bit variable rounds and an 8 character salt. Due to a theoretic pre-image
 attacks on the MD5 message digest, this algorithm should probably not
 be used in new deploys.
@@ -25,15 +24,11 @@ Usage
 =====
 This module supports both rounds and salts,
 and so can be used in the exact same manner
-as :mod:`~passlib.hash.sha512_crypt`.
+as :class:`~passlib.hash.sha512_crypt`.
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: sun_md5_crypt
 
 Format
 ======
@@ -74,7 +69,7 @@ by one of the creators). Given a password, the number of rounds, and a salt...
     - if a 0, the same as 1, except that magic constant data is not included.
 
 * The final checksum is then encoded into :mod:`hash64 <~passlib.hash.h64>` using the same
-  transposed byte order that :mod:`~passlib.hash.md5_crypt` uses.
+  transposed byte order that :class:`~passlib.hash.md5_crypt` uses.
 
 The constant data string is referenced above is a 1517 byte ascii string... an excerpt from Hamlet,
 starting with ``To be, or not to be...`` and ending with ``...all my sins remember'd.\n``,

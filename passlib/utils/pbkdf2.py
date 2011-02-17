@@ -12,6 +12,7 @@ import hmac
 import logging; log = logging.getLogger(__name__)
 import re
 from struct import pack
+from warnings import warn
 #site
 try:
     from M2Crypto import EVP as _EVP
@@ -21,8 +22,27 @@ except ImportError:
 from passlib.utils import xor_bytes
 #local
 __all__ = [
+    "hmac_sha1",
     "pbkdf2",
 ]
+
+#=================================================================================
+#hmac sha1 support
+#=================================================================================
+def hmac_sha1(key, msg):
+    "perform raw hmac-sha1 of a message"
+    return hmac(key, msg, sha1).digest()
+
+if _EVP:
+    #default *should* be sha1, which saves us a wrapper function, but might as well check.
+    try:
+        result = _EVP.hmac('x','y')
+    except ValueError:
+        #this is probably not a good sign if it happens.
+        warn("PassLib: M2Crypt.EVP.hmac() unexpected threw value error during passlib startup test")
+    else:
+        if result == ',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i':
+            hmac_sha1 = _EVP.hmac
 
 #=================================================================================
 #backend
@@ -32,7 +52,6 @@ MAX_BLOCKS = 0xffffffffL #2**32-1
 def _resolve_prf(prf):
     "resolve prf string or callable -> func & digest_size"
     if isinstance(prf, str):
-
         if prf.startswith("hmac-"):
             digest = prf[5:]
 

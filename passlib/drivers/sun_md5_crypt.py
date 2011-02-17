@@ -1,4 +1,4 @@
-"""passlib.hash.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
+"""passlib.drivers.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
 
 .. warning::
 
@@ -25,15 +25,12 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import norm_rounds, norm_salt, h64, autodocument
+from passlib.utils import h64, autodocument
+from passlib.utils.drivers import ExtHash
 #pkg
 #local
 __all__ = [
-    "genhash",
-    "genconfig",
-    "encrypt",
-    "identify",
-    "verify",
+    "sun_md5_crypt",
 ]
 
 #=========================================================
@@ -186,101 +183,88 @@ _chk_offsets = (
 )
 
 #=========================================================
-#algorithm information
+#handler
 #=========================================================
-name = "sun_md5_crypt"
-#stats: 128 bit checksum, 48 bit salt, 0..2**32-4095 rounds
+class sun_md5_crypt(ExtHash):
+    #=========================================================
+    #class attrs
+    #=========================================================
+    name = "sun_md5_crypt"
+    setting_kwds = ("salt", "rounds")
 
-setting_kwds = ("salt", "rounds")
-context_kwds = ()
+    min_salt_chars = 0
+    max_salt_chars = 8
 
-min_salt_chars = 0
-max_salt_chars = 8
+    default_rounds = 5000 #current passlib default
+    min_rounds = 0
+    max_rounds = 4294963199 ##2**32-1-4096
+        #XXX: ^ not sure what it does if past this bound... does 32 int roll over?
+    rounds_cost = "linear"
 
-default_rounds = 5000 #current passlib default
-min_rounds = 0
-max_rounds = 4294963199 ##2**32-1-4096
-    #XXX: not sure what it does if past this bound... does 32 int roll over?
-rounds_cost = "linear"
+    #=========================================================
+    #internal helpers
+    #=========================================================
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash) and (hash.startswith("$md5$") or hash.startswith("$md5,"))
 
-#=========================================================
-#internal helpers
-#=========================================================
-_pat = re.compile(r"""
-    ^
-    \$md5
-    ([$,]rounds=(?P<rounds>\d+))?
-    \$(?P<salt>[A-Za-z0-9./]{0,8})
-    (\$(?P<chk>[A-Za-z0-9./]{22})?)?
-    $
-    """, re.X)
+    _pat = re.compile(r"""
+        ^
+        \$md5
+        ([$,]rounds=(?P<rounds>\d+))?
+        \$(?P<salt>[A-Za-z0-9./]{0,8})
+        (\$(?P<chk>[A-Za-z0-9./]{22})?)?
+        $
+        """, re.X)
 
-#NOTE: trailing "$" is supposed to be part of config string,
-# supposed to take both, but render with "$"
-#NOTE: seen examples with both "," or "$" as md5/rounds separator,
-# not sure what official format is.
-# taking both, rendering ","
+    #NOTE: trailing "$" is supposed to be part of config string,
+    # supposed to take both, but render with "$"
+    #NOTE: seen examples with both "," or "$" as md5/rounds separator,
+    # not sure what official format is.
+    # taking both, rendering ","
 
-def parse(hash):
-    if not hash:
-        raise ValueError, "no hash specified"
-    m = _pat.match(hash)
-    if not m:
-        raise ValueError, "invalid sun-md5-crypt hash"
-    rounds, salt, chk = m.group("rounds", "salt", "chk")
-    #NOTE: this is *additional* rounds added to base 4096 specified by spec.
-    #XXX: should we note whether "$" or "," was used as rounds separator?
-    # not sure if that affects anything
-    return dict(
-        rounds=int(rounds) if rounds else 0,
-        salt=salt,
-        checksum=chk,
-    )
+    @classmethod
+    def from_string(cls, hash):
+        if not hash:
+            raise ValueError, "no hash specified"
+        m = cls._pat.match(hash)
+        if not m:
+            raise ValueError, "invalid sun-md5-crypt hash"
+        rounds, salt, chk = m.group("rounds", "salt", "chk")
+        #NOTE: this is *additional* rounds added to base 4096 specified by spec.
+        #XXX: should we note whether "$" or "," was used as rounds separator?
+        # not sure if that affects anything
+        return cls(
+            rounds=int(rounds) if rounds else 0,
+            salt=salt,
+            checksum=chk,
+            strict=bool(chk)
+        )
 
-def render(rounds, salt, checksum=None):
-    "render a sun-md5-crypt hash or config string"
-    if rounds > 0:
-        return "$md5,rounds=%d$%s$%s" % (rounds, salt, checksum or '')
-    else:
-        return "$md5$%s$%s" % (salt, checksum or '')
+    def to_string(self):
+        rounds = self.rounds
+        if rounds > 0:
+            out = "$md5,rounds=%d$%s" % (rounds, self.salt)
+        else:
+            out = "$md5$%s" % (self.salt,)
+        chk = self.checksum
+        if chk:
+            out = "%s$%s" % (out, chk)
+        return out
 
-#=========================================================
-#primary interface
-#=========================================================
-def genconfig(salt=None, rounds=None):
-    salt = norm_salt(salt, min_salt_chars, max_salt_chars, name=name)
-    rounds = norm_rounds(rounds, default_rounds, min_rounds, max_rounds, name=name)
-    return render(rounds, salt, None)
+    #=========================================================
+    #primary interface
+    #=========================================================
+    #TODO: if we're on solaris, check for native crypt() support
 
-def genhash(secret, config):
-    #parse and run through genconfig to validate configuration
-    #FIXME: could eliminate uneeded render/parse call
-    info = parse(config)
-    info.pop("checksum")
-    config = genconfig(**info)
-    info = parse(config)
-    rounds, salt = info['rounds'], info['salt']
+    def calc_checksum(self, secret):
+        return raw_sun_md5_crypt(secret, self.rounds, self.salt)
 
-    #run through builtin backend
-    checksum = raw_sun_md5_crypt(secret, rounds, salt)
-    return render(rounds, salt, checksum)
+    #=========================================================
+    #eoc
+    #=========================================================
 
-#=========================================================
-#secondary interface
-#=========================================================
-def encrypt(secret, **settings):
-    return genhash(secret, genconfig(**settings))
-
-def verify(secret, hash):
-    #normalize hash format so strings compare
-    if hash and hash.startswith("$md5$rounds="):
-        hash = "$md5,rounds=" + hash[12:]
-    return hash == genhash(secret, hash)
-
-def identify(hash):
-    return bool(hash and _pat.match(hash))
-
-autodocument(globals())
+autodocument(sun_md5_crypt)
 #=========================================================
 #eof
 #=========================================================

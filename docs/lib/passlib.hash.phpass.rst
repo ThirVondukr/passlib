@@ -1,9 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.phpass` - PHPass Portable Hash
+:class:`passlib.hash.phpass` - PHPass Portable Hash
 ==================================================================
 
-.. module:: passlib.hash.phpass
-    :synopsis: PHPass Portable Hash
+.. currentmodule:: passlib.hash
 
 This algorithm is used primarily by PHP software
 which uses the `PHPass <http://www.openwall.com/phpass/>`_ library,
@@ -21,11 +20,7 @@ Usage
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: phpass
 
 Format
 ==================

@@ -12,8 +12,6 @@ They may also be useful when implementing custom handlers for existing legacy fo
 Decorators
 ==========
 .. autofunction:: classproperty
-.. autofunction:: abstractmethod
-.. autofunction:: abstractclassmethod
 
 String Manipulation
 ===================
@@ -46,17 +44,6 @@ Object Tests
 
 .. autofunction:: is_crypt_context
 
-Crypt Handler Helpers
-=====================
-The following functions are used by passlib to do input validation
-for many of the implemented password schemes:
-
-.. autofunction:: norm_rounds
-
-.. autofunction:: gen_salt(salt, charset=H64_CHARS)
-
-.. autofunction:: norm_salt(salt, min_chars, max_chars=None, charset=H64_CHARS, gen_charset=None, name=None)
-
 Submodules
 ==========
 There are also a few sub modules which provide additional utility functions:
@@ -72,4 +59,4 @@ There are also a few sub modules which provide additional utility functions:
 
     document this module...
 
-    passlib.utils.handlers
+    passlib.utils.drivers

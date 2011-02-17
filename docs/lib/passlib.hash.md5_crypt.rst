@@ -1,9 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.md5_crypt` - MD5 Crypt
+:class:`passlib.hash.md5_crypt` - MD5 Crypt
 ==================================================================
 
-.. module:: passlib.hash.md5_crypt
-    :synopsis: MD5 Crypt
+.. currentmodule:: passlib.hash
 
 This algorithm was developed to replace the aging des-crypt.
 It is supported by a wide variety of unix flavors, and is found
@@ -13,7 +12,7 @@ algorithm which it's based around is considered broken,
 though pre-image attacks are currently only theoretical.
 Despite this, MD5-Crypt itself is not considered broken,
 and is still considered ok to use, though new applications
-should use a stronger scheme (eg :mod:`~passlib.hash.sha512_crypt`) if possible.
+should use a stronger scheme (eg :class:`~passlib.hash.sha512_crypt`) if possible.
 
 Usage
 =====
@@ -36,11 +35,7 @@ This module can be used directly as follows::
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: md5_crypt
 
 Format
 ======

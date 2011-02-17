@@ -1,9 +1,8 @@
 ==================================================================
-:mod:`passlib.hash.nthash` - Windows NT-HASH for Unix
+:class:`passlib.hash.nthash` - Windows NT-HASH for Unix
 ==================================================================
 
-.. module:: passlib.hash.nthash
-    :synopsis: Windows NT-HASH for Unix
+.. currentmodule:: passlib.hash
 
 .. warning::
 
@@ -26,14 +25,10 @@ Usage
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: nthash
 
 In addition to the normal password hash api, this module also exposes
-the following method:
+the following:
 
 .. function:: raw_nthash(secret, hex=False)
 
