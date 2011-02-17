@@ -15,10 +15,13 @@ While many applications may find it easier to use a :class:`CryptContext`
 instance, or retreive handlers via :func:`get_crypt_handler`, they can
 also be imported and used directly from this package:
 
-    >>> from passlib.hash.import md5_crypt
+    >>> from passlib.hash import md5_crypt
     >>> hash = md5_crypt.encrypt("password")
 
 Passlib contains the following builtin password algorithms:
+
+..
+    XXX: should we have an "archaic" section for des/bsdi/bigcrypt/crypt16?
 
 Standard Unix Schemes
 ---------------------
@@ -40,13 +43,17 @@ the :ref:`modular crypt format <modular-crypt-format>`.
 .. toctree::
     :hidden:
 
+    passlib.hash.bigcrypt
+    passlib.hash.crypt16
     passlib.hash.sun_md5_crypt
 
 .. todo::
 
     These aren't fully implemented / tested yet:
 
-    * :mod:`~passlib.hash.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
+    * :class:`~passlib.hash.bigcrypt`
+    * :class:`~passlib.hash.crypt16`
+    * :class:`~passlib.hash.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
 
 Non-Standard Unix-Compatible Schemes
 ------------------------------------
@@ -71,6 +78,6 @@ not seen outside those specific contexts:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.mysql_323
-    passlib.hash.mysql_41
+    passlib.hash.mysql323
+    passlib.hash.mysql41
     passlib.hash.postgres_md5

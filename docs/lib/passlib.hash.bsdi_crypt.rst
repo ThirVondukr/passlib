@@ -1,12 +1,11 @@
 =================================================================================
-:mod:`passlib.hash.bsdi_crypt` - BSDi (Extended DES) Crypt
+:class:`passlib.hash.bsdi_crypt` - BSDi (Extended DES) Crypt
 =================================================================================
 
-.. module:: passlib.hash.bsdi_crypt
-    :synopsis: BSDi (Extended DES) Crypt
+.. currentmodule:: passlib.hash
 
 This algorithm was developed by BSDi for their BSD/OS distribution.
-It's based on :mod:`~passlib.hash.des_crypt`, and contains a larger
+It's based on :class:`~passlib.hash.des_crypt`, and contains a larger
 salt and a variable number of rounds.  Nonetheless, since it's based on DES,
 and still shares many of des-crypt's other flaws,
 it should not be used in new applications.
@@ -14,7 +13,7 @@ it should not be used in new applications.
 Usage
 =====
 Aside from differences in format and salt size,
-ext-des-crypt usage is exactly the same as :mod:`~passlib.hash.des_crypt`.
+ext-des-crypt usage is exactly the same as :class:`~passlib.hash.des_crypt`.
 
 .. todo::
 
@@ -22,11 +21,7 @@ ext-des-crypt usage is exactly the same as :mod:`~passlib.hash.des_crypt`.
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass:: bsdi_crypt
 
 Format
 ======

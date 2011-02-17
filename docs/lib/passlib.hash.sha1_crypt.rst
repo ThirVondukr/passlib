@@ -1,9 +1,8 @@
 ===================================================================
-:mod:`passlib.hash.sha1_crypt` - SHA-1 Crypt
+:class:`passlib.hash.sha1_crypt` - SHA-1 Crypt
 ===================================================================
 
-.. module:: passlib.hash.sha1_crypt
-    :synopsis: SHA-1 Crypt
+.. currentmodule:: passlib.hash
 
 SHA1-Crypt is a hash algorithm introduced by NetBSD in 2004.
 It's based on a variation of the PBKDF1 algorithm,
@@ -12,15 +11,11 @@ and supports a large salt and variable number of rounds.
 Usage
 =====
 Supporting a variable sized salt and variable number of rounds,
-this scheme is used in exactly the same way as :mod:`~passlib.hash.sha512_crypt`.
+this scheme is used in exactly the same way as :class:`~passlib.hash.sha512_crypt`.
 
 Functions
 =========
-.. autofunction:: genconfig
-.. autofunction:: genhash
-.. autofunction:: encrypt
-.. autofunction:: identify
-.. autofunction:: verify
+.. autoclass: sha1_crypt
 
 Format
 ======

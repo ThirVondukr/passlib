@@ -23,12 +23,12 @@ and other parts have been kept intentionally non-commital, in order to allow
 flexibility of implementation.
 
 All of the schemes built into passlib implement this interface;
-most them as modules within the :mod:`passlib.hash. package.
+most them as modules within the :mod:`passlib.hash` package.
 
 Overview
 ========
 A handler which implements a password hash may be a module, class, or instance
-(though most of the ones builtin to Passlib are modules).
+(though most of the ones builtin to Passlib are classes).
 The only requirement is that it expose a minimum of the following attributes
 and functions (for classes, the following functions must be static or class methods).
 
@@ -38,13 +38,14 @@ All handlers have the following three attributes:
     * ``setting_kwds`` - list of settings recognized by ``genconfig()`` and ``encrypt()``.
     * ``context_kwds`` - list of context specified keywords required by algorithm
 
-All handlers have the following five function:
+All handlers have the following five functions:
 
-    * ``genconfig(**settings) -> configuration string`` - used for generating configuration strings.
-    * ``genhash(secret, config, **context) -> hash`` - used for encrypting secret using configuration string or existing hash
     * ``encrypt(secret, **context_and_settings) -> hash`` - used for encrypting secret using specified options
     * ``identify(hash) -> True|False`` - used for identifying hash belonging to this algorithm
     * ``verify(secret, hash, **context)`` - used for verifying a secret against an existing hash
+
+    * ``genconfig(**settings) -> configuration string`` - used for generating configuration strings.
+    * ``genhash(secret, config, **context) -> hash`` - used for encrypting secret using configuration string or existing hash
 
 Usage Examples
 ==============
@@ -187,9 +188,8 @@ While the primary interface is generally the most useful when integrating
 password support into an application, those methods are for the most part
 built on top of the secondary interface, which is somewhat simpler
 for *implementing* new password schemes. It also happens to match
-the tradition unix crypt interface, and consists of two functions:
-``genconfig()`` and ``genhash``.
-
+more closely with the crypt api of most unix systems,
+and consists of two functions: ``genconfig()`` and ``genhash``.
 
 .. function:: genconfig(\*\*settings)
 
@@ -274,34 +274,6 @@ the tradition unix crypt interface, and consists of two functions:
     :returns:
         encoded hash matching specified secret, config, and context.
 
-Optional Parse Methods
-======================
-Some of the handlers in passlib expose some additional function and attributes,
-which may be useful, but whose behavior varies between handlers (if present at all),
-and may not conform exactly to the following summary:
-
-.. function:: parse(hash)
-
-    This method usually takes in a hash or configuration string
-    belonging to the scheme, and parses it into a dictionary
-    whose keys should match :attr:`setting_kwds`,
-    as well as the key ``checksum``, which is either ``None`` or
-    the encoded checksum portion of the string (ie, the hash itself).
-
-    It should raise :exc:`ValueError` in the same cases that :func:`genhash` would.
-
-    Most implementations of ``parse()`` do very little sanity checking,
-    leaving that job to ``genconfig``.
-
-.. function:: render(checksum=None, \*\*settings)
-
-    This method is the inverse of :func:`parse`:
-    it takes in a dictionary such as returned by :func:`parse`,
-    and renders a hash or configuration string.
-
-    Most implementations of ``render()`` do very little sanity checking,
-    and may be willing to form strings which are malformed.
-
 Optional Informational Attributes
 =================================
 Many of the handlers in passlib expose the following informational
@@ -333,8 +305,8 @@ the following attributes are usually exposed:
     Specifies how the rounds value affects the amount of time taken.
     Currently used values are:
 
-    ``linear`` - time taken scales linearly with rounds value
-    ``log2`` - time taken scales exponentially with rounds value
+    ``linear`` - time taken scales linearly with rounds value (eg: sha512_crypt)
+    ``log2`` - time taken scales exponentially with rounds value (eg: bcrypt)
 
 For schemes which support a salt,
 the following attributes are usually exposed:

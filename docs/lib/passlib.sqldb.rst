@@ -13,7 +13,7 @@ which should be capable of recognizing passwords in modern postgres systems:
 .. object:: postgres_context
 
     This object should recognize password hashes stores in postgres' pg_shadow table.
-    it can recognize :mod:`~passlib.hash.postgres_md5` hashes,
+    it can recognize :class:`~passlib.hash.postgres_md5` hashes,
     as well as plaintext hashes.
     It defaults to postgres_md5 when generating new hashes.
 
@@ -26,11 +26,11 @@ for handling MySQL user passwords:
 
 .. object:: mysql_context
 
-    This object should recognize the new :mod:`~passlib.hash.mysql_41` hashes,
-    as well as any legacy :mod:`~passlib.hash.mysql_323` hashes.
-    It defaults to mysql_41 when generating new hashes.
+    This object should recognize the new :class:`~passlib.hash.mysql41` hashes,
+    as well as any legacy :class:`~passlib.hash.mysql323` hashes.
+    It defaults to mysql41 when generating new hashes.
 
 .. object:: mysql3_context
 
     This object is for use with older MySQL deploys which only recognize
-    the :mod:`~passlib.hash.mysql_323` hash.
+    the :class:`~passlib.hash.mysql323` hash.
