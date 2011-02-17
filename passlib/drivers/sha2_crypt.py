@@ -423,6 +423,8 @@ class sha512_crypt(BackendExtHash):
             "$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
             )
 
+    #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
+
     def _calc_checksum_builtin(self, secret):
         checksum, salt, rounds = raw_sha512_crypt(secret, self.salt, self.rounds)
         assert salt == self.salt, "class doesn't agree w/ builtin backend"

@@ -19,6 +19,7 @@ from ConfigParser import ConfigParser
 import inspect
 import re
 import hashlib
+from math import log as logb
 import logging; log = logging.getLogger(__name__)
 import time
 import os
@@ -216,27 +217,27 @@ def list_crypt_handlers():
 #=========================================================
 def parse_policy_key(key):
     "helper to normalize & parse policy keys; returns ``(category, name, option)``"
-    ##if isinstance(k, tuple) and len(k) == 3:
-    ##    cat, name, opt = k
-    ##else:
-    orig = key
-    if '/' in key: #legacy format
-        key = key.replace("/",".")
-    elif '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
-        key = key.replace("__", ".")
-    key = key.replace(" ","").replace("\t","") #strip out all whitespace from key
-    parts = key.split(".")
-    if len(parts) == 1:
-        cat = None
-        name = "context"
-        opt, = parts
-    elif len(parts) == 2:
-        cat = None
-        name, opt = parts
-    elif len(parts) == 3:
-        cat, name, opt = parts
+    if isinstance(key, tuple) and len(key) == 3:
+        cat, name, opt = key
     else:
-        raise KeyError, "keys must have 0..2 separators: %r" % (orig,)
+        orig = key
+        if '/' in key: #legacy format
+            key = key.replace("/",".")
+        elif '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
+            key = key.replace("__", ".")
+        key = key.replace(" ","").replace("\t","") #strip out all whitespace from key
+        parts = key.split(".")
+        if len(parts) == 1:
+            cat = None
+            name = "context"
+            opt, = parts
+        elif len(parts) == 2:
+            cat = None
+            name, opt = parts
+        elif len(parts) == 3:
+            cat, name, opt = parts
+        else:
+            raise KeyError, "keys must have 0..2 separators: %r" % (orig,)
     if cat == "default":
         cat = None
     assert name
@@ -261,7 +262,11 @@ def parse_policy_value(cat, name, opt, value):
             return value
 
 class CryptPolicy(object):
-    """stores configuration options for a CryptContext object."""
+    """stores configuration options for a CryptContext object.
+
+    .. note::
+        Instances of CryptPolicy should be treated as immutable.
+    """
 
     #=========================================================
     #class methods
@@ -284,45 +289,53 @@ class CryptPolicy(object):
     @classmethod
     def from_source(cls, source):
         "helper which accepts CryptPolicy, filepath, raw string, and returns policy"
-        if isinstance(source, CryptPolicy):
+        if isinstance(source, cls):
+            #NOTE: can just return source unchanged,
+            #since we're treating CryptPolicy objects as read-only
             return source
-        if any(c in source for c in "\n\r\t"): #none of these chars should be in filepaths, but should be in config string
-            return cls.from_string(source)
-        else: #other strings should be filepath
-            return cls.from_path(source)
+
+        elif isinstance(source, dict):
+            return cls(**source)
+
+        elif isinstance(source, (str,unicode)):
+            #FIXME: this autodetection makes me uncomfortable...
+            if any(c in source for c in "\n\r\t"): #none of these chars should be in filepaths, but should be in config string
+                return cls.from_string(source)
+
+            else: #other strings should be filepath
+                return cls.from_path(source)
+        else:
+            raise TypeError, "source must be CryptPolicy, dict, config string, or file path: %r" % (type(source),)
 
     @classmethod
     def from_sources(cls, sources):
-        "create new policy from list of existing policy object"
+        "create new policy from list of existing policy objects"
+        #check for no sources - should we return blank policy in that case?
         if len(sources) == 0:
+            #XXX: er, would returning an empty policy be the right thing here?
             raise ValueError, "no sources specified"
-        first = sources[0]
+
+        #check if only one source
         if len(sources) == 1:
-            return CryptPolicy.from_source(first)
-        if isinstance(first, CryptPolicy):
-            target = CryptPolicy()
-        else:
-            sources = sources[1:]
-            target = cls.from_source(first)
+            return cls.from_source(sources[0])
+
+        #else, build up list of kwds by parsing each source
+        kwds = {}
         for source in sources:
-            source = cls.from_source(source)
-            if source._handlers:
-                target._handlers = source._handlers
-            target._fallback.update(source._fallback)
-            target._deprecated.update(source._deprecated)
-            target._min_verify_time.update(source._min_verify_time)
-            options = target._options
-            for cat, copts in source._options.iteritems():
-                if cat in options:
-                    topts = options[cat]
-                    for name, config in copts.iteritems():
-                        if name in topts:
-                            topts[name].update(config)
-                        else:
-                            topts[name] = config
-                else:
-                    options[cat] = copts
-        return target
+            policy = cls.from_source(source)
+            kwds.update(policy.iteritems("tuple"))
+
+        #build new policy
+        return cls(**kwds)
+
+    def replace(self, *args, **kwds):
+        "return copy of policy, with specified options replaced by new values"
+        sources = [ self ]
+        if args:
+            sources.extend(args)
+        if kwds:
+            sources.append(kwds)
+        return CryptPolicy.from_sources(sources)
 
     #=========================================================
     #instance attrs
@@ -516,18 +529,17 @@ class CryptPolicy(object):
     #=========================================================
     #serialization
     #=========================================================
-    def iteritems(self, format="python", minimal=False):
+    def iteritems(self, format="python"):
         """iterate through keys in policy.
 
         :param format:
             format results should be returned in.
             * ``python`` - returns keys with ``__`` separator, and raw values
-            * ``ini`` - returns keys with ``.`` separator, and strings instead of handler lists
             * ``tuple`` - returns keys as raw (cat,name,opt) tuple, and raw values
-        :param minimal: if True, removed redundant / unused options; defaults to faithful reporting of policy
+            * ``ini`` - returns keys with ``.`` separator, and strings instead of handler lists
 
         :returns:
-            (key,value) iterator.
+            iterator which yeilds (key,value) pairs.
         """
         ini = False
         if format == "tuple":
@@ -535,23 +547,26 @@ class CryptPolicy(object):
                 return (cat, name, opt)
         else:
             if format == "ini":
-                ini = True
                 fmt1 = "%s.%s.%s"
                 fmt2 = "%s.%s"
+
+                ini = True
+                def h2n(handler):
+                    return handler.name
+                def hlist(handlers):
+                    return ", ".join(map(h2n, handlers))
+
             else:
                 assert format == "python"
                 fmt1 = "%s__%s__%s"
                 fmt2 = "%s__%s"
+
             def format_key(cat, name, opt):
                 if cat:
                     return fmt1 % (cat, name or "context", opt)
                 if name:
                     return fmt2 % (name, opt)
                 return opt
-            def h2n(handler):
-                return handler.name
-            def hlist(handlers):
-                return ", ".join(map(h2n, handlers))
 
         value = self._handlers
         if value:
@@ -575,38 +590,37 @@ class CryptPolicy(object):
 
         for cat, copts in self._options.iteritems():
             for name in sorted(copts):
-                if minimal and self.lookup(name) is None:
-                    continue
                 config = copts[name]
                 for opt in sorted(config):
                     value = config[opt]
                     yield format_key(cat, name, opt), value
 
-    def as_dict(self, format="python", minimal=False):
+    def to_dict(self, format="python"):
         "return as dictionary of keywords"
-        return dict(self.iteritems(format, minimal))
+        return dict(self.iteritems(format))
 
-    def _write_to_parser(self, parser, section, **opts):
+    def _write_to_parser(self, parser, section):
+        "helper for to_string / to_file"
         p.add_section(section)
-        for k,v in self.iteritems("ini", **opts):
+        for k,v in self.iteritems("ini"):
             p.set(section, k,v)
 
-    def as_string(self, section="passlib", minimal=False):
+    def to_string(self, section="passlib"):
         "render to INI string"
         p = ConfigParser()
-        self._write_to_parser(p, minimal=minimal)
+        self._write_to_parser(p)
         b = StringIO()
         p.write(b)
         return b.getvalue()
 
-    def write_to_file(self, path, section="passlib", update=False, minimal=False):
+    def to_path(self, path, section="passlib", update=False):
         "write to INI file"
         p = ConfigParser()
         if update and os.path.exists(path):
             if not p.read([path]):
                 raise EnvironmentError, "failed to read existing file"
             p.remove_section(section)
-        self._write_to_parser(p, minimal=minimal)
+        self._write_to_parser(p)
         fh = file(path, "w")
         p.write(fh)
         fh.close()
@@ -690,12 +704,11 @@ class CryptContext(object):
             kwds['schemes'] = schemes
         if not policy:
             policy = CryptPolicy(**kwds)
-        elif kwds:
-            tmp = CryptPolicy(**kwds)
-            if isinstance(policy, list):
-                policy = CryptPolicy.from_sources(policy + [tmp])
-            else:
-                policy = CryptPolicy.from_sources([policy, tmp])
+        elif kwds or not isinstance(policy, CryptPolicy):
+            policy = list(policy)
+            if kwds:
+                policy.append(kwds)
+            policy = CryptPolicy.from_sources(policy)
         if not policy._handlers:
             raise ValueError, "at least one scheme must be specified"
         self.policy = policy
@@ -704,7 +717,9 @@ class CryptContext(object):
         names = [ handler.name for handler in self.policy._handlers ]
         return "CryptContext(%r)" % (names,)
 
-    #XXX: should support a copy / mutate method which takes in new policy options.
+    def replace(self, *args, **kwds):
+        "return CryptContext with new policy which has specified values replaced"
+        return CryptContext(policy=self.policy.replace(*args,**kwds))
 
     #===================================================================
     #policy adaptation
@@ -740,9 +755,13 @@ class CryptContext(object):
                     vr = opts.get("vary_default_rounds")
                     if vr:
                         if isinstance(vr, str) and vr.endswith("%"):
-                            ##TODO: detect log rounds, and adjust scale
-                            ##vr = int(log(vr*.01*(2**df),2))
-                            vr = int(df * vr / 100)
+                            rc = getattr(handler, "rounds_cost", "linear")
+                            vr = int(vr[:-1])
+                            assert 0 <= vr < 100
+                            if rc == "log2": #let % variance scale the linear number of rounds, not the log rounds cost
+                                vr = int(logb(vr*.01*(2**df),2)+.5)
+                            else:
+                                vr = int(df*vr/100)
                         rounds = rng.randint(df-vr,df+vr)
                     else:
                         rounds = df
@@ -771,9 +790,10 @@ class CryptContext(object):
 
         #XXX: could check if handler provides it's own helper, eg getattr(handler, "is_compliant", None)
 
-        if hasattr(handler, "parse"):
-            info = handler.parse(hash)
-            if 'rounds' in info:
+        if hasattr(handler, "from_string"):
+            info = handler.from_string(hash)
+            rounds = getattr(info, "rounds", None)
+            if rounds is not None:
                 min_rounds = opts.get("min_rounds")
                 if min_rounds and rounds < min_rounds:
                     return False
@@ -792,14 +812,15 @@ class CryptContext(object):
         settings = self.norm_handler_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
-    def genhash(self, config, scheme=None, category=None, **context):
+    def genhash(self, secret, config, scheme=None, category=None, **context):
         """Call genhash() for specified handler"""
         #NOTE: this doesn't use category in any way, but accepts it for consistency
         if scheme:
             handler = self.lookup(scheme, required=True)
         else:
             handler = self.identify(config, required=True)
-        return handler.genhash(config, **context)
+        #XXX: could insert normalization to preferred unicode encoding here
+        return handler.genhash(secret, config, **context)
 
     def identify(self, hash, category=None, name=False, required=False):
         """Attempt to identify which algorithm hash belongs to w/in this context.
@@ -856,6 +877,7 @@ class CryptContext(object):
             raise ValueError, "no algorithms registered"
         handler = self.lookup(scheme, category, required=True)
         kwds = self.norm_handler_settings(handler, category, **kwds)
+        #XXX: could insert normalization to preferred unicode encoding here
         return handler.encrypt(secret, **kwds)
 
     def verify(self, secret, hash, scheme=None, category=None, **context):
@@ -888,6 +910,8 @@ class CryptContext(object):
         ##for k in context.keys():
         ##    if k not in handler.context_kwds:
         ##        del context[k]
+
+        #XXX: could insert normalization to preferred unicode encoding here
 
         #use handler to verify secret
         result = handler.verify(secret, hash, **context)
