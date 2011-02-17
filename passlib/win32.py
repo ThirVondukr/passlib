@@ -18,7 +18,7 @@ this module provided two functions to aid in any use-cases which exist.
 .. autofunction:: raw_lmhash
 .. autofunction:: raw_nthash
 
-See also :mod:`passlib.hash.nthash`.
+See also :mod:`passlib.drivers.nthash`.
 """
 #=========================================================
 #imports
@@ -28,8 +28,8 @@ from binascii import hexlify
 #site
 #pkg
 from passlib.utils.des import des_encrypt_block
-from passlib.hash import nthash
-from passlib.hash.nthash import raw_nthash
+from passlib.drivers.import nthash
+from passlib.drivers.nthash import raw_nthash
 #local
 __all__ = [
     "nthash",

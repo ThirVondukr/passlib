@@ -1,10 +1,10 @@
-"""passlib.hash.mysql
+"""passlib.drivers.mysql
 
 MySQL 3.2.3 / OLD_PASSWORD()
 
     This implements Mysql's OLD_PASSWORD algorithm, introduced in version 3.2.3, deprecated in version 4.1.
 
-    See :mod:`passlib.hash.mysql_41` for the new algorithm was put in place in version 4.1
+    See :mod:`passlib.drivers.mysql_41` for the new algorithm was put in place in version 4.1
 
     This algorithm is known to be very insecure, and should only be used to verify existing password hashes.
 
@@ -23,29 +23,29 @@ MySQL 4.1.1 / NEW PASSWORD
 #imports
 #=========================================================
 #core
+from hashlib import sha1
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
 #pkg
-from passlib.base import register_crypt_handler
 from passlib.utils import autodocument
-from passlib.utils.handlers import BaseHandler
+from passlib.utils.drivers import BaseHash
 #local
 __all__ = [
-    'MySQL_323',
-    'MySQL_41',
+    'mysql323',
+    'mysq41',
 ]
 
 #=========================================================
 #backend
 #=========================================================
-class MySQL_323(BaseHandler):
+class mysql323(BaseHash):
     #=========================================================
     #class attrs
     #=========================================================
-    name = "mysql_323"
+    name = "mysql323"
     setting_kwds = ()
 
     #=========================================================
@@ -101,17 +101,16 @@ class MySQL_323(BaseHandler):
     #eoc
     #=========================================================
 
-autodocument(MySQL_323)
-register_crypt_handler(MySQL_323)
+autodocument(mysql323)
 
 #=========================================================
 #handler
 #=========================================================
-class MySQL_41(BaseHandler):
+class mysql41(BaseHash):
     #=========================================================
     #algorithm information
     #=========================================================
-    name = "mysql_41"
+    name = "mysql41"
     setting_kwds = ()
 
     #=========================================================
@@ -152,8 +151,7 @@ class MySQL_41(BaseHandler):
     #eoc
     #=========================================================
 
-autodocument(MySQL_41)
-register_crypt_handler(MySQL_41)
+autodocument(mysql41)
 #=========================================================
 #eof
 #=========================================================

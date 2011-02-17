@@ -1,4 +1,4 @@
-"""passlib.hash.nthash - unix-crypt compatible nthash passwords"""
+"""passlib.drivers.nthash - unix-crypt compatible nthash passwords"""
 #=========================================================
 #imports
 #=========================================================
@@ -8,10 +8,9 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils.md4 import md4
 from passlib.utils import autodocument
-from passlib.utils.handlers import ExtHandler
+from passlib.utils.drivers import ExtHash
 #pkg
 #local
 __all__ = [
@@ -29,7 +28,7 @@ def raw_nthash(secret, hex=False):
 #=========================================================
 #handler
 #=========================================================
-class NTHash(ExtHandler):
+class nthash(ExtHash):
     #=========================================================
     #class attrs
     #=========================================================
@@ -101,13 +100,12 @@ class NTHash(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(NTHash, settings_doc="""
+autodocument(nthash, settings_doc="""
 :param ident:
     This handler supports two different :ref:`modular-crypt-format` identifiers.
     It defaults to ``3``, but users may specify the alternate ``NT`` identifier
     which is used in some contexts.
 """)
-register_crypt_handler(NTHash)
 #=========================================================
 #eof
 #=========================================================

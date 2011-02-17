@@ -1,4 +1,4 @@
-"""passlib.hash.md5_crypt - md5-crypt algorithm"""
+"""passlib.drivers.md5_crypt - md5-crypt algorithm"""
 #=========================================================
 #imports
 #=========================================================
@@ -9,13 +9,13 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument, os_crypt
-from passlib.utils.handlers import ExtHandler, BackendExtHandler
+from passlib.utils.drivers import ExtHash, BackendExtHash
 #pkg
 #local
 __all__ = [
-    "Md5Crypt",
+    "md5_crypt",
+    "apr_md5_crypt",
 ]
 
 #=========================================================
@@ -126,7 +126,7 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class Md5Crypt(BackendExtHandler):
+class md5_crypt(BackendExtHash):
     #=========================================================
     #algorithm information
     #=========================================================
@@ -195,13 +195,12 @@ class Md5Crypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(Md5Crypt)
-register_crypt_handler(Md5Crypt)
+autodocument(md5_crypt)
 
 #=========================================================
 #apache variant of md5-crypt
 #=========================================================
-class AprMd5Crypt(ExtHandler):
+class apr_md5_crypt(ExtHash):
     #=========================================================
     #algorithm information
     #=========================================================
@@ -254,8 +253,7 @@ class AprMd5Crypt(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(AprMd5Crypt)
-register_crypt_handler(AprMd5Crypt)
+autodocument(apr_md5_crypt)
 #=========================================================
 #eof
 #=========================================================

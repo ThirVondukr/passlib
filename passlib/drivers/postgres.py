@@ -1,4 +1,4 @@
-"""passlib.hash.postgres_md5 - MD5-based algorithm used by Postgres for pg_shadow table"""
+"""passlib.drivers.postgres_md5 - MD5-based algorithm used by Postgres for pg_shadow table"""
 #=========================================================
 #imports
 #=========================================================
@@ -10,17 +10,46 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.base import register_crypt_handler
 from passlib.utils import autodocument
 #local
 __all__ = [
-    "PostgresMD5",
+    "postgres_md5",
 ]
+
+#=========================================================
+#
+#=========================================================
+class postgres_plaintext(object):
+    "fake password hash which recognizes ALL hashes, and assumes they encode the password in plain-text"
+    name = "postgres_plaintext"
+
+    setting_kwds = ()
+    context_kwds = ("user",)
+
+    @classmethod
+    def genconfig(cls):
+        return None
+
+    @classmethod
+    def genhash(cls, secret, config, user):
+        return secret
+
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash)
+
+    @classmethod
+    def encrypt(cls, secret, config, user):
+        return secret
+
+    @classmethod
+    def verify(cls, secret, hash, user):
+        return secret == hash
 
 #=========================================================
 #handler
 #=========================================================
-class PostgresMD5(object):
+class postgres_md5(object):
     #=========================================================
     #algorithm information
     #=========================================================
@@ -74,10 +103,9 @@ class PostgresMD5(object):
     #eoc
     #=========================================================
 
-autodocument(PostgresMD5, context_doc="""\
+autodocument(postgres_md5, context_doc="""\
 :param user: string containing name of postgres user account this password is associated with.
 """)
-register_crypt_handler(PostgresMD5)
 #=========================================================
 #eof
 #=========================================================

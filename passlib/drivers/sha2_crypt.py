@@ -1,4 +1,4 @@
-"""passlib.hash.sha2_crypt - SHA256/512-CRYPT"""
+"""passlib.drivers.sha2_crypt - SHA256/512-CRYPT"""
 #=========================================================
 #imports
 #=========================================================
@@ -9,9 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument, os_crypt, classproperty
-from passlib.utils.handlers import BackendExtHandler
+from passlib.utils.drivers import BackendExtHash
 #pkg
 #local
 __all__ = [
@@ -206,7 +205,7 @@ _512_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class SHA256Crypt(BackendExtHandler):
+class sha256_crypt(BackendExtHash):
 
     #=========================================================
     #algorithm information
@@ -231,7 +230,7 @@ class SHA256Crypt(BackendExtHandler):
         if implicit_rounds is None:
             implicit_rounds = True
         self.implicit_rounds = implicit_rounds
-        super(SHA256Crypt, self).__init__(**kwds)
+        super(sha256_crypt, self).__init__(**kwds)
 
     #=========================================================
     #parsing
@@ -318,7 +317,7 @@ class SHA256Crypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(SHA256Crypt, settings_doc="""
+autodocument(sha256_crypt, settings_doc="""
 :param implicit_rounds:
     this is an internal option which generally doesn't need to be touched.
 
@@ -327,12 +326,11 @@ autodocument(SHA256Crypt, settings_doc="""
     and the flag is ignored otherwise. the spec requires the two different
     encodings be preserved as they are, instead of normalizing them.
 """)
-register_crypt_handler(SHA256Crypt)
 
 #=========================================================
 #sha 512 crypt
 #=========================================================
-class SHA512Crypt(BackendExtHandler):
+class sha512_crypt(BackendExtHash):
 
     #=========================================================
     #algorithm information
@@ -357,7 +355,7 @@ class SHA512Crypt(BackendExtHandler):
         if implicit_rounds is None:
             implicit_rounds = True
         self.implicit_rounds = implicit_rounds
-        super(SHA512Crypt, self).__init__(**kwds)
+        super(sha512_crypt, self).__init__(**kwds)
 
     #=========================================================
     #parsing
@@ -446,7 +444,7 @@ class SHA512Crypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(SHA512Crypt, settings_doc="""
+autodocument(sha512_crypt, settings_doc="""
 :param implicit_rounds:
     this is an internal option which generally doesn't need to be touched.
 
@@ -455,7 +453,6 @@ autodocument(SHA512Crypt, settings_doc="""
     and the flag is ignored otherwise. the spec requires the two different
     encodings be preserved as they are, instead of normalizing them.
 """)
-register_crypt_handler(SHA512Crypt)
 #=========================================================
 #eof
 #=========================================================

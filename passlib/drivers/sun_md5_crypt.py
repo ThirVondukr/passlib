@@ -1,4 +1,4 @@
-"""passlib.hash.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
+"""passlib.drivers.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
 
 .. warning::
 
@@ -25,17 +25,12 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument
-from passlib.utils.handlers import ExtHandler
+from passlib.utils.drivers import ExtHash
 #pkg
 #local
 __all__ = [
-    "genhash",
-    "genconfig",
-    "encrypt",
-    "identify",
-    "verify",
+    "sun_md5_crypt",
 ]
 
 #=========================================================
@@ -190,7 +185,7 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class SunMD5Crypt(ExtHandler):
+class sun_md5_crypt(ExtHash):
     #=========================================================
     #class attrs
     #=========================================================
@@ -269,8 +264,7 @@ class SunMD5Crypt(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(SunMD5Crypt)
-register_crypt_handler(SunMD5Crypt)
+autodocument(sun_md5_crypt)
 #=========================================================
 #eof
 #=========================================================

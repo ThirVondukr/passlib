@@ -26,7 +26,7 @@ Users will most likely find the frontends provided by :mod:`passlib.sqldb`
 to be more useful than accessing this module directly.
 That aside, this module can be used directly as follows::
 
-    >>> from passlib.hash import mysql_323 as mold
+    >>> from passlib.hash.import mysql_323 as mold
 
     >>> mold.encrypt("password") #encrypt password
     '5d2e19393cc5ef67'

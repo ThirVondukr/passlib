@@ -1,4 +1,4 @@
-"""passlib.hash.sha1_crypt
+"""passlib.drivers.sha1_crypt
 """
 
 #=========================================================
@@ -14,9 +14,8 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import autodocument, h64
-from passlib.utils.handlers import ExtHandler
+from passlib.utils.drivers import ExtHash
 from passlib.utils.pbkdf2 import hmac_sha1
-from passlib.base import register_crypt_handler
 #pkg
 #local
 __all__ = [
@@ -24,7 +23,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class SHA1Crypt(ExtHandler):
+class sha1_crypt(ExtHash):
 
     #=========================================================
     #class attrs
@@ -108,8 +107,7 @@ class SHA1Crypt(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(SHA1Crypt)
-register_crypt_handler(SHA1Crypt)
+autodocument(sha1_crypt)
 #=========================================================
 #eof
 #=========================================================

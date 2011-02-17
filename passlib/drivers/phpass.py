@@ -1,4 +1,4 @@
-"""passlib.hash.phpass - PHPass Portable Crypt
+"""passlib.drivers.phpass - PHPass Portable Crypt
 
 phppass located - http://www.openwall.com/phpass/
 algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
@@ -16,22 +16,17 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, autodocument
-from passlib.utils.handlers import ExtHandler
-from passlib.base import register_crypt_handler
+from passlib.utils.drivers import ExtHash
 #pkg
 #local
 __all__ = [
-    "genhash",
-    "genconfig",
-    "encrypt",
-    "identify",
-    "verify",
+    "phpass",
 ]
 
 #=========================================================
 #phpass
 #=========================================================
-class PHPass(ExtHandler):
+class phpass(ExtHash):
 
     #=========================================================
     #class attrs
@@ -129,13 +124,12 @@ class PHPass(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(PHPass, settings_doc="""
+autodocument(phpass, settings_doc="""
 :param ident:
     phpBB3 uses ``H`` instead of ``P`` for it's identifier,
     this may be set to ``H`` in order to generate phpBB3 compatible hashes.
     it defaults to ``P``.
 """)
-register_crypt_handler(PHPass)
 #=========================================================
 #eof
 #=========================================================

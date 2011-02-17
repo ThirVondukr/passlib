@@ -19,19 +19,19 @@ from passlib.utils import classproperty, h64, getrandstr, rng, is_crypt_handler
 __all__ = [
 
     #framework for implementing handlers
-    'BaseHandler',
-    'ExtHandler',
-    'StaticHandler',
+    'BaseHash',
+    'ExtHash',
+    'StaticHash',
 
     'BackendMixin',
-        'BackendExtHandler',
-        'BackendStaticHandler',
+        'BackendExtHash',
+        'BackendStaticHash',
 ]
 
 #=========================================================
 #base handler
 #=========================================================
-class BaseHandler(object):
+class BaseHash(object):
     """helper for implementing password hash handler with minimal methods
 
     hash implementations should fill out the following:
@@ -134,12 +134,12 @@ class BaseHandler(object):
     #=====================================================
 
 #=========================================================
-# ExtHandler
+# ExtHash
 #   rounds+salt+xtra    phpass, sha256_crypt, sha512_crypt
 #   rounds+salt         bcrypt, ext_des_crypt, sha1_crypt, sun_md5_crypt
 #   salt only           apr_md5_crypt, des_crypt, md5_crypt
 #=========================================================
-class ExtHandler(BaseHandler):
+class ExtHash(BaseHash):
     """helper class for implementing hash schemes
 
     hash implementations should fill out the following:
@@ -174,8 +174,8 @@ class ExtHandler(BaseHandler):
     #----------------------------------------------
     #password hash api - required attributes
     #----------------------------------------------
-    name = None #required by ExtHandler
-    setting_kwds = None #required by ExtHandler
+    name = None #required by ExtHash
+    setting_kwds = None #required by ExtHash
     context_kwds = ()
 
     #----------------------------------------------
@@ -187,7 +187,7 @@ class ExtHandler(BaseHandler):
     #----------------------------------------------
     #salt information
     #----------------------------------------------
-    max_salt_chars = None #required by ExtHandler.norm_salt()
+    max_salt_chars = None #required by ExtHash.norm_salt()
 
     @classproperty
     def min_salt_chars(cls):
@@ -209,15 +209,15 @@ class ExtHandler(BaseHandler):
     #rounds information
     #----------------------------------------------
     min_rounds = 0
-    max_rounds = None #required by ExtHandler.norm_rounds()
-    default_rounds = None #if not specified, ExtHandler.norm_rounds() will require explicit rounds value every time
+    max_rounds = None #required by ExtHash.norm_rounds()
+    default_rounds = None #if not specified, ExtHash.norm_rounds() will require explicit rounds value every time
     rounds_cost = "linear" #common case
 
     #----------------------------------------------
-    #misc ExtHandler configuration
+    #misc ExtHash configuration
     #----------------------------------------------
     _strict_rounds_bounds = False #if true, always raises error if specified rounds values out of range - required by spec for some hashes
-    _extra_init_settings = () #settings that ExtHandler.__init__ should handle by calling norm_<key>()
+    _extra_init_settings = () #settings that ExtHash.__init__ should handle by calling norm_<key>()
 
     #=========================================================
     #instance attributes
@@ -242,12 +242,12 @@ class ExtHandler(BaseHandler):
                 norm = getattr(self, "norm_" + key)
                 value = norm(value, strict=strict)
                 setattr(self, key, value)
-        super(ExtHandler, self).__init__(**kwds)
+        super(ExtHash, self).__init__(**kwds)
 
     @classmethod
     def validate_class(cls):
         "helper to ensure class is configured property"
-        super(ExtHandler, cls).validate_class()
+        super(ExtHash, cls).validate_class()
 
         if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
             raise AssertionError, "_extra_init_settings must be subset of setting_kwds"
@@ -293,16 +293,16 @@ class ExtHandler(BaseHandler):
     @classproperty
     def _has_salt(cls):
         "attr for checking if salts are supported, memoizes itself on first use"
-        if cls is ExtHandler:
-            raise RuntimeError, "not allowed for ExtHandler directly"
+        if cls is ExtHash:
+            raise RuntimeError, "not allowed for ExtHash directly"
         value = cls._has_salt = 'salt' in cls.setting_kwds
         return value
 
     @classproperty
     def _has_rounds(cls):
         "attr for checking if variable are supported, memoizes itself on first use"
-        if cls is ExtHandler:
-            raise RuntimeError, "not allowed for ExtHandler directly"
+        if cls is ExtHash:
+            raise RuntimeError, "not allowed for ExtHash directly"
         value = cls._has_rounds = 'rounds' in cls.setting_kwds
         return value
 
@@ -503,17 +503,17 @@ class ExtHandler(BaseHandler):
 #=========================================================
 #static - mysql_323, mysql_41, nthash, postgres_md5
 #=========================================================
-class StaticHandler(ExtHandler):
+class StaticHash(ExtHash):
     """helper class optimized for implementing hash schemes which have NO settings whatsoever.
 
-    the main thing this changes from ExtHandler:
+    the main thing this changes from ExtHash:
 
     * :attr:`setting_kwds` must be an empty tuple (set by class)
     * :meth:`genconfig` takes no kwds, and always returns ``None``.
     * :meth:`genhash` accepts ``config=None``.
 
     otherwise, this requires the same methods be implemented
-    as does ExtHandler.
+    as does ExtHash.
     """
     #=========================================================
     #class attr
@@ -527,8 +527,8 @@ class StaticHandler(ExtHandler):
     def validate_class(cls):
         "helper to validate that class has been configured properly"
         if cls.setting_kwds:
-            raise AssertionError, "StaticHandler subclasses must not have any settings, perhaps you want ExtHandler?"
-        super(StaticHandler, cls).validate_class()
+            raise AssertionError, "StaticHash subclasses must not have any settings, perhaps you want ExtHash?"
+        super(StaticHash, cls).validate_class()
 
     #=========================================================
     #primary interface
@@ -605,10 +605,10 @@ class BackendMixin(object):
         assert self._backend, "set_backend() failed to load a default backend"
         return self.calc_checksum(secret)
 
-class BackendExtHandler(BackendMixin, ExtHandler):
+class BackendExtHash(BackendMixin, ExtHash):
     pass
 
-class BackendStaticHandler(BackendMixin, StaticHandler):
+class BackendStaticHash(BackendMixin, StaticHash):
     pass
 
 #=========================================================

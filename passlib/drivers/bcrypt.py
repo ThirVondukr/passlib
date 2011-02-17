@@ -21,9 +21,8 @@ try:
 except ImportError:
     pybcrypt_hashpw = None
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import autodocument, os_crypt
-from passlib.utils.handlers import BackendExtHandler
+from passlib.utils.drivers import BackendExtHash
 
 #TODO: make this a lazy import, generally don't want to load it.
 from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
@@ -31,13 +30,13 @@ from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
 #pkg
 #local
 __all__ = [
-    "BCrypt",
+    "bcrypt",
 ]
 
 #=========================================================
 #handler
 #=========================================================
-class BCrypt(BackendExtHandler):
+class bcrypt(BackendExtHash):
     #=========================================================
     #class attrs
     #=========================================================
@@ -128,7 +127,7 @@ class BCrypt(BackendExtHandler):
 
     @classmethod
     def set_backend(cls, name=None):
-        result = super(BCrypt, cls).set_backend(name)
+        result = super(bcrypt, cls).set_backend(name)
         #issue warning if builtin is ever chosen by default
         # (but if they explicitly ask for it, let it happen)
         if name != "builtin" and result == "builtin":
@@ -150,13 +149,12 @@ class BCrypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(BCrypt, settings_doc="""
+autodocument(bcrypt, settings_doc="""
 :param ident:
     selects specific version of BCrypt hash that will be used.
     Typically you want to leave this alone, and let it default to ``2a``,
     but it can be set to ``2`` to use the older version of BCrypt.
 """)
-register_crypt_handler(BCrypt)
 #=========================================================
 #eof
 #=========================================================

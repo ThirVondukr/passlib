@@ -3,9 +3,12 @@
 __version__ = "1.3"
 
 #=========================================================
-#
+#import special proxy object as 'passlib.hash' module
 #=========================================================
-##from passlib.base import CryptContext
+from passlib.base import _hashmod as hash
+import sys
+sys.modules['passlib.hash'] = hash
+del sys
 
 #=========================================================
 #quickstart interface

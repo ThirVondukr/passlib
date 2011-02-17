@@ -20,7 +20,7 @@ Usage
 =====
 This module can be used directly as follows::
 
-    >>> from passlib.hash import des_crypt as dc
+    >>> from passlib.hash.import des_crypt as dc
 
     >>> dc.encrypt("password") #generate new salt, encrypt password
     'JQMuyS6H.AGMo'

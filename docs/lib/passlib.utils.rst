@@ -59,4 +59,4 @@ There are also a few sub modules which provide additional utility functions:
 
     document this module...
 
-    passlib.utils.handlers
+    passlib.utils.drivers

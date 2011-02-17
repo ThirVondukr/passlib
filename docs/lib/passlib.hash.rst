@@ -15,7 +15,7 @@ While many applications may find it easier to use a :class:`CryptContext`
 instance, or retreive handlers via :func:`get_crypt_handler`, they can
 also be imported and used directly from this package:
 
-    >>> from passlib.hash import md5_crypt
+    >>> from passlib.hash.import md5_crypt
     >>> hash = md5_crypt.encrypt("password")
 
 Passlib contains the following builtin password algorithms:
@@ -30,7 +30,7 @@ the :ref:`modular crypt format <modular-crypt-format>`.
     :maxdepth: 1
 
     passlib.hash.des_crypt
-    passlib.hash.ext_des_crypt
+    passlib.hash.bsdi_crypt
     passlib.hash.md5_crypt
     passlib.hash.bcrypt
     passlib.hash.sha1_crypt

@@ -1,4 +1,4 @@
-"""passlib.hash.des_crypt - traditional unix (DES) crypt
+"""passlib.drivers.des_crypt - traditional unix (DES) crypt
 
 .. note::
 
@@ -58,14 +58,14 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.base import register_crypt_handler
 from passlib.utils import h64, autodocument, classproperty, os_crypt
-from passlib.utils.handlers import BackendExtHandler, ExtHandler
+from passlib.utils.drivers import BackendExtHash, ExtHash
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
 __all__ = [
-    "DesCrypt",
+    "des_crypt",
+    "bsdi_crypt",
 ]
 
 #=========================================================
@@ -91,7 +91,7 @@ def raw_crypt(secret, salt):
     #FIXME: ^ this will throws error if bad salt chars are used
     # whereas linux crypt does something (inexplicable) with it
 
-    #convert secret string into an integer
+    #convert first 8 bytes of secret string into an integer
     key_value = _crypt_secret_to_key(secret)
 
     #run data through des using input of 0
@@ -134,7 +134,7 @@ def raw_ext_crypt(secret, rounds, salt):
 #=========================================================
 #handler
 #=========================================================
-class DesCrypt(BackendExtHandler):
+class des_crypt(BackendExtHash):
     #=========================================================
     #class attrs
     #=========================================================
@@ -203,18 +203,17 @@ class DesCrypt(BackendExtHandler):
     #eoc
     #=========================================================
 
-autodocument(DesCrypt)
-register_crypt_handler(DesCrypt)
+autodocument(des_crypt)
 
 #=========================================================
 #handler
 #=========================================================
 #XXX: rename this to BSDiCrypt?
-class ExtDesCrypt(ExtHandler):
+class bsdi_crypt(ExtHash):
     #=========================================================
     #class attrs
     #=========================================================
-    name = "ext_des_crypt"
+    name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
 
     min_salt_chars = max_salt_chars = 4
@@ -277,8 +276,146 @@ class ExtDesCrypt(ExtHandler):
     #eoc
     #=========================================================
 
-autodocument(ExtDesCrypt)
-register_crypt_handler(ExtDesCrypt)
+autodocument(bsdi_crypt)
+
+#=========================================================
+#
+#=========================================================
+class bigcrypt(ExtHash):
+    #=========================================================
+    #class attrs
+    #=========================================================
+    name = "bigcrypt"
+    setting_kwds = ("salt",)
+
+    min_salt_chars = max_salt_chars = 2
+
+    checksum_charset = h64.CHARS
+    #NOTE: checksum chars must be multiple of 11
+
+    #=========================================================
+    #internal helpers
+    #=========================================================
+    _pat = re.compile(r"""
+        ^
+        (?P<salt>[./a-z0-9]{2})
+        (?P<chk>[./a-z0-9]{11,})?
+        $""", re.X|re.I)
+
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash and cls._pat.match(hash)) and (len(hash)-2) % 11 == 0
+
+    @classmethod
+    def from_string(cls, hash):
+        if not hash:
+            raise ValueError, "no hash specified"
+        m = cls._pat.match(hash)
+        if not m:
+            raise ValueError, "invalid bigcrypt hash"
+        salt, chk = m.group("salt", "chk")
+        if len(chk) % 11:
+            raise ValueError, "invalid bigcrypt hash"
+        return cls(salt=salt, checksum=chk, strict=bool(chk))
+
+    def to_string(self):
+        return "%s%s" % (self.salt, self.checksum or '')
+
+    #=========================================================
+    #backend
+    #=========================================================
+    #TODO: check if os_crypt supports ext-des-crypt.
+
+    def calc_checksum(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        chk = raw_crypt(secret, self.salt)
+        idx = 8
+        end = len(secret)
+        while idx < end:
+            next = idx + 8
+            chk += raw_crypt(secret[idx:next], chk[:2])
+            idx = next
+        return chk
+
+    #=========================================================
+    #eoc
+    #=========================================================
+
+#=========================================================
+#
+#=========================================================
+class crypt16(ExtHash):
+    #=========================================================
+    #class attrs
+    #=========================================================
+    name = "crypt16"
+    setting_kwds = ("salt",)
+
+    min_salt_chars = max_salt_chars = 2
+
+    checksum_chars = 22
+    checksum_charset = h64.CHARS
+
+    #=========================================================
+    #internal helpers
+    #=========================================================
+    _pat = re.compile(r"""
+        ^
+        (?P<salt>[./a-z0-9]{2})
+        (?P<chk>[./a-z0-9]{22})?
+        $""", re.X|re.I)
+
+    @classmethod
+    def identify(cls, hash):
+        return bool(hash and cls._pat.match(hash))
+
+    @classmethod
+    def from_string(cls, hash):
+        if not hash:
+            raise ValueError, "no hash specified"
+        m = cls._pat.match(hash)
+        if not m:
+            raise ValueError, "invalid crypt16 hash"
+        salt, chk = m.group("salt", "chk")
+        return cls(salt=salt, checksum=chk, strict=bool(chk))
+
+    def to_string(self):
+        return "%s%s" % (self.salt, self.checksum or '')
+
+    #=========================================================
+    #backend
+    #=========================================================
+    #TODO: check if os_crypt supports ext-des-crypt.
+
+    def calc_checksum(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+
+        #parse salt value
+        try:
+            salt_value = h64.decode_int12(self.salt)
+        except ValueError:
+            raise ValueError, "invalid chars in salt"
+
+        #convert first 8 byts of secret string into an integer,
+        key1 = _crypt_secret_to_key(secret)
+
+        #run data through des using input of 0
+        result1 = mdes_encrypt_int_block(key1, 0, salt_value, 20)
+
+        #convert next 8 bytes of secret string into integer (key=0 if secret < 8 chars)
+        key2 = _crypt_secret_to_key(secret[8:])
+
+        #run data through des using input of 0
+        result2 = mdes_encrypt_int_block(key2, 0, salt_value, 5)
+
+        return h64.encode_dc_int64(result1) + h64.encode_dc_int64(result2)
+
+    #=========================================================
+    #eoc
+    #=========================================================
+
 #=========================================================
 #eof
 #=========================================================

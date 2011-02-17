@@ -10,12 +10,15 @@ from logging import getLogger
 #pkg
 from passlib.base import CryptContext
 from passlib.tests.utils import TestCase
-##from passlib.unix.des_crypt import DesCrypt
-##from passlib.unix.sha_crypt import Sha512Crypt
-import passlib.hash.md5_crypt as AnotherHash
-from passlib.tests.test_handler import UnsaltedHash, SaltedHash
+from passlib.drivers.md5_crypt import Md5Crypt as AnotherHash
+from passlib.tests.test_utils_drivers import UnsaltedHash, SaltedHash
 #module
 log = getLogger(__name__)
+
+#
+#FIXME: this unit test does not match the current CryptContext *at all*,
+# and needs to be updated / rewritten to match new system
+#
 
 #=========================================================
 #CryptContext

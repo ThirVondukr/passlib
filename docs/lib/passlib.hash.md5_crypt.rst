@@ -19,7 +19,7 @@ Usage
 =====
 This module can be used directly as follows::
 
-    >>> from passlib.hash import md5_crypt as mc
+    >>> from passlib.hash.import md5_crypt as mc
 
     >>> mc.encrypt("password") #generate new salt, encrypt password
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'

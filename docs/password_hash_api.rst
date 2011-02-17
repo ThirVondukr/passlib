@@ -23,7 +23,7 @@ and other parts have been kept intentionally non-commital, in order to allow
 flexibility of implementation.
 
 All of the schemes built into passlib implement this interface;
-most them as modules within the :mod:`passlib.hash` package.
+most them as modules within the :mod:`passlib.hash. package.
 
 Overview
 ========
