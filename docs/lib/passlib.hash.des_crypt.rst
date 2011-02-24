@@ -1,8 +1,12 @@
 =======================================================================
-:class:`passlib.hash.des_crypt` - Tradtional Unix (DES) Crypt
+:class:`passlib.hash.des_crypt` - DES Crypt
 =======================================================================
 
 .. currentmodule:: passlib.hash
+
+This class implements the original DES-based Unix Crypt algorithm.
+While no longer in active use in most places,
+it is supported for legacy purposes by many Unix flavors.
 
 .. warning::
 
@@ -11,9 +15,6 @@
     It suffers from it's use of the DES cipher, a small number of salt bits,
     and fact that it uses only the first 8 characters of the password.
 
-This class implements the original DES-based Unix Crypt algorithm.
-While no longer in active use, it is supported for legacy purposes
-by many unix variants.
 
 Usage
 =====
@@ -65,6 +66,10 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
   of :func:`~passlib.utils.des.mdes_encrypt_int_block` for details).
 
 * The checksum and salt are then encoded according the format, as described above.
+
+..
+
+     swapping bits i and i+24 in the DES E-Box output when bit i is set in the salt
 
 Deviations
 ==========

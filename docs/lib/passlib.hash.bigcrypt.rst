@@ -1,13 +1,14 @@
 =======================================================================
-:class:`passlib.hash.bigcrypt` - BigCrypt, a des-crypt variant
+:class:`passlib.hash.bigcrypt` - BigCrypt
 =======================================================================
 
 .. currentmodule:: passlib.hash
 
 This class implements BigCrypt (a modified version of des-crypt) commonly
-found on HP-UX, Digital Unix, and OSF/1. It's main
-advancement over :class:`~passlib.hash.des_crypt` is that it
-uses all the characters of a password, not just the first 8.
+found on HP-UX, Digital Unix, and OSF/1. The main difference with
+:class:`~passlib.hash.des_crypt` is that bigcrypt
+uses all the characters of a password, not just the first 8,
+and has a variable length hash string.
 
 .. warning::
 
@@ -35,6 +36,9 @@ A bigcrypt hash string has the format ``{salt}{checksum_1}{checksum_2...}{checks
   :func:`hash64 <passlib.utils.h64.encode_dc_int64>`-encoded 64-bit integer (``8NbAAlzbYO6`` and ``6hAa9XZyWy2``
   in the example).
 
+* the integer ``n`` (the number of checksums) is determined by the formula
+  ``n=min(1, (len(secret)+7)//8)``.
+
 Algorithm
 =========
 The bigcrypt algorithm is designed to re-use the original des-crypt algorithm:
@@ -59,16 +63,18 @@ the first 13 characters of any bigcrypt hash form a valid :class:`~passlib.hash.
 hash of the same password; and bigcrypt hashes of any passwords
 less than 9 characters will be identical to des-crypt.
 
-This is also one of it's main flaws:
-each segment of the hash is essentially a separate
-des-crypt hash, which can be attacked in parallel,
-using existing des-crypt attack vectors. Furthermore,
-it reveals information about the length of the encoded
-password, further reducing the keyspace that needs
-to be searched for each of the invididual segments.
-Also, the last segment typically uses only a few
-characters of the passphrase, and once cracked,
-can be used to narrow the overall keyspace.
+..
+
+    This is also one of it's main flaws:
+    each segment of the hash is essentially a separate
+    des-crypt hash, which can be attacked in parallel,
+    using existing des-crypt attack vectors. Furthermore,
+    it reveals information about the length of the encoded
+    password, further reducing the keyspace that needs
+    to be searched for each of the invididual segments.
+    Also, the last segment typically uses only a few
+    characters of the passphrase, and once cracked,
+    can be used to narrow the overall keyspace.
 
 Deviations
 ==========

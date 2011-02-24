@@ -4,19 +4,17 @@
 
 .. currentmodule:: passlib.hash
 
-This algorithm was developed to replace the aging des-crypt.
-It is supported by a wide variety of unix flavors, and is found
-in other contexts as well. Security-wise, MD5-Crypt lacks newer features,
-such as a variable number of rounds. Futhermore, the MD5 message digest
-algorithm which it's based around is considered broken,
-though pre-image attacks are currently only theoretical.
-Despite this, MD5-Crypt itself is not considered broken,
-and is still considered ok to use, though new applications
-should use a stronger scheme (eg :class:`~passlib.hash.sha512_crypt`) if possible.
+This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
+to replace the aging :class:`passlib.hash.des_crypt`.
+It has since been adopted by a wide variety of other unix flavors, and is found
+in many other contexts as well.
+Security-wise it is considered to be steadily weakening (though not yet broken),
+and most unix flavors have since replaced with with stronger schemes,
+such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`.
 
 Usage
 =====
-This module can be used directly as follows::
+PassLib provides an md5_crypt class, which can be can be used directly as follows::
 
     >>> from passlib.hash import md5_crypt as mc
 
@@ -33,55 +31,136 @@ This module can be used directly as follows::
     >>> mc.verify("secret", '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #verify incorrect password
     False
 
-Functions
+Interface
 =========
-.. autoclass:: md5_crypt
+.. autoclass:: md5_crypt(checksum=None, salt=None, strict=False)
 
 Format
 ======
-An example hash (of ``password``) is ``$1$5pZSV9va$azfrPr6af3Fc7dLblQXVa0``.
+An example md5-crypt hash (of the string ``password``) is ``$1$5pZSV9va$azfrPr6af3Fc7dLblQXVa0``.
+
 An md5-crypt hash string has the format ``$1${salt}${checksum}``, where:
 
-* ``$1$`` is the prefix used to identify md5_crypt hashes,
+* ``$1$`` is the prefix used to identify md5-crypt hashes,
   following the :ref:`modular-crypt-format`
-* ``{salt}`` is 0-8 characters drawn from ``[./0-9A-Za-z]``,
+* ``{salt}`` is 0-8 characters drawn from the regexp range ``[./0-9A-Za-z]``;
   providing a 48-bit salt (``5pZSV9va`` in the example).
-* ``{checksum}`` is 22 characters drawn from the same set,
+* ``{checksum}`` is 22 characters drawn from the same character set as the salt;
   encoding a 128-bit checksum (``azfrPr6af3Fc7dLblQXVa0`` in the example).
+
+.. rst-class:: html-toggle
 
 Algorithm
 =========
-The algorithm used by MD5-Crypt is convoluted,
-and is best described by examining the BSD implementation
-linked to below, or the source code to this module.
+The MD5-Crypt algorithm is as follows: [#f1]_
 
-It uses the MD5 message digest algorithm to generate
-various intermediate digests based on combinations
-of the secret, the salt, and some fixed constant strings.
+1. A password string and salt string are provided.
+   The salt should not include the magic prefix,
+   it should match string referred to as ``{salt}`` in the format section.
 
-It then performs a fixed 1000 rounds of recursive digests,
-combining the secret, salt, and last digest in varying orders.
+2. If needed, the salt should be truncated to a maximum of 8 characters.
 
-The resulting checksum is a convoluted form of
-the last resulting digest, encoded in hash64.
+3. Start MD5 digest B.
+
+4. Add the password to digest B.
+
+5. Add the salt to digest B.
+
+6. Add the password to digest B, again.
+
+7. Finish MD5 digest B.
+
+8. Start MD5 digest A.
+
+9. Add the password to digest A.
+
+.. _md5-crypt-constant-insertion:
+
+10. Add the constant string ``$1$`` to digest A.
+
+11. Add the salt to digest A.
+
+12. For each block of 16 bytes in the password string,
+    add digest B to digest A.
+
+13. For the remaining N bytes of the password string,
+    add the first N bytes of digest B to digest A.
+
+14. For each bit of the binary representation of the length
+    of the password string, starting with the lowest value bit
+    position, up to and including the largest bit set to 1:
+
+    a. If the bit is set 1, add the first character of the password to digest A.
+    b. Otherwise, add a NULL character to digest A.
+
+15. Finish MD5 digest A.
+
+16. For 1000 rounds (round values 0..999 inclusive),
+    perform the following steps:
+
+    a. Start MD5 Digest C for the round.
+    b. If the round is odd, add the password to digest C.
+    c. If the round is even, add the previous round's result to digest C (for round 0, add digest A instead).
+    d. If the round is not a multiple of 3, add the salt to digest C.
+    e. If the round is not a multiple of 7, add the password to digest C.
+    f. If the round is even, repeat step b.
+    g. If the round is odd, repeat step c.
+    h. Finish MD5 digest C for the round; this is the result for this round.
+
+17. Transpose the 16 bytes of the final round's result in the
+    following order: ``12,6,0,13,7,1,14,8,2,15,9,3,5,10,4,11``.
+
+18. Encode the resulting 16 byte string into a 22 character
+    :mod:`hash 64 <passlib.utils.h64.encode_bytes>`-encoded string
+    (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
+
+Security Issues
+===============
+MD5-Crypt has a couple of issues which have weakened it significantly,
+though it is not yet considered broken:
+
+* It relies on the MD5 message digest, which *is* considered broken:
+  practical collision attacks and theoretical pre-image attacks both exist [#f2]_.
+  However, MD5-Crypt's use of a large amount of MD5 throughput,
+  combined with the fact that the MD5 pre-image attacks are only theoretical,
+  mean this is not (yet) a signficant practical weakness.
+
+* The fixed number of rounds, combined with the availability
+  of high-throughput MD5 implementations, means this algorithm
+  is increasingly vulnerable to brute force attacks.
+  It is this issue which has motivated it's replacement
+  by new algorithms such as :class:`~passlib.hash.bcrypt`
+  and :class:`~passlib.hash.sha512_crypt`.
 
 Deviations
 ==========
-This implementation of md5-crypt differs from others in a few ways:
+This implementation of md5-crypt differs from the reference implmentation (and others) in two ways:
 
-* While the underlying algorithm technically allows salt strings
-  to contain any possible byte value besides ``\x00`` and ``$``,
-  this would conflict with many uses of md5-crypt, such as within
-  unix ``/etc/shadow`` files. Futhermore, most unix systems
-  will only generate salts using the standard 64 characters listed above.
-  This implementation follows along with that, by strictly limiting
-  salt strings to the least common denominator, ``[./0-9A-Za-z]``.
+* Restricted salt string character set:
 
-* Before generating a hash, PassLib encodes unicode passwords using UTF-8.
-  While the algorithm accepts passwords containing any 8-bit value
-  except for ``\x00``, it specifies no preference for encodings,
-  or for handling unicode strings.
+  The underlying algorithm can unambigously handle salt strings
+  which contain any possible byte value besides ``\x00`` and ``$``.
+  However, PassLib strictly limits salts to the
+  :mod:`hash 64 <passlib.utils.h64>` character set,
+  as nearly all implementations of md5-crypt generate
+  and expect salts containing those characters,
+  but may have unexpected behaviors for other character values.
+
+* Unicode Policy:
+
+  The underlying algorithm takes in a password specified
+  as a series of non-null bytes, and does not specify what encoding
+  should be used; though a ``us-ascii`` compatible encoding
+  is implied by nearly all implementations of md5-crypt
+  as well as all known reference hashes.
+
+  In order to provide support for unicode strings,
+  PassLib will encode unicode passwords using ``utf-8``
+  before running them through md5-crypt. If a different
+  encoding is desired by an application, the password should be encoded
+  before handing it to PassLib.
 
 References
 ==========
-* `<http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_ - primary reference used for information & implementation
+.. [#f1] The official reference for MD5-Crypt is Poul-Henning Kamp's original FreeBSD implementation, located at `<http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_
+.. [#f2] Security issues with MD5 - `<http://en.wikipedia.org/wiki/MD5#Security>`_.
