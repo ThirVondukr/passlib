@@ -678,7 +678,7 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
     while rounds:
         rounds -= 1
 
-        #run over each part of the schedule
+        #run over each part of the schedule, 2 parts at a time
         for ks_even, ks_odd in ks_list:
             k = ((R>>32) ^ R) & salt #use the salt to alter specific bits
             B = (k<<32) ^ k ^ R ^ ks_even

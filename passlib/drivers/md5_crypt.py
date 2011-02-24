@@ -59,7 +59,7 @@ def raw_md5_crypt(secret, salt, apr=False):
     # sha-crypt replaced this step with
     # something more useful, anyways
     idx = len(secret)
-    evenchar = secret[:1] #NOTE: empty string if secret is empty
+    evenchar = secret[:1]
     while idx > 0:
         h.update('\x00' if idx & 1 else evenchar)
         idx >>= 1

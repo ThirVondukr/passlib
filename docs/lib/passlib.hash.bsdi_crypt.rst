@@ -1,5 +1,5 @@
 =================================================================================
-:class:`passlib.hash.bsdi_crypt` - BSDi (Extended DES) Crypt
+:class:`passlib.hash.bsdi_crypt` - BSDi Crypt
 =================================================================================
 
 .. currentmodule:: passlib.hash

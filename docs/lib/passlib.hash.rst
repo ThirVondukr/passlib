@@ -5,15 +5,15 @@
 .. module:: passlib.hash
     :synopsis: package containing all builtin password hashes
 
-This subpackage contains handlers for all the password hashes built into
-passlib. As well, any third-party handlers registered using :func:`register_crypt_handler`
-will be inserted into this package.
+This module contains classes implementing each of the password hashes built into
+passlib. As well, any external hashes registered using :func:`register_crypt_handler`
+will be inserted into this module.
 
-Each module within this package implements a single password hashing scheme,
+Each class within this package implements a single password hashing scheme,
 and follows passlib's :ref:`password-hash-api`.
 While many applications may find it easier to use a :class:`CryptContext`
 instance, or retreive handlers via :func:`get_crypt_handler`, they can
-also be imported and used directly from this package:
+also be imported and used directly from this package, as in the following example:
 
     >>> from passlib.hash import md5_crypt
     >>> hash = md5_crypt.encrypt("password")
@@ -25,7 +25,8 @@ Archaic Unix Schemes
 All these schemes are/were used by various unix flavors to store user passwords;
 most are based on the DES block cipher,
 and predate the arrival of the :ref:`modular crypt format <modular-crypt-format>`.
-There are all considered insecure (at best).
+There are all considered insecure (at best), but may be useful when reading
+legacy password entries:
 
 .. toctree::
     :maxdepth: 1

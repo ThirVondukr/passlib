@@ -185,27 +185,43 @@ def encode_int24(value):
 #---------------------------------------------------------------------
 
 def decode_int64(value):
-    "decode 64-bit integer from 11 chars of hash-64 format in little-endian order"
+    "decodes 11 char hash64 string -> 64-bit integer (little-endian order; 2 msb assumed to be padding)"
     return decode_int(value)
 
 def encode_int64(value):
-    "encode 64-bit integer to hash-64 format, returning 11 chars in little-endian order"
+    "encodes 64-bit integer -> 11 char hash64 string (little-endian order; 2 msb of 0's added as padding)"
     return encode_int(value, 11)
 
 def decode_dc_int64(value):
-    "decode 64-bit integer from 11 chars of hash-64 format using des-crypt -specific format"
-    #NOTE: lower 2 bits of last char are ignored (should be 0)
+    """decode 11 char hash64 string -> 64-bit integer (big-endian order; 2 lsb assumed to be padding)
+
+    this format is used primarily by des-crypt & variants to encode the DES output value
+    used as a checksum.
+    """
     return decode_int(value, 11, True)>>2
 
 def encode_dc_int64(value):
-    "encode 64-bit integer to hash-64 format, returning 11 chars using des-crypt -specific format"
+    """encode 64-bit integer -> 11 char hash64 string (big-endian order; 2 lsb added as padding)
+
+    this format is used primarily by des-crypt & variants to encode the DES output value
+    used as a checksum.
+    """
     #NOTE: insert 2 padding bits as lsb, to make 66 bits total
     return encode_int(value<<2,11,True)
 
 #---------------------------------------------------------------------
 
 def decode_int(source, big=False):
-    "decode hash-64 format used by crypt into integer; ``big`` flag indicates big-endian instead of little-endian"
+    """decode hash64 string -> integer
+
+    :arg source: hash64 string of any length
+    :arg big: if ``True``, big-endian encoding is used instead of little-endian (the default).
+
+    :raises ValueError: if the string contains invalid hash64 characters.
+
+    :returns:
+        a integer whose value is in ``range(0,2**(6*len(source)))``
+    """
     #FORMAT: little-endian, each char contributes 6 bits,
     # char value = index in H64_CHARS string
     if not big:
@@ -219,7 +235,15 @@ def decode_int(source, big=False):
         raise ValueError, "invalid character in string"
 
 def encode_int(value, count, big=False):
-    "encode integer into hash-64 format; ``big`` flag indicates big-endian instead of little-endian"
+    """encode integer into hash-64 format
+
+    :arg value: non-negative integer to encode
+    :arg count: number of output characters / 6 bit chunks to encode
+    :arg big: if ``True``, big-endian encoding is used instead of little-endian (the default).
+
+    :returns:
+        a hash64 string of length ``count``.
+    """
     if big:
         itr = xrange(6*count-6, -6, -6)
     else:
