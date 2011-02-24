@@ -353,6 +353,55 @@ class SHA256CryptTest(HandlerCase):
        '$5$rounds=010428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3',
     ]
 
+    #NOTE: these test cases taken from official specification at http://www.akkadia.org/drepper/SHA-crypt.txt
+    cases256 = [
+        #config, secret, result
+        ( "$5$saltstring", "Hello world!",
+          "$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5" ),
+        ( "$5$rounds=10000$saltstringsaltstring", "Hello world!",
+          "$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2."
+          "opqey6IcA" ),
+        ( "$5$rounds=5000$toolongsaltstring", "This is just a test",
+          "$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8"
+          "mGRcvxa5" ),
+        ( "$5$rounds=1400$anotherlongsaltstring",
+          "a very much longer text to encrypt.  This one even stretches over more"
+          "than one line.",
+          "$5$rounds=1400$anotherlongsalts$Rx.j8H.h8HjEDGomFU8bDkXm3XIUnzyxf12"
+          "oP84Bnq1" ),
+        ( "$5$rounds=77777$short",
+          "we have a short salt string but not a short password",
+          "$5$rounds=77777$short$JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw0KQRd/" ),
+        ( "$5$rounds=123456$asaltof16chars..", "a short string",
+          "$5$rounds=123456$asaltof16chars..$gP3VQ/6X7UUEW3HkBn2w1/Ptq2jxPyzV/"
+          "cZKmF/wJvD" ),
+        ( "$5$rounds=10$roundstoolow", "the minimum number is still observed",
+          "$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL97"
+          "2bIC" ),
+    ]
+
+    def test_spec_vectors(self):
+        "verify sha256-crypt passes specification test vectors"
+        handler = self.handler
+
+        #NOTE: the 'roundstoolow' test vector is known to raise a warning, which we silence here
+        if catch_warnings:
+            ctx = catch_warnings()
+            ctx.__enter__()
+        warnings.filterwarnings("ignore", "sha256_crypt does not allow less than 1000 rounds: 10", UserWarning)
+
+        for config, secret, hash in self.cases256:
+            #make sure we got expected result back
+            result = handler.genhash(secret, config)
+            self.assertEqual(result, hash, "hash=%r secret=%r:" % (hash, secret))
+
+            #make sure parser truncated salts
+            info = handler.from_string(config)
+            self.assert_(len(info.salt) <= 16, "hash=%r secret=%r:" % (hash, secret))
+
+        if catch_warnings:
+            ctx.__exit__(None,None,None)
+
 BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 
 #=========================================================
@@ -381,7 +430,7 @@ class SHA512CryptTest(HandlerCase):
 
     #NOTE: these test cases taken from official specification at http://www.akkadia.org/drepper/SHA-crypt.txt
     cases512 = [
-        #salt-hash, secret, result
+        #config, secret, result
         ("$6$saltstring", "Hello world!",
         "$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJu"
         "esI68u4OTLiBFdcbYEdFCoEOfaS35inz1" ),
