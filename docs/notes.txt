@@ -1,195 +1,38 @@
-utils
-    pbkdf2
-    _slow_bcrypt
-    _slow_unix_crypt
+====
+Todo
+====
 
-unix
-    unix_crypt
-    ext_unix_crypt
-    md5_crypt
-    pbkdf2_dlitz
-    bcrypt
-    sha256_crypt
-    sha512_crypt
+Internal Changes
+----------------
+* C extensions to speed up some implementations
 
-    linux_context
-    bsd_context
-    default_context
+Other Hash Formats
+------------------
+* generic raw digests encoded as hex
 
-mysql
-    mysql_10
-    mysql_41
+* FSHP (a pbkdf1 variant)
+  https://github.com/bdd/fshp
 
-    mysql_context
-    mysql_10_context
+* rfc2307 format hashes
+  http://tools.ietf.org/html/rfc2307
 
-postgres
-    postgres_md5
+* Mac OSX hash formats
 
-    postgres_context
+* SCrypt
+  http://www.tarsnap.com/scrypt.html
+  https://bitbucket.org/mhallin/py-scrypt/src
 
-grub
-    md5_crypt
-    grub_pbkdf2_sha512
+* Oracle Hashes
+  http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/
 
-    grub_context
-=====================================
+* Any other PBKDF1/2 variants
+  some backend notes - http://www.di-mgt.com.au/cryptoKDFs.html
 
-utils
-    pbkdf2
-    _slow_bcrypt
-    _slow_unix_crypt
+* Check list of hashes on http://openwall.info/wiki/john/sample-hashes
 
-unix
-    unix_crypt/
-        unix_crypt
-        ext_unix_crypt
-    md5_crypt/
-        md5_crypt
-    pbkdf2_dlitz/
-        pbkdf2_dlitz
-    bcrypt/
-        bcrypt
-    sha_crypt/
-        sha256_crypt
-        sha512_crypt
-
-    linux_context
-    bsd_context
-    default_context
-
-mysql
-    mysql_10
-    mysql_41
-
-    mysql_context
-    mysql_10_context
-
-postgres
-    postgres_md5
-
-    postgres_context
-
-grub
-    md5_crypt
-    grub_pbkdf2_sha512
-
-    grub_context
-
-======================
-
-required public attributes
-
-    name
-        unique name used to identify this algorithm within passlib.
-
-    context_kwds
-
-        tuple identifying any arguments which must be provided in addition
-        to secret in order to encrypt / verify a hash.
-
-        eg: postgres_md5 requires the username to be provided to encrypt & verify,
-        and so context_args is set to ``("user",)``.
-
-        this tuple is empty for most algorithms.
-
-    setting_kwds
-
-        tuple identifying encrypt() kwds that can be used to configure
-        output. common kwds include ``salt`` and ``rounds``.
-
-optional public attributes
-
-    secret_chars
-        Indicates maximum number of characters used by algorithm.
-
-        This will be ``-1`` for most algorithm, indicating they use incorporate
-        the whole secret into the resulting hash.
-
-        For example: ``unix-crypt`` only considers the first 8 characters in a password.
-
-        Provided for user information, and for use by the passlib unittests.
-
-    default_rounds
-        if the algorithm supports variable number of rounds,
-        this should indicate the default number of rounds that will be used
-        if none is specified when encrypt() is called.
-
-    min_rounds
-        if the algorithm supports variable number of rounds,
-        this should indicate the minimum number it will accept.
-        values below this will silently use minimum instead.
-
-    max_rounds
-        if the algorithm supports variable number of rounds,
-        this should indicate the maximum number it will accept.
-        values above this will silently use maximum instead.
-
-required public methods
-
-    encrypt(secret, **context_kwds, **settings_kwds) -> hash
-        ValueError if settings out of bounds
-        should handle unicode secrets (not implemented for all hashes yet)
-
-    verify(secret, hash, **context_kwds) -> True | False
-        ValueError if hash empty or not recognized by hash
-
-optional public methods
-
-    identify(hash) -> True | False
-        return True hash defined & matches algorithm
-        returns False otherwise
-
-    parse(hash) -> dict
-        parses existing hash into a dict of component parts.
-        raises ValueError if hash is not defined or doesn't match algorithm format.
-
-        common keywords include ``ident``, ``salt``, ``rounds``, and ``checksum``.
-
-        any keywords in this dictionary which are listed in ``setting_kwds``
-        can usually be passed into encrypt to generate a new hash with the same settings.
-
-        XXX: would it work to require that kwds of dict returned by parse
-        must be in setting_kwds + (optionally) "checksum"?
-
-    render(**parse_kwds) -> str
-        takes kwds as returned by parse() method,
-        and returns resulting hash.
-
-        should generally act as the inverse of parse().
-
-======================================================================
-info about upgrade policy scheme, and sun-md5 ref...
-    http://www.cuddletech.com/blog/pivot/entry.php?id=778
-
-some sample hashes all using "passwd", including sunmd5
-    http://compgroups.net/comp.unix.solaris/password-file-in-linux-and-solaris-8-9
-
-references for hashes & passwords
-    http://cpansearch.perl.org/src/CHANSEN/Authen-Simple-0.4/lib/Authen/Simple/Password.pm
-    http://search.cpan.org/~zefram/Authen-Passphrase-0.007/lib/Authen/Passphrase.pm
-
-http://chargen.matasano.com/chargen/2007/9/7/enough-with-the-rainbow-tables-what-you-need-to-know-about-s.html
-http://www.openwall.com/john/interviews/SF-20060222-p3
-
-oracle -
-http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/
-
-http://www.users.zetnet.co.uk/hopwood/crypto/scan/ph.html
-
-lots of sample hashes
-    http://openwall.info/wiki/john/sample-hashes
-
-kdfs -
-    http://www.di-mgt.com.au/cryptoKDFs.html
-===========
-scrpyt
-http://www.tarsnap.com/scrypt.html
-https://bitbucket.org/mhallin/py-scrypt/src
-======================================================================
-OS notes
-
-    summary from http://www.dribin.org/dave/blog/archives/2006/04/28/os_x_passwords_2/
+Notes on Mac OSX hash formats
+=============================
+Summary of info from http://www.dribin.org/dave/blog/archives/2006/04/28/os_x_passwords_2/
 
 osx < 10.2 used /etc/passwd w/ DES-CRYPT
 
@@ -221,35 +64,3 @@ osx 10.4 hash file (passwd "macintosh")
 offset 0-64 - nt hash + lm hash OR all zeros
 offset 64 - 40 chars - raw sha1 password OR all zeroes (if from upgraded from 10.3)
 offset 169-216 ( 48 chars) - salted sha1 hash - unhex first 8 chars + password | sha1 -> hexdigest
-
-
-
-======================
-
-[<category>:][context:]parameter = xxx
-
-context:
-    allow
-    deprecate
-    default
-
-sha256-crypt, etc:
-    min-rounds
-    max-rounds
-
-genpolicy script
-    category / desired time
-    algorithms to use (including deprecated / default flags)
-
-policy file format
-
-[passlib]
-categories = admin
-default = sha512-crypt
-deprecated = des-crypt, ext-des-crypt
-sha512-crypt:default-rounds = 40000
-sha512-crypt:min-rounds = 30000
-sha512-crypt:max-rounds = 60000
-
-[passlib:admin]
-sha512-crypt:default-rounds = 60000

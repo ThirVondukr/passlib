@@ -81,6 +81,16 @@ MAGIC_HAMLET = (
     "Be all my sins remember'd.\n\x00" #<- apparently null at end of C string is included (test vector won't pass otherwise)
 )
 
+#NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
+xr = range(7)
+_XY_ROUNDS = [
+    tuple((i,i,i+3) for i in xr), #xrounds 0
+    tuple((i,i+1,i+4) for i in xr), #xrounds 1
+    tuple((i,i+8,(i+11)&15) for i in xr), #yrounds 0
+    tuple((i,(i+9)&15, (i+12)&15) for i in xr), #yrounds 1
+]
+del xr
+
 def raw_sun_md5_crypt(secret, rounds, salt):
     "given secret & salt, return encoded sun-md5-crypt checksum"
     global MAGIC_HAMLET
@@ -125,14 +135,9 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     # * the round-based conditional division of x & y is now performed
     #   by choosing an appropriate precalculated list, so only the 7 used bits
     #   are actually calculated
+    X_ROUNDS_0, X_ROUNDS_1, Y_ROUNDS_0, Y_ROUNDS_1 = _XY_ROUNDS
 
-    #NOTE: % appears to be *slightly* slower than &, so we prefer that if possible
-
-    xr = range(7)
-    X_ROUNDS_0 = tuple((i,i,i+3) for i in xr)
-    X_ROUNDS_1 = tuple((i,i+1,i+4) for i in xr)
-    Y_ROUNDS_0 = tuple((i,i+8,(i+11)&15) for i in xr)
-    Y_ROUNDS_1 = tuple((i,(i+9)&15, (i+12)&15) for i in xr)
+    #NOTE: % appears to be *slightly* slower than &, so we prefer & if possible
 
     round = 0
     while round < real_rounds:
