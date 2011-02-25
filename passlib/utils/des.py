@@ -574,7 +574,9 @@ def permute(c, p):
 def expand_des_key(source):
     "convert 7 byte des key to 8 byte des key (by adding parity bit every 7 bits)"
     #NOTE: could probably do this much more cleverly and efficiently,
-    # but no need really given it's use
+    # but no need really given it's use.
+
+    #NOTE: the parity bits are generally ignored, including by des_encrypt_block below
     assert len(source) == 7
 
     def iter_bits(source):
@@ -616,16 +618,20 @@ def des_encrypt_block(key, input):
 def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
     """do modified multi-round DES encryption of single DES block.
 
-    the function implemented the salted, variable-round version
-    of DES used by des-crypt and ext-des-crypt.
-
+    the function implements the salted, variable-round version
+    of DES used by :class:`~passlib.hash.des_crypt` and related variants.
     it also can perform regular DES encryption
-    by setting salt=0 and rounds=1
+    by using ``salt=0, rounds=1`` (the default values).
 
     :arg key: 8 byte des key as integer
     :arg input: 8 byte plaintext block as integer
-    :arg salt: 12 or 24 bit salt as integer, used to mutate output
-    :arg rounds: number of rounds of DES encryption to apply.
+    :arg salt: integer 24 bit salt, used to mutate output (defaults to 0)
+    :arg rounds: number of rounds of DES encryption to apply (defaults to 1)
+
+    The salt is used to to mutate the normal DES encrypt operation
+    by swapping bits ``i`` and ``i+24`` in the DES E-Box output
+    if and only if bit ``i`` is set in the salt value. Thus,
+    if the salt is set to ``0``, normal DES encryption is performed.
 
     :returns:
         resulting block as 8 byte integer

@@ -6,7 +6,7 @@
 
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
 to replace the aging :class:`passlib.hash.des_crypt`.
-It has since been adopted by a wide variety of other unix flavors, and is found
+It has since been adopted by a wide variety of other Unix flavors, and is found
 in many other contexts as well.
 Security-wise it is considered to be steadily weakening (though not yet broken),
 and most unix flavors have since replaced with with stronger schemes,
@@ -48,17 +48,22 @@ An md5-crypt hash string has the format ``$1${salt}${checksum}``, where:
 * ``{checksum}`` is 22 characters drawn from the same character set as the salt;
   encoding a 128-bit checksum (``azfrPr6af3Fc7dLblQXVa0`` in the example).
 
+.. _md5-crypt-constant-insertion:
+
 .. rst-class:: html-toggle
 
 Algorithm
 =========
-The MD5-Crypt algorithm is as follows: [#f1]_
+The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 1. A password string and salt string are provided.
-   The salt should not include the magic prefix,
-   it should match string referred to as ``{salt}`` in the format section.
+
+   (The salt should not include the magic prefix,
+   it should match string referred to as ``{salt}`` in the format section).
 
 2. If needed, the salt should be truncated to a maximum of 8 characters.
+
+..
 
 3. Start MD5 digest B.
 
@@ -66,15 +71,15 @@ The MD5-Crypt algorithm is as follows: [#f1]_
 
 5. Add the salt to digest B.
 
-6. Add the password to digest B, again.
+6. Add the password to digest B.
 
 7. Finish MD5 digest B.
+
+..
 
 8. Start MD5 digest A.
 
 9. Add the password to digest A.
-
-.. _md5-crypt-constant-insertion:
 
 10. Add the constant string ``$1$`` to digest A.
 
@@ -87,13 +92,15 @@ The MD5-Crypt algorithm is as follows: [#f1]_
     add the first N bytes of digest B to digest A.
 
 14. For each bit of the binary representation of the length
-    of the password string, starting with the lowest value bit
-    position, up to and including the largest bit set to 1:
+    of the password string; starting with the lowest value bit,
+    up to and including the largest bit set to 1:
 
-    a. If the bit is set 1, add the first character of the password to digest A.
+    a. If the current bit is set 1, add the first character of the password to digest A.
     b. Otherwise, add a NULL character to digest A.
 
 15. Finish MD5 digest A.
+
+..
 
 16. For 1000 rounds (round values 0..999 inclusive),
     perform the following steps:
@@ -113,6 +120,7 @@ The MD5-Crypt algorithm is as follows: [#f1]_
 18. Encode the resulting 16 byte string into a 22 character
     :mod:`hash 64 <passlib.utils.h64.encode_bytes>`-encoded string
     (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
+    This results in the portion of the md5 crypt hash string referred to as ``{checksum}`` in the format section.
 
 Security Issues
 ===============
@@ -134,13 +142,13 @@ though it is not yet considered broken:
 
 Deviations
 ==========
-This implementation of md5-crypt differs from the reference implmentation (and others) in two ways:
+Passlib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
 
 * Restricted salt string character set:
 
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
-  However, PassLib strictly limits salts to the
+  However, Passlib strictly limits salts to the
   :mod:`hash 64 <passlib.utils.h64>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,

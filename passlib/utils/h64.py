@@ -119,18 +119,21 @@ def decode_transposed_bytes(source, offsets):
 # int <-> b64 string, used by des_crypt, ext_des_crypt
 #=================================================================================
 
-def encode_int6(value):
-    "encode 6 bit integer to single char of hash-64 format"
-    return encode_6bit(value)
-
 def decode_int6(value):
-    "decode 1 char of hash-64 format, returning 6-bit integer"
-    return decode_6bit(value)
+    "decodes single hash64 character -> 6-bit integer"
+    try:
+        return decode_6bit(value)
+    except KeyError:
+        raise ValueError, "invalid character"
+
+def encode_int6(value):
+    "encodes 6-bit integer -> single hash64 character"
+    return encode_6bit(value)
 
 #---------------------------------------------------------------------
 
 def decode_int12(value):
-    "decode 2 chars of hash-64 format used by crypt, returning 12-bit integer"
+    "decodes 2 char hash64 string -> 12-bit integer (little-endian order)"
     #NOTE: this is optimized form of decode_int(value) for 4 chars
     try:
         return (decode_6bit(value[1])<<6)+decode_6bit(value[0])
@@ -138,13 +141,13 @@ def decode_int12(value):
         raise ValueError, "invalid character"
 
 def encode_int12(value):
-    "encode 2 chars of hash-64 format from a 12-bit integer"
+    "encodes 12-bit integer -> 2 char hash64 string (little-endian order)"
     #NOTE: this is optimized form of encode_int(value,2)
     return  encode_6bit(value & 0x3f) + encode_6bit((value>>6) & 0x3f)
 
 #---------------------------------------------------------------------
 def decode_int18(value):
-    "decode 3 chars of hash-64 format, returning 18-bit integer"
+    "decodes 3 char hash64 string -> 18-bit integer (little-endian order)"
     #NOTE: this is optimized form of decode_int(value) for 3 chars
     return (
         decode_6bit(value[0]) +
@@ -153,7 +156,7 @@ def decode_int18(value):
         )
 
 def encode_int18(value):
-    "encode 18-bit integer into 3 chars of hash-64 format"
+    "encodes 18-bit integer -> 3 char hash64 string (little-endian order)"
     #NOTE: this is optimized form of encode_int(value,3)
     return (
         encode_6bit(value & 0x3f) +
@@ -164,7 +167,7 @@ def encode_int18(value):
 #---------------------------------------------------------------------
 
 def decode_int24(value):
-    "decode 4 chars of hash-64 format in little-endian order, returning 24-bit integer"
+    "decodes 4 char hash64 string -> 24-bit integer (little-endian order)"
     #NOTE: this is optimized form of decode_int(value) for 4 chars
     try:
         return  decode_6bit(value[0]) +\
@@ -175,7 +178,7 @@ def decode_int24(value):
         raise ValueError, "invalid character"
 
 def encode_int24(value):
-    "encode 4 chars of hash-64 format in little-endian order, from a 24-bit integer"
+    "encodes 24-bit integer -> 4 char hash64 string (little-endian order)"
     #NOTE: this is optimized form of encode_int(value,4)
     return  encode_6bit(value & 0x3f) + \
             encode_6bit((value>>6) & 0x3f) + \
