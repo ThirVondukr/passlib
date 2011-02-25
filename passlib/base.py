@@ -440,7 +440,7 @@ class CryptPolicy(object):
             if fb:
                 if fb not in seen:
                     raise ValueError, "unspecified scheme set as fallback: %r" % (fb,)
-                fmap[cat] = self.lookup(fb, required=True)
+                fmap[cat] = self.get_handler(fb, required=True)
             value = kwds.get("min_verify_time")
             if value:
                 mvmap[cat] = value
@@ -452,11 +452,17 @@ class CryptPolicy(object):
     #=========================================================
     #public interface (used by CryptContext)
     #=========================================================
-    def lookup(self, name=None, category=None, required=False):
-        """given an algorithm name, return CryptHandler instance which manages it.
-        if no match is found, returns None.
+    def get_handler(self, name=None, category=None, required=False):
+        """given an algorithm name, return algorithm handler which manages it.
 
-        if name is None, will return handler for default scheme
+        :arg name: name of algorithm, or ``None``
+        :param category: optional user category
+        :param required: if ``True``, raises KeyError if name not found, instead of returning ``None``.
+
+        if name is not specified, attempts to return default handler.
+        if returning default, and category is specified, returns category-specific default if set.
+
+        :returns: handler attached to specified name or None
         """
         if name:
             for handler in self._handlers:
@@ -479,6 +485,9 @@ class CryptPolicy(object):
 
     def get_options(self, name, category=None):
         "return dict of options attached to specified hash"
+        if hasattr(name, "name"):
+            name = name.name
+
         #TODO: pre-calculate or at least cache some of this.
         options = self._options
 
@@ -529,6 +538,13 @@ class CryptPolicy(object):
     #=========================================================
     #serialization
     #=========================================================
+    def hashandlers(self):
+        return self._handlers > 0
+
+    def iterhandlers(self):
+        "iterate through all loaded handlers in policy"
+        return iter(self._handlers)
+
     def iteritems(self, format="python"):
         """iterate through keys in policy.
 
@@ -700,6 +716,7 @@ class CryptContext(object):
     #init
     #===================================================================
     def __init__(self, schemes=None, policy=default_policy, **kwds):
+        #XXX: add a name for the contexts?
         if schemes:
             kwds['schemes'] = schemes
         if not policy:
@@ -709,13 +726,14 @@ class CryptContext(object):
             if kwds:
                 policy.append(kwds)
             policy = CryptPolicy.from_sources(policy)
-        if not policy._handlers:
+        if not policy.hashandlers():
             raise ValueError, "at least one scheme must be specified"
         self.policy = policy
 
     def __repr__(self):
-        names = [ handler.name for handler in self.policy._handlers ]
-        return "CryptContext(%r)" % (names,)
+        #XXX: *could* have proper repr(), but would have to render policy object options, and it'd be *really* long
+        names = [ handler.name for handler in self.policy.iterhandlers() ]
+        return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
     def replace(self, *args, **kwds):
         "return CryptContext with new policy which has specified values replaced"
@@ -724,13 +742,13 @@ class CryptContext(object):
     #===================================================================
     #policy adaptation
     #===================================================================
-    def lookup(self, name=None, category=None, required=False):
+    def get_handler(self, name=None, category=None, required=False):
         """given an algorithm name, return CryptHandler instance which manages it.
         if no match is found, returns None.
 
         if name is None, will return default algorithm
         """
-        return self.policy.lookup(name, category, required)
+        return self.policy.get_handler(name, category, required)
 
     def norm_handler_settings(self, handler, category=None, **settings):
         "normalize settings for handler according to context configuration"
@@ -776,7 +794,7 @@ class CryptContext(object):
 
     def is_compliant(self, hash, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted"""
-        handler = self.identify(hash, required=True)
+        handler = self.identify(hash, rethandler=True, required=True)
         policy = self.policy
 
         #check if handler has been deprecated
@@ -808,7 +826,7 @@ class CryptContext(object):
     #===================================================================
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler"""
-        handler = self.lookup(scheme, category, required=True)
+        handler = self.get_handler(scheme, category, required=True)
         settings = self.norm_handler_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
@@ -816,21 +834,21 @@ class CryptContext(object):
         """Call genhash() for specified handler"""
         #NOTE: this doesn't use category in any way, but accepts it for consistency
         if scheme:
-            handler = self.lookup(scheme, required=True)
+            handler = self.get_handler(scheme, required=True)
         else:
-            handler = self.identify(config, required=True)
+            handler = self.identify(config, rethandler=True, required=True)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.genhash(secret, config, **context)
 
-    def identify(self, hash, category=None, name=False, required=False):
+    def identify(self, hash, category=None, rethandler=False, required=False):
         """Attempt to identify which algorithm hash belongs to w/in this context.
 
         :arg hash:
             The hash string to test.
 
-        :param name:
-            If true, returns the name of the handler
-            instead of the handler itself.
+        :param rethandler:
+            If ``True``, returns the handler itself,
+            instead of the name of the handler.
 
         All registered algorithms will be checked in from last to first,
         and whichever one claims the hash first will be returned.
@@ -844,12 +862,12 @@ class CryptContext(object):
             if required:
                 raise ValueError, "no hash specified"
             return None
-        for handler in self._handlers:
+        for handler in self.policy.iterhandlers():
             if handler.identify(hash):
-                if name:
-                    return handler.name
-                else:
+                if rethandler:
                     return handler
+                else:
+                    return handler.name
         if required:
             raise ValueError, "hash could not be identified"
         return None
@@ -875,7 +893,7 @@ class CryptContext(object):
         """
         if not self:
             raise ValueError, "no algorithms registered"
-        handler = self.lookup(scheme, category, required=True)
+        handler = self.get_handler(scheme, category, required=True)
         kwds = self.norm_handler_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.encrypt(secret, **kwds)
@@ -902,9 +920,9 @@ class CryptContext(object):
 
         #locate handler
         if scheme:
-            handler = self.lookup(scheme, required=True)
+            handler = self.get_handler(scheme, required=True)
         else:
-            handler = self.identify(hash, required=True)
+            handler = self.identify(hash, rethandler=True, required=True)
 
         #strip context kwds if scheme doesn't use them
         ##for k in context.keys():
