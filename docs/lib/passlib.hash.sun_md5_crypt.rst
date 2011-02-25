@@ -4,6 +4,12 @@
 
 .. currentmodule:: passlib.hash
 
+This algorithm is used by Solaris, as a replacement for the aging des-crypt.
+It is mainly used on later versions of Solaris, and is not found many other
+places. While based on the MD5 message digest, it has very little at all
+in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
+32 bit variable rounds and an 8 character salt.
+
 .. warning::
 
     This implementation has not been compared
@@ -12,21 +18,13 @@
     It should not be relied on for anything but novelty purposes
     for the time being.
 
-This algorithm is used by Solaris, as a replacement for the aging des-crypt.
-It is mainly used on later versions of Solaris, and is not found many other
-places. While based on the MD5 message digest, it has very little at all
-in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
-32 bit variable rounds and an 8 character salt. Due to a theoretic pre-image
-attacks on the MD5 message digest, this algorithm should probably not
-be used in new deploys.
-
 Usage
 =====
-This module supports both rounds and salts,
+This class supports both rounds and salts,
 and so can be used in the exact same manner
 as :class:`~passlib.hash.sha512_crypt`.
 
-Functions
+Interface
 =========
 .. autoclass:: sun_md5_crypt
 
@@ -54,21 +52,25 @@ An alternate format, ``$md5${salt}${checksum}`` is used when the rounds value is
     It is unclear whether this is an accepted alternate format or just a typo,
     nor whether this is supposed to affect the checksum in the resulting hash string.
 
+.. rst-class:: html-toggle
+
 Algorithm
 =========
 The algorithm used is based around the MD5 message digest and the "Muffett Coin Toss" algorithm (so named
-by one of the creators). Given a password, the number of rounds, and a salt...
+by one of the creators).
 
-* an initial MD5 digest is created from the concatentation of the password,
+1. Given a password, the number of rounds, and a salt string.
+
+2. an initial MD5 digest is created from the concatentation of the password,
   and the configuration string (using the format ``$md5,rounds={rounds}${salt}``).
 
-* for rounds+4096 iterations, a new digest is created:
+3. for rounds+4096 iterations, a new digest is created:
     - ``MuffetCoinToss(rounds, previous digest)`` is called, resulting in a 0 or 1.
     - if a 1, the next digest is the MD5 of: the last digest concatenated with a constant
       data string, along with the current iteration number as an ascii string.
     - if a 0, the same as 1, except that magic constant data is not included.
 
-* The final checksum is then encoded into :mod:`hash64 <~passlib.hash.h64>` using the same
+4. The final checksum is then encoded into :mod:`hash64 <~passlib.hash.h64>` using the same
   transposed byte order that :class:`~passlib.hash.md5_crypt` uses.
 
 The constant data string is referenced above is a 1517 byte ascii string... an excerpt from Hamlet,
@@ -95,30 +97,52 @@ using the following formula:
 
 the coinflip generates two 8 bit integers ``X`` & ``Y`` as follows:
 
-* ``X`` is generated from the following formula:
+1. ``X`` is generated from the following formula:
 
   for each ``i`` in 0..7 inclusive:
 
-    - let ``A`` be the ``i``'th byte of the digest, as an 8-bit int.
-    - let ``B`` be the ``i+3``'th byte of the digest, as an 8-bit int.
+    a. let ``A`` be the ``i``'th byte of the digest, as an 8-bit int.
+    b. let ``B`` be the ``i+3``'th byte of the digest, as an 8-bit int.
 
-    - let ``R`` be ``A`` shifted right by ``B % 5`` bits.
+    c. let ``R`` be ``A`` shifted right by ``B % 5`` bits.
 
-    - let ``V`` be the ``R``'th byte of the digest.
-    - if the ``A % 8``'th bit of ``B`` is 1, divide ``V`` by 2.
+    d. let ``V`` be the ``R``'th byte of the digest.
+    e. if the ``A % 8``'th bit of ``B`` is 1, divide ``V`` by 2.
 
-    - use the ``V``'th bit of the digest as the ``i``'th bit of ``X``.
+    f. use the ``V``'th bit of the digest as the ``i``'th bit of ``X``.
 
-* ``Y`` is generated exactly the same as ``X``, except that
-  ``A`` is the ``i+8``'th byte of the digest,
-  and ``B`` is the ``i+11``'th byte of the digest.
+2. ``Y`` is generated exactly the same as ``X``, except that
+   ``A`` is the ``i+8``'th byte of the digest,
+   and ``B`` is the ``i+11``'th byte of the digest.
 
-* if bit ``round`` of the digest is 1, ``X`` is divided by 2.
-* if bit ``round+64`` of the digest is 1, ``Y`` is divided by 2.
+3. if bit ``round`` of the digest is 1, ``X`` is divided by 2.
+4. if bit ``round+64`` of the digest is 1, ``Y`` is divided by 2.
 
-* the final result is ``X``'th bit of the digest XORed against ``Y``'th bit of the digest.
+5. the final result is ``X``'th bit of the digest XORed against ``Y``'th bit of the digest.
+
+Deviations
+==========
+Passlib's implementation of Sun-MD5-Crypt deviates from the official implementation
+in at least one way:
+
+* Unicode Policy:
+
+  The underlying algorithm takes in a password specified
+  as a series of non-null bytes, and does not specify what encoding
+  should be used; though a ``us-ascii`` compatible encoding
+  is implied by all known reference hashes.
+
+  In order to provide support for unicode strings,
+  PassLib will encode unicode passwords using ``utf-8``
+  before running them through sun-md5-crypt. If a different
+  encoding is desired by an application, the password should be encoded
+  before handing it to PassLib.
+
+Since Passlib's pure python implmentation was written based on the algorithm
+description above, and has not been properly tested against a reference implementation,
+it may have other bugs and deviations from the correct behavior.
 
 References
 ==========
-* `<http://dropsafe.crypticide.com/article/1389>`_ - gives overview of & motivations for the algorithm
-* `<http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt>`_ - the source of Hamlet's speech, used byte-for-byte as the constant data.
+* Overview of & motivations for the algorithm - `<http://dropsafe.crypticide.com/article/1389>`_
+* The source of Hamlet's speech, used byte-for-byte as the constant data - `<http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt>`_

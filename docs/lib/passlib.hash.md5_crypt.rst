@@ -7,8 +7,8 @@
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
 to replace the aging :class:`passlib.hash.des_crypt`.
 It has since been adopted by a wide variety of other Unix flavors, and is found
-in many other contexts as well.
-Security-wise it is considered to be steadily weakening (though not yet broken),
+in many other contexts as well. Due to it's origins, it's sometimes referred to as "FreeBSD MD5 Crypt".
+Security-wise it is considered to be steadily weakening (due to fixed cost),
 and most unix flavors have since replaced with with stronger schemes,
 such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`.
 
@@ -124,14 +124,12 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 Security Issues
 ===============
-MD5-Crypt has a couple of issues which have weakened it significantly,
+MD5-Crypt has a couple of issues which have weakened it,
 though it is not yet considered broken:
 
-* It relies on the MD5 message digest, which *is* considered broken:
-  practical collision attacks and theoretical pre-image attacks both exist [#f2]_.
-  However, MD5-Crypt's use of a large amount of MD5 throughput,
-  combined with the fact that the MD5 pre-image attacks are only theoretical,
-  mean this is not (yet) a signficant practical weakness.
+* It relies on the MD5 message digest, for which theoretical pre-image attacks exist [#f2]_.
+  However, not only is this attack still only theoretical, but none of MD5's weaknesses
+  have been show to affect MD5-Crypt's security.
 
 * The fixed number of rounds, combined with the availability
   of high-throughput MD5 implementations, means this algorithm

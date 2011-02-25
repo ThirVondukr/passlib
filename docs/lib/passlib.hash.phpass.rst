@@ -46,9 +46,21 @@ Algorithm
 =========
 PHPass uses a straightforward algorithm to calculate the checksum:
 
-* an initial result is generated from the MD5 digest of the salt string + the secret.
-* for ``2**rounds`` iterations, a new result is created from the MD5 digest of the last result + the secret.
-* the last result is then encoded according to the format described above.
+1. an initial result is generated from the MD5 digest of the salt string + the secret.
+2. for ``2**rounds`` iterations, a new result is created from the MD5 digest of the last result + the password.
+3. the last result is then encoded according to the format described above.
+
+..
+    todo: should review / verify this --
+
+    Security Issues
+    ===============
+    This algorithm's main flaw is it's reliance on the MD5 message digest,
+    and the small message size input into each MD5 round.
+    Once a practical pre-image attack exists, reversing just one round
+    could potentially allow for the password to be recovered.
+    Thus, like MD5-Crypt, is it not considered broken yet,
+    but should be avoided if alternatives are available.
 
 Deviations
 ==========

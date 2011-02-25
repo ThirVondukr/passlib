@@ -4,24 +4,19 @@
 
 .. currentmodule:: passlib.hash
 
+This class implemented the md5-based hash algorithm used by PostgreSQL to store
+it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
+prior to this PostgreSQL stored it's password in plain text.
 .. warning::
 
     This hash is not secure, and should not be used for any purposes
     besides manipulating existing PostgreSQL password hashes.
 
-This module implemented the md5-based hash algorithm used by PostgreSQL to store
-it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
-prior to this PostgreSQL stored it's password in plain text. This scheme
-uses the username as a salt value, and so it only technically salted,
-as common user account names can be predicted and precalculated. Because
-of this, it's not suitable for *any* use besides manipulating existing
-PostgreSQL account passwords.
-
 Usage
 =====
 Users will most likely find the frontend provided by :mod:`passlib.sqldb`
-to be more useful than accessing this module directly.
-That aside, this module can be used directly as follows::
+to be more useful than accessing this class directly.
+That aside, this class can be used directly as follows::
 
     >>> from passlib.hash import postgres_md5 as pm
 
@@ -40,7 +35,7 @@ That aside, this module can be used directly as follows::
     >>> pm.verify("password", 'md55a231fcdb710d73268c4f44283487ba2', "username") #verify incorrect password
     False
 
-Functions
+Interface
 =========
 .. autoclass:: postgres_md5
 
@@ -50,7 +45,21 @@ Postgres-MD5 hashes all have the format ``md5{checksum}``,
 where ``{checksum}`` is 32 hexidecimal digits, encoding a 128-bit checksum.
 This checksum is the MD5 message digest of the password concatenated with the username.
 
+Security Issues
+===============
+This algorithm it not suitable for *any* use besides manipulating existing
+PostgreSQL account passwords, due to the following flaws:
+
+* It's use of the username as a salt value means that common usernames
+  (eg ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
+  weakening the effectiveness of the salt in foiling pre-computed tables.
+
+* Since it sends raw ascii into a single MD5 digest, existing MD5 lookup tables
+  have an increased chance of being able to reverse common hashes.
+
+* It's simplicity makes high-speed brute force attacks much more feasible.
+
 References
 ==========
-* `<http://archives.postgresql.org/pgsql-hackers/2001-06/msg00952.php>`_ - discussion leading up to design of algorithm
-* `<http://archives.postgresql.org/pgsql-php/2003-01/msg00021.php>`_ - message explaining postgres md5 hash algorithm
+* Discussion leading up to design of algorithm - `<http://archives.postgresql.org/pgsql-hackers/2001-06/msg00952.php>`_
+* Message explaining postgres md5 hash algorithm - `<http://archives.postgresql.org/pgsql-php/2003-01/msg00021.php>`_

@@ -4,13 +4,11 @@
 
 .. currentmodule:: passlib.hash
 
-SHA-512 Crypt and SHA-256 Crypt were developed as a response
-to :class:`~passlib.hash.bcrypt`. They are descendants of :class:`~passlib.hash.md5_crypt`,
-and incorporate many changes: replaced MD5 with newer message digest algorithms,
-some internal cleanups in MD5-Crypt's rounds algorithm,
-and the introduction of a variable rounds parameter.
-SHA-512 Crypt is currently the default password hash for many systems
-(notably Linux), and has no known weaknesses.
+SHA-512 Crypt and SHA-256 Crypt were developed in 2008 by Ulrich Drepper
+as successor :class:`~passlib.hash.md5_crypt` which includes fixes
+and advancements such as variable rounds, using NIST-approved cryptgraphic primitives.
+SHA-256 / SHA-512 Crypt are currently the default password hash for many systems
+(notably Linux), and have no known weaknesses.
 
 Usage
 =====
@@ -19,13 +17,13 @@ Usage
 
     write usage instructions
 
-Functions
+Interface
 =========
 .. autoclass:: sha512_crypt
 
 Format & Algorithm
 ==================
-An example hash (of ``password``) is:
+An example sha512-crypt hash (of the string ``password``) is:
 
     ``$6$rounds=40000$JvTuqzqw9bQ8iBl6$SxklIkW4gz00LvuOsKRCfNEllLciOqY/FSAwODHon45YTJEozmy.QAWiyVpuiq7XMTUMWbIWWEuQytdHkigcN/``.
 
@@ -48,33 +46,46 @@ There is also an alternate format ``$6${salt}${checksum}``,
 which can be used when the rounds parameter is equal to 5000.
 
 The algorithm used by SHA512-Crypt is laid out in detail
-in the specification document linked to below.
+in the specification document linked to below [#f1]_.
 
 Deviations
 ==========
 This implementation of sha512-crypt differs from the specification,
 and other implementations, in a few ways:
 
-* The specification does not specify how to deal with zero-padding
+* Zero-Padded Rounds:
+
+  The specification does not specify how to deal with zero-padding
   within the rounds portion of the hash. No existing examples
   or test vectors have zero padding, and allowing it would
   result in multiple encodings for the same configuration / hash.
-  To prevent this situation, PassLib will throw an error if the rounds in a hash
-  have leading zeros.
+  To prevent this situation, PassLib will throw an error if the rounds
+  parameter in a hash has leading zeros.
 
-* While the underlying algorithm technically allows salt strings
-  to contain any possible byte value besides ``\x00`` and ``$``,
-  this would conflict with many uses of sha512-crypt, such as within
-  unix ``/etc/shadow`` files. Futhermore, most unix systems
-  will only generate salts using the standard 64 characters listed above.
-  This implementation follows along with that, by strictly limiting
-  salt strings to the least common denominator, ``[./0-9A-Za-z]``.
+* Restricted salt string character set:
 
-* Before generating a hash, PassLib encodes unicode passwords using UTF-8.
-  While the algorithm accepts passwords containing any 8-bit value
-  except for ``\x00``, it specifies no preference for encodings,
-  or for handling unicode strings.
+  The underlying algorithm can unambigously handle salt strings
+  which contain any possible byte value besides ``\x00`` and ``$``.
+  However, Passlib strictly limits salts to the
+  :mod:`hash 64 <passlib.utils.h64>` character set,
+  as nearly all implementations of sha512-crypt generate
+  and expect salts containing those characters,
+  but may have unexpected behaviors for other character values.
+
+* Unicode Policy:
+
+  The underlying algorithm takes in a password specified
+  as a series of non-null bytes, and does not specify what encoding
+  should be used; though a ``us-ascii`` compatible encoding
+  is implied by nearly all implementations of sha512-crypt
+  as well as all known reference hashes.
+
+  In order to provide support for unicode strings,
+  PassLib will encode unicode passwords using ``utf-8``
+  before running them through sha512-crypt. If a different
+  encoding is desired by an application, the password should be encoded
+  before handing it to PassLib.
 
 References
 ==========
-* `sha-crypt specification <http://www.akkadia.org/drepper/sha-crypt.html>`_ - Ulrich Drepper's SHA-256/512-Crypt specification, reference implementation, and test vectors
+.. [#f1] Ulrich Drepper's SHA-256/512-Crypt specification, reference implementation, and test vectors - `sha-crypt specification <http://www.akkadia.org/drepper/sha-crypt.html>`_
