@@ -61,4 +61,5 @@ this is not secure, and should not be used for *any* purpose but verifying exist
 References
 ==========
 .. [#f1] Source of implementation used by passlib - `<http://djangosnippets.org/snippets/1508/>`_
+
 * Mysql document describing transition - `<http://dev.mysql.com/doc/refman/4.1/en/password-hashing.html>`_
