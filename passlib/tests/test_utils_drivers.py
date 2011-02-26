@@ -78,12 +78,12 @@ class SaltedHash(ExtHash):
 class UnsaltedHashTest(HandlerCase):
     handler = UnsaltedHash
 
-    known_correct = []
+    known_correct_hashes = []
 
 class SaltedHashTest(HandlerCase):
     handler = SaltedHash
 
-    known_correct = []
+    known_correct_hashes = []
 
 #=========================================================
 #

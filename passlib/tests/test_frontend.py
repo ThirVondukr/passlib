@@ -42,16 +42,14 @@ class QuickAccessTest(TestCase):
         identify = mod.identify
         for cc in self.crypt_cases:
             name = cc.handler.name
-            for _, hash in cc.known_correct:
+            for _, hash in cc.known_correct_hashes:
                 self.assertEqual(identify(hash), name)
-            for _, hash in cc.known_incorrect:
-                self.assertEqual(identify(hash), name)
-            for other, hash in cc.known_other:
+            for other, hash in cc.known_other_hashes:
                 if other == name:
                     self.assertEqual(identify(hash), name)
                 else:
                     self.assertNotEqual(identify(hash), name)
-            for hash in cc.known_invalid:
+            for hash in cc.known_unidentified_hashes:
                 self.assertEqual(identify(hash), None)
 
     def test_01_verify(self):
@@ -59,13 +57,10 @@ class QuickAccessTest(TestCase):
         verify = mod.verify
         for cc in self.crypt_cases:
             name = cc.handler.name
-            for secret, hash in cc.known_correct[:3]:
+            for secret, hash in cc.known_correct_hashes[:3]:
                 self.assert_(verify(secret, hash))
                 self.assert_(verify(secret, hash, alg=name))
-            for secret, hash in cc.known_incorrect[:3]:
-                self.assert_(not verify(secret, hash))
-                self.assert_(not verify(secret, hash, alg=name))
-            for hash in cc.known_invalid[:3]:
+            for hash in cc.known_unidentified_hashes[:3]:
                 #context should raise ValueError because can't be identified
                 self.assertRaises(ValueError, verify, secret, hash)
 

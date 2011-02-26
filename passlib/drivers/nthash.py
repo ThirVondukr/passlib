@@ -89,7 +89,7 @@ class nthash(ExtHash):
 
     @classmethod
     def genconfig(cls, ident=None):
-        return cls(ident=ident, checksum=self._stub_checksum).to_string()
+        return cls(ident=ident, checksum=cls._stub_checksum).to_string()
 
     def calc_checksum(self, secret):
         if secret is None:

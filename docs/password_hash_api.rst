@@ -281,7 +281,8 @@ attributes, though their presence and meaning is not uniform
 across all handlers in passlib.
 
 For schemes which support a variable number of rounds,
-the following attributes are usually exposed:
+the following attributes are usually exposed
+(applications can test by checking for ``default_rounds``):
 
 .. attribute:: default_rounds
 
@@ -309,7 +310,8 @@ the following attributes are usually exposed:
     ``log2`` - time taken scales exponentially with rounds value (eg: bcrypt)
 
 For schemes which support a salt,
-the following attributes are usually exposed:
+the following attributes are usually exposed
+(applications can test by checking for ``max_salt_chars``):
 
 .. attribute:: min_salt_chars
 

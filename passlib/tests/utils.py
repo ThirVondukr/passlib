@@ -7,6 +7,11 @@ import logging; log = logging.getLogger(__name__)
 import re
 import os
 import unittest
+import warnings
+try:
+    from warnings import catch_warnings
+except ImportError: #wasn't added until py26
+    catch_warnings = None
 #site
 from nose.plugins.skip import SkipTest
 #pkg
@@ -203,7 +208,7 @@ class HandlerCase(TestCase):
     #attrs to be filled in by subclass for testing specific handler
     #=========================================================
 
-    #specify handler object here
+    #specify handler object here (required)
     handler = None
 
     #this option is available for hashes which can't handle unicode
@@ -214,39 +219,29 @@ class HandlerCase(TestCase):
     secret_chars = -1
 
     #list of (secret,hash) pairs which handler should verify as matching
-    known_correct = []
+    known_correct_hashes = []
 
-    #list of (secret,hash) pairs which handler should verify as NOT matching
-    known_incorrect = []
+    #list of (config, secret, hash) triples which handler should genhash & verify
+    known_correct_configs = []
 
-    # list of handler's hashes with crucial invalidating typos, that handler shouldn't identify as belonging to it
-    known_invalid = []
+    # hashes so malformed they aren't even identified properly
+    known_unidentified_hashes = []
 
-    # list of handler's hashes that it *will* identify as it's own, but genhash will raise error due to invalid internal requirements
-    known_identified_invalid = []
+    # hashes which are malformed - they should identify() as True, but cause error when passed to genhash/verify
+    known_malformed_hashes = []
 
-    #list of (name, hash) pairs for other algorithm's hashes, that handler shouldn't identify as belonging to it
+    #list of (handler name, hash) pairs for other algorithm's hashes, that handler shouldn't identify as belonging to it
     #this list should generally be sufficient (if handler name in list, that entry will be skipped)
-    known_other = [
+    known_other_hashes = [
         ('des_crypt', '6f8c114b58f2c'),
         ('md5_crypt', '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
         ('sha512_crypt', "$6$rounds=123456$asaltof16chars..$BtCwjqMJGx5hrJhZywWvt0RLE8uZ4oPwc"
             "elCjmw2kSYu.Ec6ycULevoBK25fs2xXgMNrCzIMVcgEJAstJeonj1"),
     ]
 
-    #list of various secrets all algs are tested with to make sure they work
-    standard_secrets = [
-        '',
-        ' ',
-        'my socrates note',
-        'Compl3X AlphaNu3meric',
-        '4lpHa N|_|M3r1K W/ Cur51|\\|g: #$%(*)(*%#',
-        'Really Long Password (tm), which is all the rage nowadays. Maybe some Shakespeare?',
-        ]
-
-    unicode_secrets = [
-        u'test with unic\u00D6de',
-    ]
+    #=========================================================
+    #
+    #=========================================================
 
     #optional prefix to prepend to name of test method as it's called,
     #useful when multiple handler test classes being run.
@@ -262,11 +257,6 @@ class HandlerCase(TestCase):
     #alg interface helpers - allows subclass to overide how
     # default tests invoke the handler (eg for context_kwds)
     #=========================================================
-    def do_concat(self, secret, prefix):
-        "concatenate prefix onto secret"
-        #NOTE: this is subclassable mainly for some algorithms
-        #which accept non-strings in secret
-        return prefix + secret
 
     def do_encrypt(self, secret, **kwds):
         "call handler's encrypt method with specified options"
@@ -280,11 +270,25 @@ class HandlerCase(TestCase):
         "call handler's identify method"
         return self.handler.identify(hash)
 
+    def do_genconfig(self, **kwds):
+        "call handler's genconfig method with specified options"
+        return self.handler.genconfig(**kwds)
+
+    def do_genhash(self, secret, config):
+        "call handler's genhash method with specified options"
+        return self.handler.genhash(secret, config)
+
+    def create_mismatch(self, secret):
+        "return other secret which won't match"
+        #NOTE: this is subclassable mainly for some algorithms
+        #which accept non-strings in secret
+        return 'x' + secret
+
     #=========================================================
     #attributes
     #=========================================================
-    def test_00_attributes(self):
-        "test handler attributes are all defined"
+    def test_00_required_attributes(self):
+        "test required handler attributes are defined"
         handler = self.handler
         def ga(name):
             return getattr(handler, name, None)
@@ -294,7 +298,17 @@ class HandlerCase(TestCase):
         self.assert_(name.lower() == name, "name not lower-case:")
         self.assert_(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
 
-    def test_01_base_handler(self):
+        settings = ga("setting_kwds")
+        self.assert_(settings is not None, "setting_kwds must be defined:")
+        self.assertIsInstance(settings, tuple, "setting_kwds must be a tuple:")
+
+        context = ga("context_kwds")
+        self.assert_(context is not None, "context_kwds must be defined:")
+        self.assertIsInstance(context, tuple, "context_kwds must be a tuple:")
+
+    #TODO: check optional rounds attributes & salt attributes
+
+    def test_04_base_handler(self):
         "check configuration of BaseHash-derived classes"
         h = self.handler
         if not isinstance(h, type) or not issubclass(h, BaseHash):
@@ -302,139 +316,174 @@ class HandlerCase(TestCase):
         h.validate_class() #should raise AssertionError if something's wrong.
 
     #=========================================================
-    #identify
+    #identify()
     #=========================================================
-    def test_10_identify_other(self):
-        "test identify() against other schemes' hashes"
-        for name, hash in self.known_other:
-            self.assertEqual(self.do_identify(hash), name == self.handler.name)
-
-    def test_11_identify_positive(self):
+    def test_10_identify_hash(self):
         "test identify() against scheme's own hashes"
-        for secret, hash in self.known_correct:
-            self.assertEqual(self.do_identify(hash), True)
+        for secret, hash in self.known_correct_hashes:
+            self.assertEqual(self.do_identify(hash), True, "hash=%r:" % (hash,))
 
-        for secret, hash in self.known_incorrect:
-            self.assertEqual(self.do_identify(hash), True)
+        for config, secret, hash in self.known_correct_configs:
+            self.assertEqual(self.do_identify(hash), True, "hash=%r:" % (hash,))
 
-        for hash in self.known_identified_invalid:
-            self.assertEqual(self.do_identify(hash), True)
-
-    def test_12_identify_invalid(self):
-        "test identify() against malformed instances of scheme's own hashes"
-        if not self.known_invalid:
+    def test_11_identify_config(self):
+        "test identify() against scheme's own config strings"
+        if not self.known_correct_configs:
             raise SkipTest
-        for hash in self.known_invalid:
+        for config, secret, hash in self.known_correct_configs:
+            self.assertEqual(self.do_identify(config), True, "config=%r:" % (config,))
+
+    def test_12_identify_unidentified(self):
+        "test identify() against scheme's own hashes that are mangled beyond identification"
+        if not self.known_unidentified_hashes:
+            raise SkipTest
+        for hash in self.known_unidentified_hashes:
             self.assertEqual(self.do_identify(hash), False, "hash=%r:" % (hash,))
 
-    def test_13_identify_none(self):
+    def test_13_identify_malformed(self):
+        "test identify() against scheme's own hashes that are mangled but identifiable"
+        if not self.known_malformed_hashes:
+            raise SkipTest
+        for hash in self.known_malformed_hashes:
+            self.assertEqual(self.do_identify(hash), True, "hash=%r:" % (hash,))
+
+    def test_14_identify_other(self):
+        "test identify() against other schemes' hashes"
+        for name, hash in self.known_other_hashes:
+            self.assertEqual(self.do_identify(hash), name == self.handler.name, "scheme=%r, hash=%r:" % (name, hash))
+
+    def test_15_identify_none(self):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
         self.assertEqual(self.do_identify(''), False)
 
     #=========================================================
-    #verify
+    #verify()
     #=========================================================
     def test_20_verify_positive(self):
         "test verify() against known-correct secret/hash pairs"
-        self.assert_(self.known_correct, "test must define known_correct hashes")
-        for secret, hash in self.known_correct:
-            self.assertEqual(self.do_verify(secret, hash), True, "known correct hash (secret=%r, hash=%r):" % (secret,hash))
+        self.assert_(self.known_correct_hashes or self.known_correct_configs,
+                     "test must define at least one of known_correct_hashes or known_correct_configs")
 
-    def test_21_verify_negative(self):
-        "test verify() against known-incorrect secret/hash pairs"
-        if not self.known_incorrect:
-            raise SkipTest
-        for secret, hash in self.known_incorrect:
-            self.assertEqual(self.do_verify(secret, hash), False)
+        for secret, hash in self.known_correct_hashes:
+            self.assertEqual(self.do_verify(secret, hash), True,
+                             "known correct hash (secret=%r, hash=%r):" % (secret,hash))
 
-    #XXX: is this needed if known_incorrect is defined?
-    def test_22_verify_derived_negative(self):
-        "test verify() against derived incorrect secret/hash pairs"
-        for secret, hash in self.known_correct:
-            self.assertEqual(self.do_verify(self.do_concat(secret,'x'), hash), False)
+        for config, secret, hash in self.known_correct_configs:
+            self.assertEqual(self.do_verify(secret, hash), True,
+                             "known correct hash (secret=%r, hash=%r):" % (secret,hash))
 
-    def test_23_verify_other(self):
+    def test_21_verify_other(self):
         "test verify() throws error against other algorithm's hashes"
-        for name, hash in self.known_other:
+        for name, hash in self.known_other_hashes:
             if name == self.handler.name:
                 continue
-            self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="verify other %r %r:" % (name, hash))
+            self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="scheme=%r, hash=%r:" % (name, hash))
 
-    def test_24_verify_invalid(self):
+    def test_22_verify_invalid(self):
         "test verify() throws error against known-invalid hashes"
-        if not self.known_invalid and not self.known_identified_invalid:
+        if not self.known_unidentified_hashes and not self.known_malformed_hashes:
             raise SkipTest
-        for hash in self.known_invalid + self.known_identified_invalid:
-            self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="verify invalid %r:" % (hash,))
+        for hash in self.known_unidentified_hashes:
+            self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
+        for hash in self.known_malformed_hashes:
+            self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
 
-    def test_25_verify_none(self):
+    def test_23_verify_none(self):
         "test verify() throws error against hash=None/empty string"
         #find valid hash so that doesn't mask error
-        self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="verify None:")
-        self.assertRaises(ValueError, self.do_verify, 'stub', '', __msg__="verify empty:")
+        self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
+        self.assertRaises(ValueError, self.do_verify, 'stub', '', __msg__="hash='':")
 
     #=========================================================
-    #encrypt
+    #genconfig()
     #=========================================================
+    #NOTE: no specific genconfig tests yet, but testing in other cases
 
-    #---------------------------------------------------------
-    #test encryption against various secrets
-    #---------------------------------------------------------
-    def test_30_encrypt_standard(self):
-        "test encrypt() against standard secrets"
-        for secret in self.standard_secrets:
-            self.check_encrypt(secret)
+    #=========================================================
+    #genhash()
+    #=========================================================
+    filter_known_config_warnings = None
 
-    def test_31_encrypt_unicode(self):
-        "test encrypt() against unicode secrets"
-        if not self.supports_unicode:
+    def test_40_genhash_config(self):
+        "test genhash() against known config strings"
+        if not self.known_correct_configs:
             raise SkipTest
-        for secret in self.unicode_secrets:
-            self.check_encrypt(secret)
+        fk = self.filter_known_config_warnings
+        if fk:
+            if catch_warnings:
+                ctx = catch_warnings()
+                ctx.__enter__()
+            fk()
+        for config, secret, hash in self.known_correct_configs:
+            result = self.do_genhash(secret, config)
+            self.assertEquals(result, hash, "config=%r,secret=%r:" % (config,secret))
+        if fk and catch_warnings:
+            ctx.__exit__(None,None,None)
 
-    #this is probably excessive
-    ##def test_32_encrypt_positive(self):
-    ##    "test encrypt() against known-correct secret/hash pairs"
-    ##    for secret, hash in self.known_correct:
-    ##        self.check_encrypt(secret)
+    def test_41_genhash_hash(self):
+        "test genhash() against known hash strings"
+        if not self.known_correct_hashes:
+            raise SkipTest
+        handler = self.handler
+        for secret, hash in self.known_correct_hashes:
+            result = self.do_genhash(secret, hash)
+            self.assertEquals(result, hash, "secret=%r:" % (secret,))
 
-    def check_encrypt(self, secret):
-        "check encrypt() behavior for a given secret"
-        #hash the secret
-        hash = self.do_encrypt(secret)
+    def test_42_genhash_genconfig(self):
+        "test genhash() against genconfig() output"
+        handler = self.handler
+        config = handler.genconfig()
+        hash = self.do_genhash("stub", config)
+        self.assert_(handler.identify(hash))
 
-        #test identification
-        self.assertEqual(self.do_identify(hash), True, "identify hash %r from secret %r:" % (hash, secret))
+    #=========================================================
+    #encrypt()
+    #=========================================================
+    def test_50_encrypt_plain(self):
+        "test plain encrypt()"
+        if self.supports_unicode:
+            secret = u"unic\u00D6de"
+        else:
+            secret = "too many secrets"
+        result = self.do_encrypt(secret)
+        self.assert_(self.do_identify(result))
+        self.assert_(self.do_verify(secret, result))
 
-        #test positive verification
-        self.assertEqual(self.do_verify(secret, hash), True, "verify hash %r from secret %r:" % (hash, secret))
+    def test_51_encrypt_none(self):
+        "test encrypt() refused secret=None"
+        self.assertRaises(TypeError, self.do_encrypt, None)
 
-        #test negative verification
-        for other in ['', 'test', self.do_concat(secret,'x')]:
-            if other != secret:
-                self.assertEqual(self.do_verify(other, hash), False,
-                    "hash collision: %r and %r => %r" % (secret, other, hash))
-
-    #---------------------------------------------------------
-    #test salt handling
-    #---------------------------------------------------------
-    def test_33_encrypt_gensalt(self):
-        "test encrypt() generates new salt each time"
+    #=========================================================
+    #test salt generation
+    #=========================================================
+    def test_60_genconfig_salt(self):
+        "test genconfig() generates new salts"
         if 'salt' not in self.handler.setting_kwds:
             raise SkipTest
-        for secret, hash in self.known_correct:
-            hash2 = self.do_encrypt(secret)
-            self.assertNotEqual(hash, hash2)
+        c1 = self.do_genconfig()
+        c2 = self.do_genconfig()
+        self.assertNotEquals(c1,c2)
+
+    def test_61_encrypt_salt(self):
+        "test encrypt() generates new salts"
+        if 'salt' not in self.handler.setting_kwds:
+            raise SkipTest
+        if self.known_correct_hashes:
+            secret, hash = self.known_correct_hashes[0]
+        else:
+            _, secret, hash = self.known_correct_configs[0]
+        hash2 = self.do_encrypt(secret)
+        self.assertNotEquals(hash,hash2)
 
     #TODO: test too-short user-provided salts
     #TODO: test too-long user-provided salts
     #TODO: test invalid char in user-provided salts
 
-    #---------------------------------------------------------
-    #test secret handling
-    #---------------------------------------------------------
-    def test_37_secret_chars(self):
+    #=========================================================
+    #test max password size
+    #=========================================================
+    def test_70_secret_chars(self):
         "test secret_chars limit"
         sc = self.secret_chars
 
@@ -471,21 +520,6 @@ class HandlerCase(TestCase):
             secret = base * 64
             hash = self.do_encrypt(secret)
             self.assert_(not self.do_verify(secret[:-1] + alt, hash))
-
-    def test_38_encrypt_none(self):
-        "test encrypt() refused secret=None"
-        self.assertRaises(TypeError, self.do_encrypt, None)
-
-    #=========================================================
-    #
-    #=========================================================
-
-    #TODO: check genhash works
-    #TODO: check genconfig works
-
-    #TODO: check parse method works
-    #TODO: check render method works
-    #TODO: check default/min/max_rounds valid if present
 
     #=========================================================
     #eoc

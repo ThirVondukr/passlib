@@ -314,7 +314,7 @@ class bigcrypt(ExtHash):
         if not m:
             raise ValueError, "invalid bigcrypt hash"
         salt, chk = m.group("salt", "chk")
-        if len(chk) % 11:
+        if chk and len(chk) % 11:
             raise ValueError, "invalid bigcrypt hash"
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 

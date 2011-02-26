@@ -6,10 +6,6 @@ from __future__ import with_statement
 #core
 import hashlib
 import logging; log = logging.getLogger(__name__)
-try:
-    from warnings import catch_warnings
-except ImportError: #wasn't added until py26
-    catch_warnings = None
 import warnings
 #site
 #pkg
@@ -24,11 +20,11 @@ class AprMd5CryptTest(HandlerCase):
     handler = apr_md5_crypt
 
     #values taken from http://httpd.apache.org/docs/2.2/misc/password_encryptions.html
-    known_correct = (
+    known_correct_hashes = (
         ('myPassword', '$apr1$r31.....$HqJZimcKQFAMYayBlzkrA/'),
         )
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$apr1$r31.....$HqJZimcKQFAMYayBlzkrA!'
         ]
@@ -42,7 +38,7 @@ class BCryptTest(HandlerCase):
     handler = bcrypt
     secret_chars = 72
 
-    known_correct = (
+    known_correct_hashes = (
         #selected bcrypt test vectors
         ('', '$2a$06$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'),
         ('a', '$2a$10$k87L/MF28Q673VKh8/cPi.SUl7MU/rWuSiIDDFayrKk/1tBsSQu4u'),
@@ -51,12 +47,12 @@ class BCryptTest(HandlerCase):
         ('~!@#$%^&*()      ~!@#$%^&*()PNBFRD', '$2a$10$LgfYWkbzEvQ4JakH7rOvHe0y8pHKF9OaFgwUZ2q7W2FFZmZzJYlfS'),
         )
 
-    known_invalid = [
+    known_unidentified_hashes = [
         #unsupported minor version
         "$2b$12$EXRkfkdmXn!gzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
     ]
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         "$2a$12$EXRkfkdmXn!gzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
         #rounds not zero-padded (pybcrypt rejects this, therefore so do we)
@@ -79,13 +75,13 @@ class BigCryptTest(HandlerCase):
 
     #TODO: find an authortative source of test vectors,
     #these were found in docs and messages on the web.
-    known_correct = [
+    known_correct_hashes = [
         ("passphrase",               "qiyh4XPJGsOZ2MEAyLkfWqeQ"),
         ("This is very long passwd", "f8.SVpL2fvwjkAnxn8/rgTkwvrif6bjYB5c"),
     ]
 
     #omit des_crypt from known other, it looks like bigcrypt
-    known_other = filter(lambda row: row[0] != "des_crypt", HandlerCase.known_other)
+    known_other_hashes = filter(lambda row: row[0] != "des_crypt", HandlerCase.known_other_hashes)
 
 #=========================================================
 #bsdi crypt
@@ -95,14 +91,14 @@ from passlib.drivers.des_crypt import bsdi_crypt
 class BSDiCryptTest(HandlerCase):
     "test BSDiCrypt algorithm"
     handler = bsdi_crypt
-    known_correct = [
+    known_correct_hashes = [
         (" ", "_K1..crsmZxOLzfJH8iw"),
         ("my", '_KR/.crsmykRplHbAvwA'), #<- to detect old 12-bit rounds bug
         ("my socra", "_K1..crsmf/9NzZr1fLM"),
         ("my socrates", '_K1..crsmOv1rbde9A9o'),
         ("my socrates note", "_K1..crsm/2qeAhdISMA"),
     ]
-    known_invalid = [
+    known_unidentified_hashes = [
         #bad char in otherwise correctly formatted hash
        "_K1.!crsmZxOLzfJH8iw"
     ]
@@ -119,7 +115,7 @@ class Crypt16Test(HandlerCase):
     #TODO: find an authortative source of test vectors
     #instead of just msgs around the web
     #   (eg http://seclists.org/bugtraq/1999/Mar/76)
-    known_correct = [
+    known_correct_hashes = [
         ("passphrase",  "qi8H8R7OM4xMUNMPuRAZxlY."),
         ("printf",      "aaCjFz4Sh8Eg2QSqAReePlq6"),
         ("printf",      "AA/xje2RyeiSU0iBY3PDwjYo"),
@@ -140,7 +136,7 @@ class DesCryptTest(HandlerCase):
 
     #TODO: test
 
-    known_correct = (
+    known_correct_hashes = (
         #secret, example hash which matches secret
         ('', 'OgAwTx2l6NADI'),
         (' ', '/Hk.VPuwQTXbc'),
@@ -150,7 +146,7 @@ class DesCryptTest(HandlerCase):
         ('AlOtBsOl', 'cEpWz5IUCShqM'),
         (u'hell\u00D6', 'saykDgk3BPZ9E'),
         )
-    known_invalid = [
+    known_unidentified_hashes = [
         #bad char in otherwise correctly formatted hash
         '!gAwTx2l6NADI',
         ]
@@ -164,7 +160,7 @@ from passlib.drivers.md5_crypt import md5_crypt
 class Md5CryptTest(HandlerCase):
     handler = md5_crypt
 
-    known_correct = (
+    known_correct_hashes = (
         ('', '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
         (' ', '$1$m/5ee7ol$bZn0kIBFipq39e.KDXX8I0'),
         ('test', '$1$ec6XvcoW$ghEtNK2U1MC5l.Dwgi3020'),
@@ -173,7 +169,7 @@ class Md5CryptTest(HandlerCase):
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
         )
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
@@ -188,13 +184,10 @@ from passlib.drivers.mysql import mysql323, mysql41
 class Mysql323Test(HandlerCase):
     handler = mysql323
 
-    #remove single space from secrets, since mysql-323 ignores all whitespace (?!)
-    standard_secrets = [ x for x in HandlerCase.standard_secrets if x != ' ' ]
-
-    known_correct = (
+    known_correct_hashes = (
         ('mypass', '6f8c114b58f2ce9e'),
     )
-    known_invalid = [
+    known_unidentified_hashes = [
         #bad char in otherwise correct hash
         '6z8c114b58f2ce9e',
     ]
@@ -207,10 +200,10 @@ class Mysql323Test(HandlerCase):
 
 class Mysql41Test(HandlerCase):
     handler = mysql41
-    known_correct = (
+    known_correct_hashes = (
         ('mypass', '*6C8989366EAF75BB670AD8EA7A7FC1176A95CEF4'),
     )
-    known_invalid = [
+    known_unidentified_hashes = [
         #bad char in otherwise correct hash
         '*6Z8989366EAF75BB670AD8EA7A7FC1176A95CEF4',
     ]
@@ -223,12 +216,12 @@ from passlib.drivers.nthash import nthash
 class NTHashTest(HandlerCase):
     handler = nthash
 
-    known_correct = (
+    known_correct_hashes = (
         ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
         ('passphrase', '$NT$7f8fe03093cc84b267b109625f6bbf4b'),
     )
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$3$$7f8fe03093cc84b267b109625f6bbfxb',
     ]
@@ -241,13 +234,13 @@ from passlib.drivers.phpass import phpass
 class PHPassTest(HandlerCase):
     handler = phpass
 
-    known_correct = (
+    known_correct_hashes = (
         ('', '$P$7JaFQsPzJSuenezefD/3jHgt5hVfNH0'),
         ('compL3X!', '$P$FiS0N5L672xzQx1rt1vgdJQRYKnQM9/'),
         ('test12345', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0'), #from the source
         )
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r!L0',
         ]
@@ -261,13 +254,13 @@ from passlib.drivers.postgres import postgres_md5, postgres_plaintext
 
 class PostgresMD5CryptTest(HandlerCase):
     handler = postgres_md5
-    known_correct = [
+    known_correct_hashes = [
         # ((secret,user),hash)
         (('mypass', 'postgres'), 'md55fba2ea04fd36069d2574ea71c8efe9d'),
         (('mypass', 'root'), 'md540c31989b20437833f697e485811254b'),
         (("testpassword",'testuser'), 'md5d4fc5129cc2c25465a5370113ae9835f'),
     ]
-    known_invalid = [
+    known_unidentified_hashes = [
         #bad 'z' char in otherwise correct hash
         'md54zc31989b20437833f697e485811254b',
     ]
@@ -285,13 +278,12 @@ class PostgresMD5CryptTest(HandlerCase):
         self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
         self.assertRaises(TypeError, self.handler.verify, 'mypass', 'md55fba2ea04fd36069d2574ea71c8efe9d')
 
-    def do_concat(self, secret, prefix):
+    def create_mismatch(self, secret):
         if isinstance(secret, tuple):
             secret, user = secret
-            secret = prefix + secret
-            return secret, user
+            return 'x' + secret, user
         else:
-            return prefix + secret
+            return 'x' + secret
 
     def do_encrypt(self, secret, **kwds):
         if isinstance(secret, tuple):
@@ -309,6 +301,13 @@ class PostgresMD5CryptTest(HandlerCase):
             user = 'default'
         return self.handler.verify(secret, hash, user=user)
 
+    def do_genhash(self, secret, config):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        return self.handler.genhash(secret, config, user=user)
+
 #=========================================================
 # (netbsd's) sha1 crypt
 #=========================================================
@@ -317,12 +316,12 @@ from passlib.drivers.sha1_crypt import sha1_crypt
 class SHA1CryptTest(HandlerCase):
     handler = sha1_crypt
 
-    known_correct = (
+    known_correct_hashes = (
         ("password", "$sha1$19703$iVdJqfSE$v4qYKl1zqYThwpjJAoKX6UvlHq/a"),
         ("password", "$sha1$21773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH"),
     )
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$sha1$21773$u!7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
     ]
@@ -336,7 +335,7 @@ class SHA256CryptTest(HandlerCase):
     handler = sha256_crypt
     supports_unicode = True
 
-    known_correct = [
+    known_correct_hashes = [
         ('', '$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3'),
         (' ', '$5$rounds=10376$I5lNtXtRmf.OoMd8$Ko3AI1VvTANdyKhBPavaRjJzNpSatKU6QVN9uwS9MH.'),
         ('test', '$5$rounds=11858$WH1ABM5sKhxbkgCK$aTQsjPkz0rBsH3lQlJxw9HDTDXPKBxC0LlVeV69P.t1'),
@@ -345,7 +344,7 @@ class SHA256CryptTest(HandlerCase):
         (u'with unic\u00D6de', '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
         ]
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$5$rounds=10428$uy/:jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMeZGsGx2aBvxTvDFI613c3',
 
@@ -354,7 +353,7 @@ class SHA256CryptTest(HandlerCase):
     ]
 
     #NOTE: these test cases taken from official specification at http://www.akkadia.org/drepper/SHA-crypt.txt
-    cases256 = [
+    known_correct_configs = [
         #config, secret, result
         ( "$5$saltstring", "Hello world!",
           "$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5" ),
@@ -380,27 +379,8 @@ class SHA256CryptTest(HandlerCase):
           "2bIC" ),
     ]
 
-    def test_spec_vectors(self):
-        "verify sha256-crypt passes specification test vectors"
-        handler = self.handler
-
-        #NOTE: the 'roundstoolow' test vector is known to raise a warning, which we silence here
-        if catch_warnings:
-            ctx = catch_warnings()
-            ctx.__enter__()
+    def filter_known_config_warnings(self):
         warnings.filterwarnings("ignore", "sha256_crypt does not allow less than 1000 rounds: 10", UserWarning)
-
-        for config, secret, hash in self.cases256:
-            #make sure we got expected result back
-            result = handler.genhash(secret, config)
-            self.assertEqual(result, hash, "hash=%r secret=%r:" % (hash, secret))
-
-            #make sure parser truncated salts
-            info = handler.from_string(config)
-            self.assert_(len(info.salt) <= 16, "hash=%r secret=%r:" % (hash, secret))
-
-        if catch_warnings:
-            ctx.__exit__(None,None,None)
 
 BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 
@@ -413,7 +393,7 @@ class SHA512CryptTest(HandlerCase):
     handler = sha512_crypt
     supports_unicode = True
 
-    known_correct = [
+    known_correct_hashes = [
         ('', '$6$rounds=11021$KsvQipYPWpr93wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1'),
         (' ', '$6$rounds=11104$ED9SA4qGmd57Fq2m$q/.PqACDM/JpAHKmr86nkPzzuR5.YpYa8ZJJvI8Zd89ZPUYTJExsFEIuTYbM7gAGcQtTkCEhBKmp1S1QZwaXx0'),
         ('test', '$6$rounds=11531$G/gkPn17kHYo0gTF$Kq.uZBHlSBXyzsOJXtxJruOOH4yc0Is13uY7yK0PvAvXxbvc1w8DO1RzREMhKsc82K/Jh8OquV8FZUlreYPJk1'),
@@ -421,7 +401,7 @@ class SHA512CryptTest(HandlerCase):
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$6$rounds=11065$5KXQoE1bztkY5IZr$Jf6krQSUKKOlKca4hSW07MSerFFzVIZt/N3rOTsUgKqp7cUdHrwV8MoIVNCk9q9WL3ZRMsdbwNXpVk0gVxKtz1'),
         ]
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #zero-padded rounds
         '$6$rounds=011021$KsvQipYPWpr93wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1',
         #bad char in otherwise correct hash
@@ -429,7 +409,7 @@ class SHA512CryptTest(HandlerCase):
     ]
 
     #NOTE: these test cases taken from official specification at http://www.akkadia.org/drepper/SHA-crypt.txt
-    cases512 = [
+    known_correct_configs = [
         #config, secret, result
         ("$6$saltstring", "Hello world!",
         "$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJu"
@@ -463,27 +443,8 @@ class SHA512CryptTest(HandlerCase):
         "hLsPuWGsUSklZt58jaTfF4ZEQpyUNGc0dqbpBYYBaHHrsX." ),
     ]
 
-    def test_spec_vectors(self):
-        "verify sha512-crypt passes specification test vectors"
-        handler = self.handler
-
-        #NOTE: the 'roundstoolow' test vector is known to raise a warning, which we silence here
-        if catch_warnings:
-            ctx = catch_warnings()
-            ctx.__enter__()
+    def filter_known_config_warnings(self):
         warnings.filterwarnings("ignore", "sha512_crypt does not allow less than 1000 rounds: 10", UserWarning)
-
-        for config, secret, hash in self.cases512:
-            #make sure we got expected result back
-            result = handler.genhash(secret, config)
-            self.assertEqual(result, hash, "hash=%r secret=%r:" % (hash, secret))
-
-            #make sure parser truncated salts
-            info = handler.from_string(config)
-            self.assert_(len(info.salt) <= 16, "hash=%r secret=%r:" % (hash, secret))
-
-        if catch_warnings:
-            ctx.__exit__(None,None,None)
 
 BuiltinSHA512CryptTest = create_backend_case(SHA512CryptTest, "builtin")
 
@@ -495,12 +456,12 @@ from passlib.drivers.sun_md5_crypt import sun_md5_crypt
 class SunMD5CryptTest(HandlerCase):
     handler = sun_md5_crypt
 
-    known_correct = [
+    known_correct_hashes = [
         #sample hash found at http://compgroups.net/comp.unix.solaris/password-file-in-linux-and-solaris-8-9
         ("passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
         ]
 
-    known_identified_invalid = [
+    known_malformed_hashes = [
         #bad char in otherwise correct hash
         "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/"
         ]
