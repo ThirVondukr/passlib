@@ -323,7 +323,7 @@ class CryptPolicy(object):
         kwds = {}
         for source in sources:
             policy = cls.from_source(source)
-            kwds.update(policy.iteritems("tuple"))
+            kwds.update(policy.iteritems())
 
         #build new policy
         return cls(**kwds)
@@ -363,12 +363,12 @@ class CryptPolicy(object):
     #init
     #=========================================================
     def __init__(self, **kwds):
-        self._from_dict(**kwds)
+        self._from_dict(kwds)
 
     #=========================================================
     #internal init helpers
     #=========================================================
-    def _from_dict(self, **kwds):
+    def _from_dict(self, kwds):
         "configure policy from constructor keywords"
         #
         #normalize & sort keywords
@@ -722,7 +722,10 @@ class CryptContext(object):
         if not policy:
             policy = CryptPolicy(**kwds)
         elif kwds or not isinstance(policy, CryptPolicy):
-            policy = list(policy)
+            if isinstance(policy, (list,tuple)):
+                policy = list(policy)
+            else:
+                policy = [policy]
             if kwds:
                 policy.append(kwds)
             policy = CryptPolicy.from_sources(policy)
