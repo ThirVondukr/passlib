@@ -34,7 +34,7 @@ Options for configuring a specific hash take the form of the name of
 ``{name}.{option}`` (eg ``sha512_crypt.default_rounds``); where ``{name}`` is usually the name of a password hash,
 and ``{option}`` is one of the options specified below.
 There are a few reserved hash names:
-Any options of the form ``default.{option}`` will be inherited by ALL hashes
+Any options of the form ``all.{option}`` will be inherited by all hashes
 if they do not have a ``{hash}.{option}`` value overriding the default.
 Any options of the form ``context.{option}`` will be treated as options for the context object itself,
 and not for a specified hash. Any options of the form ``{option}`` are taken to implicitly
@@ -54,7 +54,7 @@ The remaining options -
     if not specified, none are considered deprecated.
     this must be a subset of the names listed in context.schemes
 
-``context.fallback``
+``context.default``
     the default scheme context should use for generating new hashes.
     if not specified, the last entry in ``context/schemes`` is used.
 
@@ -134,11 +134,11 @@ A sample policy file::
     #configure what schemes the context supports (note the "context." prefix is implied for these keys)
     schemes = md5_crypt, sha512_crypt, bcrypt
     deprecated = md5_crypt
-    fallback = sha512_crypt
+    default = sha512_crypt
     min_verify_time = 0.1
 
-    #set some common options for ALL schemes
-    default.vary_default_rounds = 10%
+    #set some common options for all schemes
+    all.vary_default_rounds = 10%
 
     #setup some hash-specific defaults
     sha512_crypt.min_rounds = 40000

@@ -221,11 +221,8 @@ def parse_policy_key(key):
         cat, name, opt = key
     else:
         orig = key
-        if '/' in key: #legacy format
-            key = key.replace("/",".")
-        elif '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
+        if '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
             key = key.replace("__", ".")
-        key = key.replace(" ","").replace("\t","") #strip out all whitespace from key
         parts = key.split(".")
         if len(parts) == 1:
             cat = None
@@ -299,7 +296,7 @@ class CryptPolicy(object):
 
         elif isinstance(source, (str,unicode)):
             #FIXME: this autodetection makes me uncomfortable...
-            if any(c in source for c in "\n\r\t"): #none of these chars should be in filepaths, but should be in config string
+            if any(c in source for c in "\n\r\t") or not source.strip(" \t./\;:"): #none of these chars should be in filepaths, but should be in config string
                 return cls.from_string(source)
 
             else: #other strings should be filepath
@@ -323,7 +320,7 @@ class CryptPolicy(object):
         kwds = {}
         for source in sources:
             policy = cls.from_source(source)
-            kwds.update(policy.iteritems())
+            kwds.update(policy.iter_config(resolve=True))
 
         #build new policy
         return cls(**kwds)
@@ -345,8 +342,8 @@ class CryptPolicy(object):
     #:list of all handlers, in order they will be checked when identifying (reverse of order specified)
     _handlers = None #list of password hash handlers instances.
 
-    #:dict mapping category -> fallback handler for that category
-    _fallback = None
+    #:dict mapping category -> default handler for that category
+    _default = None
 
     #:dict mapping category -> set of handler names which are deprecated for that category
     _deprecated = None
@@ -421,37 +418,57 @@ class CryptPolicy(object):
             handlers.append(handler)
 
         #
-        #build _deprecated & _fallback maps
+        #build _deprecated & _default maps
         #
         dmap = self._deprecated = {}
-        fmap = self._fallback = {}
+        fmap = self._default = {}
         mvmap = self._min_verify_time = {}
         for cat, config in options.iteritems():
             kwds = config.pop("context", None)
             if not kwds:
                 continue
+
+            #list of deprecated schemes
             deps = kwds.get("deprecated")
             if deps:
-                for scheme in deps:
-                    if scheme not in seen:
-                        raise ValueError, "unspecified scheme in deprecated list: %r" % (scheme,)
+                if handlers:
+                    for scheme in deps:
+                        if scheme not in seen:
+                            raise ValueError, "unspecified scheme in deprecated list: %r" % (scheme,)
                 dmap[cat] = frozenset(deps)
-            fb = kwds.get("fallback")
+
+            #default scheme
+            fb = kwds.get("default")
             if fb:
-                if fb not in seen:
-                    raise ValueError, "unspecified scheme set as fallback: %r" % (fb,)
-                fmap[cat] = self.get_handler(fb, required=True)
+                if handlers:
+                    if hasattr(fb, "name"):
+                        fb = fb.name
+                    if fb not in seen:
+                        raise ValueError, "unspecified scheme set as default: %r" % (fb,)
+                    fmap[cat] = self.get_handler(fb, required=True)
+                else:
+                    fmap[cat] = fb
+
+            #min verify time
             value = kwds.get("min_verify_time")
             if value:
                 mvmap[cat] = value
+            #XXX: error or warning if unknown key found in kwds?
         #NOTE: for dmap/fmap/mvmap -
-        # if no cat=None value is specified, each has it's own fallbacks,
+        # if no cat=None value is specified, each has it's own defaults,
         # (handlers[0] for fmap, set() for dmap, 0 for mvmap)
         # but we don't store those in dict since it would complicate policy merge operation
 
     #=========================================================
     #public interface (used by CryptContext)
     #=========================================================
+    def has_handlers(self):
+        return len(self._handlers) > 0
+
+    def iter_handlers(self):
+        "iterate through all loaded handlers in policy"
+        return iter(self._handlers)
+
     def get_handler(self, name=None, category=None, required=False):
         """given an algorithm name, return algorithm handler which manages it.
 
@@ -469,7 +486,7 @@ class CryptPolicy(object):
                 if handler.name == name:
                     return handler
         else:
-            fmap = self._fallback
+            fmap = self._default
             if category in fmap:
                 return fmap[category]
             elif category and None in fmap:
@@ -492,11 +509,15 @@ class CryptPolicy(object):
         options = self._options
 
         #start with default values
-        kwds = options[None].get("default") or {}
+        kwds = options[None].get("all")
+        if kwds is None:
+            kwds = {}
+        else:
+            kwds = kwds.copy()
 
         #mix in category default values
         if category and category in options:
-            tmp = options[category].get("default")
+            tmp = options[category].get("all")
             if tmp:
                 kwds.update(tmp)
 
@@ -513,7 +534,7 @@ class CryptPolicy(object):
 
         return kwds
 
-    def is_deprecated(self, name, category=None):
+    def handler_is_deprecated(self, name, category=None):
         "check if algorithm is deprecated according to policy"
         if hasattr(name, "name"):
             name = name.name
@@ -538,68 +559,64 @@ class CryptPolicy(object):
     #=========================================================
     #serialization
     #=========================================================
-    def hashandlers(self):
-        return self._handlers > 0
+    def iter_config(self, ini=False, resolve=False):
+        """iterate through key/value pairs of policy configuration
 
-    def iterhandlers(self):
-        "iterate through all loaded handlers in policy"
-        return iter(self._handlers)
+        :param ini:
+            If ``True``, returns data formatted for insertion
+            into INI file. Keys use ``.`` separator instead of ``__``;
+            list of handlers returned as comma-separated strings.
 
-    def iteritems(self, format="python"):
-        """iterate through keys in policy.
-
-        :param format:
-            format results should be returned in.
-            * ``python`` - returns keys with ``__`` separator, and raw values
-            * ``tuple`` - returns keys as raw (cat,name,opt) tuple, and raw values
-            * ``ini`` - returns keys with ``.`` separator, and strings instead of handler lists
+        :param resolve:
+            If ``True``, returns handler objects instead of handler
+            names where appropriate. Ignored if ``ini=True``.
 
         :returns:
             iterator which yeilds (key,value) pairs.
         """
-        ini = False
-        if format == "tuple":
-            def format_key(cat, name, opt):
-                return (cat, name, opt)
+        #
+        #prepare formatting functions
+        #
+        if ini:
+            fmt1 = "%s.%s.%s"
+            fmt2 = "%s.%s"
+            def encode_handler(h):
+                return h.name
+            def encode_hlist(hl):
+                return ", ".join(h.name for h in hl)
         else:
-            if format == "ini":
-                fmt1 = "%s.%s.%s"
-                fmt2 = "%s.%s"
-
-                ini = True
-                def h2n(handler):
-                    return handler.name
-                def hlist(handlers):
-                    return ", ".join(map(h2n, handlers))
-
+            fmt1 = "%s__%s__%s"
+            fmt2 = "%s__%s"
+            if resolve:
+                def encode_handler(h):
+                    return h
+                def encode_hlist(hl):
+                    return list(hl)
             else:
-                assert format == "python"
-                fmt1 = "%s__%s__%s"
-                fmt2 = "%s__%s"
+                def encode_handler(h):
+                    return h.name
+                def encode_hlist(hl):
+                    return [ h.name for h in hl ]
 
-            def format_key(cat, name, opt):
-                if cat:
-                    return fmt1 % (cat, name or "context", opt)
-                if name:
-                    return fmt2 % (name, opt)
-                return opt
+        def format_key(cat, name, opt):
+            if cat:
+                return fmt1 % (cat, name or "context", opt)
+            if name:
+                return fmt2 % (name, opt)
+            return opt
 
+        #
+        #run through contents of internal configuration
+        #
         value = self._handlers
         if value:
-            value = value[::-1]
-            if ini:
-                value = hlist(value)
-            yield format_key(None, None, "schemes"), value
+            yield format_key(None, None, "schemes"), encode_hlist(reversed(value))
 
         for cat, value in self._deprecated.iteritems():
-            if ini:
-                value = hlist(value)
-            yield format_key(cat, None, "deprecated"), value
+            yield format_key(cat, None, "deprecated"), encode_hlist(value)
 
-        for cat, value in self._fallback.iteritems():
-            if ini:
-                value = h2n(value)
-            yield format_key(cat, None, "fallback"), value
+        for cat, value in self._default.iteritems():
+            yield format_key(cat, None, "default"), encode_handler(value)
 
         for cat, value in self._min_verify_time.iteritems():
             yield format_key(cat, None, "min_verify_time"), value
@@ -611,20 +628,20 @@ class CryptPolicy(object):
                     value = config[opt]
                     yield format_key(cat, name, opt), value
 
-    def to_dict(self, format="python"):
+    def to_dict(self, resolve=False):
         "return as dictionary of keywords"
-        return dict(self.iteritems(format))
+        return dict(self.iter_config(resolve=resolve))
 
     def _write_to_parser(self, parser, section):
         "helper for to_string / to_file"
-        p.add_section(section)
-        for k,v in self.iteritems("ini"):
-            p.set(section, k,v)
+        parser.add_section(section)
+        for k,v in self.iter_config(ini=True):
+            parser.set(section, k,v)
 
     def to_string(self, section="passlib"):
         "render to INI string"
         p = ConfigParser()
-        self._write_to_parser(p)
+        self._write_to_parser(p, section)
         b = StringIO()
         p.write(b)
         return b.getvalue()
@@ -636,7 +653,7 @@ class CryptPolicy(object):
             if not p.read([path]):
                 raise EnvironmentError, "failed to read existing file"
             p.remove_section(section)
-        self._write_to_parser(p)
+        self._write_to_parser(p, section)
         fh = file(path, "w")
         p.write(fh)
         fh.close()
@@ -729,29 +746,29 @@ class CryptContext(object):
             if kwds:
                 policy.append(kwds)
             policy = CryptPolicy.from_sources(policy)
-        if not policy.hashandlers():
+        if not policy.has_handlers():
             raise ValueError, "at least one scheme must be specified"
         self.policy = policy
 
     def __repr__(self):
         #XXX: *could* have proper repr(), but would have to render policy object options, and it'd be *really* long
-        names = [ handler.name for handler in self.policy.iterhandlers() ]
+        names = [ handler.name for handler in self.policy.iter_handlers() ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
-    def replace(self, *args, **kwds):
-        "return CryptContext with new policy which has specified values replaced"
-        return CryptContext(policy=self.policy.replace(*args,**kwds))
+    ##def replace(self, *args, **kwds):
+    ##    "return CryptContext with new policy which has specified values replaced"
+    ##    return CryptContext(policy=self.policy.replace(*args,**kwds))
 
     #===================================================================
     #policy adaptation
     #===================================================================
-    def get_handler(self, name=None, category=None, required=False):
-        """given an algorithm name, return CryptHandler instance which manages it.
-        if no match is found, returns None.
-
-        if name is None, will return default algorithm
-        """
-        return self.policy.get_handler(name, category, required)
+    ##def get_handler(self, name=None, category=None, required=False):
+    ##    """given an algorithm name, return CryptHandler instance which manages it.
+    ##    if no match is found, returns None.
+    ##
+    ##    if name is None, will return default algorithm
+    ##    """
+    ##    return self.policy.get_handler(name, category, required)
 
     def norm_handler_settings(self, handler, category=None, **settings):
         "normalize settings for handler according to context configuration"
@@ -795,13 +812,13 @@ class CryptContext(object):
 
         return settings
 
-    def is_compliant(self, hash, category=None):
+    def hash_is_compliant(self, hash, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted"""
-        handler = self.identify(hash, rethandler=True, required=True)
+        handler = self.identify(hash, resolve=True, required=True)
         policy = self.policy
 
         #check if handler has been deprecated
-        if policy.is_deprecated(handler, category):
+        if policy.handler_is_deprecated(handler, category):
             return True
 
         #get options, and call compliance helper (check things such as rounds, etc)
@@ -829,7 +846,7 @@ class CryptContext(object):
     #===================================================================
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler"""
-        handler = self.get_handler(scheme, category, required=True)
+        handler = self.policy.get_handler(scheme, category, required=True)
         settings = self.norm_handler_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
@@ -837,19 +854,19 @@ class CryptContext(object):
         """Call genhash() for specified handler"""
         #NOTE: this doesn't use category in any way, but accepts it for consistency
         if scheme:
-            handler = self.get_handler(scheme, required=True)
+            handler = self.policy.get_handler(scheme, required=True)
         else:
-            handler = self.identify(config, rethandler=True, required=True)
+            handler = self.identify(config, resolve=True, required=True)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.genhash(secret, config, **context)
 
-    def identify(self, hash, category=None, rethandler=False, required=False):
+    def identify(self, hash, category=None, resolve=False, required=False):
         """Attempt to identify which algorithm hash belongs to w/in this context.
 
         :arg hash:
             The hash string to test.
 
-        :param rethandler:
+        :param resolve:
             If ``True``, returns the handler itself,
             instead of the name of the handler.
 
@@ -865,9 +882,9 @@ class CryptContext(object):
             if required:
                 raise ValueError, "no hash specified"
             return None
-        for handler in self.policy.iterhandlers():
+        for handler in self.policy.iter_handlers():
             if handler.identify(hash):
-                if rethandler:
+                if resolve:
                     return handler
                 else:
                     return handler.name
@@ -896,7 +913,7 @@ class CryptContext(object):
         """
         if not self:
             raise ValueError, "no algorithms registered"
-        handler = self.get_handler(scheme, category, required=True)
+        handler = self.policy.get_handler(scheme, category, required=True)
         kwds = self.norm_handler_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.encrypt(secret, **kwds)
@@ -923,9 +940,9 @@ class CryptContext(object):
 
         #locate handler
         if scheme:
-            handler = self.get_handler(scheme, required=True)
+            handler = self.policy.get_handler(scheme, required=True)
         else:
-            handler = self.identify(hash, rethandler=True, required=True)
+            handler = self.identify(hash, resolve=True, required=True)
 
         #strip context kwds if scheme doesn't use them
         ##for k in context.keys():

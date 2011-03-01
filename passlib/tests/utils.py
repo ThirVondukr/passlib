@@ -3,9 +3,11 @@
 #imports
 #=========================================================
 #core
+import atexit
 import logging; log = logging.getLogger(__name__)
 import re
 import os
+import tempfile
 import unittest
 import warnings
 try:
@@ -197,13 +199,8 @@ class HandlerCase(TestCase):
 
     .. todo::
         write directions on how to use this class.
-        for now, see examples in places such as test_unix_crypt
+        for now, see examples in test_drivers
     """
-    @classproperty
-    def __test__(cls):
-        #so nose won't auto run *this* cls, but it will for subclasses
-        return cls is not HandlerCase
-
     #=========================================================
     #attrs to be filled in by subclass for testing specific handler
     #=========================================================
@@ -240,20 +237,6 @@ class HandlerCase(TestCase):
     ]
 
     #=========================================================
-    #
-    #=========================================================
-
-    #optional prefix to prepend to name of test method as it's called,
-    #useful when multiple handler test classes being run.
-    #default behavior should be sufficient
-    def case_prefix(self):
-        name = self.handler.name if self.handler else self.__class__.__name__
-        backend = getattr(self.handler, "get_backend", None) #set by some of the builtin handlers
-        if backend:
-            name += " (%s backend)" % (backend(),)
-        return name
-
-    #=========================================================
     #alg interface helpers - allows subclass to overide how
     # default tests invoke the handler (eg for context_kwds)
     #=========================================================
@@ -283,6 +266,32 @@ class HandlerCase(TestCase):
         #NOTE: this is subclassable mainly for some algorithms
         #which accept non-strings in secret
         return 'x' + secret
+
+    #=========================================================
+    #internal class attrs
+    #=========================================================
+    @classproperty
+    def __test__(cls):
+        #so nose won't auto run *this* cls, but it will for subclasses
+        return cls is not HandlerCase
+
+    #optional prefix to prepend to name of test method as it's called,
+    #useful when multiple handler test classes being run.
+    #default behavior should be sufficient
+    def case_prefix(self):
+        name = self.handler.name if self.handler else self.__class__.__name__
+        backend = getattr(self.handler, "get_backend", None) #set by some of the builtin handlers
+        if backend:
+            name += " (%s backend)" % (backend(),)
+        return name
+
+    @classproperty
+    def has_salt_info(cls):
+        return 'salt' in cls.handler.setting_kwds and getattr(cls.handler, "max_salt_chars", None) > 0
+
+    @classproperty
+    def has_rounds_info(cls):
+        return 'rounds' in cls.handler.setting_kwds and getattr(cls.handler, "max_rounds", None) > 0
 
     #=========================================================
     #attributes
@@ -398,7 +407,56 @@ class HandlerCase(TestCase):
     #=========================================================
     #genconfig()
     #=========================================================
-    #NOTE: no specific genconfig tests yet, but testing in other cases
+    def test_30_genconfig_salt(self):
+        "test genconfig() generates new salt"
+        if 'salt' not in self.handler.setting_kwds:
+            raise SkipTest
+        c1 = self.do_genconfig()
+        c2 = self.do_genconfig()
+        self.assertNotEquals(c1,c2)
+
+    def test_31_genconfig_minsalt(self):
+        "test genconfig() honors min salt chars"
+        if not self.has_salt_info:
+            raise SkipTest
+        handler = self.handler
+        cs = handler.salt_charset
+        mn = handler.min_salt_chars
+        c1 = self.do_genconfig(salt=cs[0] * mn)
+        if mn > 0:
+            self.assertRaises(ValueError, self.do_genconfig, salt=cs[0]*(mn-1))
+
+    def test_32_genconfig_maxsalt(self):
+        "test genconfig() honors max salt chars"
+        if not self.has_salt_info:
+            raise SkipTest
+        handler = self.handler
+        cs = handler.salt_charset
+        mx = handler.max_salt_chars
+        c1 = self.do_genconfig(salt=cs[0] * mx)
+        c2 = self.do_genconfig(salt=cs[0] * (mx+1))
+        self.assertEquals(c1,c2)
+
+    def test_33_genconfig_saltcharset(self):
+        "test genconfig() honors salt charset"
+        if not self.has_salt_info:
+            raise SkipTest
+        handler = self.handler
+        mx = handler.max_salt_chars
+        mn = handler.min_salt_chars
+        cs = handler.salt_charset
+
+        #make sure all listed chars are accepted
+        for i in xrange(0,len(cs),mx):
+            salt = cs[i:i+mx]
+            if len(salt) < mn:
+                salt = (salt*(mn//len(salt)+1))[:mx]
+            self.do_genconfig(salt=salt)
+
+        #check some that aren't
+        for c in '\x00\xff':
+            if c not in cs:
+                self.assertRaises(ValueError, self.do_genconfig, salt=c*mx)
 
     #=========================================================
     #genhash()
@@ -441,7 +499,7 @@ class HandlerCase(TestCase):
     #encrypt()
     #=========================================================
     def test_50_encrypt_plain(self):
-        "test plain encrypt()"
+        "test encrypt() basic behavior"
         if self.supports_unicode:
             secret = u"unic\u00D6de"
         else:
@@ -454,36 +512,19 @@ class HandlerCase(TestCase):
         "test encrypt() refused secret=None"
         self.assertRaises(TypeError, self.do_encrypt, None)
 
-    #=========================================================
-    #test salt generation
-    #=========================================================
-    def test_60_genconfig_salt(self):
-        "test genconfig() generates new salts"
+    def test_52_encrypt_salt(self):
+        "test encrypt() generates new salt"
         if 'salt' not in self.handler.setting_kwds:
             raise SkipTest
-        c1 = self.do_genconfig()
-        c2 = self.do_genconfig()
-        self.assertNotEquals(c1,c2)
-
-    def test_61_encrypt_salt(self):
-        "test encrypt() generates new salts"
-        if 'salt' not in self.handler.setting_kwds:
-            raise SkipTest
-        if self.known_correct_hashes:
-            secret, hash = self.known_correct_hashes[0]
-        else:
-            _, secret, hash = self.known_correct_configs[0]
-        hash2 = self.do_encrypt(secret)
-        self.assertNotEquals(hash,hash2)
-
-    #TODO: test too-short user-provided salts
-    #TODO: test too-long user-provided salts
-    #TODO: test invalid char in user-provided salts
+        #test encrypt()
+        h1 = self.do_encrypt("stub")
+        h2 = self.do_encrypt("stub")
+        self.assertNotEquals(h1, h2)
 
     #=========================================================
     #test max password size
     #=========================================================
-    def test_70_secret_chars(self):
+    def test_60_secret_chars(self):
         "test secret_chars limit"
         sc = self.secret_chars
 
@@ -556,6 +597,23 @@ def create_backend_case(base_test, name):
 
     dummy.__name__ = name.title() + base_test.__name__
     return dummy
+
+#=========================================================
+#helper for creating temp files - all cleaned up when prog exits
+#=========================================================
+tmp_files = []
+
+def _clean_tmp_files():
+    for path in tmp_files:
+        if os.path.exists(path):
+            os.remove(path)
+atexit.register(_clean_tmp_files)
+
+def mktemp(*args, **kwds):
+    fd, path = tempfile.mkstemp(*args, **kwds)
+    tmp_files.append(path)
+    os.close(fd)
+    return path
 
 #=========================================================
 #EOF

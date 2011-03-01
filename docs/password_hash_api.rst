@@ -282,7 +282,7 @@ across all handlers in passlib.
 
 For schemes which support a variable number of rounds,
 the following attributes are usually exposed
-(applications can test by checking for ``default_rounds``):
+(applications can test by checking for ``getattr(handler,"default_rounds",None)>0``):
 
 .. attribute:: default_rounds
 
@@ -311,14 +311,22 @@ the following attributes are usually exposed
 
 For schemes which support a salt,
 the following attributes are usually exposed
-(applications can test by checking for ``max_salt_chars``):
-
-.. attribute:: min_salt_chars
-
-    minimum number of characters required in salt string,
-    if provided to :func:`genconfig` or :func:`encrypt`.
+(applications can test by checking for ``getattr(handler,"max_salt_chars",None)>0``):
 
 .. attribute:: max_salt_chars
 
     maximum number of characters which will be *used*
     if a salt string is provided to :func:`genconfig` or :func:`encrypt`.
+    must be positive integer if salts are supported,
+    may be ``None`` or ``0`` if salts are not supported.
+
+.. attribute:: min_salt_chars
+
+    minimum number of characters required in salt string,
+    if provided to :func:`genconfig` or :func:`encrypt`.
+    must be non-negative integer.
+
+.. attribute:: salt_charset
+
+    string containing list of all characters which are allowed
+    to be specified in salt parameter. usually `passlib.utils.h64.CHARS`.
