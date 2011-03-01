@@ -9,6 +9,8 @@ primarily used by the Apache webserver in ``htpasswd`` files.
 It contains only minor changes to md5-crypt, and should
 be considered just as strong / weak as md5-crypt itself.
 
+.. seealso:: :doc:`passlib.hash.md5_crypt`
+
 Usage
 =====
 This algorithm can be used in exactly the same way as :class:`~passlib.hash.md5_crypt`,

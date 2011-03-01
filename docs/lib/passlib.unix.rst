@@ -63,7 +63,7 @@ In fact, for the most part they avoid using any characters except
 this can be violated on some systems if the user intervenes.
 
 .. note::
-    :class:`passlib.hash.des_crypt` and :class:`passlib.hash.ext_des_crypt`
+    :class:`passlib.hash.des_crypt` and :class:`passlib.hash.bsdi_crypt`
     do not follow this protocol, since they predate it by many years.
 
 OS Format Support
