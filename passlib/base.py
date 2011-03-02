@@ -215,33 +215,30 @@ def list_crypt_handlers():
 #=========================================================
 #policy
 #=========================================================
-def parse_policy_key(key):
+def _parse_policy_key(key):
     "helper to normalize & parse policy keys; returns ``(category, name, option)``"
-    if isinstance(key, tuple) and len(key) == 3:
-        cat, name, opt = key
+    orig = key
+    if '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
+        key = key.replace("__", ".")
+    parts = key.split(".")
+    if len(parts) == 1:
+        cat = None
+        name = "context"
+        opt, = parts
+    elif len(parts) == 2:
+        cat = None
+        name, opt = parts
+    elif len(parts) == 3:
+        cat, name, opt = parts
     else:
-        orig = key
-        if '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
-            key = key.replace("__", ".")
-        parts = key.split(".")
-        if len(parts) == 1:
-            cat = None
-            name = "context"
-            opt, = parts
-        elif len(parts) == 2:
-            cat = None
-            name, opt = parts
-        elif len(parts) == 3:
-            cat, name, opt = parts
-        else:
-            raise KeyError, "keys must have 0..2 separators: %r" % (orig,)
+        raise KeyError, "keys must have 0..2 separators: %r" % (orig,)
     if cat == "default":
         cat = None
     assert name
     assert opt
     return cat, name, opt
 
-def parse_policy_value(cat, name, opt, value):
+def _parse_policy_value(cat, name, opt, value):
     "helper to parse policy values"
     #FIXME: kinda primitive :|
     if name == "context":
@@ -257,6 +254,25 @@ def parse_policy_value(cat, name, opt, value):
             return int(value)
         except ValueError:
             return value
+
+def parse_policy_items(source):
+    "helper to parse CryptPolicy options"
+    if hasattr(source, "iteritems"):
+        source = source.iteritems()
+    for key, value in source:
+        cat, name, opt = _parse_policy_key(key)
+        if name == "context":
+            if cat and opt == "schemes":
+                raise NotImplementedError, "current code does not support per-category schemes"
+                #NOTE: forbidding this because it would really complicate the behavior
+                # of CryptContext.identify & CryptContext.lookup.
+                # most useful behaviors here can be had by overridding deprecated and default, anyways.
+        else:
+            if opt == "salt":
+                raise KeyError, "'salt' option is not allowed to be set via a policy object"
+                #NOTE: doing this for security purposes, why would you ever want a fixed salt?
+        value = _parse_policy_value(cat, name, opt, value)
+        yield cat, name, opt, value
 
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
@@ -371,27 +387,15 @@ class CryptPolicy(object):
         #normalize & sort keywords
         #
         options = self._options = {None:{"context":{}}}
-        for k,v in kwds.iteritems():
-            cat,name,opt = parse_policy_key(k)
-            if name == "context":
-                if cat and opt == "schemes":
-                    raise NotImplementedError, "current code does not support per-category schemes"
-                    #NOTE: forbidding this because it would really complicate the behavior
-                    # of CryptContext.identify & CryptContext.lookup.
-                    # most useful behaviors here can be had by overridding deprecated and default, anyways.
-            else:
-                if opt == "salt":
-                    raise KeyError, "'salt' option is not allowed to be set via a policy object"
-                    #NOTE: doing this for security purposes, why would you ever want a fixed salt?
-            v = parse_policy_value(cat, name, opt, v)
+        for cat, name, opt, value in parse_policy_items(kwds):
             copts = options.get(cat)
             if copts is None:
                 copts = options[cat] = {}
             config = copts.get(name)
             if config is None:
-                copts[name] = {opt:v}
+                copts[name] = {opt:value}
             else:
-                config[opt] = v
+                config[opt] = value
 
         #
         #parse list of schemes, and resolve to handlers.
