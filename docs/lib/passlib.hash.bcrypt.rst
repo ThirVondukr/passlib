@@ -21,7 +21,7 @@ Usage
 
     write usage instructions
 
-Functions
+Interface
 =========
 .. autoclass:: bcrypt
 
@@ -34,28 +34,39 @@ Bcrypt hashes have the format ``$2a${cost}${salt}{checksum}``, where:
 
 * ``{cost}`` is the cost parameter, encoded as 2 zero-padded decimal digits,
   which determines the number of rounds used via ``rounds=2**cost`` (cost is 12 in the example).
-* ``{salt}`` is the 22 character salt string, using the characters ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
+* ``{salt}`` is the 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
 * ``{checksum}`` is the 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
-BCrypt's algorithm is described in detail in it's specification document,
-listed below.
+BCrypt's algorithm is described in detail in it's specification document [#f1]_.
 
 Deviations
 ==========
 This implementation of bcrypt differs from others in a few ways:
 
-* The bcrypt specification (and implementations) have no predefined
-  or predictable behavior when passed a salt containing characters
-  outside of the base64 range. To avoid this situtation,
-  PassLib will simply throw an error if invalid characters
-  are provided for the salt.
+* Restricted salt string character set:
 
-* Before generating a hash, PassLib encodes unicode passwords using UTF-8.
-  While the algorithm accepts passwords containing any 8-bit value
-  except for ``\x00``, it specifies no preference for encodings,
-  or for handling unicode strings.
+  BCrypt does not specify what the behavior should be when
+  passed a salt string outside of the regexp range ``[./A-Za-z0-9]``.
+  In order to avoid this situtation, Passlib strictly limits salts to the
+  allowed character set, and will throw a ValueError if an invalid
+  salt character is encountered.
+
+* Unicode Policy:
+
+  The underlying algorithm takes in a password specified
+  as a series of non-null bytes, and does not specify what encoding
+  should be used; though a ``us-ascii`` compatible encoding
+  is implied by nearly all implementations of bcrypt
+  as well as all known reference hashes.
+
+  In order to provide support for unicode strings,
+  PassLib will encode unicode passwords using ``utf-8``
+  before running them through bcrypt. If a different
+  encoding is desired by an application, the password should be encoded
+  before handing it to PassLib.
 
 References
 ==========
-* `<http://www.usenix.org/event/usenix99/provos/provos_html/>`_ - the bcrypt format specification
-* `<http://www.mindrot.org/projects/jBCrypt/>`_ - java implementation used as reference for PassLib
+.. [#f1] `<http://www.usenix.org/event/usenix99/provos/provos_html/>`_ - the bcrypt format specification
+
+.. [#] `<http://www.mindrot.org/projects/jBCrypt/>`_ - java implementation used as reference for PassLib's builtin implementation

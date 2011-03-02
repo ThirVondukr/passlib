@@ -9,7 +9,7 @@ primarily used by the Apache webserver in ``htpasswd`` files.
 It contains only minor changes to md5-crypt, and should
 be considered just as strong / weak as md5-crypt itself.
 
-.. seealso:: :doc:`passlib.hash.md5_crypt`
+.. seealso:: :doc:`md5_crypt <passlib.hash.md5_crypt>`
 
 Usage
 =====
@@ -34,4 +34,5 @@ to the original MD5-Crypt, except for two changes:
 
 References
 ==========
-* Apache's description of Apr-MD5-Crypt can be found at `<http://httpd.apache.org/docs/2.2/misc/password_encryptions.html>`_.
+* `<http://httpd.apache.org/docs/2.2/misc/password_encryptions.html>`_
+  - Apache's description of Apr-MD5-Crypt can be found at
