@@ -164,54 +164,6 @@
          stdDeviation="2.9546961"
          id="feGaussianBlur3536" />
     </filter>
-    <filter
-       inkscape:collect="always"
-       id="filter3222"
-       x="-0.18431562"
-       width="1.3686312"
-       y="-0.46863765"
-       height="1.9372753">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="7.1308532"
-         id="feGaussianBlur3224" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       id="filter3820"
-       x="-0.19660333"
-       width="1.3932067"
-       y="-0.49988016"
-       height="1.9997603">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="7.6062434"
-         id="feGaussianBlur3822" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       id="filter3857"
-       x="-0.0944717"
-       width="1.1889434"
-       y="-0.37821828"
-       height="1.7564366">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="2.6032529"
-         id="feGaussianBlur3859" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       id="filter3981"
-       x="-0.082662738"
-       width="1.1653255"
-       y="-0.330941"
-       height="1.661882">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="2.2778463"
-         id="feGaussianBlur3983" />
-    </filter>
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient4140"
@@ -222,6 +174,18 @@
        y2="21.100046"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(0.9898657,0.5290083,-0.52817535,0.98830712,8.6007275,-14.225263)" />
+    <filter
+       inkscape:collect="always"
+       id="filter3883"
+       x="-0.10712852"
+       width="1.214257"
+       y="-0.44811631"
+       height="1.8962326">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="5.9143996"
+         id="feGaussianBlur3885" />
+    </filter>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -231,14 +195,14 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="3.5"
-     inkscape:cx="28.119022"
-     inkscape:cy="21.234183"
-     inkscape:current-layer="layer3"
+     inkscape:cx="-15.023835"
+     inkscape:cy="23.805612"
+     inkscape:current-layer="layer8"
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
-     inkscape:window-width="1600"
-     inkscape:window-height="823"
+     inkscape:window-width="1920"
+     inkscape:window-height="1003"
      inkscape:window-x="0"
      inkscape:window-y="24"
      borderlayer="true"
@@ -289,16 +253,16 @@
      style="display:inline">
     <text
        xml:space="preserve"
-       style="font-size:33.91580582px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;opacity:0.28999999;fill:#000000;fill-opacity:1;stroke:none;display:inline;filter:url(#filter3981);font-family:IrisUPC;-inkscape-font-specification:IrisUPC"
-       x="37.256504"
-       y="123.34303"
-       id="text2740-7"
+       style="font-size:46.00891495px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;opacity:0.31538463;fill:#000000;fill-opacity:1;stroke:none;display:inline;filter:url(#filter3883);font-family:Crimson Text;-inkscape-font-specification:Crimson Text"
+       x="42.524063"
+       y="42.486652"
+       id="text2740-0"
        sodipodi:linespacing="125%"
-       transform="matrix(1.9496263,0,0,0.58102406,-30.290625,-27.770544)"><tspan
+       transform="matrix(1,0,0,0.28325973,-3.4285714,30.740092)"><tspan
          sodipodi:role="line"
-         id="tspan2742-2"
-         x="37.256504"
-         y="123.34303">PassLib</tspan></text>
+         id="tspan2742-1"
+         x="42.524063"
+         y="42.486652">PassLib</tspan></text>
   </g>
   <g
      inkscape:groupmode="layer"
@@ -306,14 +270,14 @@
      style="display:inline">
     <text
        xml:space="preserve"
-       style="font-size:66.12315369px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:IrisUPC;-inkscape-font-specification:IrisUPC"
-       x="42.002182"
-       y="39.704662"
+       style="font-size:46.00891495px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Crimson Text;-inkscape-font-specification:Crimson Text"
+       x="41.064335"
+       y="39.446754"
        id="text2740"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan2742"
-         x="42.002182"
-         y="39.704662">PassLib</tspan></text>
+         x="41.064335"
+         y="39.446754">PassLib</tspan></text>
   </g>
 </svg>
