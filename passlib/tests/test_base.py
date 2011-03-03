@@ -340,9 +340,47 @@ class CryptContextTest(TestCase):
     #=========================================================
     #policy adaptation
     #=========================================================
-    #TODO:
-    #norm_handler_settings
-    #hash_is_compliant
+    sample_policy_1 = dict(
+            schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha256_crypt"],
+            deprecated = [ "des_crypt", ],
+            default = "sha256_crypt",
+            all__vary_rounds = "10%",
+            bsdi_crypt__max_rounds = 30,
+            bsdi_crypt__default_rounds = 25,
+            bsdi_crypt__vary_rounds = 0,
+            sha256_crypt__max_rounds = 3000,
+            sha256_crypt__min_rounds = 2000,
+    )
+
+    def test_10_prepare_settings(self):
+        "test prepare_settings() method"
+        cc = CryptContext(**self.sample_policy_1)
+
+        #TODO:
+        # hash specific settings
+        # min rounds
+        # max rounds
+        # default rounds
+        #       falls back to max, then min.
+        #       specified
+        #       outside of min/max range
+        # default+vary rounds
+
+    def test_10_hash_needs_update(self):
+        "test hash_needs_update() method"
+        cc = CryptContext(**self.sample_policy_1)
+
+        #check deprecated scheme
+        self.assert_(cc.hash_needs_update('9XXD4trGYeGJA'))
+        self.assert_(not cc.hash_needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
+
+        #check min rounds
+        self.assert_(cc.hash_needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
+        self.assert_(not cc.hash_needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
+
+        #check max rounds
+        self.assert_(not cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
+        self.assert_(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
     #=========================================================
     #identify

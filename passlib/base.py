@@ -383,6 +383,7 @@ class CryptPolicy(object):
     #=========================================================
     def _from_dict(self, kwds):
         "configure policy from constructor keywords"
+
         #
         #normalize & sort keywords
         #
@@ -759,64 +760,56 @@ class CryptContext(object):
         names = [ handler.name for handler in self.policy.iter_handlers() ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
-    ##def replace(self, *args, **kwds):
-    ##    "return CryptContext with new policy which has specified values replaced"
-    ##    return CryptContext(policy=self.policy.replace(*args,**kwds))
-
     #===================================================================
     #policy adaptation
     #===================================================================
-    ##def get_handler(self, name=None, category=None, required=False):
-    ##    """given an algorithm name, return CryptHandler instance which manages it.
-    ##    if no match is found, returns None.
-    ##
-    ##    if name is None, will return default algorithm
-    ##    """
-    ##    return self.policy.get_handler(name, category, required)
+    def _prepare_rounds(self, handler, opts, settings):
+        "helper for prepare_default_settings"
+        mn = opts.get("min_rounds")
+        mx = opts.get("max_rounds")
+        rounds = settings.get("rounds")
+        if rounds is None:
+            df = opts.get("default_rounds") or mx or mn
+            if df is not None:
+                vr = opts.get("vary_rounds")
+                if vr:
+                    if isinstance(vr, str) and vr.endswith("%"):
+                        rc = getattr(handler, "rounds_cost", "linear")
+                        vr = int(vr[:-1])
+                        assert 0 <= vr < 100
+                        if rc == "log2": #let % variance scale the linear number of rounds, not the log rounds cost
+                            vr = int(logb(vr*.01*(2**df),2)+.5)
+                        else:
+                            vr = int(df*vr/100)
+                    rounds = rng.randint(df-vr,df+vr)
+                else:
+                    rounds = df
+        if rounds is not None:
+            if mx and rounds > mx:
+                rounds = mx
+            if mn and rounds < mn: #give mn predence if mn > mx
+                rounds = mn
+            settings['rounds'] = rounds
 
-    def norm_handler_settings(self, handler, category=None, **settings):
+    def prepare_settings(self, handler, category=None, **settings):
         "normalize settings for handler according to context configuration"
         opts = self.policy.get_options(handler, category)
         if not opts:
             return settings
 
-        #load in default values
+        #load in default values for any settings
         for k in handler.setting_kwds:
             if k not in settings and k in opts:
                 settings[k] = opts[k]
 
         #handle rounds
         if 'rounds' in handler.setting_kwds:
-            #TODO: prep-parse & validate this w/in get_options() ?
-            mn = opts.get("min_rounds")
-            mx = opts.get("max_rounds")
-            rounds = settings.get("rounds")
-            if rounds is None:
-                df = opts.get("default_rounds") or mx or mn
-                if df is not None:
-                    vr = opts.get("vary_default_rounds")
-                    if vr:
-                        if isinstance(vr, str) and vr.endswith("%"):
-                            rc = getattr(handler, "rounds_cost", "linear")
-                            vr = int(vr[:-1])
-                            assert 0 <= vr < 100
-                            if rc == "log2": #let % variance scale the linear number of rounds, not the log rounds cost
-                                vr = int(logb(vr*.01*(2**df),2)+.5)
-                            else:
-                                vr = int(df*vr/100)
-                        rounds = rng.randint(df-vr,df+vr)
-                    else:
-                        rounds = df
-            if rounds is not None:
-                if mx and rounds > mx:
-                    rounds = mx
-                if mn and rounds < mn: #give mn predence if mn > mx
-                    rounds = mn
-                settings['rounds'] = rounds
+            self._prepare_rounds(handler, opts, settings)
 
+        #done
         return settings
 
-    def hash_is_compliant(self, hash, category=None):
+    def hash_needs_update(self, hash, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted"""
         handler = self.identify(hash, resolve=True, required=True)
         policy = self.policy
@@ -827,23 +820,25 @@ class CryptContext(object):
 
         #get options, and call compliance helper (check things such as rounds, etc)
         opts = policy.get_options(handler, category)
-        if not opts:
-            return False
 
-        #XXX: could check if handler provides it's own helper, eg getattr(handler, "is_compliant", None)
+        #XXX: could check if handler provides it's own helper, eg getattr(handler, "hash_needs_update", None),
+        #and call that instead of the following default behavior
 
-        if hasattr(handler, "from_string"):
-            info = handler.from_string(hash)
-            rounds = getattr(info, "rounds", None)
-            if rounds is not None:
-                min_rounds = opts.get("min_rounds")
-                if min_rounds and rounds < min_rounds:
-                    return False
-                max_rounds = opts.get("max_rounds")
-                if max_rounds and rounds > max_rounds:
-                    return False
+        if opts:
+            #check if we can parse hash to check it's rounds parameter
+            if ('min_rounds' in opts or 'max_rounds' in opts) and \
+               'rounds' in handler.setting_kwds and hasattr(handler, "from_string"):
+                    info = handler.from_string(hash)
+                    rounds = getattr(info, "rounds", None)
+                    if rounds is not None:
+                        min_rounds = opts.get("min_rounds")
+                        if min_rounds and rounds < min_rounds:
+                            return True
+                        max_rounds = opts.get("max_rounds")
+                        if max_rounds and rounds > max_rounds:
+                            return True
 
-        return compliance_helper(handler, hash, **opts)
+        return False
 
     #===================================================================
     #password hash api proxy methods
@@ -851,7 +846,7 @@ class CryptContext(object):
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler"""
         handler = self.policy.get_handler(scheme, category, required=True)
-        settings = self.norm_handler_settings(handler, category, **settings)
+        settings = self.prepare_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
     def genhash(self, secret, config, scheme=None, category=None, **context):
@@ -918,7 +913,7 @@ class CryptContext(object):
         if not self:
             raise ValueError, "no algorithms registered"
         handler = self.policy.get_handler(scheme, category, required=True)
-        kwds = self.norm_handler_settings(handler, category, **kwds)
+        kwds = self.prepare_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.encrypt(secret, **kwds)
 

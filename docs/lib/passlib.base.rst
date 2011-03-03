@@ -50,7 +50,7 @@ The remaining options -
 
 ``context.deprecated``
     comma separated list of the schemes which this context should recognize,
-    generated hashes only if explicitly requested, and for which ``context.is_compliant()`` should return ``False``.
+    generated hashes only if explicitly requested, and for which ``context.hash_needs_update()`` should return ``False``.
     if not specified, none are considered deprecated.
     this must be a subset of the names listed in context.schemes
 
@@ -71,7 +71,7 @@ The remaining options -
     * these are configurable per-context limits, hard limits set by algorithm are always applied
     * if min > max, max will be increased to equal min.
     * ``context.genconfig()`` or ``config.encrypt()`` - requests outside of these bounds will be clipped.
-    * ``context.is_compliant()`` - existing hashes w/ rounds outside of range are not compliant
+    * ``context.hash_needs_update()`` - existing hashes w/ rounds outside of range are not compliant
     * for hashes which do not have a rounds parameter, these values are ignored.
 
 ``{hash}.default_rounds``
@@ -83,16 +83,16 @@ The remaining options -
     * for hashes which do not have a rounds parameter, this value is ignored.
     * if not specified, max_rounds is used if available, then min_rounds, then the algorithm default.
 
-``{hash}.vary_default_rounds``
+``{hash}.vary_rounds``
 
     [only applies if ``{hash}.default_rounds`` is specified and > 0]
 
     if specified, every time a new hash is created using {hash}/default_rounds for it's rounds value,
     the actual value used is generated at random, using default_rounds as a hint.
 
-    * integer value - a value will be chosen using the formula ``randint(default_rounds-vary_default_rounds, default_rounds+vary_default_rounds)``.
-    * integer value between 0 and 100 with ``%`` suffix - same as above, with integer value equal to ``vary_default_rounds*default_rounds/100``.
-    * note that if algorithms indicate they use a logarthmic rounds parameter, the percent syntax equation uses ``log(vary_default_rounds*(2**default_rounds)/100,2)``,
+    * integer value - a value will be chosen using the formula ``randint(default_rounds-vary_rounds, default_rounds+vary_rounds)``.
+    * integer value between 0 and 100 with ``%`` suffix - same as above, with integer value equal to ``vary_rounds*default_rounds/100``.
+    * note that if algorithms indicate they use a logarthmic rounds parameter, the percent syntax equation uses ``log(vary_rounds*(2**default_rounds)/100,2)``,
       to permit a default value to be applicable to all schemes. XXX: this might be a bad / overly complex idea.
 
 ``{hash}.{setting}``
@@ -138,7 +138,7 @@ A sample policy file::
     min_verify_time = 0.1
 
     #set some common options for all schemes
-    all.vary_default_rounds = 10%
+    all.vary_rounds = 10%
 
     #setup some hash-specific defaults
     sha512_crypt.min_rounds = 40000
