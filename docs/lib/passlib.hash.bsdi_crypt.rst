@@ -136,5 +136,8 @@ This implementation of bsdi-crypt differs from others in one way:
 
 References
 ==========
-* Primary source used for description of bsdi-crypt format & algorithm - `<http://fuse4bsd.creo.hu/localcgi/man-cgi.cgi?crypt+3>`_ -
-* Another source describing algorithm - `<http://ftp.lava.net/cgi-bin/bsdi-man?proto=1.1&query=crypt&msection=3&apropos=0>`_
+.. [#] Primary source used for description of bsdi-crypt format & algorithm -
+       `<http://fuse4bsd.creo.hu/localcgi/man-cgi.cgi?crypt+3>`_
+
+.. [#] Another source describing algorithm -
+       `<http://ftp.lava.net/cgi-bin/bsdi-man?proto=1.1&query=crypt&msection=3&apropos=0>`_

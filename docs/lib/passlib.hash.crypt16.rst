@@ -114,4 +114,5 @@ This implementation of crypt16 deviates from public documentation of the format 
 
 References
 ==========
-* One source of information about bigcrypt & crypt16 - `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_ -
+.. [#] One source of information about bigcrypt & crypt16 -
+       `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_

@@ -106,7 +106,8 @@ This implementation of des-crypt differs from others in a few ways:
 * Minimum salt string:
 
   Some implementations of des-crypt allow empty and single-character salt strings.
-  However, the behavior in these cases varies wildly, including errors and broken hashes.
+  However, the behavior in these cases varies wildly between implementations,
+  including errors and broken hashes.
   To avoid all this, Passlib will throw an "invalid salt" if the provided
   salt string is not at least 2 characters.
 
@@ -133,4 +134,4 @@ This implementation of des-crypt differs from others in a few ways:
 
 References
 ==========
-* A java implementation of des-crypt, used as base for Passlib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_
+.. [#] A java implementation of des-crypt, used as base for Passlib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_

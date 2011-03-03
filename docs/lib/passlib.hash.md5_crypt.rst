@@ -48,7 +48,7 @@ An md5-crypt hash string has the format ``$1${salt}${checksum}``, where:
 * ``{checksum}`` is 22 characters drawn from the same character set as the salt;
   encoding a 128-bit checksum (``azfrPr6af3Fc7dLblQXVa0`` in the example).
 
-.. _md5-crypt-constant-insertion:
+.. _md5-crypt-algorithm:
 
 .. rst-class:: html-toggle
 
@@ -168,5 +168,9 @@ Passlib's implementation of md5-crypt differs from the reference implementation 
 
 References
 ==========
-.. [#f1] The official reference for MD5-Crypt is Poul-Henning Kamp's original FreeBSD implementation, located at `<http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_
-.. [#f2] Security issues with MD5 - `<http://en.wikipedia.org/wiki/MD5#Security>`_.
+.. [#f1] The authoritative reference for MD5-Crypt is Poul-Henning Kamp's original
+         FreeBSD implementation -
+         `<http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_
+
+.. [#f2] Security issues with MD5 -
+         `<http://en.wikipedia.org/wiki/MD5#Security>`_.

@@ -59,7 +59,7 @@ They all follow the :ref:`modular crypt format <modular-crypt-format>` for encod
 
     These aren't fully implemented / tested yet:
 
-    * :class:`~passlib.hash.sun_md5_crypt` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
+    * :doc:`passlib.hash.sun_md5_crypt <passlib.hash.sun_md5_crypt>` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
 
 Non-Standard Unix-Compatible Schemes
 ------------------------------------

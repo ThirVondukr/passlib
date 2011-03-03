@@ -18,7 +18,7 @@ Usage
 =====
 This class can be used in exactly the same manner as :class:`~passlib.hash.des_crypt`.
 
-Functions
+Interface
 =========
 .. autoclass:: bigcrypt(checksum=None, salt=None, strict=False)
 
@@ -134,4 +134,5 @@ This implementation of bigcrypt differs from others in two ways:
 
 References
 ==========
-* `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_ - discussion of bigcrypt & crypt16
+.. [#] discussion of bigcrypt & crypt16 -
+       `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_
