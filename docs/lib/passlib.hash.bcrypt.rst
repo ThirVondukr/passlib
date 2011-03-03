@@ -30,12 +30,12 @@ Format & Algorithm
 Bcrypt is compatible with the :ref:`modular-crypt-format`, and uses ``$2$`` and ``$2a$`` as the identifying prefix
 for all it's strings (``$2$`` is seen only for legacy hashes which used an older version of Bcrypt).
 An example hash (of ``password``) is ``$2a$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``.
-Bcrypt hashes have the format ``$2a${cost}${salt}{checksum}``, where:
+Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 
-* ``{cost}`` is the cost parameter, encoded as 2 zero-padded decimal digits,
-  which determines the number of rounds used via ``rounds=2**cost`` (cost is 12 in the example).
-* ``{salt}`` is the 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
-* ``{checksum}`` is the 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
+* :samp:`{rounds}` is the cost parameter, encoded as 2 zero-padded decimal digits,
+  which determines the number of iterations used via :samp:`{iterations}=2**{rounds}` (rounds is 12 in the example).
+* :samp:`{salt}` is the 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
+* :samp:`{checksum}` is the 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
 BCrypt's algorithm is described in detail in it's specification document [#f1]_.
 

@@ -30,7 +30,6 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import autodocument
 from passlib.utils.drivers import BaseHash
 #local
 __all__ = [
@@ -42,6 +41,12 @@ __all__ = [
 #backend
 #=========================================================
 class mysql323(BaseHash):
+    """This class implements the MySQL 3.2.3 password hash, and follows the :ref:`password-hash-api`.
+
+    It has no salt and a single fixed round.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    """
     #=========================================================
     #class attrs
     #=========================================================
@@ -101,12 +106,16 @@ class mysql323(BaseHash):
     #eoc
     #=========================================================
 
-autodocument(mysql323)
-
 #=========================================================
 #handler
 #=========================================================
 class mysql41(BaseHash):
+    """This class implements the MySQL 4.1 password hash, and follows the :ref:`password-hash-api`.
+
+    It has no salt and a single fixed round.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    """
     #=========================================================
     #algorithm information
     #=========================================================
@@ -151,7 +160,6 @@ class mysql41(BaseHash):
     #eoc
     #=========================================================
 
-autodocument(mysql41)
 #=========================================================
 #eof
 #=========================================================

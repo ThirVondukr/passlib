@@ -74,9 +74,9 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    and using the 56-bit integer from step 4 as the DES key.
 
    The salt is used to to mutate the normal DES encrypt operation
-   by swapping bits ``i`` and ``i+24`` in the DES E-Box output
-   if and only if bit ``i`` is set in the salt value. Thus,
-   if the salt is set to ``0``, normal DES encryption is performed.
+   by swapping bits :samp:`{i}` and :samp:`{i}+24` in the DES E-Box output
+   if and only if bit :samp:`{i}` is set in the salt value.
+   Thus, if the salt is set to ``0``, normal DES encryption is performed.
    (This was intended to prevent optimized implementations
    of regular DES encryption to be useful in attacking this algorithm).
 

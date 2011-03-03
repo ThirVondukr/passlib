@@ -5,21 +5,42 @@
 .. currentmodule:: passlib.hash
 
 SHA-512 Crypt and SHA-256 Crypt were developed in 2008 by Ulrich Drepper
-as successor :class:`~passlib.hash.md5_crypt` which includes fixes
-and advancements such as variable rounds, using NIST-approved cryptgraphic primitives.
+as a successor to :class:`~passlib.hash.md5_crypt`. They includes fixes
+and advancements such as variable rounds, and use of NIST-approved cryptgraphic primitives.
 SHA-256 / SHA-512 Crypt are currently the default password hash for many systems
 (notably Linux), and have no known weaknesses.
 
 Usage
 =====
+This class can be used directly as follows::
 
-.. todo::
+    >>> from passlib.hash import sha512_crypt as sc
 
-    write usage instructions
+    >>> #generate new salt, encrypt password
+    >>> h = sc.encrypt("password")
+    >>> h
+    '$6$rounds=40000$xCsOXRqPPk5AGDFu$o5eyqxEoOSq0dLRFbPxEHp5Jc1vFVj47BNT.h9gmjSHXDS15mjIM.GSUaT5r6Z.Xa1Akrv4FAgKJE3EfbkJxs1'
+
+    >>> #same, but with explict number of rounds
+    >>> sc.encrypt("password", rounds=10000)
+    '$6$rounds=10000$QWT8AlDMYRms7vSx$.1267Pg6Opn9CblFndtBJ2Q0AI0fcI2IX93zX3gi1Qse./j.VlKYX59NIUlbs0A66wCbfu/vra9wMv2uwTZAI.'
+
+    >>> #check if hash is recognized
+    >>> sc.identify(h)
+    True
+    >>> #check if some other hash is recognized
+    >>> sc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+    >>> #verify correct password
+    >>> sc.verify("password", h)
+    True
+    >>> sc.verify("secret", h) #verify incorrect password
+    False
 
 Interface
 =========
-.. autoclass:: sha512_crypt
+.. autoclass:: sha512_crypt(checksum=None, salt=None, rounds=None, strict=False)
 
 Format & Algorithm
 ==================
@@ -27,23 +48,24 @@ An example sha512-crypt hash (of the string ``password``) is:
 
     ``$6$rounds=40000$JvTuqzqw9bQ8iBl6$SxklIkW4gz00LvuOsKRCfNEllLciOqY/FSAwODHon45YTJEozmy.QAWiyVpuiq7XMTUMWbIWWEuQytdHkigcN/``.
 
-An sha512-crypt hash string has the format ``$6$rounds={rounds}${salt}${checksum}``, where:
+An sha512-crypt hash string has the format :samp:`$6$rounds={rounds}${salt}${checksum}`, where:
 
 * ``$6$`` is the prefix used to identify sha512-crypt hashes,
   following the :ref:`modular-crypt-format`
 
-* ``{rounds}`` is the decimal number of rounds to use (40000 in the example).
+* :samp:`{rounds}` is the decimal number of rounds to use (40000 in the example).
 
-* ``{salt}`` is 0-16 characters drawn from ``[./0-9A-Za-z]``, providing a
+* :samp:`{salt}` is 0-16 characters drawn from ``[./0-9A-Za-z]``, providing a
   96-bit salt (``JvTuqzqw9bQ8iBl6`` in the example).
 
-* ``{checksum}`` is 86 characters drawn from the same set, encoding a 512-bit
+* :samp:`{checksum}` is 86 characters drawn from the same set, encoding a 512-bit
   checksum.
 
   (``SxklIkW4gz00LvuOsKRCfNEllLciOqY/FSAwODHon45YTJEozmy.QAWiyVpuiq7XMTUMWbIWWEuQytdHkigcN/`` in the example).
 
-There is also an alternate format ``$6${salt}${checksum}``,
-which can be used when the rounds parameter is equal to 5000.
+There is also an alternate format :samp:`$6${salt}${checksum}`,
+which can be used when the rounds parameter is equal to 5000
+(see the ``implicit_rounds`` parameter above).
 
 The algorithm used by SHA512-Crypt is laid out in detail
 in the specification document linked to below [#f1]_.

@@ -39,13 +39,13 @@ Format
 ======
 An example md5-crypt hash (of the string ``password``) is ``$1$5pZSV9va$azfrPr6af3Fc7dLblQXVa0``.
 
-An md5-crypt hash string has the format ``$1${salt}${checksum}``, where:
+An md5-crypt hash string has the format :samp:`$1${salt}${checksum}`, where:
 
 * ``$1$`` is the prefix used to identify md5-crypt hashes,
   following the :ref:`modular-crypt-format`
-* ``{salt}`` is 0-8 characters drawn from the regexp range ``[./0-9A-Za-z]``;
+* :samp:`{salt}` is 0-8 characters drawn from the regexp range ``[./0-9A-Za-z]``;
   providing a 48-bit salt (``5pZSV9va`` in the example).
-* ``{checksum}`` is 22 characters drawn from the same character set as the salt;
+* :samp:`{checksum}` is 22 characters drawn from the same character set as the salt;
   encoding a 128-bit checksum (``azfrPr6af3Fc7dLblQXVa0`` in the example).
 
 .. _md5-crypt-algorithm:
@@ -59,7 +59,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 1. A password string and salt string are provided.
 
    (The salt should not include the magic prefix,
-   it should match string referred to as ``{salt}`` in the format section).
+   it should match string referred to as :samp:`{salt}` in the format section).
 
 2. If needed, the salt should be truncated to a maximum of 8 characters.
 
@@ -120,7 +120,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 18. Encode the resulting 16 byte string into a 22 character
     :mod:`hash 64 <passlib.utils.h64.encode_bytes>`-encoded string
     (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
-    This results in the portion of the md5 crypt hash string referred to as ``{checksum}`` in the format section.
+    This results in the portion of the md5 crypt hash string referred to as :samp:`{checksum}` in the format section.
 
 Security Issues
 ===============

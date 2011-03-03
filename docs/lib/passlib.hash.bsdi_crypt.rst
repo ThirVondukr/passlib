@@ -43,13 +43,13 @@ Interface
 Format
 ======
 An example hash (of the string ``password``) is ``_EQ0.jzhSVeUyoSqLupI``.
-An ext_des_crypt hash string consists of a 21 character string of the form ``_{rounds}{salt}{checksum}``.
+An ext_des_crypt hash string consists of a 21 character string of the form :samp:`_{rounds}{salt}{checksum}`.
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
-* ``{rounds>`` is the number of rounds, stored as a 4 character :mod:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
-* ``{salt}`` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
-* ``{checksum}`` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
+* :samp:`{rounds}` is the number of rounds, stored as a 4 character :mod:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
+* :samp:`{salt}` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
+* :samp:`{checksum}` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
 
 A ext_des_crypt configuration string is also accepted by this module;
 and has the same format as the hash string, but with the checksum portion omitted.
@@ -89,8 +89,8 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    and using the 56-bit integer from step 5/6 as the DES key.
 
    The salt is used to to mutate the normal DES encrypt operation
-   by swapping bits ``i`` and ``i+24`` in the DES E-Box output
-   if and only if bit ``i`` is set in the salt value.
+   by swapping bits :samp:`{i}` and :samp:`{i}+24` in the DES E-Box output
+   if and only if bit :samp:`{i}` is set in the salt value.
 
    The number of rounds to is controlled by the value decoded in step 2.
 

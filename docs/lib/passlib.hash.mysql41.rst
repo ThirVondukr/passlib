@@ -25,7 +25,7 @@ as :class:`~passlib.hash.mysql323`.
 
 Interface
 =========
-.. autoclass:: mysql41
+.. autoclass:: mysql41()
 
 Format & Algorithm
 ==================

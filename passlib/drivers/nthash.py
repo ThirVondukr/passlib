@@ -9,7 +9,6 @@ from warnings import warn
 #site
 #libs
 from passlib.utils.md4 import md4
-from passlib.utils import autodocument
 from passlib.utils.drivers import ExtHash
 #pkg
 #local
@@ -18,17 +17,22 @@ __all__ = [
 ]
 
 #=========================================================
-#backend
-#=========================================================
-def raw_nthash(secret, hex=False):
-    "encode password using md4-based NTHASH algorithm; returns string of raw bytes"
-    hash = md4(secret.encode("utf-16le"))
-    return hash.hexdigest() if hex else hash.digest()
-
-#=========================================================
 #handler
 #=========================================================
 class nthash(ExtHash):
+    """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
+
+    It has no salt and a single fixed round.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    """
+
+    #TODO: verify where $NT$ is being used.
+    ##:param ident:
+    ##This handler supports two different :ref:`modular-crypt-format` identifiers.
+    ##It defaults to ``3``, but users may specify the alternate ``NT`` identifier
+    ##which is used in some contexts.
+
     #=========================================================
     #class attrs
     #=========================================================
@@ -94,18 +98,18 @@ class nthash(ExtHash):
     def calc_checksum(self, secret):
         if secret is None:
             raise TypeError, "secret must be a string"
-        return raw_nthash(secret, hex=True)
+        return self.raw_nthash(secret, hex=True)
+
+    @staticmethod
+    def raw_nthash(secret, hex=False):
+        "encode password using md4-based NTHASH algorithm; returns string of raw bytes"
+        hash = md4(secret.encode("utf-16le"))
+        return hash.hexdigest() if hex else hash.digest()
 
     #=========================================================
     #eoc
     #=========================================================
 
-autodocument(nthash, settings_doc="""
-:param ident:
-    This handler supports two different :ref:`modular-crypt-format` identifiers.
-    It defaults to ``3``, but users may specify the alternate ``NT`` identifier
-    which is used in some contexts.
-""")
 #=========================================================
 #eof
 #=========================================================

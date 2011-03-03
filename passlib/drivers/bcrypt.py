@@ -39,7 +39,7 @@ __all__ = [
 class bcrypt(BackendExtHash):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
-    It supports a fixed length salt, and a variable number of rounds.
+    It supports a fixed-length salt, and a variable number of rounds.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
 
@@ -51,7 +51,7 @@ class bcrypt(BackendExtHash):
     :param rounds:
         Optional number of rounds to use.
         Defaults to 12, must be between 4 and 31, inclusive.
-        This value is logarithmic, the actual number of iterations used will be ``2**rounds``.
+        This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`.
 
     :param ident:
         selects specific version of BCrypt hash that will be used.

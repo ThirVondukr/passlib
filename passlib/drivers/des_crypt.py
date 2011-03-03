@@ -139,7 +139,7 @@ def raw_ext_crypt(secret, rounds, salt):
 class des_crypt(BackendExtHash):
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
-    It supports a fixed length salt.
+    It supports a fixed-length salt.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
 
@@ -230,7 +230,7 @@ class des_crypt(BackendExtHash):
 class bsdi_crypt(ExtHash):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
-    It supports a fixed length salt, and a variable number of rounds.
+    It supports a fixed-length salt, and a variable number of rounds.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
 
@@ -315,7 +315,7 @@ class bsdi_crypt(ExtHash):
 class bigcrypt(ExtHash):
     """This class implements the BigCrypt password hash, and follows the :ref:`password-hash-api`.
 
-    It supports a fixed length salt.
+    It supports a fixed-length salt.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
 
@@ -390,7 +390,7 @@ class bigcrypt(ExtHash):
 class crypt16(ExtHash):
     """This class implements the crypt16 password hash, and follows the :ref:`password-hash-api`.
 
-    It supports a fixed length salt.
+    It supports a fixed-length salt.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
 

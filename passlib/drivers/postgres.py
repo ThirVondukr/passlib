@@ -10,7 +10,6 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import autodocument
 #local
 __all__ = [
     "postgres_md5",
@@ -50,6 +49,17 @@ class postgres_plaintext(object):
 #handler
 #=========================================================
 class postgres_md5(object):
+    """This class implements the Postgres MD5 Password hash, and follows the :ref:`password-hash-api`.
+
+    It has no salt and a single fixed round.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+
+    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods all require the
+    following additional contextual keywords:
+
+    :param user: string containing name of postgres user account this password is associated with.
+    """
     #=========================================================
     #algorithm information
     #=========================================================
@@ -103,9 +113,6 @@ class postgres_md5(object):
     #eoc
     #=========================================================
 
-autodocument(postgres_md5, context_doc="""\
-:param user: string containing name of postgres user account this password is associated with.
-""")
 #=========================================================
 #eof
 #=========================================================

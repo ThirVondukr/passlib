@@ -25,17 +25,17 @@ Interface
 Format
 ======
 An example hash (of the string ``passphrase``) is ``S/8NbAAlzbYO66hAa9XZyWy2``.
-A bigcrypt hash string has the format ``{salt}{checksum_1}{checksum_2...}{checksum_n}`` for some integer ``n>0``, where:
+A bigcrypt hash string has the format :samp:`{salt}{checksum_1}{checksum_2...}{checksum_n}` for some integer :samp:`{n}>0`, where:
 
-* ``{salt}`` is the salt, stored as a 2 character :func:`hash64 <passlib.utils.h64.encode_int12>`-encoded
+* :samp:`{salt}` is the salt, stored as a 2 character :func:`hash64 <passlib.utils.h64.encode_int12>`-encoded
   12-bit integer (``S/`` in the example).
 
-* each ``{checksum_i}`` is a separate checksum, stored as an 11 character
+* each :samp:`{checksum_i}` is a separate checksum, stored as an 11 character
   :func:`hash64 <passlib.utils.h64.encode_dc_int64>`-encoded 64-bit integer (``8NbAAlzbYO6`` and ``6hAa9XZyWy2``
   in the example).
 
-* the integer ``n`` (the number of checksums) is determined by the formula
-  ``n=min(1, (len(secret)+7)//8)``.
+* the integer :samp:`n` (the number of checksums) is determined by the formula
+  :samp:`{n}=min(1, (len({secret})+7)//8)`.
 
 .. rst-class:: html-toggle
 
@@ -61,8 +61,8 @@ The bigcrypt algorithm is designed to re-use the original des-crypt algorithm:
    and using the 56-bit integer from step 3 as the DES key.
 
    The salt is used to to mutate the normal DES encrypt operation
-   by swapping bits ``i`` and ``i+24`` in the DES E-Box output
-   if and only if bit ``i`` is set in the salt value.
+   by swapping bits :samp:`{i}` and :samp:`{i}+24` in the DES E-Box output
+   if and only if bit :samp:`{i}` is set in the salt value.
 
 6. The 64-bit result of the last round of step 5 is then
    lsb-padded with 2 zero bits.

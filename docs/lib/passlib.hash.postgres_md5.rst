@@ -7,6 +7,7 @@
 This class implemented the md5-based hash algorithm used by PostgreSQL to store
 it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
 prior to this PostgreSQL stored it's password in plain text.
+
 .. warning::
 
     This hash is not secure, and should not be used for any purposes
@@ -20,29 +21,31 @@ That aside, this class can be used directly as follows::
 
     >>> from passlib.hash import postgres_md5 as pm
 
-    >>> pm.encrypt("password", "username") #encrypt password using specified username
+    >>> #encrypt password using specified username
+    >>> h = pm.encrypt("password", "username")
+    >>> h
     'md55a231fcdb710d73268c4f44283487ba2'
 
-    >>> pm.identify('md55a231fcdb710d73268c4f44283487ba2') #check if hash is recognized
+    >>> pm.identify(h) #check if hash is recognized
     True
     >>> pm.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
     False
 
-    >>> pm.verify("password", 'md55a231fcdb710d73268c4f44283487ba2', "username") #verify correct password
+    >>> pm.verify("password", h, "username") #verify correct password
     True
-    >>> pm.verify("password", 'md55a231fcdb710d73268c4f44283487ba2', "somebody") #verify correct password w/ wrong username
+    >>> pm.verify("password", h, "somebody") #verify correct password w/ wrong username
     False
-    >>> pm.verify("password", 'md55a231fcdb710d73268c4f44283487ba2', "username") #verify incorrect password
+    >>> pm.verify("password", h, "username") #verify incorrect password
     False
 
 Interface
 =========
-.. autoclass:: postgres_md5
+.. autoclass:: postgres_md5()
 
 Format & Algorithm
 ==================
-Postgres-MD5 hashes all have the format ``md5{checksum}``,
-where ``{checksum}`` is 32 hexidecimal digits, encoding a 128-bit checksum.
+Postgres-MD5 hashes all have the format :samp:`md5{checksum}`,
+where :samp:`{checksum}` is 32 hexidecimal digits, encoding a 128-bit checksum.
 This checksum is the MD5 message digest of the password concatenated with the username.
 
 Security Issues
@@ -61,5 +64,8 @@ PostgreSQL account passwords, due to the following flaws:
 
 References
 ==========
-* Discussion leading up to design of algorithm - `<http://archives.postgresql.org/pgsql-hackers/2001-06/msg00952.php>`_
-* Message explaining postgres md5 hash algorithm - `<http://archives.postgresql.org/pgsql-php/2003-01/msg00021.php>`_
+.. [#] Discussion leading up to design of algorithm -
+       `<http://archives.postgresql.org/pgsql-hackers/2001-06/msg00952.php>`_
+
+.. [#] Message explaining postgres md5 hash algorithm -
+       `<http://archives.postgresql.org/pgsql-php/2003-01/msg00021.php>`_
