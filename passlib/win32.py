@@ -28,8 +28,7 @@ from binascii import hexlify
 #site
 #pkg
 from passlib.utils.des import des_encrypt_block
-from passlib.drivers.import nthash
-from passlib.drivers.nthash import raw_nthash
+from passlib.hash import nthash
 #local
 __all__ = [
     "nthash",
@@ -40,6 +39,8 @@ __all__ = [
 #helpers
 #=========================================================
 LM_MAGIC = "KGS!@#$%"
+
+raw_nthash = nthash.raw_nthash
 
 def raw_lmhash(secret, hex=False):
     "encode password using des-based LMHASH algorithm; returns string of raw bytes"

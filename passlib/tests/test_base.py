@@ -210,6 +210,25 @@ sha512_crypt.min_rounds = 45000
         p3 = p2.replace(self.sample_config_3pd)
         self.assertEquals(p3.to_dict(), self.sample_config_123pd)
 
+    def test_06_forbidden(self):
+        "test CryptPolicy() forbidden kwds"
+
+        #salt not allowed to be set
+        self.assertRaises(KeyError, CryptPolicy,
+            schemes=["des_crypt"],
+            des_crypt__salt="xx",
+        )
+        self.assertRaises(KeyError, CryptPolicy,
+            schemes=["des_crypt"],
+            all__salt="xx",
+        )
+
+        #schemes not allowed for category
+        self.assertRaises(KeyError, CryptPolicy,
+            schemes=["des_crypt"],
+            user__context__schemes=["md5_crypt"],
+        )
+
     #=========================================================
     #reading
     #=========================================================
@@ -341,32 +360,133 @@ class CryptContextTest(TestCase):
     #policy adaptation
     #=========================================================
     sample_policy_1 = dict(
-            schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha256_crypt"],
+            schemes = [ "des_crypt", "md5_crypt", "nthash", "bsdi_crypt", "sha256_crypt"],
             deprecated = [ "des_crypt", ],
             default = "sha256_crypt",
-            all__vary_rounds = "10%",
             bsdi_crypt__max_rounds = 30,
             bsdi_crypt__default_rounds = 25,
             bsdi_crypt__vary_rounds = 0,
             sha256_crypt__max_rounds = 3000,
             sha256_crypt__min_rounds = 2000,
+            nthash__ident = "NT",
     )
 
-    def test_10_prepare_settings(self):
-        "test prepare_settings() method"
+    def test_10_genconfig_settings(self):
+        "test genconfig() honors policy settings"
         cc = CryptContext(**self.sample_policy_1)
 
-        #TODO:
         # hash specific settings
+        self.assertEquals(
+            cc.genconfig(scheme="nthash"),
+            '$NT$00000000000000000000000000000000',
+            )
+        self.assertEquals(
+            cc.genconfig(scheme="nthash", ident="3"),
+            '$3$$00000000000000000000000000000000',
+            )
+
         # min rounds
+        self.assertEquals(
+            cc.genconfig(rounds=1999, salt="nacl"),
+            '$5$rounds=2000$nacl$',
+            )
+        self.assertEquals(
+            cc.genconfig(rounds=2001, salt="nacl"),
+            '$5$rounds=2001$nacl$'
+            )
+
+        #max rounds
+        self.assertEquals(
+            cc.genconfig(rounds=2999, salt="nacl"),
+            '$5$rounds=2999$nacl$',
+            )
+        self.assertEquals(
+            cc.genconfig(rounds=3001, salt="nacl"),
+            '$5$rounds=3000$nacl$'
+            )
+
+        #default rounds - specified
+        self.assertEquals(
+            cc.genconfig(scheme="bsdi_crypt", salt="nacl"),
+            '_N...nacl',
+            )
+
+        #default rounds - fall back to max rounds
+        self.assertEquals(
+            cc.genconfig(salt="nacl"),
+            '$5$rounds=3000$nacl$',
+            )
+
+        #default rounds - out of bounds
+        cc2 = CryptContext(policy=cc.policy.replace(
+            bsdi_crypt__default_rounds=35))
+        self.assertEquals(
+            cc2.genconfig(scheme="bsdi_crypt", salt="nacl"),
+            '_S...nacl',
+            )
+
+        # default+vary rounds
+        # this runs enough times the min and max *should* be hit,
+        # though there's a faint chance it will randomly fail.
+        from passlib.hash import bsdi_crypt as bc
+        cc3 = CryptContext(policy=cc.policy.replace(
+            bsdi_crypt__vary_rounds = 3))
+        seen = set()
+        for i in xrange(3*2*50):
+            h = cc3.genconfig("bsdi_crypt", salt="nacl")
+            r = bc.from_string(h).rounds
+            seen.add(r)
+        self.assert_(min(seen)==22)
+        self.assert_(max(seen)==28)
+
+        # default+vary % rounds
+        # this runs enough times the min and max *should* be hit,
+        # though there's a faint chance it will randomly fail.
+        from passlib.hash import sha256_crypt as sc
+        cc4 = CryptContext(policy=cc.policy.replace(
+            all__vary_rounds = "1%"))
+        seen = set()
+        for i in xrange(30*50):
+            h = cc4.genconfig(salt="nacl")
+            r = sc.from_string(h).rounds
+            seen.add(r)
+        self.assert_(min(seen)==2970)
+        self.assert_(max(seen)==3000) #NOTE: would be 3030, but clipped by max_rounds
+
+    def test_11_encrypt_settings(self):
+        "test encrypt() honors policy settings"
+        cc = CryptContext(**self.sample_policy_1)
+
+        # hash specific settings
+        self.assertEquals(
+            cc.encrypt("password", scheme="nthash"),
+            '$NT$8846f7eaee8fb117ad06bdd830b7586c',
+            )
+        self.assertEquals(
+            cc.encrypt("password", scheme="nthash", ident="3"),
+            '$3$$8846f7eaee8fb117ad06bdd830b7586c',
+            )
+
+        # min rounds
+        self.assertEquals(
+            cc.encrypt("password", rounds=1999, salt="nacl"),
+            '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
+            )
+        self.assertEquals(
+            cc.encrypt("password", rounds=2001, salt="nacl"),
+            '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
+            )
+
+        #TODO:
         # max rounds
         # default rounds
         #       falls back to max, then min.
         #       specified
         #       outside of min/max range
         # default+vary rounds
+        # default+vary % rounds
 
-    def test_10_hash_needs_update(self):
+    def test_12_hash_needs_update(self):
         "test hash_needs_update() method"
         cc = CryptContext(**self.sample_policy_1)
 

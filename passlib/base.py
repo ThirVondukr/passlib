@@ -263,7 +263,7 @@ def parse_policy_items(source):
         cat, name, opt = _parse_policy_key(key)
         if name == "context":
             if cat and opt == "schemes":
-                raise NotImplementedError, "current code does not support per-category schemes"
+                raise KeyError, "current code does not support per-category schemes"
                 #NOTE: forbidding this because it would really complicate the behavior
                 # of CryptContext.identify & CryptContext.lookup.
                 # most useful behaviors here can be had by overridding deprecated and default, anyways.
@@ -791,7 +791,7 @@ class CryptContext(object):
                 rounds = mn
             settings['rounds'] = rounds
 
-    def prepare_settings(self, handler, category=None, **settings):
+    def _prepare_settings(self, handler, category=None, **settings):
         "normalize settings for handler according to context configuration"
         opts = self.policy.get_options(handler, category)
         if not opts:
@@ -846,7 +846,7 @@ class CryptContext(object):
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler"""
         handler = self.policy.get_handler(scheme, category, required=True)
-        settings = self.prepare_settings(handler, category, **settings)
+        settings = self._prepare_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
     def genhash(self, secret, config, scheme=None, category=None, **context):
@@ -913,7 +913,7 @@ class CryptContext(object):
         if not self:
             raise ValueError, "no algorithms registered"
         handler = self.policy.get_handler(scheme, category, required=True)
-        kwds = self.prepare_settings(handler, category, **kwds)
+        kwds = self._prepare_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
         return handler.encrypt(secret, **kwds)
 

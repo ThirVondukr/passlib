@@ -30,8 +30,6 @@ class UnsaltedHash(StaticHash):
 
     @classmethod
     def from_string(cls, hash):
-        if hash is None:
-            return cls()
         if not cls.identify(hash):
             raise ValueError, "not a unsalted-example hash"
         return cls(checksum=hash, strict=True)
@@ -78,12 +76,17 @@ class SaltedHash(ExtHash):
 class UnsaltedHashTest(HandlerCase):
     handler = UnsaltedHash
 
-    known_correct_hashes = []
+    known_correct_hashes = [
+        ("password", "61cfd32684c47de231f1f982c214e884133762c0"),
+
+    ]
 
 class SaltedHashTest(HandlerCase):
     handler = SaltedHash
 
-    known_correct_hashes = []
+    known_correct_hashes = [
+        ("password", '@salt77d71f8fe74f314dac946766c1ac4a2a58365482c0'),
+    ]
 
 #=========================================================
 #
