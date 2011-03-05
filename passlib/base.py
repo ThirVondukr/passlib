@@ -372,6 +372,10 @@ class CryptPolicy(object):
     # has options which differ from the default options.
     _options = None
 
+    #:dict mapping (handler name, category) -> dict derived from options.
+    # this is used to cache results of the get_option() method
+    _cache = None
+
     #=========================================================
     #init
     #=========================================================
@@ -383,11 +387,15 @@ class CryptPolicy(object):
     #=========================================================
     def _from_dict(self, kwds):
         "configure policy from constructor keywords"
+        #
+        #init cache & options
+        #
+        options = self._options = {None:{"context":{}}}
+        self._cache = {}
 
         #
         #normalize & sort keywords
         #
-        options = self._options = {None:{"context":{}}}
         for cat, name, opt, value in parse_policy_items(kwds):
             copts = options.get(cat)
             if copts is None:
@@ -510,6 +518,13 @@ class CryptPolicy(object):
         if hasattr(name, "name"):
             name = name.name
 
+        cache = self._cache
+        key = (name, category)
+        try:
+            return cache[key]
+        except KeyError:
+            pass
+
         #TODO: pre-calculate or at least cache some of this.
         options = self._options
 
@@ -537,6 +552,7 @@ class CryptPolicy(object):
             if tmp:
                 kwds.update(tmp)
 
+        cache[key] = kwds
         return kwds
 
     def handler_is_deprecated(self, name, category=None):
@@ -829,13 +845,13 @@ class CryptContext(object):
             if ('min_rounds' in opts or 'max_rounds' in opts) and \
                'rounds' in handler.setting_kwds and hasattr(handler, "from_string"):
                     info = handler.from_string(hash)
-                    rounds = getattr(info, "rounds", None)
+                    rounds = getattr(info, "rounds", None) #should generally work, but just in case
                     if rounds is not None:
                         min_rounds = opts.get("min_rounds")
-                        if min_rounds and rounds < min_rounds:
+                        if min_rounds is not None and rounds < min_rounds:
                             return True
                         max_rounds = opts.get("max_rounds")
-                        if max_rounds and rounds > max_rounds:
+                        if max_rounds is not None and rounds > max_rounds:
                             return True
 
         return False
