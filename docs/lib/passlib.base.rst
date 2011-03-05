@@ -44,7 +44,7 @@ The remaining options -
 ``context.schemes``
     comma separated list of the schemes this context should recognize, specified by name.
     when a context is identifying hashes, it will check each scheme in this list
-    in reverse order. if this value is being specified programmatically,
+    in order. if this value is being specified programmatically,
     it may also be a python list containing a mixture of names
     and password hash handler objects.
 
@@ -56,7 +56,7 @@ The remaining options -
 
 ``context.default``
     the default scheme context should use for generating new hashes.
-    if not specified, the last entry in ``context/schemes`` is used.
+    if not specified, the first entry in ``context.schemes`` is used.
 
 ``context.min_verify_time``
     if specified, all ``context.verify()`` calls will take at least this many seconds.

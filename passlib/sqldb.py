@@ -33,7 +33,7 @@ postgres_context = CryptContext([postgres_plaintext, postgres_md5])
 #=========================================================
 from passlib.drivers.mysql import mysql323, mysql41
 mysql3_context = CryptContext([mysql323])
-mysql_context = CryptContext([mysql323, mysql41])
+mysql_context = CryptContext([mysql41, mysql323])
 
 #=========================================================
 #TODO:

@@ -20,6 +20,9 @@ __all__ = [
 #=========================================================
 #helpers
 #=========================================================
+
+#TODO: replace this with a "generic-reject" (also add a "generic-allow")
+
 class UnixDisabledHandler(CryptHandler):
     """fake crypt handler which handles special (non-hash) strings found in /etc/shadow
 
@@ -60,7 +63,7 @@ register_crypt_handler(UnixDisabledHandler)
 
 #default context for quick use.. recognizes common algorithms, uses SHA-512 as default
 #er... should we promote bcrypt as default?
-default_context = CryptContext(["unix_disabled", "des_crypt", "md5_crypt", "bcrypt", "sha256_crypt", "sha512_crypt"])
+##default_context = CryptContext(["sha512_crypt",  "sha256_crypt", "bcrypt", "md5_crypt", "des_crypt", "unix_disabled" ])
 
 #=========================================================
 #some general os-context helpers (these may not match your os policy exactly, but are generally useful)
@@ -70,16 +73,41 @@ default_context = CryptContext(["unix_disabled", "des_crypt", "md5_crypt", "bcry
 #referencing linux shadow...
 # linux - des,md5, sha256, sha512
 
-linux_context = CryptContext([ "unix_disabled", "des_crypt", "md5_crypt", "sha256_crypt", "sha512_crypt" ])
+linux_context = CryptContext([ "sha512_crypt", "sha256_crypt", "md5_crypt", "des_crypt", "unix_disabled" ])
 
 #referencing source via -http://fxr.googlebit.com
 # freebsd 6,7,8 - des, md5, bcrypt, nthash
 # netbsd - des, ext, md5, bcrypt, sha1
 # openbsd - des, ext, md5, bcrypt
-bsd_context = CryptContext(["unix_disabled",  "nthash", "des_crypt", "ext_des_crypt", "md5_crypt", "bcrypt"])
-freebsd_context = CryptContext([ "unix_disabled",  "des_crypt", "nthash", "md5_crypt", "bcrypt"])
-openbsd_context = CryptContext([ "unix_disabled",  "des_crypt", "ext_des_crypt", "md5_crypt", "bcrypt"])
-netbsd_context = CryptContext([ "unix_disabled",  "des_crypt", "ext_des_crypt", "md5_crypt", "bcrypt", "sha1_crypt"])
+bsd_context = CryptContext(["bcrypt",  "md5_crypt", "bsdi_crypt", "des_crypt", "nthash", "unix_disabled" ])
+freebsd_context = CryptContext([  "bcrypt", "md5_crypt", "nthash", "des_crypt", "unix_disabled" ])
+openbsd_context = CryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_disabled" ])
+netbsd_context = CryptContext([  "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_disabled" ])
+
+
+#aix3
+#aix4
+#atheos
+#beos5
+#darwin
+#freebsd2
+#freebsd3
+#freebsd4
+#freebsd5
+#freebsd6
+#freebsd7
+#generic
+#hp-ux11
+#irix5
+#irix6
+#linux2
+#mac
+#netbsd1
+#next3
+#os2emx
+#riscos
+#sunos5
+#unixware7
 
 #=========================================================
 #eof

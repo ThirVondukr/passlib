@@ -412,7 +412,7 @@ class CryptPolicy(object):
         handlers = self._handlers = []
         seen = set()
         schemes = options[None]['context'].get("schemes") or []
-        for scheme in reversed(schemes): #NOTE: reversed() just so last entry is used as default, and is checked first.
+        for scheme in schemes:
             #resolve & validate handler
             if is_crypt_handler(scheme):
                 handler = scheme
@@ -631,7 +631,7 @@ class CryptPolicy(object):
         #
         value = self._handlers
         if value:
-            yield format_key(None, None, "schemes"), encode_hlist(reversed(value))
+            yield format_key(None, None, "schemes"), encode_hlist(value)
 
         for cat, value in self._deprecated.iteritems():
             yield format_key(cat, None, "deprecated"), encode_hlist(value)
@@ -709,7 +709,7 @@ class CryptContext(object):
 
         >>> from passlib import hash
         >>> #create a new context that only understands Md5Crypt & BCrypt
-        >>> myctx = hash.CryptContext([ hash.Md5Crypt, hash.BCrypt ])
+        >>> myctx = hash.CryptContext([ hash.BCrypt, hash.Md5Crypt,  ])
 
         >>> #the last one in the list will be used as the default for encrypting...
         >>> hash1 = myctx.encrypt("too many secrets")

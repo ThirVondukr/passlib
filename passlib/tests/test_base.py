@@ -245,7 +245,7 @@ sha512_crypt.min_rounds = 45000
         "test iter_handlers() method"
 
         p1 = CryptPolicy(**self.sample_config_1pd)
-        s = self.sample_config_1prd['schemes'][::-1]
+        s = self.sample_config_1prd['schemes']
         self.assertEquals(list(p1.iter_handlers()), s)
 
         p3 = CryptPolicy(**self.sample_config_3pd)
@@ -341,15 +341,15 @@ class CryptContextTest(TestCase):
     def test_00_constructor(self):
         "test CryptContext simple constructor"
         #create crypt context using handlers
-        cc = CryptContext([UnsaltedHash, SaltedHash, hash.md5_crypt])
-        c, b, a = cc.policy.iter_handlers()
+        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        c,b,a = cc.policy.iter_handlers()
         self.assertIs(a, UnsaltedHash)
         self.assertIs(b, SaltedHash)
         self.assertIs(c, hash.md5_crypt)
 
         #create context using names
-        cc = CryptContext([UnsaltedHash, SaltedHash, "md5_crypt"])
-        c, b, a = cc.policy.iter_handlers()
+        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        c,b,a = cc.policy.iter_handlers()
         self.assertIs(a, UnsaltedHash)
         self.assertIs(b, SaltedHash)
         self.assertIs(c, hash.md5_crypt)
@@ -507,7 +507,7 @@ class CryptContextTest(TestCase):
     #=========================================================
     def test_20_basic(self):
         "test basic encrypt/identify/verify functionality"
-        handlers = [UnsaltedHash, SaltedHash, AnotherHash]
+        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
         cc = CryptContext(handlers, policy=None)
 
         #run through handlers
@@ -524,7 +524,7 @@ class CryptContextTest(TestCase):
 
     def test_21_identify(self):
         "test identify() border cases"
-        handlers = [UnsaltedHash, SaltedHash, AnotherHash]
+        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
         cc = CryptContext(handlers, policy=None)
 
         #check unknown hash
@@ -537,7 +537,7 @@ class CryptContextTest(TestCase):
 
     def test_22_verify(self):
         "test verify() scheme kwd"
-        handlers = [UnsaltedHash, SaltedHash, AnotherHash]
+        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
         cc = CryptContext(handlers, policy=None)
 
         h = AnotherHash.encrypt("test")
@@ -555,7 +555,7 @@ class CryptContextTest(TestCase):
 
     def test_23_verify_empty_hash(self):
         "test verify() allows hash=None"
-        handlers = [UnsaltedHash, SaltedHash, AnotherHash]
+        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
         cc = CryptContext(handlers, policy=None)
         self.assert_(not cc.verify("test", None))
         for handler in handlers:

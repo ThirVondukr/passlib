@@ -14,7 +14,7 @@ from __future__ import with_statement
 import logging; log = logging.getLogger(__name__)
 #site
 #libs
-from passlib.drivers.import postgres_md5
+from passlib.hash import postgres_md5
 from passlib.base import CryptContext
 #pkg
 #local
