@@ -37,18 +37,20 @@ __all__ = [
 #=========================================================
 DEFAULT_TESTS = "active-backends"
 
-tests = [
+tests = set(
     v.strip()
     for v
     in os.environ.get("PASSLIB_TESTS", DEFAULT_TESTS).lower().split(",")
-    ]
+    )
+if 'all-backends' in tests:
+    tests.add("backends")
 
 def enable_option(*names):
     """check if a given test should be included based on the env var.
 
     test flags:
         all                 run ALL tests
-        active-backends     test active backends
+        backends            test active backends
         all-backends        test ALL backends, even the inactive ones
 
         slow                required to enable really slow tests (eg builtin bcrypt backend)
