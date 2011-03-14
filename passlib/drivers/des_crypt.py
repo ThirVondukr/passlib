@@ -1,8 +1,8 @@
-"""passlib.drivers.des_crypt - traditional unix (DES) crypt
+"""passlib.drivers.des_crypt - traditional unix (DES) crypt and variants
 
 .. note::
 
-    passlib restricts salt characters to just the hash64 charset,
+    for des-crypt, passlib restricts salt characters to just the hash64 charset,
     and salt string size to >= 2 chars; since implementations of des-crypt
     vary in how they handle other characters / sizes...
 

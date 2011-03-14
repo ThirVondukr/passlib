@@ -154,6 +154,31 @@ class DesCryptTest(HandlerCase):
 BuiltinDesCryptTest = create_backend_case(DesCryptTest, "builtin")
 
 #=========================================================
+#hex digests
+#=========================================================
+from passlib.drivers import digests
+
+class HexMd4Test(HandlerCase):
+    handler = digests.hex_md4
+    known_correct_hashes = [ ("password", '8a9d093f14f8701df17732b2bb182c74')]
+
+class HexMd5Test(HandlerCase):
+    handler = digests.hex_md5
+    known_correct_hashes = [ ("password", '5f4dcc3b5aa765d61d8327deb882cf99')]
+
+class HexSha1Test(HandlerCase):
+    handler = digests.hex_sha1
+    known_correct_hashes = [ ("password", '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8')]
+
+class HexSha256Test(HandlerCase):
+    handler = digests.hex_sha256
+    known_correct_hashes = [ ("password", '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8')]
+
+class HexSha512Test(HandlerCase):
+    handler = digests.hex_sha512
+    known_correct_hashes = [ ("password", 'b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86')]
+
+#=========================================================
 #md5 crypt
 #=========================================================
 from passlib.drivers.md5_crypt import md5_crypt
@@ -244,6 +269,23 @@ class PHPassTest(HandlerCase):
         #bad char in otherwise correct hash
         '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r!L0',
         ]
+
+#=========================================================
+#plaintext
+#=========================================================
+from passlib.drivers.misc import plaintext
+
+class PlaintextTest(HandlerCase):
+    handler = plaintext
+
+    known_correct_hashes = (
+        ('',''),
+        ('password', 'password'),
+    )
+
+    known_other_hashes = [] #all strings are identified as belonging to this scheme
+
+    accepts_empty_hash = True
 
 #=========================================================
 #postgres_md5
@@ -465,6 +507,31 @@ class SunMD5CryptTest(HandlerCase):
         #bad char in otherwise correct hash
         "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/"
         ]
+
+#=========================================================
+#unix fallback
+#=========================================================
+from passlib.drivers.misc import unix_fallback
+
+class UnixFallbackTest(HandlerCase):
+    #NOTE: this class behaves VERY differently from a normal password hash,
+    #so we subclass & disable a number of the default tests.
+
+    handler = unix_fallback
+
+    known_correct_hashes = [ ("password",""), ]
+    known_other_hashes = []
+    accepts_empty_hash = True
+
+    def test_50_encrypt_plain(self):
+        "test encrypt() basic behavior"
+        if self.supports_unicode:
+            secret = u"unic\u00D6de"
+        else:
+            secret = "too many secrets"
+        result = self.do_encrypt(secret)
+        self.assertEquals(result, "!")
+        self.assert_(not self.do_verify(secret, result))
 
 #=========================================================
 #EOF

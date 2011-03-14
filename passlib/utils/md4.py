@@ -25,7 +25,7 @@ def new(content=None):
 
 class md4(object):
     """pep-247 compatible implementation of MD4 hash algorithm
-    
+
     .. attribute:: digest_size
 
         size of md4 digest in bytes (16 bytes)
@@ -50,6 +50,7 @@ class md4(object):
     #FIXME: this isn't threadsafe
     #XXX: should we monkeypatch ourselves into hashlib for general use? probably wouldn't be nice.
 
+    name = "md4"
     digest_size = digestsize = 16
 
     _count = 0 #number of 64-byte blocks processed so far (not including _buf)

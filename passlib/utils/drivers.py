@@ -81,7 +81,7 @@ class BaseHash(object):
         "attr for checking if class has ANY settings, memoizes itself on first use"
         if cls.name is None:
             #otherwise this would optimize itself away prematurely
-            raise RuntimeError, "_has_settings must be called on subclass only: %r" % (cls,)
+            raise RuntimeError, "_has_settings must only be called on subclass: %r" % (cls,)
         value = cls._has_settings = bool(cls.setting_kwds)
         return value
 

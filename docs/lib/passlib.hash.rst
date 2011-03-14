@@ -75,10 +75,11 @@ the modular crypt format.
     passlib.hash.phpass
     passlib.hash.nthash
 
-Other Schemes
--------------
-The following schemes are used in very specified contexts,
-and have encoding schemes and other requirements
+Database Schemes
+----------------
+The following schemes are used by various SQL databases
+to encode their own user accounts.
+These schemes have encoding and contextual requirements
 not seen outside those specific contexts:
 
 .. toctree::
@@ -87,3 +88,16 @@ not seen outside those specific contexts:
     passlib.hash.mysql323
     passlib.hash.mysql41
     passlib.hash.postgres_md5
+
+
+Other Schemes
+-------------
+The following schemes are used in various contexts,
+mainly for legacy compatibility purposes.
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.hex_digests
+    passlib.hash.plaintext
+    passlib.hash.unix_fallback

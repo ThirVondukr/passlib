@@ -238,6 +238,9 @@ class HandlerCase(TestCase):
             "elCjmw2kSYu.Ec6ycULevoBK25fs2xXgMNrCzIMVcgEJAstJeonj1"),
     ]
 
+    #flag if scheme accepts empty string as hash (rare)
+    accepts_empty_hash = False
+
     #=========================================================
     #alg interface helpers - allows subclass to overide how
     # default tests invoke the handler (eg for context_kwds)
@@ -366,7 +369,7 @@ class HandlerCase(TestCase):
     def test_15_identify_none(self):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
-        self.assertEqual(self.do_identify(''), False)
+        self.assertEqual(self.do_identify(''), self.accepts_empty_hash)
 
     #=========================================================
     #verify()
@@ -404,7 +407,10 @@ class HandlerCase(TestCase):
         "test verify() throws error against hash=None/empty string"
         #find valid hash so that doesn't mask error
         self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
-        self.assertRaises(ValueError, self.do_verify, 'stub', '', __msg__="hash='':")
+        if self.accepts_empty_hash:
+            self.do_verify("stub", "")
+        else:
+            self.assertRaises(ValueError, self.do_verify, 'stub', '', __msg__="hash='':")
 
     #=========================================================
     #genconfig()
