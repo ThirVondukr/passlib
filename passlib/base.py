@@ -787,6 +787,9 @@ class CryptContext(object):
         names = [ handler.name for handler in self.policy.iter_handlers() ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
+    def replace(self, **kwds):
+        return CryptContext(policy=self.policy.replace(**kwds))
+
     #===================================================================
     #policy adaptation
     #===================================================================

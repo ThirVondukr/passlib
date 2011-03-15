@@ -90,7 +90,7 @@ class ldap_md5(_Base64DigestHelper):
     setting_kwds = ()
 
     _ident = "{MD5}"
-    _hash = hashlib.md5
+    _hash = md5
     _pat = re.compile(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
 
 class ldap_sha1(_Base64DigestHelper):
@@ -98,20 +98,20 @@ class ldap_sha1(_Base64DigestHelper):
     setting_kwds = ()
 
     _ident = "{SHA}"
-    _hash = hashlib.sha1
+    _hash = sha1
     _pat = re.compile(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
     name = "ldap_salted_md5"
     _ident = "{SMD5}"
-    _hash = hashlib.md5
+    _hash = md5
     _pat = re.compile(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27}=)$")
     _default_chk = '\x00' * 16
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     name = "ldap_salted_sha1"
     _ident = "{SSHA}"
-    _hash = hashlib.sha1
+    _hash = sha1
     _pat = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
     _default_chk = '\x00' * 20
 
