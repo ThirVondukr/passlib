@@ -17,19 +17,21 @@ The following libraries are not required, but will be used if found:
 
     * If installed, `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ will be
       used instead of PassLib's slower pure-python bcrypt implementation.
-      (see :class:`passlib.hash.bcrypt`).
       *This is strongly recommended, as the builtin implementation is VERY slow*.
 
-    * stdlib ``crypt.crypt()`` will be used if present, and if the underlying
+    * stdlib's :mod:`!crypt` module will be used if present, and if the host
       OS supports the specific scheme in question. OS support is autodetected
-      from the following schemes: des-crypt,  md5-crypt, bcrypt, sha256-crypt,
+      for the following schemes: des-crypt,  md5-crypt, bcrypt, sha256-crypt,
       and sha512-crypt.
+
+    * If installed, `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_ will be
+      used to accelerate some internal support functions, but it is not required.
 
 Installing
 ==========
 PassLib can be installed with easy_install, linked/copied into sys.path directly
-from it's source directory, or installed using ``$SOURCE/setup.py install``,
-where ``$SOURCE`` is the path to the PassLib source directory.
+from it's source directory, or installed using :samp:`{$SOURCE}/setup.py install`,
+where :samp:`{$SOURCE}` is the path to the PassLib source directory.
 PassLib is pure python, there is nothing to compile or configure.
 
 Testing
@@ -52,9 +54,13 @@ The latest copy of this documentation should always be available
 at the `PassLib homepage <http://www.assurancetechnologies.com/software/passlib>`_.
 
 If you wish to generate your own copy of the documentation,
-you will need to install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-as well `astdoc <http://www.assurancetechnologies.com/software/astdoc>`_ (a bundle of custom sphinx themes & extensions
-used by Assurance Technologies). Next, download the PassLib source,
-and run ``python $SOURCE/docs/make.py clean html`` (where ``$SOURCE`` is the path to the PassLib source directory).
-Once Sphinx completes it's run, point a web browser to the file at ``$SOURCE/docs/_build/html/index.html``
+you will need to:
+
+* install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
+* install `astdoc <http://www.assurancetechnologies.com/software/astdoc>`_ (a bundle of custom sphinx themes & extensions
+  used by Assurance Technologies).
+* download the PassLib source
+* run :samp:`python {$SOURCE}/docs/make.py clean html` (where :samp:`{$SOURCE}` is the path to the PassLib source directory).
+
+Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/docs/_build/html/index.html`
 to access the PassLib documentation in html format.

@@ -140,13 +140,13 @@ though it is not yet considered broken:
 
 Deviations
 ==========
-Passlib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
+PassLib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
 
 * Restricted salt string character set:
 
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
-  However, Passlib strictly limits salts to the
+  However, PassLib strictly limits salts to the
   :mod:`hash 64 <passlib.utils.h64>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,

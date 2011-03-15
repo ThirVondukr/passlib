@@ -132,7 +132,7 @@ This implementation of bsdi-crypt differs from others in one way:
   PassLib will encode unicode passwords using ``utf-8``
   before running them through bsdi-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to Passlib.
+  before handing it to PassLib.
 
 References
 ==========

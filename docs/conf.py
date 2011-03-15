@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# BPS documentation build configuration file, created by
+# PassLib documentation build configuration file, created by
 # sphinx-quickstart on Mon Mar  2 14:12:06 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.

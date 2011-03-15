@@ -1,6 +1,13 @@
-======================
-The BPS Python Library
-======================
+==========================
+The PassLib Python Library
+==========================
 
-* For installation instructions, see "docs/install.rst"
-* For license & copyright information, see "docs/copyright.rst"
+Installation
+------------
+* For detailed installation instructions, see "docs/install.rst"
+
+Copyright & License
+-------------------
+* (c) 2008-2011 - Assurance Technologies LLC
+* released under BSD license
+* For more license & copyright information, see "docs/copyright.rst"

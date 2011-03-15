@@ -9,7 +9,7 @@ hexidecimal-encoded message digests, such as MD5 or SHA1.
 Such schemes are *extremely* vulnerable to pre-computed brute-force attacks,
 and should not be used in new applications. However, for the sake
 of backwards compatibility when converting existing applications,
-Passlib provides wrappers for few of the common hashes.
+PassLib provides wrappers for few of the common hashes.
 
 Usage
 =====

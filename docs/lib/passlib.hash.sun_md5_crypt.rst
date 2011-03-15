@@ -13,7 +13,7 @@ in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
 .. warning::
 
     This implementation has not been compared
-    very carefully against any existing implementations,
+    very carefully against the official implementation or reference documentation,
     and it's behavior may not match under various border cases.
     It should not be relied on for anything but novelty purposes
     for the time being.
@@ -118,7 +118,7 @@ using the following formula:
 
 Deviations
 ==========
-Passlib's implementation of Sun-MD5-Crypt deviates from the official implementation
+PassLib's implementation of Sun-MD5-Crypt deviates from the official implementation
 in at least one way:
 
 * Unicode Policy:
@@ -134,7 +134,7 @@ in at least one way:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-Since Passlib's pure python implmentation was written based on the algorithm
+Since PassLib's pure python implmentation was written based on the algorithm
 description above, and has not been properly tested against a reference implementation,
 it may have other bugs and deviations from the correct behavior.
 

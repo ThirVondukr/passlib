@@ -9,7 +9,7 @@ Release History
 
 2011-01-05 -- version 0.8
     * various code cleanups preparing for public release
-    * ext-des-crypt, apr-md5-crypt, and other lesser known schemes added.
+    * bsdi-crypt, apr-md5-crypt, and other lesser known schemes added.
     * documentation added
 
 2009-03-10 -- version 0.7

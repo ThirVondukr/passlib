@@ -30,7 +30,7 @@ class postgres_plaintext(object):
         return None
 
     @classmethod
-    def genhash(cls, secret, config, user):
+    def genhash(cls, secret, config, user=None):
         return secret
 
     @classmethod
@@ -38,11 +38,13 @@ class postgres_plaintext(object):
         return bool(hash)
 
     @classmethod
-    def encrypt(cls, secret, config, user):
+    def encrypt(cls, secret, config, user=None):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return secret
 
     @classmethod
-    def verify(cls, secret, hash, user):
+    def verify(cls, secret, hash, user=None):
         return secret == hash
 
 #=========================================================

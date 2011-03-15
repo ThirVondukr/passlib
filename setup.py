@@ -29,7 +29,7 @@ setup(
 
     description = "password hash library",
     long_description = """\
-Passlib provides cross-platform implementations of most of the major
+PassLib provides cross-platform implementations of most of the major
 password hashing algorithms; as well as a framework for managing
 and migrating existing password hashes. It's designed to be useful
 for anything from quickly verify a hash found in /etc/shadow,

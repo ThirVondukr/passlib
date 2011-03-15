@@ -6,16 +6,14 @@ Table Of Contents
 
     Front Page <index>
     install
-    quickstart
     overview
 
-    lib/passlib.base
+    password_hash_api
     lib/passlib.hash
+    lib/passlib.base
     lib/passlib.sqldb
     lib/passlib.unix
     lib/passlib.utils
-
-    password_hash_api
 
     history
     copyright

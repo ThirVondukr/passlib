@@ -108,7 +108,7 @@ This implementation of des-crypt differs from others in a few ways:
   Some implementations of des-crypt allow empty and single-character salt strings.
   However, the behavior in these cases varies wildly between implementations,
   including errors and broken hashes.
-  To avoid all this, Passlib will throw an "invalid salt" if the provided
+  To avoid all this, PassLib will throw an "invalid salt" if the provided
   salt string is not at least 2 characters.
 
 * Restricted salt string character set:
@@ -118,7 +118,7 @@ This implementation of des-crypt differs from others in a few ways:
   a 12-bit integer. Many implementations of des-crypt will
   accept a salt containing other characters, but
   vary wildly in how they are handled, including errors and implementation-specific value mappings.
-  To avoid all this, Passlib will throw an "invalid salt" if the salt
+  To avoid all this, PassLib will throw an "invalid salt" if the salt
   string contains any non-standard characters.
 
 * Unicode Policy:
@@ -134,4 +134,4 @@ This implementation of des-crypt differs from others in a few ways:
 
 References
 ==========
-.. [#] A java implementation of des-crypt, used as base for Passlib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_
+.. [#] A java implementation of des-crypt, used as base for PassLib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_

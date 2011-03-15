@@ -2,7 +2,7 @@
 
 Implementation of OpenBSD's BCrypt algorithm.
 
-Passlib will use the py-bcrypt package if it is available,
+PassLib will use the py-bcrypt package if it is available,
 otherwise it will fall back to a slower builtin pure-python implementation.
 
 Note that rounds must be >= 10 or an error will be returned.

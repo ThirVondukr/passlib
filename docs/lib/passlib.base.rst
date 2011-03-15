@@ -2,7 +2,7 @@
 :mod:`passlib.base` - Crypt Contexts
 =============================================
 
-.. currentmodule:: passlib.base
+.. module:: passlib.base
 
 For more complex deployment scenarios than
 the frontend functions described in :doc:`Quick Start </quickstart>`,

@@ -18,7 +18,7 @@ also be imported and used directly from this package, as in the following exampl
     >>> from passlib.hash import md5_crypt
     >>> hash = md5_crypt.encrypt("password")
 
-Passlib contains the following builtin password algorithms:
+PassLib contains the following builtin password algorithms:
 
 Archaic Unix Schemes
 --------------------
@@ -47,19 +47,9 @@ They all follow the :ref:`modular crypt format <modular-crypt-format>` for encod
     passlib.hash.md5_crypt
     passlib.hash.bcrypt
     passlib.hash.sha1_crypt
+    passlib.hash.sun_md5_crypt
     passlib.hash.sha256_crypt
     passlib.hash.sha512_crypt
-
-.. toctree::
-    :hidden:
-
-    passlib.hash.sun_md5_crypt
-
-.. todo::
-
-    These aren't fully implemented / tested yet:
-
-    * :doc:`passlib.hash.sun_md5_crypt <passlib.hash.sun_md5_crypt>` - MD5-based scheme used by Solaris 10 (NOT related to md5-crypt above).
 
 Non-Standard Unix-Compatible Schemes
 ------------------------------------

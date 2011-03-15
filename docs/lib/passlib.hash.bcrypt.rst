@@ -47,7 +47,7 @@ This implementation of bcrypt differs from others in a few ways:
 
   BCrypt does not specify what the behavior should be when
   passed a salt string outside of the regexp range ``[./A-Za-z0-9]``.
-  In order to avoid this situtation, Passlib strictly limits salts to the
+  In order to avoid this situtation, PassLib strictly limits salts to the
   allowed character set, and will throw a ValueError if an invalid
   salt character is encountered.
 
