@@ -21,11 +21,7 @@ __all__ = [
     #framework for implementing handlers
     'BaseHash',
     'ExtHash',
-    'StaticHash',
-
-    'BackendMixin',
-        'BackendExtHash',
-        'BackendStaticHash',
+    'BackendExtHash',
 ]
 
 #=========================================================
@@ -137,7 +133,8 @@ class BaseHash(object):
 # ExtHash
 #   rounds+salt+xtra    phpass, sha256_crypt, sha512_crypt
 #   rounds+salt         bcrypt, ext_des_crypt, sha1_crypt, sun_md5_crypt
-#   salt only           apr_md5_crypt, des_crypt, md5_crypt
+#   salt                apr_md5_crypt, des_crypt, md5_crypt
+#   nothing             mysql_323, mysql_41, nthash, postgres_md5
 #=========================================================
 class ExtHash(BaseHash):
     """helper class for implementing hash schemes
@@ -393,6 +390,10 @@ class ExtHash(BaseHash):
         :returns:
             normalized rounds value
         """
+        #XXX: for speed, could optimize this by replacing method at class level
+        # when cls._has_rounds check is first called.
+        # could make same optimization for norm_salt()
+
         if not cls._has_rounds:
             #NOTE: special casing schemes which don't have rounds
             if rounds is not None:
@@ -463,15 +464,23 @@ class ExtHash(BaseHash):
     ##        return self.to_string()
 
     #=========================================================
-    #password hash api - primary interface (default implementation)
+    #'crypt-style' interface (default implementation)
     #=========================================================
     @classmethod
     def genconfig(cls, **settings):
-        return cls(**settings).to_string()
+        if cls._has_settings:
+            return cls(**settings).to_string()
+        elif settings:
+            raise TypeError, "%s.genconfig() takes no arguments" % (cls.name,)
+        else:
+            return None
 
     @classmethod
     def genhash(cls, secret, config):
-        self = cls.from_string(config)
+        if cls._has_settings or config is not None:
+            self = cls.from_string(config)
+        else:
+            self = cls()
         self.checksum = self.calc_checksum(secret)
         return self.to_string()
 
@@ -480,7 +489,7 @@ class ExtHash(BaseHash):
         raise NotImplementedError, "%s must implement calc_checksum()" % (cls,)
 
     #=========================================================
-    #password hash api - secondary interface (default implementation)
+    #'application' interface (default implementation)
     #=========================================================
     @classmethod
     def encrypt(cls, secret, **settings):
@@ -501,61 +510,11 @@ class ExtHash(BaseHash):
     #=========================================================
 
 #=========================================================
-#static - mysql_323, mysql_41, nthash, postgres_md5
-#=========================================================
-class StaticHash(ExtHash):
-    """helper class optimized for implementing hash schemes which have NO settings whatsoever.
-
-    the main thing this changes from ExtHash:
-
-    * :attr:`setting_kwds` must be an empty tuple (set by class)
-    * :meth:`genconfig` takes no kwds, and always returns ``None``.
-    * :meth:`genhash` accepts ``config=None``.
-
-    otherwise, this requires the same methods be implemented
-    as does ExtHash.
-    """
-    #=========================================================
-    #class attr
-    #=========================================================
-    setting_kwds = ()
-
-    #=========================================================
-    #init
-    #=========================================================
-    @classmethod
-    def validate_class(cls):
-        "helper to validate that class has been configured properly"
-        if cls.setting_kwds:
-            raise AssertionError, "StaticHash subclasses must not have any settings, perhaps you want ExtHash?"
-        super(StaticHash, cls).validate_class()
-
-    #=========================================================
-    #primary interface
-    #=========================================================
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config):
-        if config is None:
-            self = cls()
-        else:
-            #just to verify input is correctly formatted
-            self = cls.from_string(config)
-        self.checksum = self.calc_checksum(secret)
-        return self.to_string()
-
-    #=========================================================
-    #eoc
-    #=========================================================
-
-#=========================================================
 #helpful mixin which provides lazy-loading of different backends
 #to be used for calc_checksum
 #=========================================================
-class BackendMixin(object):
+class BackendExtHash(ExtHash):
+    "subclass of ExtHash which provides selecting from multiple backends for checksum calculation"
 
     #NOTE: subclass must provide:
     #   * attr 'backends' containing list of known backends (top priority backend first)
@@ -577,25 +536,20 @@ class BackendMixin(object):
     @classmethod
     def set_backend(cls, name=None):
         "change class to use specified backend"
-        if not name or name == "default":
-            if not name:
-                name = cls._backend
-                if name:
-                    return name
+        if not name:
+            name = cls._backend
+            if name:
+                return name
             for name in cls.backends:
                 if cls.has_backend(name):
-                    cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
-                    cls._backend = name
-                    return name
-            raise EnvironmentError, "no %s backends available" % (cls.name,)
-        else:
-            ##if name not in cls.backends:
-            ##    raise ValueError, "unknown %s backend: %r" % (cls.name, name)
-            if not cls.has_backend(name):
-                raise ValueError, "%s backend not available: %r" % (cls.name, name)
-            cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
-            cls._backend = name
-            return name
+                    break
+            else:
+                raise EnvironmentError, "no %s backends available" % (cls.name,)
+        elif not cls.has_backend(name):
+            raise ValueError, "%s backend not available: %r" % (cls.name, name)
+        cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
+        cls._backend = name
+        return name
 
     def calc_checksum(self, secret):
         "stub for calc_checksum(), default backend will be selected first time stub is called"
@@ -603,13 +557,8 @@ class BackendMixin(object):
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
         assert self._backend, "set_backend() failed to load a default backend"
+        #set_backend() should have replaced this method, so call it again.
         return self.calc_checksum(secret)
-
-class BackendExtHash(BackendMixin, ExtHash):
-    pass
-
-class BackendStaticHash(BackendMixin, StaticHash):
-    pass
 
 #=========================================================
 # eof

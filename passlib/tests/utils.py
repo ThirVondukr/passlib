@@ -18,7 +18,7 @@ except ImportError: #wasn't added until py26
 from nose.plugins.skip import SkipTest
 #pkg
 from passlib.utils import classproperty
-from passlib.utils.drivers import BaseHash, BackendMixin
+from passlib.utils.drivers import BaseHash, BackendExtHash
 #local
 __all__ = [
     #util funcs
@@ -330,7 +330,7 @@ class HandlerCase(TestCase):
         h.validate_class() #should raise AssertionError if something's wrong.
 
     def test_05_backend_handler(self):
-        "check configuration of BackendMixin-derived classes"
+        "check configuration of multi-backend classes"
         h = self.handler
         if not hasattr(h, "get_backend"):
             raise SkipTest
@@ -604,7 +604,7 @@ class HandlerCase(TestCase):
 #=========================================================
 def enable_backend_case(handler, name):
     "helper to check if a separate test is needed for the specified backend"
-    assert issubclass(handler, BackendMixin), "handler must derived from BackendMixin"
+    assert issubclass(handler, BackendExtHash), "handler must derived from BackendExtHash"
     assert name in handler.backends, "unknown backend: %r" % (name,)
     return enable_option("all-backends") and handler.get_backend() != name and handler.has_backend(name)
 

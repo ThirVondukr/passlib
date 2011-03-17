@@ -10,7 +10,7 @@ from logging import getLogger
 #site
 #pkg
 from passlib.utils import rng, getrandstr
-from passlib.utils.drivers import ExtHash, StaticHash
+from passlib.utils.drivers import ExtHash
 from passlib.tests.utils import HandlerCase
 #module
 log = getLogger(__name__)
@@ -20,9 +20,10 @@ log = getLogger(__name__)
 # to test the unittests themselves, as well as other
 # parts of passlib. they shouldn't be used as actual password schemes.
 #=========================================================
-class UnsaltedHash(StaticHash):
+class UnsaltedHash(ExtHash):
     "test algorithm which lacks a salt"
     name = "unsalted_test_hash"
+    setting_kwds = ()
 
     @classmethod
     def identify(cls, hash):
@@ -60,6 +61,7 @@ class SaltedHash(ExtHash):
         return cls(salt=hash[5:7], checksum=hash[7:], strict=True)
 
     _stub_checksum = '0' * 40
+
     def to_string(self):
         return "@salt%s%s" % (self.salt, self.checksum or self._stub_checksum)
 
