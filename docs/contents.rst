@@ -11,6 +11,7 @@ Table Of Contents
     password_hash_api
     lib/passlib.hash
     lib/passlib.base
+    lib/passlib.apache
     lib/passlib.sqldb
     lib/passlib.unix
     lib/passlib.utils

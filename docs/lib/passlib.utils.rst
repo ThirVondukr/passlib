@@ -49,6 +49,7 @@ Submodules
 There are also a few sub modules which provide additional utility functions:
 
 .. toctree::
+    :maxdepth: 1
 
     passlib.utils.des
     passlib.utils.h64

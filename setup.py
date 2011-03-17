@@ -36,7 +36,7 @@ for anything from quickly verify a hash found in /etc/shadow,
 to integrating full-strength password hashing for multi-user application.
 """,
 
-    keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt",
+    keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest apache",
     classifiers = [
         "Development Status :: 4 - Beta",
         "Environment :: Plugins",
@@ -44,6 +44,7 @@ to integrating full-strength password hashing for multi-user application.
         "License :: OSI Approved :: BSD License",
         "Natural Language :: English",
         "Operating System :: OS Independent",
+        "Programming Language :: Python",
         "Programming Language :: Python :: 2.5",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
