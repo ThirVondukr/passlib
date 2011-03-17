@@ -534,6 +534,10 @@ class BackendExtHash(ExtHash):
         return getattr(cls, "_has_backend_" + name)
 
     @classmethod
+    def _no_backends_msg(cls):
+        return "no %s backends available" % (cls.name,)
+
+    @classmethod
     def set_backend(cls, name=None):
         "change class to use specified backend"
         if not name:
@@ -544,7 +548,7 @@ class BackendExtHash(ExtHash):
                 if cls.has_backend(name):
                     break
             else:
-                raise EnvironmentError, "no %s backends available" % (cls.name,)
+                raise EnvironmentError, cls._no_backends_msg()
         elif not cls.has_backend(name):
             raise ValueError, "%s backend not available: %r" % (cls.name, name)
         cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)

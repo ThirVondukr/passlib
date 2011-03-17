@@ -25,7 +25,7 @@ from passlib.utils import os_crypt, classproperty
 from passlib.utils.drivers import BackendExtHash
 
 #TODO: make this a lazy import, generally don't want to load it.
-from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
+##from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
 
 #pkg
 #local
@@ -58,14 +58,18 @@ class bcrypt(BackendExtHash):
         Typically you want to leave this alone, and let it default to ``2a``,
         but it can be set to ``2`` to use the older version of BCrypt.
 
-    It will use the first available of three possible backends:
+    It will use the first available of two possible backends:
 
     * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
     * stdlib :func:`crypt()`, if the host OS supports BCrypt.
-    * a pure python implementation of BCrypt built into passlib (very slow).
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
+
+    #NOTE: the builtin implementation has been disabled,
+    # as it is pure python and about ~500 times slower than pybcrypt.
+##    * a pure python implementation of BCrypt built into passlib.
+
     #=========================================================
     #class attrs
     #=========================================================
@@ -134,12 +138,13 @@ class bcrypt(BackendExtHash):
     #=========================================================
     #primary interface
     #=========================================================
-    backends = ("pybcrypt", "os_crypt", "builtin")
+    backends = ("pybcrypt", "os_crypt")
 
-    _has_backend_builtin = True
+    ##_has_backend_builtin = True
 
     @classproperty
     def _has_backend_pybcrypt(cls):
+        return False
         return pybcrypt_hashpw is not None
 
     @classproperty
@@ -155,16 +160,20 @@ class bcrypt(BackendExtHash):
         )
 
     @classmethod
-    def set_backend(cls, name=None):
-        result = super(bcrypt, cls).set_backend(name)
-        #issue warning if builtin is ever chosen by default
-        # (but if they explicitly ask for it, let it happen)
-        if name != "builtin" and result == "builtin":
-            warn("PassLib's builtin bcrypt is too slow for production use; PLEASE INSTALL pybcrypt")
-        return result
+    def _no_backends_msg(cls):
+        return "no BCrypt backends available - please install pybcrypt for BCrypt support"
 
-    def _calc_checksum_builtin(self, secret):
-        return slow_raw_bcrypt(secret, self.ident, self.salt, self.rounds)
+    ##@classmethod
+    ##def set_backend(cls, name=None):
+    ##    result = super(bcrypt, cls).set_backend(name)
+    ##    #issue warning if builtin is ever chosen by default
+    ##    # (but if they explicitly ask for it, let it happen)
+    ##    if name != "builtin" and result == "builtin":
+    ##        warn("PassLib's builtin bcrypt is too slow for production use; PLEASE INSTALL pybcrypt")
+    ##    return result
+
+    ##def _calc_checksum_builtin(self, secret):
+    ##    return slow_raw_bcrypt(secret, self.ident, self.salt, self.rounds)
 
     def _calc_checksum_os_crypt(self, secret):
         if isinstance(secret, unicode):

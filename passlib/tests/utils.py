@@ -49,11 +49,9 @@ def enable_option(*names):
     """check if a given test should be included based on the env var.
 
     test flags:
-        all                 run ALL tests
-        backends            test active backends
+        active-backends     test active backends
         all-backends        test ALL backends, even the inactive ones
-
-        slow                required to enable really slow tests (eg builtin bcrypt backend)
+        all                 run ALL tests
     """
     return 'all' in tests or any(name in tests for name in names)
 
@@ -610,6 +608,8 @@ def enable_backend_case(handler, name):
 
 def create_backend_case(base_test, name):
     "create a test case (subclassing); if test doesn't need to be enabled, returns None"
+    if base_test is None:
+        return None
     handler = base_test.handler
 
     if not enable_backend_case(handler, name):
