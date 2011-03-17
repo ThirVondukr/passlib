@@ -339,7 +339,7 @@ class CryptContextTest(TestCase):
     #constructor
     #=========================================================
     def test_00_constructor(self):
-        "test CryptContext simple constructor"
+        "test constructor"
         #create crypt context using handlers
         cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
         c,b,a = cc.policy.iter_handlers()
@@ -354,7 +354,23 @@ class CryptContextTest(TestCase):
         self.assertIs(b, SaltedHash)
         self.assertIs(c, hash.md5_crypt)
 
-    #TODO: test policy & other options
+        #TODO: test policy & other options
+
+    def test_01_replace(self):
+        "test replace()"
+
+        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        self.assertIs(cc.policy.get_handler(), hash.md5_crypt)
+
+        cc2 = cc.replace()
+        self.assertIsNot(cc2, cc)
+        self.assertIs(cc2.policy, cc.policy)
+
+        cc3 = cc.replace(default="salted_test_hash")
+        self.assertIsNot(cc3, cc)
+        self.assertIsNot(cc3.policy, cc.policy)
+        self.assertIs(cc3.policy.get_handler(), SaltedHash)
+
 
     #=========================================================
     #policy adaptation
@@ -551,7 +567,7 @@ class CryptContextTest(TestCase):
         self.assert_(not cc.verify('notest', h, scheme='md5_crypt'))
 
         #check verify using wrong alg
-        self.assertRaises(ValueError, cc.verify, 'test', h, scheme='salted_example')
+        self.assertRaises(ValueError, cc.verify, 'test', h, scheme='salted_test_hash')
 
     def test_23_verify_empty_hash(self):
         "test verify() allows hash=None"

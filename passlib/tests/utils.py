@@ -329,6 +329,31 @@ class HandlerCase(TestCase):
             raise SkipTest
         h.validate_class() #should raise AssertionError if something's wrong.
 
+    def test_05_backend_handler(self):
+        "check configuration of BackendMixin-derived classes"
+        h = self.handler
+        if not hasattr(h, "get_backend"):
+            raise SkipTest
+        #preserve current backend
+        orig = h.get_backend()
+        try:
+            #run through all backends handler supports
+            for backend in h.backends:
+                #check has_backend() returns bool value
+                r = h.has_backend(backend)
+                if r is True:
+                    #check backend can be loaded
+                    h.set_backend(backend)
+                    self.assertEquals(h.get_backend(), backend)
+                elif r is False:
+                    #check backend CAN'T be loaded
+                    self.assertRaises(ValueError, h.set_backend, backend)
+                else:
+                    #failure eg: used classmethod instead of classproperty in _has_backend_xxx
+                    raise TypeError, "has_backend(%r) returned invalid value: %r" % (backend, r,)
+        finally:
+            h.set_backend(orig)
+
     #=========================================================
     #identify()
     #=========================================================
@@ -590,17 +615,20 @@ def create_backend_case(base_test, name):
     if not enable_backend_case(handler, name):
         return None
 
-    assert getattr(base_test, "setUp", None) is None #just haven't implemented this
-    assert getattr(base_test, "cleanUp", None) is None #ditto
-
     class dummy(base_test):
         case_prefix = "%s (%s backend)" % (handler.name, name)
 
         def setUp(self):
+            s = self.__super = super(dummy, self)
+            if hasattr(s, "setUp"):
+                s.setUp()
             self.orig_backend = self.handler.get_backend()
             self.handler.set_backend(name)
 
         def cleanUp(self):
+            s = self.__super
+            if hasattr(s, "cleanUp"):
+                s.cleanUp()
             self.handler.set_backend(self.orig_backend)
 
     dummy.__name__ = name.title() + base_test.__name__

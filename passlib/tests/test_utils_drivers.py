@@ -21,8 +21,8 @@ log = getLogger(__name__)
 # parts of passlib. they shouldn't be used as actual password schemes.
 #=========================================================
 class UnsaltedHash(StaticHash):
-    "example algorithm which lacks a salt"
-    name = "unsalted_example"
+    "test algorithm which lacks a salt"
+    name = "unsalted_test_hash"
 
     @classmethod
     def identify(cls, hash):
@@ -41,8 +41,8 @@ class UnsaltedHash(StaticHash):
         return hashlib.sha1("boblious" + secret).hexdigest()
 
 class SaltedHash(ExtHash):
-    "example algorithm with a salt"
-    name = "salted_example"
+    "test algorithm with a salt"
+    name = "salted_test_hash"
     setting_kwds = ("salt",)
 
     min_salt_chars = max_salt_chars = 2

@@ -571,7 +571,7 @@ class BackendMixin(object):
 
     @classmethod
     def has_backend(cls, name):
-        "check if specified class can be loaded"
+        "check if specified backend is currently available"
         return getattr(cls, "_has_backend_" + name)
 
     @classmethod

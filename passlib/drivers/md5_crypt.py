@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, os_crypt
+from passlib.utils import h64, os_crypt, classproperty
 from passlib.utils.drivers import ExtHash, BackendExtHash
 #pkg
 #local
@@ -193,7 +193,7 @@ class md5_crypt(BackendExtHash):
 
     _has_backend_builtin = True
 
-    @classmethod
+    @classproperty
     def _has_backend_os_crypt(cls):
         return os_crypt and os_crypt("test", "$1$test") == '$1$test$pi/xDtU5WFVRqYS6BMU8X/'
 

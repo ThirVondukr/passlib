@@ -21,7 +21,7 @@ try:
 except ImportError:
     pybcrypt_hashpw = None
 #libs
-from passlib.utils import os_crypt
+from passlib.utils import os_crypt, classproperty
 from passlib.utils.drivers import BackendExtHash
 
 #TODO: make this a lazy import, generally don't want to load it.
@@ -138,11 +138,11 @@ class bcrypt(BackendExtHash):
 
     _has_backend_builtin = True
 
-    @classmethod
+    @classproperty
     def _has_backend_pybcrypt(cls):
         return pybcrypt_hashpw is not None
 
-    @classmethod
+    @classproperty
     def _has_backend_os_crypt(cls):
         return (
             os_crypt

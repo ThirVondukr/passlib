@@ -23,6 +23,14 @@ def get_file(path):
     with file(path, "rb") as fh:
         return fh.read()
 
+def backdate_file_mtime(path, offset=10):
+    "backdate file's mtime by specified amount"
+    #NOTE: this is used so we can test code which detects mtime changes,
+    # without having to actually *pause* for that long.
+    atime = os.path.getatime(path)
+    mtime = os.path.getmtime(path)-offset
+    os.utime(path, (atime, mtime))
+
 #=========================================================
 #htpasswd
 #=========================================================
@@ -108,9 +116,9 @@ class HtpasswdFileTest(TestCase):
         #setup empty file
         path = mktemp()
         set_file(path, "")
+        backdate_file_mtime(path, 5)
         ha = apache.HtpasswdFile(path, default="plaintext")
         self.assertEqual(ha.to_string(), "")
-        time.sleep(.1) #so file modify time can advance
 
         #make changes, check force=False does nothing
         ha.update("user1", "pass1")
@@ -121,8 +129,6 @@ class HtpasswdFileTest(TestCase):
         set_file(path, self.sample_01)
         ha.load(force=False)
         self.assertEqual(ha.to_string(), self.sample_01)
-            #FIXME: this may fail if os mtime resolution is
-            #worse than the time.sleep delay above.
 
         #make changes, check force=True overwrites them
         ha.update("user5", "pass5")
@@ -239,9 +245,9 @@ class HtdigestFileTest(TestCase):
         #setup empty file
         path = mktemp()
         set_file(path, "")
+        backdate_file_mtime(path, 5)
         ha = apache.HtdigestFile(path)
         self.assertEqual(ha.to_string(), "")
-        time.sleep(.1) #so file modify time can advance
 
         #make changes, check force=False does nothing
         ha.update("user1", "realm", "pass1")
@@ -252,8 +258,6 @@ class HtdigestFileTest(TestCase):
         set_file(path, self.sample_01)
         ha.load(force=False)
         self.assertEqual(ha.to_string(), self.sample_01)
-            #FIXME: this may fail if os mtime resolution is
-            #worse than the time.sleep delay above.
 
         #make changes, check force=True overwrites them
         ha.update("user5", "realm", "pass5")
