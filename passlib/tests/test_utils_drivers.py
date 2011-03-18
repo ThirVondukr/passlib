@@ -39,6 +39,8 @@ class UnsaltedHash(ExtHash):
         return self.checksum
 
     def calc_checksum(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return hashlib.sha1("boblious" + secret).hexdigest()
 
 class SaltedHash(ExtHash):
@@ -66,6 +68,8 @@ class SaltedHash(ExtHash):
         return "@salt%s%s" % (self.salt, self.checksum or self._stub_checksum)
 
     def calc_checksum(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return hashlib.sha1(self.salt + secret + self.salt).hexdigest()
 
 #=========================================================

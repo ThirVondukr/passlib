@@ -209,7 +209,7 @@ class HandlerCase(TestCase):
     handler = None
 
     #this option is available for hashes which can't handle unicode
-    supports_unicode = False
+    supports_unicode = True
 
     #maximum number of chars which hash will include in checksum
     #override this only if hash doesn't use all chars (the default)
@@ -295,6 +295,19 @@ class HandlerCase(TestCase):
     @classproperty
     def has_rounds_info(cls):
         return 'rounds' in cls.handler.setting_kwds and getattr(cls.handler, "max_rounds", None) > 0
+
+    backend = "default"
+
+    def setUp(self):
+        h = self.handler
+        if hasattr(h, "set_backend"):
+            self.orig_backend = h.get_backend()
+            h.set_backend(self.backend)
+
+    def cleanUp(self):
+        h = self.handler
+        if hasattr(h, "set_backend"):
+            h.set_backend(self.orig_backend)
 
     #=========================================================
     #attributes
@@ -484,7 +497,7 @@ class HandlerCase(TestCase):
                 salt = (salt*(mn//len(salt)+1))[:mx]
             self.do_genconfig(salt=salt)
 
-        #check some that aren't
+        #check some invalid salt chars are rejected
         for c in '\x00\xff':
             if c not in cs:
                 self.assertRaises(ValueError, self.do_genconfig, salt=c*mx)
@@ -525,6 +538,14 @@ class HandlerCase(TestCase):
         config = handler.genconfig()
         hash = self.do_genhash("stub", config)
         self.assert_(handler.identify(hash))
+
+    def test_43_genhash_none(self):
+        "test genhash() against empty hash"
+        handler = self.handler
+        config = handler.genconfig()
+        if config is None:
+            raise SkipTest
+        self.assertRaises(ValueError, handler.genhash, 'secret', None)
 
     #=========================================================
     #encrypt()
@@ -618,18 +639,20 @@ def create_backend_case(base_test, name):
     class dummy(base_test):
         case_prefix = "%s (%s backend)" % (handler.name, name)
 
-        def setUp(self):
-            s = self.__super = super(dummy, self)
-            if hasattr(s, "setUp"):
-                s.setUp()
-            self.orig_backend = self.handler.get_backend()
-            self.handler.set_backend(name)
-
-        def cleanUp(self):
-            s = self.__super
-            if hasattr(s, "cleanUp"):
-                s.cleanUp()
-            self.handler.set_backend(self.orig_backend)
+        backend = name
+        ##
+        ##def setUp(self):
+        ##    s = self.__super = super(dummy, self)
+        ##    if hasattr(s, "setUp"):
+        ##        s.setUp()
+        ##    self.orig_backend = self.handler.get_backend()
+        ##    self.handler.set_backend(name)
+        ##
+        ##def cleanUp(self):
+        ##    s = self.__super
+        ##    if hasattr(s, "cleanUp"):
+        ##        s.cleanUp()
+        ##    self.handler.set_backend(self.orig_backend)
 
     dummy.__name__ = name.title() + base_test.__name__
     return dummy

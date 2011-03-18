@@ -1,3 +1,4 @@
 glob:docs/_build
 glob:*.pyc
 glob:*.egg-info
+glob:.coverage

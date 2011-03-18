@@ -40,7 +40,7 @@ def raw_sha_crypt(secret, salt, rounds, hash):
     #validate rounds
     if rounds < 1000:
         rounds = 1000
-    if rounds > 999999999:
+    if rounds > 999999999: #pragma: no cover
         rounds = 999999999
 
     #validate salt

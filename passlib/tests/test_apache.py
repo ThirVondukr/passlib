@@ -42,6 +42,8 @@ class HtpasswdFileTest(TestCase):
     sample_02 = 'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n'
     sample_03 = 'user2:pass2x\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\nuser5:pass5\n'
 
+    sample_dup = 'user1:pass1\nuser1:pass2\n'
+
     def test_00_constructor(self):
         "test constructor & to_string()"
         #check with existing file
@@ -140,6 +142,11 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(RuntimeError, hb.load)
         self.assertRaises(RuntimeError, hb.load, force=False)
 
+        #test load w/ dups
+        set_file(path, self.sample_dup)
+        hc = apache.HtpasswdFile(path)
+        self.assert_(hc.verify('user1','pass1'))
+
     def test_05_save(self):
         "test save()"
         #load from file
@@ -215,6 +222,10 @@ class HtdigestFileTest(TestCase):
         self.assertEqual(ht.to_string(), self.sample_03)
 
         self.assertRaises(ValueError, ht.update, "user:", "realm", "pass")
+        self.assertRaises(ValueError, ht.update, "u"*256, "realm", "pass")
+
+        self.assertRaises(ValueError, ht.update, "user", "realm:", "pass")
+        self.assertRaises(ValueError, ht.update, "user", "r"*256, "pass")
 
     def test_03_users(self):
         "test users()"

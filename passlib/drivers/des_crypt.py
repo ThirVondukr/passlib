@@ -88,7 +88,7 @@ def raw_crypt(secret, salt):
     #but no official spec.
     try:
         salt_value = h64.decode_int12(salt)
-    except ValueError:
+    except ValueError: #pragma: no cover - always caught by class
         raise ValueError, "invalid chars in salt"
     #FIXME: ^ this will throws error if bad salt chars are used
     # whereas linux crypt does something (inexplicable) with it
@@ -108,11 +108,11 @@ def raw_ext_crypt(secret, rounds, salt):
     #decode salt
     try:
         salt_value = h64.decode_int24(salt)
-    except ValueError:
+    except ValueError: #pragma: no cover - always caught by class
         raise ValueError, "invalid salt"
 
     #validate secret
-    if '\x00' in secret:
+    if '\x00' in secret: #pragma: no cover - always caught by class
         #builtin linux crypt doesn't like this, so we don't either
         #XXX: would make more sense to raise ValueError, but want to be compatible w/ stdlib crypt
         raise ValueError, "secret must be string without null bytes"
@@ -448,7 +448,7 @@ class crypt16(ExtHash):
         #parse salt value
         try:
             salt_value = h64.decode_int12(self.salt)
-        except ValueError:
+        except ValueError: #pragma: no cover - caught by class
             raise ValueError, "invalid chars in salt"
 
         #convert first 8 byts of secret string into an integer,

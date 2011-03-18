@@ -544,6 +544,7 @@ class BackendExtHash(ExtHash):
             name = cls._backend
             if name:
                 return name
+        if not name or name == "default":
             for name in cls.backends:
                 if cls.has_backend(name):
                     break

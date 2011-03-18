@@ -38,7 +38,7 @@ _sjoin = "".join
 
 try:
     _bjoin = bytes().join
-except NameError:
+except NameError: #pragma: no cover - though must test under py25
     _bjoin = _sjoin
 
 #=================================================================================

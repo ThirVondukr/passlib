@@ -14,14 +14,14 @@ def F(x,y,z):
 def G(x,y,z):
     return (x&y) | (x&z) | (y&z)
 
-def H(x,y,z):
-    return x ^ y ^ z
+##def H(x,y,z):
+##    return x ^ y ^ z
 
 MASK_32 = 2**32-1
 
-digest_size = digestsize = 16
-def new(content=None):
-    return md4(content)
+##digest_size = digestsize = 16
+##def new(content=None):
+##    return md4(content)
 
 class md4(object):
     """pep-247 compatible implementation of MD4 hash algorithm

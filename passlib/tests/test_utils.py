@@ -317,6 +317,17 @@ class MD4_Test(TestCase):
             out = md4(input).digest()
             self.assertEqual(hexlify(out), hex)
 
+    def test_md4_copy(self):
+        "test md4 copy()"
+        h = md4('abc')
+
+        h2 = h.copy()
+        h2.update('def')
+        self.assertEquals(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
+
+        h.update('ghi')
+        self.assertEquals(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
+
 #=========================================================
 #test passlib.utils.pbkdf2
 #=========================================================
@@ -324,7 +335,7 @@ import hashlib
 import hmac
 from passlib.utils import pbkdf2
 
-#TODO: should we bother testing hmac_sha1() function?
+#TODO: should we bother testing hmac_sha1() function? it's verified via sha1_crypt testing.
 
 #NOTE: this is not run directly, but via two subclasses (below)
 class _Pbkdf2BackendTest(TestCase):
@@ -427,12 +438,12 @@ class _Pbkdf2BackendTest(TestCase):
             ),
         ])
 
-if (not pbkdf2._EVP and enable_option("backends", "all-backends")) or (pbkdf2._EVP and enable_option("backends")):
+if (not pbkdf2._EVP and enable_option("active-backends", "all-backends")) or (pbkdf2._EVP and enable_option("active-backends")):
     class Builtin_Pbkdf2BackendTest(_Pbkdf2BackendTest):
         case_prefix = "builtin pbkdf2() backend"
         enable_m2crypto = False
 
-if pbkdf2._EVP and enable_option("backends"):
+if pbkdf2._EVP and enable_option("active-backends"):
 
     class M2Crypto_Pbkdf2BackendTest(_Pbkdf2BackendTest):
         case_prefix = "m2crypto pbkdf2() backend"

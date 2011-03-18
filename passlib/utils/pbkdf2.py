@@ -37,7 +37,7 @@ if _EVP:
     #default *should* be sha1, which saves us a wrapper function, but might as well check.
     try:
         result = _EVP.hmac('x','y')
-    except ValueError:
+    except ValueError: #pragma: no cover
         #this is probably not a good sign if it happens.
         warn("PassLib: M2Crypt.EVP.hmac() unexpected threw value error during passlib startup test")
     else:

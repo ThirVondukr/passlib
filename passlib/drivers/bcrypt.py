@@ -18,7 +18,7 @@ from warnings import warn
 #site
 try:
     from bcrypt import hashpw as pybcrypt_hashpw
-except ImportError:
+except ImportError: #pragma: no cover - though should run whole suite w/o pybcrypt installed
     pybcrypt_hashpw = None
 #libs
 from passlib.utils import os_crypt, classproperty
@@ -144,7 +144,6 @@ class bcrypt(BackendExtHash):
 
     @classproperty
     def _has_backend_pybcrypt(cls):
-        return False
         return pybcrypt_hashpw is not None
 
     @classproperty
@@ -181,6 +180,8 @@ class bcrypt(BackendExtHash):
         return os_crypt(secret, self.to_string())[-31:]
 
     def _calc_checksum_pybcrypt(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return pybcrypt_hashpw(secret, self.to_string())[-31:]
 
     #=========================================================

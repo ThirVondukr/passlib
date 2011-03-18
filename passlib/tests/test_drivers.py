@@ -59,6 +59,21 @@ class BCryptTest(HandlerCase):
         '$2a$6$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'
         ]
 
+    def test_idents(self):
+        handler = self.handler
+
+        kwds = dict(checksum='8CIhhFCj15KqqFvo/n.Jatx8dJ92f82', salt='VlsfIX9.apXuQBr6tego0M', rounds=12, ident="2a", strict=True)
+        handler(**kwds)
+
+        kwds['ident'] = None
+        self.assertRaises(ValueError, handler, **kwds)
+
+        del kwds['strict']
+        kwds['ident'] = 'Q'
+        self.assertRaises(ValueError, handler, **kwds)
+
+bcrypt._no_backends_msg()
+
 try:
     bcrypt.get_backend()
 except EnvironmentError:
@@ -84,6 +99,11 @@ class BigCryptTest(HandlerCase):
     known_correct_hashes = [
         ("passphrase",               "qiyh4XPJGsOZ2MEAyLkfWqeQ"),
         ("This is very long passwd", "f8.SVpL2fvwjkAnxn8/rgTkwvrif6bjYB5c"),
+    ]
+
+    known_unidentified_hashes = [
+        #one char short
+        "qiyh4XPJGsOZ2MEAyLkfWqe"
     ]
 
     #omit des_crypt from known other, it looks like bigcrypt
@@ -140,8 +160,6 @@ class DesCryptTest(HandlerCase):
     handler = des_crypt
     secret_chars = 8
 
-    #TODO: test
-
     known_correct_hashes = (
         #secret, example hash which matches secret
         ('', 'OgAwTx2l6NADI'),
@@ -156,6 +174,9 @@ class DesCryptTest(HandlerCase):
         #bad char in otherwise correctly formatted hash
         '!gAwTx2l6NADI',
         ]
+
+    def test_invalid_secret_chars(self):
+        self.assertRaises(ValueError, self.do_encrypt, 'sec\x00t')
 
 BuiltinDesCryptTest = create_backend_case(DesCryptTest, "builtin")
 
@@ -187,7 +208,7 @@ class HexSha512Test(HandlerCase):
 #=========================================================
 #md5 crypt
 #=========================================================
-from passlib.drivers.md5_crypt import md5_crypt
+from passlib.drivers.md5_crypt import md5_crypt, raw_md5_crypt
 class Md5CryptTest(HandlerCase):
     handler = md5_crypt
 
@@ -204,6 +225,9 @@ class Md5CryptTest(HandlerCase):
         #bad char in otherwise correct hash
         '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
+
+    def test_raw(self):
+        self.assertEquals(raw_md5_crypt('s','s'*16), 'YgmLTApYTv12qgTwBoj8i/')
 
 BuiltinMd5CryptTest = create_backend_case(Md5CryptTest, "builtin")
 
@@ -257,6 +281,19 @@ class NTHashTest(HandlerCase):
         '$3$$7f8fe03093cc84b267b109625f6bbfxb',
     ]
 
+    def test_idents(self):
+        handler = self.handler
+
+        kwds = dict(checksum='7f8fe03093cc84b267b109625f6bbf4b', ident="3", strict=True)
+        handler(**kwds)
+
+        kwds['ident'] = None
+        self.assertRaises(ValueError, handler, **kwds)
+
+        del kwds['strict']
+        kwds['ident'] = 'Q'
+        self.assertRaises(ValueError, handler, **kwds)
+
 #=========================================================
 #oracle 10 & 11
 #=========================================================
@@ -283,6 +320,7 @@ class Oracle10Test(HandlerCase):
     def test_user(self):
         "check user kwd is required for encrypt/verify"
         self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
+        self.assertRaises(ValueError, self.handler.encrypt, 'mypass', None)
         self.assertRaises(TypeError, self.handler.verify, 'mypass', 'CC60FA650C497E52')
 
     #NOTE: all of the methods below are merely to override
@@ -345,6 +383,19 @@ class PHPassTest(HandlerCase):
         '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r!L0',
         ]
 
+    def test_idents(self):
+        handler = self.handler
+
+        kwds = dict(checksum='eRo7ud9Fh4E2PdI0S3r.L0', salt='IQRaTwmf', rounds=9, ident="P", strict=True)
+        handler(**kwds)
+
+        kwds['ident'] = None
+        self.assertRaises(ValueError, handler, **kwds)
+
+        del kwds['strict']
+        kwds['ident'] = 'Q'
+        self.assertRaises(ValueError, handler, **kwds)
+
 #=========================================================
 #plaintext
 #=========================================================
@@ -392,7 +443,9 @@ class PostgresMD5CryptTest(HandlerCase):
 
     def test_user(self):
         "check user kwd is required for encrypt/verify"
+        self.handler.encrypt("mypass", u'user')
         self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
+        self.assertRaises(ValueError, self.handler.encrypt, 'mypass', None)
         self.assertRaises(TypeError, self.handler.verify, 'mypass', 'md55fba2ea04fd36069d2574ea71c8efe9d')
 
     def create_mismatch(self, secret):
@@ -441,16 +494,18 @@ class SHA1CryptTest(HandlerCase):
     known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$sha1$21773$u!7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
+
+        #zero padded rounds
+        '$sha1$01773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
     ]
 
 #=========================================================
 #sha256-crypt
 #=========================================================
-from passlib.drivers.sha2_crypt import sha256_crypt
+from passlib.drivers.sha2_crypt import sha256_crypt, raw_sha_crypt
 
 class SHA256CryptTest(HandlerCase):
     handler = sha256_crypt
-    supports_unicode = True
 
     known_correct_hashes = [
         ('', '$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3'),
@@ -499,6 +554,16 @@ class SHA256CryptTest(HandlerCase):
     def filter_known_config_warnings(self):
         warnings.filterwarnings("ignore", "sha256_crypt does not allow less than 1000 rounds: 10", UserWarning)
 
+    def test_raw(self):
+        #run some tests on raw backend func to ensure it works right
+        self.assertEqual(
+             raw_sha_crypt('secret', 'salt'*10, 1, hashlib.md5),
+             ('\x1f\x96\x1cO\x11\xa9h\x12\xc4\xf3\x9c\xee\xf5\x93\xf3\xdd',
+            'saltsaltsaltsalt',
+            1000)
+            )
+        self.assertRaises(ValueError, raw_sha_crypt, 'secret', '$', 1, hashlib.md5)
+
 BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 
 #=========================================================
@@ -508,7 +573,6 @@ from passlib.drivers.sha2_crypt import sha512_crypt
 
 class SHA512CryptTest(HandlerCase):
     handler = sha512_crypt
-    supports_unicode = True
 
     known_correct_hashes = [
         ('', '$6$rounds=11021$KsvQipYPWpr93wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1'),
@@ -568,7 +632,7 @@ BuiltinSHA512CryptTest = create_backend_case(SHA512CryptTest, "builtin")
 #=========================================================
 #sun md5 crypt
 #=========================================================
-from passlib.drivers.sun_md5_crypt import sun_md5_crypt
+from passlib.drivers.sun_md5_crypt import sun_md5_crypt, raw_sun_md5_crypt
 
 class SunMD5CryptTest(HandlerCase):
     handler = sun_md5_crypt
@@ -582,6 +646,10 @@ class SunMD5CryptTest(HandlerCase):
         #bad char in otherwise correct hash
         "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/"
         ]
+
+    def test_raw(self):
+        #check raw func handles salt clipping right
+        self.assertEqual(raw_sun_md5_crypt("s",1,"s"*10),'oV9bYatWWWc8S7qSpMKU2.')
 
 #=========================================================
 #unix fallback
