@@ -258,6 +258,75 @@ class NTHashTest(HandlerCase):
     ]
 
 #=========================================================
+#oracle 10 & 11
+#=========================================================
+from passlib.drivers.oracle import oracle10, oracle11
+
+class Oracle10Test(HandlerCase):
+    handler = oracle10
+
+    known_correct_hashes = [
+        # ((secret,user),hash)
+        (('tiger',          'scott'),       'F894844C34402B67'),
+        ((u'ttTiGGeR',      u'ScO'),        '7AA1A84E31ED7771'),
+        (("d_syspw",        "SYSTEM"),      '1B9F1F9A5CB9EB31'),
+        (("strat_passwd",   "strat_user"),  'AEBEDBB4EFB5225B'),
+        #TODO: get more test vectors (especially ones which properly test unicode / non-ascii)
+        #existing vectors taken from - http://www.petefinnigan.com/default/default_password_list.htm
+    ]
+
+    known_unidentified_hashes = [
+        #bad 'z' char in otherwise correct hash
+        'F894844C34402B6Z',
+    ]
+
+    def test_user(self):
+        "check user kwd is required for encrypt/verify"
+        self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
+        self.assertRaises(TypeError, self.handler.verify, 'mypass', 'CC60FA650C497E52')
+
+    #NOTE: all of the methods below are merely to override
+    # the default test harness in order to insert a default username
+    # when encrypt/verify/etc are called.
+
+    def create_mismatch(self, secret):
+        if isinstance(secret, tuple):
+            secret, user = secret
+            return 'x' + secret, user
+        else:
+            return 'x' + secret
+
+    def do_encrypt(self, secret, **kwds):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        assert 'user' not in kwds
+        kwds['user'] = user
+        return self.handler.encrypt(secret, **kwds)
+
+    def do_verify(self, secret, hash):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        return self.handler.verify(secret, hash, user=user)
+
+    def do_genhash(self, secret, config):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        return self.handler.genhash(secret, config, user=user)
+
+class Oracle11Test(HandlerCase):
+    handler = oracle11
+    known_correct_hashes = [
+        ("SHAlala", "S:2BFCFDF5895014EE9BB2B9BA067B01E0389BB5711B7B5F82B7235E9E182C"),
+        #TODO: find more test vectors
+    ]
+
+#=========================================================
 #PHPass Portable Crypt
 #=========================================================
 from passlib.drivers.phpass import phpass

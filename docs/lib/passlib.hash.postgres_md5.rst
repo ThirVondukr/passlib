@@ -4,7 +4,7 @@
 
 .. currentmodule:: passlib.hash
 
-This class implemented the md5-based hash algorithm used by PostgreSQL to store
+This class implements the md5-based hash algorithm used by PostgreSQL to store
 it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
 prior to this PostgreSQL stored it's password in plain text.
 

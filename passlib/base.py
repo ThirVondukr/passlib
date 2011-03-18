@@ -106,6 +106,8 @@ _driver_locations = {
     "mysql323":         ("passlib.drivers.mysql",       "mysql323"),
     "mysql41":          ("passlib.drivers.mysql",       "mysql41"),
     "nthash":           ("passlib.drivers.nthash",      "nthash"),
+    "oracle10":         ("passlib.drivers.oracle",      "oracle10"),
+    "oracle11":         ("passlib.drivers.oracle",      "oracle11"),
     "phpass":           ("passlib.drivers.phpass",      "phpass"),
     "plaintext":        ("passlib.drivers.misc",        "plaintext"),
     "postgres_md5":     ("passlib.drivers.postgres",    "postgres_md5"),

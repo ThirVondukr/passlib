@@ -38,7 +38,8 @@ mysql_context = CryptContext([mysql41, mysql323])
 #=========================================================
 #TODO:
 #=========================================================
-#oracle - http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/
+#oracle
+#mssql
 
 #=========================================================
 # eof

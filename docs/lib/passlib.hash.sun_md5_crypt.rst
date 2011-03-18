@@ -1,5 +1,5 @@
 =================================================================
-:class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt password hash
+:class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt
 =================================================================
 
 .. currentmodule:: passlib.hash
