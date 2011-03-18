@@ -416,9 +416,7 @@ class PlaintextTest(HandlerCase):
 #=========================================================
 #postgres_md5
 #=========================================================
-from passlib.drivers.postgres import postgres_md5, postgres_plaintext
-
-#FIXME: test postgres_plaintext
+from passlib.drivers.postgres import postgres_md5
 
 class PostgresMD5CryptTest(HandlerCase):
     handler = postgres_md5

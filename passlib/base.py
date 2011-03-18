@@ -111,7 +111,6 @@ _driver_locations = {
     "phpass":           ("passlib.drivers.phpass",      "phpass"),
     "plaintext":        ("passlib.drivers.misc",        "plaintext"),
     "postgres_md5":     ("passlib.drivers.postgres",    "postgres_md5"),
-    "postgres_plaintext":("passlib.drivers.postgres",   "postgres_plaintext"),
     "sha1_crypt":       ("passlib.drivers.sha1_crypt",  "sha1_crypt"),
     "sha256_crypt":     ("passlib.drivers.sha2_crypt",  "sha256_crypt"),
     "sha512_crypt":     ("passlib.drivers.sha2_crypt",  "sha512_crypt"),

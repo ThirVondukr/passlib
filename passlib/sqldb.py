@@ -11,7 +11,6 @@ from passlib.base import CryptContext
 #local
 __all__ = [
     #postgres
-    'postgres_plaintext',
     'postgres_md5',
     'postgres_context',
 
@@ -25,15 +24,15 @@ __all__ = [
 #=========================================================
 #postgres
 #=========================================================
-from passlib.drivers.postgres import postgres_plaintext, postgres_md5
-postgres_context = CryptContext([postgres_plaintext, postgres_md5])
+from passlib.drivers.postgres import postgres_md5
+postgres_context = CryptContext([postgres_md5])
 
 #=========================================================
 #mysql
 #=========================================================
 from passlib.drivers.mysql import mysql323, mysql41
 mysql3_context = CryptContext([mysql323])
-mysql_context = CryptContext([mysql41, mysql323])
+mysql_context = mysql4 = CryptContext([mysql41, mysql323])
 
 #=========================================================
 #TODO:

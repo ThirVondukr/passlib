@@ -348,7 +348,7 @@ class _Pbkdf2BackendTest(TestCase):
             self._orig_EVP = pbkdf2._EVP
             pbkdf2._EVP = None
 
-    def cleanUp(self):
+    def tearDown(self):
         if not self.enable_m2crypto:
             pbkdf2._EVP = self._orig_EVP
 

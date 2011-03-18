@@ -304,7 +304,7 @@ class HandlerCase(TestCase):
             self.orig_backend = h.get_backend()
             h.set_backend(self.backend)
 
-    def cleanUp(self):
+    def tearDown(self):
         h = self.handler
         if hasattr(h, "set_backend"):
             h.set_backend(self.orig_backend)
@@ -638,21 +638,7 @@ def create_backend_case(base_test, name):
 
     class dummy(base_test):
         case_prefix = "%s (%s backend)" % (handler.name, name)
-
         backend = name
-        ##
-        ##def setUp(self):
-        ##    s = self.__super = super(dummy, self)
-        ##    if hasattr(s, "setUp"):
-        ##        s.setUp()
-        ##    self.orig_backend = self.handler.get_backend()
-        ##    self.handler.set_backend(name)
-        ##
-        ##def cleanUp(self):
-        ##    s = self.__super
-        ##    if hasattr(s, "cleanUp"):
-        ##        s.cleanUp()
-        ##    self.handler.set_backend(self.orig_backend)
 
     dummy.__name__ = name.title() + base_test.__name__
     return dummy

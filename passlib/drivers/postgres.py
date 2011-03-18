@@ -16,38 +16,6 @@ __all__ = [
 ]
 
 #=========================================================
-#
-#=========================================================
-class postgres_plaintext(object):
-    "fake password hash which recognizes ALL hashes, and assumes they encode the password in plain-text"
-    name = "postgres_plaintext"
-
-    setting_kwds = ()
-    context_kwds = ("user",)
-
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config, user=None):
-        return secret
-
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash)
-
-    @classmethod
-    def encrypt(cls, secret, config, user=None):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return secret
-
-    @classmethod
-    def verify(cls, secret, hash, user=None):
-        return secret == hash
-
-#=========================================================
 #handler
 #=========================================================
 class postgres_md5(object):
