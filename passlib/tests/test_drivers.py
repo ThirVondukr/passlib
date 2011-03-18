@@ -72,6 +72,21 @@ class BCryptTest(HandlerCase):
         kwds['ident'] = 'Q'
         self.assertRaises(ValueError, handler, **kwds)
 
+    #this method is added in order to maximize test coverage on systems
+    #where os_crypt is missing or doesn't support bcrypt
+    if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
+        def test_backend(self):
+            from passlib.drivers import bcrypt as bcrypt_mod
+            orig = bcrypt_mod.os_crypt
+            bcrypt_mod.os_crypt = bcrypt_mod.pybcrypt_hashpw
+            orig = bcrypt.get_backend()
+            try:
+                bcrypt.set_backend("os_crypt")
+                bcrypt.encrypt(u"test", rounds=4)
+            finally:
+                bcrypt.set_backend(orig)
+                bcrypt_mod.os_crypt = orig
+
 bcrypt._no_backends_msg()
 
 try:
@@ -204,6 +219,31 @@ class HexSha256Test(HandlerCase):
 class HexSha512Test(HandlerCase):
     handler = digests.hex_sha512
     known_correct_hashes = [ ("password", 'b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86')]
+
+#=========================================================
+#ldap hashes
+#=========================================================
+from passlib.drivers import ldap
+
+class LdapMd5Test(HandlerCase):
+    handler = ldap.ldap_md5
+    known_correct_hashes = [ ("helloworld", '{MD5}/F4DjTilcDIIVEHn/nAQsA==')]
+
+class LdapSha1Test(HandlerCase):
+    handler = ldap.ldap_sha1
+    known_correct_hashes = [ ("helloworld", '{SHA}at+xg6SiyUovktq1redipHiJpaE=')]
+
+class LdapSaltedMd5Test(HandlerCase):
+    handler = ldap.ldap_salted_md5
+    known_correct_hashes = [ ("testing1234", '{SMD5}UjFY34os/pnZQ3oQOzjqGu4yeXE=')]
+
+class LdapSaltedSha1Test(HandlerCase):
+    handler = ldap.ldap_salted_sha1
+    known_correct_hashes = [ ("testing123", '{SSHA}0c0blFTXXNuAMHECS4uxrj3ZieMoWImr'),
+            ("secret", "{SSHA}0H+zTv8o4MR4H43n03eCsvw1luG8LdB7"),
+            ]
+
+# helloworld -> '{CRYPT}dQ58WW.1980Ig'
 
 #=========================================================
 #md5 crypt

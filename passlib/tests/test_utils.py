@@ -10,13 +10,14 @@ import random
 #pkg
 #module
 from passlib import utils
+from passlib.base import CryptContext
 from passlib.utils import h64, des
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option
 #=========================================================
 #byte funcs
 #=========================================================
-class BytesTest(TestCase):
+class UtilsTest(TestCase):
 
     def test_list_to_bytes(self):
         self.assertFunctionResults(utils.list_to_bytes, [
@@ -48,6 +49,7 @@ class BytesTest(TestCase):
 
         #check bytes size check
         self.assertRaises(ValueError, utils.list_to_bytes, [])
+        self.assertRaises(ValueError, utils.list_to_bytes, [], bytes=0)
         self.assertRaises(ValueError, utils.list_to_bytes, [0, 0], bytes=1)
 
         #check bytes bound check
@@ -90,37 +92,85 @@ class BytesTest(TestCase):
         else:
             self.assertEqual(utils.bytes_to_list('\x00\x00\x01', order="native"), [0, 0, 1])
 
+    def test_getrandbytes(self):
+        def f(*a,**k):
+            return utils.getrandbytes(utils.rng, *a, **k)
+        self.assertEqual(len(f(0)), 0)
+        a = f(10)
+        b = f(10)
+        self.assertEqual(len(a), 10)
+        self.assertEqual(len(b), 10)
+        self.assertNotEqual(a, b)
+
+    def test_getrandstr(self):
+        def f(*a,**k):
+            return utils.getrandstr(utils.rng, *a, **k)
+
+        #count 0
+        self.assertEqual(f('abc',0), '')
+
+        #count <0
+        self.assertRaises(ValueError, f, 'abc', -1)
+
+        #letters 0
+        self.assertRaises(ValueError, f, '', 0)
+
+        #letters 1
+        self.assertEqual(f('a',5), 'aaaaa')
+
+        #letters
+        a = f('abc', 16)
+        b = f('abc', 16)
+        self.assertNotEqual(a,b)
+        self.assertEqual(sorted(set(a)), ['a','b','c'])
+
+    def test_is_crypt_context(self):
+        cc = CryptContext(["des_crypt"])
+        self.assertTrue(utils.is_crypt_context(cc))
+        self.assertFalse(not utils.is_crypt_context(cc))
+
+    def test_genseed(self):
+        rng = utils.random.Random(utils.genseed())
+        a = rng.randint(0, 100000)
+
+        rng = utils.random.Random(utils.genseed())
+        b = rng.randint(0, 100000)
+
+        self.assertNotEqual(a,b)
+
+        rng.seed(utils.genseed(rng))
+
 #=========================================================
-#test slow_bcrypt module
+#test slow_bcrypt support module
 #=========================================================
-from passlib.utils import _slow_bcrypt as slow_bcrypt
-
-class BCryptUtilTest(TestCase):
-    "test passlib.utils._slow_bcrypt utility funcs"
-
-    def test_encode64(self):
-        encode = slow_bcrypt.encode_base64
-        self.assertFunctionResults(encode, [
-            ('', ''),
-            ('..', '\x00'),
-            ('...', '\x00\x00'),
-            ('....', '\x00\x00\x00'),
-            ('9u', '\xff'),
-            ('996', '\xff\xff'),
-            ('9999', '\xff\xff\xff'),
-            ])
-
-    def test_decode64(self):
-        decode = slow_bcrypt.decode_base64
-        self.assertFunctionResults(decode, [
-            ('', ''),
-            ('\x00', '..'),
-            ('\x00\x00', '...'),
-            ('\x00\x00\x00', '....'),
-            ('\xff', '9u', ),
-            ('\xff\xff','996'),
-            ('\xff\xff\xff','9999'),
-            ])
+##from passlib.utils import _slow_bcrypt as slow_bcrypt
+##
+##class BCryptUtilTest(TestCase):
+##    "test passlib.utils._slow_bcrypt utility funcs"
+##
+##    def test_encode64(self):
+##        encode = slow_bcrypt.encode_base64
+##        self.assertFunctionResults(encode, [
+##            ('', ''),
+##            ('..', '\x00'),
+##            ('...', '\x00\x00'),
+##            ('....', '\x00\x00\x00'),
+##            ('9u', '\xff'),
+##            ('996', '\xff\xff'),
+##            ('9999', '\xff\xff\xff'),
+##            ])
+##
+##    def test_decode64(self):
+##        decode = slow_bcrypt.decode_base64
+##        self.assertFunctionResults(decode, [
+##            ('', ''),
+##            ('\x00', '..'),
+##            ('\x00\x00', '...'),
+##            ('\x00\x00\x00', '....'),
+##            ('\xff', '9u', ),
+##            ('\xff\xff','996'),
+##            ('\xff\xff\xff','9999'),
+##            ])
 
 
 #=========================================================
@@ -178,6 +228,15 @@ class DesTest(TestCase):
             c = unhexlify(c)
             result = des.des_encrypt_block(k,p)
             self.assertEqual(result, c, "key=%r p=%r:" % (k,p))
+
+        #test 7 byte key
+        #FIXME: use a better key
+        k,p,c = '00000000000000', 'FFFFFFFFFFFFFFFF', '355550B2150E2451'
+        k = unhexlify(k)
+        p = unhexlify(p)
+        c = unhexlify(c)
+        result = des.des_encrypt_block(k,p)
+        self.assertEqual(result, c, "key=%r p=%r:" % (k,p))
 
     def test_mdes_encrypt_int_block(self):
         for k,p,c in self.test_des_vectors:
@@ -239,10 +298,38 @@ class H64_Test(TestCase):
             out = h64.decode_bytes(source)
             self.assertEqual(out, result)
 
+        #wrong size (1 % 4)
+        self.assertRaises(ValueError, h64.decode_bytes, 'abcde')
+
+    def test_encode_int(self):
+        self.assertEqual(h64.encode_int(63, 11, True), '..........z')
+        self.assertEqual(h64.encode_int(63, 11), 'z..........')
+
+        self.assertRaises(ValueError, h64.encode_int64, -1)
+
+    def test_decode_int(self):
+        self.assertEqual(h64.decode_int64('...........'), 0)
+
+        self.assertRaises(ValueError, h64.decode_int12, 'a?')
+        self.assertRaises(ValueError, h64.decode_int24, 'aaa?')
+        self.assertRaises(ValueError, h64.decode_int64, 'aaa?aaa?aaa')
+        self.assertRaises(ValueError, h64.decode_dc_int64, 'aaa?aaa?aaa')
+
     def test_decode_bytes_padding(self):
         for source, result in self.decode_padding_bytes:
             out = h64.decode_bytes(source)
             self.assertEqual(out, result)
+
+    def test_decode_int6(self):
+        self.assertEquals(h64.decode_int6('.'),0)
+        self.assertEquals(h64.decode_int6('z'),63)
+        self.assertRaises(ValueError, h64.decode_int6, '?')
+
+    def test_encode_int6(self):
+        self.assertEquals(h64.encode_int6(0),'.')
+        self.assertEquals(h64.encode_int6(63),'z')
+        self.assertRaises(ValueError, h64.encode_int6, -1)
+        self.assertRaises(ValueError, h64.encode_int6, 64)
 
     #=========================================================
     #test transposed encode/decode
@@ -400,12 +487,40 @@ class _Pbkdf2BackendTest(TestCase):
             ),
         ])
 
-    def test_invalid_rounds(self):
+    def test_invalid_values(self):
+
+        #invalid rounds
         self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', -1, 16)
         self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 0, 16)
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 'salt', 'x', 16)
 
-    def test_invalid_keylen(self):
+        #invalid keylen
         self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 20*(2**32))
+
+        #invalid salt type
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 5, 1, 10)
+
+        #invalid secret type
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, 5, 'salt', 1, 10)
+
+        #invalid hash
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 'hmac-foo')
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 'foo')
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 5)
+
+    def test_hmac_sha1(self):
+        "test independant hmac_sha1() method"
+        self.assertEqual(
+            pbkdf2.hmac_sha1("secret", "salt"),
+            '\xfc\xd4\x0c;]\r\x97\xc6\xf1S\x8d\x93\xb9\xeb\xc6\x00\x04.\x8b\xfe'
+            )
+
+    def test_hmac_sha1_string(self):
+        "test various prf values"
+        self.assertEqual(
+            pbkdf2.pbkdf2(u"secret", u"salt", 10, 16, "hmac-sha1"),
+            '\xe2H\xfbk\x136QF\xf8\xacc\x07\xcc"(\x12'
+        )
 
     def test_sha512_string(self):
         "test alternate digest string (sha512)"

@@ -46,7 +46,7 @@ __all__ = [
 try:
     #NOTE: just doing this import once, for all the various hashes that need it.
     from crypt import crypt as os_crypt
-except ImportError:
+except ImportError: #pragma: no cover
     os_crypt = None
 
 #=================================================================================
@@ -118,7 +118,7 @@ def is_crypt_handler(obj):
 def is_crypt_context(obj):
     "check if object follows :class:`CryptContext` interface"
     return all(hasattr(obj, name) for name in (
-        "lookup",
+        "hash_needs_update",
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
         ))
@@ -305,7 +305,7 @@ def xor_bytes(left, right):
 try:
     os.urandom(1)
     has_urandom = True
-except NotImplementedError:
+except NotImplementedError: #pragma: no cover
     has_urandom = False
 
 def genseed(value=None):
@@ -335,7 +335,7 @@ def genseed(value=None):
 
 if has_urandom:
     rng = random.SystemRandom()
-else:
+else: #pragma: no cover
     #NOTE: to reseed - rng.seed(genseed(rng))
     rng = random.Random(genseed())
 

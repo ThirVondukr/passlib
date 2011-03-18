@@ -432,7 +432,7 @@ class CryptPolicy(object):
                 handler = get_crypt_handler(scheme)
             name = handler.name
             if not name:
-                raise KeyError, "handler lacks name: %r" % (handler,)
+                raise TypeError, "handler lacks name: %r" % (handler,)
 
             #check name hasn't been re-used
             if name in seen:
@@ -459,7 +459,7 @@ class CryptPolicy(object):
                 if handlers:
                     for scheme in deps:
                         if scheme not in seen:
-                            raise ValueError, "unspecified scheme in deprecated list: %r" % (scheme,)
+                            raise KeyError, "known scheme in deprecated list: %r" % (scheme,)
                 dmap[cat] = frozenset(deps)
 
             #default scheme
@@ -469,7 +469,7 @@ class CryptPolicy(object):
                     if hasattr(fb, "name"):
                         fb = fb.name
                     if fb not in seen:
-                        raise ValueError, "unspecified scheme set as default: %r" % (fb,)
+                        raise KeyError, "unknown scheme set as default: %r" % (fb,)
                     fmap[cat] = self.get_handler(fb, required=True)
                 else:
                     fmap[cat] = fb
@@ -671,25 +671,29 @@ class CryptPolicy(object):
         for k,v in self.iter_config(ini=True):
             parser.set(section, k,v)
 
+    def to_file(self, stream, section="passlib"):
+        "serialize to INI format and write to specified stream"
+        p = ConfigParser()
+        self._write_to_parser(p, section)
+        p.write(stream)
+
     def to_string(self, section="passlib"):
         "render to INI string"
-        p = ConfigParser()
-        self._write_to_parser(p, section)
         b = StringIO()
-        p.write(b)
+        self.to_file(b, section)
         return b.getvalue()
 
-    def to_path(self, path, section="passlib", update=False):
-        "write to INI file"
-        p = ConfigParser()
-        if update and os.path.exists(path):
-            if not p.read([path]):
-                raise EnvironmentError, "failed to read existing file"
-            p.remove_section(section)
-        self._write_to_parser(p, section)
-        fh = file(path, "w")
-        p.write(fh)
-        fh.close()
+    ##def to_path(self, path, section="passlib", update=False):
+    ##    "write to INI file"
+    ##    p = ConfigParser()
+    ##    if update and os.path.exists(path):
+    ##        if not p.read([path]):
+    ##            raise EnvironmentError, "failed to read existing file"
+    ##        p.remove_section(section)
+    ##    self._write_to_parser(p, section)
+    ##    fh = file(path, "w")
+    ##    p.write(fh)
+    ##    fh.close()
 
     #=========================================================
     #eoc
@@ -771,14 +775,8 @@ class CryptContext(object):
             kwds['schemes'] = schemes
         if not policy:
             policy = CryptPolicy(**kwds)
-        elif kwds or not isinstance(policy, CryptPolicy):
-            if isinstance(policy, (list,tuple)):
-                policy = list(policy)
-            else:
-                policy = [policy]
-            if kwds:
-                policy.append(kwds)
-            policy = CryptPolicy.from_sources(policy)
+        elif kwds:
+            policy = policy.replace(**kwds)
         if not policy.has_handlers():
             raise ValueError, "at least one scheme must be specified"
         self.policy = policy
@@ -912,6 +910,7 @@ class CryptContext(object):
             if required:
                 raise ValueError, "no hash specified"
             return None
+        handler = None
         for handler in self.policy.iter_handlers():
             if handler.identify(hash):
                 if resolve:
@@ -919,6 +918,8 @@ class CryptContext(object):
                 else:
                     return handler.name
         if required:
+            if handler is None:
+                raise KeyError, "no crypt algorithms supported"
             raise ValueError, "hash could not be identified"
         return None
 
@@ -941,8 +942,6 @@ class CryptContext(object):
         :returns:
             The secret as encoded by the specified algorithm and options.
         """
-        if not self:
-            raise ValueError, "no algorithms registered"
         handler = self.policy.get_handler(scheme, category, required=True)
         kwds = self._prepare_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
@@ -959,8 +958,6 @@ class CryptContext(object):
             optional force context to use specfic scheme (must be allowed by context)
         """
         #quick checks
-        if not self:
-            raise ValueError, "no crypt schemes registered"
         if hash is None:
             return False
 
@@ -986,7 +983,8 @@ class CryptContext(object):
 
         if mvt:
             #delta some amount of time if verify took less than mvt seconds
-            delta = time.time() - start - mvt
+            end = time.time()
+            delta = mvt + start - end
             if delta > 0:
                 time.sleep(delta)
 

@@ -6,15 +6,75 @@ from __future__ import with_statement
 #core
 import hashlib
 from logging import getLogger
+import os
+import time
+import warnings
 #site
 #pkg
-from passlib import hash
+from passlib import base, hash
 from passlib.base import CryptContext, CryptPolicy
-from passlib.tests.utils import TestCase, mktemp
+from passlib.utils.drivers import BaseHash
+from passlib.tests.utils import TestCase, mktemp, catch_warnings
 from passlib.drivers.md5_crypt import md5_crypt as AnotherHash
 from passlib.tests.test_utils_drivers import UnsaltedHash, SaltedHash
 #module
 log = getLogger(__name__)
+
+#=========================================================
+#proxy
+#=========================================================
+class MiscTest(TestCase):
+
+    def tearDown(self):
+        if hasattr(hash, "dummy_1"):
+            del hash.dummy_1
+
+    def test_hash_proxy(self):
+        dir(hash)
+        repr(hash)
+        self.assertRaises(AttributeError, getattr, hash, 'fooey')
+
+    def test_register_crypt_handler(self):
+        self.assertRaises(TypeError, base.register_crypt_handler, {})
+
+        self.assertRaises(ValueError, base.register_crypt_handler, BaseHash)
+        self.assertRaises(ValueError, base.register_crypt_handler, type('x', (BaseHash,), dict(name="AB_CD")))
+        self.assertRaises(ValueError, base.register_crypt_handler, type('x', (BaseHash,), dict(name="ab-cd")))
+
+        class dummy_1(BaseHash):
+            name = "dummy_1"
+
+        class dummy_1b(BaseHash):
+            name = "dummy_1"
+
+        self.assertTrue('dummy_1' not in base.list_crypt_handlers())
+
+        base.register_crypt_handler(dummy_1)
+        base.register_crypt_handler(dummy_1)
+        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+
+        self.assertRaises(ValueError, base.register_crypt_handler, dummy_1b)
+        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+
+        base.register_crypt_handler(dummy_1b, force=True)
+        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1b)
+
+        self.assertTrue('dummy_1' in base.list_crypt_handlers())
+
+    def test_get_crypt_handler(self):
+
+        class dummy_1(BaseHash):
+            name = "dummy_1"
+
+        self.assertRaises(KeyError, base.get_crypt_handler, "dummy_1")
+        self.assertIs(base.get_crypt_handler("dummy_1", None), None)
+
+        base.register_crypt_handler(dummy_1)
+        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+
+        with catch_warnings():
+            warnings.filterwarnings("ignore", "handler names be lower-case, and use underscores instead of hyphens:.*", UserWarning)
+            self.assertIs(base.get_crypt_handler("DUMMY-1"), dummy_1)
 
 #=========================================================
 #
@@ -131,6 +191,30 @@ sha512_crypt.min_rounds = 45000
         policy = CryptPolicy(**self.sample_config_1pd)
         self.assertEquals(policy.to_dict(), self.sample_config_1pd)
 
+        #check with bad key
+        self.assertRaises(KeyError, CryptPolicy,
+            schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"],
+            bad__key__bsdi_crypt__max_rounds = 30000,
+            )
+
+        #check with bad handler
+        self.assertRaises(TypeError, CryptPolicy, schemes=[BaseHash])
+
+        #check with multiple handlers
+        class dummy_1(BaseHash):
+            name = 'dummy_1'
+        self.assertRaises(KeyError, CryptPolicy, schemes=[dummy_1, dummy_1])
+
+        #with unknown deprecated value
+        self.assertRaises(KeyError, CryptPolicy,
+                          schemes=['des_crypt'],
+                          deprecated=['md5_crypt'])
+
+        #with unknown default value
+        self.assertRaises(KeyError, CryptPolicy,
+                          schemes=['des_crypt'],
+                          default='md5_crypt')
+
     def test_01_from_path(self):
         "test CryptPolicy.from_path() constructor"
         path = mktemp()
@@ -139,7 +223,9 @@ sha512_crypt.min_rounds = 45000
         policy = CryptPolicy.from_path(path)
         self.assertEquals(policy.to_dict(), self.sample_config_1pd)
 
-        #TODO: test if path missing
+        #test if path missing
+        os.remove(path)
+        self.assertRaises(EnvironmentError, CryptPolicy.from_path, path)
 
     def test_02_from_string(self):
         "test CryptPolicy.from_string() constructor"
@@ -371,6 +457,18 @@ class CryptContextTest(TestCase):
         self.assertIsNot(cc3.policy, cc.policy)
         self.assertIs(cc3.policy.get_handler(), SaltedHash)
 
+    def test_02_no_handlers(self):
+        "test no handlers"
+
+        self.assertRaises(ValueError, CryptContext, [])
+
+        cc = CryptContext(['md5_crypt'])
+        p = CryptPolicy(schemes=[])
+        cc.policy = p
+
+        self.assertRaises(KeyError, cc.identify, 'hash', required=True)
+        self.assertRaises(KeyError, cc.encrypt, 'secret')
+        self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
     #=========================================================
     #policy adaptation
@@ -538,6 +636,15 @@ class CryptContextTest(TestCase):
         h = cc.encrypt("test")
         self.assertEquals(cc.identify(h), AnotherHash.name)
 
+        #test genhash
+        h = cc.genhash('secret', cc.genconfig())
+        self.assertEquals(cc.identify(h), 'md5_crypt')
+
+        h = cc.genhash('secret', cc.genconfig(), scheme='md5_crypt')
+        self.assertEquals(cc.identify(h), 'md5_crypt')
+
+        self.assertRaises(ValueError, cc.genhash, 'secret', cc.genconfig(), scheme=UnsaltedHash.name)
+
     def test_21_identify(self):
         "test identify() border cases"
         handlers = [AnotherHash, UnsaltedHash, SaltedHash]
@@ -576,6 +683,20 @@ class CryptContextTest(TestCase):
         self.assert_(not cc.verify("test", None))
         for handler in handlers:
             self.assert_(not cc.verify("test", None, scheme=handler.name))
+
+    def test_24_min_verify_time(self):
+        cc = CryptContext(["plaintext", "bsdi_crypt"], min_verify_time=.1)
+
+        s = time.time()
+        cc.verify("password", "password")
+        d = time.time()-s
+        self.assertTrue(d>=.09,d)
+        self.assertTrue(d<.5)
+
+        s = time.time()
+        cc.verify("password", '_2b..iHVSUNMkJT.GcFU')
+        d = time.time()-s
+        self.assertTrue(d>=.1)
 
     #=========================================================
     #eoc

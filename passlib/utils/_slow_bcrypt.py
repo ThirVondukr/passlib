@@ -1,3 +1,4 @@
+#pragma: no cover - this module currently isn't used.
 """passlib._slow_bcrypt - fallback pure-python bcrypt implementation
 
 History

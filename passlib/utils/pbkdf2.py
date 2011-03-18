@@ -31,7 +31,7 @@ __all__ = [
 #=================================================================================
 def hmac_sha1(key, msg):
     "perform raw hmac-sha1 of a message"
-    return hmac(key, msg, sha1).digest()
+    return hmac.new(key, msg, hashlib.sha1).digest()
 
 if _EVP:
     #default *should* be sha1, which saves us a wrapper function, but might as well check.

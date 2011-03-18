@@ -12,13 +12,20 @@ import unittest
 import warnings
 try:
     from warnings import catch_warnings
-except ImportError: #wasn't added until py26
-    catch_warnings = None
+except ImportError:
+    #catch_warnings wasn't added until py26
+    #put stub in place
+    class catch_warnings(object):
+        def __enter__(self):
+            return None
+        def __exit__(self, *exc_info):
+            return None
+        __name__ = 'stub'
 #site
 from nose.plugins.skip import SkipTest
 #pkg
 from passlib.utils import classproperty
-from passlib.utils.drivers import BaseHash, BackendExtHash
+from passlib.utils.drivers import BaseHash, ExtHash, BackendExtHash
 #local
 __all__ = [
     #util funcs
@@ -51,6 +58,7 @@ def enable_option(*names):
     test flags:
         active-backends     test active backends
         all-backends        test ALL backends, even the inactive ones
+        cover               enable minor tweaks to maximize coverage testing
         all                 run ALL tests
     """
     return 'all' in tests or any(name in tests for name in names)
@@ -335,13 +343,57 @@ class HandlerCase(TestCase):
 
     def test_04_base_handler(self):
         "check configuration of BaseHash-derived classes"
-        h = self.handler
-        if not isinstance(h, type) or not issubclass(h, BaseHash):
+        cls = self.handler
+        if not isinstance(cls, type) or not issubclass(cls, BaseHash):
             raise SkipTest
-        h.validate_class() #should raise AssertionError if something's wrong.
 
-    def test_05_backend_handler(self):
-        "check configuration of multi-backend classes"
+        if not cls.name:
+            raise AssertionError, "class must have .name attribute set"
+
+        if cls.setting_kwds is None:
+            raise AssertionError, "class must have .setting_kwds attribute set"
+
+    def test_05_ext_handler(self):
+        "check configuration of ExtHash-derived classes"
+        cls = self.handler
+        if not isinstance(cls, type) or not issubclass(cls, ExtHash):
+            raise SkipTest
+
+        if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
+            raise AssertionError, "_extra_init_settings must be subset of setting_kwds"
+
+        if 'salt' in cls.setting_kwds:
+
+            if cls.min_salt_chars > cls.max_salt_chars:
+                raise AssertionError, "min salt chars too large"
+
+            if cls.default_salt_chars < cls.min_salt_chars:
+                raise AssertionError, "default salt chars too small"
+            if cls.default_salt_chars > cls.max_salt_chars:
+                raise AssertionError, "default salt chars too large"
+
+            if any(c not in cls.salt_charset for c in cls.default_salt_charset):
+                raise AssertionError, "default salt charset not subset of salt charset"
+
+        if 'rounds' in cls.setting_kwds:
+
+            if cls.max_rounds is None:
+                raise AssertionError, "max rounds not specified"
+
+            if cls.min_rounds > cls.max_rounds:
+                raise AssertionError, "min rounds too large"
+
+            if cls.default_rounds is not None:
+                if cls.default_rounds < cls.min_rounds:
+                    raise AssertionError, "default rounds too small"
+                if cls.default_rounds > cls.max_rounds:
+                    raise AssertionError, "default rounds too large"
+
+            if cls.rounds_cost not in ("linear", "log2"):
+                raise AssertionError, "unknown rounds cost function"
+
+    def test_06_backend_handler(self):
+        "check configuration of BackendExtHash-derived classes"
         h = self.handler
         if not hasattr(h, "get_backend"):
             raise SkipTest
@@ -513,14 +565,13 @@ class HandlerCase(TestCase):
             raise SkipTest
         fk = self.filter_known_config_warnings
         if fk:
-            if catch_warnings:
-                ctx = catch_warnings()
-                ctx.__enter__()
+            ctx = catch_warnings()
+            ctx.__enter__()
             fk()
         for config, secret, hash in self.known_correct_configs:
             result = self.do_genhash(secret, config)
             self.assertEquals(result, hash, "config=%r,secret=%r:" % (config,secret))
-        if fk and catch_warnings:
+        if fk:
             ctx.__exit__(None,None,None)
 
     def test_41_genhash_hash(self):

@@ -7,13 +7,198 @@ from __future__ import with_statement
 import re
 import hashlib
 from logging import getLogger
+import warnings
 #site
 #pkg
 from passlib.utils import rng, getrandstr
-from passlib.utils.drivers import ExtHash
-from passlib.tests.utils import HandlerCase
+from passlib.utils.drivers import BackendExtHash, ExtHash, BaseHash
+from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
 #module
 log = getLogger(__name__)
+
+#=========================================================
+#test support classes - BaseHash, etc
+#=========================================================
+class SkeletonTest(TestCase):
+    "test hash support classes"
+
+    #=========================================================
+    #base hash
+    #=========================================================
+    def test_00_base_hash(self):
+
+        class d1(BaseHash):
+            name = "d1"
+            setting_kwds = ('dummy',)
+
+            @classmethod
+            def genhash(cls, secret, hash):
+                if hash != 'a':
+                    raise ValueError
+                return 'a'
+
+        #check internal properties
+        self.assertRaises(RuntimeError, getattr, BaseHash, "_has_settings")
+
+        #check identify method
+        self.assertTrue(d1.identify('a'))
+        self.assertFalse(d1.identify('b'))
+        self.assertFalse(d1.identify(''))
+        self.assertFalse(d1.identify(None))
+
+        #check default genconfig
+        self.assertRaises(NotImplementedError, d1.genconfig, dummy='xxx')
+
+        class d3(BaseHash):
+            name = 'd3'
+            setting_kwds = ()
+        self.assertRaises(TypeError, d3.genconfig, dummy='xxx')
+
+        #check default genhash
+        class d2(BaseHash):
+            name = "d2"
+            setting_kwds = ("dummy",)
+        self.assertRaises(NotImplementedError, d2.genhash, 'stub', 'hash')
+
+    #=========================================================
+    #ext hash
+    #=========================================================
+    def test_10_ext_hash(self):
+        class d1(ExtHash):
+            setting_kwds = ()
+            max_salt_chars = 2
+
+            @classmethod
+            def from_string(cls, hash):
+                if hash == 'a':
+                    return cls('a')
+                else:
+                    raise ValueError
+
+        #check internal properties
+        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_settings")
+        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_salt")
+        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_rounds")
+
+        #check min salt chars
+        self.assertEqual(d1.min_salt_chars, 2)
+
+        #check identify
+        self.assertFalse(d1.identify(None))
+        self.assertFalse(d1.identify(''))
+        self.assertTrue(d1.identify('a'))
+        self.assertFalse(d1.identify('b'))
+
+    def test_11_norm_checksum(self):
+        class d1(ExtHash):
+            checksum_chars = 4
+            checksum_charset = 'x'
+        self.assertRaises(ValueError, d1.norm_checksum, 'xxx')
+        self.assertEqual(d1.norm_checksum('xxxx'), 'xxxx')
+        self.assertRaises(ValueError, d1.norm_checksum, 'xxxxx')
+        self.assertRaises(ValueError, d1.norm_checksum, 'xxyx')
+
+    def test_12_norm_salt(self):
+        class d1(ExtHash):
+            name = 'd1'
+            setting_kwds = ('salt',)
+            min_salt_chars = 1
+            max_salt_chars = 3
+            default_salt_chars = 2
+            salt_charset = 'a'
+
+        #check salt=None
+        self.assertEqual(d1.norm_salt(None), 'aa')
+        self.assertRaises(ValueError, d1.norm_salt, None, strict=True)
+
+        #check small & large salts
+        with catch_warnings():
+            warnings.filterwarnings("ignore", ".* salt string must be at (least|most) .*", UserWarning)
+            self.assertEqual(d1.norm_salt('aaaa'), 'aaa')
+        self.assertRaises(ValueError, d1.norm_salt, '')
+        self.assertRaises(ValueError, d1.norm_salt, 'aaaa', strict=True)
+
+        #check no salt kwd
+        class d2(ExtHash):
+            name = "d2"
+            setting_kwds = ("dummy",)
+        self.assertRaises(TypeError, d2.norm_salt, 1)
+        self.assertIs(d2.norm_salt(None), None)
+
+    def test_13_norm_rounds(self):
+        class d1(ExtHash):
+            name = 'd1'
+            setting_kwds = ('rounds',)
+            min_rounds = 1
+            max_rounds = 3
+            default_rounds = 2
+
+        #check rounds=None
+        self.assertEqual(d1.norm_rounds(None), 2)
+        self.assertRaises(ValueError, d1.norm_rounds, None, strict=True)
+
+        #check small & large rounds
+        with catch_warnings():
+            warnings.filterwarnings("ignore", ".* does not allow (less|greater) than 1 rounds: .*", UserWarning)
+            self.assertEqual(d1.norm_rounds(0), 1)
+            self.assertEqual(d1.norm_rounds(4), 3)
+        self.assertRaises(ValueError, d1.norm_rounds, 0, strict=True)
+        self.assertRaises(ValueError, d1.norm_rounds, 4, strict=True)
+
+        #check no default rounds
+        d1.default_rounds = None
+        self.assertRaises(ValueError, d1.norm_rounds, None)
+
+        #check no rounds keyword
+        class d2(ExtHash):
+            name = "d2"
+            setting_kwds = ("dummy",)
+        self.assertRaises(TypeError, d2.norm_rounds, 1)
+        self.assertIs(d2.norm_rounds(None), None)
+
+    #=========================================================
+    #backend ext hash
+    #=========================================================
+    def test_20_backend_ext_hash(self):
+        class d1(BackendExtHash):
+            name = 'd1'
+            setting_kwds = ()
+
+            backends = ("a", "b")
+
+            _has_backend_a = False
+            _has_backend_b = True
+
+            def _calc_checksum_a(self, secret):
+                return 'a'
+
+            def _calc_checksum_b(self, secret):
+                return 'b'
+
+        #test lazy load
+        obj = d1()
+        self.assertEquals(obj.calc_checksum('s'), 'b')
+
+        #test repeat load
+        d1.set_backend('b')
+        d1.set_backend(None)
+        self.assertEquals(obj.calc_checksum('s'), 'b')
+
+        #test unavailable
+        self.assertRaises(ValueError, d1.set_backend, 'a')
+
+        #test all unavailable
+        d1._has_backend_b = False
+        self.assertRaises(EnvironmentError, d1.set_backend, 'default')
+
+        #test explicit
+        d1._has_backend_a = d1._has_backend_b = True
+        d1.set_backend('a')
+        self.assertEquals(obj.calc_checksum('s'), 'a')
+
+    #=========================================================
+    #eoc
+    #=========================================================
 
 #=========================================================
 #sample algorithms - these serve as known quantities
@@ -87,18 +272,19 @@ class UnsaltedHashTest(HandlerCase):
 
     ]
 
+    def test_bad_kwds(self):
+        self.assertRaises(TypeError, UnsaltedHash, salt='x')
+        self.assertRaises(ValueError, SaltedHash, checksum=SaltedHash._stub_checksum, salt=None, strict=True)
+        self.assertRaises(ValueError, SaltedHash, checksum=SaltedHash._stub_checksum, salt='xxx', strict=True)
+
+        self.assertRaises(TypeError, UnsaltedHash.genconfig, rounds=1)
+
 class SaltedHashTest(HandlerCase):
     handler = SaltedHash
 
     known_correct_hashes = [
         ("password", '@salt77d71f8fe74f314dac946766c1ac4a2a58365482c0'),
     ]
-
-#=========================================================
-#
-#=========================================================
-
-#TODO: test registry system
 
 #=========================================================
 #EOF

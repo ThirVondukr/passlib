@@ -58,18 +58,6 @@ class BaseHash(object):
     context_kwds = ()
 
     #=====================================================
-    #init
-    #=====================================================
-    @classmethod
-    def validate_class(cls):
-        "helper to ensure class is configured property"
-        if not cls.name:
-            raise AssertionError, "class must have .name attribute set"
-
-        if cls.setting_kwds is None:
-            raise AssertionError, "class must have .setting_kwds attribute set"
-
-    #=====================================================
     #init helpers
     #=====================================================
     @classproperty
@@ -241,44 +229,6 @@ class ExtHash(BaseHash):
                 setattr(self, key, value)
         super(ExtHash, self).__init__(**kwds)
 
-    @classmethod
-    def validate_class(cls):
-        "helper to ensure class is configured property"
-        super(ExtHash, cls).validate_class()
-
-        if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
-            raise AssertionError, "_extra_init_settings must be subset of setting_kwds"
-
-        if 'salt' in cls.setting_kwds:
-
-            if cls.min_salt_chars > cls.max_salt_chars:
-                raise AssertionError, "min salt chars too large"
-
-            if cls.default_salt_chars < cls.min_salt_chars:
-                raise AssertionError, "default salt chars too small"
-            if cls.default_salt_chars > cls.max_salt_chars:
-                raise AssertionError, "default salt chars too large"
-
-            if any(c not in cls.salt_charset for c in cls.default_salt_charset):
-                raise AssertionError, "default salt charset not subset of salt charset"
-
-        if 'rounds' in cls.setting_kwds:
-
-            if cls.max_rounds is None:
-                raise AssertionError, "max rounds not specified"
-
-            if cls.min_rounds > cls.max_rounds:
-                raise AssertionError, "min rounds too large"
-
-            if cls.default_rounds is not None:
-                if cls.default_rounds < cls.min_rounds:
-                    raise AssertionError, "default rounds too small"
-                if cls.default_rounds > cls.max_rounds:
-                    raise AssertionError, "default rounds too large"
-
-            if cls.rounds_cost not in ("linear", "log2"):
-                raise AssertionError, "unknown rounds cost function"
-
     #=========================================================
     #init helpers
     #=========================================================
@@ -343,7 +293,7 @@ class ExtHash(BaseHash):
         if not cls._has_salt:
             #NOTE: special casing schemes which have no salt...
             if salt is not None:
-                raise ValueError, "%s does not support ``salt`` parameter" % (cls.name,)
+                raise TypeError, "%s does not support ``salt`` parameter" % (cls.name,)
             return None
 
         if salt is None:
@@ -397,7 +347,7 @@ class ExtHash(BaseHash):
         if not cls._has_rounds:
             #NOTE: special casing schemes which don't have rounds
             if rounds is not None:
-                raise ValueError, "%s does not support ``rounds``" % (cls.name,)
+                raise TypeError, "%s does not support ``rounds``" % (cls.name,)
             return None
 
         if rounds is None:
@@ -443,11 +393,11 @@ class ExtHash(BaseHash):
             return False
 
     @classmethod
-    def from_string(cls, hash):
+    def from_string(cls, hash): #pragma: no cover
         "return parsed instance from hash/configuration string; raising ValueError on invalid inputs"
         raise NotImplementedError, "%s must implement from_string()" % (cls,)
 
-    def to_string(self):
+    def to_string(self): #pragma: no cover
         "render instance to hash or configuration string (depending on if checksum attr is set)"
         raise NotImplementedError, "%s must implement from_string()" % (type(self),)
 
@@ -484,7 +434,7 @@ class ExtHash(BaseHash):
         self.checksum = self.calc_checksum(secret)
         return self.to_string()
 
-    def calc_checksum(self, secret):
+    def calc_checksum(self, secret): #pragma: no cover
         "given secret; calcuate and return encoded checksum portion of hash string, taking config from object state"
         raise NotImplementedError, "%s must implement calc_checksum()" % (cls,)
 

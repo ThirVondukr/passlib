@@ -128,6 +128,8 @@ def decode_int6(value):
 
 def encode_int6(value):
     "encodes 6-bit integer -> single hash64 character"
+    if value < 0 or value > 63:
+        raise ValueError, "value out of range"
     return encode_6bit(value)
 
 #---------------------------------------------------------------------
@@ -201,7 +203,7 @@ def decode_dc_int64(value):
     this format is used primarily by des-crypt & variants to encode the DES output value
     used as a checksum.
     """
-    return decode_int(value, 11, True)>>2
+    return decode_int(value, True)>>2
 
 def encode_dc_int64(value):
     """encode 64-bit integer -> 11 char hash64 string (big-endian order; 2 lsb added as padding)
@@ -247,6 +249,8 @@ def encode_int(value, count, big=False):
     :returns:
         a hash64 string of length ``count``.
     """
+    if value < 0:
+        raise ValueError, "value cannot be negative"
     if big:
         itr = xrange(6*count-6, -6, -6)
     else:
