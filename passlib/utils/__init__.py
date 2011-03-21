@@ -101,7 +101,26 @@ class classproperty(object):
 ##    update_wrapper(wrapper, func)
 ##    return classmethod(wrapper)
 
-Undef = object() #singleton used as default kwd value in some functions
+#NOTE: Undef is only used in *one* place now, could just remove it
+
+class UndefType(object):
+    _undef = None
+
+    def __new__(cls):
+        if cls._undef is None:
+            cls._undef = object.__new__(cls)
+        return cls._undef
+
+    def __repr__(self):
+        return '<Undef>'
+
+    def __eq__(self, other):
+        return False
+
+    def __ne__(self, other):
+        return True
+
+Undef = UndefType() #singleton used as default kwd value in some functions
 
 #==========================================================
 #protocol helpers

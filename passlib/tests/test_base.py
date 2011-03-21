@@ -9,10 +9,13 @@ from logging import getLogger
 import os
 import time
 import warnings
+import sys
 #site
 #pkg
-from passlib import base, hash
-from passlib.base import CryptContext, CryptPolicy
+from passlib import hash, base
+from passlib.base import CryptContext, CryptPolicy, \
+    register_crypt_handler, register_crypt_handler_path, \
+    get_crypt_handler, list_crypt_handlers
 from passlib.utils.drivers import BaseHash
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 from passlib.drivers.md5_crypt import md5_crypt as AnotherHash
@@ -21,25 +24,89 @@ from passlib.tests.test_utils_drivers import UnsaltedHash, SaltedHash
 log = getLogger(__name__)
 
 #=========================================================
-#proxy
+#test registry
 #=========================================================
-class MiscTest(TestCase):
+class dummy_0(BaseHash):
+    name = "dummy_0"
+    setting_kwds = ()
+
+class alt_dummy_0(BaseHash):
+    name = "dummy_0"
+    setting_kwds = ()
+
+dummy_x = 1
+
+def unload_handler_name(name):
+    if hasattr(hash, name):
+        delattr(hash, name)
+
+    #NOTE: this messes w/ internals of registry, shouldn't be used publically.
+    paths = base._handler_locations
+    if name in paths:
+        del paths[name]
+
+class RegistryTest(TestCase):
+
+    case_prefix = "passlib registry"
 
     def tearDown(self):
-        if hasattr(hash, "dummy_1"):
-            del hash.dummy_1
+        for name in ("dummy_0", "dummy_1", "dummy_x", "dummy_bad"):
+            unload_handler_name(name)
 
     def test_hash_proxy(self):
+        "test passlib.hash proxy object"
         dir(hash)
         repr(hash)
         self.assertRaises(AttributeError, getattr, hash, 'fooey')
 
-    def test_register_crypt_handler(self):
-        self.assertRaises(TypeError, base.register_crypt_handler, {})
+    def test_register_crypt_handler_path(self):
+        "test register_crypt_handler_path()"
 
-        self.assertRaises(ValueError, base.register_crypt_handler, BaseHash)
-        self.assertRaises(ValueError, base.register_crypt_handler, type('x', (BaseHash,), dict(name="AB_CD")))
-        self.assertRaises(ValueError, base.register_crypt_handler, type('x', (BaseHash,), dict(name="ab-cd")))
+        #NOTE: this messes w/ internals of registry, shouldn't be used publically.
+        paths = base._handler_locations
+
+        #check namespace is clear
+        self.assertTrue('dummy_0' not in paths)
+        self.assertFalse(hasattr(hash, 'dummy_0'))
+
+        #try lazy load
+        register_crypt_handler_path('dummy_0', 'passlib.tests.test_base')
+        self.assertTrue('dummy_0' in list_crypt_handlers())
+        self.assertTrue('dummy_0' not in list_crypt_handlers(loaded_only=True))
+        self.assertIs(hash.dummy_0, dummy_0)
+        self.assertTrue('dummy_0' in list_crypt_handlers(loaded_only=True))
+        unload_handler_name('dummy_0')
+
+        #try lazy load w/ alt
+        register_crypt_handler_path('dummy_0', 'passlib.tests.test_base:alt_dummy_0')
+        self.assertIs(hash.dummy_0, alt_dummy_0)
+        unload_handler_name('dummy_0')
+
+        #check lazy load w/ wrong type fails
+        register_crypt_handler_path('dummy_x', 'passlib.tests.test_base')
+        self.assertRaises(TypeError, get_crypt_handler, 'dummy_x')
+
+        #check lazy load w/ wrong name fails
+        register_crypt_handler_path('alt_dummy_0', 'passlib.tests.test_base')
+        self.assertRaises(ValueError, get_crypt_handler, "alt_dummy_0")
+
+        #TODO: check lazy load which calls register_crypt_handler (warning should be issued)
+        sys.modules.pop("passlib.tests._test_bad_register", None)
+        register_crypt_handler_path("dummy_bad", "passlib.tests._test_bad_register")
+        with catch_warnings():
+            warnings.filterwarnings("ignore", "xxxxxxxxxx", DeprecationWarning)
+            h = get_crypt_handler("dummy_bad")
+        from passlib.tests import _test_bad_register as tbr
+        self.assertIs(h, tbr.alt_dummy_bad)
+
+    def test_register_crypt_handler(self):
+        "test register_crypt_handler()"
+
+        self.assertRaises(TypeError, register_crypt_handler, {})
+
+        self.assertRaises(ValueError, register_crypt_handler, BaseHash)
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (BaseHash,), dict(name="AB_CD")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (BaseHash,), dict(name="ab-cd")))
 
         class dummy_1(BaseHash):
             name = "dummy_1"
@@ -47,34 +114,34 @@ class MiscTest(TestCase):
         class dummy_1b(BaseHash):
             name = "dummy_1"
 
-        self.assertTrue('dummy_1' not in base.list_crypt_handlers())
+        self.assertTrue('dummy_1' not in list_crypt_handlers())
 
-        base.register_crypt_handler(dummy_1)
-        base.register_crypt_handler(dummy_1)
-        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+        register_crypt_handler(dummy_1)
+        register_crypt_handler(dummy_1)
+        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
-        self.assertRaises(ValueError, base.register_crypt_handler, dummy_1b)
-        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+        self.assertRaises(KeyError, register_crypt_handler, dummy_1b)
+        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
-        base.register_crypt_handler(dummy_1b, force=True)
-        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1b)
+        register_crypt_handler(dummy_1b, force=True)
+        self.assertIs(get_crypt_handler("dummy_1"), dummy_1b)
 
-        self.assertTrue('dummy_1' in base.list_crypt_handlers())
+        self.assertTrue('dummy_1' in list_crypt_handlers())
 
     def test_get_crypt_handler(self):
+        "test get_crypt_handler()"
 
         class dummy_1(BaseHash):
             name = "dummy_1"
 
-        self.assertRaises(KeyError, base.get_crypt_handler, "dummy_1")
-        self.assertIs(base.get_crypt_handler("dummy_1", None), None)
+        self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
 
-        base.register_crypt_handler(dummy_1)
-        self.assertIs(base.get_crypt_handler("dummy_1"), dummy_1)
+        register_crypt_handler(dummy_1)
+        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
         with catch_warnings():
             warnings.filterwarnings("ignore", "handler names be lower-case, and use underscores instead of hyphens:.*", UserWarning)
-            self.assertIs(base.get_crypt_handler("DUMMY-1"), dummy_1)
+            self.assertIs(get_crypt_handler("DUMMY-1"), dummy_1)
 
 #=========================================================
 #
@@ -183,6 +250,26 @@ sha512_crypt.min_rounds = 45000
         sha512_crypt__min_rounds=45000,
     )
 
+    #-----------------------------------------------------
+    #sample 4 - category specific
+    #-----------------------------------------------------
+    sample_config_4s = """
+[passlib]
+schemes = sha512_crypt
+all.vary_rounds = 10%
+default.sha512_crypt.max_rounds = 20000
+admin.all.vary_rounds = 5%
+admin.sha512_crypt.max_rounds = 40000
+"""
+
+    sample_config_4pd = dict(
+        schemes = [ "sha512_crypt" ],
+        all__vary_rounds = "10%",
+        sha512_crypt__max_rounds = 20000,
+        admin__all__vary_rounds = "5%",
+        admin__sha512_crypt__max_rounds = 40000,
+        )
+
     #=========================================================
     #constructors
     #=========================================================
@@ -231,6 +318,9 @@ sha512_crypt.min_rounds = 45000
         "test CryptPolicy.from_string() constructor"
         policy = CryptPolicy.from_string(self.sample_config_1s)
         self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+
+        policy = CryptPolicy.from_string(self.sample_config_4s)
+        self.assertEquals(policy.to_dict(), self.sample_config_4pd)
 
     def test_03_from_source(self):
         "test CryptPolicy.from_source() constructor"
@@ -370,10 +460,26 @@ sha512_crypt.min_rounds = 45000
             max_rounds = 50000,
         ))
 
+        p4 = CryptPolicy.from_string(self.sample_config_4s)
+        self.assertEquals(p4.get_options("sha512_crypt"), dict(
+            vary_rounds="10%",
+            max_rounds=20000,
+        ))
+
+        self.assertEquals(p4.get_options("sha512_crypt", "user"), dict(
+            vary_rounds="10%",
+            max_rounds=20000,
+        ))
+
+        self.assertEquals(p4.get_options("sha512_crypt", "admin"), dict(
+            vary_rounds="5%",
+            max_rounds=40000,
+        ))
+
     def test_14_handler_is_deprecated(self):
         "test handler_is_deprecated() method"
         pa = CryptPolicy(**self.sample_config_1pd)
-        pb = pa.replace(deprecated=["des_crypt", "bsdi_crypt"])
+        pb = pa.replace(deprecated=["des_crypt", "bsdi_crypt"], admin__context__deprecated=["des_crypt"])
 
         self.assert_(not pa.handler_is_deprecated("des_crypt"))
         self.assert_(not pa.handler_is_deprecated(hash.bsdi_crypt))
@@ -382,6 +488,11 @@ sha512_crypt.min_rounds = 45000
         self.assert_(pb.handler_is_deprecated("des_crypt"))
         self.assert_(pb.handler_is_deprecated(hash.bsdi_crypt))
         self.assert_(not pb.handler_is_deprecated("sha512_crypt"))
+
+        #check categories as well
+        self.assertTrue(pb.handler_is_deprecated("des_crypt", "user"))
+        self.assertTrue(pb.handler_is_deprecated("des_crypt", "admin"))
+        self.assertFalse(pb.handler_is_deprecated("bsdi_crypt", "admin"))
 
     #TODO: test this.
     ##def test_gen_min_verify_time(self):

@@ -11,13 +11,24 @@ import random
 #module
 from passlib import utils
 from passlib.base import CryptContext
-from passlib.utils import h64, des
+from passlib.utils import h64, des, Undef
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option
+
 #=========================================================
 #byte funcs
 #=========================================================
 class UtilsTest(TestCase):
+
+    def test_undef(self):
+        "test Undef singleton"
+        self.assertEqual(repr(Undef), "<Undef>")
+        self.assertFalse(Undef==None,)
+        self.assertFalse(Undef==Undef,)
+        self.assertFalse(Undef==True,)
+        self.assertTrue(Undef!=None,)
+        self.assertTrue(Undef!=Undef,)
+        self.assertTrue(Undef!=True,)
 
     def test_list_to_bytes(self):
         self.assertFunctionResults(utils.list_to_bytes, [

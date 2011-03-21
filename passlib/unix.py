@@ -4,7 +4,7 @@
 #imports
 #=========================================================
 #pkg
-from passlib.base import CryptContext, register_crypt_handler
+from passlib.base import CryptContext
 from passlib.utils.drivers import CryptHandler
 #local
 __all__ = [
