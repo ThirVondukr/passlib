@@ -11,13 +11,13 @@ import warnings
 #site
 #pkg
 from passlib.utils import rng, getrandstr
-from passlib.utils.handlers import BackendExtHash, ExtHash, BaseHash
+from passlib.utils.handlers import MultiBackendHandler, ExtendedHandler, SimpleHandler
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
 #module
 log = getLogger(__name__)
 
 #=========================================================
-#test support classes - BaseHash, etc
+#test support classes - SimpleHandler, etc
 #=========================================================
 class SkeletonTest(TestCase):
     "test hash support classes"
@@ -27,7 +27,7 @@ class SkeletonTest(TestCase):
     #=========================================================
     def test_00_base_hash(self):
 
-        class d1(BaseHash):
+        class d1(SimpleHandler):
             name = "d1"
             setting_kwds = ('dummy',)
 
@@ -38,7 +38,7 @@ class SkeletonTest(TestCase):
                 return 'a'
 
         #check internal properties
-        self.assertRaises(RuntimeError, getattr, BaseHash, "_has_settings")
+        self.assertRaises(RuntimeError, getattr, SimpleHandler, "_has_settings")
 
         #check identify method
         self.assertTrue(d1.identify('a'))
@@ -49,13 +49,13 @@ class SkeletonTest(TestCase):
         #check default genconfig
         self.assertRaises(NotImplementedError, d1.genconfig, dummy='xxx')
 
-        class d3(BaseHash):
+        class d3(SimpleHandler):
             name = 'd3'
             setting_kwds = ()
         self.assertRaises(TypeError, d3.genconfig, dummy='xxx')
 
         #check default genhash
-        class d2(BaseHash):
+        class d2(SimpleHandler):
             name = "d2"
             setting_kwds = ("dummy",)
         self.assertRaises(NotImplementedError, d2.genhash, 'stub', 'hash')
@@ -64,7 +64,7 @@ class SkeletonTest(TestCase):
     #ext hash
     #=========================================================
     def test_10_ext_hash(self):
-        class d1(ExtHash):
+        class d1(ExtendedHandler):
             setting_kwds = ()
             max_salt_chars = 2
 
@@ -76,9 +76,9 @@ class SkeletonTest(TestCase):
                     raise ValueError
 
         #check internal properties
-        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_settings")
-        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_salt")
-        self.assertRaises(RuntimeError, getattr, ExtHash, "_has_rounds")
+        self.assertRaises(RuntimeError, getattr, ExtendedHandler, "_has_settings")
+        self.assertRaises(RuntimeError, getattr, ExtendedHandler, "_has_salt")
+        self.assertRaises(RuntimeError, getattr, ExtendedHandler, "_has_rounds")
 
         #check min salt chars
         self.assertEqual(d1.min_salt_chars, 2)
@@ -90,7 +90,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify('b'))
 
     def test_11_norm_checksum(self):
-        class d1(ExtHash):
+        class d1(ExtendedHandler):
             checksum_chars = 4
             checksum_charset = 'x'
         self.assertRaises(ValueError, d1.norm_checksum, 'xxx')
@@ -99,7 +99,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_checksum, 'xxyx')
 
     def test_12_norm_salt(self):
-        class d1(ExtHash):
+        class d1(ExtendedHandler):
             name = 'd1'
             setting_kwds = ('salt',)
             min_salt_chars = 1
@@ -119,14 +119,14 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_salt, 'aaaa', strict=True)
 
         #check no salt kwd
-        class d2(ExtHash):
+        class d2(ExtendedHandler):
             name = "d2"
             setting_kwds = ("dummy",)
         self.assertRaises(TypeError, d2.norm_salt, 1)
         self.assertIs(d2.norm_salt(None), None)
 
     def test_13_norm_rounds(self):
-        class d1(ExtHash):
+        class d1(ExtendedHandler):
             name = 'd1'
             setting_kwds = ('rounds',)
             min_rounds = 1
@@ -150,7 +150,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_rounds, None)
 
         #check no rounds keyword
-        class d2(ExtHash):
+        class d2(ExtendedHandler):
             name = "d2"
             setting_kwds = ("dummy",)
         self.assertRaises(TypeError, d2.norm_rounds, 1)
@@ -160,7 +160,7 @@ class SkeletonTest(TestCase):
     #backend ext hash
     #=========================================================
     def test_20_backend_ext_hash(self):
-        class d1(BackendExtHash):
+        class d1(MultiBackendHandler):
             name = 'd1'
             setting_kwds = ()
 
@@ -205,7 +205,7 @@ class SkeletonTest(TestCase):
 # to test the unittests themselves, as well as other
 # parts of passlib. they shouldn't be used as actual password schemes.
 #=========================================================
-class UnsaltedHash(ExtHash):
+class UnsaltedHash(ExtendedHandler):
     "test algorithm which lacks a salt"
     name = "unsalted_test_hash"
     setting_kwds = ()
@@ -228,7 +228,7 @@ class UnsaltedHash(ExtHash):
             secret = secret.encode("utf-8")
         return hashlib.sha1("boblious" + secret).hexdigest()
 
-class SaltedHash(ExtHash):
+class SaltedHash(ExtendedHandler):
     "test algorithm with a salt"
     name = "salted_test_hash"
     setting_kwds = ("salt",)

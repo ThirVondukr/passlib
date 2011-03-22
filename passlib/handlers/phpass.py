@@ -16,7 +16,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.handlers import ExtHash
+from passlib.utils.handlers import ExtendedHandler
 #pkg
 #local
 __all__ = [
@@ -26,7 +26,7 @@ __all__ = [
 #=========================================================
 #phpass
 #=========================================================
-class phpass(ExtHash):
+class phpass(ExtendedHandler):
     """This class implements the PHPass Portable Hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.

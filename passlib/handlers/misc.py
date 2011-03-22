@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils.handlers import BaseHash
+from passlib.utils.handlers import SimpleHandler
 #pkg
 #local
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class unix_fallback(BaseHash):
+class unix_fallback(SimpleHandler):
     """This class fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
     This class does not implement a hash, but instead provides fallback
@@ -57,7 +57,7 @@ class unix_fallback(BaseHash):
             raise ValueError, "no hash provided"
         return not hash
 
-class plaintext(BaseHash):
+class plaintext(SimpleHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     Unicode passwords will be encoded using utf-8.

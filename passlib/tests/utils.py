@@ -25,7 +25,7 @@ except ImportError:
 from nose.plugins.skip import SkipTest
 #pkg
 from passlib.utils import classproperty
-from passlib.utils.handlers import BaseHash, ExtHash, BackendExtHash
+from passlib.utils.handlers import SimpleHandler, ExtendedHandler, MultiBackendHandler
 #local
 __all__ = [
     #util funcs
@@ -203,7 +203,7 @@ class TestCase(unittest.TestCase):
 #other unittest helpers
 #=========================================================
 class HandlerCase(TestCase):
-    """base class for testing password hash handlers (esp passlib.utils.handlers.BaseHash subclasses)
+    """base class for testing password hash handlers (esp passlib.utils.handlers.SimpleHandler subclasses)
 
     .. todo::
         write directions on how to use this class.
@@ -342,9 +342,9 @@ class HandlerCase(TestCase):
     #TODO: check optional rounds attributes & salt attributes
 
     def test_04_base_handler(self):
-        "check configuration of BaseHash-derived classes"
+        "check configuration of SimpleHandler-derived classes"
         cls = self.handler
-        if not isinstance(cls, type) or not issubclass(cls, BaseHash):
+        if not isinstance(cls, type) or not issubclass(cls, SimpleHandler):
             raise SkipTest
 
         if not cls.name:
@@ -354,9 +354,9 @@ class HandlerCase(TestCase):
             raise AssertionError, "class must have .setting_kwds attribute set"
 
     def test_05_ext_handler(self):
-        "check configuration of ExtHash-derived classes"
+        "check configuration of ExtendedHandler-derived classes"
         cls = self.handler
-        if not isinstance(cls, type) or not issubclass(cls, ExtHash):
+        if not isinstance(cls, type) or not issubclass(cls, ExtendedHandler):
             raise SkipTest
 
         if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
@@ -393,7 +393,7 @@ class HandlerCase(TestCase):
                 raise AssertionError, "unknown rounds cost function"
 
     def test_06_backend_handler(self):
-        "check configuration of BackendExtHash-derived classes"
+        "check configuration of MultiBackendHandler-derived classes"
         h = self.handler
         if not hasattr(h, "get_backend"):
             raise SkipTest
@@ -674,7 +674,7 @@ class HandlerCase(TestCase):
 #=========================================================
 def enable_backend_case(handler, name):
     "helper to check if a separate test is needed for the specified backend"
-    assert issubclass(handler, BackendExtHash), "handler must derived from BackendExtHash"
+    assert issubclass(handler, MultiBackendHandler), "handler must derived from MultiBackendHandler"
     assert name in handler.backends, "unknown backend: %r" % (name,)
     return enable_option("all-backends") and handler.get_backend() != name and handler.has_backend(name)
 

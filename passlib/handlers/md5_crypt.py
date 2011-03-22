@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.handlers import ExtHash, BackendExtHash
+from passlib.utils.handlers import ExtendedHandler, MultiBackendHandler
 #pkg
 #local
 __all__ = [
@@ -126,7 +126,7 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class md5_crypt(BackendExtHash):
+class md5_crypt(MultiBackendHandler):
     """This class implements the MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -216,7 +216,7 @@ class md5_crypt(BackendExtHash):
 #=========================================================
 #apache variant of md5-crypt
 #=========================================================
-class apr_md5_crypt(ExtHash):
+class apr_md5_crypt(ExtendedHandler):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.

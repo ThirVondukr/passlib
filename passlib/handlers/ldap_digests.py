@@ -10,7 +10,7 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils.handlers import ExtHash, BaseHash
+from passlib.utils.handlers import ExtendedHandler, SimpleHandler
 #pkg
 #local
 __all__ = [
@@ -25,7 +25,7 @@ __all__ = [
 #=========================================================
 #reference - http://www.openldap.org/doc/admin24/security.html
 
-class _Base64DigestHelper(BaseHash):
+class _Base64DigestHelper(SimpleHandler):
     "helper for ldap_md5 / ldap_sha1"
 
     #_ident
@@ -46,7 +46,7 @@ class _Base64DigestHelper(BaseHash):
             raise ValueError, "not a %s hash" % (cls.name,)
         return cls._ident + cls._hash(secret).digest().encode("base64").strip()
 
-class _SaltedBase64DigestHelper(ExtHash):
+class _SaltedBase64DigestHelper(ExtendedHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
     setting_kwds = ("salt",)
 
@@ -145,7 +145,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
     _pat = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
     _default_chk = '\x00' * 20
 
-class ldap_cleartext(BaseHash):
+class ldap_cleartext(SimpleHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     Unicode passwords will be encoded using utf-8.

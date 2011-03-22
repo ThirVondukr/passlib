@@ -13,7 +13,7 @@ from warnings import warn
 #pkg
 from passlib.utils import xor_bytes
 from passlib.utils.des import des_encrypt_block
-from passlib.utils.handlers import ExtHash
+from passlib.utils.handlers import ExtendedHandler
 #local
 __all__ = [
     "oracle10g",
@@ -135,7 +135,7 @@ class oracle10(object):
 #=========================================================
 #oracle11
 #=========================================================
-class oracle11(ExtHash):
+class oracle11(ExtendedHandler):
     """This class implements the Oracle11g password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.

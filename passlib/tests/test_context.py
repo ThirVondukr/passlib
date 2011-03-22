@@ -14,7 +14,7 @@ import sys
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy
-from passlib.utils.handlers import BaseHash
+from passlib.utils.handlers import SimpleHandler
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 from passlib.handlers.md5_crypt import md5_crypt as AnotherHash
 from passlib.tests.test_utils_handlers import UnsaltedHash, SaltedHash
@@ -163,10 +163,10 @@ admin.sha512_crypt.max_rounds = 40000
             )
 
         #check with bad handler
-        self.assertRaises(TypeError, CryptPolicy, schemes=[BaseHash])
+        self.assertRaises(TypeError, CryptPolicy, schemes=[SimpleHandler])
 
         #check with multiple handlers
-        class dummy_1(BaseHash):
+        class dummy_1(SimpleHandler):
             name = 'dummy_1'
         self.assertRaises(KeyError, CryptPolicy, schemes=[dummy_1, dummy_1])
 

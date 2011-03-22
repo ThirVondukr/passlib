@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils.handlers import BaseHash
+from passlib.utils.handlers import SimpleHandler
 #local
 __all__ = [
     'mysql323',
@@ -40,7 +40,7 @@ __all__ = [
 #=========================================================
 #backend
 #=========================================================
-class mysql323(BaseHash):
+class mysql323(SimpleHandler):
     """This class implements the MySQL 3.2.3 password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -109,7 +109,7 @@ class mysql323(BaseHash):
 #=========================================================
 #handler
 #=========================================================
-class mysql41(BaseHash):
+class mysql41(SimpleHandler):
     """This class implements the MySQL 4.1 password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.

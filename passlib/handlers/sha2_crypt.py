@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.handlers import BackendExtHash
+from passlib.utils.handlers import MultiBackendHandler
 #pkg
 #local
 __all__ = [
@@ -205,7 +205,7 @@ _512_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class sha256_crypt(BackendExtHash):
+class sha256_crypt(MultiBackendHandler):
     """This class implements the SHA256-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -350,7 +350,7 @@ class sha256_crypt(BackendExtHash):
 #=========================================================
 #sha 512 crypt
 #=========================================================
-class sha512_crypt(BackendExtHash):
+class sha512_crypt(MultiBackendHandler):
     """This class implements the SHA512-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.

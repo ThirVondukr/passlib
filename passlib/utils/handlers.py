@@ -19,15 +19,15 @@ from passlib.utils import classproperty, h64, getrandstr, rng, is_crypt_handler
 __all__ = [
 
     #framework for implementing handlers
-    'BaseHash',
-    'ExtHash',
-    'BackendExtHash',
+    'SimpleHandler',
+    'ExtendedHandler',
+    'MultiBackendHandler',
 ]
 
 #=========================================================
 #base handler
 #=========================================================
-class BaseHash(object):
+class SimpleHandler(object):
     """helper for implementing password hash handler with minimal methods
 
     hash implementations should fill out the following:
@@ -118,13 +118,13 @@ class BaseHash(object):
     #=====================================================
 
 #=========================================================
-# ExtHash
+# ExtendedHandler
 #   rounds+salt+xtra    phpass, sha256_crypt, sha512_crypt
 #   rounds+salt         bcrypt, ext_des_crypt, sha1_crypt, sun_md5_crypt
 #   salt                apr_md5_crypt, des_crypt, md5_crypt
 #   nothing             mysql_323, mysql_41, nthash, postgres_md5
 #=========================================================
-class ExtHash(BaseHash):
+class ExtendedHandler(SimpleHandler):
     """helper class for implementing hash schemes
 
     hash implementations should fill out the following:
@@ -159,8 +159,8 @@ class ExtHash(BaseHash):
     #----------------------------------------------
     #password hash api - required attributes
     #----------------------------------------------
-    name = None #required by ExtHash
-    setting_kwds = None #required by ExtHash
+    name = None #required by ExtendedHandler
+    setting_kwds = None #required by ExtendedHandler
     context_kwds = ()
 
     #----------------------------------------------
@@ -172,7 +172,7 @@ class ExtHash(BaseHash):
     #----------------------------------------------
     #salt information
     #----------------------------------------------
-    max_salt_chars = None #required by ExtHash.norm_salt()
+    max_salt_chars = None #required by ExtendedHandler.norm_salt()
 
     @classproperty
     def min_salt_chars(cls):
@@ -194,15 +194,15 @@ class ExtHash(BaseHash):
     #rounds information
     #----------------------------------------------
     min_rounds = 0
-    max_rounds = None #required by ExtHash.norm_rounds()
-    default_rounds = None #if not specified, ExtHash.norm_rounds() will require explicit rounds value every time
+    max_rounds = None #required by ExtendedHandler.norm_rounds()
+    default_rounds = None #if not specified, ExtendedHandler.norm_rounds() will require explicit rounds value every time
     rounds_cost = "linear" #common case
 
     #----------------------------------------------
-    #misc ExtHash configuration
+    #misc ExtendedHandler configuration
     #----------------------------------------------
     _strict_rounds_bounds = False #if true, always raises error if specified rounds values out of range - required by spec for some hashes
-    _extra_init_settings = () #settings that ExtHash.__init__ should handle by calling norm_<key>()
+    _extra_init_settings = () #settings that ExtendedHandler.__init__ should handle by calling norm_<key>()
 
     #=========================================================
     #instance attributes
@@ -227,7 +227,7 @@ class ExtHash(BaseHash):
                 norm = getattr(self, "norm_" + key)
                 value = norm(value, strict=strict)
                 setattr(self, key, value)
-        super(ExtHash, self).__init__(**kwds)
+        super(ExtendedHandler, self).__init__(**kwds)
 
     #=========================================================
     #init helpers
@@ -240,16 +240,16 @@ class ExtHash(BaseHash):
     @classproperty
     def _has_salt(cls):
         "attr for checking if salts are supported, memoizes itself on first use"
-        if cls is ExtHash:
-            raise RuntimeError, "not allowed for ExtHash directly"
+        if cls is ExtendedHandler:
+            raise RuntimeError, "not allowed for ExtendedHandler directly"
         value = cls._has_salt = 'salt' in cls.setting_kwds
         return value
 
     @classproperty
     def _has_rounds(cls):
         "attr for checking if variable are supported, memoizes itself on first use"
-        if cls is ExtHash:
-            raise RuntimeError, "not allowed for ExtHash directly"
+        if cls is ExtendedHandler:
+            raise RuntimeError, "not allowed for ExtendedHandler directly"
         value = cls._has_rounds = 'rounds' in cls.setting_kwds
         return value
 
@@ -463,8 +463,8 @@ class ExtHash(BaseHash):
 #helpful mixin which provides lazy-loading of different backends
 #to be used for calc_checksum
 #=========================================================
-class BackendExtHash(ExtHash):
-    "subclass of ExtHash which provides selecting from multiple backends for checksum calculation"
+class MultiBackendHandler(ExtendedHandler):
+    "subclass of ExtendedHandler which provides selecting from multiple backends for checksum calculation"
 
     #NOTE: subclass must provide:
     #   * attr 'backends' containing list of known backends (top priority backend first)

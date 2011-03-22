@@ -9,7 +9,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils.md4 import md4
-from passlib.utils.handlers import ExtHash
+from passlib.utils.handlers import ExtendedHandler
 #pkg
 #local
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class nthash(ExtHash):
+class nthash(ExtendedHandler):
     """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.

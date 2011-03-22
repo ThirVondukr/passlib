@@ -14,7 +14,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.handlers import ExtHash
+from passlib.utils.handlers import ExtendedHandler
 from passlib.utils.pbkdf2 import hmac_sha1
 #pkg
 #local
@@ -23,7 +23,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class sha1_crypt(ExtHash):
+class sha1_crypt(ExtendedHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.

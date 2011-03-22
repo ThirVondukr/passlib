@@ -59,7 +59,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, classproperty, os_crypt
-from passlib.utils.handlers import BackendExtHash, ExtHash
+from passlib.utils.handlers import MultiBackendHandler, ExtendedHandler
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
@@ -136,7 +136,7 @@ def raw_ext_crypt(secret, rounds, salt):
 #=========================================================
 #handler
 #=========================================================
-class des_crypt(BackendExtHash):
+class des_crypt(MultiBackendHandler):
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -227,7 +227,7 @@ class des_crypt(BackendExtHash):
 #=========================================================
 #handler
 #=========================================================
-class bsdi_crypt(ExtHash):
+class bsdi_crypt(ExtendedHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -312,7 +312,7 @@ class bsdi_crypt(ExtHash):
 #=========================================================
 #
 #=========================================================
-class bigcrypt(ExtHash):
+class bigcrypt(ExtendedHandler):
     """This class implements the BigCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -387,7 +387,7 @@ class bigcrypt(ExtHash):
 #=========================================================
 #
 #=========================================================
-class crypt16(ExtHash):
+class crypt16(ExtendedHandler):
     """This class implements the crypt16 password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.

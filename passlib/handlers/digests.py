@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils.md4 import md4
-from passlib.utils.handlers import BaseHash
+from passlib.utils.handlers import SimpleHandler
 #pkg
 #local
 __all__ = [
@@ -25,7 +25,7 @@ __all__ = [
 #=========================================================
 #helpers for hexidecimal hashes
 #=========================================================
-class HexDigestHash(BaseHash):
+class HexDigestHash(SimpleHandler):
     "this provides a template for supporting passwords stored as plain hexidecimal hashes"
     setting_kwds = ()
     context_kwds = ()
