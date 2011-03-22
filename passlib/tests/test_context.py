@@ -16,8 +16,6 @@ from passlib import hash
 from passlib.context import CryptContext, CryptPolicy
 from passlib.utils.handlers import SimpleHandler
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
-from passlib.handlers.md5_crypt import md5_crypt as AnotherHash
-from passlib.tests.test_utils_handlers import UnsaltedHash, SaltedHash
 #module
 log = getLogger(__name__)
 
@@ -416,17 +414,17 @@ class CryptContextTest(TestCase):
     def test_00_constructor(self):
         "test constructor"
         #create crypt context using handlers
-        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        cc = CryptContext([hash.md5_crypt, hash.bsdi_crypt, hash.des_crypt])
         c,b,a = cc.policy.iter_handlers()
-        self.assertIs(a, UnsaltedHash)
-        self.assertIs(b, SaltedHash)
+        self.assertIs(a, hash.des_crypt)
+        self.assertIs(b, hash.bsdi_crypt)
         self.assertIs(c, hash.md5_crypt)
 
         #create context using names
-        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        cc = CryptContext(["md5_crypt", "bsdi_crypt", "des_crypt"])
         c,b,a = cc.policy.iter_handlers()
-        self.assertIs(a, UnsaltedHash)
-        self.assertIs(b, SaltedHash)
+        self.assertIs(a, hash.des_crypt)
+        self.assertIs(b, hash.bsdi_crypt)
         self.assertIs(c, hash.md5_crypt)
 
         #TODO: test policy & other options
@@ -434,17 +432,17 @@ class CryptContextTest(TestCase):
     def test_01_replace(self):
         "test replace()"
 
-        cc = CryptContext(["md5_crypt", SaltedHash, UnsaltedHash])
+        cc = CryptContext(["md5_crypt", "bsdi_crypt", "des_crypt"])
         self.assertIs(cc.policy.get_handler(), hash.md5_crypt)
 
         cc2 = cc.replace()
         self.assertIsNot(cc2, cc)
         self.assertIs(cc2.policy, cc.policy)
 
-        cc3 = cc.replace(default="salted_test_hash")
+        cc3 = cc.replace(default="bsdi_crypt")
         self.assertIsNot(cc3, cc)
         self.assertIsNot(cc3.policy, cc.policy)
-        self.assertIs(cc3.policy.get_handler(), SaltedHash)
+        self.assertIs(cc3.policy.get_handler(), hash.bsdi_crypt)
 
     def test_02_no_handlers(self):
         "test no handlers"
@@ -610,7 +608,7 @@ class CryptContextTest(TestCase):
     #=========================================================
     def test_20_basic(self):
         "test basic encrypt/identify/verify functionality"
-        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
+        handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, policy=None)
 
         #run through handlers
@@ -623,7 +621,7 @@ class CryptContextTest(TestCase):
 
         #test default
         h = cc.encrypt("test")
-        self.assertEquals(cc.identify(h), AnotherHash.name)
+        self.assertEquals(cc.identify(h), "md5_crypt")
 
         #test genhash
         h = cc.genhash('secret', cc.genconfig())
@@ -632,11 +630,11 @@ class CryptContextTest(TestCase):
         h = cc.genhash('secret', cc.genconfig(), scheme='md5_crypt')
         self.assertEquals(cc.identify(h), 'md5_crypt')
 
-        self.assertRaises(ValueError, cc.genhash, 'secret', cc.genconfig(), scheme=UnsaltedHash.name)
+        self.assertRaises(ValueError, cc.genhash, 'secret', cc.genconfig(), scheme="des_crypt")
 
     def test_21_identify(self):
         "test identify() border cases"
-        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
+        handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
         cc = CryptContext(handlers, policy=None)
 
         #check unknown hash
@@ -649,10 +647,10 @@ class CryptContextTest(TestCase):
 
     def test_22_verify(self):
         "test verify() scheme kwd"
-        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
+        handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
         cc = CryptContext(handlers, policy=None)
 
-        h = AnotherHash.encrypt("test")
+        h = hash.md5_crypt.encrypt("test")
 
         #check base verify
         self.assert_(cc.verify("test", h))
@@ -663,11 +661,11 @@ class CryptContextTest(TestCase):
         self.assert_(not cc.verify('notest', h, scheme='md5_crypt'))
 
         #check verify using wrong alg
-        self.assertRaises(ValueError, cc.verify, 'test', h, scheme='salted_test_hash')
+        self.assertRaises(ValueError, cc.verify, 'test', h, scheme='bsdi_crypt')
 
     def test_23_verify_empty_hash(self):
         "test verify() allows hash=None"
-        handlers = [AnotherHash, UnsaltedHash, SaltedHash]
+        handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, policy=None)
         self.assert_(not cc.verify("test", None))
         for handler in handlers:
