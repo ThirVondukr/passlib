@@ -10,7 +10,7 @@ password fields as found in unix ``/etc/shadow`` files.
 
 Usage
 =====
-This class is mainly useful only for plugging into a :class:`passlib.base.CryptContext`.
+This class is mainly useful only for plugging into a :class:`~passlib.context.CryptContext`.
 When used, it should always be the last scheme in the list,
 as it is designed to provide a fallback behavior.
 It can be used directly as follows::

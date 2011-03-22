@@ -31,7 +31,7 @@ import logging; log = logging.getLogger(__name__)
 import os
 #site
 #libs
-from passlib.base import CryptContext
+from passlib.context import CryptContext
 #pkg
 #local
 __all__ = [

@@ -11,7 +11,7 @@ existing applications. *It should not be used* for any other purpose.
 
 Usage
 =====
-This class is mainly useful only for plugging into a :class:`passlib.base.CryptContext`.
+This class is mainly useful only for plugging into a :class:`~passlib.context.CryptContext`.
 When used, it should always be the last scheme in the list,
 as it will recognize all hashes.
 It can be used directly as follows::

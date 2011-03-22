@@ -34,7 +34,7 @@ The `optional informational attributes`_
 
 Usage
 =====
-While most uses of PassLib are done through a :class:`~passlib.base.CryptContext` class,
+While most uses of PassLib are done through a :class:`~passlib.context.CryptContext` class,
 the various :class:`!PasswordHash` classes can be used directly to manipulate
 passwords::
 

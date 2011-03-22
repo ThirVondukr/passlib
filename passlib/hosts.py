@@ -3,7 +3,7 @@
 #imports
 #=========================================================
 #pkg
-from passlib.base import CryptContext
+from passlib.context import CryptContext
 #local
 __all__ = [
     "default_context",

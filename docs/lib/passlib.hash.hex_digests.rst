@@ -14,7 +14,7 @@ PassLib provides wrappers for few of the common hashes.
 Usage
 =====
 These classes all wrap the underlying hashlib implementations,
-and are mainly useful only for plugging them into a :class:`passlib.base.CryptContext`.
+and are mainly useful only for plugging them into a :class:`~passlib.context.CryptContext`.
 However, they can be used directly as follows::
 
     >>> from passlib.hash import hex_sha1 as hs

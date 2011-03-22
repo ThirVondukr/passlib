@@ -19,7 +19,7 @@ NOTE:
 #import proxy object, and replace this module with it.
 #this should cause any import commands to return that object,
 #not this module
-from passlib.base import _proxy
+from passlib.registry import _proxy
 import sys
 sys.modules['passlib.hash'] = _proxy
 del sys, _proxy

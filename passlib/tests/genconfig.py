@@ -15,7 +15,7 @@ import time
 import sys
 #site
 #pkg
-from passlib.base import get_crypt_handler
+from passlib.registry import get_crypt_handler
 #local
 log = logging.getLogger(__name__)
 #=========================================================

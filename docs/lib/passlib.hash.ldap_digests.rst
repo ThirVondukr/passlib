@@ -17,7 +17,7 @@ are very insecure, and should not be used except when required.
 Usage
 =====
 These classes all wrap the underlying hashlib implementations,
-and are mainly useful only for plugging them into a :class:`passlib.base.CryptContext`.
+and are mainly useful only for plugging them into a :class:`~passlib.context.CryptContext`.
 However, they can be used directly as follows::
 
     >>> from passlib.hash import ldap_salted_md5 as lsm

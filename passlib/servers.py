@@ -7,7 +7,7 @@ import platform
 import logging; log = logging.getLogger(__name__)
 #site
 #libs
-from passlib.base import CryptContext
+from passlib.context import CryptContext
 #pkg
 #local
 __all__ = [

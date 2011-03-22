@@ -1,8 +1,11 @@
 =============================================
-:mod:`passlib.base` - Crypt Contexts
+:mod:`passlib.context` - CryptContext class
 =============================================
 
-.. module:: passlib.base
+.. module:: passlib.context
+
+The :mod:`!passlib.base` module contains a number of core
+
 
 .. autoclass:: CryptContext
 

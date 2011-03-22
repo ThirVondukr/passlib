@@ -10,7 +10,7 @@ import random
 #pkg
 #module
 from passlib import utils
-from passlib.base import CryptContext
+from passlib.context import CryptContext
 from passlib.utils import h64, des, Undef
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option

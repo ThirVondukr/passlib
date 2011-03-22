@@ -52,7 +52,7 @@ deprecated schemes, hashes using strong schemes but weak individual configuratio
 and other border cases.
 
 PassLib provides an advanced support framework, based around
-the :doc:`CryptContext <lib/passlib.base>` class, which takes care of
+the :doc:`CryptContext <lib/passlib.context>` class, which takes care of
 many of these issues. Each :class:`!CryptContext` instance can be configured
 with a list of known hashes, as well as configuration of policy requirements
 such as which hash is the default, which ones are deprecated, and other features.
