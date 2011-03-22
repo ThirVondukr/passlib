@@ -1,4 +1,4 @@
-"""passlib.drivers.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
+"""passlib.handlers.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
 
 .. warning::
 
@@ -26,7 +26,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.drivers import ExtHash
+from passlib.utils.handlers import ExtHash
 #pkg
 #local
 __all__ = [

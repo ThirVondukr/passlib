@@ -1,4 +1,4 @@
-"""passlib.drivers.sha2_crypt - SHA256/512-CRYPT"""
+"""passlib.handlers.sha2_crypt - SHA256/512-CRYPT"""
 #=========================================================
 #imports
 #=========================================================
@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.drivers import BackendExtHash
+from passlib.utils.handlers import BackendExtHash
 #pkg
 #local
 __all__ = [

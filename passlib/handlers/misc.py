@@ -1,4 +1,4 @@
-"""passlib.drivers.misc - misc generic drivers
+"""passlib.handlers.misc - misc generic handlers
 """
 #=========================================================
 #imports
@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 #pkg
 #local
 __all__ = [

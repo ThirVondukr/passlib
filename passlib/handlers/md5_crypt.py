@@ -1,4 +1,4 @@
-"""passlib.drivers.md5_crypt - md5-crypt algorithm"""
+"""passlib.handlers.md5_crypt - md5-crypt algorithm"""
 #=========================================================
 #imports
 #=========================================================
@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.drivers import ExtHash, BackendExtHash
+from passlib.utils.handlers import ExtHash, BackendExtHash
 #pkg
 #local
 __all__ = [

@@ -11,7 +11,7 @@ import warnings
 #site
 #pkg
 from passlib.utils import rng, getrandstr
-from passlib.utils.drivers import BackendExtHash, ExtHash, BaseHash
+from passlib.utils.handlers import BackendExtHash, ExtHash, BaseHash
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
 #module
 log = getLogger(__name__)

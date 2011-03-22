@@ -1,4 +1,4 @@
-"""passlib.drivers.digests - plain hash digests
+"""passlib.handlers.digests - plain hash digests
 """
 #=========================================================
 #imports
@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils.md4 import md4
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 #pkg
 #local
 __all__ = [

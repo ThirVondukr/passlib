@@ -1,4 +1,4 @@
-"""passlib.drivers.oracle - Oracle DB Password Hashes"""
+"""passlib.handlers.oracle - Oracle DB Password Hashes"""
 #=========================================================
 #imports
 #=========================================================
@@ -13,7 +13,7 @@ from warnings import warn
 #pkg
 from passlib.utils import xor_bytes
 from passlib.utils.des import des_encrypt_block
-from passlib.utils.drivers import ExtHash
+from passlib.utils.handlers import ExtHash
 #local
 __all__ = [
     "oracle10g",

@@ -15,7 +15,7 @@ from passlib.tests.utils import HandlerCase, create_backend_case, enable_option
 #=========================================================
 #apr md5 crypt
 #=========================================================
-from passlib.drivers.md5_crypt import apr_md5_crypt
+from passlib.handlers.md5_crypt import apr_md5_crypt
 class AprMd5CryptTest(HandlerCase):
     handler = apr_md5_crypt
 
@@ -32,7 +32,7 @@ class AprMd5CryptTest(HandlerCase):
 #=========================================================
 #bcrypt
 #=========================================================
-from passlib.drivers.bcrypt import bcrypt
+from passlib.handlers.bcrypt import bcrypt
 
 class BCryptTest(HandlerCase):
     handler = bcrypt
@@ -76,7 +76,7 @@ class BCryptTest(HandlerCase):
     #where os_crypt is missing or doesn't support bcrypt
     if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
         def test_backend(self):
-            from passlib.drivers import bcrypt as bcrypt_mod
+            from passlib.handlers import bcrypt as bcrypt_mod
             orig = bcrypt_mod.os_crypt
             bcrypt_mod.os_crypt = bcrypt_mod.pybcrypt_hashpw
             orig = bcrypt.get_backend()
@@ -104,7 +104,7 @@ OsCrypt_BCryptTest = create_backend_case(BCryptTest, "os_crypt")
 #=========================================================
 #bigcrypt
 #=========================================================
-from passlib.drivers.des_crypt import bigcrypt
+from passlib.handlers.des_crypt import bigcrypt
 
 class BigCryptTest(HandlerCase):
     handler = bigcrypt
@@ -127,7 +127,7 @@ class BigCryptTest(HandlerCase):
 #=========================================================
 #bsdi crypt
 #=========================================================
-from passlib.drivers.des_crypt import bsdi_crypt
+from passlib.handlers.des_crypt import bsdi_crypt
 
 class BSDiCryptTest(HandlerCase):
     "test BSDiCrypt algorithm"
@@ -147,7 +147,7 @@ class BSDiCryptTest(HandlerCase):
 #=========================================================
 #crypt16
 #=========================================================
-from passlib.drivers.des_crypt import crypt16
+from passlib.handlers.des_crypt import crypt16
 
 class Crypt16Test(HandlerCase):
     handler = crypt16
@@ -168,7 +168,7 @@ class Crypt16Test(HandlerCase):
 #=========================================================
 #des crypt
 #=========================================================
-from passlib.drivers.des_crypt import des_crypt
+from passlib.handlers.des_crypt import des_crypt
 
 class DesCryptTest(HandlerCase):
     "test des-crypt algorithm"
@@ -198,7 +198,7 @@ BuiltinDesCryptTest = create_backend_case(DesCryptTest, "builtin")
 #=========================================================
 #hex digests
 #=========================================================
-from passlib.drivers import digests
+from passlib.handlers import digests
 
 class HexMd4Test(HandlerCase):
     handler = digests.hex_md4
@@ -223,7 +223,7 @@ class HexSha512Test(HandlerCase):
 #=========================================================
 #ldap hashes
 #=========================================================
-from passlib.drivers import ldap_digests
+from passlib.handlers import ldap_digests
 
 class LdapMd5Test(HandlerCase):
     handler = ldap_digests.ldap_md5
@@ -252,7 +252,7 @@ class LdapClearTextTest(HandlerCase):
 #=========================================================
 #md5 crypt
 #=========================================================
-from passlib.drivers.md5_crypt import md5_crypt, raw_md5_crypt
+from passlib.handlers.md5_crypt import md5_crypt, raw_md5_crypt
 class Md5CryptTest(HandlerCase):
     handler = md5_crypt
 
@@ -278,7 +278,7 @@ BuiltinMd5CryptTest = create_backend_case(Md5CryptTest, "builtin")
 #=========================================================
 #mysql 323 & 41
 #=========================================================
-from passlib.drivers.mysql import mysql323, mysql41
+from passlib.handlers.mysql import mysql323, mysql41
 
 class Mysql323Test(HandlerCase):
     handler = mysql323
@@ -310,7 +310,7 @@ class Mysql41Test(HandlerCase):
 #=========================================================
 #NTHASH for unix
 #=========================================================
-from passlib.drivers.nthash import nthash
+from passlib.handlers.nthash import nthash
 
 class NTHashTest(HandlerCase):
     handler = nthash
@@ -341,7 +341,7 @@ class NTHashTest(HandlerCase):
 #=========================================================
 #oracle 10 & 11
 #=========================================================
-from passlib.drivers.oracle import oracle10, oracle11
+from passlib.handlers.oracle import oracle10, oracle11
 
 class Oracle10Test(HandlerCase):
     handler = oracle10
@@ -411,7 +411,7 @@ class Oracle11Test(HandlerCase):
 #=========================================================
 #PHPass Portable Crypt
 #=========================================================
-from passlib.drivers.phpass import phpass
+from passlib.handlers.phpass import phpass
 
 class PHPassTest(HandlerCase):
     handler = phpass
@@ -443,7 +443,7 @@ class PHPassTest(HandlerCase):
 #=========================================================
 #plaintext
 #=========================================================
-from passlib.drivers.misc import plaintext
+from passlib.handlers.misc import plaintext
 
 class PlaintextTest(HandlerCase):
     handler = plaintext
@@ -460,7 +460,7 @@ class PlaintextTest(HandlerCase):
 #=========================================================
 #postgres_md5
 #=========================================================
-from passlib.drivers.postgres import postgres_md5
+from passlib.handlers.postgres import postgres_md5
 
 class PostgresMD5CryptTest(HandlerCase):
     handler = postgres_md5
@@ -523,7 +523,7 @@ class PostgresMD5CryptTest(HandlerCase):
 #=========================================================
 # (netbsd's) sha1 crypt
 #=========================================================
-from passlib.drivers.sha1_crypt import sha1_crypt
+from passlib.handlers.sha1_crypt import sha1_crypt
 
 class SHA1CryptTest(HandlerCase):
     handler = sha1_crypt
@@ -544,7 +544,7 @@ class SHA1CryptTest(HandlerCase):
 #=========================================================
 #sha256-crypt
 #=========================================================
-from passlib.drivers.sha2_crypt import sha256_crypt, raw_sha_crypt
+from passlib.handlers.sha2_crypt import sha256_crypt, raw_sha_crypt
 
 class SHA256CryptTest(HandlerCase):
     handler = sha256_crypt
@@ -611,7 +611,7 @@ BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 #=========================================================
 #test sha512-crypt
 #=========================================================
-from passlib.drivers.sha2_crypt import sha512_crypt
+from passlib.handlers.sha2_crypt import sha512_crypt
 
 class SHA512CryptTest(HandlerCase):
     handler = sha512_crypt
@@ -674,7 +674,7 @@ BuiltinSHA512CryptTest = create_backend_case(SHA512CryptTest, "builtin")
 #=========================================================
 #sun md5 crypt
 #=========================================================
-from passlib.drivers.sun_md5_crypt import sun_md5_crypt, raw_sun_md5_crypt
+from passlib.handlers.sun_md5_crypt import sun_md5_crypt, raw_sun_md5_crypt
 
 class SunMD5CryptTest(HandlerCase):
     handler = sun_md5_crypt
@@ -696,7 +696,7 @@ class SunMD5CryptTest(HandlerCase):
 #=========================================================
 #unix fallback
 #=========================================================
-from passlib.drivers.misc import unix_fallback
+from passlib.handlers.misc import unix_fallback
 
 class UnixFallbackTest(HandlerCase):
     #NOTE: this class behaves VERY differently from a normal password hash,

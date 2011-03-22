@@ -1,4 +1,4 @@
-"""passlib.drivers.phpass - PHPass Portable Crypt
+"""passlib.handlers.phpass - PHPass Portable Crypt
 
 phppass located - http://www.openwall.com/phpass/
 algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
@@ -16,7 +16,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.drivers import ExtHash
+from passlib.utils.handlers import ExtHash
 #pkg
 #local
 __all__ = [

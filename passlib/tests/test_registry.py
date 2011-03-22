@@ -15,7 +15,7 @@ import sys
 from passlib import hash, registry
 from passlib.registry import register_crypt_handler, register_crypt_handler_path, \
     get_crypt_handler, list_crypt_handlers
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 #module
 log = getLogger(__name__)

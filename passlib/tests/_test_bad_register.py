@@ -1,7 +1,7 @@
 "helper for method in test_registry.py"
 
 from passlib.registry import register_crypt_handler
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 
 class dummy_bad(BaseHash):
     name = "dummy_bad"

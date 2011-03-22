@@ -1,4 +1,4 @@
-"""passlib.drivers.nthash - unix-crypt compatible nthash passwords"""
+"""passlib.handlers.nthash - unix-crypt compatible nthash passwords"""
 #=========================================================
 #imports
 #=========================================================
@@ -9,7 +9,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils.md4 import md4
-from passlib.utils.drivers import ExtHash
+from passlib.utils.handlers import ExtHash
 #pkg
 #local
 __all__ = [

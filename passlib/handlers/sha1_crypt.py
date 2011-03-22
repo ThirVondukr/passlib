@@ -1,4 +1,4 @@
-"""passlib.drivers.sha1_crypt
+"""passlib.handlers.sha1_crypt
 """
 
 #=========================================================
@@ -14,7 +14,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.drivers import ExtHash
+from passlib.utils.handlers import ExtHash
 from passlib.utils.pbkdf2 import hmac_sha1
 #pkg
 #local

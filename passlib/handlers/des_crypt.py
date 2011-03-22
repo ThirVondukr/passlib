@@ -1,4 +1,4 @@
-"""passlib.drivers.des_crypt - traditional unix (DES) crypt and variants
+"""passlib.handlers.des_crypt - traditional unix (DES) crypt and variants
 
 .. note::
 
@@ -59,7 +59,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, classproperty, os_crypt
-from passlib.utils.drivers import BackendExtHash, ExtHash
+from passlib.utils.handlers import BackendExtHash, ExtHash
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local

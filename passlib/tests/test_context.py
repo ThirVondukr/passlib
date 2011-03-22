@@ -14,10 +14,10 @@ import sys
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
-from passlib.drivers.md5_crypt import md5_crypt as AnotherHash
-from passlib.tests.test_utils_drivers import UnsaltedHash, SaltedHash
+from passlib.handlers.md5_crypt import md5_crypt as AnotherHash
+from passlib.tests.test_utils_handlers import UnsaltedHash, SaltedHash
 #module
 log = getLogger(__name__)
 

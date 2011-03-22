@@ -25,7 +25,7 @@ except ImportError:
 from nose.plugins.skip import SkipTest
 #pkg
 from passlib.utils import classproperty
-from passlib.utils.drivers import BaseHash, ExtHash, BackendExtHash
+from passlib.utils.handlers import BaseHash, ExtHash, BackendExtHash
 #local
 __all__ = [
     #util funcs
@@ -203,11 +203,11 @@ class TestCase(unittest.TestCase):
 #other unittest helpers
 #=========================================================
 class HandlerCase(TestCase):
-    """base class for testing password hash drivers (esp passlib.utils.drivers.BaseHash subclasses)
+    """base class for testing password hash handlers (esp passlib.utils.handlers.BaseHash subclasses)
 
     .. todo::
         write directions on how to use this class.
-        for now, see examples in test_drivers
+        for now, see examples in test_handlers
     """
     #=========================================================
     #attrs to be filled in by subclass for testing specific handler

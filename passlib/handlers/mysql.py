@@ -1,10 +1,10 @@
-"""passlib.drivers.mysql
+"""passlib.handlers.mysql
 
 MySQL 3.2.3 / OLD_PASSWORD()
 
     This implements Mysql's OLD_PASSWORD algorithm, introduced in version 3.2.3, deprecated in version 4.1.
 
-    See :mod:`passlib.drivers.mysql_41` for the new algorithm was put in place in version 4.1
+    See :mod:`passlib.handlers.mysql_41` for the new algorithm was put in place in version 4.1
 
     This algorithm is known to be very insecure, and should only be used to verify existing password hashes.
 
@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils.drivers import BaseHash
+from passlib.utils.handlers import BaseHash
 #local
 __all__ = [
     'mysql323',

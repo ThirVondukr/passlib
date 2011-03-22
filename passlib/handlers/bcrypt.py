@@ -22,7 +22,7 @@ except ImportError: #pragma: no cover - though should run whole suite w/o pybcry
     pybcrypt_hashpw = None
 #libs
 from passlib.utils import os_crypt, classproperty
-from passlib.utils.drivers import BackendExtHash
+from passlib.utils.handlers import BackendExtHash
 
 #TODO: make this a lazy import, generally don't want to load it.
 ##from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt

@@ -6,11 +6,11 @@ NOTE:
   which lazy-loads hashes as requested.
 
   the actually implementations of hashes (at least, those built into passlib)
-  are stored in the passlib.drivers subpackage.
+  are stored in the passlib.handlers subpackage.
 """
 
 #NOTE: could support 'non-lazy' version which just imports
-# all drivers known to list_crypt_handlers()
+# all schemes known to list_crypt_handlers()
 
 #=========================================================
 #import special proxy object as 'passlib.hash' module

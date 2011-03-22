@@ -1,4 +1,4 @@
-"""passlib.drivers.postgres_md5 - MD5-based algorithm used by Postgres for pg_shadow table"""
+"""passlib.handlers.postgres_md5 - MD5-based algorithm used by Postgres for pg_shadow table"""
 #=========================================================
 #imports
 #=========================================================

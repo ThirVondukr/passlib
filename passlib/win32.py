@@ -18,7 +18,7 @@ this module provided two functions to aid in any use-cases which exist.
 .. autofunction:: raw_lmhash
 .. autofunction:: raw_nthash
 
-See also :mod:`passlib.drivers.nthash`.
+See also :mod:`passlib.hash.nthash`.
 """
 #=========================================================
 #imports
