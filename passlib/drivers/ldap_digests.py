@@ -162,6 +162,8 @@ class ldap_cleartext(BaseHash):
 
     @classmethod
     def genhash(cls, secret, hash):
+        if hash is not None and not cls.identify(hash):
+            raise ValueError, "not a valid ldap_cleartext hash"
         if secret is None:
             raise TypeError, "secret must be string"
         if isinstance(secret, unicode):

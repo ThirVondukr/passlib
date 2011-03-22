@@ -223,25 +223,29 @@ class HexSha512Test(HandlerCase):
 #=========================================================
 #ldap hashes
 #=========================================================
-from passlib.drivers import ldap
+from passlib.drivers import ldap_digests
 
 class LdapMd5Test(HandlerCase):
-    handler = ldap.ldap_md5
+    handler = ldap_digests.ldap_md5
     known_correct_hashes = [ ("helloworld", '{MD5}/F4DjTilcDIIVEHn/nAQsA==')]
 
 class LdapSha1Test(HandlerCase):
-    handler = ldap.ldap_sha1
+    handler = ldap_digests.ldap_sha1
     known_correct_hashes = [ ("helloworld", '{SHA}at+xg6SiyUovktq1redipHiJpaE=')]
 
 class LdapSaltedMd5Test(HandlerCase):
-    handler = ldap.ldap_salted_md5
+    handler = ldap_digests.ldap_salted_md5
     known_correct_hashes = [ ("testing1234", '{SMD5}UjFY34os/pnZQ3oQOzjqGu4yeXE=')]
 
 class LdapSaltedSha1Test(HandlerCase):
-    handler = ldap.ldap_salted_sha1
+    handler = ldap_digests.ldap_salted_sha1
     known_correct_hashes = [ ("testing123", '{SSHA}0c0blFTXXNuAMHECS4uxrj3ZieMoWImr'),
             ("secret", "{SSHA}0H+zTv8o4MR4H43n03eCsvw1luG8LdB7"),
             ]
+
+class LdapClearTextTest(HandlerCase):
+    handler = ldap_digests.ldap_cleartext
+    known_correct_hashes = [ ("password", '{CLEARTEXT}password') ]
 
 # helloworld -> '{CRYPT}dQ58WW.1980Ig'
 

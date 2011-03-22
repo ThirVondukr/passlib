@@ -598,7 +598,7 @@ class CryptContextTest(TestCase):
 
     def test_10_genconfig_settings(self):
         "test genconfig() honors policy settings"
-        cc = CryptContext(**self.sample_policy_1)
+        cc = CryptContext(policy=None, **self.sample_policy_1)
 
         # hash specific settings
         self.assertEquals(
