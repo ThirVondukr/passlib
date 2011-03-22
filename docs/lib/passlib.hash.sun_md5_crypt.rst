@@ -50,7 +50,7 @@ An alternate format, :samp:`$md5${salt}${checksum}` is used when the rounds valu
 Algorithm
 =========
 The algorithm used is based around the MD5 message digest and the "Muffett Coin Toss" algorithm (so named
-by one of the creators).
+by one of the creators [#mct]_ ).
 
 1. Given a password, the number of rounds, and a salt string.
 
@@ -58,18 +58,20 @@ by one of the creators).
    and the configuration string (using the format :samp:`$md5,rounds={rounds}${salt}`).
 
 3. for rounds+4096 iterations, a new digest is created:
-    - ``MuffetCoinToss(rounds, previous digest)`` is called, resulting in a 0 or 1.
-    - if it results in a 1, the next digest is the MD5 of: the previous digest, concatenated with a constant
-      data string, along with the current iteration number as an ascii string.
-    - otherwise, the same operation is performed, except that magic constant data is not included.
+    i. a buffer is initialized, containing the previous round's MD5 digest (for the first round,
+       the digest from step 2 is used).
+    ii. ``MuffetCoinToss(rounds, previous digest)`` is called, resulting in a 0 or 1.
+    iii. If step 3.ii results in a 1, a constant data string is added to the buffer;
+         if the result is a 0, the string is not added for this round.
+         The constant data string is a 1517 byte excerpt from Hamlet [#f2]_
+         (``To be, or not to be...all my sins remember'd.\n``),
+         including an appended null character.
+
+    iv. the current round as an integer (zero-indexed) is converted to a string (not zero-padded) and added to the buffer.
+    v. the output for this round is the MD5 digest of the buffer's contents.
 
 4. The final checksum is then encoded into :mod:`hash64 <passlib.hash.h64>` format using the same
    transposed byte order that :class:`~passlib.hash.md5_crypt` uses.
-
-.. note::
-    The constant data string used in step 3 is a 1517 byte excerpt from Hamlet [#f2]_
-    (``To be, or not to be...all my sins remember'd.\n``),
-    including an appended null character.
 
 Muffet Coin Toss
 ----------------
@@ -145,6 +147,6 @@ it may have other bugs and deviations from the correct behavior.
 
 References
 ==========
-.. [#] Overview of & motivations for the algorithm - `<http://dropsafe.crypticide.com/article/1389>`_
+.. [#mct] Overview of & motivations for the algorithm - `<http://dropsafe.crypticide.com/article/1389>`_
 
 .. [#f2] The source of Hamlet's speech, used byte-for-byte as the constant data - `<http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt>`_

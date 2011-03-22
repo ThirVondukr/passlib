@@ -167,7 +167,7 @@ class _CommonFile(object):
 #htpasswd editing
 #=========================================================
 #FIXME: apr_md5_crypt technically the default only for windows, netware and tpf.
-#TODO: find out if htpasswd's "crypt" mode is crypt *call* or des_crypt implementation.
+#TODO: find out if htpasswd's "crypt" mode is crypt *call* or just des_crypt implementation.
 htpasswd_context = CryptContext([
     "apr_md5_crypt", #man page notes supported everywhere, default on Windows, Netware, TPF
     "des_crypt", #man page notes server does NOT support this on Windows, Netware, TPF

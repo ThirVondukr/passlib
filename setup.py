@@ -52,6 +52,8 @@ to integrating full-strength password hashing for multi-user application.
         "Topic :: Software Development :: Libraries",
     ],
     zip_safe=True,
+
+    test_suite = 'nose.collector',
 )
 #=========================================================
 #EOF

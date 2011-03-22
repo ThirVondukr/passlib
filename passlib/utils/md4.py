@@ -4,10 +4,22 @@ used for NTHASH format, which is also insecure and broken,
 since it's just md4(password)
 
 implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
+
 """
+
+#TODO: check for libssl support via hashlib.new("md4"),
+
+#=========================================================================
+#imports
+#=========================================================================
+#core
 from binascii import hexlify
 import struct
-
+#local
+__all__ = [ "md4" ]
+#=========================================================================
+#utils
+#=========================================================================
 def F(x,y,z):
     return (x&y) | ((~x) & z)
 
@@ -19,10 +31,9 @@ def G(x,y,z):
 
 MASK_32 = 2**32-1
 
-##digest_size = digestsize = 16
-##def new(content=None):
-##    return md4(content)
-
+#=========================================================================
+#main class
+#=========================================================================
 class md4(object):
     """pep-247 compatible implementation of MD4 hash algorithm
 
@@ -210,3 +221,10 @@ class md4(object):
 
     def hexdigest(self):
         return hexlify(self.digest())
+    #=========================================================================
+    #eoc
+    #=========================================================================
+
+#=========================================================================
+#eof
+#=========================================================================

@@ -48,29 +48,28 @@ Interface
 =========
 .. autoclass:: oracle10()
 
-Format
-======
-Oracle10 hashes all consist of a series of 16 hexidecimal digits,
-representing the resulting checksum.
-
 .. rst-class:: html-toggle
 
-Algorithm
-=========
-Oracle10 hashes are formed by:
+Format & Algorithm
+==================
+Oracle10 hashes all consist of a series of 16 hexidecimal digits,
+representing the resulting checksum.
+Oracle10 hashes can be formed by the following procedure:
 
 1. Concatenate the username and password together.
 2. Convert the result to upper case
-3. Encoding the result in a multi-byte format [#enc]_ such that ascii characters (eg: ``user``) are represented
-   with additional null bytes inserted (eg: ``\x00u\x00s\x00e\x00r``).
-4. Right-pad the result with null bytes to bring the size to an integer multiple of 8.
+3. Encoding the result in a multi-byte format [#enc]_ such that ascii characters (eg: ``USER``) are represented
+   with additional null bytes inserted (eg: ``\x00U\x00S\x00E\x00R``).
+4. Right-pad the result with null bytes, to bring the total size to an integer multiple of 8.
    this is the final input string.
-5. The input string is then encoded using DES-CBC,
-   using the key ``\x01\x23\x45\x67\x89\xAB\xCD\xEF``,
-   and a null initialization vector.
-6. The input string is then run through DES-CBC a second time,
-   using the last block of ciphertext from step 5
-   as the key for the second round.
+5. The input string is then encoded using DES in CBC mode.
+   The string ``\x01\x23\x45\x67\x89\xAB\xCD\xEF`` is used as the DES key,
+   and a block of null bytes is used as the CBC initialization vector.
+   All but the last block of ciphertext is discarded.
+6. The input string is then run through DES-CBC a second time;
+   this time the last block of ciphertext from step 5 is used as the DES key,
+   a block of null bytes is still used as the CBC initialization vector.
+   All but the last block of ciphertext is discarded.
 7. The last block of ciphertext of step 6 is converted
    to a hexdecimal string, and returned as the checksum.
 
@@ -96,21 +95,20 @@ implementation in unknown ways, as there is no official documentation.
 There is only one known issue:
 
 * Unicode Policy
+
   Lack of testing (and test vectors) leaves it unclear
   as to how Oracle 11g handles passwords containing non-7bit ascii.
-
   In order to provide support for unicode strings,
   PassLib will encode unicode passwords using ``utf-16-be``
   before running them through Oracle11.
   This behavior may be altered in the future, if further testing
   reveals another behavior is more in line with the official representation.
-
   This note applies as well to any provided username,
   as they are run through the same policy.
 
 References
 ==========
-.. [#enc] The exact encoded used in the algorithm is not clear from known references (see below).
+.. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references (see below).
 
 .. [#] Description of Oracle10g and Oracle11g algorithms -
        `<http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/>`_.

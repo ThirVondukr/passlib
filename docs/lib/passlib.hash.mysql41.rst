@@ -18,7 +18,7 @@ used by MySQL, and is still in active use under MySQL 5.
 
 Usage
 =====
-Users will most likely find the frontends provided by :mod:`passlib.sqldb`
+Users will most likely find the frontends provided by :mod:`passlib.servers`
 to be more useful than accessing this class directly.
 That aside, this class can be used in the same manner
 as :class:`~passlib.hash.mysql323`.

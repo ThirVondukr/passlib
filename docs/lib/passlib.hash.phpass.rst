@@ -1,5 +1,5 @@
 ==================================================================
-:class:`passlib.hash.phpass` - PHPass Portable Hash
+:class:`passlib.hash.phpass` - PHPass' Portable Hash
 ==================================================================
 
 .. currentmodule:: passlib.hash

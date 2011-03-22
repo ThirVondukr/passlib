@@ -1,15 +1,13 @@
-"""passlib.unix
-"""
+"""passlib.hosts"""
 #=========================================================
 #imports
 #=========================================================
 #pkg
 from passlib.base import CryptContext
-from passlib.utils.drivers import CryptHandler
 #local
 __all__ = [
     "default_context",
-    "linux_context",
+    "linux_context", "linux2_context",
     "bsd_context",
         "openbsd_context",
         "netbsd_context",
@@ -33,7 +31,7 @@ __all__ = [
 #referencing linux shadow...
 # linux - des,md5, sha256, sha512
 
-linux_context = CryptContext([ "sha512_crypt", "sha256_crypt", "md5_crypt", "des_crypt", "unix_fallback" ])
+linux_context = linux2_context = CryptContext([ "sha512_crypt", "sha256_crypt", "md5_crypt", "des_crypt", "unix_fallback" ])
 
 #referencing source via -http://fxr.googlebit.com
 # freebsd 6,7,8 - des, md5, bcrypt, nthash

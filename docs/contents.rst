@@ -12,8 +12,8 @@ Table Of Contents
     lib/passlib.hash
     lib/passlib.base
     lib/passlib.apache
-    lib/passlib.sqldb
-    lib/passlib.unix
+    lib/passlib.hosts
+    lib/passlib.servers
     lib/passlib.utils
 
     history

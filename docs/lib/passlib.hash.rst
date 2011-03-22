@@ -90,5 +90,6 @@ mainly for legacy compatibility purposes.
     :maxdepth: 1
 
     passlib.hash.hex_digests
+    passlib.hash.ldap_digests
     passlib.hash.plaintext
     passlib.hash.unix_fallback

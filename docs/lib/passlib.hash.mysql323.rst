@@ -19,7 +19,7 @@ hash algorithm was introduced (see :class:`~passlib.hash.mysql41`).
 
 Usage
 =====
-Users will most likely find the frontends provided by :mod:`passlib.sqldb`
+Users will most likely find the frontends provided by :mod:`passlib.servers`
 to be more useful than accessing this class directly.
 That aside, this class can be used as follows::
 

@@ -36,7 +36,7 @@ Usage
 =====
 While most uses of PassLib are done through a :class:`~passlib.base.CryptContext` class,
 the various :class:`!PasswordHash` classes can be used directly to manipulate
-passwords:
+passwords::
 
     >>> # for example, the SHA256-Crypt class:
     >>> from passlib.hash import sha256_crypt as sc

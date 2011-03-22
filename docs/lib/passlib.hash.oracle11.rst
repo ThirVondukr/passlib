@@ -56,7 +56,7 @@ An oracle11 hash string has the format :samp:`S:{checksum}{salt}`, where:
 
 The Oracle 11 hash has a very simple algorithm: The salt is decoded
 from it's hexidecimal representation into binary, and the SHA-1 digest
-of :samp:`{password}+{raw_salt}` is then encoded into hexidecimal, and returned as the checksum.
+of :samp:`{password}{raw_salt}` is then encoded into hexidecimal, and returned as the checksum.
 
 Deviations
 ==========
@@ -65,13 +65,12 @@ implementation in unknown ways, as there is no official documentation.
 There is only one known issue:
 
 * Unicode Policy
+
   Lack of testing (and test vectors) leaves it unclear
   as to how Oracle 11g handles passwords containing non-7bit ascii.
-
   In order to provide support for unicode strings,
   PassLib will encode unicode passwords using ``utf-8``
   before running them through Oracle11.
-
   This behavior may be altered in the future, if further testing
   reveals another behavior is more in line with the official representation.
 

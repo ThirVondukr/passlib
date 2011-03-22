@@ -1,9 +1,9 @@
 ============================================
-:mod:`passlib.unix` - Unix Password Handling
+:mod:`passlib.hosts` - OS Password Handling
 ============================================
 
-.. module:: passlib.unix
-    :synopsis: frontend for encrypting & verifying passwords on unix systems
+.. module:: passlib.hosts
+    :synopsis: frontend for encrypting & verifying passwords on various operating systems.
 
 Contexts
 ========
@@ -29,10 +29,11 @@ tailor to the hashes supported on various unix systems.
 
 .. note::
 
-    The above contexts will also recognize password hashes
+    All of the above contexts will also recognize password hashes
     of the form ``!`` or ``*`` as belonging to a special
-    ``unix-disabled`` handler, whose ``verify()`` method
-    always returns ``False``.
+    :class:`unix_fallback` handler, whose ``verify()`` method
+    will return ``False`` for these strings, treating them as disabled.
+    This same handler will also recognize an empty string as being a wildcard password.
 
 Usage
 =====
