@@ -8,7 +8,7 @@ PassLib is a library for encrypting, verifying, and managing password hashes.
 It supports over 20 current and historical password hash schemes.
 It can be used for a variety of purposes:
 
-* cross-platform replacement for stdlib's ``crypt()``.
+* cross-platform replacement for stdlib's :func:`!crypt`.
 * encrypting & verifying most known hash formats used by:
     - Linux & BSD shadow files
     - Apache htpasswd & htdigest files

@@ -3,7 +3,7 @@
 ============================================
 
 .. module:: passlib.hash
-    :synopsis: package containing all builtin password hashes
+    :synopsis: all password hashes provided by PassLib
 
 This module contains classes implementing each of the password hashes built into
 passlib. As well, any external hashes registered using :func:`register_crypt_handler`

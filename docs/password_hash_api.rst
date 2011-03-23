@@ -26,7 +26,7 @@ The `application interface`_
 The `crypt interface`_
   This consists of the :meth:`~PasswordHash.genconfig`,
   :meth:`~PasswordHash.genhash`. This mimics the standard unix crypt interface,
-  but is usually used directly by applications.
+  but is not usually needed by applications.
 
 The `optional informational attributes`_
   These attributes provide additional information
@@ -100,7 +100,7 @@ Required Informational Attributes
 
     While each class may support a variety of options, each with their own meaning
     and semantics, the following keywords should have the same behavior
-    across all schemes:
+    across all schemes which use them:
 
     ``salt``
         If present, this means the algorithm contains some number of bits of salt
@@ -140,6 +140,15 @@ Required Informational Attributes
     Since most password hashes require no external information,
     this tuple will usually be empty, and references
     to context keywords can be ignored for all but a few classes.
+
+    While each class may support a variety of options, each with their own meaning
+    and semantics, the following keywords should have the same behavior
+    across all schemes which use them:
+
+    ``user``
+
+        If present, the class requires a username be specified whenever
+        performing a hash calculation (eg: postgres_md5 and oracle10).
 
 .. _application-interface:
 
