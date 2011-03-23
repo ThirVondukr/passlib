@@ -136,11 +136,18 @@ def register_crypt_handler_path(name, path):
 def register_crypt_handler(handler, force=False, name=None):
     """register password hash handler.
 
-    this method registers a handler with the internal passlib registry,
+    this method immediately registers a handler with the internal passlib registry,
     so that it will be returned by :func:`get_crypt_handler` when requested.
 
     :arg handler: the password hash handler to register
     :param force: force override of existing handler (defaults to False)
+
+    :raises TypeError:
+        if the specified object does not appear to be a valid handler.
+
+    :raises ValueError:
+        if the specified object's name (or other required attributes)
+        contain invalid values.
 
     :raises KeyError:
         if a (different) handler was already registered with
@@ -188,8 +195,7 @@ def get_crypt_handler(name, default=Undef):
 
     this method looks up a handler for the specified scheme.
     if the handler is not already loaded,
-    it checks if the location of one is known (:func:`register_crypt_handler`)
-    and loads it first.
+    it checks if the location is known, and loads it first.
 
     :arg name: name of handler to return
     :param default: if specified, returns default value if no handler found.
@@ -245,7 +251,12 @@ def get_crypt_handler(name, default=Undef):
         return default
 
 def list_crypt_handlers(loaded_only=False):
-    "return sorted list of all known crypt handler names"
+    """return sorted list of all known crypt handler names.
+
+    :param loaded_only: if ``True``, only returns names of handlers which have actually been loaded.
+
+    :returns: list of names of all known handlers
+    """
     global _handlers, _handler_locations
     names = set(_handlers)
     if not loaded_only:
