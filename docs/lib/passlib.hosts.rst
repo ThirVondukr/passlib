@@ -3,29 +3,65 @@
 ============================================
 
 .. module:: passlib.hosts
-    :synopsis: frontend for encrypting & verifying passwords on various operating systems.
+    :synopsis: encrypting & verifying operating system passwords
 
-Contexts
-========
-This module provides some pre-configured :class:`CryptContext` instances,
-tailor to the hashes supported on various unix systems.
+This module provides :class:`!CryptContext` instances for encrypting & verifying password hashes
+tied to user accounts of various operating systems. It currently
+primarily centered around Linux & BSD unix variants.
+(For details about how to *use* a :class:`!CryptContext` instance,
+see the documentation for the :class:`CryptContext` class itself).
+
+Unix-Specific Contexts
+======================
+
+Interface
+---------
+PassLib provides :class:`!CryptContext` instances
+for the following Unix variants:
 
 .. object:: linux_context
 
-    this should recognize the hashes used on most linux systems:
-    :class:`~passlib.hash.des_crypt`,
-    :class:`~passlib.hash.md5_crypt`,
-    :class:`~passlib.hash.sha256_crypt`, and
-    :class:`~passlib.hash.sha512_crypt` (used as the default).
+    context instance which recognizes hashes used
+    by the majority of Linux distributions.
+    encryption defaults to :class:`!sha512_crypt`.
 
-.. object:: bsd_context
+.. object:: freebsd_context
 
-    this should recognize the hashes used on most bsd systems:
-    :class:`~passlib.hash.des_crypt`,
-    :class:`~passlib.hash.ext_des_crypt`,
-    :class:`~passlib.hash.nthash`,
-    :class:`~passlib.hash.md5_crypt`,
-    :class:`~passlib.hash.bcrypt` (used as the default).
+    context instance which recognizes all hashes used by FreeBSD 8.
+    encryption defaults to :class:`!bcrypt`.
+
+.. object:: netbsd_context
+
+    context instance which recognizes all hashes used by NetBSD.
+    encryption defaults to :class:`!bcrypt`.
+
+.. object:: openbsd_context
+
+    context instance which recognizes all hashes used by OpenBSD.
+    encryption defaults to :class:`!bcrypt`.
+
+.. note::
+
+    Unforunately, there is currently no reliable way to detect
+    the exact policy used on the above systems,
+    so each of the above contexts defaults to using the strongest supported scheme.
+
+Supported Schemes
+-----------------
+The linux and bsd contexts above support the following schemes:
+
+==================================== =========== =========== =========== ===========
+Scheme                               Linux       FreeBSD     NetBSD      OpenBSD
+==================================== =========== =========== =========== ===========
+:class:`~passlib.hash.nthash`                    y
+:class:`~passlib.hash.des_crypt`     y           y           y           y
+:class:`~passlib.hash.bsdi_crypt`                            y           y
+:class:`~passlib.hash.md5_crypt`     y           y           y           y
+:class:`~passlib.hash.bcrypt`                    y           y           y
+:class:`~passlib.hash.sha1_crypt`                            y
+:class:`~passlib.hash.sha256_crypt`  y
+:class:`~passlib.hash.sha512_crypt`  y
+==================================== =========== =========== =========== ===========
 
 .. note::
 
@@ -36,22 +72,54 @@ tailor to the hashes supported on various unix systems.
     This same handler will also recognize an empty string as being a wildcard password.
 
 Usage
-=====
+-----
+A quick usage example, using the :data:`!linux_context` instance::
 
-.. todo::
+    >>> from passlib.hosts import linux_context
+    >>> hash = linux_context.encrypt("password")
+    >>> hash
+    '$6$rounds=31779$X2o.7iqamZ.bAigR$ojbo/zh6sCmUuibhM7lnqR4Vy0aB3xGZXOYVLgtTFgNYiXaTNn/QLUz12lDSTdxJCLXHzsHiWCsaryAlcbAal0'
+    >>> linux_context.verify("password", hash)
+    True
+    >>> linux_context.identify(hash)
+    'sha512_crypt'
+    >>> linux_context.encrypt("password", scheme="des_crypt")
+    '2fmLLcoHXuQdI'
+    >>> linux_context.identify('2fmLLcoHXuQdI')
+    'des_crypt'
 
-    show usage example
+Current-Host Contexts
+=====================
+.. object:: host_context
 
+    PassLib provides this object, which will dynamically be an alias
+    for one of the above context instances (based on ``sys.platform``).
+    This can be used in conjunction with stdlib's :mod:`!spwd` module
+    to verify user passwords on the local system::
+
+        >>> #NOTE/WARNING: this example requires running as root on most systems.
+        >>> import spwd, os
+        >>> from passlib.hosts import host_context
+        >>> hash = spwd.getspnam(os.environ['USER']).sp_pwd
+        >>> host_context.verify("toomanysecrets", hash)
+        True
+
+    On non-unix systems, and unix systems whose platform isn't recognized
+    properly by passlib, this will fall back to a context which
+    recognizes no hash schemes besides :class:`unix_fallback`.
 
 .. _modular-crypt-format:
 
 Modular Crypt Format
 ====================
+
+A side note regarding password hashes beginning with :samp:`${identifier}$`:
+
 A vast majority of the schemes used on unix systems (and supported by this library)
 follow the "Modular Crypt Format", introduced around the time :class:`~passlib.hash.md5_crypt` was developed.
 This scheme allows hashes generates by multiple schemes to co-exist within a database,
-by requiring that all hash string begin with a unique prefix ``$identifier$``;
-where ``identifier`` is a short alphanumeric string globally identifying
+by requiring that all hash string begin with a unique prefix :samp:`${identifier}$`;
+where :samp:`{identifier}` is a short alphanumeric string globally identifying
 hashes generated by that algorithm.
 
 While not part of the specification, most modular crypt -compatible hashes
@@ -66,21 +134,3 @@ this can be violated on some systems if the user intervenes.
 .. note::
     :class:`passlib.hash.des_crypt` and :class:`passlib.hash.bsdi_crypt`
     do not follow this protocol, since they predate it by many years.
-
-OS Format Support
-=================
-The following table details which operating systems
-are known to support which schemes:
-
-==================================== =========== =========== =========== ===========
-Scheme                               Linux       FreeBSD     NetBSD      OpenBSD
-==================================== =========== =========== =========== ===========
-:class:`~passlib.hash.nthash`                    y
-:class:`~passlib.hash.des_crypt`     y           y           y           y
-:class:`~passlib.hash.bsdi_crypt`                            y           y
-:class:`~passlib.hash.md5_crypt`     y           y           y           y
-:class:`~passlib.hash.bcrypt`                    y           y           y
-:class:`~passlib.hash.sha1_crypt`                            y
-:class:`~passlib.hash.sha256_crypt`  y
-:class:`~passlib.hash.sha512_crypt`  y
-==================================== =========== =========== =========== ===========
