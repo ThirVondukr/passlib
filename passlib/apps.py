@@ -61,5 +61,10 @@ mysql_context = mysql4_context #tracks latest mysql version supported
 postgres_context = CryptContext(["postgres_md5"])
 
 #=========================================================
+#phpass
+#=========================================================
+#TODO: support phpass_context (and don't use bcrypt as default if not available)
+
+#=========================================================
 # eof
 #=========================================================
