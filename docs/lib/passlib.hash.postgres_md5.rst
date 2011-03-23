@@ -15,7 +15,7 @@ prior to this PostgreSQL stored it's password in plain text.
 
 Usage
 =====
-Users will most likely find the frontend provided by :mod:`passlib.servers`
+Users will most likely find the frontend provided by :mod:`passlib.apps`
 to be more useful than accessing this class directly.
 That aside, this class can be used directly as follows::
 

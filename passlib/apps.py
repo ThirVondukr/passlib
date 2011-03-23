@@ -1,4 +1,4 @@
-"""passlib.servers"""
+"""passlib.apps"""
 #=========================================================
 #imports
 #=========================================================
@@ -25,18 +25,28 @@ __all__ = [
 _is32 = platform.architecture()[0] == '32bit'
 
 custom_app_context = CryptContext(
+    #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
+
+    #set some useful global options
+    min_verify_time = .125,
+    all__vary_rounds = "10%",
     default="sha256_crypt" if _is32 else "sha512_crypt",
+
+    #set a good starting point for rounds selection
     sha512_crypt__default_rounds = 40000,
     sha256_crypt__default_rounds = 40000,
-    all__vary_rounds = "10%",
+
+    #if the admin user category is selected, make a much stronger hash,
+    admin__sha512_crypt__default_rounds = 80000,
+    admin__sha256_crypt__default_rounds = 80000,
     )
 
 #=========================================================
 #ldap
 #=========================================================
 #TODO: support ldap_crypt
-ldap_context = CryptContext(["ldap_salted_sha1", "ldap_salted_md5", "ldap_sha1", "ldap_md5", "ldap_cleartext" ])
+ldap_context = CryptContext(["ldap_salted_sha1", "ldap_salted_md5", "ldap_sha1", "ldap_md5", "ldap_plaintext" ])
 
 #=========================================================
 #mysql

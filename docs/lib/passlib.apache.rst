@@ -3,6 +3,7 @@
 =============================================
 
 .. module:: passlib.apache
+    :synopsis: reading/writing htpasswd & htdigest files
 
 This module provides utilities for reading and writing Apache's
 htpasswd and htdigest files; though the use of two helper classes.

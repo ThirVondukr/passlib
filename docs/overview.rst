@@ -63,7 +63,7 @@ in order to get users started quickly:
 * The :mod:`passlib.apache` module contains classes
   for managing htpasswd and htdigest files.
 
-* The :mod:`passlib.servers` module contains pre-configured
+* The :mod:`passlib.apps` module contains pre-configured
   instances for managing hashes used by postgres, mysql, and ldap.
 
 * The :mod:`passlib.hosts` module contains pre-configured
@@ -74,7 +74,7 @@ in order to get users started quickly:
 
     For new applications which just need drop-in support for some manner
     of password encryption, so they can secure store passwords
-    and then forget about it, they should see :data:`passlib.servers.custom_app_context`.
+    and then forget about it, they should see :data:`passlib.apps.custom_app_context`.
 
 A quick example of how a password context can be used::
 

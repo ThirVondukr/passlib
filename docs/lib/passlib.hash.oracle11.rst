@@ -42,15 +42,19 @@ Interface
 
 Format & Algorithm
 ==================
-An example oracle11 hash (of the string ``password``)
-is ``'S:4143053633E59B4992A8EA17D2FF542C9EDEB335C886EED9C80450C1B4E6'``.
+An example oracle11 hash (of the string ``password``) is:
+
+    ``'S:4143053633E59B4992A8EA17D2FF542C9EDEB335C886EED9C80450C1B4E6'``
 
 An oracle11 hash string has the format :samp:`S:{checksum}{salt}`, where:
 
 * ``S:`` is the prefix used to identify oracle11 hashes
   (as distinct from oracle10 hashes, which have no constant prefix).
 * :samp:`{checksum}` is 40 hexidecimal characters;
-  encoding a 160-bit checksum (``4143053633E59B4992A8EA17D2FF542C9EDEB335`` in the example).
+  encoding a 160-bit checksum.
+
+  (``4143053633E59B4992A8EA17D2FF542C9EDEB335`` in the example)
+
 * :samp:`{salt}` is 20 hexidecimal characters;
   providing a 80-bit salt (``C886EED9C80450C1B4E6`` in the example).
 
