@@ -145,20 +145,24 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
     _pat = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
     _default_chk = '\x00' * 20
 
-class ldap_cleartext(SimpleHandler):
+class ldap_plaintext(SimpleHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
+
+    This class acts much like the generic :class:`!passlib.hash.plaintext` handler,
+    except that it will identify a hash only if it does NOT begin with the ``{XXX}`` identifier prefix
+    used by RFC2307 passwords.
 
     Unicode passwords will be encoded using utf-8.
     """
-    name = "ldap_cleartext"
+    name = "ldap_plaintext"
     setting_kwds = ()
     context_kwds = ()
 
-    _pat = re.compile(r"^\{CLEARTEXT\}(?P<pwd>.*)$")
+    _2307_pat = re.compile(r"^\{[a-zA-Z0-9-]+\}.*$")
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return bool(hash and not cls._2307_pat.match(hash))
 
     @classmethod
     def genhash(cls, secret, hash):
@@ -168,7 +172,7 @@ class ldap_cleartext(SimpleHandler):
             raise TypeError, "secret must be string"
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return "{CLEARTEXT}" + secret
+        return secret
 
     @classmethod
     def verify(cls, secret, hash):

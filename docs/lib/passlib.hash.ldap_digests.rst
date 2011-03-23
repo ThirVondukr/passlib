@@ -6,9 +6,9 @@
 
 PassLib provides support for a most of the hashes
 used by LDAP, as stored in the :rfc:`2307` format.
-This includes ``{MD5}``, ``{SMD5}``, ``{SHA}``, ``{SSHA}``, and ``{CLEARTEXT}``.
-Many of these schemes (in particular ``{CLEARTEXT}``, ``{MD5}``, and ``{SHA}``)
-are very insecure, and should not be used except when required.
+This includes ``{MD5}``, ``{SMD5}``, ``{SHA}``, ``{SSHA}``.
+Many of these schemes are somewhat to very insecure,
+and should not be used except when required.
 
 .. note::
 
@@ -43,7 +43,7 @@ Interface
 .. autoclass:: ldap_salted_md5()
 .. autoclass:: ldap_sha1()
 .. autoclass:: ldap_salted_sha1()
-.. autoclass:: ldap_cleartext()
+.. autoclass:: ldap_plaintext()
 
 .. rst-class:: html-toggle
 
@@ -88,10 +88,6 @@ ldap_salted_sha1
     An example hash (of ``password``) is ``{SSHA}pKqkNr1tq3wtQqk+UcPyA3HnA2NsU5NJ``.
     After decoding, this results in a raw salt string ``lS\x93I``,
     and a raw SHA1 checksum of ``\xa4\xaa\xa46\xbdm\xab|-B\xa9>Q\xc3\xf2\x03q\xe7\x03c``.
-
-ldap_cleartext
-
-    This hash has the format :samp:`{{CLEARTEXT}}{password}`.
 
 References
 ==========

@@ -243,9 +243,10 @@ class LdapSaltedSha1Test(HandlerCase):
             ("secret", "{SSHA}0H+zTv8o4MR4H43n03eCsvw1luG8LdB7"),
             ]
 
-class LdapClearTextTest(HandlerCase):
-    handler = ldap_digests.ldap_cleartext
-    known_correct_hashes = [ ("password", '{CLEARTEXT}password') ]
+class LdapPlaintextTest(HandlerCase):
+    handler = ldap_digests.ldap_plaintext
+    known_correct_hashes = [ ("password", 'password') ]
+    known_unidentified_hashes = [ "{MD5}fooey" ]
 
 # helloworld -> '{CRYPT}dQ58WW.1980Ig'
 

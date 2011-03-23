@@ -84,7 +84,7 @@ _handler_locations = {
     "hex_sha1":         ("passlib.handlers.digests",     "hex_sha1"),
     "hex_sha256":       ("passlib.handlers.digests",     "hex_sha256"),
     "hex_sha512":       ("passlib.handlers.digests",     "hex_sha512"),
-    "ldap_cleartext":   ("passlib.handlers.ldap_digests","ldap_cleartext"),
+    "ldap_plaintext":   ("passlib.handlers.ldap_digests","ldap_plaintext"),
     "ldap_md5":         ("passlib.handlers.ldap_digests","ldap_md5"),
     "ldap_sha1":        ("passlib.handlers.ldap_digests","ldap_sha1"),
     "ldap_salted_md5":  ("passlib.handlers.ldap_digests","ldap_salted_md5"),
