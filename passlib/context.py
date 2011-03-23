@@ -612,7 +612,13 @@ class CryptContext(object):
                             vr = int(logb(vr*.01*(2**df),2)+.5)
                         else:
                             vr = int(df*vr/100)
-                    rounds = rng.randint(df-vr,df+vr)
+                    lower = df-vr
+                    if mn and lower < mn:
+                        lower = mn
+                    upper = df+vr
+                    if mx and upper > mx:
+                        upper = mx
+                    rounds = rng.randint(lower, upper)
                 else:
                     rounds = df
         if rounds is not None:
@@ -789,8 +795,21 @@ class CryptContext(object):
             delta = mvt + start - end
             if delta > 0:
                 time.sleep(delta)
+            elif delta < 0:
+                #warn app they aren't being protected against timing attacks...
+                warn("CryptContext: verify exceeded min_verify_time: scheme=%r min_verify_time=%r elapsed=%r", handler.name, mvt, end-start)
 
         return result
+
+    #TODO: check this works properly, and expose it to ease requirements for apps to use migration features
+    ##def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
+    ##    ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
+    ##    if not ok:
+    ##        return False, None
+    ##    if self.hash_needs_update(secret, hash, category=category):
+    ##        return True, self.encrypt(secret, **kwds)
+    ##    else:
+    ##        return True, None
 
     #=========================================================
     #eoc
