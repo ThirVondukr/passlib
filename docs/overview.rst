@@ -45,19 +45,17 @@ As a quick example of how a password hash can be used directly::
 
 Password Contexts
 =================
-Direct support of various password schemes is generally not sufficient
-for a mature application, which will frequently have to deal with
-tables of existing password hashes. These tables may contain
-deprecated schemes, hashes using strong schemes but weak individual configurations,
-and other border cases.
+Mature applications frequently have to deal with tables of existing password
+hashes. Over time, they have to migrate to newer and stronger schemes; as well as raise
+the requirements for existing algorithms as more processing power becomes available.
+In this case, directly importing and handling the various schemes
+generally becomes complicated and tedious. For these and similar use-cases,
+the :mod:`passlib.context` module provides the :class:`!CryptContext` class, which handles
+multiple password hash schemes, deprecation of old hashes, and
+many other policy requirements.
 
-PassLib provides an advanced support framework, based around
-the :doc:`CryptContext <lib/passlib.context>` class, which takes care of
-many of these issues. Each :class:`!CryptContext` instance can be configured
-with a list of known hashes, as well as configuration of policy requirements
-such as which hash is the default, which ones are deprecated, and other features.
-
-Building on this, PassLib provides a number of pre-configured :class:`!CryptContext` instances
+In addition to using the class itself, PassLib provides a number of
+pre-configured :class:`!CryptContext` instances
 in order to get users started quickly:
 
 * The :mod:`passlib.apache` module contains classes
@@ -69,6 +67,10 @@ in order to get users started quickly:
 * The :mod:`passlib.hosts` module contains pre-configured
   instances for managing hashes as found in the /etc/shadow files
   on Linux and BSD systems.
+
+* And finally the :mod:`passlib.context` module, which provides
+  the :class:`!CryptContext` class itself, allowing
+  an application to setup the particular configuration it required.
 
 .. note::
 
@@ -100,3 +102,7 @@ The :mod:`passlib.utils` module contains a large number
 of support functions, most of which are only needed when
 are implementing custom password hash schemes. Most users of passlib
 will not need to use this subpackage.
+
+.. todo::
+
+    Add documentation showing how to create custom password hash handlers.

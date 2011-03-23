@@ -284,14 +284,14 @@ admin.sha512_crypt.max_rounds = 40000
     #=========================================================
     #reading
     #=========================================================
-    def test_10_has_handlers(self):
-        "test has_handlers() method"
+    def test_10_has_schemes(self):
+        "test has_schemes() method"
 
         p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assert_(p1.has_handlers())
+        self.assert_(p1.has_schemes())
 
         p3 = CryptPolicy(**self.sample_config_3pd)
-        self.assert_(not p3.has_handlers())
+        self.assert_(not p3.has_schemes())
 
     def test_11_iter_handlers(self):
         "test iter_handlers() method"

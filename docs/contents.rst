@@ -9,6 +9,8 @@ Table Of Contents
     overview
 
     lib/passlib.context
+    lib/passlib.context-interface
+    lib/passlib.context-options
     lib/passlib.apps
     lib/passlib.apache
     lib/passlib.hosts

@@ -93,6 +93,34 @@ class CryptPolicy(object):
 
     .. note::
         Instances of CryptPolicy should be treated as immutable.
+
+    Policy objects can be constructed by the following methods:
+
+    .. method:: (constructor)
+
+        You can specify options directly to the constructor.
+        This accepts dot-seperated keywords such as found in the config file format,
+        but for programmatic convience, it also accepts keys with ``.`` replaced with ``__``,
+        allowing options to be specified programmatically in python.
+
+    .. automethod:: from_path
+    .. automethod:: from_string
+    .. automethod:: from_source
+    .. automethod:: from_sources
+    .. automethod:: replace
+
+    .. automethod:: has_schemes
+    .. automethod:: schemes
+    .. automethod:: iter_handlers
+    .. automethod:: get_handler
+    .. automethod:: get_options
+    .. automethod:: handler_is_deprecated
+    .. automethod:: get_min_verify_time
+
+    .. automethod:: iter_config
+    .. automethod:: to_dict
+    .. automethod:: to_file
+    .. automethod:: to_string
     """
 
     #=========================================================
@@ -100,7 +128,15 @@ class CryptPolicy(object):
     #=========================================================
     @classmethod
     def from_path(cls, path, section="passlib"):
-        "create new policy from specified section of an ini file"
+        """create new policy from specified section of an ini file.
+
+        :arg path: path to ini file
+        :param section: option name of section to read from.
+
+        :raises EnvironmentError: if the file cannot be read
+
+        :returns: new CryptPolicy instance.
+        """
         p = ConfigParser()
         if not p.read([path]):
             raise EnvironmentError, "failed to read config file"
@@ -108,6 +144,13 @@ class CryptPolicy(object):
 
     @classmethod
     def from_string(cls, source, section="passlib"):
+        """create new policy from specified section of an ini-formatted string.
+
+        :arg source: string containing ini-formatted content.
+        :param section: option name of section to read from.
+
+        :returns: new CryptPolicy instance.
+        """
         p = ConfigParser()
         b = StringIO(source)
         p.readfp(b)
@@ -115,7 +158,17 @@ class CryptPolicy(object):
 
     @classmethod
     def from_source(cls, source):
-        "helper which accepts CryptPolicy, filepath, raw string, and returns policy"
+        """create new policy from input.
+
+        :arg source:
+            source may be a dict, CryptPolicy instance, filepath, or raw string.
+
+            the exact type will be autodetected, and the appropriate constructor called.
+
+        :raises TypeError: if source cannot be identified.
+
+        :returns: new CryptPolicy instance.
+        """
         if isinstance(source, cls):
             #NOTE: can just return source unchanged,
             #since we're treating CryptPolicy objects as read-only
@@ -136,7 +189,17 @@ class CryptPolicy(object):
 
     @classmethod
     def from_sources(cls, sources):
-        "create new policy from list of existing policy objects"
+        """create new policy from list of existing policy objects.
+
+        this method takes multiple sources and composites them on top
+        of eachother, returning a single resulting CryptPolicy instance.
+        this allows default policies to be specified, and then overridden
+        on a per-context basis.
+
+        :arg sources: list of sources to build policy from, elements may be any type accepted by :meth:`from_source`.
+
+        :returns: new CryptPolicy instance
+        """
         #check for no sources - should we return blank policy in that case?
         if len(sources) == 0:
             #XXX: er, would returning an empty policy be the right thing here?
@@ -156,7 +219,19 @@ class CryptPolicy(object):
         return cls(**kwds)
 
     def replace(self, *args, **kwds):
-        "return copy of policy, with specified options replaced by new values"
+        """return copy of policy, with specified options replaced by new values.
+
+        this is essentially a convience wrapper around :meth:`from_sources`,
+        except that it always inserts the current policy as the first element
+        in the list.
+
+        this allows easily making minor changes from an existing policy object.
+
+        :param args: optional list of sources as accepted by :meth:`from_sources`.
+        :param kwds: optional specific options to override in the new policy.
+
+        :returns: new CryptPolicy instance
+        """
         sources = [ self ]
         if args:
             sources.extend(args)
@@ -289,17 +364,25 @@ class CryptPolicy(object):
     #=========================================================
     #public interface (used by CryptContext)
     #=========================================================
-    def has_handlers(self):
+    def has_schemes(self):
+        "check if policy supported *any* schemes; returns True/False"
         return len(self._handlers) > 0
 
     def iter_handlers(self):
-        "iterate through all loaded handlers in policy"
+        "iterate through handlers for all schemes in policy"
         return iter(self._handlers)
 
-    def get_handler(self, name=None, category=None, required=False):
-        """given an algorithm name, return algorithm handler which manages it.
+    def schemes(self, resolve=False):
+        "return list of supported schemes; if resolve=True, returns list of handlers instead"
+        if resolve:
+            return list(self._handlers)
+        else:
+            return [h.name for h in self._handlers]
 
-        :arg name: name of algorithm, or ``None``
+    def get_handler(self, name=None, category=None, required=False):
+        """given the name of a scheme, return handler which manages it.
+
+        :arg name: name of scheme, or ``None``
         :param category: optional user category
         :param required: if ``True``, raises KeyError if name not found, instead of returning ``None``.
 
@@ -328,7 +411,13 @@ class CryptPolicy(object):
         return None
 
     def get_options(self, name, category=None):
-        "return dict of options attached to specified hash"
+        """return dict of options for specified scheme
+
+        :arg name: name of scheme, or handler instance itself
+        :param category: optional user category whose options should be returned
+
+        :returns: dict of options for CryptContext internals which are relevant to this name/category combination.
+        """
         if hasattr(name, "name"):
             name = name.name
 
@@ -370,7 +459,7 @@ class CryptPolicy(object):
         return kwds
 
     def handler_is_deprecated(self, name, category=None):
-        "check if algorithm is deprecated according to policy"
+        "check if scheme is marked as deprecated according to this policy; returns True/False"
         if hasattr(name, "name"):
             name = name.name
         dmap = self._deprecated
@@ -382,7 +471,7 @@ class CryptPolicy(object):
             return False
 
     def get_min_verify_time(self, category=None):
-        "return minimal time verify() should run according to policy"
+        "return minimal time that verify() should take, according to this policy"
         mvmap = self._min_verify_time
         if category in mvmap:
             return mvmap[category]
@@ -464,7 +553,7 @@ class CryptPolicy(object):
                     yield format_key(cat, name, opt), value
 
     def to_dict(self, resolve=False):
-        "return as dictionary of keywords"
+        "return policy as dictionary of keywords"
         return dict(self.iter_config(resolve=resolve))
 
     def _write_to_parser(self, parser, section):
@@ -480,7 +569,7 @@ class CryptPolicy(object):
         p.write(stream)
 
     def to_string(self, section="passlib"):
-        "render to INI string"
+        "render to INI string; inverse of from_string() constructor"
         b = StringIO()
         self.to_file(b, section)
         return b.getvalue()
@@ -501,6 +590,7 @@ class CryptPolicy(object):
     #eoc
     #=========================================================
 
+#load the default policy instance setup by passlib, which all CryptContexts inherit by default
 default_policy = CryptPolicy.from_string(resource_string("passlib", "default.cfg"))
 
 #=========================================================
@@ -509,59 +599,22 @@ default_policy = CryptPolicy.from_string(resource_string("passlib", "default.cfg
 class CryptContext(object):
     """Helper for encrypting passwords using different algorithms.
 
-    Different storage contexts (eg: linux shadow files vs openbsd shadow files)
-    may use different sets and subsets of the available algorithms.
-    This class encapsulates such distinctions: it represents an ordered
-    list of algorithms, each with a unique name. It contains methods
-    to verify against existing algorithms in the context,
-    and still encrypt using new algorithms as they are added.
+    :param policy: optionally override the default policy CryptContext starts with before options are added.
+    :param kwds: ``schemes`` and all other keywords are passed to the CryptPolicy constructor.
 
-    Because of all of this, it's basically just a list object.
-    However, it contains some dictionary-like features
-    such as looking up algorithms by name, and it's restriction
-    that no two algorithms in a list share the same name
-    causes it to act more like an "ordered set" than a list.
+    .. attribute:: policy
 
-    In general use, none of this matters.
-    The typical use case is as follows::
+        This exposes the :class:`CryptPolicy` instance
+        which contains the configuration used by this context object.
 
-        >>> from passlib import hash
-        >>> #create a new context that only understands Md5Crypt & BCrypt
-        >>> myctx = hash.CryptContext([ hash.BCrypt, hash.Md5Crypt,  ])
+    .. automethod:: hash_needs_update
+    .. automethod:: identify
+    .. automethod:: encrypt
+    .. automethod:: verify
+    .. automethod:: genconfig
+    .. automethod:: genhash
 
-        >>> #the last one in the list will be used as the default for encrypting...
-        >>> hash1 = myctx.encrypt("too many secrets")
-        >>> hash1
-        '$2a$11$RvViwGZL./LkWfdGKTrgeO4khL/PDXKe0TayeVObQdoew7TFwhNFy'
-
-        >>> #choose algorithm explicitly
-        >>> hash2 = myctx.encrypt("too many secrets", alg="md5-crypt")
-        >>> hash2
-        '$1$E1g0/BY.$gS9XZ4W2Ea.U7jMueBRVA.'
-
-        >>> #verification will autodetect the right hash
-        >>> myctx.verify("too many secrets", hash1)
-        True
-        >>> myctx.verify("too many secrets", hash2)
-        True
-        >>> myctx.verify("too many socks", hash2)
-        False
-
-        >>> #you can also have it identify the algorithm in use
-        >>> myctx.identify(hash1)
-        'bcrypt'
-        >>> #or just return the CryptHandler instance directly
-        >>> myctx.identify(hash1, resolve=True)
-        <passlib.BCrypt object, name="bcrypt">
-
-        >>> #you can get a list of algs...
-        >>> myctx.keys()
-        [ 'md5-crypt', 'bcrypt' ]
-
-        >>> #and get the CryptHandler object by name
-        >>> bc = myctx['bcrypt']
-        >>> bc
-        <passlib.BCrypt object, name="bcrypt">
+    .. automethod:: replace
     """
     #===================================================================
     #instance attrs
@@ -579,7 +632,7 @@ class CryptContext(object):
             policy = CryptPolicy(**kwds)
         elif kwds:
             policy = policy.replace(**kwds)
-        if not policy.has_handlers():
+        if not policy.has_schemes():
             raise ValueError, "at least one scheme must be specified"
         self.policy = policy
 
@@ -589,6 +642,7 @@ class CryptContext(object):
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
     def replace(self, **kwds):
+        "returns new CryptContext with specified options modified from original; similar to CryptPolicy.replace"
         return CryptContext(policy=self.policy.replace(**kwds))
 
     #===================================================================
@@ -647,7 +701,21 @@ class CryptContext(object):
         return settings
 
     def hash_needs_update(self, hash, category=None):
-        """check if hash is allowed by current policy, or if secret should be re-encrypted"""
+        """check if hash is allowed by current policy, or if secret should be re-encrypted.
+
+        the core of CryptContext's support for hash migration:
+
+        this function takes in a hash string, and checks the scheme,
+        number of rounds, and other properties against the current policy;
+        and returns True if the hash is using a deprecated scheme,
+        or is otherwise outside of the bounds specified by the policy.
+        if so, the password should be re-encrypted using ``ctx.encrypt(passwd)``.
+
+        :arg hash: existing hash string
+        :param category: optional user category
+
+        :returns: True/False
+        """
         handler = self.identify(hash, resolve=True, required=True)
         policy = self.policy
 
@@ -681,13 +749,27 @@ class CryptContext(object):
     #password hash api proxy methods
     #===================================================================
     def genconfig(self, scheme=None, category=None, **settings):
-        """Call genconfig() for specified handler"""
+        """Call genconfig() for specified handler
+
+        This wraps the genconfig() method of the appropriate handler
+        (using the default if none other is specified).
+        See the :ref:`password-hash-api` for details.
+
+        The main different between this and calling a handlers' genhash method
+        directly is that this method will add in any policy-specific
+        options relevant for the particular hash.
+        """
         handler = self.policy.get_handler(scheme, category, required=True)
         settings = self._prepare_settings(handler, category, **settings)
         return handler.genconfig(**settings)
 
     def genhash(self, secret, config, scheme=None, category=None, **context):
-        """Call genhash() for specified handler"""
+        """Call genhash() for specified handler.
+
+        This wraps the genconfig() method of the appropriate handler
+        (using the default if none other is specified).
+        See the :ref:`password-hash-api` for details.
+        """
         #NOTE: this doesn't use category in any way, but accepts it for consistency
         if scheme:
             handler = self.policy.get_handler(scheme, required=True)
@@ -743,7 +825,7 @@ class CryptContext(object):
             to guess from the hash string. If no hash string
             is specified, the last algorithm in the list is used.
 
-        :param **kwds:
+        :param \*\*kwds:
             All other keyword options are passed to the algorithm's encrypt method.
             The two most common ones are "keep_salt" and "rounds".
 
@@ -756,14 +838,23 @@ class CryptContext(object):
         return handler.encrypt(secret, **kwds)
 
     def verify(self, secret, hash, scheme=None, category=None, **context):
-        """verify secret against specified hash
+        """verify secret against specified hash.
+
+        This identifies the scheme used by the hash (within this context),
+        and verifies that the specified password matches.
+
+        If the policy specified a min_verify_time, this method
+        will always take at least that amount of time
+        (so as to not reveal legacy entries which use a weak hash scheme).
 
         :arg secret:
-            the secret to encrypt
+            the secret to verify
         :arg hash:
             hash string to compare to
         :param scheme:
             optional force context to use specfic scheme (must be allowed by context)
+
+        :returns: True/False
         """
         #quick checks
         if hash is None:
