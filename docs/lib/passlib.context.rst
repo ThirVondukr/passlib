@@ -13,7 +13,7 @@ Similarly, over time, applications may need to deprecate password schemes
 in favor of newer ones, or raise the number of rounds required
 by existing hashes.
 
-This module provides the :class:`!CryptContext` class, which is designed
+This module provides the :class:`CryptContext` class, which is designed
 to handle (as much as possible) of these tasks for an application.
 Essentially, a :class:`!CryptContext` instance contains a list
 of hash handlers that it should recognize, along with information
@@ -21,17 +21,9 @@ about which ones are deprecated, which is the default,
 and what configuration constraints an application has placed
 on a particular hash.
 
-Since this class contains so many methods and options,
-the documentation for this module is broken up into three
-sections:
-
-* Usage examples (below)
-* Next, documentation of the complete :doc:`CryptContext interface <passlib.context-interface>`.
-* Finally, a comprehensive list of :doc:`CryptContext options <passlib.context-options>`.
-
 Usage
 =====
-To start off with a simple example::
+To start off with a simple example of how to create and use a CryptContext::
 
     >>> from passlib.context import CryptContext
 
@@ -67,8 +59,8 @@ To start off with a simple example::
     >>> myctx.identify(hash1, resolve=True)
     <class 'passlib.handlers.md5_crypt.md5_crypt'>
 
-All of the configuration options for a :class:`!CryptContext` instance
-are stored in a :class:`CryptPolicy` instance accessible through
+If introspection of a :class:`!CryptContext` instance
+is needed, all configuration options are stored in a :class:`CryptPolicy` instance accessible through
 their ``policy`` attribute::
 
     >>> from passlib.context import CryptContext
@@ -81,3 +73,13 @@ their ``policy`` attribute::
     >>> #get the default handler class :
     >>> myctx.policy.get_handler()
     <class 'passlib.handlers.md5_crypt.md5_crypt'>
+
+Interface
+=========
+This details the constructors and methods provided by :class:`!CryptContext`
+and :class:`!CryptPolicy`. A list of all the keyword options accepted by these classes is listed separately
+in :doc:`passlib.context-options`.
+
+.. autoclass:: CryptContext(schemes=None, policy=<default policy>, \*\*kwds)
+
+.. autoclass:: CryptPolicy(\*\*kwds)

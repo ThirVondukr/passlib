@@ -2,48 +2,45 @@
 Copyrights & Licenses
 =====================
 
-Copyright
-=========
-The PassLib library is (c) 2008-2011 `Assurance Technologies, LLC <http://www.assurancetechnologies.com>`_,
-excepting any code noted below as taken from :ref:`third party sources <third-party-software>`.
-Such portions are copyright their respective owners.
+License for PassLib
+===================
+PassLib is available under the BSD license, and is (c) `Assurance Technologies <http://www.assurancetechnologies.com>`_::
 
-License
-=======
-This library is released under the BSD license; we hope you find it useful.
+    Copyright (c) 2008-2011 by Assurance Technologies, LLC.
+    All rights reserved.
 
-::
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
 
-    The PassLib Python Library
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
 
-    Copyright (c) 2008-2011 Assurance Technologies, LLC
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
 
-    Permission to use, copy, modify, and distribute this software for any
-    purpose with or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-.. _third-party-software:
-
-Third Party Software
-====================
-PassLib contains some code taken from various third-party sources, which have their
-own licenses (all of which, it should be noted, are BSD-compatible).
-The following is a list of these sources, their owners, licenses, and the parts
-of PassLib derived from them.
+Licenses for incorporated software
+==================================
+PassLib contains some code derived from the following sources:
 
 jBcrypt
 -------
 `jBCrypt <http://www.mindrot.org/projects/jBCrypt/>`_ is a pure-java
 implementation of OpenBSD's BCrypt algorithm, written by Damien Miller,
-and released under a BSD license.
+and released under a BSD-like license.
 
 :mod:`passlib.utils._slow_bcrypt` is a python translation of this code,
 which is used as a fallback backend for :class:`passlib.hash.bcrypt`
@@ -68,10 +65,9 @@ This is the license and copyright for jBCrypt::
 
 MD5-Crypt
 ---------
-The fallback pure-python implementation contained in :class:`passlib.hash.md5_crypt`
-was derived from the
-`FreeBSD md5-crypt <http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_,
-implementation which was released under the following license::
+The pure-python fallback used by :class:`passlib.hash.md5_crypt` was derived from the original
+`FreeBSD md5-crypt implementation <http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_,
+which is available under the following license::
 
     "THE BEER-WARE LICENSE" (Revision 42):
     <phk@login.dknet.dk> wrote this file.  As long as you retain this notice you
@@ -80,16 +76,11 @@ implementation which was released under the following license::
 
 UnixCrypt.java
 --------------
-`UnixCrypt.java <http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_
-is a pure-java implementation of the historic unix-crypt password hash algorithm.
+The DES utility functions in :mod:`passlib.utils.des` are derived
+from `UnixCrypt.java <http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_,
+a pure-java implementation of the historic unix-crypt password hash algorithm.
 Originally written by Aki Yoshida, and modified by others,
-it was released under a BSD-like license.
-
-The DES utility functions in :mod:`passlib.utils.des` are a descendant of
-this code, after being translated into python. (These are used for des-crypt,
-ext-des-crypt, and nthash support).
-
-This is the license and copyright for UnixCrypt.java::
+it is available under a BSD-like license::
 
     UnixCrypt.java	0.9 96/11/25
     Copyright (c) 1996 Aki Yoshida. All rights reserved.

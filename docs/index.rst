@@ -5,7 +5,7 @@ PassLib |release| documentation
 Introduction
 ============
 PassLib is a library for encrypting, verifying, and managing password hashes.
-It supports over 20 current and historical password hash schemes.
+It supports over 20 different password hash schemes.
 It can be used for a variety of purposes:
 
 * cross-platform replacement for stdlib's :func:`!crypt`.
@@ -21,8 +21,25 @@ It can be used for a variety of purposes:
 Quick Links
 ===========
 
-* See the :doc:`Library Overview <overview>` for more details about passlib.
+.. raw:: html
 
-* See the :doc:`Installation Instructions <install>` to get PassLib installed on your system.
+    <table class="contentstable" align="center">
+    <tr>
+        <td width="50%" valign="top">
+            <p class="biglink">
+                <a class="biglink" href="overview.html">Library Overview</a><br>
+                <span class="linkdescr">describes how PassLib is laid out</span>
+            </p>
 
-* See the :mod:`passlib.hash <passlib.hash>` module for a complete list of supported hash algorithms.
+            <p class="biglink">
+                <a class="biglink" href="install.html">Installation</a><br>
+                <span class="linkdescr">requirements and installation instructions</span>
+            </p>
+
+            <p class="biglink">
+                <a class="biglink" href="lib/passlib.hash.html"><i>passlib.hash</i> module</a><br>
+                <span class="linkdescr">complete list of supported password hash algorithms</span>
+            </p>
+        </td>
+    </tr>
+    </table>

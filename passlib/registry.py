@@ -108,6 +108,9 @@ _handler_locations = {
 #: master regexp for detecting valid handler names
 _name_re = re.compile("^[a-z][_a-z0-9]{2,}$")
 
+#: names which aren't allowed for various reasons (mainly keyword conflicts in CryptContext)
+_forbidden_names = frozenset(["policy", "context", "all", "default", "none"])
+
 #==========================================================
 #registry frontend functions
 #==========================================================
@@ -175,6 +178,10 @@ def register_crypt_handler(handler, force=False, name=None):
         raise ValueError, "name must be lower-case: %r" % (name,)
     if not _name_re.match(name):
         raise ValueError, "invalid characters in name (must be 3+ characters, begin with a-z, and contain only underscore, a-z, 0-9): %r" % (name,)
+    if '__' in name:
+        raise ValueError, "name may not contain double-underscores: %r" % (name,)
+    if name in _forbidden_names:
+        raise ValueError, "that name is not allowed: %r" % (name,)
 
     #check for existing handler
     other = _handlers.get(name)

@@ -1,124 +1,185 @@
+.. _cryptcontext-options:
+
 =============================================
 :mod:`passlib.context` - CryptContext options
 =============================================
 
 .. currentmodule:: passlib.context
 
-Context Configuration Policy
-============================
-.. warning::
+The :class:`CryptContext` accepts a number of keyword options.
+These are divides into the "context options", which affect
+the context instance directly, and the "hash options",
+which affect the context treats a particular type of hash:
 
-    This section's writing and design are still very much in flux.
+Context Options
+===============
+The following keyword options are accepted by both the :class:`CryptContext`
+and :class:`CryptPolicy` constructors, and directly affect the behavior
+of the :class:`!CryptContext` instance itself:
 
-Each CryptContext instance is extremely configuration through a wide range
-of options. All of these options can be specified via the CryptContext
-constructor, or by loading the configuration of a section of an ini file
-(allowing an application's password policy to be specified externally).
+``schemes``
+    List of handler names and/or instances which the CryptContext should recognize.
+    This is usually required.
 
-All configuration options are stored in a CryptPolicy object,
-which can be created in the following ways:
+    For use in INI files, this may also be specified as a single comma-separated string
+    of handler names.
 
-* passing in options as keywords to it's constructor
-* loading options from a section of a :mod:`ConfigParser` ini file.
-* compositing together existing CryptPolicy objects (this allows for default policies, application policies, and run-time policies)
+    Any names specified must be registered globally with PassLib.
 
-Hash Configuration Options
-==========================
-Options for configuring a specific hash take the form of the name of
-``{name}.{option}`` (eg ``sha512_crypt.default_rounds``); where ``{name}`` is usually the name of a password hash,
-and ``{option}`` is one of the options specified below.
-There are a few reserved hash names:
-Any options of the form ``all.{option}`` will be inherited by all hashes
-if they do not have a ``{hash}.{option}`` value overriding the default.
-Any options of the form ``context.{option}`` will be treated as options for the context object itself,
-and not for a specified hash. Any options of the form ``{option}`` are taken to implicitly
-belong to the context, and are treated as if they started with the prefix ``context.``.
-The remaining options -
+    Example: ``schemes=["sha256_crypt", "md5_crypt", "des_crypt"]``.
 
-``context.schemes``
-    comma separated list of the schemes this context should recognize, specified by name.
-    when a context is identifying hashes, it will check each scheme in this list
-    in order. if this value is being specified programmatically,
-    it may also be a python list containing a mixture of names
-    and password hash handler objects.
+``deprecated``
 
-``context.deprecated``
-    comma separated list of the schemes which this context should recognize,
-    generated hashes only if explicitly requested, and for which ``context.hash_needs_update()`` should return ``False``.
-    if not specified, none are considered deprecated.
-    this must be a subset of the names listed in context.schemes
+    List of handler names which should be considered deprecated by the CryptContext.
+    This should be a subset of the names of the handlers listed in schemes.
+    This is optional, if not specified, no handlers will be considered deprecated.
 
-``context.default``
-    the default scheme context should use for generating new hashes.
-    if not specified, the first entry in ``context.schemes`` is used.
+    For use in INI files, this may also be specified as a single comma-separated string
+    of handler names.
 
-``context.min_verify_time``
-    if specified, all ``context.verify()`` calls will take at least this many seconds.
-    if set to an amount larger than the time used by the strongest hash in the system,
-    this prevents an attacker from guessing the strength of particular hashes remotely.
-    (specified in fractional seconds).
+    This is primarily used by :meth:`CryptContext.hash_needs_update` and :meth:`CryptPolicy.handler_is_deprecated`.
+    If the application does not use these methods, this option can be ignored.
 
-``{hash}.min_rounds``, ``{hash}.max_rounds``
+    Example: ``deprecated=["des_crypt"]``.
 
-    place limits on the number of rounds allowed for a specific hash.
+``default``
 
-    * these are configurable per-context limits, hard limits set by algorithm are always applied
-    * if min > max, max will be increased to equal min.
-    * ``context.genconfig()`` or ``config.encrypt()`` - requests outside of these bounds will be clipped.
-    * ``context.hash_needs_update()`` - existing hashes w/ rounds outside of range are not compliant
-    * for hashes which do not have a rounds parameter, these values are ignored.
+    Specifies the name of the default handler to use when encrypting a new password.
+    If no default is specified, the first handler listed in ``schemes`` will be used.
 
-``{hash}.default_rounds``
+    Example: ``default="sha256_crypt"``.
 
-    sets the default number of rounds to use when generating new hashes.
+``min_verify_time``
 
-    * if this value is out side of per-policy min/max, it will be clipped just like user provided value.
-    * ``context.genconfig()`` or ``config.encrypt()`` - if rounds are not provided explicitly, this value will be used.
-    * for hashes which do not have a rounds parameter, this value is ignored.
-    * if not specified, max_rounds is used if available, then min_rounds, then the algorithm default.
+    If specified, all :meth:`CryptContext.verify` calls will take at least this many seconds.
+    If set to an amount larger than the time used by the strongest hash in the system,
+    this prevents an attacker from guessing the strength of particular hashes through timing measurements.
 
-``{hash}.vary_rounds``
+    Specified in integer or fractional seconds.
 
-    [only applies if ``{hash}.default_rounds`` is specified and > 0]
+    Example: ``min_verify_time=0.1``.
 
-    if specified, every time a new hash is created using {hash}/default_rounds for it's rounds value,
-    the actual value used is generated at random, using default_rounds as a hint.
+.. note::
 
-    * integer value - a value will be chosen using the formula ``randint(default_rounds-vary_rounds, default_rounds+vary_rounds)``.
-    * integer value between 0 and 100 with ``%`` suffix - same as above, with integer value equal to ``vary_rounds*default_rounds/100``.
-    * note that if algorithms indicate they use a logarthmic rounds parameter, the percent syntax equation uses ``log(vary_rounds*(2**default_rounds)/100,2)``,
-      to permit a default value to be applicable to all schemes. XXX: this might be a bad / overly complex idea.
+    For symmetry with the format of the hash option keywords (below),
+    all of the above context option keywords may also be specified
+    using the format :samp:`context__{option}` (note double underscores),
+    or :samp:`context.{option}` within INI files.
 
-``{hash}.{setting}``
-    any keys which match the name of a configuration parameter accepted by the hash
-    will be used directly as default values.
+.. note::
 
-    * for security purposes, ``salt`` is *forbidden* from being used in this way.
-    * if ``rounds`` is specified directly, it will override the entire min/max/default_rounds framework.
+    To override context options for a particular :ref:`user category <user-categories>`,
+    use the format :samp:`{category}__context__{option}`,
+    or :samp:`{category}.context.{option}` within an INI file.
 
-``{hash}.{other}``
-    any keys which do not fall under the above categories will be ignored
+Hash Options
+============
+The following keyword options are accepted by both the :class:`CryptContext`
+and :class:`CryptPolicy` constructors, and affect how a :class:`!CryptContext` instance
+treats hashes belonging to a particular hash scheme, as identified by the hash's handler name.
+
+All hash option keywords should be specified using the format :samp:`{hash}__{option}`
+(note double underscores); where :samp:`{hash}` is the name of the hash's handler,
+and :samp:`{option}` is the name of the specific options being set.
+Within INI files, this may be specified using the alternate format :samp:`{hash}.{option}`.
+
+:samp:`{hash}__default_rounds`
+
+    Sets the default number of rounds to use when generating new hashes (via :meth:`CryptContext.encrypt`).
+
+    If not set, this will use max rounds hash option (see below),
+    or fall back to the algorithm-specified default.
+    For hashes which do not support a rounds parameter, this option is ignored.
+
+:samp:`{hash}__vary_rounds`
+
+    if specified along with :samp:`{hash}__default_rounds`,
+    this will cause each new hash created by :meth:`CryptContext.encrypt`
+    to have a rounds value random chosen from the range :samp:`{default_rounds} +/- {vary_rounds}`.
+
+    this may be specified as an integer value, or as a string containing an integer
+    with a percent suffix (eg: ``"10%"``). if specified as a percent,
+    the amount varied will be calculated as a percentage of the :samp:`{default_rounds}` value.
+
+    The default passlib policy sets this to ``"10%"``.
+
+    .. note::
+
+        If this is specified as a percentage, and the hash algorithm
+        uses a logarithmic rounds parameter, the amount varied
+        will be calculated based on the effective number of linear rounds,
+        not the actual rounds value.
+        This allows ``vary_rounds`` to be given a default value for all hashes
+        within a context, and behave sanely for both linear and logarithmic rounds parameters.
+
+:samp:`{hash}__min_rounds`, :samp:`{hash}__max_rounds`
+
+    Place limits on the number of rounds allowed for a specific hash.
+    ``min_rounds`` defaults to 0, ``max_rounds`` defaults to unlimited.
+
+    When encrypting new passwords with the specified hash (via :meth:`CryptContext.encrypt`),
+    the number of rounds will be clipped to these boundaries.
+    When checking for out-of-date hashes (via :meth:`CryptContext.hash_needs_update`),
+    it will flag any whose rounds are outside the range specified as needing to be re-encrypted.
+    For hashes which do not support a rounds parameter, these options are ignored.
+
+    .. note::
+
+        These are configurable per-context limits,
+        they will be clipped by any hard limits set in the hash algorithm itself.
+
+:samp:`{hash}__{setting}`
+
+    Any other option values, which match the name of a parameter listed
+    in the hash algorithm's ``handler.setting_kwds`` attribute,
+    will be passed directly to that hash whenever :meth:`CryptContext.encrypt` is called.
+
+    For security purposes, ``salt`` is *forbidden* from being used in this way.
+
+    If ``rounds`` is specified directly, it will override the entire min/max/default_rounds framework.
+
+.. note::
+
+    Default options which will be applied to all hashes within the context
+    can be specified using the special hash name ``all``. For example, ``all__vary_rounds="10%"``
+    would set the ``vary_rounds`` option to ``"10%"`` for all hashes, unless
+    it was overridden for a specific hash, such as by specifying ``sha256_crypt__vary_rounds="5%"``.
+    This feature is generally only useful for the ``vary_rounds`` hash option.
+
+.. _user-categories:
 
 User Categories
 ===============
-One frequent need is for certain categories of users (eg the root account)
-to have more strigent password requirements than default users.
-PassLib allows this by recognizing options of the format ``{category}.{name}.{option}``,
-and allowing many of it's entry methods to accept an optional ``category`` parameter.
+CryptContext offers an optional feature of "user categories":
 
-When one is specified, any ``{category}.{name}.{option}`` keywords in the configuration
-will override any ``{name}.{option}`` keywords.
+User categories take the form of a string (eg: ``admin`` or ``guest``),
+passed to the CryptContext when one of it's methods is called.
+These may be set by an application to indicate the hash belongs
+to a user account which should be treated according to a slightly
+different set of configuration options from normal user accounts;
+this may involve requiring a stronger hash scheme, a larger
+number of rounds for that scheme, or just a longer verify time.
 
-In order to simplify behavior and implementation, categories cannot override the ``context/schemes`` keyword,
-though they may override the other context keys.
+If an application wishes to use this feature, it all that is needed
+is to prefix the name of any hash or context options with the name
+of the category string it wants to use, and add an additional separator to the keyword:
+:samp:`{category}__{hash}__{option}`` or ``{category}__context__{option}``.
 
-Default Policies
-================
-PassLib defines a library-default policy, updated perodically, providing (hopefully) sensible defaults for the various contexts.
+.. note::
+
+    For implementation & predictability purposes,
+    the context option ``schemes`` cannot be overridden per-category,
+    though all other options are allowed. In most cases,
+    the need to use a different hash for a particular category
+    can instead be acheived by overridden the ``default`` context option.
+
+Default Policy
+==============
+PassLib defines a library-default policy, providing (hopefully) sensible defaults for new contexts.
 When a new CryptContext is created, a policy is generated from it's constructor arguments, which is then composited
 over the library-default policy. You may optionally override the default policy used by overriding the ``policy`` keyword
-of CryptContext. This keyword accepts a single CryptPolicy object or string (which will be treated as an ini file to load);
-it also accepts a list of CryptPolicys and/or strings, which will be composited together along with any constructor options.
+of CryptContext. This default policy object may be imported as :data:`passlib.context.default_policy`,
+or viewed in the source code under ``$SOURCE/passlib/default.cfg``.
 
 Sample Policy File
 ==================
@@ -138,7 +199,30 @@ A sample policy file::
     sha512_crypt.min_rounds = 40000
     bcrypt.min_rounds = 10
 
-    #create a "root" category, which uses bcrypt by default, and has stronger hashes
-    root.context.fallback = bcrypt
-    root.sha512_crypt.min_rounds = 100000
-    root.bcrypt.min_rounds = 13
+    #create a "admin" category, which uses bcrypt by default, and has stronger hashes
+    admin.context.fallback = bcrypt
+    admin.sha512_crypt.min_rounds = 100000
+    admin.bcrypt.min_rounds = 13
+
+And the equivalent as a set of python keyword options::
+
+    dict(
+        #configure what schemes the context supports (note the "context." prefix is implied for these keys)
+        schemes = ["md5_crypt", "sha512_crypt", "bcrypt" ],
+        deprecated = ["md5_crypt"],
+        default = "sha512_crypt",
+        min_verify_time = 0.1,
+
+        #set some common options for all schemes
+        all__vary_rounds = "10%",
+
+        #setup some hash-specific defaults
+        sha512_crypt__min_rounds = 40000,
+        bcrypt__min_rounds = 10,
+
+        #create a "admin" category, which uses bcrypt by default, and has stronger hashes
+        admin__context__fallback = bcrypt
+        admin__sha512_crypt__min_rounds = 100000
+        admin__bcrypt__min_rounds = 13
+    )
+

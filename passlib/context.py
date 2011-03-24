@@ -91,17 +91,16 @@ def parse_policy_items(source):
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
 
-    .. note::
-        Instances of CryptPolicy should be treated as immutable.
+    .. method:: __init__(**options)
 
-    Policy objects can be constructed by the following methods:
+        The CryptPolicy class constructor accepts a dictionary
+        of keywords, which can include all the options
+        listed in the :ref:`cryptcontext-options`.
 
-    .. method:: (constructor)
-
-        You can specify options directly to the constructor.
-        This accepts dot-seperated keywords such as found in the config file format,
-        but for programmatic convience, it also accepts keys with ``.`` replaced with ``__``,
-        allowing options to be specified programmatically in python.
+    Constructors
+    ============
+    In addition to passing in keywords directly,
+    CryptPolicy objects can be constructed by the following methods:
 
     .. automethod:: from_path
     .. automethod:: from_string
@@ -109,6 +108,8 @@ class CryptPolicy(object):
     .. automethod:: from_sources
     .. automethod:: replace
 
+    Introspection
+    =============
     .. automethod:: has_schemes
     .. automethod:: schemes
     .. automethod:: iter_handlers
@@ -117,10 +118,15 @@ class CryptPolicy(object):
     .. automethod:: handler_is_deprecated
     .. automethod:: get_min_verify_time
 
+    Exporting
+    =========
     .. automethod:: iter_config
     .. automethod:: to_dict
     .. automethod:: to_file
     .. automethod:: to_string
+
+    .. note::
+        Instances of CryptPolicy should be treated as immutable.
     """
 
     #=========================================================
@@ -599,22 +605,47 @@ default_policy = CryptPolicy.from_string(resource_string("passlib", "default.cfg
 class CryptContext(object):
     """Helper for encrypting passwords using different algorithms.
 
-    :param policy: optionally override the default policy CryptContext starts with before options are added.
-    :param kwds: ``schemes`` and all other keywords are passed to the CryptPolicy constructor.
+    :param policy:
+        optionally override the default policy CryptContext starts with before options are added.
 
+        If not specified, the new instance will inherit a set of default options (such as rounds, etc)
+        from the passlib default policy (importable as :data:`passlib.context.default_policy`).
+
+        If explicitly set to ``None``, the new instance will not inherit from the default policy,
+        and will contain only the configuration specified by any additional keywords.
+
+        Alternately, a custom CryptPolicy instance can be passed in,
+        which allows loading the policy from a configuration file,
+        combining multiple policies together, and other features.
+
+    :param kwds:
+
+        ``schemes`` and all other keywords are passed to the CryptPolicy constructor,
+        or to :meth:`CryptPolicy.replace`, if a policy has also been specified.
+
+    .. automethod:: replace
+
+    Configuration
+    =============
     .. attribute:: policy
 
         This exposes the :class:`CryptPolicy` instance
         which contains the configuration used by this context object.
 
-    .. automethod:: hash_needs_update
+        This attribute may be written to (replacing it with another CryptPolicy instance),
+        in order to reconfigure a CryptContext while an application is running.
+        However, this should only be done for context instances created by the application,
+        and NOT for context instances provided by PassLib.
+
+    Main Interface
+    ==============
     .. automethod:: identify
     .. automethod:: encrypt
     .. automethod:: verify
-    .. automethod:: genconfig
-    .. automethod:: genhash
 
-    .. automethod:: replace
+    Migration Helpers
+    =================
+    .. automethod:: hash_needs_update
     """
     #===================================================================
     #instance attrs

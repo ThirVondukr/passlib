@@ -4,56 +4,58 @@ Installation
 
 Requirements
 ============
-PassLib currently has no external depedancies besides Python itself:
+* Python 2.5 - 2.7 is required.
 
-    * Python 2.5 or better is required.
+    .. note::
 
-        * PassLib has not been tested with Python 2.4 or earlier,
-          and no guarantees are made about whether PassLib will work with them.
+        PassLib has not been tested with Python 2.4 or earlier,
+        and no guarantees are made about whether PassLib will work with those versions.
 
-    * Python 3.x is **not** yet supported, work is ongoing.
+    .. note::
 
-The following libraries are not required, but will be used if found:
+        Python 3.x is **not** yet supported, work is ongoing.
 
-    stdlib's :mod:`!crypt` module
+* `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ (optional)
 
-        :func:`!crypt()` will be used if present, and if the host
-        OS supports the specific scheme in question. OS support is autodetected
-        for the following schemes: des-crypt,  md5-crypt, bcrypt, sha256-crypt,
-        and sha512-crypt.
+   If installed, pybcrypt will be used to support the BCrypt hash algorithm.
+   This is required if you want to handle BCrypt hashes,
+   and stdlib :mod:`!crypt` does not support BCrypt
+   (which is pretty much all non-BSD systems).
 
-    `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_
+* `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_ (optional)
 
-        If installed, pybcrypt will be used to support the BCrypt hash algorithm.
-        This is required if you want to handle BCrypt hashes,
-        and stdlib :mod:`!crypt` does not support BCrypt
-        (which is pretty much all non-BSD systems).
+   If installed, M2Crypto will be used to accelerate some
+   internal support functions, but it is not required.
 
-    `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
-
-        If installed, M2Crypto will be used to accelerate some
-        internal support functions, but it is not required.
-
-PassLib should be useable on all operating systems.
+PassLib is pure-python, and should be useable on all platforms.
 
 Installing
 ==========
-PassLib can be installed with easy_install / pip, linked/copied into sys.path directly
-from it's source directory, or installed using :samp:`{$SOURCE}/setup.py install`,
-where :samp:`{$SOURCE}` is the path to the PassLib source directory.
-PassLib is pure python, there is nothing to compile or configure.
+To install from source directory using ``setup.py`` (requires Setuptools or Distribute)::
+
+   python setup.py build
+   sudo python setup.py install
+
+To install using easy_install::
+
+   easy_install passlib
+
+To install using pip::
+
+   pip install passlib
 
 Testing
 =======
 PassLib contains a comprehensive set of unittests providing nearly complete coverage.
 All unit tests are contained within the :mod:`passlib.tests` package,
 and are designed to be run using the `Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
-Once PassLib and Nose have been installed::
 
-    # to run the basic tests from the source directory...
+Once PassLib and Nose have been installed, the tests may be run from the source directory::
+
+    # to run the platform-relevant tests...
     nosetests -v passlib/tests
 
-    # to run ALL tests from the source directory...
+    # to run all tests...
     PASSLIB_TESTS="all" nosetests -v passlib/tests
 
 Documentation
@@ -68,7 +70,7 @@ you will need to:
 * install `astdoc <http://www.assurancetechnologies.com/software/astdoc>`_ (a bundle of custom sphinx themes & extensions
   used by Assurance Technologies).
 * download the PassLib source
-* run :samp:`python {$SOURCE}/docs/make.py clean html` (where :samp:`{$SOURCE}` is the path to the PassLib source directory).
+* run :samp:`python docs/make.py clean html`.
 
-Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/docs/_build/html/index.html`
+Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
 to access the PassLib documentation in html format.

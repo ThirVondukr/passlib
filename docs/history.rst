@@ -2,25 +2,36 @@
 Release History
 ===============
 
-2011-01-10 -- version 1.0
+**1.3** (To Be Released)
+
     * first public release
-    * bugfixes
-    * more documentation
+    * documentation completed
+    * 99% unittest coverage
+    * some refactoring and lots of bugfixes
+    * added support for a number of addtional password schemes:
+      bigcrypt, crypt16, sun md5 crypt, nthash, lmhash, oracle10 & 11,
+      phpass, sha1, generic hex digests, ldap digests.
 
-2011-01-05 -- version 0.8
-    * various code cleanups preparing for public release
-    * bsdi-crypt, apr-md5-crypt, and other lesser known schemes added.
-    * documentation added
+**1.2** (2011-01-06)
 
-2009-03-10 -- version 0.7
-    * postgres and mysql hash schemes added.
+    * many bugfixes
+    * global registry added
+    * transitional release for applications using BPS library.
+    * first truly functional release since splitting from BPS library (see below).
 
-2008-10-02 -- version 0.6
+.. note::
+
+    For all previous versions, PassLib did not exist independantly,
+    but as a subpackage of *BPS*, an private & unreleased toolkit library.
+
+**1.0** (2009-12-11)
+
     * CryptContext & CryptHandler framework
+    * added support for: des-crypt, bcrypt (via pybcrypt), postgres, mysql
     * added unit tests
-    * added Unix-Crypt support and pure-python fallback
 
-2008-05-10 -- version 0.5
+**0.5** (2008-05-10)
+
     * initial production version
     * consolidated from code scattered across multiple applications
-    * MD5-Crypt, SHA-256-Crypt, SHA-512-Crypt support
+    * MD5-Crypt, SHA256-Crypt, SHA512-Crypt support
