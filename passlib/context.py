@@ -687,18 +687,26 @@ class CryptContext(object):
             if df is not None:
                 vr = opts.get("vary_rounds")
                 if vr:
-                    if isinstance(vr, str) and vr.endswith("%"):
+                    if isinstance(vr, str):
                         rc = getattr(handler, "rounds_cost", "linear")
-                        vr = int(vr[:-1])
+                        vr = int(vr.rstrip("%"))
                         assert 0 <= vr < 100
-                        if rc == "log2": #let % variance scale the linear number of rounds, not the log rounds cost
-                            vr = int(logb(vr*.01*(2**df),2)+.5)
-                        else:
+                        if rc == "log2":
+                            #let % variance scale the number of actual rounds, not the logarithmic value
+                            df = 2**df
                             vr = int(df*vr/100)
-                    lower = df-vr
+                            lower = int(logb(df-vr,2)+.5) #err on the side of strength - round up
+                            upper = int(logb(df+vr,2))
+                        else:
+                            assert rc == "linear"
+                            vr = int(df*vr/100)
+                            lower = df-vr
+                            upper = df+vr
+                    else:
+                        lower = df-vr
+                        upper = df+vr
                     if mn and lower < mn:
                         lower = mn
-                    upper = df+vr
                     if mx and upper > mx:
                         upper = mx
                     rounds = rng.randint(lower, upper)
