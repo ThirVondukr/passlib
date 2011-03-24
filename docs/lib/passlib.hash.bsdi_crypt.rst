@@ -8,11 +8,8 @@ This algorithm was developed by BSDi for their BSD/OS distribution.
 It's based on :class:`~passlib.hash.des_crypt`, and contains a larger
 salt and a variable number of rounds. This algorithm is also
 known as "Extended DES Crypt".
-
-.. warning::
-
-    This algorithm is weak by modern standards,
-    and should not be used in new applications.
+This algorithm is weak by modern standards,
+and should not be used in new applications.
 
 Usage
 =====

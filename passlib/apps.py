@@ -7,6 +7,7 @@ import platform
 import logging; log = logging.getLogger(__name__)
 #site
 #libs
+from passlib import hash
 from passlib.context import CryptContext
 #pkg
 #local
@@ -64,6 +65,15 @@ postgres_context = CryptContext(["postgres_md5"])
 #phpass
 #=========================================================
 #TODO: support phpass_context (and don't use bcrypt as default if not available)
+
+phpass_context = CryptContext(
+    schemes=["bcrypt", "bsdi_crypt", "phpass",],
+    default="bcrypt" if hash.bcrypt.has_backend() else "bsdi_crypt",
+    )
+
+phpbb3_context = CryptContext(["phpass"], phpass__ident="H")
+
+#TODO: support the drupal phpass variants (see phpass homepage)
 
 #=========================================================
 # eof

@@ -91,11 +91,9 @@ def parse_policy_items(source):
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
 
-    .. method:: __init__(**options)
-
-        The CryptPolicy class constructor accepts a dictionary
-        of keywords, which can include all the options
-        listed in the :ref:`cryptcontext-options`.
+    The CryptPolicy class constructor accepts a dictionary
+    of keywords, which can include all the options
+    listed in the :ref:`list of crypt context options <cryptcontext-options>`.
 
     Constructors
     ============

@@ -190,9 +190,11 @@ class SkeletonTest(TestCase):
         #test all unavailable
         d1._has_backend_b = False
         self.assertRaises(EnvironmentError, d1.set_backend, 'default')
+        self.assertFalse(d1.has_backend())
 
         #test explicit
         d1._has_backend_a = d1._has_backend_b = True
+        self.assertTrue(d1.has_backend())
         d1.set_backend('a')
         self.assertEquals(obj.calc_checksum('s'), 'a')
 

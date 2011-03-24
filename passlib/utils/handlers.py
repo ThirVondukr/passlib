@@ -479,8 +479,14 @@ class MultiBackendHandler(ExtendedHandler):
         return cls._backend or cls.set_backend()
 
     @classmethod
-    def has_backend(cls, name):
+    def has_backend(cls, name=None):
         "check if specified backend is currently available"
+        if name is None:
+            try:
+                cls.set_backend()
+                return True
+            except EnvironmentError:
+                return False
         return getattr(cls, "_has_backend_" + name)
 
     @classmethod

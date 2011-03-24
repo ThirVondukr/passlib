@@ -86,6 +86,24 @@ for handling MySQL user passwords:
 
     This should be used only with MySQL version 3.2.3 - 4.0.
 
+PHPass
+======
+`PHPass <http://www.openwall.com/phpass/>_` is a PHP password hashing library,
+and hashes derived from it are found in a number of PHP applications.
+
+.. object:: phpass_context
+
+    This object following the standard PHPass logic:
+    it supports :class:`~passlib.hash.bcrypt`, :class:`~passlib.hash.bsdi_crypt`,
+    and implements an custom scheme called the "phpass portable hash" :class:`~passlib.hash.phpass` as a fallback.
+
+    BCrypt is used as the default if support is available,
+    otherwise BSDI-Crypt will be used as the default.
+
+.. object:: phpbb3_context
+
+    This object supports phpbb3 password hashes, which use a variant of :class:`~passlib.hash.phpass`.
+
 PostgreSQL
 ==========
 .. object:: postgres_context
