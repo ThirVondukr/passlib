@@ -68,5 +68,3 @@ This implementation of bcrypt differs from others in a few ways:
 References
 ==========
 .. [#f1] `<http://www.usenix.org/event/usenix99/provos/provos_html/>`_ - the bcrypt format specification
-
-.. [#] `<http://www.mindrot.org/projects/jBCrypt/>`_ - java implementation used as reference for PassLib's builtin implementation

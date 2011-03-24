@@ -24,9 +24,6 @@ except ImportError: #pragma: no cover - though should run whole suite w/o pybcry
 from passlib.utils import os_crypt, classproperty
 from passlib.utils.handlers import MultiBackendHandler
 
-#TODO: make this a lazy import, generally don't want to load it.
-##from passlib.utils._slow_bcrypt import raw_bcrypt as slow_raw_bcrypt
-
 #pkg
 #local
 __all__ = [
@@ -65,10 +62,6 @@ class bcrypt(MultiBackendHandler):
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
-
-    #NOTE: the builtin implementation has been disabled,
-    # as it is pure python and about ~500 times slower than pybcrypt.
-##    * a pure python implementation of BCrypt built into passlib.
 
     #=========================================================
     #class attrs
@@ -140,8 +133,6 @@ class bcrypt(MultiBackendHandler):
     #=========================================================
     backends = ("pybcrypt", "os_crypt")
 
-    ##_has_backend_builtin = True
-
     @classproperty
     def _has_backend_pybcrypt(cls):
         return pybcrypt_hashpw is not None
@@ -161,18 +152,6 @@ class bcrypt(MultiBackendHandler):
     @classmethod
     def _no_backends_msg(cls):
         return "no BCrypt backends available - please install pybcrypt for BCrypt support"
-
-    ##@classmethod
-    ##def set_backend(cls, name=None):
-    ##    result = super(bcrypt, cls).set_backend(name)
-    ##    #issue warning if builtin is ever chosen by default
-    ##    # (but if they explicitly ask for it, let it happen)
-    ##    if name != "builtin" and result == "builtin":
-    ##        warn("PassLib's builtin bcrypt is too slow for production use; PLEASE INSTALL pybcrypt")
-    ##    return result
-
-    ##def _calc_checksum_builtin(self, secret):
-    ##    return slow_raw_bcrypt(secret, self.ident, self.salt, self.rounds)
 
     def _calc_checksum_os_crypt(self, secret):
         if isinstance(secret, unicode):

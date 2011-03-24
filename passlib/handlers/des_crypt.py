@@ -227,6 +227,11 @@ class des_crypt(MultiBackendHandler):
 #=========================================================
 #handler
 #=========================================================
+
+#FIXME: phpass code notes that even rounds values should be avoided for BSDI-Crypt,
+# so as not to reveal weak des keys. given the random salt, this shouldn't be
+# a very likely issue anyways, but should do something about default rounds generation anyways.
+
 class bsdi_crypt(ExtendedHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
