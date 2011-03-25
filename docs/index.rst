@@ -46,8 +46,11 @@ Quick Links
 
 Online Resources
 ================
-* **Homepage**:   `<http://code.google.com/p/passlib/>`_.
-* **Downloads**:   `<http://code.google.com/p/downloads/>`_.
-* **PyPI**:       `<http://pypi.python.org/pypi/passlib/>`_.
-* **Docs**:       `<http://packages.python.org/passlib/>`_.
-* **Source**:     `<http://code.google.com/p/passlib/source/>`_
+* **Homepage**:   `<http://code.google.com/p/passlib>`_
+* **Docs**:       `<http://packages.python.org/passlib>`_
+* **Discussion**: `<http://groups.google.com/group/passlib-users>`_
+
+* **Downloads**:   `<http://code.google.com/p/passlib/downloads>`_
+* **PyPI**:       `<http://pypi.python.org/pypi/passlib>`_
+* **Source**:     `<http://code.google.com/p/passlib/source>`_
+
