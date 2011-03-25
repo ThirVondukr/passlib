@@ -200,7 +200,7 @@ class des_crypt(MultiBackendHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return os_crypt and os_crypt("test", "ab") == 'abgOeLfPimXQo'
+        return os_crypt is not None and os_crypt("test", "ab") == 'abgOeLfPimXQo'
 
     def _calc_checksum_builtin(self, secret):
         #forbidding nul chars because linux crypt (and most C implementations) won't accept it either.

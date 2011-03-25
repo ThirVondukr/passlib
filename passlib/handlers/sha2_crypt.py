@@ -321,7 +321,7 @@ class sha256_crypt(MultiBackendHandler):
     @classproperty
     def _has_backend_os_crypt(cls):
         return bool(
-            os_crypt and
+            os_crypt is not None and
             os_crypt("test", "$5$rounds=1000$test") ==
             "$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
             )
@@ -468,7 +468,7 @@ class sha512_crypt(MultiBackendHandler):
     @classproperty
     def _has_backend_os_crypt(cls):
         return bool(
-            os_crypt and
+            os_crypt is not None and
             os_crypt("test", "$6$rounds=1000$test") ==
             "$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
             )

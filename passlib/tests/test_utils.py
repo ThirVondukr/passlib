@@ -11,7 +11,7 @@ import random
 #module
 from passlib import utils
 from passlib.context import CryptContext
-from passlib.utils import h64, des, Undef
+from passlib.utils import h64, des, Undef, sys_bits
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option
 
@@ -412,6 +412,9 @@ class _Pbkdf2BackendTest(TestCase):
         if not self.enable_m2crypto:
             self._orig_EVP = pbkdf2._EVP
             pbkdf2._EVP = None
+        else:
+            #set flag so tests can check for m2crypto presence quickly
+            self.enable_m2crypto = bool(pbkdf2._EVP)
 
     def tearDown(self):
         if not self.enable_m2crypto:
@@ -473,7 +476,7 @@ class _Pbkdf2BackendTest(TestCase):
         self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 'salt', 'x', 16)
 
         #invalid keylen
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 20*(2**32))
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 20*(2**32-1)+1)
 
         #invalid salt type
         self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 5, 1, 10)

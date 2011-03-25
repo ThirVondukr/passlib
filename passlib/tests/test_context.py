@@ -674,16 +674,19 @@ class CryptContextTest(TestCase):
     def test_24_min_verify_time(self):
         cc = CryptContext(["plaintext", "bsdi_crypt"], min_verify_time=.1)
 
+        #plaintext should (in reality) take <.01,
+        #so this test checks mvt makes it take 0.09 - .5
         s = time.time()
         cc.verify("password", "password")
         d = time.time()-s
         self.assertTrue(d>=.09,d)
         self.assertTrue(d<.5)
-
+        
+        #this may take longer, so we just check min
         s = time.time()
         cc.verify("password", '_2b..iHVSUNMkJT.GcFU')
         d = time.time()-s
-        self.assertTrue(d>=.1)
+        self.assertTrue(d>=.09, "mvt=.1, delta=%r" % (d,))
 
     #=========================================================
     #eoc

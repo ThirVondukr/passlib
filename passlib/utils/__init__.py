@@ -7,6 +7,7 @@ from cStringIO import StringIO
 from functools import update_wrapper
 from hashlib import sha256
 import logging; log = logging.getLogger(__name__)
+from math import log as logb
 import os
 import sys
 import random
@@ -39,6 +40,10 @@ __all__ = [
     'getrandbytes',
     'getrandstr',
 ]
+
+#quick check of system's arch
+sys_bits = int(logb(sys.maxsize,2)+1.5)
+assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
 
 #=================================================================================
 #os crypt helpers

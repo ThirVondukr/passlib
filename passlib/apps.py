@@ -3,12 +3,12 @@
 #imports
 #=========================================================
 #core
-import platform
 import logging; log = logging.getLogger(__name__)
 #site
 #libs
 from passlib import hash
 from passlib.context import CryptContext
+from passlib.utils import sys_bits
 #pkg
 #local
 __all__ = [
@@ -23,8 +23,6 @@ __all__ = [
 #=========================================================
 #for quickly bootstrapping new custom applications
 #=========================================================
-_is32 = platform.architecture()[0] == '32bit'
-
 custom_app_context = CryptContext(
     #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
@@ -32,7 +30,7 @@ custom_app_context = CryptContext(
     #set some useful global options
     min_verify_time = .125,
     all__vary_rounds = "10%",
-    default="sha256_crypt" if _is32 else "sha512_crypt",
+    default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
 
     #set a good starting point for rounds selection
     sha512_crypt__default_rounds = 40000,

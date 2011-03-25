@@ -140,7 +140,7 @@ class bcrypt(MultiBackendHandler):
     @classproperty
     def _has_backend_os_crypt(cls):
         return (
-            os_crypt
+            os_crypt is not None
             and
             os_crypt("test", "$2a$04$......................") ==
                 '$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'

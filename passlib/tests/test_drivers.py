@@ -246,7 +246,9 @@ class LdapSaltedSha1Test(HandlerCase):
 class LdapPlaintextTest(HandlerCase):
     handler = ldap_digests.ldap_plaintext
     known_correct_hashes = [ ("password", 'password') ]
-    known_unidentified_hashes = [ "{MD5}fooey" ]
+    known_unidentified_hashes = [ "{FOO}bar" ]
+
+    known_other_hashes = [ ("ldap_md5", "{MD5}/F4DjTilcDIIVEHn/nAQsA==")]
 
 # helloworld -> '{CRYPT}dQ58WW.1980Ig'
 

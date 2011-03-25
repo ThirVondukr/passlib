@@ -139,7 +139,7 @@ class SkeletonTest(TestCase):
 
         #check small & large rounds
         with catch_warnings():
-            warnings.filterwarnings("ignore", ".* does not allow (less|greater) than 1 rounds: .*", UserWarning)
+            warnings.filterwarnings("ignore", ".* does not allow (less|more) than \d rounds: .*", UserWarning)
             self.assertEqual(d1.norm_rounds(0), 1)
             self.assertEqual(d1.norm_rounds(4), 3)
         self.assertRaises(ValueError, d1.norm_rounds, 0, strict=True)
@@ -167,13 +167,20 @@ class SkeletonTest(TestCase):
             backends = ("a", "b")
 
             _has_backend_a = False
-            _has_backend_b = True
+            _has_backend_b = False
 
             def _calc_checksum_a(self, secret):
                 return 'a'
 
             def _calc_checksum_b(self, secret):
                 return 'b'
+
+        #test no backends
+        self.assertRaises(EnvironmentError, d1.set_backend, 'default')
+        self.assertFalse(d1.has_backend())
+
+        #enable 'b' backend
+        d1._has_backend_b = True
 
         #test lazy load
         obj = d1()
@@ -187,13 +194,10 @@ class SkeletonTest(TestCase):
         #test unavailable
         self.assertRaises(ValueError, d1.set_backend, 'a')
 
-        #test all unavailable
-        d1._has_backend_b = False
-        self.assertRaises(EnvironmentError, d1.set_backend, 'default')
-        self.assertFalse(d1.has_backend())
+        #enable 'a' backend also
+        d1._has_backend_a = True
 
         #test explicit
-        d1._has_backend_a = d1._has_backend_b = True
         self.assertTrue(d1.has_backend())
         d1.set_backend('a')
         self.assertEquals(obj.calc_checksum('s'), 'a')

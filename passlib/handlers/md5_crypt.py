@@ -195,7 +195,7 @@ class md5_crypt(MultiBackendHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return os_crypt and os_crypt("test", "$1$test") == '$1$test$pi/xDtU5WFVRqYS6BMU8X/'
+        return os_crypt is not None and os_crypt("test", "$1$test") == '$1$test$pi/xDtU5WFVRqYS6BMU8X/'
 
     def _calc_checksum_builtin(self, secret):
         #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.

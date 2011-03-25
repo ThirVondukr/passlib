@@ -48,6 +48,7 @@ if _EVP:
 #backend
 #=================================================================================
 MAX_BLOCKS = 0xffffffffL #2**32-1
+MAX_HMAC_SHA1_KEYLEN = MAX_BLOCKS*20
 
 def _resolve_prf(prf):
     "resolve prf string or callable -> func & digest_size"
@@ -134,10 +135,15 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
 
     #special case for m2crypto + hmac-sha1
     if prf == "hmac-sha1" and _EVP:
-        try:
-            return _EVP.pbkdf2(secret, salt, rounds, keylen)
-        except OverflowError:
+        #NOTE: doing check here, because M2crypto won't take longs (which this is, under 32bit)
+        if keylen > MAX_HMAC_SHA1_KEYLEN:
             raise ValueError, "key length too long"
+        
+        #NOTE: M2crypto reliably segfaults for me if given keylengths
+        # larger than 40 (crashes at 41 on one system, 61 on another).
+        # so just avoiding it for longer calls.
+        if keylen < 41:
+            return _EVP.pbkdf2(secret, salt, rounds, keylen)
 
     #resolve prf
     encode_block, digest_size = _resolve_prf(prf)
