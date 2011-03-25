@@ -43,3 +43,11 @@ Quick Links
         </td>
     </tr>
     </table>
+
+Online Resources
+================
+* **Homepage**:   `<http://code.google.com/p/passlib/>`_.
+* **Downloads**:   `<http://code.google.com/p/downloads/>`_.
+* **PyPI**:       `<http://pypi.python.org/pypi/passlib/>`_.
+* **Docs**:       `<http://packages.python.org/passlib/>`_.
+* **Source**:     `<http://code.google.com/p/passlib/source/>`_

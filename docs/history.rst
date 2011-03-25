@@ -2,7 +2,7 @@
 Release History
 ===============
 
-**1.3** (To Be Released)
+**1.3** (2011-03-25)
 
     * first public release
     * documentation completed

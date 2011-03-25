@@ -58,19 +58,22 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     # to run all tests...
     PASSLIB_TESTS="all" nosetests -v passlib/tests
 
-Documentation
-=============
-The latest copy of this documentation should always be available
-at the `PassLib homepage <http://www.assurancetechnologies.com/software/passlib>`_.
+..
+    NOTE: commented this out from published manual, until astdoc package is cleaned up
 
-If you wish to generate your own copy of the documentation,
-you will need to:
+    Documentation
+    =============
+    The latest copy of this documentation should always be available
+    online at `<http://packages.python.org/passlib>`_.
 
-* install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-* install `astdoc <http://www.assurancetechnologies.com/software/astdoc>`_ (a bundle of custom sphinx themes & extensions
-  used by Assurance Technologies).
-* download the PassLib source
-* run :samp:`python docs/make.py clean html`.
+    If you wish to generate your own copy of the documentation,
+    you will need to:
 
-Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
-to access the PassLib documentation in html format.
+    * install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
+    * install `astdoc <XXX url not available yet XXX>`_ (a bundle of custom sphinx themes & extensions
+      used by Assurance Technologies).
+    * download the PassLib source
+    * run :samp:`python docs/make.py clean html`.
+
+    Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
+    to access the PassLib documentation in html format.
