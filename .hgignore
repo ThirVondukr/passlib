@@ -3,3 +3,5 @@ glob:*.pyc
 glob:*.egg-info
 glob:.coverage
 glob:cover
+glob:build
+glob:dist
