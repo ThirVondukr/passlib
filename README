@@ -10,7 +10,7 @@ and migrating existing password hashes. It's designed to be useful
 for any task from quickly verifying a hash found in /etc/shadow,
 to providing full-strength password hashing for multi-user application.
 
-The latest documentation can be found online `XXX`.
+The latest documentation can be found online at `<http://packages.python.org/passlib>`_.
 
 Requirements
 -----------
@@ -25,4 +25,5 @@ To install from source using ``setup.py``::
    python setup.py build
    sudo python setup.py install
 
-For more detailed installation & testing instructions, see "docs/install.rst",
+For more detailed installation & testing instructions, see "docs/install.rst".
+For additional online resources, see the bottom of "docs/index.rst".

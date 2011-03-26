@@ -27,7 +27,7 @@ setup(
     url = "http://code.google.com/p/passlib/",
     download_url = "http://code.google.com/p/passlib/downloads/list",
 
-    description = "password hashing library",
+    description = "comprehensive password hashing library supporting over 20 schemes"
     long_description = """\
 PassLib is a password hash library, which provides cross-platform
 implementations of over 20 password hashing algorithms; as well as a framework for managing
