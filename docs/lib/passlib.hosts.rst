@@ -67,7 +67,7 @@ Scheme                               Linux       FreeBSD     NetBSD      OpenBSD
 
     All of the above contexts will also recognize password hashes
     of the form ``!`` or ``*`` as belonging to a special
-    :class:`unix_fallback` handler, whose ``verify()`` method
+    :class:`~passlib.hash.unix_fallback` handler, whose ``verify()`` method
     will return ``False`` for these strings, treating them as disabled.
     This same handler will also recognize an empty string as being a wildcard password.
 
