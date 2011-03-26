@@ -1,3 +1,6 @@
+.. index::
+    single: CryptContext; constructor options
+
 .. _cryptcontext-options:
 
 =============================================
@@ -225,4 +228,3 @@ And the equivalent as a set of python keyword options::
         admin__sha512_crypt__min_rounds = 100000
         admin__bcrypt__min_rounds = 13
     )
-

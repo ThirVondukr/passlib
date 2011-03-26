@@ -30,7 +30,6 @@ sys.path.insert(0, source_root)
 #which contains some sphinx extensions used by passlib
 import cloud_sptheme
 
-
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

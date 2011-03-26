@@ -14,7 +14,7 @@ see the documentation for the :class:`CryptContext` class itself).
 
 Custom Applications
 ===================
-.. object:: custom_app_context
+.. data:: custom_app_context
 
     This :class:`!CryptContext` object is provided for new python applications
     to quickly and easily add password hashing support.
@@ -45,7 +45,7 @@ Custom Applications
 
 LDAP
 ====
-.. object:: ldap_context
+.. data:: ldap_context
 
     This object provides a pre-configured :class:`!CryptContext` instance
     for handling LDAPv2 password hashes. It recognizes all
@@ -70,7 +70,7 @@ MySQL
 This module provides two pre-configured :class:`!CryptContext` instances
 for handling MySQL user passwords:
 
-.. object:: mysql_context
+.. data:: mysql_context
 
     This object should recognize the new :class:`~passlib.hash.mysql41` hashes,
     as well as any legacy :class:`~passlib.hash.mysql323` hashes.
@@ -79,7 +79,7 @@ for handling MySQL user passwords:
 
     This should be used with MySQL version 4.1 and newer.
 
-.. object:: mysql3_context
+.. data:: mysql3_context
 
     This object is for use with older MySQL deploys which only recognize
     the :class:`~passlib.hash.mysql323` hash.
@@ -91,7 +91,7 @@ PHPass
 `PHPass <http://www.openwall.com/phpass/>_` is a PHP password hashing library,
 and hashes derived from it are found in a number of PHP applications.
 
-.. object:: phpass_context
+.. data:: phpass_context
 
     This object following the standard PHPass logic:
     it supports :class:`~passlib.hash.bcrypt`, :class:`~passlib.hash.bsdi_crypt`,
@@ -100,13 +100,13 @@ and hashes derived from it are found in a number of PHP applications.
     BCrypt is used as the default if support is available,
     otherwise BSDI-Crypt will be used as the default.
 
-.. object:: phpbb3_context
+.. data:: phpbb3_context
 
     This object supports phpbb3 password hashes, which use a variant of :class:`~passlib.hash.phpass`.
 
 PostgreSQL
 ==========
-.. object:: postgres_context
+.. data:: postgres_context
 
     This object should recognize password hashes stores in PostgreSQL's ``pg_shadow`` table;
     which are all assumed to follow the :class:`~passlib.hash.postgres_md5` format.

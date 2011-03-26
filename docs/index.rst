@@ -12,11 +12,13 @@ It can be used for a variety of purposes:
 * encrypting & verifying most known hash formats used by:
     - Linux & BSD shadow files
     - Apache htpasswd & htdigest files
-    - MySQL, PostgreSQL, Oracle user account tables
-    - LDAP
-* drop-in password hashing for new python applications.
+    - MySQL, PostgreSQL, and Oracle user account tables
+    - LDAP style password hashes
+* drop-in password hash support for new python applications.
 * building a configurable hashing policy
   for python applications to migrate existing hashing schemes.
+
+See the library overview for usage examples.
 
 Quick Links
 ===========
@@ -53,4 +55,3 @@ Online Resources
 * **Downloads**:   `<http://code.google.com/p/passlib/downloads>`_
 * **PyPI**:       `<http://pypi.python.org/pypi/passlib>`_
 * **Source**:     `<http://code.google.com/p/passlib/source>`_
-

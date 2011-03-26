@@ -19,23 +19,23 @@ Interface
 PassLib provides :class:`!CryptContext` instances
 for the following Unix variants:
 
-.. object:: linux_context
+.. data:: linux_context
 
     context instance which recognizes hashes used
     by the majority of Linux distributions.
     encryption defaults to :class:`!sha512_crypt`.
 
-.. object:: freebsd_context
+.. data:: freebsd_context
 
     context instance which recognizes all hashes used by FreeBSD 8.
     encryption defaults to :class:`!bcrypt`.
 
-.. object:: netbsd_context
+.. data:: netbsd_context
 
     context instance which recognizes all hashes used by NetBSD.
     encryption defaults to :class:`!bcrypt`.
 
-.. object:: openbsd_context
+.. data:: openbsd_context
 
     context instance which recognizes all hashes used by OpenBSD.
     encryption defaults to :class:`!bcrypt`.
@@ -90,7 +90,7 @@ A quick usage example, using the :data:`!linux_context` instance::
 
 Current-Host Contexts
 =====================
-.. object:: host_context
+.. data:: host_context
 
     PassLib provides this object, which will dynamically be an alias
     for one of the above context instances (based on ``sys.platform``).
