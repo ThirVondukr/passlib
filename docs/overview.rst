@@ -76,7 +76,8 @@ in order to get users started quickly:
 
     For new applications which just need drop-in support for some manner
     of password encryption, so they can secure store passwords
-    and then forget about it, they should see :data:`passlib.apps.custom_app_context`.
+    and then forget about it, they should use
+    the :data:`passlib.apps.custom_app_context` object.
 
 A quick example of how a password context can be used::
 

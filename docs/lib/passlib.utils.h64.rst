@@ -24,7 +24,7 @@ and decoding strings in that format.
 
 Constants
 =========
-.. object:: CHARS = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+.. data:: CHARS = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
     The character set used by the Hash-64 format.
     A character's index in CHARS denotes it's corresponding 6-bit integer value.

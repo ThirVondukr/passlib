@@ -1,3 +1,5 @@
+.. index:: password hash api
+
 .. _password-hash-api:
 
 =================
@@ -179,8 +181,9 @@ which scheme a hash belongs to when multiple schemes are in use.
         Common settings keywords include ``salt`` and ``rounds``.
 
     :raises ValueError:
-        * if settings are invalid and not correctable.
-          (eg: provided salt contains invalid characters / length).
+        * if settings are invalid and handler cannot correct them.
+          (eg: a provided salt contains invalid characters / length
+          causes an error, but an out of range rounds value is silently clipped).
 
         * if a context kwd contains an invalid value, or was required
           but omitted.
@@ -188,6 +191,8 @@ which scheme a hash belongs to when multiple schemes are in use.
         * if secret contains forbidden characters (e.g: des-crypt forbids null characters).
           this should rarely occur, since most modern algorithms have no limitations
           on the types of characters.
+
+    :raises TypeError: if :samp:`{secret}` is not a string
 
     :returns:
         Hash string, encoded in algorithm-specific format.
@@ -202,7 +207,7 @@ which scheme a hash belongs to when multiple schemes are in use.
     :returns:
         * ``True`` if input appears to be a hash string belonging to this algorithm.
         * ``True`` if input appears to be a configuration string belonging to this algorithm.
-        * ``False`` if no input is specified
+        * ``False`` if no input is an empty string or ``None``.
         * ``False`` if none of the above conditions was met.
 
     .. note::
@@ -229,6 +234,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         in :attr:`~PasswordHash.context_kwds`.
 
     :raises TypeError:
+
         * if the secret is not a string.
 
     :raises ValueError:

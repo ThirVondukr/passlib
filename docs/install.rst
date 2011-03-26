@@ -31,16 +31,16 @@ PassLib is pure-python, and should be useable on all platforms.
 
 Installing
 ==========
-To install from source directory using ``setup.py`` (requires Setuptools or Distribute)::
+* To install from source directory using ``setup.py`` (requires Setuptools or Distribute)::
 
    python setup.py build
    sudo python setup.py install
 
-To install using easy_install::
+* To install using easy_install::
 
    easy_install passlib
 
-To install using pip::
+* To install using pip::
 
    pip install passlib
 
@@ -59,7 +59,7 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     PASSLIB_TESTS="all" nosetests -v passlib/tests
 
 ..
-    NOTE: commented this out from published manual, until astdoc package is cleaned up
+    NOTE: commented this out from published manual, until cloud theme is cleaned up
 
     Documentation
     =============
@@ -69,11 +69,9 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     If you wish to generate your own copy of the documentation,
     you will need to:
 
-    * install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-    * install `astdoc <XXX url not available yet XXX>`_ (a bundle of custom sphinx themes & extensions
-      used by Assurance Technologies).
-    * download the PassLib source
-    * run :samp:`python docs/make.py clean html`.
-
-    Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
-    to access the PassLib documentation in html format.
+    1. install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
+    2. install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
+    3. download the PassLib source
+    4. from the PassLib source directory, run :samp:`python docs/make.py clean html`.
+    5. Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
+       to access the PassLib documentation in html format.
