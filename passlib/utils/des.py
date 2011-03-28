@@ -64,9 +64,9 @@ RR6_S2 = range(6, -1, -2)
 RR14_S2 = range(14, -1, -2)
 R16_S2 = range(0, 16, 2)
 
-INT_24_MAX = 0xffffffL
-INT_64_MAX = 0xffffffffL
-INT_64_MAX = 0xffffffffffffffffL
+INT_24_MAX = 0xffffff
+INT_64_MAX = 0xffffffff
+INT_64_MAX = 0xffffffffffffffff
 
 #=========================================================
 # static tables for des
@@ -706,13 +706,13 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
         L, R = R, L
 
     C = (
-            ((L>>3) &  0x0f0f0f0f00000000L)
+            ((L>>3) &  0x0f0f0f0f00000000)
             |
-            ((L<<33) & 0xf0f0f0f000000000L)
+            ((L<<33) & 0xf0f0f0f000000000)
             |
-            ((R>>35) & 0x000000000f0f0f0fL)
+            ((R>>35) & 0x000000000f0f0f0f)
             |
-            ((R<<1) &  0x00000000f0f0f0f0L)
+            ((R<<1) &  0x00000000f0f0f0f0)
         )
 
     C = permute(C, CF6464)
