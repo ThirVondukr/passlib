@@ -412,6 +412,79 @@ class Oracle11Test(HandlerCase):
     ]
 
 #=========================================================
+#pbkdf2 hashes
+#=========================================================
+from passlib.handlers import pbkdf2 as pk2
+
+class Pbkdf2Sha1Test(HandlerCase):
+    handler = pk2.pbkdf2_sha1
+    known_correct_hashes = (
+        ("password", '$pbkdf2-sha1$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+            '$pbkdf2-sha1$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
+    )
+
+class Pbkdf2Sha256Test(HandlerCase):
+    handler = pk2.pbkdf2_sha256
+    known_correct_hashes = (
+        ("password",
+            '$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ'
+            ),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+            '$pbkdf2-sha256$1212$3SABFJGDtyhrQMVt1uABPw$WyaUoqCLgvz97s523nF4iuOqZNbp5Nt8do/cuaa7AiI'
+            ),
+    )
+
+class Pbkdf2Sha512Test(HandlerCase):
+    handler = pk2.pbkdf2_sha512
+    known_correct_hashes = (
+        ("password",
+            '$pbkdf2-sha512$1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1'
+            '7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww'
+            ),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+            '$pbkdf2-sha512$1212$KkbvoKGsAIcF8IslDR6skQ$8be/PRmd88Ps8fmPowCJt'
+            'tH9G3vgxpG.Krjt3KT.NP6cKJ0V4Prarqf.HBwz0dCkJ6xgWnSj2ynXSV7MlvMa8Q'
+            ),
+    )
+
+class DlitzPbkdf2Sha1Test(HandlerCase):
+    handler = pk2.dlitz_pbkdf2_sha1
+    known_correct_hashes = (
+        #test vectors from original implementation
+        ('cloadm',  '$p5k2$$exec$r1EWMCMk7Rlv3L/RNcFXviDefYa0hlql'),
+        ('gnu',     '$p5k2$c$u9HvcT4d$Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g'),
+        ('dcl',     '$p5k2$d$tUsch7fU$nqDkaxMDOFBeJsTSfABsyn.PYUXilHwL'),
+        ('spam',    '$p5k2$3e8$H0NX9mT/$wk/sE8vv6OMKuMaqazCJYDSUhWY9YB2J'),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+                    '$p5k2$$KosHgqNo$9mjN8gqjt02hDoP0c2J0ABtLIwtot8cQ'),
+        )
+
+class GrubPbkdf2Sha512Test(HandlerCase):
+    handler = pk2.grub_pbkdf2_sha512
+    known_correct_hashes = (
+        #test vectors generated from cmd line tool
+
+        #salt=32 bytes
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+            'grub.pbkdf2.sha512.10000.BCAC1CEC5E4341C8C511C529'
+            '7FA877BE91C2817B32A35A3ECF5CA6B8B257F751.6968526A'
+            '2A5B1AEEE0A29A9E057336B48D388FFB3F600233237223C21'
+            '04DE1752CEC35B0DD1ED49563398A282C0F471099C2803FBA'
+            '47C7919CABC43192C68F60'),
+
+        #salt=64 bytes
+        ('toomanysecrets',
+            'grub.pbkdf2.sha512.10000.9B436BB6978682363D5C449B'
+            'BEAB322676946C632208BC1294D51F47174A9A3B04A7E4785'
+            '986CD4EA7470FAB8FE9F6BD522D1FC6C51109A8596FB7AD48'
+            '7C4493.0FE5EF169AFFCB67D86E2581B1E251D88C777B98BA'
+            '2D3256ECC9F765D84956FC5CA5C4B6FD711AA285F0A04DCF4'
+            '634083F9A20F4B6F339A52FBD6BED618E527B'),
+
+        )
+
+#=========================================================
 #PHPass Portable Crypt
 #=========================================================
 from passlib.handlers.phpass import phpass

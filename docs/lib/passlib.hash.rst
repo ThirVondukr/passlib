@@ -64,6 +64,7 @@ the modular crypt format.
     passlib.hash.apr_md5_crypt
     passlib.hash.phpass
     passlib.hash.nthash
+    passlib.hash.pbkdf2_digests
 
 Database Schemes
 ----------------

@@ -3,6 +3,7 @@
 #imports
 #=================================================================================
 #core
+from base64 import b64encode, b64decode
 from cStringIO import StringIO
 from functools import update_wrapper
 from hashlib import sha256
@@ -314,6 +315,40 @@ _join = "".join
 def xor_bytes(left, right):
     "perform bitwise-xor of two byte-strings"
     return _join(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+
+#=================================================================================
+#alt base64 encoding
+#=================================================================================
+
+def adapted_b64_encode(data):
+    """encode using variant of base64
+
+    the output of this function is identical to b64_encode,
+    except that it uses ``.`` instead of ``+``,
+    and omits trailing padding ``=`` and whitepsace.
+
+    it is primarily used for by passlib's custom pbkdf2 hashes.
+    """
+    return b64encode(data, "./").strip("=\n")
+
+def adapted_b64_decode(data, sixthree="."):
+    """decode using variant of base64
+
+    the input of this function is identical to b64_decode,
+    except that it uses ``.`` instead of ``+``,
+    and should not include trailing padding ``=`` or whitespace.
+
+    it is primarily used for by passlib's custom pbkdf2 hashes.
+    """
+    off = len(data) % 4
+    if off == 0:
+        return b64decode(data, "./")
+    elif off == 1:
+        raise ValueError, "invalid bas64 input"
+    elif off == 2:
+        return b64decode(data + "==", "./")
+    else:
+        return b64decode(data + "=", "./")
 
 #=================================================================================
 #randomness

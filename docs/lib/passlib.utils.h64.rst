@@ -22,6 +22,8 @@ and decoding strings in that format.
     when in fact bcrypt uses yet another ordering,
     which does not match hash64 or other base64 schemes.
 
+.. _h64charset:
+
 Constants
 =========
 .. data:: CHARS = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
