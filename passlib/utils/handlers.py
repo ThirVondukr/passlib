@@ -13,7 +13,7 @@ import os
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, getrandstr, rng, is_crypt_handler
+from passlib.utils import classproperty, h64, getrandstr, getrandbytes, rng, is_crypt_handler, ALL_BYTE_VALUES
 #pkg
 #local
 __all__ = [
@@ -253,6 +253,17 @@ class ExtendedHandler(SimpleHandler):
         value = cls._has_rounds = 'rounds' in cls.setting_kwds
         return value
 
+    @classproperty
+    def _salt_is_bytes(cls):
+        "helper for detecting if salt kwd uses unencoded bytes string instead of encoding set of specified letters"
+        #FIXME: how we're handling unencoded salts vs encoded salts between diff handlers is a serious mess.
+        # need to clean it all up. for now, there's this property,
+        # to begin sweeping things under the rug.
+        if cls is ExtendedHandler:
+            raise RuntimeError, "not allowed for ExtendedHandler directly"
+        value = cls._salt_is_bytes = cls._has_salt and cls.salt_charset == ALL_BYTE_VALUES
+        return value
+
     #---------------------------------------------------------
     #normalization/validation helpers
     #---------------------------------------------------------
@@ -299,11 +310,16 @@ class ExtendedHandler(SimpleHandler):
         if salt is None:
             if strict:
                 raise ValueError, "no salt specified"
-            return getrandstr(rng, cls.default_salt_charset, cls.default_salt_chars)
+            if cls._salt_is_bytes:
+                return getrandbytes(rng, cls.default_salt_chars)
+            else:
+                return getrandstr(rng, cls.default_salt_charset, cls.default_salt_chars)
 
-        #TODO: run salt_charset tests
-        sc = cls.salt_charset
-        if sc:
+        if cls._salt_is_bytes:
+            if isinstance(salt, unicode):
+                salt = salt.encode("utf-8")
+        else:
+            sc = cls.salt_charset
             for c in salt:
                 if c not in sc:
                     raise ValueError, "invalid character in %s salt: %r"  % (cls.name, c)

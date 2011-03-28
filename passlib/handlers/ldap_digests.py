@@ -10,6 +10,7 @@ import re
 from warnings import warn
 #site
 #libs
+from passlib.utils import ALL_BYTE_VALUES
 from passlib.utils.handlers import ExtendedHandler, SimpleHandler
 #pkg
 #local
@@ -55,7 +56,7 @@ class _SaltedBase64DigestHelper(ExtendedHandler):
     #_pat
     #_default_chk
     min_salt_chars = max_salt_chars = 4
-    salt_charset = ''.join(chr(x) for x in xrange(256))
+    salt_charset = ALL_BYTE_VALUES
 
     @classmethod
     def identify(cls, hash):

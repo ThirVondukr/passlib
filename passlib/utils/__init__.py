@@ -127,6 +127,10 @@ class UndefType(object):
 
 Undef = UndefType() #singleton used as default kwd value in some functions
 
+#special byte string containing all possible byte values, used in a few places.
+#XXX: treated as singleton by some of the code for efficiency.
+ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
+
 #==========================================================
 #protocol helpers
 #==========================================================
