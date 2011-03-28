@@ -661,8 +661,6 @@ class CryptContext(object):
             policy = CryptPolicy(**kwds)
         elif kwds:
             policy = policy.replace(**kwds)
-        if not policy.has_schemes():
-            raise ValueError, "at least one scheme must be specified"
         self.policy = policy
 
     def __repr__(self):

@@ -447,8 +447,13 @@ class CryptContextTest(TestCase):
     def test_02_no_handlers(self):
         "test no handlers"
 
-        self.assertRaises(ValueError, CryptContext, [])
+        #check constructor...
+        cc = CryptContext()
+        self.assertRaises(KeyError, cc.identify, 'hash', required=True)
+        self.assertRaises(KeyError, cc.encrypt, 'secret')
+        self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
+        #check updating policy after the fact...
         cc = CryptContext(['md5_crypt'])
         p = CryptPolicy(schemes=[])
         cc.policy = p
@@ -691,7 +696,7 @@ class CryptContextTest(TestCase):
         d = time.time()-s
         self.assertTrue(d>=.09,d)
         self.assertTrue(d<.5)
-        
+
         #this may take longer, so we just check min
         s = time.time()
         cc.verify("password", '_2b..iHVSUNMkJT.GcFU')
