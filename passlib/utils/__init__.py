@@ -43,11 +43,7 @@ __all__ = [
 ]
 
 #quick check of system's arch
-try:
-    maxsize = sys.maxsize
-except AttributeError: # < py26
-    maxsize = sys.maxint
-sys_bits = int(logb(maxsize,2)+1.5)
+sys_bits = int(logb(sys.maxint,2)+1.5)
 assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
 
 #=================================================================================

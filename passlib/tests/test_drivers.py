@@ -122,7 +122,7 @@ class BigCryptTest(HandlerCase):
     ]
 
     #omit des_crypt from known other, it looks like bigcrypt
-    known_other_hashes = filter(lambda row: row[0] != "des_crypt", HandlerCase.known_other_hashes)
+    known_other_hashes = [row for row in HandlerCase.known_other_hashes if row[0] != "des_crypt"]
 
 #=========================================================
 #bsdi crypt
