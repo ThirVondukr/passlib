@@ -705,11 +705,18 @@ class CryptContext(object):
                     else:
                         lower = df-vr
                         upper = df+vr
+                    if lower < 1:
+                        lower = 1
                     if mn and lower < mn:
                         lower = mn
                     if mx and upper > mx:
                         upper = mx
-                    rounds = rng.randint(lower, upper)
+                    if lower > upper:
+                        #NOTE: this mainly happens when default_rounds>max_rounds, which shouldn't usually happen
+                        rounds = upper
+                        warn("vary default rounds: lower bound > upper bound, using upper bound (%d > %d)" % (lower, upper))
+                    else:
+                        rounds = rng.randint(lower, upper)
                 else:
                     rounds = df
         if rounds is not None:

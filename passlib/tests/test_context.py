@@ -469,6 +469,7 @@ class CryptContextTest(TestCase):
             bsdi_crypt__vary_rounds = 0,
             sha256_crypt__max_rounds = 3000,
             sha256_crypt__min_rounds = 2000,
+            sha256_crypt__default_rounds = 3000,
             nthash__ident = "NT",
     )
 
@@ -586,6 +587,15 @@ class CryptContextTest(TestCase):
         #       outside of min/max range
         # default+vary rounds
         # default+vary % rounds
+
+        #make sure default > max doesn't cause error when vary is set
+        cc2 = cc.replace(sha256_crypt__default_rounds=4000)
+        with catch_warnings():
+            warnings.filterwarnings("ignore", "vary default rounds: lower bound > upper bound.*", UserWarning)
+            self.assertEquals(
+                cc2.encrypt("password", salt="nacl"),
+                '$5$rounds=3000$nacl$oH831OVMbkl.Lbw1SXflly4dW8L3mSxpxDz1u1CK/B0',
+                )
 
     def test_12_hash_needs_update(self):
         "test hash_needs_update() method"
