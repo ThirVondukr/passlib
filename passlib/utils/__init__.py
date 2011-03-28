@@ -259,18 +259,18 @@ def list_to_bytes(value, bytes=None, order="big"):
     """
     #make sure all elements have valid values
     if any( elem < 0 or elem > 255 for elem in value):
-        raise ValueError, "value must be list of integers in range(0,256): %r" % (value,)
+        raise ValueError("value must be list of integers in range(0,256): %r" % (value,))
 
     #validate bytes / upper
     if bytes is None:
         bytes = len(value)
         if bytes == 0:
-            raise ValueError, "empty list not allowed"
+            raise ValueError("empty list not allowed")
     else:
         if bytes < 1:
-            raise ValueError, "bytes must be None or >= 1: %r" % (bytes,)
+            raise ValueError("bytes must be None or >= 1: %r" % (bytes,))
         if len(value) > bytes:
-            raise ValueError, "list too large for number of bytes: bytes=%r len=%r" % (bytes, len(value))
+            raise ValueError("list too large for number of bytes: bytes=%r len=%r" % (bytes, len(value)))
 
     #encode list in big endian mode
     out = ''.join( chr(elem) for elem in value )
@@ -348,7 +348,7 @@ def adapted_b64_decode(data, sixthree="."):
     if off == 0:
         return b64decode(data, "./")
     elif off == 1:
-        raise ValueError, "invalid bas64 input"
+        raise ValueError("invalid bas64 input")
     elif off == 2:
         return b64decode(data + "==", "./")
     else:
@@ -433,10 +433,10 @@ def getrandstr(rng, charset, count):
     """return character string containg *count* number of chars, whose elements are drawn from specified charset, using specified rng"""
     #check alphabet & count
     if count < 0:
-        raise ValueError, "count must be >= 0"
+        raise ValueError("count must be >= 0")
     letters = len(charset)
     if letters == 0:
-        raise ValueError, "alphabet must not be empty"
+        raise ValueError("alphabet must not be empty")
     if letters == 1:
         return charset * count
 

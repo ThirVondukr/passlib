@@ -78,7 +78,7 @@ class _CommonFile(object):
         """
         path = self.path
         if not path:
-            raise RuntimeError, "no load path specified"
+            raise RuntimeError("no load path specified")
         if not force and self.mtime and self.mtime == os.path.getmtime(path):
             return False
         with file(path, "rU") as fh:
@@ -104,7 +104,7 @@ class _CommonFile(object):
     def save(self):
         "save entries to file"
         if not self.path:
-            raise RuntimeError, "no save path specified"
+            raise RuntimeError("no save path specified")
         rl = self._render_line
         entry_order = self._entry_order
         entry_map = self._entry_map
@@ -146,18 +146,18 @@ class _CommonFile(object):
 
     def _validate_user(self, user):
         if len(user) > 255:
-            raise ValueError, "user must be at most 255 characters: %r" % (user,)
+            raise ValueError("user must be at most 255 characters: %r" % (user,))
         ic = self.invalid_chars
         if any(c in ic for c in user):
-            raise ValueError, "user contains invalid characters: %r" % (user,)
+            raise ValueError("user contains invalid characters: %r" % (user,))
         return True
 
     def _validate_realm(self, realm):
         if len(realm) > 255:
-            raise ValueError, "realm must be at most 255 characters: %r" % (realm,)
+            raise ValueError("realm must be at most 255 characters: %r" % (realm,))
         ic = self.invalid_chars
         if any(c in ic for c in realm):
-            raise ValueError, "realm contains invalid characters: %r" % (realm,)
+            raise ValueError("realm contains invalid characters: %r" % (realm,))
         return True
 
     #FIXME: htpasswd doc sez passwords limited to 255 chars under Windows & MPE,

@@ -57,10 +57,10 @@ class Pbkdf2DigestHandler(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         ident = cls._ident
         if not hash.startswith(ident):
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         parts = hash[len(ident):].split("$")
         if len(parts) == 3:
             rounds, salt, chk = parts
@@ -68,10 +68,10 @@ class Pbkdf2DigestHandler(ExtendedHandler):
             rounds, salt = parts
             chk = None
         else:
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         int_rounds = int(rounds)
         if rounds != str(int_rounds): #forbid zero padding, etc.
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         raw_salt = adapted_b64_decode(salt)
         raw_chk = adapted_b64_decode(chk) if chk else None
         return cls(
@@ -194,13 +194,13 @@ class dlitz_pbkdf2_sha1(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid dlitz_pbkdf2_crypt hash"
+            raise ValueError("invalid dlitz_pbkdf2_crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         if rounds.startswith("0"): #zero not allowed, nor left-padded with zeroes
-            raise ValueError, "invalid dlitz_pbkdf2_crypt hash"
+            raise ValueError("invalid dlitz_pbkdf2_crypt hash")
         rounds = int(rounds, 16) if rounds else 400
         return cls(
             rounds=rounds,
@@ -277,10 +277,10 @@ class grub_pbkdf2_sha512(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         ident = cls._ident
         if not hash.startswith(ident):
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         parts = hash[len(ident):].split(".")
         if len(parts) == 3:
             rounds, salt, chk = parts
@@ -288,10 +288,10 @@ class grub_pbkdf2_sha512(ExtendedHandler):
             rounds, salt = parts
             chk = None
         else:
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         int_rounds = int(rounds)
         if rounds != str(int_rounds): #forbid zero padding, etc.
-            raise ValueError, "invalid %s hash" % (cls.name,)
+            raise ValueError("invalid %s hash" % (cls.name,))
         raw_salt = unhexlify(salt)
         raw_chk = unhexlify(chk) if chk else None
         return cls(

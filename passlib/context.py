@@ -45,7 +45,7 @@ def _parse_policy_key(key):
     elif len(parts) == 3:
         cat, name, opt = parts
     else:
-        raise KeyError, "keys must have 0..2 separators: %r" % (orig,)
+        raise KeyError("keys must have 0..2 separators: %r" % (orig,))
     if cat == "default":
         cat = None
     assert name
@@ -77,13 +77,13 @@ def parse_policy_items(source):
         cat, name, opt = _parse_policy_key(key)
         if name == "context":
             if cat and opt == "schemes":
-                raise KeyError, "current code does not support per-category schemes"
+                raise KeyError("current code does not support per-category schemes")
                 #NOTE: forbidding this because it would really complicate the behavior
                 # of CryptContext.identify & CryptContext.lookup.
                 # most useful behaviors here can be had by overridding deprecated and default, anyways.
         else:
             if opt == "salt":
-                raise KeyError, "'salt' option is not allowed to be set via a policy object"
+                raise KeyError("'salt' option is not allowed to be set via a policy object")
                 #NOTE: doing this for security purposes, why would you ever want a fixed salt?
         value = _parse_policy_value(cat, name, opt, value)
         yield cat, name, opt, value
@@ -143,7 +143,7 @@ class CryptPolicy(object):
         """
         p = ConfigParser()
         if not p.read([path]):
-            raise EnvironmentError, "failed to read config file"
+            raise EnvironmentError("failed to read config file")
         return cls(**dict(p.items(section)))
 
     @classmethod
@@ -189,7 +189,7 @@ class CryptPolicy(object):
             else: #other strings should be filepath
                 return cls.from_path(source)
         else:
-            raise TypeError, "source must be CryptPolicy, dict, config string, or file path: %r" % (type(source),)
+            raise TypeError("source must be CryptPolicy, dict, config string, or file path: %r" % (type(source),))
 
     @classmethod
     def from_sources(cls, sources):
@@ -207,7 +207,7 @@ class CryptPolicy(object):
         #check for no sources - should we return blank policy in that case?
         if len(sources) == 0:
             #XXX: er, would returning an empty policy be the right thing here?
-            raise ValueError, "no sources specified"
+            raise ValueError("no sources specified")
 
         #check if only one source
         if len(sources) == 1:
@@ -313,11 +313,11 @@ class CryptPolicy(object):
                 handler = get_crypt_handler(scheme)
             name = handler.name
             if not name:
-                raise TypeError, "handler lacks name: %r" % (handler,)
+                raise TypeError("handler lacks name: %r" % (handler,))
 
             #check name hasn't been re-used
             if name in seen:
-                raise KeyError, "multiple handlers with same name: %r" % (name,)
+                raise KeyError("multiple handlers with same name: %r" % (name,))
             seen.add(name)
 
             #add to handler list
@@ -340,7 +340,7 @@ class CryptPolicy(object):
                 if handlers:
                     for scheme in deps:
                         if scheme not in seen:
-                            raise KeyError, "known scheme in deprecated list: %r" % (scheme,)
+                            raise KeyError("known scheme in deprecated list: %r" % (scheme,))
                 dmap[cat] = frozenset(deps)
 
             #default scheme
@@ -350,7 +350,7 @@ class CryptPolicy(object):
                     if hasattr(fb, "name"):
                         fb = fb.name
                     if fb not in seen:
-                        raise KeyError, "unknown scheme set as default: %r" % (fb,)
+                        raise KeyError("unknown scheme set as default: %r" % (fb,))
                     fmap[cat] = self.get_handler(fb, required=True)
                 else:
                     fmap[cat] = fb
@@ -409,9 +409,9 @@ class CryptPolicy(object):
                 handlers = self._handlers
                 if handlers:
                     return handlers[0]
-                raise KeyError, "no crypt algorithms supported"
+                raise KeyError("no crypt algorithms supported")
         if required:
-            raise KeyError, "no crypt algorithm by that name: %r" % (name,)
+            raise KeyError("no crypt algorithm by that name: %r" % (name,))
         return None
 
     def get_options(self, name, category=None):
@@ -840,7 +840,7 @@ class CryptContext(object):
         #NOTE: this doesn't use category in any way, but accepts it for consistency
         if hash is None:
             if required:
-                raise ValueError, "no hash specified"
+                raise ValueError("no hash specified")
             return None
         handler = None
         for handler in self.policy.iter_handlers():
@@ -851,8 +851,8 @@ class CryptContext(object):
                     return handler.name
         if required:
             if handler is None:
-                raise KeyError, "no crypt algorithms supported"
-            raise ValueError, "hash could not be identified"
+                raise KeyError("no crypt algorithms supported")
+            raise ValueError("hash could not be identified")
         return None
 
     def encrypt(self, secret, scheme=None, category=None, **kwds):

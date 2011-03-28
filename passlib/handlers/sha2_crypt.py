@@ -45,7 +45,7 @@ def raw_sha_crypt(secret, salt, rounds, hash):
 
     #validate salt
     if any(c in salt for c in '\x00$'):
-        raise ValueError, "invalid chars in salt"
+        raise ValueError("invalid chars in salt")
     if len(salt) > 16:
         salt = salt[:16]
 
@@ -288,15 +288,15 @@ class sha256_crypt(MultiBackendHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         #TODO: write non-regexp based parser,
         # and rely on norm_salt etc to handle more of the validation.
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid sha256-crypt hash"
+            raise ValueError("invalid sha256-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
         if rounds and rounds.startswith("0"):
-            raise ValueError, "invalid sha256-crypt hash (zero-padded rounds)"
+            raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
         return cls(
             implicit_rounds = not rounds,
             rounds=int(rounds) if rounds else 5000,
@@ -435,15 +435,15 @@ class sha512_crypt(MultiBackendHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         #TODO: write non-regexp based parser,
         # and rely on norm_salt etc to handle more of the validation.
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid sha512-crypt hash"
+            raise ValueError("invalid sha512-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
         if rounds and rounds.startswith("0"):
-            raise ValueError, "invalid sha512-crypt hash (zero-padded rounds)"
+            raise ValueError("invalid sha512-crypt hash (zero-padded rounds)")
         return cls(
             implicit_rounds = not rounds,
             rounds=int(rounds) if rounds else 5000,

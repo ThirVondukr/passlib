@@ -44,7 +44,7 @@ class _Base64DigestHelper(SimpleHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if hash is not None and not cls.identify(hash):
-            raise ValueError, "not a %s hash" % (cls.name,)
+            raise ValueError("not a %s hash" % (cls.name,))
         return cls._ident + cls._hash(secret).digest().encode("base64").strip()
 
 class _SaltedBase64DigestHelper(ExtendedHandler):
@@ -65,10 +65,10 @@ class _SaltedBase64DigestHelper(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "not a %s hash" % (cls.name,)
+            raise ValueError("not a %s hash" % (cls.name,))
         tmp = m.group("tmp").decode("base64")
         chk, salt = tmp[:-4], tmp[-4:]
         return cls(checksum=chk, salt=salt, strict=True)
@@ -168,7 +168,7 @@ class ldap_plaintext(SimpleHandler):
     @classmethod
     def genhash(cls, secret, hash):
         if hash is not None and not cls.identify(hash):
-            raise ValueError, "not a valid ldap_cleartext hash"
+            raise ValueError("not a valid ldap_cleartext hash")
         if secret is None:
             raise TypeError, "secret must be string"
         if isinstance(secret, unicode):
@@ -178,7 +178,7 @@ class ldap_plaintext(SimpleHandler):
     @classmethod
     def verify(cls, secret, hash):
         if hash is None:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         return hash == cls.genhash(secret, hash)
 
 #TODO: support {CRYPT} somehow (adapt per host?)

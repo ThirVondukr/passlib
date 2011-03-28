@@ -87,10 +87,10 @@ class bcrypt(MultiBackendHandler):
     def norm_ident(cls, ident, strict=False):
         if not ident:
             if strict:
-                raise ValueError, "no ident specified"
+                raise ValueError("no ident specified")
             ident = "2a"
         if ident not in ("2", "2a"):
-            raise ValueError, "invalid ident: %r" % (ident,)
+            raise ValueError("invalid ident: %r" % (ident,))
         return ident
 
     #=========================================================
@@ -112,10 +112,10 @@ class bcrypt(MultiBackendHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid bcrypt hash"
+            raise ValueError("invalid bcrypt hash")
         ident, rounds, salt, chk = m.group("ident", "rounds", "salt", "chk")
         return cls(
             rounds=int(rounds),

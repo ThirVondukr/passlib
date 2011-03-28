@@ -65,7 +65,7 @@ class SimpleHandler(object):
         "attr for checking if class has ANY settings, memoizes itself on first use"
         if cls.name is None:
             #otherwise this would optimize itself away prematurely
-            raise RuntimeError, "_has_settings must only be called on subclass: %r" % (cls,)
+            raise RuntimeError("_has_settings must only be called on subclass: %r" % (cls,))
         value = cls._has_settings = bool(cls.setting_kwds)
         return value
 
@@ -89,15 +89,15 @@ class SimpleHandler(object):
     @classmethod
     def genconfig(cls, **settings):
         if cls._has_settings:
-            raise NotImplementedError, "%s subclass must implement genconfig()" % (cls,)
+            raise NotImplementedError("%s subclass must implement genconfig()" % (cls,))
         else:
             if settings:
-                raise TypeError, "%s genconfig takes no kwds" % (cls.name,)
+                raise TypeError("%s genconfig takes no kwds" % (cls.name,))
             return None
 
     @classmethod
     def genhash(cls, secret, config):
-        raise NotImplementedError, "%s subclass must implement genhash()" % (cls,)
+        raise NotImplementedError("%s subclass must implement genhash()" % (cls,))
 
     #=====================================================
     #secondary interface (rarely subclassed)
@@ -110,7 +110,7 @@ class SimpleHandler(object):
     @classmethod
     def verify(cls, secret, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         return hash == cls.genhash(secret, hash)
 
     #=====================================================
@@ -241,7 +241,7 @@ class ExtendedHandler(SimpleHandler):
     def _has_salt(cls):
         "attr for checking if salts are supported, memoizes itself on first use"
         if cls is ExtendedHandler:
-            raise RuntimeError, "not allowed for ExtendedHandler directly"
+            raise RuntimeError("not allowed for ExtendedHandler directly")
         value = cls._has_salt = 'salt' in cls.setting_kwds
         return value
 
@@ -249,7 +249,7 @@ class ExtendedHandler(SimpleHandler):
     def _has_rounds(cls):
         "attr for checking if variable are supported, memoizes itself on first use"
         if cls is ExtendedHandler:
-            raise RuntimeError, "not allowed for ExtendedHandler directly"
+            raise RuntimeError("not allowed for ExtendedHandler directly")
         value = cls._has_rounds = 'rounds' in cls.setting_kwds
         return value
 
@@ -260,7 +260,7 @@ class ExtendedHandler(SimpleHandler):
         # need to clean it all up. for now, there's this property,
         # to begin sweeping things under the rug.
         if cls is ExtendedHandler:
-            raise RuntimeError, "not allowed for ExtendedHandler directly"
+            raise RuntimeError("not allowed for ExtendedHandler directly")
         value = cls._salt_is_bytes = cls._has_salt and cls.salt_charset == ALL_BYTE_VALUES
         return value
 
@@ -273,10 +273,10 @@ class ExtendedHandler(SimpleHandler):
             return None
         cc = cls.checksum_chars
         if cc and len(checksum) != cc:
-            raise ValueError, "%s checksum must be %d characters" % (cls.name, cc)
+            raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
         cs = cls.checksum_charset
         if cs and any(c not in cs for c in checksum):
-            raise ValueError, "invalid characters in %s checksum" % (cls.name,)
+            raise ValueError("invalid characters in %s checksum" % (cls.name,))
         return checksum
 
     @classmethod
@@ -304,12 +304,12 @@ class ExtendedHandler(SimpleHandler):
         if not cls._has_salt:
             #NOTE: special casing schemes which have no salt...
             if salt is not None:
-                raise TypeError, "%s does not support ``salt`` parameter" % (cls.name,)
+                raise TypeError("%s does not support ``salt`` parameter" % (cls.name,))
             return None
 
         if salt is None:
             if strict:
-                raise ValueError, "no salt specified"
+                raise ValueError("no salt specified")
             if cls._salt_is_bytes:
                 return getrandbytes(rng, cls.default_salt_chars)
             else:
@@ -322,16 +322,16 @@ class ExtendedHandler(SimpleHandler):
             sc = cls.salt_charset
             for c in salt:
                 if c not in sc:
-                    raise ValueError, "invalid character in %s salt: %r"  % (cls.name, c)
+                    raise ValueError("invalid character in %s salt: %r"  % (cls.name, c))
 
         mn = cls.min_salt_chars
         if mn and len(salt) < mn:
-            raise ValueError, "%s salt string must be at least %d characters" % (cls.name, mn)
+            raise ValueError("%s salt string must be at least %d characters" % (cls.name, mn))
 
         mx = cls.max_salt_chars
         if len(salt) > mx:
             if strict:
-                raise ValueError, "%s salt string must be at most %d characters" % (cls.name, mx)
+                raise ValueError("%s salt string must be at most %d characters" % (cls.name, mx))
             salt = salt[:mx]
 
         return salt
@@ -363,15 +363,15 @@ class ExtendedHandler(SimpleHandler):
         if not cls._has_rounds:
             #NOTE: special casing schemes which don't have rounds
             if rounds is not None:
-                raise TypeError, "%s does not support ``rounds``" % (cls.name,)
+                raise TypeError("%s does not support ``rounds``" % (cls.name,))
             return None
 
         if rounds is None:
             if strict:
-                raise ValueError, "no rounds specified"
+                raise ValueError("no rounds specified")
             rounds = cls.default_rounds
             if rounds is None:
-                raise ValueError, "%s rounds value must be specified explicitly" % (cls.name,)
+                raise ValueError("%s rounds value must be specified explicitly" % (cls.name,))
             return rounds
 
         if cls._strict_rounds_bounds:
@@ -380,14 +380,14 @@ class ExtendedHandler(SimpleHandler):
         mn = cls.min_rounds
         if rounds < mn:
             if strict:
-                raise ValueError, "%s rounds must be >= %d" % (cls.name, mn)
+                raise ValueError("%s rounds must be >= %d" % (cls.name, mn))
             warn("%s does not allow less than %d rounds: %d" % (cls.name, mn, rounds))
             rounds = mn
 
         mx = cls.max_rounds
         if rounds > mx:
             if strict:
-                raise ValueError, "%s rounds must be <= %d" % (cls.name, mx)
+                raise ValueError("%s rounds must be <= %d" % (cls.name, mx))
             warn("%s does not allow more than %d rounds: %d" % (cls.name, mx, rounds))
             rounds = mx
 
@@ -411,11 +411,11 @@ class ExtendedHandler(SimpleHandler):
     @classmethod
     def from_string(cls, hash): #pragma: no cover
         "return parsed instance from hash/configuration string; raising ValueError on invalid inputs"
-        raise NotImplementedError, "%s must implement from_string()" % (cls,)
+        raise NotImplementedError("%s must implement from_string()" % (cls,))
 
     def to_string(self): #pragma: no cover
         "render instance to hash or configuration string (depending on if checksum attr is set)"
-        raise NotImplementedError, "%s must implement from_string()" % (type(self),)
+        raise NotImplementedError("%s must implement from_string()" % (type(self),))
 
     ##def to_config_string(self):
     ##    "helper for generating configuration string (ignoring hash)"
@@ -437,7 +437,7 @@ class ExtendedHandler(SimpleHandler):
         if cls._has_settings:
             return cls(**settings).to_string()
         elif settings:
-            raise TypeError, "%s.genconfig() takes no arguments" % (cls.name,)
+            raise TypeError("%s.genconfig() takes no arguments" % (cls.name,))
         else:
             return None
 
@@ -452,7 +452,7 @@ class ExtendedHandler(SimpleHandler):
 
     def calc_checksum(self, secret): #pragma: no cover
         "given secret; calcuate and return encoded checksum portion of hash string, taking config from object state"
-        raise NotImplementedError, "%s must implement calc_checksum()" % (cls,)
+        raise NotImplementedError("%s must implement calc_checksum()" % (cls,))
 
     #=========================================================
     #'application' interface (default implementation)
@@ -521,9 +521,9 @@ class MultiBackendHandler(ExtendedHandler):
                 if cls.has_backend(name):
                     break
             else:
-                raise EnvironmentError, cls._no_backends_msg()
+                raise EnvironmentError(cls._no_backends_msg())
         elif not cls.has_backend(name):
-            raise ValueError, "%s backend not available: %r" % (cls.name, name)
+            raise ValueError("%s backend not available: %r" % (cls.name, name))
         cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
         return name

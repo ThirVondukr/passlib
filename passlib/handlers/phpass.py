@@ -78,10 +78,10 @@ class phpass(ExtendedHandler):
     def norm_ident(cls, ident, strict=False):
         if not ident:
             if strict:
-                raise ValueError, "no ident specified"
+                raise ValueError("no ident specified")
             ident = "P"
         if ident not in ("P", "H"):
-            raise ValueError, "invalid ident: %r" % (ident,)
+            raise ValueError("invalid ident: %r" % (ident,))
         return ident
 
     #=========================================================
@@ -111,10 +111,10 @@ class phpass(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid phpass portable hash"
+            raise ValueError("invalid phpass portable hash")
         ident, rounds, salt, chk = m.group("ident", "rounds", "salt", "chk")
         return cls(
             ident=ident,

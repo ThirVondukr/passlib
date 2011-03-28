@@ -4,7 +4,7 @@
 #=========================================================
 #imports
 #=========================================================
-from __future__ import with_statement, absolute_import
+
 #core
 from hmac import new as hmac
 from hashlib import sha1
@@ -75,13 +75,13 @@ class sha1_crypt(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid sha1_crypt hash"
+            raise ValueError("invalid sha1_crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         if rounds.startswith("0"):
-            raise ValueError, "invalid sha1-crypt hash (zero-padded rounds)"
+            raise ValueError("invalid sha1-crypt hash (zero-padded rounds)")
         return cls(
             rounds=int(rounds),
             salt=salt,

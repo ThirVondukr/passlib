@@ -84,7 +84,7 @@ class oracle10(object):
     @classmethod
     def genhash(cls, secret, config, user):
         if config and not cls.identify(config):
-            raise ValueError, "not a oracle10g hash"
+            raise ValueError("not a oracle10g hash")
         return cls.encrypt(secret, user)
 
     #=========================================================
@@ -93,9 +93,9 @@ class oracle10(object):
     @classmethod
     def encrypt(cls, secret, user):
         if secret is None:
-            raise TypeError, "secret must be specified"
+            raise TypeError("secret must be specified")
         if not user:
-            raise ValueError, "user keyword must be specified for this algorithm"
+            raise ValueError("user keyword must be specified for this algorithm")
 
         #FIXME: not sure how oracle handles unicode.
         # online docs about 10g hash indicate it puts ascii chars
@@ -125,7 +125,7 @@ class oracle10(object):
     @classmethod
     def verify(cls, secret, hash, user):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         return cls.genhash(secret, hash, user) == hash.upper()
 
     #=========================================================
@@ -164,10 +164,10 @@ class oracle11(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash provided"
+            raise ValueError("no hash provided")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid oracle11g hash"
+            raise ValueError("invalid oracle11g hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk.upper(), strict=True)
 

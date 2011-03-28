@@ -89,7 +89,7 @@ def raw_crypt(secret, salt):
     try:
         salt_value = h64.decode_int12(salt)
     except ValueError: #pragma: no cover - always caught by class
-        raise ValueError, "invalid chars in salt"
+        raise ValueError("invalid chars in salt")
     #FIXME: ^ this will throws error if bad salt chars are used
     # whereas linux crypt does something (inexplicable) with it
 
@@ -109,13 +109,13 @@ def raw_ext_crypt(secret, rounds, salt):
     try:
         salt_value = h64.decode_int24(salt)
     except ValueError: #pragma: no cover - always caught by class
-        raise ValueError, "invalid salt"
+        raise ValueError("invalid salt")
 
     #validate secret
     if '\x00' in secret: #pragma: no cover - always caught by class
         #builtin linux crypt doesn't like this, so we don't either
         #XXX: would make more sense to raise ValueError, but want to be compatible w/ stdlib crypt
-        raise ValueError, "secret must be string without null bytes"
+        raise ValueError("secret must be string without null bytes")
 
     #convert secret string into an integer
     key_value = _crypt_secret_to_key(secret)
@@ -181,10 +181,10 @@ class des_crypt(MultiBackendHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid des-crypt hash"
+            raise ValueError("invalid des-crypt hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
@@ -205,7 +205,7 @@ class des_crypt(MultiBackendHandler):
     def _calc_checksum_builtin(self, secret):
         #forbidding nul chars because linux crypt (and most C implementations) won't accept it either.
         if '\x00' in secret:
-            raise ValueError, "null char in secret"
+            raise ValueError("null char in secret")
         #gotta do something - no official policy since des-crypt predates unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -214,7 +214,7 @@ class des_crypt(MultiBackendHandler):
     def _calc_checksum_os_crypt(self, secret):
         #os_crypt() would raise less useful error
         if '\x00' in secret:
-            raise ValueError, "null char in secret"
+            raise ValueError("null char in secret")
         #gotta do something - no official policy since des-crypt predates unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -285,10 +285,10 @@ class bsdi_crypt(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid ext-des-crypt hash"
+            raise ValueError("invalid ext-des-crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         return cls(
             rounds=h64.decode_int24(rounds),
@@ -356,13 +356,13 @@ class bigcrypt(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid bigcrypt hash"
+            raise ValueError("invalid bigcrypt hash")
         salt, chk = m.group("salt", "chk")
         if chk and len(chk) % 11:
-            raise ValueError, "invalid bigcrypt hash"
+            raise ValueError("invalid bigcrypt hash")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self):
@@ -431,10 +431,10 @@ class crypt16(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid crypt16 hash"
+            raise ValueError("invalid crypt16 hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
@@ -454,7 +454,7 @@ class crypt16(ExtendedHandler):
         try:
             salt_value = h64.decode_int12(self.salt)
         except ValueError: #pragma: no cover - caught by class
-            raise ValueError, "invalid chars in salt"
+            raise ValueError("invalid chars in salt")
 
         #convert first 8 byts of secret string into an integer,
         key1 = _crypt_secret_to_key(secret)

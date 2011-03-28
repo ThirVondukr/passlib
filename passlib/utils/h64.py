@@ -81,7 +81,7 @@ def decode_bytes(source):
     tail = end % 4
     if tail == 1:
         #only 6 bits left, can't encode a whole byte!
-        raise ValueError, "input string length cannot be == 1 mod 4"
+        raise ValueError("input string length cannot be == 1 mod 4")
     end -= tail
     idx = 0
     while idx < end:
@@ -124,12 +124,12 @@ def decode_int6(value):
     try:
         return decode_6bit(value)
     except KeyError:
-        raise ValueError, "invalid character"
+        raise ValueError("invalid character")
 
 def encode_int6(value):
     "encodes 6-bit integer -> single hash64 character"
     if value < 0 or value > 63:
-        raise ValueError, "value out of range"
+        raise ValueError("value out of range")
     return encode_6bit(value)
 
 #---------------------------------------------------------------------
@@ -140,7 +140,7 @@ def decode_int12(value):
     try:
         return (decode_6bit(value[1])<<6)+decode_6bit(value[0])
     except KeyError:
-        raise ValueError, "invalid character"
+        raise ValueError("invalid character")
 
 def encode_int12(value):
     "encodes 12-bit integer -> 2 char hash64 string (little-endian order)"
@@ -177,7 +177,7 @@ def decode_int24(value):
                 (decode_6bit(value[2])<<12)+\
                 (decode_6bit(value[3])<<18)
     except KeyError:
-        raise ValueError, "invalid character"
+        raise ValueError("invalid character")
 
 def encode_int24(value):
     "encodes 24-bit integer -> 4 char hash64 string (little-endian order)"
@@ -237,7 +237,7 @@ def decode_int(source, big=False):
                 out = (out<<6) + decode_6bit(c)
         return out
     except KeyError:
-        raise ValueError, "invalid character in string"
+        raise ValueError("invalid character in string")
 
 def encode_int(value, count, big=False):
     """encode integer into hash-64 format
@@ -250,7 +250,7 @@ def encode_int(value, count, big=False):
         a hash64 string of length ``count``.
     """
     if value < 0:
-        raise ValueError, "value cannot be negative"
+        raise ValueError("value cannot be negative")
     if big:
         itr = xrange(6*count-6, -6, -6)
     else:

@@ -73,7 +73,7 @@ def _resolve_prf(prf):
             #fall back to stdlib implementation
             digest_const = getattr(hashlib, digest, None)
             if not digest_const:
-                raise ValueError, "unknown hash algorithm: %r" % (digest,)
+                raise ValueError("unknown hash algorithm: %r" % (digest,))
             digest_size = digest_const().digest_size
             hmac_const = hmac.new
             def encode_block(key, msg):
@@ -81,7 +81,7 @@ def _resolve_prf(prf):
             return encode_block, digest_size
 
         else:
-            raise ValueError, "unknown prf algorithm: %r" % (prf,)
+            raise ValueError("unknown prf algorithm: %r" % (prf,))
 
     elif callable(prf):
         #assume it's a callable, use it directly
@@ -89,7 +89,7 @@ def _resolve_prf(prf):
         return prf, digest_size
 
     else:
-        raise TypeError, "prf must be string or callable"
+        raise TypeError("prf must be string or callable")
 
 def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
@@ -137,7 +137,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     if prf == "hmac-sha1" and _EVP:
         #NOTE: doing check here, because M2crypto won't take longs (which this is, under 32bit)
         if keylen > MAX_HMAC_SHA1_KEYLEN:
-            raise ValueError, "key length too long"
+            raise ValueError("key length too long")
         
         #NOTE: M2crypto reliably segfaults for me if given keylengths
         # larger than 40 (crashes at 41 on one system, 61 on another).
@@ -151,7 +151,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     #figure out how many blocks we'll need
     bcount = (keylen+digest_size-1)//digest_size
     if bcount >= MAX_BLOCKS:
-        raise ValueError, "key length to long"
+        raise ValueError("key length to long")
 
     #build up key from blocks
     out = StringIO()

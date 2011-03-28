@@ -31,7 +31,7 @@ def raw_md5_crypt(secret, salt, apr=False):
 
     #validate secret
     if not isinstance(secret, str):
-        raise TypeError, "secret must be string"
+        raise TypeError("secret must be string")
 
     #validate salt
     if len(salt) > 8:
@@ -176,10 +176,10 @@ class md5_crypt(MultiBackendHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid md5-crypt hash"
+            raise ValueError("invalid md5-crypt hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
@@ -257,10 +257,10 @@ class apr_md5_crypt(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid md5-crypt hash"
+            raise ValueError("invalid md5-crypt hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 

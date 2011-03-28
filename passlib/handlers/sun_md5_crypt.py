@@ -246,10 +246,10 @@ class sun_md5_crypt(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid sun-md5-crypt hash"
+            raise ValueError("invalid sun-md5-crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         #NOTE: this is *additional* rounds added to base 4096 specified by spec.
         #XXX: should we note whether "$" or "," was used as rounds separator?

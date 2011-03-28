@@ -348,10 +348,10 @@ class HandlerCase(TestCase):
             raise SkipTest
 
         if not cls.name:
-            raise AssertionError, "class must have .name attribute set"
+            raise AssertionError("class must have .name attribute set")
 
         if cls.setting_kwds is None:
-            raise AssertionError, "class must have .setting_kwds attribute set"
+            raise AssertionError("class must have .setting_kwds attribute set")
 
     def test_05_ext_handler(self):
         "check configuration of ExtendedHandler-derived classes"
@@ -360,37 +360,37 @@ class HandlerCase(TestCase):
             raise SkipTest
 
         if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
-            raise AssertionError, "_extra_init_settings must be subset of setting_kwds"
+            raise AssertionError("_extra_init_settings must be subset of setting_kwds")
 
         if 'salt' in cls.setting_kwds:
 
             if cls.min_salt_chars > cls.max_salt_chars:
-                raise AssertionError, "min salt chars too large"
+                raise AssertionError("min salt chars too large")
 
             if cls.default_salt_chars < cls.min_salt_chars:
-                raise AssertionError, "default salt chars too small"
+                raise AssertionError("default salt chars too small")
             if cls.default_salt_chars > cls.max_salt_chars:
-                raise AssertionError, "default salt chars too large"
+                raise AssertionError("default salt chars too large")
 
             if any(c not in cls.salt_charset for c in cls.default_salt_charset):
-                raise AssertionError, "default salt charset not subset of salt charset"
+                raise AssertionError("default salt charset not subset of salt charset")
 
         if 'rounds' in cls.setting_kwds:
 
             if cls.max_rounds is None:
-                raise AssertionError, "max rounds not specified"
+                raise AssertionError("max rounds not specified")
 
             if cls.min_rounds > cls.max_rounds:
-                raise AssertionError, "min rounds too large"
+                raise AssertionError("min rounds too large")
 
             if cls.default_rounds is not None:
                 if cls.default_rounds < cls.min_rounds:
-                    raise AssertionError, "default rounds too small"
+                    raise AssertionError("default rounds too small")
                 if cls.default_rounds > cls.max_rounds:
-                    raise AssertionError, "default rounds too large"
+                    raise AssertionError("default rounds too large")
 
             if cls.rounds_cost not in ("linear", "log2"):
-                raise AssertionError, "unknown rounds cost function"
+                raise AssertionError("unknown rounds cost function")
 
     def test_06_backend_handler(self):
         "check configuration of MultiBackendHandler-derived classes"
@@ -413,7 +413,7 @@ class HandlerCase(TestCase):
                     self.assertRaises(ValueError, h.set_backend, backend)
                 else:
                     #failure eg: used classmethod instead of classproperty in _has_backend_xxx
-                    raise TypeError, "has_backend(%r) returned invalid value: %r" % (backend, r,)
+                    raise TypeError("has_backend(%r) returned invalid value: %r" % (backend, r,))
         finally:
             h.set_backend(orig)
 

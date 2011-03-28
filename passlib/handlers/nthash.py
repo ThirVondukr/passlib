@@ -48,10 +48,10 @@ class nthash(ExtendedHandler):
     def norm_ident(cls, value, strict=False):
         if value is None:
             if strict:
-                raise ValueError, "no ident specified"
+                raise ValueError("no ident specified")
             return "3"
         if value not in ("3", "NT"):
-            raise ValueError, "invalid ident"
+            raise ValueError("invalid ident")
         return value
 
     #=========================================================
@@ -71,10 +71,10 @@ class nthash(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError, "invalid nthash"
+            raise ValueError("invalid nthash")
         ident, chk = m.group("ident", "chk")
         return cls(ident=ident.strip("$"), checksum=chk, strict=True)
 
@@ -97,7 +97,7 @@ class nthash(ExtendedHandler):
 
     def calc_checksum(self, secret):
         if secret is None:
-            raise TypeError, "secret must be a string"
+            raise TypeError("secret must be a string")
         return self.raw_nthash(secret, hex=True)
 
     @staticmethod

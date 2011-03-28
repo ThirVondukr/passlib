@@ -223,7 +223,7 @@ class UnsaltedHash(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not cls.identify(hash):
-            raise ValueError, "not a unsalted-example hash"
+            raise ValueError("not a unsalted-example hash")
         return cls(checksum=hash, strict=True)
 
     def to_string(self):
@@ -250,7 +250,7 @@ class SaltedHash(ExtendedHandler):
     @classmethod
     def from_string(cls, hash):
         if not cls.identify(hash):
-            raise ValueError, "not a salted-example hash"
+            raise ValueError("not a salted-example hash")
         return cls(salt=hash[5:7], checksum=hash[7:], strict=True)
 
     _stub_checksum = '0' * 40

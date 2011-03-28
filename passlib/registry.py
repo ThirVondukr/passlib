@@ -34,12 +34,12 @@ class PasslibRegistryProxy(object):
 
     def __getattr__(self, attr):
         if attr.startswith("_"):
-            raise AttributeError, "missing attribute: %r" % (attr,)
+            raise AttributeError("missing attribute: %r" % (attr,))
         handler = get_crypt_handler(attr, None)
         if handler:
             return handler
         else:
-            raise AttributeError, "unknown password hash: %r" % (attr,)
+            raise AttributeError("unknown password hash: %r" % (attr,))
 
     def __setattr__(self, attr, value):
         register_crypt_handler(value, name=attr)
@@ -165,28 +165,28 @@ def register_crypt_handler(handler, force=False, name=None):
 
     #validate handler
     if not is_crypt_handler(handler):
-        raise TypeError, "object does not appear to be a crypt handler: %r" % (handler,)
+        raise TypeError("object does not appear to be a crypt handler: %r" % (handler,))
     assert handler, "crypt handlers must be boolean True: %r" % (handler,)
 
     #if name specified, make sure it matched
     #(this is mainly used as a check to help __setattr__)
     if name:
         if name != handler.name:
-            raise ValueError, "handlers must be stored only under their own name"
+            raise ValueError("handlers must be stored only under their own name")
     else:
         name = handler.name
 
     #validate name
     if not name:
-        raise ValueError, "name is null: %r" % (name,)
+        raise ValueError("name is null: %r" % (name,))
     if name.lower() != name:
-        raise ValueError, "name must be lower-case: %r" % (name,)
+        raise ValueError("name must be lower-case: %r" % (name,))
     if not _name_re.match(name):
-        raise ValueError, "invalid characters in name (must be 3+ characters, begin with a-z, and contain only underscore, a-z, 0-9): %r" % (name,)
+        raise ValueError("invalid characters in name (must be 3+ characters, begin with a-z, and contain only underscore, a-z, 0-9): %r" % (name,))
     if '__' in name:
-        raise ValueError, "name may not contain double-underscores: %r" % (name,)
+        raise ValueError("name may not contain double-underscores: %r" % (name,))
     if name in _forbidden_names:
-        raise ValueError, "that name is not allowed: %r" % (name,)
+        raise ValueError("that name is not allowed: %r" % (name,))
 
     #check for existing handler
     other = _handlers.get(name)
@@ -196,7 +196,7 @@ def register_crypt_handler(handler, force=False, name=None):
         if force:
             log.warning("overriding previous handler registered to name %r: %r", name, other)
         else:
-            raise KeyError, "a handler has already registered for the name %r: %r (use force=True to override)" % (name, other)
+            raise KeyError("a handler has already registered for the name %r: %r (use force=True to override)" % (name, other))
 
     #register handler in dict
     _handlers[name] = handler
@@ -258,7 +258,7 @@ def get_crypt_handler(name, default=Undef):
 
     #fail!
     if default is Undef:
-        raise KeyError, "no crypt handler found for algorithm: %r" % (name,)
+        raise KeyError("no crypt handler found for algorithm: %r" % (name,))
     else:
         return default
 

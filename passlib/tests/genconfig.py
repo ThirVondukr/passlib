@@ -45,7 +45,7 @@ class HashTimer(object):
         #
         self.handler = handler = get_crypt_handler(name)
         if 'rounds' not in handler.setting_kwds:
-            raise ValueError, "scheme does not support rounds: %r" % (handler.name,)
+            raise ValueError("scheme does not support rounds: %r" % (handler.name,))
         self.min_rounds = getattr(handler, "min_rounds", 2)
         self.max_rounds = getattr(handler, "max_rounds", (1<<32)-1)
         rc = self.rounds_cost = getattr(handler, "rounds_cost", "linear")
@@ -66,7 +66,7 @@ class HashTimer(object):
                 return int(logb(rps*target,2)+.5)
             erradj = 1.1
         else:
-            raise NotImplementedError, "unknown rounds cost function: %r" % (rc,)
+            raise NotImplementedError("unknown rounds cost function: %r" % (rc,))
         self.get_rps = get_rps
         self.guess_rounds = guess_rounds
         self.erradj = erradj
@@ -109,7 +109,7 @@ class HashTimer(object):
             to taking about ``target`` seconds to hash a password.
         """
         if target <= 0:
-            raise ValueError, "target must be > 0"
+            raise ValueError("target must be > 0")
 
         log = self.log
         name = self.handler.name
@@ -201,7 +201,7 @@ class HashTimer(object):
         "return estimated rounds per second based on cached results"
         cache = self.cache
         if not cache:
-            raise RuntimeError, "should not be called until cache populated by find_rounds()"
+            raise RuntimeError("should not be called until cache populated by find_rounds()")
         get_rps = self.get_rps
         rps = sum(r*get_rps(r,d) for r,d in cache.iteritems())/sum(cache)
         if rps > 1000: #for almost all cases, we'd return integer

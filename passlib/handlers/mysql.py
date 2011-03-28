@@ -70,7 +70,7 @@ class mysql323(SimpleHandler):
     @classmethod
     def genhash(cls, secret, config):
         if config and not cls.identify(config):
-            raise ValueError, "not a mysql-41 hash"
+            raise ValueError("not a mysql-41 hash")
 
         #FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
@@ -99,7 +99,7 @@ class mysql323(SimpleHandler):
     @classmethod
     def verify(cls, secret, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         return hash.lower() == cls.genhash(secret, hash)
 
     #=========================================================
@@ -139,7 +139,7 @@ class mysql41(SimpleHandler):
     @classmethod
     def genhash(cls, secret, config):
         if config and not cls.identify(config):
-            raise ValueError, "not a mysql-41 hash"
+            raise ValueError("not a mysql-41 hash")
         #FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -153,7 +153,7 @@ class mysql41(SimpleHandler):
     @classmethod
     def verify(cls, secret, hash):
         if not hash:
-            raise ValueError, "no hash specified"
+            raise ValueError("no hash specified")
         return hash.upper() == cls.genhash(secret, hash)
 
     #=========================================================
