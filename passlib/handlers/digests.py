@@ -42,7 +42,7 @@ class HexDigestHash(SimpleHandler):
     @classmethod
     def genhash(cls, secret, hash):
         if secret is None:
-            raise TypeError, "no secret provided"
+            raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if hash is not None and not cls.identify(hash):

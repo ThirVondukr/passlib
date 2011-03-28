@@ -66,7 +66,7 @@ class postgres_md5(object):
     def encrypt(cls, secret, user):
         #FIXME: not sure what postgres' policy is for unicode
         if not user:
-            raise ValueError, "user keyword must be specified for this algorithm"
+            raise ValueError("user keyword must be specified for this algorithm")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):

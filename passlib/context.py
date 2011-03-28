@@ -583,7 +583,7 @@ class CryptPolicy(object):
     ##    p = ConfigParser()
     ##    if update and os.path.exists(path):
     ##        if not p.read([path]):
-    ##            raise EnvironmentError, "failed to read existing file"
+    ##            raise EnvironmentError("failed to read existing file")
     ##        p.remove_section(section)
     ##    self._write_to_parser(p, section)
     ##    fh = file(path, "w")

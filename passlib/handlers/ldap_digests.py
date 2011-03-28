@@ -40,7 +40,7 @@ class _Base64DigestHelper(SimpleHandler):
     @classmethod
     def genhash(cls, secret, hash):
         if secret is None:
-            raise TypeError, "no secret provided"
+            raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if hash is not None and not cls.identify(hash):
@@ -78,7 +78,7 @@ class _SaltedBase64DigestHelper(ExtendedHandler):
 
     def calc_checksum(self, secret):
         if secret is None:
-            raise TypeError, "no secret provided"
+            raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return self._hash(secret + self.salt).digest()
@@ -170,7 +170,7 @@ class ldap_plaintext(SimpleHandler):
         if hash is not None and not cls.identify(hash):
             raise ValueError("not a valid ldap_cleartext hash")
         if secret is None:
-            raise TypeError, "secret must be string"
+            raise TypeError("secret must be string")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return secret
