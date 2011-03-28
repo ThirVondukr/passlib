@@ -20,6 +20,9 @@ String Manipulation
 Bytes Manipulation
 ==================
 
+.. autofunction:: adapted_b64_encode
+.. autofunction:: adapted_b64_decode
+
 .. autofunction:: bytes_to_int
 .. autofunction:: int_to_bytes
 .. autofunction:: list_to_bytes

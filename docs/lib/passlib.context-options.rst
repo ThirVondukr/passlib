@@ -1,5 +1,4 @@
-.. index::
-    single: CryptContext; constructor options
+.. index:: CryptContext; constructor options
 
 .. _cryptcontext-options:
 
@@ -14,6 +13,10 @@ These are divides into the "context options", which affect
 the context instance directly, and the "hash options",
 which affect the context treats a particular type of hash:
 
+.. seealso::
+
+    :doc:`passlib.context` -- for an overview of the classes and some usage examples.
+
 Context Options
 ===============
 The following keyword options are accepted by both the :class:`CryptContext`
@@ -27,9 +30,9 @@ of the :class:`!CryptContext` instance itself:
     For use in INI files, this may also be specified as a single comma-separated string
     of handler names.
 
-    Any names specified must be registered globally with PassLib.
-
-    Example: ``schemes=["sha256_crypt", "md5_crypt", "des_crypt"]``.
+    Potential names can include the name of any class importable from the :mod:`passlib.hash` module.
+    For example, to specify the :class:`passlib.hash.sha256_crypt` and the :class:`passlib.hash.des_crypt` schemes
+    should be supported for your new context, set ``schemes=["sha256_crypt", "des_crypt"]``.
 
 ``deprecated``
 
@@ -49,6 +52,7 @@ of the :class:`!CryptContext` instance itself:
 
     Specifies the name of the default handler to use when encrypting a new password.
     If no default is specified, the first handler listed in ``schemes`` will be used.
+    Any name specified *must* be in the list of supported schemes (see the ``schemes`` kwd).
 
     Example: ``default="sha256_crypt"``.
 
@@ -203,7 +207,7 @@ A sample policy file::
     bcrypt.min_rounds = 10
 
     #create a "admin" category, which uses bcrypt by default, and has stronger hashes
-    admin.context.fallback = bcrypt
+    admin.context.default = bcrypt
     admin.sha512_crypt.min_rounds = 100000
     admin.bcrypt.min_rounds = 13
 
@@ -224,7 +228,7 @@ And the equivalent as a set of python keyword options::
         bcrypt__min_rounds = 10,
 
         #create a "admin" category, which uses bcrypt by default, and has stronger hashes
-        admin__context__fallback = bcrypt
+        admin__context__default = bcrypt
         admin__sha512_crypt__min_rounds = 100000
         admin__bcrypt__min_rounds = 13
     )
