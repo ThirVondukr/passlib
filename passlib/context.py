@@ -934,15 +934,14 @@ class CryptContext(object):
 
         return result
 
-    #TODO: check this works properly, and expose it to ease requirements for apps to use migration features
-    ##def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
-    ##    ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
-    ##    if not ok:
-    ##        return False, None
-    ##    if self.hash_needs_update(secret, hash, category=category):
-    ##        return True, self.encrypt(secret, **kwds)
-    ##    else:
-    ##        return True, None
+    def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
+        ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
+        if not ok:
+            return False, None
+        if self.hash_needs_update(hash, category=category):
+            return True, self.encrypt(secret, category=category, **kwds)
+        else:
+            return True, None
 
     #=========================================================
     #eoc
