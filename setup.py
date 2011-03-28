@@ -27,7 +27,7 @@ setup(
     url = "http://code.google.com/p/passlib/",
     download_url = "http://code.google.com/p/passlib/downloads/list",
 
-    description = "comprehensive password hashing library supporting over 20 schemes",
+    description = "comprehensive password hashing framework supporting over 20 schemes",
     long_description = """\
 PassLib is a password hash library, which provides cross-platform
 implementations of over 20 password hashing algorithms; as well as a framework for managing
@@ -36,7 +36,7 @@ for any task from quickly verifying a hash found in /etc/shadow,
 to providing full-strength password hashing for multi-user application.
 """,
 
-    keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest",
+    keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest pbkdf2",
     classifiers = [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

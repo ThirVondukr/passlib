@@ -58,20 +58,17 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     # to run all tests...
     PASSLIB_TESTS="all" nosetests -v passlib/tests
 
-..
-    NOTE: commented this out from published manual, until cloud theme is cleaned up
+Documentation
+=============
+The latest copy of this documentation should always be available
+online at `<http://packages.python.org/passlib>`_.
 
-    Documentation
-    =============
-    The latest copy of this documentation should always be available
-    online at `<http://packages.python.org/passlib>`_.
+If you wish to generate your own copy of the documentation,
+you will need to:
 
-    If you wish to generate your own copy of the documentation,
-    you will need to:
-
-    1. install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-    2. install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
-    3. download the PassLib source
-    4. from the PassLib source directory, run :samp:`python docs/make.py clean html`.
-    5. Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
-       to access the PassLib documentation in html format.
+1. install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
+2. install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
+3. download the PassLib source
+4. from the PassLib source directory, run :samp:`python docs/make.py clean html`.
+5. Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
+   to access the PassLib documentation in html format.
