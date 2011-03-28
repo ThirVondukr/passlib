@@ -86,10 +86,13 @@ for handling MySQL user passwords:
 
     This should be used only with MySQL version 3.2.3 - 4.0.
 
+.. index:: drupal, wordpress, phpbb, phpass
+
 PHPass
 ======
-`PHPass <http://www.openwall.com/phpass/>_` is a PHP password hashing library,
+`PHPass <http://www.openwall.com/phpass/>`_ is a PHP password hashing library,
 and hashes derived from it are found in a number of PHP applications.
+It is found in a wide range of PHP applications, including Drupal and Wordpress.
 
 .. data:: phpass_context
 
