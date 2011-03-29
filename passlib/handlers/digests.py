@@ -55,9 +55,10 @@ class HexDigestHash(SimpleHandler):
             raise ValueError("no hash specified")
         return cls.genhash(secret, hash) == hash.lower()
 
-def create_hex_hash(hash):
+def create_hex_hash(hash, digest_name):
+    #NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.
     h = hash()
-    name = 'hex_' + h.name
+    name = "hex_" + digest_name
     return type(name, (HexDigestHash,), dict(
         name=name,
         _hash=hash,
@@ -65,17 +66,17 @@ def create_hex_hash(hash):
         __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.
-""" % (h.name,)
+""" % (digest_name,)
     ))
 
 #=========================================================
 #predefined handlers
 #=========================================================
-hex_md4 = create_hex_hash(md4)
-hex_md5 = create_hex_hash(hashlib.md5)
-hex_sha1 = create_hex_hash(hashlib.sha1)
-hex_sha256 = create_hex_hash(hashlib.sha256)
-hex_sha512 = create_hex_hash(hashlib.sha512)
+hex_md4     = create_hex_hash(md4,              "md4")
+hex_md5     = create_hex_hash(hashlib.md5,      "md5")
+hex_sha1    = create_hex_hash(hashlib.sha1,     "sha1")
+hex_sha256  = create_hex_hash(hashlib.sha256,   "sha256")
+hex_sha512  = create_hex_hash(hashlib.sha512,   "sha512")
 
 #=========================================================
 #eof
