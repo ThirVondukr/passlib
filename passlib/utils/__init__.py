@@ -217,9 +217,11 @@ def int_to_bytes(value, count):
         for s in xrange(8*count-8,-8,-8)
     )
 
-#TODO: rename 'bytes' kwd for py30 compat purposes
-def list_to_bytes(value, bytes=None, order="big"):
+def list_to_bytes(value, count=None, order="big"):
     """Returns a multi-character string corresponding to a list of byte values.
+
+    .. deprecated:: 1.4
+        will be removed in 1.5
 
     This is similar to :func:`int_to_bytes`, except that this returns a list
     of integers, where each integer corresponds to a single byte of the input.
@@ -229,7 +231,7 @@ def list_to_bytes(value, bytes=None, order="big"):
         It must be true that ``all(elem in range(0,256)) for elem in value``,
         or a ValueError will be raised.
 
-    :param bytes:
+    :param count:
         Optionally, the number of bytes to encode to.
         If specified, this will be the length of the returned string.
 
@@ -253,24 +255,26 @@ def list_to_bytes(value, bytes=None, order="big"):
         >>> bytes_to_list('\\x00\\x00\\x04\\xd2')
         [4, 210]
     """
+    warn("list_to_bytes() is deprecated, and will be removed in passlib 1.5", DeprecationWarning)
+
     #make sure all elements have valid values
     if any( elem < 0 or elem > 255 for elem in value):
         raise ValueError("value must be list of integers in range(0,256): %r" % (value,))
 
     #validate bytes / upper
-    if bytes is None:
-        bytes = len(value)
-        if bytes == 0:
+    if count is None:
+        count = len(value)
+        if count == 0:
             raise ValueError("empty list not allowed")
     else:
-        if bytes < 1:
-            raise ValueError("bytes must be None or >= 1: %r" % (bytes,))
-        if len(value) > bytes:
-            raise ValueError("list too large for number of bytes: bytes=%r len=%r" % (bytes, len(value)))
+        if count < 1:
+            raise ValueError("bytes must be None or >= 1: %r" % (count,))
+        if len(value) > count:
+            raise ValueError("list too large for number of bytes: bytes=%r len=%r" % (count, len(value)))
 
     #encode list in big endian mode
     out = ''.join( chr(elem) for elem in value )
-    pad = bytes-len(out)
+    pad = count-len(out)
 
     #pad/reverse as needed for endianess
     if order == "native":
@@ -289,6 +293,9 @@ def list_to_bytes(value, bytes=None, order="big"):
 def bytes_to_list(value, order="big"):
     """decode a string into a list of numeric values representing each of it's bytes.
 
+    .. deprecated:: 1.4
+        will be removed in 1.5
+
     This is similar to :func:`bytes_to_int`, the options and results
     are effectively the same, except that this function
     returns a list of numbers representing each byte in sequence,
@@ -303,6 +310,7 @@ def bytes_to_list(value, order="big"):
     :returns:
         The decoded list of byte values.
     """
+    warn("bytes_to_list() is deprecated, and will be removed in passlib 1.5", DeprecationWarning)
     if order == "native":
         order = sys.byteorder
     if order == "big":
