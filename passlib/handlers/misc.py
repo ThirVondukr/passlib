@@ -26,14 +26,16 @@ class unix_fallback(SimpleHandler):
     behavior as found in /etc/shadow on most unix variants.
     If used, should be the last scheme in the context.
 
-    * this class recognizes all hash strings.
-    * it accepts all passwords if the hash is an empty string.
-    * it rejects all passwords if the hash is NOT an empty string (``!`` or ``*`` are frequently used).
+    * this class will positive identify all hash strings.
     * for security, newly encrypted passwords will hash to ``!``.
+    * it rejects all passwords if the hash is NOT an empty string (``!`` or ``*`` are frequently used).
+    * by default it rejects all passwords if the hash is an empty string,
+      but if ``enable_wildcard=True`` is passed to verify(),
+      all passwords will be allowed through if the hash is an empty string.
     """
     name = "unix_fallback"
     setting_kwds = ()
-    context_kwds = ()
+    context_kwds = ("enable_wildcard",)
 
     @classmethod
     def identify(cls, hash):
@@ -44,7 +46,7 @@ class unix_fallback(SimpleHandler):
         return "!"
 
     @classmethod
-    def genhash(cls, secret, hash):
+    def genhash(cls, secret, hash, enable_wildcard=False):
         if secret is None:
             raise TypeError("secret must be string")
         if hash is None:
@@ -52,10 +54,10 @@ class unix_fallback(SimpleHandler):
         return hash
 
     @classmethod
-    def verify(cls, secret, hash):
+    def verify(cls, secret, hash, enable_wildcard=False):
         if hash is None:
             raise ValueError("no hash provided")
-        return not hash
+        return enable_wildcard and not hash
 
 class plaintext(SimpleHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

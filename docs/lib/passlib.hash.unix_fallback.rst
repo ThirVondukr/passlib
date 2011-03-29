@@ -21,16 +21,32 @@ It can be used directly as follows::
     >>> uf.encrypt("password")
     '!'
 
-    >>> uf.identify('!') #check if hash is recognized (all hashes are recognized)
+    >>> #check if hash is recognized (all strings are recognized)
+    >>> uf.identify('!')
+    True
+    >>> uf.identify('*')
     True
     >>> uf.identify('')
     True
 
-    >>> uf.verify("password", "") #verify against empty string - all password allowed
-    True
-    >>> uf.verify("password", "!") #verify against non-empty string - no passwords allowed
+    >>> #verify against non-empty string - no passwords allowed
+    >>> uf.verify("password", "!")
     False
+
+    >>> #verify against empty string:
+    >>> #   * by default, no passwords allowed
+    >>> #   * all passwords allowed IF enable_wildcard=True
+    >>> uf.verify("password", "")
+    False
+    >>> uf.verify("password", "", enable_wildcard=True)
+    True
 
 Interface
 =========
 .. autoclass:: unix_fallback
+
+Deviations
+==========
+According to the Linux ``shadow`` man page, an empty string is treated
+as a wildcard by Linux, allowing all passwords. For security purposes,
+this behavior is not enabled unless specifically requested by the application.
