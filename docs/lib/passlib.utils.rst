@@ -41,6 +41,8 @@ Randomness
 .. autofunction:: getrandbytes
 .. autofunction:: getrandstr
 
+.. autofunction:: generate_password(size=10, charset=<default>)
+
 Object Tests
 ============
 .. autofunction:: is_crypt_handler

@@ -143,6 +143,9 @@ class UtilsTest(TestCase):
         self.assertNotEqual(a,b)
         self.assertEqual(sorted(set(a)), ['a','b','c'])
 
+        #generate_password
+        self.assertEqual(len(utils.generate_password(15)), 15)
+
     def test_is_crypt_context(self):
         cc = CryptContext(["des_crypt"])
         self.assertTrue(utils.is_crypt_context(cc))

@@ -454,6 +454,23 @@ def getrandstr(rng, charset, count):
     assert value == 0
     return buf.getvalue()
 
+def generate_password(size=10, charset=u'2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
+    """generate random password using given length & chars
+
+    :param size:
+        size of password.
+
+    :param charset:
+        optional string specified set of characters to draw from.
+
+        the default charset contains all normal alphanumeric characters,
+        except for the characters ``1IiLl0OoS5``, which were omitted
+        due to their visual similarity.
+
+    :returns: randomly generated password.
+    """
+    return getrandstr(rng, charset, size)
+
 #=================================================================================
 #eof
 #=================================================================================
