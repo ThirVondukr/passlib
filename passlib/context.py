@@ -479,7 +479,7 @@ class CryptPolicy(object):
         mvmap = self._min_verify_time
         if category in mvmap:
             return mvmap[category]
-        elif category and None in mvap:
+        elif category and None in mvmap:
             return mvmap[None]
         else:
             return 0
