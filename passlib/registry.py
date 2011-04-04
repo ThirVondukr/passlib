@@ -74,13 +74,16 @@ _handler_locations = {
     #NOTE: this is a hardcoded list of the handlers built into passlib,
     #applications should call register_crypt_handler_location() to add their own
     "apr_md5_crypt":    ("passlib.handlers.md5_crypt",   "apr_md5_crypt"),
+    "atlassian_pbkdf2_sha1":
+                        ("passlib.handlers.pbkdf2",      "atlassian_pbkdf2_sha1"),
     "bcrypt":           ("passlib.handlers.bcrypt",      "bcrypt"),
     "bigcrypt":         ("passlib.handlers.des_crypt",   "bigcrypt"),
     "bsdi_crypt":       ("passlib.handlers.des_crypt",   "bsdi_crypt"),
     "crypt16":          ("passlib.handlers.des_crypt",   "crypt16"),
     "des_crypt":        ("passlib.handlers.des_crypt",   "des_crypt"),
     "dlitz_pbkdf2_sha1":("passlib.handlers.pbkdf2",      "dlitz_pbkdf2_sha1"),
-    "grub_pbkdf2_sha512":("passlib.handlers.pbkdf2",     "grub_pbkdf2_sha512"),
+    "grub_pbkdf2_sha512":
+                        ("passlib.handlers.pbkdf2",      "grub_pbkdf2_sha512"),
     "hex_md4":          ("passlib.handlers.digests",     "hex_md4"),
     "hex_md5":          ("passlib.handlers.digests",     "hex_md5"),
     "hex_sha1":         ("passlib.handlers.digests",     "hex_sha1"),

@@ -416,6 +416,25 @@ class Oracle11Test(HandlerCase):
 #=========================================================
 from passlib.handlers import pbkdf2 as pk2
 
+class AtlassianPbkdf2Sha1Test(HandlerCase):
+    handler = pk2.atlassian_pbkdf2_sha1
+    known_correct_hashes = (
+        ("admin", '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/p'),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+                  "{PKCS5S2}cE9Yq6Am5tQGdHSHhky2XLeOnURwzaLBG2sur7FHKpvy2u0qDn6GcVGRjlmJoIUy"),
+    )
+
+    known_malformed_hashes = [
+        #bad char
+        '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq!/p'
+
+        #bad size, missing padding
+        '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/'
+
+        #bad size, with correct padding
+        '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/='
+    ]
+
 class Pbkdf2Sha1Test(HandlerCase):
     handler = pk2.pbkdf2_sha1
     known_correct_hashes = (
