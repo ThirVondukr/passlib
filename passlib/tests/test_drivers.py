@@ -780,9 +780,14 @@ class UnixFallbackTest(HandlerCase):
 
     handler = unix_fallback
 
-    known_correct_hashes = [ ("password",""), ]
+    known_correct_hashes = [ ("passwordwc",""), ]
     known_other_hashes = []
     accepts_empty_hash = True
+
+    #NOTE: to ease testing, this sets enable_wildcard iff the string 'wc' is in the secret
+
+    def do_verify(self, secret, hash):
+        return self.handler.verify(secret, hash, enable_wildcard='wc' in secret)
 
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
@@ -793,6 +798,15 @@ class UnixFallbackTest(HandlerCase):
         result = self.do_encrypt(secret)
         self.assertEquals(result, "!")
         self.assert_(not self.do_verify(secret, result))
+
+    def test_wildcard(self):
+        "test enable_wildcard flag"
+        h = self.handler
+        self.assertTrue(h.verify('password','', enable_wildcard=True))
+        self.assertFalse(h.verify('password',''))
+        for c in ("!*x"):
+            self.assertFalse(h.verify('password',c, enable_wildcard=True))
+            self.assertFalse(h.verify('password',c))
 
 #=========================================================
 #EOF
