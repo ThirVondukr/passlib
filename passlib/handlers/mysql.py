@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils.handlers import SimpleHandler
+import passlib.utils.handlers as uh
 #local
 __all__ = [
     'mysql323',
@@ -40,7 +40,7 @@ __all__ = [
 #=========================================================
 #backend
 #=========================================================
-class mysql323(SimpleHandler):
+class mysql323(uh.StaticHandler):
     """This class implements the MySQL 3.2.3 password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -51,21 +51,16 @@ class mysql323(SimpleHandler):
     #class attrs
     #=========================================================
     name = "mysql323"
-    setting_kwds = ()
+
+    _pat = re.compile(r"^[0-9a-f]{16}$", re.I)
 
     #=========================================================
-    #formatting
+    #methods
     #=========================================================
-    _pat = re.compile(r"^[0-9a-f]{16}$", re.I)
 
     @classmethod
     def identify(cls, hash):
         return bool(hash and cls._pat.match(hash))
-
-    #=========================================================
-    #backend
-    #=========================================================
-    #NOTE: using default genconfig
 
     @classmethod
     def genhash(cls, secret, config):
@@ -91,11 +86,6 @@ class mysql323(SimpleHandler):
             add = (add+tmp) & MASK_32
         return "%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
 
-    #=========================================================
-    #helpers
-    #=========================================================
-    #NOTE: using default encrypt() method
-
     @classmethod
     def verify(cls, secret, hash):
         if not hash:
@@ -109,7 +99,7 @@ class mysql323(SimpleHandler):
 #=========================================================
 #handler
 #=========================================================
-class mysql41(SimpleHandler):
+class mysql41(uh.StaticHandler):
     """This class implements the MySQL 4.1 password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -117,24 +107,18 @@ class mysql41(SimpleHandler):
     The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
     """
     #=========================================================
-    #algorithm information
+    #class attrs
     #=========================================================
     name = "mysql41"
-    setting_kwds = ()
+    _pat = re.compile(r"^\*[0-9A-F]{40}$", re.I)
 
     #=========================================================
-    #formatting
+    #methods
     #=========================================================
-    _pat = re.compile(r"^\*[0-9A-F]{40}$", re.I)
 
     @classmethod
     def identify(cls, hash):
         return bool(hash and cls._pat.match(hash))
-
-    #=========================================================
-    #backend
-    #=========================================================
-    #NOTE: using default genconfig() method
 
     @classmethod
     def genhash(cls, secret, config):
@@ -144,11 +128,6 @@ class mysql41(SimpleHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
-
-    #=========================================================
-    #helpers
-    #=========================================================
-    #NOTE: using default encrypt() method
 
     @classmethod
     def verify(cls, secret, hash):

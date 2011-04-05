@@ -21,8 +21,7 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o pybcrypt installed
     pybcrypt_hashpw = None
 #libs
-from passlib.utils import os_crypt, classproperty
-from passlib.utils.handlers import MultiBackendHandler
+from passlib.utils import os_crypt, classproperty, handlers as uh, h64
 
 #pkg
 #local
@@ -33,7 +32,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class bcrypt(MultiBackendHandler):
+class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.GenericHandler):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -66,67 +65,55 @@ class bcrypt(MultiBackendHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident")
-
-    min_salt_chars = max_salt_chars = 22
-
-    default_rounds = 12 #current passlib default
-    min_rounds = 4 # bcrypt spec specified minimum
-    max_rounds = 31 # 32-bit integer limit (real_rounds=1<<rounds)
-    rounds_cost = "log2"
-
     checksum_chars = 31
 
-    #=========================================================
-    #init
-    #=========================================================
-    _extra_init_settings = ("ident",)
+    #--HasManyIdents--
+    default_ident = "$2a$"
+    ident_values = ("$2$", "$2a$")
+    ident_aliases = {"2":"$2$", "2a": "$2a$"}
 
-    @classmethod
-    def norm_ident(cls, ident, strict=False):
-        if not ident:
-            if strict:
-                raise ValueError("no ident specified")
-            ident = "2a"
-        if ident not in ("2", "2a"):
-            raise ValueError("invalid ident: %r" % (ident,))
-        return ident
+    #--HasSalt--
+    min_salt_chars = max_salt_chars = 22
+
+    #--HasRounds--
+    default_rounds = 12 #current passlib default
+    min_rounds = 4 # bcrypt spec specified minimum
+    max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)
+    rounds_cost = "log2"
 
     #=========================================================
     #formatting
     #=========================================================
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and (hash.startswith("$2$") or hash.startswith("$2a$"))
-
-    _pat = re.compile(r"""
-        ^
-        \$(?P<ident>2a?)
-        \$(?P<rounds>\d{2})
-        \$(?P<salt>[A-Za-z0-9./]{22})
-        (?P<chk>[A-Za-z0-9./]{31})?
-        $
-        """, re.X)
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
+        for ident in cls.ident_values:
+            if hash.startswith(ident):
+                break
+        else:
             raise ValueError("invalid bcrypt hash")
-        ident, rounds, salt, chk = m.group("ident", "rounds", "salt", "chk")
+        rounds, data = hash[len(ident):].split("$")
+        rval = int(rounds)
+        if rounds != '%02d' % (rval,):
+            raise ValueError("invalid bcrypt hash (no rounds padding)")
+        salt, chk = data[:22], data[22:]
         return cls(
-            rounds=int(rounds),
+            rounds=rval,
             salt=salt,
-            checksum=chk,
+            checksum=chk or None,
             ident=ident,
             strict=bool(chk),
         )
 
     def to_string(self):
-        return "$%s$%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum or '')
+        return "%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum or '')
 
     #=========================================================
     #primary interface

@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils.handlers import SimpleHandler
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class unix_fallback(SimpleHandler):
+class unix_fallback(uh.StaticHandler):
     """This class fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
     This class does not implement a hash, but instead provides fallback
@@ -34,16 +34,12 @@ class unix_fallback(SimpleHandler):
       all passwords will be allowed through if the hash is an empty string.
     """
     name = "unix_fallback"
-    setting_kwds = ()
     context_kwds = ("enable_wildcard",)
+    _stub_config = "!"
 
     @classmethod
     def identify(cls, hash):
         return hash is not None
-
-    @classmethod
-    def genconfig(cls):
-        return "!"
 
     @classmethod
     def genhash(cls, secret, hash, enable_wildcard=False):
@@ -59,14 +55,12 @@ class unix_fallback(SimpleHandler):
             raise ValueError("no hash provided")
         return enable_wildcard and not hash
 
-class plaintext(SimpleHandler):
+class plaintext(uh.StaticHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     Unicode passwords will be encoded using utf-8.
     """
     name = "plaintext"
-    setting_kwds = ()
-    context_kwds = ()
 
     @classmethod
     def identify(cls, hash):
@@ -79,12 +73,6 @@ class plaintext(SimpleHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return secret
-
-    @classmethod
-    def verify(cls, secret, hash):
-        if hash is None:
-            raise ValueError("no hash specified")
-        return hash == cls.genhash(secret, hash)
 
 #=========================================================
 #eof

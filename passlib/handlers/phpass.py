@@ -15,8 +15,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64
-from passlib.utils.handlers import ExtendedHandler
+from passlib.utils import h64, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -26,7 +25,7 @@ __all__ = [
 #=========================================================
 #phpass
 #=========================================================
-class phpass(ExtendedHandler):
+class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the PHPass Portable Hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -53,69 +52,48 @@ class phpass(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "phpass"
     setting_kwds = ("salt", "rounds", "ident")
 
+    #--HasSalt--
     min_salt_chars = max_salt_chars = 8
 
+    #--HasRounds--
     default_rounds = 9
     min_rounds = 7
     max_rounds = 30
     rounds_cost = "log2"
-
     _strict_rounds_bounds = True
-    _extra_init_settings = ("ident",)
 
-    #=========================================================
-    #instance attrs
-    #=========================================================
-    ident = None
-
-    #=========================================================
-    #init
-    #=========================================================
-    @classmethod
-    def norm_ident(cls, ident, strict=False):
-        if not ident:
-            if strict:
-                raise ValueError("no ident specified")
-            ident = "P"
-        if ident not in ("P", "H"):
-            raise ValueError("invalid ident: %r" % (ident,))
-        return ident
+    #--HasManyIdents--
+    default_ident = "$P$"
+    ident_values = ["$P$", "$H$"]
+    ident_aliases = {"P":"$P$", "H":"$H$"}
 
     #=========================================================
     #formatting
     #=========================================================
-
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and (hash.startswith("$P$") or hash.startswith("$H$"))
 
     #$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0
     # $P$
     # 9
     # IQRaTwmf
     # eRo7ud9Fh4E2PdI0S3r.L0
-    _pat = re.compile(r"""
-        ^
-        \$
-        (?P<ident>[PH])
-        \$
-        (?P<rounds>[A-Za-z0-9./])
-        (?P<salt>[A-Za-z0-9./]{8})
-        (?P<chk>[A-Za-z0-9./]{22})?
-        $
-        """, re.X)
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
+        if isinstance(hash, unicode):
+            hash = hash.encode('ascii')
+        for ident in cls.ident_values:
+            if hash.startswith(ident):
+                break
+        else:
             raise ValueError("invalid phpass portable hash")
-        ident, rounds, salt, chk = m.group("ident", "rounds", "salt", "chk")
+        data = hash[len(ident):]
+        rounds, salt, chk = data[0], data[1:9], data[9:]
         return cls(
             ident=ident,
             rounds=h64.decode_6bit(rounds),
@@ -125,7 +103,7 @@ class phpass(ExtendedHandler):
         )
 
     def to_string(self):
-        return "$%s$%s%s%s" % (self.ident, h64.encode_6bit(self.rounds), self.salt, self.checksum or '')
+        return "%s%s%s%s" % (self.ident, h64.encode_6bit(self.rounds), self.salt, self.checksum or '')
 
     #=========================================================
     #backend

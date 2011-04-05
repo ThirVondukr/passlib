@@ -13,8 +13,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64
-from passlib.utils.handlers import ExtendedHandler
+from passlib.utils import h64, handlers as uh
 from passlib.utils.pbkdf2 import hmac_sha1
 #pkg
 #local
@@ -23,7 +22,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class sha1_crypt(ExtendedHandler):
+class sha1_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -44,13 +43,18 @@ class sha1_crypt(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "rounds")
+    ident = "$sha1$"
+    checksum_chars = 28
 
+    #--HasSalt--
     default_salt_chars = 8
     min_salt_chars = 0
     max_salt_chars = 64
 
+    #--HasRounds--
     default_rounds = 40000 #current passlib default
     min_rounds = 1 #really, this should be higher.
     max_rounds = 4294967295 # 32-bit integer limit
@@ -59,27 +63,10 @@ class sha1_crypt(ExtendedHandler):
     #=========================================================
     #formatting
     #=========================================================
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$sha1$")
-
-    _pat = re.compile(r"""
-        ^
-        \$sha1
-        \$(?P<rounds>\d+)
-        \$(?P<salt>[A-Za-z0-9./]{0,64})
-        (\$(?P<chk>[A-Za-z0-9./]{28})?)?
-        $
-        """, re.X)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid sha1_crypt hash")
-        rounds, salt, chk = m.group("rounds", "salt", "chk")
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
         if rounds.startswith("0"):
             raise ValueError("invalid sha1-crypt hash (zero-padded rounds)")
         return cls(

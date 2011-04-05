@@ -9,8 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
+from passlib.utils import handlers as uh
 from passlib.utils.md4 import md4
-from passlib.utils.handlers import SimpleHandler
 #pkg
 #local
 __all__ = [
@@ -25,14 +25,11 @@ __all__ = [
 #=========================================================
 #helpers for hexidecimal hashes
 #=========================================================
-class HexDigestHash(SimpleHandler):
+class HexDigestHash(uh.StaticHandler):
     "this provides a template for supporting passwords stored as plain hexidecimal hashes"
-    setting_kwds = ()
-    context_kwds = ()
-
-    _hash = None
-    checksum_chars = None
-    checksum_charset = "0123456789abcdef"
+    _hash_func = None #required - hash function
+    checksum_chars = None #required - size of encoded digest
+    checksum_charset = uh.HEX_CHARS
 
     @classmethod
     def identify(cls, hash):
@@ -47,7 +44,7 @@ class HexDigestHash(SimpleHandler):
             secret = secret.encode("utf-8")
         if hash is not None and not cls.identify(hash):
             raise ValueError("not a %s hash" % (cls.name,))
-        return cls._hash(secret).hexdigest()
+        return cls._hash_func(secret).hexdigest()
 
     @classmethod
     def verify(cls, secret, hash):
@@ -61,7 +58,7 @@ def create_hex_hash(hash, digest_name):
     name = "hex_" + digest_name
     return type(name, (HexDigestHash,), dict(
         name=name,
-        _hash=hash,
+        _hash_func=hash,
         checksum_chars=h.digest_size*2,
         __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
 

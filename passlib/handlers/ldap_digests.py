@@ -10,8 +10,7 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import ALL_BYTE_VALUES
-from passlib.utils.handlers import ExtendedHandler, SimpleHandler
+from passlib.utils import ALL_BYTE_VALUES, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -26,12 +25,13 @@ __all__ = [
 #=========================================================
 #reference - http://www.openldap.org/doc/admin24/security.html
 
-class _Base64DigestHelper(SimpleHandler):
+class _Base64DigestHelper(uh.StaticHandler):
     "helper for ldap_md5 / ldap_sha1"
+    #XXX: could combine this with hex digests in digests.py
 
-    #_ident
-    #_hash
-    #_pat
+    ident = None #required - prefix identifier
+    _hash_func = None #required - hash function
+    _pat = None #required - regexp to recognize hash
 
     @classmethod
     def identify(cls, hash):
@@ -45,18 +45,17 @@ class _Base64DigestHelper(SimpleHandler):
             secret = secret.encode("utf-8")
         if hash is not None and not cls.identify(hash):
             raise ValueError("not a %s hash" % (cls.name,))
-        return cls._ident + cls._hash(secret).digest().encode("base64").strip()
+        return cls.ident + cls._hash_func(secret).digest().encode("base64").strip()
 
-class _SaltedBase64DigestHelper(ExtendedHandler):
+class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
     setting_kwds = ("salt",)
 
-    #_ident
-    #_hash
-    #_pat
-    #_default_chk
+    ident = None #required - prefix identifier
+    _hash_func = None #required - hash function
+    _pat = None #required - regexp to recognize hash
+    _stub_checksum = None #required - default checksum to plug in
     min_salt_chars = max_salt_chars = 4
-    salt_charset = ALL_BYTE_VALUES
 
     @classmethod
     def identify(cls, hash):
@@ -66,6 +65,8 @@ class _SaltedBase64DigestHelper(ExtendedHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, unicode):
+            hash = hash.encode('ascii')
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("not a %s hash" % (cls.name,))
@@ -74,14 +75,14 @@ class _SaltedBase64DigestHelper(ExtendedHandler):
         return cls(checksum=chk, salt=salt, strict=True)
 
     def to_string(self):
-        return self._ident + ((self.checksum or self._default_chk) + self.salt).encode("base64").strip()
+        return self.ident + ((self.checksum or self._stub_checksum) + self.salt).encode("base64").strip()
 
     def calc_checksum(self, secret):
         if secret is None:
             raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return self._hash(secret + self.salt).digest()
+        return self._hash_func(secret + self.salt).digest()
 
 #=========================================================
 #implementations
@@ -94,8 +95,8 @@ class ldap_md5(_Base64DigestHelper):
     name = "ldap_md5"
     setting_kwds = ()
 
-    _ident = "{MD5}"
-    _hash = md5
+    ident = "{MD5}"
+    _hash_func = md5
     _pat = re.compile(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
 
 class ldap_sha1(_Base64DigestHelper):
@@ -106,8 +107,8 @@ class ldap_sha1(_Base64DigestHelper):
     name = "ldap_sha1"
     setting_kwds = ()
 
-    _ident = "{SHA}"
-    _hash = sha1
+    ident = "{SHA}"
+    _hash_func = sha1
     _pat = re.compile(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
@@ -123,10 +124,10 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
         If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
     """
     name = "ldap_salted_md5"
-    _ident = "{SMD5}"
-    _hash = md5
+    ident = "{SMD5}"
+    _hash_func = md5
     _pat = re.compile(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27}=)$")
-    _default_chk = '\x00' * 16
+    _stub_checksum = '\x00' * 16
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted SHA1 format, and follows the :ref:`password-hash-api`.
@@ -141,12 +142,12 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
         If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
     """
     name = "ldap_salted_sha1"
-    _ident = "{SSHA}"
-    _hash = sha1
+    ident = "{SSHA}"
+    _hash_func = sha1
     _pat = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
-    _default_chk = '\x00' * 20
+    _stub_checksum = '\x00' * 20
 
-class ldap_plaintext(SimpleHandler):
+class ldap_plaintext(uh.StaticHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     This class acts much like the generic :class:`!passlib.hash.plaintext` handler,
@@ -156,8 +157,6 @@ class ldap_plaintext(SimpleHandler):
     Unicode passwords will be encoded using utf-8.
     """
     name = "ldap_plaintext"
-    setting_kwds = ()
-    context_kwds = ()
 
     _2307_pat = re.compile(r"^\{[a-zA-Z0-9-]+\}.*$")
 
@@ -168,7 +167,7 @@ class ldap_plaintext(SimpleHandler):
     @classmethod
     def genhash(cls, secret, hash):
         if hash is not None and not cls.identify(hash):
-            raise ValueError("not a valid ldap_cleartext hash")
+            raise ValueError("not a valid ldap_plaintext hash")
         if secret is None:
             raise TypeError("secret must be string")
         if isinstance(secret, unicode):

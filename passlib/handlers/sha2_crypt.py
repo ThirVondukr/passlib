@@ -9,8 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.handlers import MultiBackendHandler
+from passlib.utils import h64, os_crypt, classproperty, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -205,7 +204,7 @@ _512_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class sha256_crypt(MultiBackendHandler):
+class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA256-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -240,16 +239,19 @@ class sha256_crypt(MultiBackendHandler):
     #=========================================================
     #algorithm information
     #=========================================================
+    #--GenericHandler--
     name = "sha256_crypt"
-
     setting_kwds = ("salt", "rounds", "implicit_rounds")
+    ident = "$5$"
 
+    #--HasSalt--
     min_salt_chars = 0
     max_salt_chars = 16
     #TODO: allow salt charset 0-255 except for "\x00\n:$"
 
+    #--HasRounds--
     default_rounds = 40000 #current passlib default
-    min_rounds = 1000
+    min_rounds = 1000 #other bounds set by spec
     max_rounds = 999999999
     rounds_cost = "linear"
 
@@ -265,9 +267,6 @@ class sha256_crypt(MultiBackendHandler):
     #=========================================================
     #parsing
     #=========================================================
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$5$")
 
     #: regexp used to parse hashes
     _pat = re.compile(r"""
@@ -289,8 +288,8 @@ class sha256_crypt(MultiBackendHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        #TODO: write non-regexp based parser,
-        # and rely on norm_salt etc to handle more of the validation.
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid sha256-crypt hash")
@@ -350,7 +349,7 @@ class sha256_crypt(MultiBackendHandler):
 #=========================================================
 #sha 512 crypt
 #=========================================================
-class sha512_crypt(MultiBackendHandler):
+class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA512-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -386,6 +385,7 @@ class sha512_crypt(MultiBackendHandler):
     #algorithm information
     #=========================================================
     name = "sha512_crypt"
+    ident = "$6$"
 
     setting_kwds = ("salt", "rounds", "implicit_rounds")
 
@@ -410,9 +410,6 @@ class sha512_crypt(MultiBackendHandler):
     #=========================================================
     #parsing
     #=========================================================
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$6$")
 
     #: regexp used to parse hashes
     _pat = re.compile(r"""
@@ -436,8 +433,8 @@ class sha512_crypt(MultiBackendHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        #TODO: write non-regexp based parser,
-        # and rely on norm_salt etc to handle more of the validation.
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid sha512-crypt hash")

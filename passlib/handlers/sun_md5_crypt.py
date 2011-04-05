@@ -25,8 +25,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64
-from passlib.utils.handlers import ExtendedHandler
+from passlib.utils import h64, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -190,7 +189,7 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class sun_md5_crypt(ExtendedHandler):
+class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the Sun-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -211,6 +210,7 @@ class sun_md5_crypt(ExtendedHandler):
     #=========================================================
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds")
+    ident = "$md5$"
 
     min_salt_chars = 0
     max_salt_chars = 8
@@ -247,6 +247,8 @@ class sun_md5_crypt(ExtendedHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid sun-md5-crypt hash")

@@ -58,8 +58,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, classproperty, os_crypt
-from passlib.utils.handlers import MultiBackendHandler, ExtendedHandler
+from passlib.utils import h64, classproperty, os_crypt, handlers as uh
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
@@ -136,7 +135,7 @@ def raw_ext_crypt(secret, rounds, salt):
 #=========================================================
 #handler
 #=========================================================
-class des_crypt(MultiBackendHandler):
+class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -159,8 +158,11 @@ class des_crypt(MultiBackendHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "des_crypt"
     setting_kwds = ("salt",)
+
+    #--HasSalt--
     min_salt_chars = max_salt_chars = 2
 
     #=========================================================
@@ -182,10 +184,9 @@ class des_crypt(MultiBackendHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid des-crypt hash")
-        salt, chk = m.group("salt", "chk")
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
+        salt, chk = hash[:2], hash[2:]
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self):
@@ -232,7 +233,7 @@ class des_crypt(MultiBackendHandler):
 # so as not to reveal weak des keys. given the random salt, this shouldn't be
 # a very likely issue anyways, but should do something about default rounds generation anyways.
 
-class bsdi_crypt(ExtendedHandler):
+class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -251,18 +252,19 @@ class bsdi_crypt(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
+    checksum_chars = 11
 
+    #--HasSalt--
     min_salt_chars = max_salt_chars = 4
 
+    #--HasRounds--
     default_rounds = 5000
     min_rounds = 0
     max_rounds = 16777215 # (1<<24)-1
     rounds_cost = "linear"
-
-    checksum_chars = 11
-    checksum_charset = h64.CHARS
 
     # NOTE: OpenBSD login.conf reports 7250 as minimum allowed rounds,
     # but that seems to be an OS policy, not a algorithm limitation.
@@ -286,6 +288,8 @@ class bsdi_crypt(ExtendedHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid ext-des-crypt hash")
@@ -317,7 +321,7 @@ class bsdi_crypt(ExtendedHandler):
 #=========================================================
 #
 #=========================================================
-class bigcrypt(ExtendedHandler):
+class bigcrypt(uh.HasSalt, uh.GenericHandler):
     """This class implements the BigCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -332,13 +336,14 @@ class bigcrypt(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "bigcrypt"
     setting_kwds = ("salt",)
-
-    min_salt_chars = max_salt_chars = 2
-
     checksum_charset = h64.CHARS
     #NOTE: checksum chars must be multiple of 11
+
+    #--HasSalt--
+    min_salt_chars = max_salt_chars = 2
 
     #=========================================================
     #internal helpers
@@ -357,16 +362,23 @@ class bigcrypt(ExtendedHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid bigcrypt hash")
         salt, chk = m.group("salt", "chk")
-        if chk and len(chk) % 11:
-            raise ValueError("invalid bigcrypt hash")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self):
         return "%s%s" % (self.salt, self.checksum or '')
+
+    @classmethod
+    def norm_checksum(cls, value, strict=False):
+        value = super(bigcrypt, cls).norm_checksum(value, strict=strict)
+        if value and len(value) % 11:
+            raise ValueError("invalid bigcrypt hash")
+        return value
 
     #=========================================================
     #backend
@@ -392,7 +404,7 @@ class bigcrypt(ExtendedHandler):
 #=========================================================
 #
 #=========================================================
-class crypt16(ExtendedHandler):
+class crypt16(uh.HasSalt, uh.GenericHandler):
     """This class implements the crypt16 password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -407,13 +419,13 @@ class crypt16(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "crypt16"
     setting_kwds = ("salt",)
-
-    min_salt_chars = max_salt_chars = 2
-
     checksum_chars = 22
-    checksum_charset = h64.CHARS
+
+    #--HasSalt--
+    min_salt_chars = max_salt_chars = 2
 
     #=========================================================
     #internal helpers
@@ -432,6 +444,8 @@ class crypt16(ExtendedHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid crypt16 hash")
@@ -468,6 +482,7 @@ class crypt16(ExtendedHandler):
         #run data through des using input of 0
         result2 = mdes_encrypt_int_block(key2, 0, salt_value, 5)
 
+        #done
         return h64.encode_dc_int64(result1) + h64.encode_dc_int64(result2)
 
     #=========================================================

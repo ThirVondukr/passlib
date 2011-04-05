@@ -71,7 +71,7 @@ class postgres_md5(object):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        return "md5" + md5(secret + user).hexdigest().lower()
+        return "md5" + md5(secret + user).hexdigest()
 
     @classmethod
     def verify(cls, secret, hash, user):

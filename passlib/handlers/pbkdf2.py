@@ -10,8 +10,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import adapted_b64_encode, adapted_b64_decode, ALL_BYTE_VALUES
-from passlib.utils.handlers import ExtendedHandler
+from passlib.utils import adapted_b64_encode, adapted_b64_decode, ALL_BYTE_VALUES, handlers as uh
 from passlib.utils.pbkdf2 import pbkdf2
 #pkg
 #local
@@ -26,11 +25,27 @@ __all__ = [
 #=========================================================
 #
 #=========================================================
-class Pbkdf2DigestHandler(ExtendedHandler):
+class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "base class for various pbkdf2_{digest} algorithms"
+    #=========================================================
+    #class attrs
+    #=========================================================
+
+    #--GenericHandler--
     setting_kwds = ("salt", "rounds")
 
-    _ident = None #subclass specified identifier prefix
+    #--HasSalt--
+    default_salt_chars = 16
+    min_salt_chars = 0
+    max_salt_chars = 1024
+
+    #--HasRounds--
+    default_rounds = 6400
+    min_rounds = 1
+    max_rounds = 2**32-1
+    rounds_cost = "linear"
+
+    #--this class--
     _prf = None #subclass specified prf identifier
 
     #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
@@ -40,35 +55,15 @@ class Pbkdf2DigestHandler(ExtendedHandler):
     #      >8 bytes of entropy in salt, >1000 rounds
     #      increased due to time since rfc established
 
-    default_salt_chars = 16
-    min_salt_chars = 0
-    max_salt_chars = 1024
-    salt_charset = ALL_BYTE_VALUES
-
-    default_rounds = 6400
-    min_rounds = 1
-    max_rounds = 2**32-1
-    rounds_cost = "linear"
-
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith(cls._ident)
+    #=========================================================
+    #methods
+    #=========================================================
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        ident = cls._ident
-        if not hash.startswith(ident):
-            raise ValueError("invalid %s hash" % (cls.name,))
-        parts = hash[len(ident):].split("$")
-        if len(parts) == 3:
-            rounds, salt, chk = parts
-        elif len(parts) == 2:
-            rounds, salt = parts
-            chk = None
-        else:
-            raise ValueError("invalid %s hash" % (cls.name,))
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
         int_rounds = int(rounds)
         if rounds != str(int_rounds): #forbid zero padding, etc.
             raise ValueError("invalid %s hash" % (cls.name,))
@@ -84,9 +79,9 @@ class Pbkdf2DigestHandler(ExtendedHandler):
     def to_string(self, withchk=True):
         salt = adapted_b64_encode(self.salt)
         if withchk and self.checksum:
-            return '%s%d$%s$%s' % (self._ident, self.rounds, salt, adapted_b64_encode(self.checksum))
+            return '%s%d$%s$%s' % (self.ident, self.rounds, salt, adapted_b64_encode(self.checksum))
         else:
-            return '%s%d$%s' % (self._ident, self.rounds, salt)
+            return '%s%d$%s' % (self.ident, self.rounds, salt)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -101,7 +96,7 @@ def create_pbkdf2_hash(hash_name, digest_size):
     base = Pbkdf2DigestHandler
     return type(name, (base,), dict(
         name=name,
-        _ident=ident,
+        ident=ident,
         _prf = prf,
         checksum_chars=digest_size,
         encoded_checksum_chars=(digest_size*4+2)//3,
@@ -132,7 +127,7 @@ pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64)
 #=========================================================
 #dlitz's pbkdf2 hash
 #=========================================================
-class dlitz_pbkdf2_sha1(ExtendedHandler):
+class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements Dwayne Litzenberger's PBKDF2-based crypt algorithm, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -152,16 +147,20 @@ class dlitz_pbkdf2_sha1(ExtendedHandler):
     #=========================================================
     #class attrs
     #=========================================================
+    #--GenericHandler--
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "rounds")
+    ident = "$p5k2$"
 
     #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
     #   underlying algorithm (and reference implementation) allow effectively unbounded values for both of these.
 
+    #--HasSalt--
     default_salt_chars = 16
     min_salt_chars = 0
     max_salt_chars = 1024
 
+    #--HasROunds--
     default_rounds = 10000
     min_rounds = 0
     max_rounds = 2**32-1
@@ -171,10 +170,6 @@ class dlitz_pbkdf2_sha1(ExtendedHandler):
     #formatting
     #=========================================================
 
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$p5k2$")
-
     #hash       $p5k2$c$u9HvcT4d$Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g
     #ident      $p5k2$
     #rounds     c
@@ -182,23 +177,11 @@ class dlitz_pbkdf2_sha1(ExtendedHandler):
     #chk        Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g
     #rounds in lowercase hex, no zero padding
 
-    _pat = re.compile(r"""
-        ^
-        \$p5k2
-        \$(?P<rounds>[a-f0-9]*)
-        \$(?P<salt>[A-Za-z0-9./]*)
-        (\$(?P<chk>[A-Za-z0-9./]{32}))?
-        $
-        """, re.X)
-
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid dlitz_pbkdf2_crypt hash")
-        rounds, salt, chk = m.group("rounds", "salt", "chk")
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
         if rounds.startswith("0"): #zero not allowed, nor left-padded with zeroes
             raise ValueError("invalid dlitz_pbkdf2_crypt hash")
         rounds = int(rounds, 16) if rounds else 400
@@ -235,7 +218,7 @@ class dlitz_pbkdf2_sha1(ExtendedHandler):
 #=========================================================
 #crowd
 #=========================================================
-class atlassian_pbkdf2_sha1(ExtendedHandler):
+class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the PBKDF2 hash used by Atlassian.
 
     It supports a fixed-length salt, and a fixed number of rounds.
@@ -247,34 +230,33 @@ class atlassian_pbkdf2_sha1(ExtendedHandler):
         If specified, the length must be exactly 16 bytes.
         If not specified, a salt will be autogenerated (this is recommended).
     """
+    #--GenericHandler--
     name = "atlassian_pbkdf2_sha1"
     setting_kwds =("salt",)
-    _ident = "{PKCS5S2}"
-
-    min_salt_chars = max_salt_chars = 16
-    salt_charset = ALL_BYTE_VALUES
+    ident = "{PKCS5S2}"
     checksum_chars = 32
 
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith(cls._ident)
+    _stub_checksum = "\x00" * 32
+
+    #--HasRawSalt--
+    min_salt_chars = max_salt_chars = 16
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        ident = cls._ident
+        if isinstance(hash, unicode):
+            hash = hash.encode("ascii")
+        ident = cls.ident
         if not hash.startswith(ident):
             raise ValueError("invalid %s hash" % (cls.name,))
         data = b64decode(hash[len(ident):])
         salt, chk = data[:16], data[16:]
         return cls(salt=salt, checksum=chk, strict=True)
 
-    _stub_checksum = "\x00" * 32
-
     def to_string(self):
         data = self.salt + (self.checksum or self._stub_checksum)
-        return self._ident + b64encode(data)
+        return self.ident + b64encode(data)
 
     def calc_checksum(self, secret):
         #TODO: find out what crowd's policy is re: unicode
@@ -286,7 +268,7 @@ class atlassian_pbkdf2_sha1(ExtendedHandler):
 #=========================================================
 #grub
 #=========================================================
-class grub_pbkdf2_sha512(ExtendedHandler):
+class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements Grub's pbkdf2-hmac-sha512 hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -305,7 +287,7 @@ class grub_pbkdf2_sha512(ExtendedHandler):
     name = "grub_pbkdf2_sha512"
     setting_kwds = ("salt", "rounds")
 
-    _ident = "grub.pbkdf2.sha512."
+    ident = "grub.pbkdf2.sha512."
 
     #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
     #      the underlying pbkdf2 specifies no bounds for either,
@@ -314,7 +296,6 @@ class grub_pbkdf2_sha512(ExtendedHandler):
     default_salt_chars = 64
     min_salt_chars = 0
     max_salt_chars = 1024
-    salt_charset = ALL_BYTE_VALUES
 
     default_rounds = 10000
     min_rounds = 1
@@ -322,24 +303,10 @@ class grub_pbkdf2_sha512(ExtendedHandler):
     rounds_cost = "linear"
 
     @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith(cls._ident)
-
-    @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        ident = cls._ident
-        if not hash.startswith(ident):
-            raise ValueError("invalid %s hash" % (cls.name,))
-        parts = hash[len(ident):].split(".")
-        if len(parts) == 3:
-            rounds, salt, chk = parts
-        elif len(parts) == 2:
-            rounds, salt = parts
-            chk = None
-        else:
-            raise ValueError("invalid %s hash" % (cls.name,))
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name, sep=".")
         int_rounds = int(rounds)
         if rounds != str(int_rounds): #forbid zero padding, etc.
             raise ValueError("invalid %s hash" % (cls.name,))
@@ -355,9 +322,9 @@ class grub_pbkdf2_sha512(ExtendedHandler):
     def to_string(self, withchk=True):
         salt = hexlify(self.salt).upper()
         if withchk and self.checksum:
-            return '%s%d.%s.%s' % (self._ident, self.rounds, salt, hexlify(self.checksum).upper())
+            return '%s%d.%s.%s' % (self.ident, self.rounds, salt, hexlify(self.checksum).upper())
         else:
-            return '%s%d.%s' % (self._ident, self.rounds, salt)
+            return '%s%d.%s' % (self.ident, self.rounds, salt)
 
     def calc_checksum(self, secret):
         #TODO: find out what grub's policy is re: unicode

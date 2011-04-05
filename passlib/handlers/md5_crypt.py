@@ -9,8 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, os_crypt, classproperty
-from passlib.utils.handlers import ExtendedHandler, MultiBackendHandler
+from passlib.utils import h64, os_crypt, classproperty, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -31,7 +30,7 @@ def raw_md5_crypt(secret, salt, apr=False):
 
     #validate secret
     if not isinstance(secret, str):
-        raise TypeError("secret must be string")
+        raise TypeError("secret must be an encoded string")
 
     #validate salt
     if len(salt) > 8:
@@ -113,7 +112,7 @@ def raw_md5_crypt(secret, salt, apr=False):
 
     #encode resulting hash
     return h64.encode_transposed_bytes(result, _chk_offsets)
-
+    
 _chk_offsets = (
     12,6,0,
     13,7,1,
@@ -126,7 +125,7 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class md5_crypt(MultiBackendHandler):
+class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     """This class implements the MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -148,39 +147,23 @@ class md5_crypt(MultiBackendHandler):
     #=========================================================
     #algorithm information
     #=========================================================
+    #--GenericHandler--
     name = "md5_crypt"
-    #stats: 128 bit checksum, 48 bit salt
-
     setting_kwds = ("salt",)
+    ident = "$1$"
+    checksum_chars = 22
 
+    #--HasSalt--
     min_salt_chars = 0
     max_salt_chars = 8
-
-    checksum_chars = 22
 
     #=========================================================
     #internal helpers
     #=========================================================
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$1$")
-
-    _pat = re.compile(r"""
-        ^
-        \$1
-        \$(?P<salt>[A-Za-z0-9./]{,8})
-        (\$(?P<chk>[A-Za-z0-9./]{22})?)?
-        $
-        """, re.X)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid md5-crypt hash")
-        salt, chk = m.group("salt", "chk")
+        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self):
@@ -216,7 +199,7 @@ class md5_crypt(MultiBackendHandler):
 #=========================================================
 #apache variant of md5-crypt
 #=========================================================
-class apr_md5_crypt(ExtendedHandler):
+class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -231,37 +214,23 @@ class apr_md5_crypt(ExtendedHandler):
     #=========================================================
     #algorithm information
     #=========================================================
+    #--GenericHandler--
     name = "apr_md5_crypt"
     setting_kwds = ("salt",)
+    ident = "$apr1$"
+    checksum_chars = 22
 
+    #--HasSalt--
     min_salt_chars = 0
     max_salt_chars = 8
-
-    checksum_chars = 22
 
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(r"""
-        ^
-        \$apr1
-        \$(?P<salt>[A-Za-z0-9./]{,8})
-        (\$(?P<chk>[A-Za-z0-9./]{22})?)?
-        $
-        """, re.X)
-
-    @classmethod
-    def identify(cls, hash):
-        return bool(hash) and hash.startswith("$apr1$")
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid md5-crypt hash")
-        salt, chk = m.group("salt", "chk")
+        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self):
