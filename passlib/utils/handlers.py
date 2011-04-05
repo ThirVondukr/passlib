@@ -45,6 +45,46 @@ UC_HEX_CHARS = "0123456789ABCDEF"
 LC_HEX_CHARS = "0123456789abcdef"
 
 #=========================================================
+#parsing helpers
+#=========================================================
+def parse_mc2(hash, prefix, name="<unnamed>", sep="$"):
+    "parse hash using 2-part modular crypt format"
+    #eg: MD5-Crypt: $1$salt[$checksum]
+    if not hash:
+        raise ValueError("no hash specified")
+    if isinstance(hash, unicode):
+        hash = hash.encode("ascii")
+    if not hash.startswith(prefix):
+        raise ValueError("not a valid %s hash (wrong prefix)" % (name,))
+    parts = hash[len(prefix):].split(sep)
+    if len(parts) == 2:
+        salt, chk = parts
+        return salt, chk or None
+    elif len(parts) == 1:
+        return parts[0], None
+    else:
+        raise ValueError("not a valid %s hash (malformed)" % (name,))
+
+def parse_mc3(hash, prefix, name="<unnamed>", sep="$"):
+    "parse hash using 3-part modular crypt format"
+    #eg: SHA1-Crypt: $sha1$rounds$salt[$checksum]
+    if not hash:
+        raise ValueError("no hash specified")
+    if isinstance(hash, unicode):
+        hash = hash.encode("ascii")
+    if not hash.startswith(prefix):
+        raise ValueError("not a valid %s hash" % (name,))
+    parts = hash[len(prefix):].split(sep)
+    if len(parts) == 3:
+        rounds, salt, chk = parts
+        return rounds, salt, chk or None
+    elif len(parts) == 2:
+        rounds, salt = parts
+        return rounds, salt, None
+    else:
+        raise ValueError("not a valid %s hash" % (name,))
+
+#=========================================================
 #base handler
 #=========================================================
 class SimpleHandler(object):
