@@ -5,11 +5,10 @@ Todo
 Internal Changes
 ----------------
 * C extensions to speed up some implementations
+* py3k support
 
 Other Hash Formats
 ------------------
-* generic raw digests encoded as hex
-
 * FSHP (a pbkdf1 variant)
   https://github.com/bdd/fshp
 
@@ -22,16 +21,39 @@ Other Hash Formats
   http://www.tarsnap.com/scrypt.html
   https://bitbucket.org/mhallin/py-scrypt/src
 
-* Oracle Hashes
-  http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/
-
-* Any other PBKDF1/2 variants
-  some backend notes - http://www.di-mgt.com.au/cryptoKDFs.html
-
-* Check list of hashes on http://openwall.info/wiki/john/sample-hashes
-
-Notes on Mac OSX hash formats
+Notes on various hash formats
 =============================
+
+LDAP
+----
+still trying to verify if {CRYPT} can contain other formats besides des-crypt
+(eg, md5-crypt etc). see some references to {CRYPT}$1$
+
+this page http://www.ldapexplorer.com/en/manual/107070207-editor-password.htm
+has a longer list than some, but no sample hashes, so can't verify formats.
+
+that page also implies some systems support variable length salts for SSHA etc.
+currently implementation is locked at 4 bytes.
+
+Cisco PIX
+---------
+sample hashes found - http://www.freerainbowtables.com/phpBB3/viewtopic.php?f=2&t=1441
+
+  8Ry2YjIyt7RRXU24 ''
+  2KFQnbNIdI.2KYOU 'cisco'
+  hN7LzeyYjw12FSIU 'john'/'cisco'
+  7DrfeZ7cyOj/PslD 'jack'/'cisco'
+
+alg
+  secret+user
+  truncate/pad-right-null to 16 bytes
+  md5().digest()
+  h64 encode
+
+todo: get some samples w/ passwords longer than 16 chars to verify
+
+Mac OSX
+-------
 Summary of info from http://www.dribin.org/dave/blog/archives/2006/04/28/os_x_passwords_2/
 
 osx < 10.2 used /etc/passwd w/ DES-CRYPT

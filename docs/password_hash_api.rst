@@ -21,13 +21,14 @@ The `required informational attributes`_
   allows and/or requires.
 
 The `application interface`_
-  This consists of the :meth:`~PasswordHash.encrypt`,
+  This interface consists of the :meth:`~PasswordHash.encrypt`,
   :meth:`~PasswordHash.identify`, and :meth:`~PasswordHash.verify` classmethods.
   Most applications will only need to make use of these methods.
 
 The `crypt interface`_
-  This consists of the :meth:`~PasswordHash.genconfig`,
-  :meth:`~PasswordHash.genhash`. This mimics the standard unix crypt interface,
+  This interface consists of the :meth:`~PasswordHash.genconfig`
+  and :meth:`~PasswordHash.genhash` classmethods.
+  This mimics the standard unix crypt interface,
   but is not usually needed by applications.
 
 The `optional informational attributes`_
@@ -192,10 +193,10 @@ which scheme a hash belongs to when multiple schemes are in use.
           this should rarely occur, since most modern algorithms have no limitations
           on the types of characters.
 
-    :raises TypeError: if :samp:`{secret}` is not a string
+    :raises TypeError: if :samp:`{secret}` is not a bytes or unicode instance.
 
     :returns:
-        Hash string, encoded in algorithm-specific format.
+        Hash string, using an algorithm-specific format.
 
 .. classmethod:: PasswordHash.identify(hash)
 
@@ -233,9 +234,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         method. These should be limited to those listed
         in :attr:`~PasswordHash.context_kwds`.
 
-    :raises TypeError:
-
-        * if the secret is not a string.
+    :raises TypeError: if :samp:`{secret}` is not a bytes or unicode instance.
 
     :raises ValueError:
         * if the hash not specified
@@ -331,6 +330,7 @@ and :meth:`~PasswordHash.genhash()``.
     :raises TypeError:
         * if the configuration string is not provided
         * if required contextual information is not provided
+        * if :samp:`{secret}` is not a bytes or unicode instance.
 
     :raises ValueError:
         * if the configuration string is not in a recognized format.
