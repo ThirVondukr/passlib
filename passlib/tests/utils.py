@@ -24,8 +24,7 @@ except ImportError:
 #site
 from nose.plugins.skip import SkipTest
 #pkg
-from passlib.utils import classproperty
-from passlib.utils.handlers import SimpleHandler, ExtendedHandler, MultiBackendHandler
+from passlib.utils import classproperty, handlers as uh
 #local
 __all__ = [
     #util funcs
@@ -139,7 +138,7 @@ class TestCase(unittest.TestCase):
 
     def assertNotEquals(self, real, correct, msg=None):
         #NOTE: overriding this to get msg formatting capability
-        msg = self._format_msg(msg, "got %r, expected would equal %r", real, correct)
+        msg = self._format_msg(msg, "got %r, expected would not equal %r", real, correct)
         return self.assert_(real != correct, msg)
 
     def assertNotEqual(self, *a, **k):
@@ -203,7 +202,7 @@ class TestCase(unittest.TestCase):
 #other unittest helpers
 #=========================================================
 class HandlerCase(TestCase):
-    """base class for testing password hash handlers (esp passlib.utils.handlers.SimpleHandler subclasses)
+    """base class for testing password hash handlers (esp passlib.utils.handlers subclasses)
 
     .. todo::
         write directions on how to use this class.
@@ -341,28 +340,14 @@ class HandlerCase(TestCase):
 
     #TODO: check optional rounds attributes & salt attributes
 
-    def test_04_base_handler(self):
-        "check configuration of SimpleHandler-derived classes"
-        cls = self.handler
-        if not isinstance(cls, type) or not issubclass(cls, SimpleHandler):
-            raise SkipTest
-
-        if not cls.name:
-            raise AssertionError("class must have .name attribute set")
-
-        if cls.setting_kwds is None:
-            raise AssertionError("class must have .setting_kwds attribute set")
-
     def test_05_ext_handler(self):
-        "check configuration of ExtendedHandler-derived classes"
+        "check configuration of GenericHandler-derived classes"
         cls = self.handler
-        if not isinstance(cls, type) or not issubclass(cls, ExtendedHandler):
+        if not isinstance(cls, type) or not issubclass(cls, uh.GenericHandler):
             raise SkipTest
-
-        if any(k not in cls.setting_kwds for k in cls._extra_init_settings):
-            raise AssertionError("_extra_init_settings must be subset of setting_kwds")
 
         if 'salt' in cls.setting_kwds:
+            # assume HasSalt / HasRawSalt
 
             if cls.min_salt_chars > cls.max_salt_chars:
                 raise AssertionError("min salt chars too large")
@@ -372,11 +357,12 @@ class HandlerCase(TestCase):
             if cls.default_salt_chars > cls.max_salt_chars:
                 raise AssertionError("default salt chars too large")
 
-            if any(c not in cls.salt_charset for c in cls.default_salt_charset):
+            #salt_charset is None for HasRawSalt
+            if cls.salt_charset and any(c not in cls.salt_charset for c in cls.default_salt_charset):
                 raise AssertionError("default salt charset not subset of salt charset")
 
         if 'rounds' in cls.setting_kwds:
-
+            # assume uses HasRounds
             if cls.max_rounds is None:
                 raise AssertionError("max rounds not specified")
 
@@ -392,8 +378,16 @@ class HandlerCase(TestCase):
             if cls.rounds_cost not in ("linear", "log2"):
                 raise AssertionError("unknown rounds cost function")
 
+        if 'ident' in cls.setting_kwds:
+            # assume uses HasManyIdents
+            self.assertTrue(len(cls.ident_values)>1, "cls.ident_values must have 2+ elements")
+            self.assertTrue(cls.default_ident in cls.ident_values, "cls.default_ident must specify member of cls.ident_values")
+            if cls.ident_aliases:
+                for alias, ident in cls.ident_aliases.iteritems():
+                    self.assertTrue(ident in cls.ident_values, "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
+
     def test_06_backend_handler(self):
-        "check configuration of MultiBackendHandler-derived classes"
+        "check behavior of multiple-backend handlers"
         h = self.handler
         if not hasattr(h, "get_backend"):
             raise SkipTest
@@ -674,7 +668,7 @@ class HandlerCase(TestCase):
 #=========================================================
 def enable_backend_case(handler, name):
     "helper to check if a separate test is needed for the specified backend"
-    assert issubclass(handler, MultiBackendHandler), "handler must derived from MultiBackendHandler"
+    assert issubclass(handler, uh.HasManyBackends), "handler must derived from uh.HasManyBackends"
     assert name in handler.backends, "unknown backend: %r" % (name,)
     return enable_option("all-backends") and handler.get_backend() != name and handler.has_backend(name)
 

@@ -14,7 +14,7 @@ import sys
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy
-from passlib.utils.handlers import SimpleHandler
+import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 #module
 log = getLogger(__name__)
@@ -161,10 +161,10 @@ admin.sha512_crypt.max_rounds = 40000
             )
 
         #check with bad handler
-        self.assertRaises(TypeError, CryptPolicy, schemes=[SimpleHandler])
+        self.assertRaises(TypeError, CryptPolicy, schemes=[uh.StaticHandler])
 
         #check with multiple handlers
-        class dummy_1(SimpleHandler):
+        class dummy_1(uh.StaticHandler):
             name = 'dummy_1'
         self.assertRaises(KeyError, CryptPolicy, schemes=[dummy_1, dummy_1])
 

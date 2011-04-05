@@ -15,7 +15,7 @@ import sys
 from passlib import hash, registry
 from passlib.registry import register_crypt_handler, register_crypt_handler_path, \
     get_crypt_handler, list_crypt_handlers
-from passlib.utils.handlers import SimpleHandler
+import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 #module
 log = getLogger(__name__)
@@ -23,13 +23,11 @@ log = getLogger(__name__)
 #=========================================================
 #test registry
 #=========================================================
-class dummy_0(SimpleHandler):
+class dummy_0(uh.StaticHandler):
     name = "dummy_0"
-    setting_kwds = ()
 
-class alt_dummy_0(SimpleHandler):
+class alt_dummy_0(uh.StaticHandler):
     name = "dummy_0"
-    setting_kwds = ()
 
 dummy_x = 1
 
@@ -101,14 +99,14 @@ class RegistryTest(TestCase):
 
         self.assertRaises(TypeError, register_crypt_handler, {})
 
-        self.assertRaises(ValueError, register_crypt_handler, SimpleHandler)
-        self.assertRaises(ValueError, register_crypt_handler, type('x', (SimpleHandler,), dict(name="AB_CD")))
-        self.assertRaises(ValueError, register_crypt_handler, type('x', (SimpleHandler,), dict(name="ab-cd")))
+        self.assertRaises(ValueError, register_crypt_handler, uh.StaticHandler)
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="AB_CD")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab-cd")))
 
-        class dummy_1(SimpleHandler):
+        class dummy_1(uh.StaticHandler):
             name = "dummy_1"
 
-        class dummy_1b(SimpleHandler):
+        class dummy_1b(uh.StaticHandler):
             name = "dummy_1"
 
         self.assertTrue('dummy_1' not in list_crypt_handlers())
@@ -128,7 +126,7 @@ class RegistryTest(TestCase):
     def test_get_crypt_handler(self):
         "test get_crypt_handler()"
 
-        class dummy_1(SimpleHandler):
+        class dummy_1(uh.StaticHandler):
             name = "dummy_1"
 
         self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
