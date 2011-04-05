@@ -58,7 +58,7 @@ def create_hex_hash(hash, digest_name):
     name = "hex_" + digest_name
     return type(name, (HexDigestHash,), dict(
         name=name,
-        _hash_func=hash,
+        _hash_func=staticmethod(hash), #sometimes it's a function, sometimes not. so wrap it.
         checksum_chars=h.digest_size*2,
         __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
 
