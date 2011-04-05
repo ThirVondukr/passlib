@@ -7,8 +7,6 @@ implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
 
 """
 
-#TODO: check for libssl support via hashlib.new("md4"),
-
 #=========================================================================
 #imports
 #=========================================================================
@@ -224,6 +222,20 @@ class md4(object):
     #=========================================================================
     #eoc
     #=========================================================================
+
+#=========================================================================
+#check if hashlib provides accelarated md4
+#=========================================================================
+import hashlib
+try:
+    hashlib.new("md4")
+except ValueError:
+    del hashlib
+else:
+    #overwrite md4 class w/ hashlib wrapper
+    def md4(content=None):
+        "wrapper for hashlib.new('md4')"
+        return hashlib.new('md4', content or '')
 
 #=========================================================================
 #eof
