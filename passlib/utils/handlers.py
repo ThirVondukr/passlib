@@ -19,10 +19,6 @@ from passlib.utils import classproperty, h64, getrandstr, getrandbytes, rng, is_
 __all__ = [
 
     #framework for implementing handlers
-    'SimpleHandler',
-    'ExtendedHandler',
-    'MultiBackendHandler',
-
     'StaticHandler',
     'GenericHandler',
         'HasRawChecksum',
@@ -468,7 +464,7 @@ class HasSalt(GenericHandler):
         super(HasSalt, self).__init__(strict=strict, **kwds)
 
     @classmethod
-    def generate_salt(cls, salt_size=None):
+    def generate_salt(cls, salt_size=None, strict=False):
         if salt_size is None:
             salt_size = cls.default_salt_chars
         else:
@@ -511,7 +507,7 @@ class HasSalt(GenericHandler):
         if salt is None:
             if strict:
                 raise ValueError("no salt specified")
-            return cls.generate_salt(salt_size=salt_size)
+            return cls.generate_salt(salt_size=salt_size, strict=strict)
 
         #validate input charset
         if cls._salt_is_bytes:

@@ -98,7 +98,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_checksum, 'xxyx')
 
     def test_12_norm_salt(self):
-        "test GenericHandler+HasSalt: .norm_salt()"
+        "test GenericHandler+HasSalt: .norm_salt(), .generate_salt()"
         class d1(uh.HasSalt, uh.GenericHandler):
             name = 'd1'
             setting_kwds = ('salt',)
@@ -117,6 +117,13 @@ class SkeletonTest(TestCase):
             self.assertEqual(d1.norm_salt('aaaa'), 'aaa')
         self.assertRaises(ValueError, d1.norm_salt, '')
         self.assertRaises(ValueError, d1.norm_salt, 'aaaa', strict=True)
+
+        #check generate salt (indirectly)
+        self.assertEquals(len(d1.norm_salt(None)), 2)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=1)), 1)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=3)), 3)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=5)), 3)
+        self.assertRaises(ValueError, d1.norm_salt, None, salt_size=5, strict=True)
 
     def test_13_norm_rounds(self):
         "test GenericHandler+HasRounds: .norm_rounds()"
@@ -252,19 +259,20 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     name = "salted_test_hash"
     setting_kwds = ("salt",)
 
-    min_salt_chars = max_salt_chars = 2
+    min_salt_chars = 2
+    max_salt_chars = 4
     checksum_chars = 40
     salt_charset = checksum_charset = uh.LC_HEX_CHARS
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and re.match("^@salt[0-9a-f]{42}$", hash))
+        return bool(hash and re.match("^@salt[0-9a-f]{42,44}$", hash))
 
     @classmethod
     def from_string(cls, hash):
         if not cls.identify(hash):
             raise ValueError("not a salted-example hash")
-        return cls(salt=hash[5:7], checksum=hash[7:], strict=True)
+        return cls(salt=hash[5:-40], checksum=hash[-40:], strict=True)
 
     _stub_checksum = '0' * 40
 
@@ -303,6 +311,8 @@ class SaltedHashTest(HandlerCase):
 
     known_correct_hashes = [
         ("password", '@salt77d71f8fe74f314dac946766c1ac4a2a58365482c0'),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+                     '@salt9f978a9bfe360d069b0c13f2afecd570447407fa7e48'),
     ]
 
 #=========================================================
