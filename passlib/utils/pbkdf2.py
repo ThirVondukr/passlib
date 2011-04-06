@@ -100,16 +100,16 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     :arg keylen: number of bytes to generate
     :param prf:
         psuedo-random function to use for key strengthening.
-        should be a callable of the form ``prf(secret, plaintext) -> ciphertext``,
-        or a string ``hmac-xxx`` where ``xxx`` is the name
-        of a hash function recognized by :func:`M2Crypto.EVP.hmac` (if present),
-        or :func:`hashlib.new`.
-        Defaults to ``hmac-sha1``, the only prf defined
-        by the PBKDF2 specification.
+        if specified, it must be one of the following:
 
-    This function attempts to use M2Crypto as a backend
-    if available and if the digest is a string supported
-    by M2Crypto. Otherwise it falls back to a software implementation.
+        * a callable with the prototype ``prf(secret, plaintext) -> ciphertext``
+        * a string of the form :samp:`hmac-{digest}`, where :samp:`{digest}`
+          is the name of a hash function such as ``md5``, ``sha256``, etc.
+
+        this defaults to ``hmac-sha1``, the only prf listed in the PBKDF2 specification.
+
+    If M2Crypto is present, and supports the specified prf, 
+    :func:`M2Crypto.EVP.hmac` will be used to accelerate this function.
 
     :returns:
         raw bytes of generated key

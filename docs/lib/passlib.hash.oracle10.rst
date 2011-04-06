@@ -108,7 +108,9 @@ There is only one known issue:
 
 References
 ==========
-.. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references (see below).
+.. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references.
+          PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors
+          and supports unicode input.
 
 .. [#] Description of Oracle10g and Oracle11g algorithms -
        `<http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/>`_.

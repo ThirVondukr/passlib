@@ -57,8 +57,8 @@ PostgreSQL account passwords, due to the following flaws:
   (eg ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
-* Since it sends raw ascii into a single MD5 digest, existing MD5 lookup tables
-  have an increased chance of being able to reverse common hashes.
+* Since the keyspace of ``user+password`` is still a subset of ascii characters, 
+  existing MD5 lookup tables have an increased chance of being able to reverse common hashes.
 
 * It's simplicity makes high-speed brute force attacks much more feasible.
 

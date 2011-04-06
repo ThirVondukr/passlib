@@ -38,6 +38,11 @@ Randomness
     salt strings and other things which don't require a
     cryptographically strong source of randomness.
 
+    If :func:`os.urandom` support is available,
+    this will be an instance of :class:`!random.SystemRandom`,
+    otherwise it will use the default python PRNG class,
+    seeded from various sources at startup.
+
 .. autofunction:: getrandbytes
 .. autofunction:: getrandstr
 

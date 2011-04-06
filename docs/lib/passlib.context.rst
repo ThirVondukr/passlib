@@ -52,7 +52,7 @@ To start off with a simple example of how to create and use a CryptContext::
 
     >>> #the scheme may be forced explicitly,
     >>> #though it must be one of the ones recognized by the context:
-    >>> hash2 = myctx.encrypt("too many secrets", scheme="des-crypt")
+    >>> hash2 = myctx.encrypt("too many secrets", scheme="des_crypt")
     >>> hash2
     'm9pvLj4.hWxJU'
 
@@ -75,7 +75,7 @@ To start off with a simple example of how to create and use a CryptContext::
 Policy Examination
 ------------------
 If introspection of a :class:`!CryptContext` instance
-is needed, all configuration options are stored in a :class:`CryptPolicy` instance accessible through
+is needed, all configuration options are stored in a :class:`!CryptPolicy` instance accessible through
 their ``policy`` attribute::
 
     >>> from passlib.context import CryptContext
@@ -88,6 +88,8 @@ their ``policy`` attribute::
     >>> #get the default handler class :
     >>> myctx.policy.get_handler()
     <class 'passlib.handlers.md5_crypt.md5_crypt'>
+
+See the :class:`CryptPolicy` class for more details on it's interface.
 
 Full Integration
 ----------------

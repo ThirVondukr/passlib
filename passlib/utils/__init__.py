@@ -155,11 +155,11 @@ def is_crypt_context(obj):
 #=================================================================================
 #string helpers
 #=================================================================================
-def splitcomma(source):
-    "split comma separated string into list elements, stripping whitespace and empty elements"
+def splitcomma(source, sep=","):
+    "split comma-separated string into list of elements, stripping whitespace and discarding empty elements"
     return [
         elem.strip()
-        for elem in source.split(",")
+        for elem in source.split(sep)
         if elem.strip()
     ]
 

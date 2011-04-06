@@ -5,7 +5,7 @@
 .. currentmodule:: passlib.hash
 
 This algorithm is used primarily by PHP software
-which uses the `PHPass <http://www.openwall.com/phpass/>`_ library,
+which uses PHPass [#home],
 a PHP library similar to PassLib. The PHPass Portable Hash
 is a custom password hash used by PHPass as a fallback
 when none of it's other hashes are available.
@@ -30,8 +30,8 @@ A phpass portable hash string has the format :samp:`$P${rounds}{salt}{checksum}`
   following the :ref:`modular-crypt-format`.
 
 * :samp:`{rounds}`  is a single character encoding a 6-bit integer
-  encoding the number of rounds used. This is logarithmic,
-  the real number of rounds is ``2**rounds``. (rounds is encoded as ``8``, or 2**13 rounds, in the example).
+  representing the number of rounds used. This is logarithmic,
+  the real number of rounds is ``2**rounds``. (in the example, rounds is encoded as ``8``, or 2**13 iterations).
 
 * :samp:`{salt}` is eight characters drawn from ``[./0-9A-Za-z]``,
   providing a 48-bit salt (``ohUJ.1sd`` in the example).
@@ -65,11 +65,11 @@ This implementation of phpass differs from the specification in one way:
 
   In order to provide support for unicode strings,
   PassLib will encode unicode passwords using ``utf-8``
-  before running them through sha1-crypt. If a different
+  before running them through phpass. If a different
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
 References
 ==========
-.. [#pp] PHPass homepage, which describes the algorithm -
+.. [#pp] PHPass homepage, which describes the Portable Hash algorithm -
          `<http://www.openwall.com/phpass/>`_
