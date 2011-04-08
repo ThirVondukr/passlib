@@ -42,6 +42,13 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         Optional number of rounds to use.
         Defaults to 40000, must be between 1 and 4294967295, inclusive.
         This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`.
+
+    It will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports sha1-crypt (NetBSD).
+    * a pure python implementation of sha1-crypt
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
 
     #=========================================================

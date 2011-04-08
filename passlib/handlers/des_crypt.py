@@ -149,7 +149,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     It will use the first available of two possible backends:
 
-    * stdlib :func:`crypt()`, if the host OS supports des-crypt.
+    * stdlib :func:`crypt()`, if the host OS supports des-crypt (most unix systems).
     * a pure python implementation of des-crypt
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
@@ -248,6 +248,13 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     :param rounds:
         Optional number of rounds to use.
         Defaults to 5000, must be between 0 and 16777215, inclusive.
+
+    It will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports bsdi-crypt (most BSD systems).
+    * a pure python implementation of bsdi-crypt
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
     #=========================================================
     #class attrs
