@@ -20,3 +20,5 @@ and :class:`!CryptPolicy`.
 .. autoclass:: CryptContext(schemes=None, policy=<default policy>, \*\*kwds)
 
 .. autoclass:: CryptPolicy(\*\*kwds)
+
+.. autoclass:: LazyCryptContext([schemes=None,] **kwds [, create_policy=None])

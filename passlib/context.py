@@ -17,7 +17,7 @@ from warnings import warn
 #site
 from pkg_resources import resource_string
 #libs
-from passlib.registry import get_crypt_handler
+from passlib.registry import get_crypt_handler, _unload_handler_name
 from passlib.utils import Undef, is_crypt_handler, splitcomma, rng
 #pkg
 #local
@@ -946,6 +946,70 @@ class CryptContext(object):
     #=========================================================
     #eoc
     #=========================================================
+
+class LazyCryptContext(CryptContext):
+    """CryptContext subclass which doesn't load handlers until needed.
+
+    This is a subclass of CryptContext which takes in a set of arguments
+    exactly like CryptContext, but won't load any handlers
+    (or even parse it's arguments) until
+    the first time one of it's methods is accessed.
+
+    :arg schemes:
+        the first positional argument can be a list of schemes, or omitted,
+        just like CryptContext.
+
+    :param create_policy:
+
+        if a callable is passed in via this keyword,
+        it will be invoked at lazy-load time
+        with the following signature:
+        ``create_policy(**kwds) -> CryptPolicy``;
+        where ``kwds`` is all the additional kwds passed to LazyCryptContext.
+        It should return a CryptPolicy instance, which will then be used
+        by the CryptContext.
+
+    :param kwds:
+
+        All additional keywords are passed to CryptPolicy;
+        or to the create_policy function if provided.
+
+    This is mainly used internally by modules such as :mod:`passlib.apps`,
+    which define a large number of contexts, but only a few of them will be needed
+    at any one time. Use of this class saves the memory needed to import
+    the specified handlers until the context instance is actually accessed.
+    As well, it allows constructing a context at *module-init* time,
+    but using :func:`!create_policy()` to provide dynamic configuration
+    at *application-run* time.
+    """
+    _lazy_kwds = None
+
+    def __init__(self, schemes=None, **kwds):
+        if schemes is not None:
+            kwds['schemes'] = schemes
+        self._lazy_kwds = kwds
+
+    def _lazy_init(self):
+        kwds = self._lazy_kwds
+        del self._lazy_kwds
+        if 'create_policy' in kwds:
+            create_policy = kwds.pop("create_policy")
+            kwds = dict(policy=create_policy(**kwds))
+        super(LazyCryptContext, self).__init__(**kwds)
+
+    #NOTE: 'policy' property calls _lazy_init the first time it's accessed,
+    #      and relies on CryptContext.__init__ to replace it with an actual instance.
+    #      it should then have no more effect from then on.
+    class _PolicyProperty(object):
+
+        def __get__(self, obj, cls):
+            if obj is None:
+                return self
+            obj._lazy_init()
+            assert isinstance(obj.policy, CryptPolicy)
+            return obj.policy
+
+    policy = _PolicyProperty()
 
 #=========================================================
 # eof
