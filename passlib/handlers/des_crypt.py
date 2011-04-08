@@ -149,7 +149,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     It will use the first available of two possible backends:
 
-    * stdlib :func:`crypt()`, if the host OS supports des-crypt.
+    * stdlib :func:`crypt()`, if the host OS supports des-crypt (most unix systems).
     * a pure python implementation of des-crypt
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
@@ -233,7 +233,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 # so as not to reveal weak des keys. given the random salt, this shouldn't be
 # a very likely issue anyways, but should do something about default rounds generation anyways.
 
-class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -248,6 +248,13 @@ class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     :param rounds:
         Optional number of rounds to use.
         Defaults to 5000, must be between 0 and 16777215, inclusive.
+
+    It will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports bsdi-crypt (most BSD systems).
+    * a pure python implementation of bsdi-crypt
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
     #=========================================================
     #class attrs
@@ -307,12 +314,24 @@ class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    #TODO: check if os_crypt supports bsdi-crypt.
+    backends = ("os_crypt", "builtin")
 
-    def calc_checksum(self, secret):
+    _has_backend_builtin = True
+
+    @classproperty
+    def _has_backend_os_crypt(cls):
+        h = '_/...lLDAxARksGCHin.'
+        return os_crypt is not None and os_crypt("test", h) == h
+
+    def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return raw_ext_crypt(secret, self.rounds, self.salt)
+
+    def _calc_checksum_os_crypt(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return os_crypt(secret, self.to_string())[9:]
 
     #=========================================================
     #eoc

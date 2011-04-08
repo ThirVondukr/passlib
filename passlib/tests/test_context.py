@@ -13,9 +13,11 @@ import sys
 #site
 #pkg
 from passlib import hash
-from passlib.context import CryptContext, CryptPolicy
+from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
+from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
+        _unload_handler_name as unload_handler_name
 #module
 log = getLogger(__name__)
 
@@ -751,6 +753,51 @@ class CryptContextTest(TestCase):
     #=========================================================
     #eoc
     #=========================================================
+
+#=========================================================
+#LazyCryptContext
+#=========================================================
+class dummy_2(uh.StaticHandler):
+    name = "dummy_2"
+
+class LazyCryptContextTest(TestCase):
+    case_prefix = "LazyCryptContext"
+
+    def setUp(self):
+        unload_handler_name("dummy_2")
+
+    def tearDown(self):
+        unload_handler_name("dummy_2")
+
+    def test_kwd_constructor(self):
+        self.assertFalse(has_crypt_handler("dummy_2"))
+        register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
+
+        cc = LazyCryptContext(iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
+
+        self.assertFalse(has_crypt_handler("dummy_2", True))
+
+        self.assertTrue(cc.policy.handler_is_deprecated("des_crypt"))
+        self.assertEqual(cc.policy.schemes(), ["dummy_2", "des_crypt"])
+
+        self.assertTrue(has_crypt_handler("dummy_2", True))
+
+    def test_callable_constructor(self):
+        self.assertFalse(has_crypt_handler("dummy_2"))
+        register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
+
+        def create_policy(flag=False):
+            self.assertTrue(flag)
+            return CryptPolicy(schemes=iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
+
+        cc = LazyCryptContext(create_policy=create_policy, flag=True)
+
+        self.assertFalse(has_crypt_handler("dummy_2", True))
+
+        self.assertTrue(cc.policy.handler_is_deprecated("des_crypt"))
+        self.assertEqual(cc.policy.schemes(), ["dummy_2", "des_crypt"])
+
+        self.assertTrue(has_crypt_handler("dummy_2", True))
 
 #=========================================================
 #EOF

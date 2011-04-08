@@ -4,8 +4,11 @@
 #=========================================================
 #core
 import sys
+from warnings import warn
 #pkg
-from passlib.context import CryptContext
+from passlib.context import LazyCryptContext
+from passlib.registry import get_crypt_handler
+from passlib.utils import os_crypt
 #local
 __all__ = [
     "linux_context", "linux2_context",
@@ -21,7 +24,7 @@ __all__ = [
 
 #known platform names - linux2
 
-linux_context = linux2_context = CryptContext(
+linux_context = linux2_context = LazyCryptContext(
     schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
                "des_crypt", "unix_fallback" ],
     deprecated = [ "des_crypt" ],
@@ -46,28 +49,39 @@ linux_context = linux2_context = CryptContext(
 # netbsd - des, ext, md5, bcrypt, sha1
 # openbsd - des, ext, md5, bcrypt
 
-freebsd_context = CryptContext([ "bcrypt", "md5_crypt", "nthash", "des_crypt", "unix_fallback" ])
-openbsd_context = CryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
-netbsd_context = CryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
+freebsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "nthash", "des_crypt", "unix_fallback" ])
+openbsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
+netbsd_context = LazyCryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
 
 #=========================================================
 #current host
 #=========================================================
+if os_crypt:
+    #NOTE: this is basically mimicing the output of os crypt(),
+    #except that it uses passlib's (usually stronger) defaults settings,
+    #and can be introspected and used much more flexibly.
 
-#context we fall back to if not on a unix system,
-#or if we don't recognize platform
-fallback_context = CryptContext(["unix_fallback"])
+    _possible_schemes = [ "sha512_crypt", "sha256_crypt", "sha1_crypt",
+                         "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt",
+                         ]
 
-if sys.platform == "linux2":
-    host_context = linux2_context
-elif sys.platform.startswith("freebsd"):
-    host_context = freebsd_context
-elif sys.platform.startswith("netbsd"):
-    host_context = netbsd_context
-elif sys.platform.startswith("openbsd"):
-    host_context = openbsd_context
-else:
-    host_context = fallback_context
+    def iter_os_crypt_schemes():
+        "helper which iterates over supported os_crypt schemes"
+        found = False
+        for name in _possible_schemes:
+            handler = get_crypt_handler(name)
+            if handler.has_backend("os_crypt"):
+                found = True
+                yield name
+        if found:
+            #only offer fallback if there's another scheme in front,
+            #as this can't actually hash any passwords
+            yield "unix_fallback"
+        else:
+            #no idea what OS this could happen on, but just in case...
+            warn("crypt.crypt() function is present, but doesn't support any formats known to passlib!")
+
+    host_context = LazyCryptContext(iter_os_crypt_schemes())
 
 #=========================================================
 #other platforms

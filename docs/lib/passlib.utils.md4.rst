@@ -18,3 +18,9 @@ This module implements the MD4 hash algorithm in pure python,
 based on the `rfc 1320 <http://www.faqs.org/rfcs/rfc1320.html>`_ specification of MD4.
 
 .. autoclass:: md4
+
+.. note::
+
+    If MD4 support is detected in :mod:`!hashlib`, the :class:`!md4` class in this module
+    will be replaced by a function wrapping hashlib's implementation,
+    which should be faster, but otherwise behave exactly the same.
