@@ -233,7 +233,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 # so as not to reveal weak des keys. given the random salt, this shouldn't be
 # a very likely issue anyways, but should do something about default rounds generation anyways.
 
-class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -307,12 +307,24 @@ class bsdi_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    #TODO: check if os_crypt supports bsdi-crypt.
+    backends = ("os_crypt", "builtin")
 
-    def calc_checksum(self, secret):
+    _has_backend_builtin = True
+
+    @classproperty
+    def _has_backend_os_crypt(cls):
+        h = '_/...lLDAxARksGCHin.'
+        return os_crypt is not None and os_crypt("test", h) == h
+
+    def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return raw_ext_crypt(secret, self.rounds, self.salt)
+
+    def _calc_checksum_os_crypt(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return os_crypt(secret, self.to_string())[9:]
 
     #=========================================================
     #eoc

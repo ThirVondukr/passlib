@@ -13,7 +13,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh
+from passlib.utils import h64, handlers as uh, os_crypt, classproperty
 from passlib.utils.pbkdf2 import hmac_sha1
 #pkg
 #local
@@ -22,7 +22,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class sha1_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -89,7 +89,16 @@ class sha1_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    backends = ("os_crypt", "builtin")
+
+    _has_backend_builtin = True
+
+    @classproperty
+    def _has_backend_os_crypt(cls):
+        h = '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe'
+        return os_crypt is not None and os_crypt("test", h) == h
+
+    def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         rounds = self.rounds
@@ -109,6 +118,12 @@ class sha1_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         17,16,15,
         0,19,18,
     ]
+
+    def _calc_checksum_os_crypt(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        h = os_crypt(secret, self.to_string())
+        return h[h.rindex("$")+1:]
 
     #=========================================================
     #eoc
