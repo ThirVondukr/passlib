@@ -20,6 +20,8 @@ also be imported and used directly from this package, as in the following exampl
 
 PassLib contains the following builtin password algorithms:
 
+.. _archaic-unix-schemes:
+
 Archaic Unix Schemes
 --------------------
 All these schemes are/were used by various unix flavors to store user passwords;
