@@ -278,6 +278,44 @@ def list_crypt_handlers(loaded_only=False):
         names.update(_handler_locations)
     return sorted(names)
 
+#NOTE: these two functions mainly exist just for the unittests...
+
+def has_crypt_handler(name, loaded_only=False):
+    """check if handler name is known.
+
+    this is only useful for two cases:
+
+    * quickly checking if handler has already been loaded
+    * checking if handler exists, without actually loading it
+
+    :arg name: name of handler
+    :param loaded_only: if ``True``, returns False if handler exists but hasn't been loaded
+    """
+    global _handlers, _handler_locations
+    return (name in _handlers) or (not loaded_only and name in _handler_locations)
+
+def _unload_handler_name(name):
+    """unloads a handler from the registry.
+
+    .. warning::
+
+        this is an internal function,
+        used only by the unittests.
+
+    if loaded handler is found with specified name, it's removed.
+    if path to lazy load handler is found, its' removed.
+
+    missing names are a noop.
+    """
+    global _handlers, _handler_locations
+
+    if name in _handlers:
+        del _handlers[name]
+
+    #NOTE: this messes w/ internals of registry, shouldn't be used publically.
+    if name in _handler_locations:
+        del _handler_locations[name]
+
 #=========================================================
 # eof
 #=========================================================

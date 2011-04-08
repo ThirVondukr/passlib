@@ -14,7 +14,7 @@ import sys
 #pkg
 from passlib import hash, registry
 from passlib.registry import register_crypt_handler, register_crypt_handler_path, \
-    get_crypt_handler, list_crypt_handlers
+    get_crypt_handler, list_crypt_handlers, _unload_handler_name as unload_handler_name
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings
 #module
@@ -30,15 +30,6 @@ class alt_dummy_0(uh.StaticHandler):
     name = "dummy_0"
 
 dummy_x = 1
-
-def unload_handler_name(name):
-    if hasattr(hash, name):
-        delattr(hash, name)
-
-    #NOTE: this messes w/ internals of registry, shouldn't be used publically.
-    paths = registry._handler_locations
-    if name in paths:
-        del paths[name]
 
 class RegistryTest(TestCase):
 
