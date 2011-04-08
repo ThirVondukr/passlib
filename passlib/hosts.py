@@ -4,8 +4,11 @@
 #=========================================================
 #core
 import sys
+from warnings import warn
 #pkg
 from passlib.context import LazyCryptContext
+from passlib.registry import get_crypt_handler
+from passlib.utils import os_crypt
 #local
 __all__ = [
     "linux_context", "linux2_context",
@@ -53,21 +56,32 @@ netbsd_context = LazyCryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_c
 #=========================================================
 #current host
 #=========================================================
+if os_crypt:
+    #NOTE: this is basically mimicing the output of os crypt(),
+    #except that it uses passlib's (usually stronger) defaults settings,
+    #and can be introspected and used much more flexibly.
 
-#context we fall back to if not on a unix system,
-#or if we don't recognize platform
-fallback_context = LazyCryptContext(["unix_fallback"])
+    _possible_schemes = [ "sha512_crypt", "sha256_crypt", "sha1_crypt",
+                         "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt",
+                         ]
 
-if sys.platform == "linux2":
-    host_context = linux2_context
-elif sys.platform.startswith("freebsd"):
-    host_context = freebsd_context
-elif sys.platform.startswith("netbsd"):
-    host_context = netbsd_context
-elif sys.platform.startswith("openbsd"):
-    host_context = openbsd_context
-else:
-    host_context = fallback_context
+    def iter_os_crypt_schemes():
+        "helper which iterates over supported os_crypt schemes"
+        found = False
+        for name in _possible_schemes:
+            handler = get_crypt_handler(name)
+            if handler.has_backend("os_crypt"):
+                found = True
+                yield name
+        if found:
+            #only offer fallback if there's another scheme in front,
+            #as this can't actually hash any passwords
+            yield "unix_fallback"
+        else:
+            #no idea what OS this could happen on, but just in case...
+            warn("crypt.crypt() function is present, but doesn't support any formats known to passlib!")
+
+    host_context = LazyCryptContext(iter_os_crypt_schemes())
 
 #=========================================================
 #other platforms
