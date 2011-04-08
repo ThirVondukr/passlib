@@ -7,7 +7,7 @@ import logging; log = logging.getLogger(__name__)
 #site
 #libs
 from passlib import hash
-from passlib.context import CryptContext
+from passlib.context import LazyCryptContext
 from passlib.utils import sys_bits
 #pkg
 #local
@@ -23,7 +23,7 @@ __all__ = [
 #=========================================================
 #for quickly bootstrapping new custom applications
 #=========================================================
-custom_app_context = CryptContext(
+custom_app_context = LazyCryptContext(
     #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
 
@@ -45,31 +45,31 @@ custom_app_context = CryptContext(
 #ldap
 #=========================================================
 #TODO: support ldap_crypt
-ldap_context = CryptContext(["ldap_salted_sha1", "ldap_salted_md5", "ldap_sha1", "ldap_md5", "ldap_plaintext" ])
+ldap_context = LazyCryptContext(["ldap_salted_sha1", "ldap_salted_md5", "ldap_sha1", "ldap_md5", "ldap_plaintext" ])
 
 #=========================================================
 #mysql
 #=========================================================
-mysql3_context = CryptContext(["mysql323"])
-mysql4_context = CryptContext(["mysql41", "mysql323"], deprecated="mysql323")
+mysql3_context = LazyCryptContext(["mysql323"])
+mysql4_context = LazyCryptContext(["mysql41", "mysql323"], deprecated="mysql323")
 mysql_context = mysql4_context #tracks latest mysql version supported
 
 #=========================================================
 #postgres
 #=========================================================
-postgres_context = CryptContext(["postgres_md5"])
+postgres_context = LazyCryptContext(["postgres_md5"])
 
 #=========================================================
 #phpass
 #=========================================================
 #TODO: support phpass_context (and don't use bcrypt as default if not available)
 
-phpass_context = CryptContext(
+phpass_context = LazyCryptContext(
     schemes=["bcrypt", "bsdi_crypt", "phpass",],
     default="bcrypt" if hash.bcrypt.has_backend() else "bsdi_crypt",
     )
 
-phpbb3_context = CryptContext(["phpass"], phpass__ident="H")
+phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")
 
 #TODO: support the drupal phpass variants (see phpass homepage)
 

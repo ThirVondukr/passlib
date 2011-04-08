@@ -5,7 +5,7 @@
 #core
 import sys
 #pkg
-from passlib.context import CryptContext
+from passlib.context import LazyCryptContext
 #local
 __all__ = [
     "linux_context", "linux2_context",
@@ -21,7 +21,7 @@ __all__ = [
 
 #known platform names - linux2
 
-linux_context = linux2_context = CryptContext(
+linux_context = linux2_context = LazyCryptContext(
     schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
                "des_crypt", "unix_fallback" ],
     deprecated = [ "des_crypt" ],
@@ -46,9 +46,9 @@ linux_context = linux2_context = CryptContext(
 # netbsd - des, ext, md5, bcrypt, sha1
 # openbsd - des, ext, md5, bcrypt
 
-freebsd_context = CryptContext([ "bcrypt", "md5_crypt", "nthash", "des_crypt", "unix_fallback" ])
-openbsd_context = CryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
-netbsd_context = CryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
+freebsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "nthash", "des_crypt", "unix_fallback" ])
+openbsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
+netbsd_context = LazyCryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
 
 #=========================================================
 #current host
@@ -56,7 +56,7 @@ netbsd_context = CryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt
 
 #context we fall back to if not on a unix system,
 #or if we don't recognize platform
-fallback_context = CryptContext(["unix_fallback"])
+fallback_context = LazyCryptContext(["unix_fallback"])
 
 if sys.platform == "linux2":
     host_context = linux2_context
