@@ -65,9 +65,4 @@ There are also a few sub modules which provide additional utility functions:
     passlib.utils.h64
     passlib.utils.md4
     passlib.utils.pbkdf2
-
-.. todo::
-
-    document this module...
-
     passlib.utils.handlers

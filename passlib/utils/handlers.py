@@ -647,16 +647,44 @@ class MultiBackendHandler(ExtendedHandler):
 #StaticHandler
 #=====================================================
 class StaticHandler(object):
-    """helper class for implementing hashes which have no salt or other configuration
+    """helper class for implementing hashes which have no settings.
 
-    subclasses must implement:
-        * the name attr
-        * the genhash() method
-        * the identify() method - the default is functional, but inefficient
+    This class is designed to help in writing hash handlers
+    which have no settings whatsoever; that is to say: no salt, no rounds, etc.
+    These hashes can typically be recognized by the fact that they
+    will always hash a password to *exactly* the same hash string.
 
-    subclasses may override:
-        * the _stub_config attribute - to change what static value genconfig() returns
-        * the verify() method - if the hash needs normalizing before comparison is performed.
+    Usage
+    =====
+
+    In order to use this class, just subclass it, and then do the following:
+
+        * fill out the :attr:`name` attribute with the name of your hash.
+        * provide an implementation of the :meth:`~PasswordHash.genhash` method.
+        * provide an implementation of the :meth:`~PasswordHash.identify` method.
+          (a default is provided, but it's inefficient).
+
+    Based on the methods above, this class provides:
+
+        * a :meth:`genconfig` method that returns ``None``.
+        * a :meth:`encrypt` method that wraps :meth:`genhash`.
+        * a :meth:`verify` method that wraps :meth:`genhash`.
+
+    Implementation Details
+    ======================
+
+    The :meth:`genhash` method you implement must accept
+    all valid hashes, *as well as* whatever value :meth:`genconfig` returns.
+    This defaults to ``None``, but you may set the :attr:`_stub_config` attr
+    to a random hash string, and :meth:`genconfig` will return this instead.
+
+    The default :meth:`verify` method uses simple equality to compare hash strings.
+    If your hash may have multiple encoding (eg case-insensitive), this
+    method should be overridden on a per-handler basis.
+
+    If your hash has options, such as multiple identifiers, salts,
+    or variable rounds, this is not the right class to start with.
+    You should use the :class:`GenericHandler` class, or implement the handler yourself.
     """
 
     #=====================================================
@@ -691,19 +719,9 @@ class StaticHandler(object):
         raise NotImplementedError("%s subclass must implement genhash()" % (cls,))
 
     @classmethod
-    def encrypt(cls, secret, **settings):
-        ck = cls.context_kwds
-        if ck:
-            context = dict(
-                (k,settings.pop(k))
-                for k in settings.keys()
-                if k in ck
-                )
-            config = cls.genconfig(**settings)
-            return cls.genhash(secret, config, **context)
-        else:
-            config = cls.genconfig(**settings)
-            return cls.genhash(secret, config)
+    def encrypt(cls, secret, **context):
+        config = cls.genconfig()
+        return cls.genhash(secret, config, **context)
 
     @classmethod
     def verify(cls, secret, hash, **context):
@@ -719,41 +737,77 @@ class StaticHandler(object):
 #GenericHandler
 #=====================================================
 class GenericHandler(object):
-    """helper class for implementing hash schemes.
+    """helper class for implementing hash handlers.
 
-    this provides the basic framework,
-    and support for stored and validating a checksum.
+    :param checksum:
+        this should contain the digest portion of a
+        parsed hash (mainly provided when the constructor is called
+        by :meth:`from_string()`).
+        defaults to ``None``.
 
-    subclasses will want to make use of the mixin classes which go along
-    with this class:
-        * HasSalt - adds a 'salt' kwd to the constuctor, with validation of input
-        * HasRawSalt - variant of HasSalt which takes in decoded bytes instead of an encoded string
-        * HasRounds - adds a 'rounds' kwd to the constructor, with validation of input
-        * HasManyIdents - adds a 'ident' kwd to constructor, with helpers for hashs that have multiple identifying prefixes
-        * HasManyBackends - adds support for lazy detection & loading of different calc_checksum backends
+    :param strict:
+        If ``True``, this flag signals that :meth:`norm_checksum`
+        (as well as the other :samp:`norm_{xxx}` methods provided by the mixins)
+        should throw a :exc:`ValueError` if any errors are found
+        in any of the provided parameters.
 
-    hash implementations should fill out the following:
-        * the required class attributes:
-            - name
-            - setting_kwds
-        * classmethod from_string()
-        * instancemethod to_string()
-        * instancemethod calc_checksum()
+        If ``False`` (the default), the :exc:`ValueError` should only
+        be throw if the error is not recoverable (eg: clipping salt string to max size).
 
-    many implementations will want to override the following:
-        * the optional class attributes:
-            - ident - classes can specified a known hash prefix for more efficient identify() implementation
-        * if ident not specified, classmethod identify() can usually be done more efficiently
-        * checksum_charset, checksum_chars attributes may prove helpful for validation
+        This is typically only set to ``True`` when the constructor
+        is called by :meth:`from_string`, in order to perform validation
+        on the hash string it's parsing; whereas :meth:`encrypt`
+        does not set this flag, allowing user-provided values
+        to be handled in a more permissive manner.
 
-    most implementations can use defaults for the following:
-        * genconfig(), genhash(), encrypt(), verify(), etc
-        * norm_checksum() usually only needs overriding if checksum has multiple encodings
+    Class Attributes
+    ================
 
-    .. note::
+    .. attribute:: ident
 
-        this class does not support context kwds of any type,
-        since that is a rare enough requirement inside passlib.
+        [optional]
+        If this attribute is filled in, the default :meth:`identify` method will use
+        it as a identifying prefix that can be used to recognize instances of this handler's
+        hash. Filling this out is recommended for speed.
+
+    .. attribute:: checksum_chars
+
+        [optional]
+        Specifies the number of characters that should be expected in the checksum string.
+        If omitted, no check will be performed.
+
+    .. attribute:: checksum_charset
+
+        [optional]
+        A string listing all the characters allowed in the checksum string.
+        If omitted, no check will be performed.
+
+    Instance Attributes
+    ===================
+    .. attribute:: checksum
+
+        The checksum string as provided by the constructor (after passing through :meth:`norm_checksum`).
+
+    Required Class Methods
+    ======================
+    The following methods must be provided by handler subclass:
+
+    .. automethod:: from_string
+    .. automethod:: to_string
+    .. automethod:: calc_checksum
+
+    Default Class Methods
+    =====================
+    The following methods provide generally useful default behaviors,
+    though they may be overridden if the hash subclass needs to:
+
+    .. automethod:: norm_checksum
+
+    .. automethod:: genconfig
+    .. automethod:: genhash
+    .. automethod:: identify
+    .. automethod:: encrypt
+    .. automethod:: verify
     """
 
     #=====================================================
@@ -784,6 +838,7 @@ class GenericHandler(object):
 
     @classmethod
     def norm_checksum(cls, checksum, strict=False):
+        "validates checksum keyword against class requirements, returns normalized version of checksum"
         if checksum is None:
             if strict:
                 raise ValueError("checksum not specified")
@@ -883,7 +938,12 @@ class GenericHandler(object):
 #XXX: add a HasContext helper to override GenericHandler's methods?
 
 class HasRawChecksum(GenericHandler):
-    """mixin for classes which work with decoded checksum bytes"""
+    """mixin for classes which work with decoded checksum bytes
+
+    .. todo::
+
+        document this class's usage
+    """
 
     checksum_charset = None
 
@@ -929,7 +989,19 @@ class HasRawChecksum(GenericHandler):
 ##        return self.to_string()
 
 class HasManyIdents(GenericHandler):
-    """mixin for hashes which use multiple prefix identifiers"""
+    """mixin for hashes which use multiple prefix identifiers
+
+    For the hashes which may use multiple identifier prefixes,
+    this mixin adds an ``ident`` keyword to constructor.
+    Any value provided is passed through the :meth:`norm_idents` method,
+    which takes care of validating the identifier,
+    as well as allowing aliases for easier specification
+    of the identifiers by the user.
+
+    .. todo::
+
+        document this class's usage
+    """
 
     #=========================================================
     #class attrs
@@ -989,7 +1061,63 @@ class HasManyIdents(GenericHandler):
     #=========================================================
 
 class HasSalt(GenericHandler):
-    """mixin for validating salt parameter"""
+    """mixin for validating salts.
+
+    This :class:`GenericHandler` mixin adds a ``salt`` keyword to the class constuctor;
+    any value provided is passed through the :meth:`norm_salt` method,
+    which takes care of validating salt length and content,
+    as well as generating new salts if one it not provided.
+
+    :param salt: optional salt string
+    :param salt_size: optional size of salt (only used if no salt provided); defaults to :attr:`default_salt_chars`.
+    :param strict: if ``True``, requires a valid salt be provided; otherwise is tolerant of correctable errors (the default).
+
+    Class Attributes
+    ================
+    In order for :meth:`!norm_salt` to do it's job, the following
+    attributes must be provided by the handler subclass:
+
+    .. attribute:: min_salt_chars
+
+        [required]
+        The minimum number of characters allowed in a salt string.
+        An :exc:`ValueError` will be throw if the salt is too small.
+
+    .. attribute:: max_salt_chars
+
+        [required]
+        The maximum number of characters allowed in a salt string.
+        When ``strict=True`` (such as when parsing a hash),
+        an :exc:`ValueError` will be throw if the salt is too large.
+        WHen ``strict=False`` (such as when parsing user-provided values),
+        the salt will be silently trimmed to this length if it's too long.
+
+    .. attribute:: default_salt_chars
+
+        [optional]
+        If no salt is provided, this should specify the size of the salt
+        that will be generated by :meth:`generate_salt`.
+        If this is not specified, it will default to :attr:`max_salt_chars`.
+
+    .. attribute:: salt_charset
+
+        [required]
+        A string containing all the characters which are allowed in the salt string.
+        An :exc:`ValueError` will be throw if any other characters are encountered.
+        May be set to ``None`` to skip this check.
+
+    Instance Attributes
+    ===================
+    .. attribute:: salt
+
+        This instance attribute will be filled in with the salt provided
+        to the constructor (as adapted by :meth:`norm_salt`)
+
+    Class Methods
+    =============
+    .. automethod:: norm_salt
+    .. automethod:: generate_salt
+    """
     #TODO: split out "HasRawSalt" mixin for classes where salt should be provided as raw bytes.
     #       also might need a "HasRawChecksum" to accompany it.
     #XXX: allow providing raw salt to this class, and encoding it?
@@ -1028,6 +1156,11 @@ class HasSalt(GenericHandler):
 
     @classmethod
     def generate_salt(cls, salt_size=None, strict=False):
+        """helper method for norm_salt(); generates a new random salt string.
+
+        :param salt_size: optional salt size, falls back to :attr:`default_salt_chars`.
+        :param strict: if too-large salt should throw error, or merely be trimmed.
+        """
         if salt_size is None:
             salt_size = cls.default_salt_chars
         else:
@@ -1100,7 +1233,14 @@ class HasSalt(GenericHandler):
     #=========================================================
 
 class HasRawSalt(HasSalt):
-    """mixin for classes which use decoded salt parameter"""
+    """mixin for classes which use decoded salt parameter
+
+    A variant of :class:`!HasSalt` which takes in decoded bytes instead of an encoded string.
+
+    .. todo::
+
+        document this class's usage
+    """
 
     salt_charset = ALL_BYTE_VALUES
     _salt_is_bytes = True
@@ -1109,7 +1249,74 @@ class HasRawSalt(HasSalt):
     #   that may be changed in the future.
 
 class HasRounds(GenericHandler):
-    """mixin for validating rounds parameter"""
+    """mixin for validating rounds parameter
+
+    This :class:`GenericHandler` mixin adds a ``rounds`` keyword to the class constuctor;
+    any value provided is passed through the :meth:`norm_rounds` method,
+    which takes care of validating the number of rounds.
+
+    :param rounds: optional number of rounds hash should use
+    :param strict: if ``True``, requires a valid rounds vlaue be provided; otherwise is tolerant of correctable errors (the default).
+
+    Class Attributes
+    ================
+    In order for :meth:`!norm_rounds` to do it's job, the following
+    attributes must be provided by the handler subclass:
+
+    .. attribute:: min_rounds
+
+        [optional]
+        The minimum number of rounds allowed.
+        An :exc:`ValueError` will be thrown if the rounds value is too small.
+        When ``strict=True`` (such as when parsing a hash),
+        an :exc:`ValueError` will be throw if the rounds value is too small.
+        WHen ``strict=False`` (such as when parsing user-provided values),
+        the rounds value will be silently clipped if it's too small.
+        Defaults to ``0``.
+
+    .. attribute:: max_rounds
+
+        [required]
+        The maximum number of rounds allowed.
+        When ``strict=True`` (such as when parsing a hash),
+        an :exc:`ValueError` will be throw if the rounds value is too large.
+        WHen ``strict=False`` (such as when parsing user-provided values),
+        the rounds value will be silently clipped if it's too large.
+
+    .. attribute:: default_rounds
+
+        [required]
+        If no rounds value is provided to constructor, this value will be used.
+
+    .. attribute:: rounds_cost
+
+        [required]
+        The ``rounds`` parameter typically encodes a cpu-time cost
+        for calculating a hash. This should be set to ``"linear"``
+        (the default) or ``"log2"``, depending on how the rounds value relates
+        to the actual amount of time that will be required.
+
+    .. attribute:: _strict_rounds_bounds
+
+        [optional]
+        If the handler subclass wishes to *always* throw an error if a rounds
+        value is provided that's out of bounds (such as when it's provided by the user),
+        set this private attribute to ``True``.
+        The default policy in such cases is to silently clip the rounds value
+        to within :attr:`min_rounds` and :attr:`max_rounds`;
+        while issuing a :exc:`UserWarning`.
+
+    Instance Attributes
+    ===================
+    .. attribute:: rounds
+
+        This instance attribute will be filled in with the rounds value provided
+        to the constructor (as adapted by :meth:`norm_rounds`)
+
+    Class Methods
+    =============
+    .. automethod:: norm_rounds
+    """
     #=========================================================
     #class attrs
     #=========================================================
@@ -1183,7 +1390,17 @@ class HasRounds(GenericHandler):
     #=========================================================
 
 class HasManyBackends(GenericHandler):
-    "subclass of ExtendedHandler which provides selecting from multiple backends for checksum calculation"
+    """GenericHandler mixin which provides selecting from multiple backends.
+
+    For hashes which need to select from multiple backends,
+    depending on the host environment, this class
+    offers a way to specify alternate :meth:`calc_checksum` methods,
+    will dynamically chose the best one at runtime.
+
+    .. todo::
+
+        document this class's usage
+    """
 
     #NOTE: subclass must provide:
     #   * attr 'backends' containing list of known backends (top priority backend first)

@@ -204,9 +204,18 @@ class TestCase(unittest.TestCase):
 class HandlerCase(TestCase):
     """base class for testing password hash handlers (esp passlib.utils.handlers subclasses)
 
+    In order to use this to test a handler,
+    create a subclass will all the appropriate attributes
+    filled as listed in the example below,
+    and run the subclass via unittest.
+
     .. todo::
-        write directions on how to use this class.
-        for now, see examples in test_handlers
+
+        Document all of the options HandlerCase offers.
+
+    .. note::
+
+        This is subclass of :class:`unittest.TestCase`.
     """
     #=========================================================
     #attrs to be filled in by subclass for testing specific handler
