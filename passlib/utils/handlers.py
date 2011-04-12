@@ -90,6 +90,10 @@ def parse_mc3(hash, prefix, name="<unnamed>", sep="$"):
 class SimpleHandler(object):
     """helper for implementing password hash handler with minimal methods
 
+    .. warning::
+
+        this class is deprecated, and will be removed in Passlib 1.5
+
     hash implementations should fill out the following:
 
         * all required class attributes: name, setting_kwds
@@ -120,6 +124,12 @@ class SimpleHandler(object):
     #=====================================================
     #init helpers
     #=====================================================
+    @classmethod
+    def _warndep(cls):
+        alt = "GenericHandler" if cls._has_settings else "StaticHandler"
+        msg = "SimpleHandler is deprecated, and will be removed in Passlib 1.5; %s should derived from %s instead" % (cls, alt)
+        warn(msg, DeprecationWarning)
+
     @classproperty
     def _has_settings(cls):
         "attr for checking if class has ANY settings, memoizes itself on first use"
@@ -134,6 +144,7 @@ class SimpleHandler(object):
     #=====================================================
     @classmethod
     def identify(cls, hash):
+        cls._warndep()
         #NOTE: this relys on genhash throwing error for invalid hashes.
         # this approach is bad because genhash may take a long time on valid hashes,
         # so subclasses *really* should override this.
@@ -148,6 +159,7 @@ class SimpleHandler(object):
     #=====================================================
     @classmethod
     def genconfig(cls, **settings):
+        cls._warndep()
         if cls._has_settings:
             raise NotImplementedError("%s subclass must implement genconfig()" % (cls,))
         else:
@@ -164,11 +176,13 @@ class SimpleHandler(object):
     #=====================================================
     @classmethod
     def encrypt(cls, secret, **settings):
+        cls._warndep()
         config = cls.genconfig(**settings)
         return cls.genhash(secret, config)
 
     @classmethod
     def verify(cls, secret, hash):
+        cls._warndep()
         if not hash:
             raise ValueError("no hash specified")
         return hash == cls.genhash(secret, hash)
@@ -186,6 +200,10 @@ class SimpleHandler(object):
 #=========================================================
 class ExtendedHandler(SimpleHandler):
     """helper class for implementing hash schemes
+
+    .. warning::
+
+        this class is deprecated, and will be removed in Passlib 1.5
 
     hash implementations should fill out the following:
         * all required class attributes:
@@ -274,9 +292,15 @@ class ExtendedHandler(SimpleHandler):
     #=========================================================
     #init
     #=========================================================
+    @classmethod
+    def _warndep(cls):
+        msg = "ExtendedHandler is deprecated, and will be removed in Passlib 1.5; %s should use GenericHandler instead" % (cls,)
+        warn(msg, DeprecationWarning)
+
     #XXX: rename strict kwd to _strict ?
     #XXX: for from_string() purposes, a strict_salt kwd to override strict, might also be useful
     def __init__(self, checksum=None, salt=None, rounds=None, strict=False, **kwds):
+        self._warndep()
         self.checksum = self.norm_checksum(checksum, strict=strict)
         self.salt = self.norm_salt(salt, strict=strict)
         self.rounds = self.norm_rounds(rounds, strict=strict)
@@ -300,6 +324,7 @@ class ExtendedHandler(SimpleHandler):
     @classproperty
     def _has_salt(cls):
         "attr for checking if salts are supported, memoizes itself on first use"
+        cls._warndep()
         if cls is ExtendedHandler:
             raise RuntimeError("not allowed for ExtendedHandler directly")
         value = cls._has_salt = 'salt' in cls.setting_kwds
@@ -308,6 +333,7 @@ class ExtendedHandler(SimpleHandler):
     @classproperty
     def _has_rounds(cls):
         "attr for checking if variable are supported, memoizes itself on first use"
+        cls._warndep()
         if cls is ExtendedHandler:
             raise RuntimeError("not allowed for ExtendedHandler directly")
         value = cls._has_rounds = 'rounds' in cls.setting_kwds
@@ -316,6 +342,7 @@ class ExtendedHandler(SimpleHandler):
     @classproperty
     def _salt_is_bytes(cls):
         "helper for detecting if salt kwd uses unencoded bytes string instead of encoding set of specified letters"
+        cls._warndep()
         #FIXME: how we're handling unencoded salts vs encoded salts between diff handlers is a serious mess.
         # need to clean it all up. for now, there's this property,
         # to begin sweeping things under the rug.
@@ -329,6 +356,7 @@ class ExtendedHandler(SimpleHandler):
     #---------------------------------------------------------
     @classmethod
     def norm_checksum(cls, checksum, strict=False):
+        cls._warndep()
         if checksum is None:
             return None
         cc = cls.checksum_chars
@@ -361,6 +389,7 @@ class ExtendedHandler(SimpleHandler):
         :returns:
             normalized or generated salt
         """
+        cls._warndep()
         if not cls._has_salt:
             #NOTE: special casing schemes which have no salt...
             if salt is not None:
@@ -416,6 +445,7 @@ class ExtendedHandler(SimpleHandler):
         :returns:
             normalized rounds value
         """
+        cls._warndep()
         #XXX: for speed, could optimize this by replacing method at class level
         # when cls._has_rounds check is first called.
         # could make same optimization for norm_salt()
@@ -458,6 +488,7 @@ class ExtendedHandler(SimpleHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
+        cls._warndep()
         #NOTE: subclasses may wish to use faster / simpler identify,
         # and raise value errors only when an invalid (but identifiable) string is parsed
         if not hash:
@@ -494,6 +525,7 @@ class ExtendedHandler(SimpleHandler):
     #=========================================================
     @classmethod
     def genconfig(cls, **settings):
+        cls._warndep()
         if cls._has_settings:
             return cls(**settings).to_string()
         elif settings:
@@ -503,6 +535,7 @@ class ExtendedHandler(SimpleHandler):
 
     @classmethod
     def genhash(cls, secret, config):
+        cls._warndep()
         if cls._has_settings or config is not None:
             self = cls.from_string(config)
         else:
@@ -519,12 +552,14 @@ class ExtendedHandler(SimpleHandler):
     #=========================================================
     @classmethod
     def encrypt(cls, secret, **settings):
+        cls._warndep()
         self = cls(**settings)
         self.checksum = self.calc_checksum(secret)
         return self.to_string()
 
     @classmethod
     def verify(cls, secret, hash):
+        cls._warndep()
         #NOTE: classes with multiple checksum encodings (rare)
         # may wish to either override this, or override norm_checksum
         # to normalize any checksums provided by from_string()
@@ -540,7 +575,13 @@ class ExtendedHandler(SimpleHandler):
 #to be used for calc_checksum
 #=========================================================
 class MultiBackendHandler(ExtendedHandler):
-    "subclass of ExtendedHandler which provides selecting from multiple backends for checksum calculation"
+    """subclass of ExtendedHandler which provides selecting from multiple backends
+    for checksum calculation.
+
+    .. warning::
+
+        this class is deprecated, and will be removed in Passlib 1.5
+    """
 
     #NOTE: subclass must provide:
     #   * attr 'backends' containing list of known backends (top priority backend first)
@@ -550,13 +591,20 @@ class MultiBackendHandler(ExtendedHandler):
     _backend = None
 
     @classmethod
+    def _warndep(cls):
+        msg = "MultiBackendHandler is deprecated, and will be removed in Passlib 1.5; %s should use GenericHandler+HasManyBackends instead" % (cls,)
+        warn(msg, DeprecationWarning)
+
+    @classmethod
     def get_backend(cls):
         "return name of active backend"
+        cls._warndep()
         return cls._backend or cls.set_backend()
 
     @classmethod
     def has_backend(cls, name=None):
         "check if specified backend is currently available"
+        cls._warndep()
         if name is None:
             try:
                 cls.set_backend()
@@ -572,6 +620,7 @@ class MultiBackendHandler(ExtendedHandler):
     @classmethod
     def set_backend(cls, name=None):
         "change class to use specified backend"
+        cls._warndep()
         if not name:
             name = cls._backend
             if name:
@@ -590,6 +639,7 @@ class MultiBackendHandler(ExtendedHandler):
 
     def calc_checksum(self, secret):
         "stub for calc_checksum(), default backend will be selected first time stub is called"
+        cls._warndep()
         #backend not loaded - run detection and call replacement
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
