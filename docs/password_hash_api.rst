@@ -1,4 +1,6 @@
-.. index:: password hash api
+.. index::
+    single: password hash api
+    pair: custom hash handler; requirements
 
 .. _password-hash-api:
 

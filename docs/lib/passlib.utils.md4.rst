@@ -22,5 +22,5 @@ based on the `rfc 1320 <http://www.faqs.org/rfcs/rfc1320.html>`_ specification o
 .. note::
 
     If MD4 support is detected in :mod:`!hashlib`, the :class:`!md4` class in this module
-    will be replaced by a function wrapping hashlib's implementation,
+    will be replaced by a function wrapping :mod:`!hashlib`'s implementation,
     which should be faster, but otherwise behave exactly the same.
