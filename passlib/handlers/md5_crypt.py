@@ -112,7 +112,7 @@ def raw_md5_crypt(secret, salt, apr=False):
 
     #encode resulting hash
     return h64.encode_transposed_bytes(result, _chk_offsets)
-    
+
 _chk_offsets = (
     12,6,0,
     13,7,1,
@@ -156,6 +156,7 @@ class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #--HasSalt--
     min_salt_size = 0
     max_salt_size = 8
+    salt_chars = uh.H64_CHARS
 
     #=========================================================
     #internal helpers
@@ -223,6 +224,7 @@ class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
     #--HasSalt--
     min_salt_size = 0
     max_salt_size = 8
+    salt_chars = uh.H64_CHARS
 
     #=========================================================
     #internal helpers

@@ -77,6 +77,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     #--HasSalt--
     min_salt_size = max_salt_size = 22
+    salt_chars = uh.H64_CHARS
 
     #--HasRounds--
     default_rounds = 12 #current passlib default

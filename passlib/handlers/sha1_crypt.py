@@ -64,6 +64,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     default_salt_size = 8
     min_salt_size = 0
     max_salt_size = 64
+    salt_chars = uh.H64_CHARS
 
     #--HasRounds--
     default_rounds = 40000 #current passlib default

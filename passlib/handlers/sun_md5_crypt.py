@@ -214,6 +214,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     min_salt_size = 0
     max_salt_size = 8
+    salt_chars = uh.H64_CHARS
 
     default_rounds = 5000 #current passlib default
     min_rounds = 0

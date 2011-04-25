@@ -164,6 +164,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
+    salt_chars = uh.H64_CHARS
 
     #=========================================================
     #formatting
@@ -266,6 +267,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     #--HasSalt--
     min_salt_size = max_salt_size = 4
+    salt_chars = uh.H64_CHARS
 
     #--HasRounds--
     default_rounds = 5000
@@ -363,6 +365,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
+    salt_chars = uh.H64_CHARS
 
     #=========================================================
     #internal helpers
@@ -445,6 +448,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
+    salt_chars = uh.H64_CHARS
 
     #=========================================================
     #internal helpers

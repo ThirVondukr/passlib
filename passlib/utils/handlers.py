@@ -1107,7 +1107,18 @@ class HasSalt(GenericHandler):
         [required]
         A string containing all the characters which are allowed in the salt string.
         An :exc:`ValueError` will be throw if any other characters are encountered.
-        May be set to ``None`` to skip this check.
+        May be set to ``None`` to skip this check (but see in :attr:`default_salt_chars`).
+
+    .. attribute:: default_salt_chars
+
+        [optional]
+        This attribute controls the set of characters use to generate
+        *new* salt strings. By default, it mirrors :attribute:`salt_chars`.
+        If :attribute:`salt_chars` is ``None``, this attribute must be specified
+        in order to generate new salts. Aside from that purpose,
+        the main use of this attribute is for hashes which wish to generate
+        salts from a restricted subset of :attribute:`salt_chars`; such as accepting all characters,
+        but only using a-z.
 
     Instance Attributes
     ===================
@@ -1141,12 +1152,12 @@ class HasSalt(GenericHandler):
         "default salt chars (defaults to max_salt_size if not specified by subclass)"
         return cls.max_salt_size
 
-    #: set of characters allowed in salt string.
-    salt_chars = H64_CHARS
+    #: optional - set of characters allowed in salt string.
+    salt_chars = None
 
     @classproperty
     def default_salt_chars(cls):
-        "set of characters used to generate *new* salt strings (defaults to salt_chars)"
+        "required - set of characters used to generate *new* salt strings (defaults to salt_chars)"
         return cls.salt_chars
 
     #: helper for HasRawSalt, shouldn't be used publically
@@ -1239,9 +1250,10 @@ class HasSalt(GenericHandler):
                 salt = salt.encode("utf-8")
         else:
             sc = cls.salt_chars
-            for c in salt:
-                if c not in sc:
-                    raise ValueError("invalid character in %s salt: %r"  % (cls.name, c))
+            if sc is not None:
+                for c in salt:
+                    if c not in sc:
+                        raise ValueError("invalid character in %s salt: %r"  % (cls.name, c))
 
         #check min size
         mn = cls.min_salt_size
@@ -1271,10 +1283,11 @@ class HasRawSalt(HasSalt):
     """
 
     salt_chars = ALL_BYTE_VALUES
-    _salt_is_bytes = True
 
-    #NOTE: code is currently shared with HasSalt, using internal _salt_is_bytes flag.
-    #   that may be changed in the future.
+    #NOTE: all HasRawSalt code is currently part of HasSalt,
+    #      using private _salt_is_bytes flag.
+    #      this arrangement may be changed in the future.
+    _salt_is_bytes = True
 
 class HasRounds(GenericHandler):
     """mixin for validating rounds parameter

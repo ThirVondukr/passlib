@@ -58,6 +58,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     #--HasSalt--
     min_salt_size = max_salt_size = 8
+    salt_chars = uh.H64_CHARS
 
     #--HasRounds--
     default_rounds = 9

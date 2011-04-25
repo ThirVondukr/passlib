@@ -167,6 +167,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     default_salt_size = 16
     min_salt_size = 0
     max_salt_size = 1024
+    salt_chars = uh.H64_CHARS
 
     #--HasROunds--
     default_rounds = 10000

@@ -367,9 +367,15 @@ class HandlerCase(TestCase):
             if cls.default_salt_size > cls.max_salt_size:
                 raise AssertionError("default salt chars too large")
 
-            #salt_chars is None for HasRawSalt
-            if cls.salt_chars and any(c not in cls.salt_chars for c in cls.default_salt_chars):
-                raise AssertionError("default salt charset not subset of salt charset")
+            if cls.salt_chars:
+                if not cls.default_salt_chars:
+                    raise AssertionError("default salt charset must not be empty")
+                if any(c not in cls.salt_chars for c in cls.default_salt_chars):
+                    raise AssertionError("default salt charset not subset of salt charset: %r" % (c,))
+            else:
+                if not cls.default_salt_chars:
+                    raise AssertionError("default salt charset must be specified if salt_chars is empty")
+
 
         if 'rounds' in cls.setting_kwds:
             # assume uses HasRounds
