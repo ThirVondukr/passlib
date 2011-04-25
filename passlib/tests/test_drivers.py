@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 import warnings
 #site
 #pkg
-from passlib.tests.utils import HandlerCase, create_backend_case, enable_option
+from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, enable_option
 #module
 
 #=========================================================
@@ -655,6 +655,47 @@ class SHA1CryptTest(HandlerCase):
         #zero padded rounds
         '$sha1$01773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
     ]
+
+#=========================================================
+#roundup
+#=========================================================
+
+#NOTE: all roundup hashes use PrefixWrapper,
+# so there's nothing natively to test.
+# so we just have a few quick cases...
+from passlib.handlers import roundup
+
+class RoundupTest(TestCase):
+
+    def _test_pair(self, h, secret, hash):
+        self.assertTrue(h.verify(secret, hash))
+        self.assertFalse(h.verify('x'+secret, hash))
+
+    def test_pairs(self):
+        self._test_pair(
+            roundup.ldap_hex_sha1,
+            "sekrit",
+            '{SHA}8d42e738c7adee551324955458b5e2c0b49ee655')
+
+        self._test_pair(
+            roundup.ldap_hex_md5,
+            "sekrit",
+            '{MD5}ccbc53f4464604e714f69dd11138d8b5')
+
+        self._test_pair(
+            ldap_digests.ldap_des_crypt,
+            "sekrit",
+            '{CRYPT}nFia0rj2TT59A')
+
+        self._test_pair(
+            roundup.roundup_plaintext,
+            "sekrit",
+            '{plaintext}sekrit')
+
+        self._test_pair(
+            roundup.roundup_pbkdf2_sha1,
+            "sekrit",
+            '{PBKDF2}5000$7BvbBq.EZzz/O0HuwX3iP.nAG3s$g3oPnFFaga2BJaX5PoPRljl4XIE')
 
 #=========================================================
 #sha256-crypt

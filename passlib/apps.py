@@ -53,11 +53,13 @@ std_ldap_schemes = ["ldap_salted_sha1", "ldap_salted_md5",
 ldap_nocrypt_context = LazyCryptContext(std_ldap_schemes)
 
 #create context with all possible std ldap + ldap crypt schemes
+def _iter_ldap_crypt_schemes():
+    from passlib.utils import unix_crypt_schemes
+    return ('ldap_' + name for name in unix_crypt_schemes)
+
 def _iter_ldap_schemes():
     "helper which iterates over supported std ldap schemes"
-    from passlib.utils import unix_crypt_schemes
-    return chain(std_ldap_schemes,
-                 ('ldap_' + name for name in unix_crypt_schemes))
+    return chain(std_ldap_schemes, _iter_ldap_crypt_schemes())
 ldap_context = LazyCryptContext(_iter_ldap_schemes())
 
 ###create context with all std ldap schemes + crypt schemes for localhost
@@ -94,7 +96,12 @@ phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")
 #=========================================================
 #roundup
 #=========================================================
-#roundup_context
+
+_std_roundup_schemes = [ "ldap_hex_sha1", "ldap_hex_md5", "ldap_des_crypt", "roundup_plaintext" ]
+roundup10 = roundup_context = LazyCryptContext(_std_roundup_schemes)
+
+#this roundup hasn't been released yet, may have diff version...
+#roundup_context = roundup15_context = LazyCryptContext(_std_roundup_schemes + [ "roundup_pbkdf2_sha1" ])
 
 #=========================================================
 # eof
