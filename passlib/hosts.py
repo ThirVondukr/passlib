@@ -8,7 +8,7 @@ from warnings import warn
 #pkg
 from passlib.context import LazyCryptContext
 from passlib.registry import get_crypt_handler
-from passlib.utils import os_crypt
+from passlib.utils import os_crypt, unix_crypt_schemes
 #local
 __all__ = [
     "linux_context", "linux2_context",
@@ -61,14 +61,10 @@ if os_crypt:
     #except that it uses passlib's (usually stronger) defaults settings,
     #and can be introspected and used much more flexibly.
 
-    _possible_schemes = [ "sha512_crypt", "sha256_crypt", "sha1_crypt",
-                         "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt",
-                         ]
-
-    def iter_os_crypt_schemes():
+    def _iter_os_crypt_schemes():
         "helper which iterates over supported os_crypt schemes"
         found = False
-        for name in _possible_schemes:
+        for name in unix_crypt_schemes:
             handler = get_crypt_handler(name)
             if handler.has_backend("os_crypt"):
                 found = True
@@ -81,7 +77,7 @@ if os_crypt:
             #no idea what OS this could happen on, but just in case...
             warn("crypt.crypt() function is present, but doesn't support any formats known to passlib!")
 
-    host_context = LazyCryptContext(iter_os_crypt_schemes())
+    host_context = LazyCryptContext(_iter_os_crypt_schemes())
 
 #=========================================================
 #other platforms

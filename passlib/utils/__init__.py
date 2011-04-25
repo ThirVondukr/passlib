@@ -40,11 +40,27 @@ __all__ = [
     'rng',
     'getrandbytes',
     'getrandstr',
+
+    #constants
+    'sys_bits',
+    'unix_crypt_schemes',
 ]
+
+#=================================================================================
+#constants
+#=================================================================================
 
 #quick check of system's arch
 sys_bits = int(logb(sys.maxint,2)+1.5)
 assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
+
+#list of names of hashes found in unix crypt implementations...
+unix_crypt_schemes = [
+    "sha512_crypt", "sha256_crypt",
+    "sha1_crypt", "bcrypt",
+    "md5_crypt",
+    "bsdi_crypt", "des_crypt"
+    ]
 
 #=================================================================================
 #os crypt helpers
