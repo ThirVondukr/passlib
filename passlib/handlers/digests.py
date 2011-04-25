@@ -28,13 +28,13 @@ __all__ = [
 class HexDigestHash(uh.StaticHandler):
     "this provides a template for supporting passwords stored as plain hexidecimal hashes"
     _hash_func = None #required - hash function
-    checksum_chars = None #required - size of encoded digest
-    checksum_charset = uh.HEX_CHARS
+    checksum_size = None #required - size of encoded digest
+    checksum_chars = uh.HEX_CHARS
 
     @classmethod
     def identify(cls, hash):
-        cc = cls.checksum_charset
-        return bool(hash) and len(hash) == cls.checksum_chars and all(c in cc for c in hash)
+        cc = cls.checksum_chars
+        return bool(hash) and len(hash) == cls.checksum_size and all(c in cc for c in hash)
 
     @classmethod
     def genhash(cls, secret, hash):
@@ -59,7 +59,7 @@ def create_hex_hash(hash, digest_name):
     return type(name, (HexDigestHash,), dict(
         name=name,
         _hash_func=staticmethod(hash), #sometimes it's a function, sometimes not. so wrap it.
-        checksum_chars=h.digest_size*2,
+        checksum_size=h.digest_size*2,
         __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.

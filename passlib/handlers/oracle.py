@@ -155,8 +155,8 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     #--GenericHandler--
     name = "oracle11"
     setting_kwds = ("salt",)
-    checksum_chars = 40
-    checksum_charset = uh.UC_HEX_CHARS
+    checksum_size = 40
+    checksum_chars = uh.UC_HEX_CHARS
 
     _stub_checksum = '0' * 40
 

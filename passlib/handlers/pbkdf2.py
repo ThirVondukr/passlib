@@ -86,7 +86,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, self.checksum_chars, self._prf)
+        return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
 def create_pbkdf2_hash(hash_name, digest_size):
     "create new Pbkdf2DigestHandler subclass for a specific hash"
@@ -98,8 +98,8 @@ def create_pbkdf2_hash(hash_name, digest_size):
         name=name,
         ident=ident,
         _prf = prf,
-        checksum_chars=digest_size,
-        encoded_checksum_chars=(digest_size*4+2)//3,
+        checksum_size=digest_size,
+        encoded_checksum_size=(digest_size*4+2)//3,
         __doc__="""This class implements passlib's pbkdf2-%(prf)s hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -242,7 +242,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     name = "atlassian_pbkdf2_sha1"
     setting_kwds =("salt",)
     ident = "{PKCS5S2}"
-    checksum_chars = 32
+    checksum_size = 32
 
     _stub_checksum = "\x00" * 32
 

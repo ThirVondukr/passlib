@@ -36,7 +36,7 @@ __all__ = [
 #constants
 #=========================================================
 
-#common salt_chars & checksum_charset values
+#common salt_chars & checksum_chars values
 H64_CHARS = h64.CHARS
 B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 HEX_CHARS = "0123456789abcdefABCDEF"
@@ -773,13 +773,13 @@ class GenericHandler(object):
         it as a identifying prefix that can be used to recognize instances of this handler's
         hash. Filling this out is recommended for speed.
 
-    .. attribute:: checksum_chars
+    .. attribute:: checksum_size
 
         [optional]
         Specifies the number of characters that should be expected in the checksum string.
         If omitted, no check will be performed.
 
-    .. attribute:: checksum_charset
+    .. attribute:: checksum_chars
 
         [optional]
         A string listing all the characters allowed in the checksum string.
@@ -820,8 +820,8 @@ class GenericHandler(object):
 
     ident = None #identifier prefix if known
 
-    checksum_chars = None #if specified, norm_checksum will require this length
-    checksum_charset = H64_CHARS #if specified, norm_checksum() will validate this
+    checksum_size = None #if specified, norm_checksum will require this length
+    checksum_chars = H64_CHARS #if specified, norm_checksum() will validate this
 
     #=====================================================
     #instance attrs
@@ -846,10 +846,10 @@ class GenericHandler(object):
             if strict:
                 raise ValueError("checksum not specified")
             return None
-        cc = cls.checksum_chars
+        cc = cls.checksum_size
         if cc and len(checksum) != cc:
             raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
-        cs = cls.checksum_charset
+        cs = cls.checksum_chars
         if cs and any(c not in cs for c in checksum):
             raise ValueError("invalid characters in %s checksum" % (cls.name,))
         return checksum
@@ -948,7 +948,7 @@ class HasRawChecksum(GenericHandler):
         document this class's usage
     """
 
-    checksum_charset = None
+    checksum_chars = None
 
     @classmethod
     def norm_checksum(cls, checksum, strict=False):
@@ -956,7 +956,7 @@ class HasRawChecksum(GenericHandler):
             return None
         if isinstance(checksum, unicode):
             raise TypeError, "checksum must be specified as bytes"
-        cc = cls.checksum_chars
+        cc = cls.checksum_size
         if cc and len(checksum) != cc:
             raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
         return checksum

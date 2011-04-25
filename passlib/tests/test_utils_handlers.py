@@ -94,8 +94,8 @@ class SkeletonTest(TestCase):
         "test GenericHandler.norm_checksum()"
         class d1(uh.GenericHandler):
             name = 'd1'
-            checksum_chars = 4
-            checksum_charset = 'x'
+            checksum_size = 4
+            checksum_chars = 'x'
         self.assertRaises(ValueError, d1.norm_checksum, 'xxx')
         self.assertEqual(d1.norm_checksum('xxxx'), 'xxxx')
         self.assertRaises(ValueError, d1.norm_checksum, 'xxxxx')
@@ -343,8 +343,8 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 
     min_salt_size = 2
     max_salt_size = 4
-    checksum_chars = 40
-    salt_chars = checksum_charset = uh.LC_HEX_CHARS
+    checksum_size = 40
+    salt_chars = checksum_chars = uh.LC_HEX_CHARS
 
     @classmethod
     def identify(cls, hash):

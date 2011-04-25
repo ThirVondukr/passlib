@@ -58,7 +58,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = "$sha1$"
-    checksum_chars = 28
+    checksum_size = 28
 
     #--HasSalt--
     default_salt_size = 8
