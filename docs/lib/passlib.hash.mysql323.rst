@@ -17,6 +17,10 @@ hash algorithm was introduced (see :class:`~passlib.hash.mysql41`).
     for any purposes besides manipulating existing Mysql 3.2.3-4.0
     password hashes.
 
+.. seealso::
+
+    :mod:`!passlib.apps` for a :ref:`list of premade mysql contexts <mysql-contexts>`.
+
 Usage
 =====
 Users will most likely find the frontends provided by :mod:`passlib.apps`

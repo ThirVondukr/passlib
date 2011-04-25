@@ -16,6 +16,10 @@ used by MySQL, and is still in active use under MySQL 5.
     for any purposes besides manipulating existing Mysql 4.1+
     password hashes.
 
+.. seealso::
+
+    :mod:`!passlib.apps` for a :ref:`list of premade mysql contexts <mysql-contexts>`.
+
 Usage
 =====
 Users will most likely find the frontends provided by :mod:`passlib.apps`

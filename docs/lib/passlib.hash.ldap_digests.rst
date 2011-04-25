@@ -64,39 +64,33 @@ Format & Algorithm
 ==================
 All of these classes follow a single basic format [#rfc]_:
 
-ldap_md5
+ldap_md5, ldap_sha1
 
-    These hashes have the format :samp:`{{MD5}}{checksum}`,
-    where :samp:`{checksum}` is the base64 encoding
-    of the raw MD5 digest of the password.
-    An example hash (of ``password``) is ``{MD5}X03MO1qnZdYdgyfeuILPmQ==``.
+    These hashes have the format :samp:`{prefix}{checksum}`.
+    * :samp:`{prefix}` is `{MD5}` for ldap_md5,
+      and `{SHA}` for ldap_sha1.
+    * :samp:`{checksum}` is the base64 encoding
+      of the raw message digest of the password,
+      using the appropriate digest algorithm.
 
-ldap_salted_md5
+    An example ldap_md5 hash (of ``password``) is ``{MD5}X03MO1qnZdYdgyfeuILPmQ==``.
+    An example ldap_sha1 hash (of ``password``) is ``{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=``.
 
-    These hashes have the format :samp:`{{SMD5}}{data}`;
-    where :samp:`{data}` is the base64 encoding of :samp:`{checksum}{salt}`;
-    and in turn :samp:`{salt}` is a 4 byte binary salt,
-    and :samp:`{checksum}` is the raw MD5 digest of the
-    the string :samp:`{password}{salt}`.
+ldap_salted_md5, ldap_salted_sha1
+
+    These hashes have the format :samp:`{prefix}{data}`.
+
+    * :samp:`{prefix}` is `{SMD5}` for ldap_salted_md5,
+      and `{SSHA}` for ldap_salted_sha1.
+    * :samp:`{data}` is the base64 encoding of :samp:`{checksum}{salt}`;
+      and in turn :samp:`{salt}` is a 4 byte binary salt,
+      and :samp:`{checksum}` is the raw digest of the
+      the string :samp:`{password}{salt}`,
+      using the appropriate digest algorithm.
 
     An example hash (of ``password``) is ``{SMD5}jNoSMNY0cybfuBWiaGlFw3Mfi/U=``.
     After decoding, this results in a raw salt string ``s\x1f\x8b\xf5``,
     and a raw MD5 checksum of ``\x8c\xda\x120\xd64s&\xdf\xb8\x15\xa2hiE\xc3``.
-
-ldap_sha1
-
-    These hashes have the format :samp:`{{MD5}}{checksum}`,
-    where :samp:`{checksum}` is the base64 encoding
-    of the raw MD5 digest of the password.
-    An example hash (of ``password``) is ``{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=``.
-
-ldap_salted_sha1
-
-    These hashes have the format :samp:`{{SSHA}}{data}`;
-    where :samp:`{data}` is the base64 encoding of :samp:`{checksum}{salt}`;
-    and in turn :samp:`{salt}` is a 4 byte binary salt,
-    and :samp:`{checksum}` is the raw SHA1 digest of the
-    the string :samp:`{password}{salt}`.
 
     An example hash (of ``password``) is ``{SSHA}pKqkNr1tq3wtQqk+UcPyA3HnA2NsU5NJ``.
     After decoding, this results in a raw salt string ``lS\x93I``,
