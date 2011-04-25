@@ -10,7 +10,7 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import ALL_BYTE_VALUES, handlers as uh, unix_crypt_names
+from passlib.utils import ALL_BYTE_VALUES, handlers as uh, unix_crypt_schemes
 #pkg
 #local
 __all__ = [
@@ -197,13 +197,13 @@ class ldap_plaintext(uh.StaticHandler):
 # the following are wrappers around the base crypt algorithms,
 # which add the ldap required {CRYPT} prefix
 
-ldap_crypt_names = [ 'ldap_' + name for name in unix_crypt_names ]
+ldap_crypt_schemes = [ 'ldap_' + name for name in unix_crypt_schemes ]
 
 def _init_ldap_crypt_handlers():
     #XXX: it's not nice to play in globals like this,
     # but don't want to write all all these handlers
     g = globals()
-    for wname in unix_crypt_names:
+    for wname in unix_crypt_schemes:
         name = 'ldap_' + wname
         g[name] = uh.PrefixWrapper(name, wname, prefix="{CRYPT}", lazy=True)
     del g
