@@ -479,6 +479,45 @@ class _Pbkdf2BackendTest(TestCase):
             ),
         ])
 
+    def test_rfc6070(self):
+        "rfc6070 test vectors"
+        self.assertFunctionResults(pbkdf2.pbkdf2, [
+
+            (
+                unhexlify("0c60c80f961f0e71f3a9b524af6012062fe037a6"),
+                "password", "salt" , 1, 20,
+            ),
+
+            (
+                unhexlify("ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957"),
+                "password", "salt", 2, 20,
+            ),
+
+            (
+                unhexlify("4b007901b765489abead49d926f721d065a429c1"),
+                "password", "salt", 4096, 20,
+            ),
+
+            #just runs too long - could enable if ALL option is set
+            ##(
+            ##
+            ##    unhexlify("eefe3d61cd4da4e4e9945b3d6ba2158c2634e984"),
+            ##    "password", "salt", 16777216, 20,
+            ##),
+
+            (
+                unhexlify("3d2eec4fe41c849b80c8d83662c0e44a8b291a964cf2f07038"),
+                "passwordPASSWORDpassword",
+                "saltSALTsaltSALTsaltSALTsaltSALTsalt",
+                4096, 25,
+            ),
+
+            (
+                unhexlify("56fa6aa75548099dcc37d7f03425e0c3"),
+                "pass\00word", "sa\00lt", 4096, 16,
+            ),
+        ])
+
     def test_invalid_values(self):
 
         #invalid rounds
