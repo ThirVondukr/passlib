@@ -168,7 +168,7 @@ class ldap_plaintext(uh.StaticHandler):
     """
     name = "ldap_plaintext"
 
-    _2307_pat = re.compile(r"^\{[a-zA-Z0-9-]+\}.*$")
+    _2307_pat = re.compile(r"^\{\w+\}.*$")
 
     @classmethod
     def identify(cls, hash):

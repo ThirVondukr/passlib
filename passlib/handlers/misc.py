@@ -20,7 +20,7 @@ __all__ = [
 #handler
 #=========================================================
 class unix_fallback(uh.StaticHandler):
-    """This class fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
+    """This class provides the fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
     This class does not implement a hash, but instead provides fallback
     behavior as found in /etc/shadow on most unix variants.

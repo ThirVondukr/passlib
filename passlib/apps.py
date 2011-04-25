@@ -48,7 +48,6 @@ custom_app_context = LazyCryptContext(
 std_ldap_schemes = ["ldap_salted_sha1", "ldap_salted_md5",
                       "ldap_sha1", "ldap_md5",
                       "ldap_plaintext" ]
-    #FIXME: should implement a 'ldap_fallback' scheme which matches-but-rejects everything
 
 #create context with all std ldap schemes EXCEPT crypt
 ldap_nocrypt_context = LazyCryptContext(std_ldap_schemes)
@@ -81,10 +80,8 @@ mysql_context = mysql4_context #tracks latest mysql version supported
 postgres_context = LazyCryptContext(["postgres_md5"])
 
 #=========================================================
-#phpass
+#phpass & variants
 #=========================================================
-#TODO: support phpass_context (and don't use bcrypt as default if not available)
-
 phpass_context = LazyCryptContext(
     schemes=["bcrypt", "bsdi_crypt", "phpass",],
     default="bcrypt" if hash.bcrypt.has_backend() else "bsdi_crypt",
@@ -93,6 +90,11 @@ phpass_context = LazyCryptContext(
 phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")
 
 #TODO: support the drupal phpass variants (see phpass homepage)
+
+#=========================================================
+#roundup
+#=========================================================
+#roundup_context
 
 #=========================================================
 # eof
