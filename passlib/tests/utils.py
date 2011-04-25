@@ -24,6 +24,7 @@ except ImportError:
 #site
 from nose.plugins.skip import SkipTest
 #pkg
+from passlib import registry
 from passlib.utils import classproperty, handlers as uh
 #local
 __all__ = [
@@ -677,7 +678,7 @@ class HandlerCase(TestCase):
 #=========================================================
 def enable_backend_case(handler, name):
     "helper to check if a separate test is needed for the specified backend"
-    assert issubclass(handler, uh.HasManyBackends), "handler must derived from uh.HasManyBackends"
+    assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
     assert name in handler.backends, "unknown backend: %r" % (name,)
     return enable_option("all-backends") and handler.get_backend() != name and handler.has_backend(name)
 

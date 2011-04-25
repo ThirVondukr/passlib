@@ -43,8 +43,12 @@ Custom Applications
     have grown beyond it, it is recommended to create your own CryptContext
     instance; the configuration used to create this object can be a good starting point.
 
+.. _ldap-contexts:
+
 LDAP
 ====
+Passlib provides two contexts related to ldap hashes:
+
 .. data:: ldap_context
 
     This object provides a pre-configured :class:`!CryptContext` instance
@@ -61,9 +65,12 @@ LDAP
         >>> ldap_context.encrypt("password")
         '{SMD5}T9f89F591P3fFh1jz/YtW4aWD5s='
 
-    .. warning::
+.. data:: ldap_nocrypt_context
 
-        PassLib does not currently support the ``{CRYPT}`` password hash method.
+    This object recognizes all the standard ldap schemes that :data:`!ldap_context`
+    does, *except* for the ``{CRYPT}``-based schemes.
+
+.. _mysql-contexts:
 
 MySQL
 =====

@@ -10,14 +10,24 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import ALL_BYTE_VALUES, handlers as uh
+from passlib.utils import ALL_BYTE_VALUES, handlers as uh, unix_crypt_names
 #pkg
 #local
 __all__ = [
+    "ldap_plaintext",
     "ldap_md5",
     "ldap_sha1",
     "ldap_salted_md5",
     "ldap_salted_sha1",
+
+    ##"get_active_ldap_crypt_schemes",
+    "ldap_des_crypt",
+    "ldap_bsdi_crypt",
+    "ldap_md5_crypt",
+    "ldap_sha1_crypt"
+    "ldap_bcrypt",
+    "ldap_sha256_crypt",
+    "ldap_sha512_crypt",
 ]
 
 #=========================================================
@@ -180,7 +190,37 @@ class ldap_plaintext(uh.StaticHandler):
             raise ValueError("no hash specified")
         return hash == cls.genhash(secret, hash)
 
-#TODO: support {CRYPT} somehow (adapt per host?)
+#=========================================================
+#{CRYPT} wrappers
+#=========================================================
+
+# the following are wrappers around the base crypt algorithms,
+# which add the ldap required {CRYPT} prefix
+
+ldap_crypt_names = [ 'ldap_' + name for name in unix_crypt_names ]
+
+def _init_ldap_crypt_handlers():
+    #XXX: it's not nice to play in globals like this,
+    # but don't want to write all all these handlers
+    g = globals()
+    for wname in unix_crypt_names:
+        name = 'ldap_' + wname
+        g[name] = uh.PrefixWrapper(name, wname, prefix="{CRYPT}", lazy=True)
+    del g
+_init_ldap_crypt_handlers()
+
+##_lcn_host = None
+##def get_host_ldap_crypt_schemes():
+##    global _lcn_host
+##    if _lcn_host is None:
+##        from passlib.hosts import host_context
+##        schemes = host_context.policy.schemes()
+##        _lcn_host = [
+##            "ldap_" + name
+##            for name in unix_crypt_names
+##            if name in schemes
+##        ]
+##    return _lcn_host
 
 #=========================================================
 #eof

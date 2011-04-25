@@ -9,10 +9,12 @@ used by LDAP, as stored in the :rfc:`2307` format.
 This includes ``{MD5}``, ``{SMD5}``, ``{SHA}``, ``{SSHA}``.
 Many of these schemes are somewhat to very insecure,
 and should not be used except when required.
+The ``{CRYPT}`` scheme is supported by individual handlers
+for each underlying crypt algorithm.
 
-.. note::
+.. seealso::
 
-    The ``{CRYPT}`` scheme is not yet supported by PassLib.
+    :mod:`!passlib.apps` for a :ref:`list of premade ldap contexts <ldap-contexts>`.
 
 Usage
 =====
@@ -44,6 +46,17 @@ Interface
 .. autoclass:: ldap_sha1()
 .. autoclass:: ldap_salted_sha1()
 .. autoclass:: ldap_plaintext()
+
+As well, passlib supports the following `{CRYPT}` schemes,
+which wrap their respective underlying unix crypt scheme:
+
+.. class:: ldap_des_crypt()
+.. class:: ldap_bsdi_crypt()
+.. class:: ldap_md5_crypt()
+.. class:: ldap_bcrypt()
+.. class:: ldap_sha1_crypt()
+.. class:: ldap_sha256_crypt()
+.. class:: ldap_sha512_crypt()
 
 .. rst-class:: html-toggle
 

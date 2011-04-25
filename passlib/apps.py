@@ -4,6 +4,7 @@
 #=========================================================
 #core
 import logging; log = logging.getLogger(__name__)
+from itertools import chain
 #site
 #libs
 from passlib import hash
@@ -13,11 +14,11 @@ from passlib.utils import sys_bits
 #local
 __all__ = [
     'custom_app_context',
-    'postgres_context',
-    'ldap_context',
-    #mssql
+    'ldap_context', 'ldap_nocrypt_context',
     'mysql_context', 'mysql4_context', 'mysql3_context',
-    #oracle
+    'phpass_context',
+    'phpbb3_context',
+    'postgres_context',
 ]
 
 #=========================================================
@@ -44,8 +45,28 @@ custom_app_context = LazyCryptContext(
 #=========================================================
 #ldap
 #=========================================================
-#TODO: support ldap_crypt
-ldap_context = LazyCryptContext(["ldap_salted_sha1", "ldap_salted_md5", "ldap_sha1", "ldap_md5", "ldap_plaintext" ])
+std_ldap_schemes = ["ldap_salted_sha1", "ldap_salted_md5",
+                      "ldap_sha1", "ldap_md5",
+                      "ldap_plaintext" ]
+    #FIXME: should implement a 'ldap_fallback' scheme which matches-but-rejects everything
+
+#create context with all std ldap schemes EXCEPT crypt
+ldap_nocrypt_context = LazyCryptContext(std_ldap_schemes)
+
+#create context with all possible std ldap + ldap crypt schemes
+def _iter_ldap_schemes():
+    "helper which iterates over supported std ldap schemes"
+    from passlib.utils import unix_crypt_schemes
+    return chain(std_ldap_schemes,
+                 ('ldap_' + name for name in unix_crypt_schemes))
+ldap_context = LazyCryptContext(_iter_ldap_schemes())
+
+###create context with all std ldap schemes + crypt schemes for localhost
+##def _iter_host_ldap_schemes():
+##    "helper which iterates over supported std ldap schemes"
+##    from passlib.handlers.ldap_digests import get_host_ldap_crypt_schemes
+##    return chain(std_ldap_schemes, get_host_ldap_crypt_schemes())
+##ldap_host_context = LazyCryptContext(_iter_host_ldap_schemes())
 
 #=========================================================
 #mysql

@@ -250,7 +250,27 @@ class LdapPlaintextTest(HandlerCase):
 
     known_other_hashes = [ ("ldap_md5", "{MD5}/F4DjTilcDIIVEHn/nAQsA==")]
 
-# helloworld -> '{CRYPT}dQ58WW.1980Ig'
+#NOTE: since the ldap_{crypt} handlers are all wrappers,
+# don't need separate test. have just one for end-to-end testing purposes.
+
+class LdapMd5CryptTest(HandlerCase):
+    handler = ldap_digests.ldap_md5_crypt
+
+    known_correct_hashes = (
+        ('', '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
+        (' ', '{CRYPT}$1$m/5ee7ol$bZn0kIBFipq39e.KDXX8I0'),
+        ('test', '{CRYPT}$1$ec6XvcoW$ghEtNK2U1MC5l.Dwgi3020'),
+        ('Compl3X AlphaNu3meric', '{CRYPT}$1$nX1e7EeI$ljQn72ZUgt6Wxd9hfvHdV0'),
+        ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '{CRYPT}$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
+        ('test', '{CRYPT}$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
+        )
+
+    known_malformed_hashes = [
+        #bad char in otherwise correct hash
+        '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
+        ]
+
+BuiltinLdapMd5CryptTest = create_backend_case(LdapMd5CryptTest, "builtin")
 
 #=========================================================
 #md5 crypt
