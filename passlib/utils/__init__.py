@@ -50,17 +50,43 @@ __all__ = [
 #constants
 #=================================================================================
 
-#quick check of system's arch
+#: number of bits in system architecture
 sys_bits = int(logb(sys.maxint,2)+1.5)
 assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
 
-#list of names of hashes found in unix crypt implementations...
+#: list of names of hashes found in unix crypt implementations...
 unix_crypt_schemes = [
     "sha512_crypt", "sha256_crypt",
     "sha1_crypt", "bcrypt",
     "md5_crypt",
     "bsdi_crypt", "des_crypt"
     ]
+
+
+#: special byte string containing all possible byte values, used in a few places.
+#XXX: treated as singleton by some of the code for efficiency.
+ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
+
+#NOTE: Undef is only used in *one* place now, could just remove it
+class UndefType(object):
+    _undef = None
+
+    def __new__(cls):
+        if cls._undef is None:
+            cls._undef = object.__new__(cls)
+        return cls._undef
+
+    def __repr__(self):
+        return '<Undef>'
+
+    def __eq__(self, other):
+        return False
+
+    def __ne__(self, other):
+        return True
+
+#: singleton used as default kwd value in some functions, indicating "NO VALUE"
+Undef = UndefType()
 
 #=================================================================================
 #os crypt helpers
@@ -72,7 +98,7 @@ except ImportError: #pragma: no cover
     os_crypt = None
 
 #=================================================================================
-#decorators
+#decorators and meta helpers
 #=================================================================================
 class classproperty(object):
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
@@ -122,31 +148,6 @@ class classproperty(object):
 ##        raise NotImplementedError(text)
 ##    update_wrapper(wrapper, func)
 ##    return classmethod(wrapper)
-
-#NOTE: Undef is only used in *one* place now, could just remove it
-
-class UndefType(object):
-    _undef = None
-
-    def __new__(cls):
-        if cls._undef is None:
-            cls._undef = object.__new__(cls)
-        return cls._undef
-
-    def __repr__(self):
-        return '<Undef>'
-
-    def __eq__(self, other):
-        return False
-
-    def __ne__(self, other):
-        return True
-
-Undef = UndefType() #singleton used as default kwd value in some functions
-
-#special byte string containing all possible byte values, used in a few places.
-#XXX: treated as singleton by some of the code for efficiency.
-ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
 
 #==========================================================
 #protocol helpers
