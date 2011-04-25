@@ -294,7 +294,7 @@ def has_crypt_handler(name, loaded_only=False):
     global _handlers, _handler_locations
     return (name in _handlers) or (not loaded_only and name in _handler_locations)
 
-def _unload_handler_name(name):
+def _unload_handler_name(name, locations=True):
     """unloads a handler from the registry.
 
     .. warning::
@@ -306,14 +306,16 @@ def _unload_handler_name(name):
     if path to lazy load handler is found, its' removed.
 
     missing names are a noop.
+
+    :arg name: name of handler to unload
+    :param locations: if False, won't purge registered handler locations (default True)
     """
     global _handlers, _handler_locations
 
     if name in _handlers:
         del _handlers[name]
 
-    #NOTE: this messes w/ internals of registry, shouldn't be used publically.
-    if name in _handler_locations:
+    if locations and name in _handler_locations:
         del _handler_locations[name]
 
 #=========================================================

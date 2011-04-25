@@ -10,8 +10,12 @@ from logging import getLogger
 import warnings
 #site
 #pkg
+from passlib.hash import ldap_md5
+from passlib.registry import _unload_handler_name as unload_handler_name, \
+    register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh
-from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
+from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
+    dummy_handler_in_registry
 #module
 log = getLogger(__name__)
 
@@ -231,6 +235,84 @@ class SkeletonTest(TestCase):
     #=========================================================
     #eoc
     #=========================================================
+
+#=========================================================
+#PrefixWrapper
+#=========================================================
+class PrefixWrapperTest(TestCase):
+    "test PrefixWrapper class"
+
+    def test_00_lazy_loading(self):
+        "test PrefixWrapper lazy loading of handler"
+        d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}", lazy=True)
+
+        #check base state
+        self.assertEqual(d1._wrapped_name, "ldap_md5")
+        self.assertIs(d1._wrapped_handler, None)
+
+        #check loading works
+        self.assertIs(d1.wrapped, ldap_md5)
+        self.assertIs(d1._wrapped_handler, ldap_md5)
+
+        #replace w/ wrong handler, make sure doesn't reload w/ dummy
+        with dummy_handler_in_registry("ldap_md5") as dummy:
+            self.assertIs(d1.wrapped, ldap_md5)
+
+    def test_01_active_loading(self):
+        "test PrefixWrapper active loading of handler"
+        d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
+
+        #check base state
+        self.assertEqual(d1._wrapped_name, "ldap_md5")
+        self.assertIs(d1._wrapped_handler, ldap_md5)
+        self.assertIs(d1.wrapped, ldap_md5)
+
+        #replace w/ wrong handler, make sure doesn't reload w/ dummy
+        with dummy_handler_in_registry("ldap_md5") as dummy:
+            self.assertIs(d1.wrapped, ldap_md5)
+
+    def test_02_explicit(self):
+        "test PrefixWrapper with explicitly specified handler"
+
+        d1 = uh.PrefixWrapper("d1", ldap_md5, "{XXX}", "{MD5}")
+
+        #check base state
+        self.assertEqual(d1._wrapped_name, None)
+        self.assertIs(d1._wrapped_handler, ldap_md5)
+        self.assertIs(d1.wrapped, ldap_md5)
+
+        #replace w/ wrong handler, make sure doesn't reload w/ dummy
+        with dummy_handler_in_registry("ldap_md5") as dummy:
+            self.assertIs(d1.wrapped, ldap_md5)
+
+    def test_10_wrapped_attributes(self):
+        d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
+        self.assertEqual(d1.name, "d1")
+        self.assertIs(d1.setting_kwds, ldap_md5.setting_kwds)
+
+    def test_11_wrapped_methods(self):
+        d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
+        dph = "{XXX}X03MO1qnZdYdgyfeuILPmQ=="
+        lph = "{MD5}X03MO1qnZdYdgyfeuILPmQ=="
+
+        #genconfig
+        self.assertIs(d1.genconfig(), None)
+
+        #genhash
+        self.assertEqual(d1.genhash("password", None), dph)
+        self.assertEqual(d1.genhash("password", dph), dph)
+        self.assertRaises(ValueError, d1.genhash, "password", lph)
+
+        #encrypt
+        self.assertEqual(d1.encrypt("password"), dph)
+
+        #identify
+        self.assertTrue(d1.identify(dph))
+        self.assertFalse(d1.identify(lph))
+
+        #verify
+        self.assertRaises(ValueError, d1.verify, "password", lph)
+        self.assertTrue(d1.verify("password", dph))
 
 #=========================================================
 #sample algorithms - these serve as known quantities

@@ -698,6 +698,27 @@ def create_backend_case(base_test, name):
     return dummy
 
 #=========================================================
+#misc helpers
+#=========================================================
+class dummy_handler_in_registry(object):
+    "context manager that inserts dummy handler in registry"
+    def __init__(self, name):
+        self.name = name
+        self.dummy = type('dummy_' + name, (uh.GenericHandler,), dict(
+            name=name,
+            setting_kwds=(),
+        ))
+
+    def __enter__(self):
+        registry._unload_handler_name(self.name, locations=False)
+        registry.register_crypt_handler(self.dummy)
+        assert registry.get_crypt_handler(self.name) is self.dummy
+        return self.dummy
+
+    def __exit__(self, *exc_info):
+        registry._unload_handler_name(self.name, locations=False)
+
+#=========================================================
 #helper for creating temp files - all cleaned up when prog exits
 #=========================================================
 tmp_files = []

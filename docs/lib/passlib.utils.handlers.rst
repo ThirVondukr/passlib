@@ -142,6 +142,10 @@ The StaticHandler class
 
 .. _testing-hash-handlers:
 
+Other Constructors
+==================
+.. autoclass:: PrefixWrapper
+
 Testing Hash Handlers
 =====================
 Within it's unittests, Passlib provides the :class:`~passlib.tests.utils.HandlerCase` class,

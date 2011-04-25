@@ -13,6 +13,7 @@ import os
 from warnings import warn
 #site
 #libs
+from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, h64, getrandstr, getrandbytes, rng, is_crypt_handler, ALL_BYTE_VALUES
 #pkg
 #local
@@ -27,6 +28,7 @@ __all__ = [
             'HasRawSalt',
         'HasRounds',
         'HasManyBackends',
+    'PrefixWrapper',
 ]
 
 #=========================================================
@@ -1458,6 +1460,129 @@ class HasManyBackends(GenericHandler):
         assert self._backend, "set_backend() failed to load a default backend"
         #set_backend() should have replaced this method, so call it again.
         return self.calc_checksum(secret)
+
+#=========================================================
+#wrappers
+#=========================================================
+class PrefixWrapper(object):
+    """wraps another handler, adding a constant prefix.
+
+    instances of this class wrap another password hash handler,
+    altering the constant prefix that's prepended to the wrapped
+    handlers' hashes.
+
+    this is used mainly by the :samp:`ldap_{digest}_crypt` methods,
+    such as :class:`ldap_md5_crypt`, which wraps :class:`md5_crypt` and adds a ``{CRYPT}`` prefix.
+
+    usage::
+
+        myhandler = PrefixWrapper("myhandler", "md5_crypt", prefix="$mh$", orig_prefix="$1$")
+
+    :param name: name to assign to handler
+    :param wrapped: handler object or name of registered handler
+    :param prefix: identifying prefix to prepend to all hashes
+    :param orig_prefix: prefix to strip (defaults to '').
+    :param lazy: if True and wrapped handler is specified by name, don't look it up until needed.
+    """
+
+    def __init__(self, name, wrapped, prefix='', orig_prefix='', lazy=False, doc=None):
+        self.name = name
+        self.prefix = prefix
+        self.orig_prefix = orig_prefix
+        if doc:
+            self.__doc__ = doc
+        if hasattr(wrapped, "name"):
+            self._check_handler(wrapped)
+            self._wrapped_handler = wrapped
+        else:
+            self._wrapped_name = wrapped
+            if not lazy:
+                self._get_wrapped()
+
+    _wrapped_name = None
+    _wrapped_handler = None
+
+    def _check_handler(self, handler):
+        if 'ident' in handler.setting_kwds:
+            #TODO: look into way to fix the issues.
+            warn("PrefixWrapper may not work correctly for handlers which have multiple identifiers: %r" % (handler.name,))
+
+    def _get_wrapped(self):
+        handler = self._wrapped_handler
+        if handler is None:
+            handler = get_crypt_handler(self._wrapped_name)
+            self._check_handler(handler)
+            self._wrapped_handler = handler
+        return handler
+
+    wrapped = property(_get_wrapped)
+
+    ##@property
+    ##def ident(self):
+    ##    return self._prefix
+
+    #attrs that should be proxied
+    _proxy_attrs = (
+                    "setting_kwds", "context_kwds",
+                    "default_rounds", "min_rounds", "max_rounds", "rounds_cost",
+                    "backends", "has_backend", "get_backend", "set_backend",
+                    )
+
+    def __repr__(self):
+        args = [ repr(self._wrapped_name or self._wrapped_handler) ]
+        if self.prefix:
+            args.append("prefix=%r" % self.prefix)
+        if self.orig_prefix:
+            args.append("orig_prefix=%r", self.orig_prefix)
+        args = ", ".join(args)
+        return 'PrefixWrapper(%r, %s)' % (self.name, args)
+
+    def __getattr__(self, attr):
+        "proxy most attributes from wrapped class (eg rounds, salt size, etc)"
+        if attr in self._proxy_attrs:
+            return getattr(self.wrapped, attr)
+        raise AttributeError("missing attribute: %r" % (attr,))
+
+    def _unwrap_hash(self, hash):
+        "given hash belonging to wrapper, return orig version"
+        prefix = self.prefix
+        if not hash.startswith(prefix):
+            raise ValueError("not a valid %s hash" % (self.name,))
+        return self.orig_prefix + hash[len(prefix):]
+
+    def _wrap_hash(self, hash):
+        "given orig hash; return one belonging to wrapper"
+        prefix = self.orig_prefix
+        if not hash.startswith(prefix):
+            raise ValueError("not a valid %s hash" % (self.wrapped.name,))
+        return self.prefix + hash[len(prefix):]
+
+    def identify(self, hash):
+        if not hash or not hash.startswith(self.prefix):
+            return False
+        hash = self._unwrap_hash(hash)
+        return self.wrapped.identify(hash)
+
+    def genconfig(self, **kwds):
+        config = self.wrapped.genconfig(**kwds)
+        if config:
+            return self._wrap_hash(config)
+        else:
+            return config
+
+    def genhash(self, secret, config, **kwds):
+        if config:
+            config = self._unwrap_hash(config)
+        return self._wrap_hash(self.wrapped.genhash(secret, config, **kwds))
+
+    def encrypt(self, secret, **kwds):
+        return self._wrap_hash(self.wrapped.encrypt(secret, **kwds))
+
+    def verify(self, secret, hash, **kwds):
+        if not hash:
+            raise ValueError("no %s hash specified" % (self.name,))
+        hash = self._unwrap_hash(hash)
+        return self.wrapped.verify(secret, hash, **kwds)
 
 #=========================================================
 # eof
