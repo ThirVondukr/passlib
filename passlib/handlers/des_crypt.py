@@ -163,7 +163,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     setting_kwds = ("salt",)
 
     #--HasSalt--
-    min_salt_chars = max_salt_chars = 2
+    min_salt_size = max_salt_size = 2
 
     #=========================================================
     #formatting
@@ -265,7 +265,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     checksum_chars = 11
 
     #--HasSalt--
-    min_salt_chars = max_salt_chars = 4
+    min_salt_size = max_salt_size = 4
 
     #--HasRounds--
     default_rounds = 5000
@@ -362,7 +362,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #NOTE: checksum chars must be multiple of 11
 
     #--HasSalt--
-    min_salt_chars = max_salt_chars = 2
+    min_salt_size = max_salt_size = 2
 
     #=========================================================
     #internal helpers
@@ -444,7 +444,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     checksum_chars = 22
 
     #--HasSalt--
-    min_salt_chars = max_salt_chars = 2
+    min_salt_size = max_salt_size = 2
 
     #=========================================================
     #internal helpers

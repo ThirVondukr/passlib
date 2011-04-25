@@ -307,7 +307,7 @@ class HandlerCase(TestCase):
 
     @classproperty
     def has_salt_info(cls):
-        return 'salt' in cls.handler.setting_kwds and getattr(cls.handler, "max_salt_chars", None) > 0
+        return 'salt' in cls.handler.setting_kwds and getattr(cls.handler, "max_salt_size", None) > 0
 
     @classproperty
     def has_rounds_info(cls):
@@ -359,16 +359,16 @@ class HandlerCase(TestCase):
         if 'salt' in cls.setting_kwds:
             # assume HasSalt / HasRawSalt
 
-            if cls.min_salt_chars > cls.max_salt_chars:
+            if cls.min_salt_size > cls.max_salt_size:
                 raise AssertionError("min salt chars too large")
 
-            if cls.default_salt_chars < cls.min_salt_chars:
+            if cls.default_salt_size < cls.min_salt_size:
                 raise AssertionError("default salt chars too small")
-            if cls.default_salt_chars > cls.max_salt_chars:
+            if cls.default_salt_size > cls.max_salt_size:
                 raise AssertionError("default salt chars too large")
 
-            #salt_charset is None for HasRawSalt
-            if cls.salt_charset and any(c not in cls.salt_charset for c in cls.default_salt_charset):
+            #salt_chars is None for HasRawSalt
+            if cls.salt_chars and any(c not in cls.salt_chars for c in cls.default_salt_chars):
                 raise AssertionError("default salt charset not subset of salt charset")
 
         if 'rounds' in cls.setting_kwds:
@@ -520,8 +520,8 @@ class HandlerCase(TestCase):
         if not self.has_salt_info:
             raise SkipTest
         handler = self.handler
-        cs = handler.salt_charset
-        mn = handler.min_salt_chars
+        cs = handler.salt_chars
+        mn = handler.min_salt_size
         c1 = self.do_genconfig(salt=cs[0] * mn)
         if mn > 0:
             self.assertRaises(ValueError, self.do_genconfig, salt=cs[0]*(mn-1))
@@ -531,8 +531,8 @@ class HandlerCase(TestCase):
         if not self.has_salt_info:
             raise SkipTest
         handler = self.handler
-        cs = handler.salt_charset
-        mx = handler.max_salt_chars
+        cs = handler.salt_chars
+        mx = handler.max_salt_size
         c1 = self.do_genconfig(salt=cs[0] * mx)
         c2 = self.do_genconfig(salt=cs[0] * (mx+1))
         self.assertEquals(c1,c2)
@@ -542,9 +542,9 @@ class HandlerCase(TestCase):
         if not self.has_salt_info:
             raise SkipTest
         handler = self.handler
-        mx = handler.max_salt_chars
-        mn = handler.min_salt_chars
-        cs = handler.salt_charset
+        mx = handler.max_salt_size
+        mn = handler.min_salt_size
+        cs = handler.salt_chars
 
         #make sure all listed chars are accepted
         for i in xrange(0,len(cs),mx):

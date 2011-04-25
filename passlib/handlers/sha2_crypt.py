@@ -245,8 +245,8 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     ident = "$5$"
 
     #--HasSalt--
-    min_salt_chars = 0
-    max_salt_chars = 16
+    min_salt_size = 0
+    max_salt_size = 16
     #TODO: allow salt charset 0-255 except for "\x00\n:$"
 
     #--HasRounds--
@@ -389,8 +389,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     setting_kwds = ("salt", "rounds", "implicit_rounds")
 
-    min_salt_chars = 0
-    max_salt_chars = 16
+    min_salt_size = 0
+    max_salt_size = 16
     #TODO: allow salt charset 0-255 except for "\x00\n:$"
 
     default_rounds = 40000 #current passlib default

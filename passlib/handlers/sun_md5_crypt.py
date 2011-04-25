@@ -212,8 +212,8 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     setting_kwds = ("salt", "rounds")
     ident = "$md5$"
 
-    min_salt_chars = 0
-    max_salt_chars = 8
+    min_salt_size = 0
+    max_salt_size = 8
 
     default_rounds = 5000 #current passlib default
     min_rounds = 0

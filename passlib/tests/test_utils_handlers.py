@@ -106,10 +106,10 @@ class SkeletonTest(TestCase):
         class d1(uh.HasSalt, uh.GenericHandler):
             name = 'd1'
             setting_kwds = ('salt',)
-            min_salt_chars = 1
-            max_salt_chars = 3
-            default_salt_chars = 2
-            salt_charset = 'a'
+            min_salt_size = 1
+            max_salt_size = 3
+            default_salt_size = 2
+            salt_chars = 'a'
 
         #check salt=None
         self.assertEqual(d1.norm_salt(None), 'aa')
@@ -341,10 +341,10 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     name = "salted_test_hash"
     setting_kwds = ("salt",)
 
-    min_salt_chars = 2
-    max_salt_chars = 4
+    min_salt_size = 2
+    max_salt_size = 4
     checksum_chars = 40
-    salt_charset = checksum_charset = uh.LC_HEX_CHARS
+    salt_chars = checksum_charset = uh.LC_HEX_CHARS
 
     @classmethod
     def identify(cls, hash):

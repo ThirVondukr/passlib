@@ -35,9 +35,9 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     setting_kwds = ("salt", "salt_size", "rounds")
 
     #--HasSalt--
-    default_salt_chars = 16
-    min_salt_chars = 0
-    max_salt_chars = 1024
+    default_salt_size = 16
+    min_salt_size = 0
+    max_salt_size = 1024
 
     #--HasRounds--
     default_rounds = 6400
@@ -48,7 +48,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     #--this class--
     _prf = None #subclass specified prf identifier
 
-    #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
+    #NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide sanity check.
     #      the underlying pbkdf2 specifies no bounds for either.
 
     #NOTE: defaults chosen to be at least as large as pbkdf2 rfc recommends...
@@ -118,7 +118,7 @@ def create_pbkdf2_hash(hash_name, digest_size):
     :param rounds:
         Optional number of rounds to use.
         Defaults to %(dr)d, but must be within ``range(1,1<<32)``.
-    """ % dict(prf=prf, dsc=base.default_salt_chars, dr=base.default_rounds)
+    """ % dict(prf=prf, dsc=base.default_salt_size, dr=base.default_rounds)
     ))
 
 #---------------------------------------------------------
@@ -160,13 +160,13 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = "$p5k2$"
 
-    #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
+    #NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide sanity check.
     #   underlying algorithm (and reference implementation) allow effectively unbounded values for both of these.
 
     #--HasSalt--
-    default_salt_chars = 16
-    min_salt_chars = 0
-    max_salt_chars = 1024
+    default_salt_size = 16
+    min_salt_size = 0
+    max_salt_size = 1024
 
     #--HasROunds--
     default_rounds = 10000
@@ -247,7 +247,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     _stub_checksum = "\x00" * 32
 
     #--HasRawSalt--
-    min_salt_chars = max_salt_chars = 16
+    min_salt_size = max_salt_size = 16
 
     @classmethod
     def from_string(cls, hash):
@@ -301,13 +301,13 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     ident = "grub.pbkdf2.sha512."
 
-    #NOTE: max_salt_chars and max_rounds are arbitrarily chosen to provide sanity check.
+    #NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide sanity check.
     #      the underlying pbkdf2 specifies no bounds for either,
     #      and it's not clear what grub specifies.
 
-    default_salt_chars = 64
-    min_salt_chars = 0
-    max_salt_chars = 1024
+    default_salt_size = 64
+    min_salt_size = 0
+    max_salt_size = 1024
 
     default_rounds = 10000
     min_rounds = 1

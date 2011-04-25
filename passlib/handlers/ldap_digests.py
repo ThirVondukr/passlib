@@ -65,7 +65,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
     _hash_func = None #required - hash function
     _pat = None #required - regexp to recognize hash
     _stub_checksum = None #required - default checksum to plug in
-    min_salt_chars = max_salt_chars = 4
+    min_salt_size = max_salt_size = 4
 
     @classmethod
     def identify(cls, hash):

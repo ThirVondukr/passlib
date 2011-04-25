@@ -154,8 +154,8 @@ class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     checksum_chars = 22
 
     #--HasSalt--
-    min_salt_chars = 0
-    max_salt_chars = 8
+    min_salt_size = 0
+    max_salt_size = 8
 
     #=========================================================
     #internal helpers
@@ -221,8 +221,8 @@ class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
     checksum_chars = 22
 
     #--HasSalt--
-    min_salt_chars = 0
-    max_salt_chars = 8
+    min_salt_size = 0
+    max_salt_size = 8
 
     #=========================================================
     #internal helpers
