@@ -428,7 +428,6 @@ the following attributes are usually exposed.
     in that situtation should be documentated.
 
 ..
-
     not yet documentated, want to make sure this is how we want to do things:
 
     .. attribute:: PasswordHash.default_salt_size

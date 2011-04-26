@@ -1113,11 +1113,11 @@ class HasSalt(GenericHandler):
 
         [optional]
         This attribute controls the set of characters use to generate
-        *new* salt strings. By default, it mirrors :attribute:`salt_chars`.
-        If :attribute:`salt_chars` is ``None``, this attribute must be specified
+        *new* salt strings. By default, it mirrors :attr:`salt_chars`.
+        If :attr:`!salt_chars` is ``None``, this attribute must be specified
         in order to generate new salts. Aside from that purpose,
         the main use of this attribute is for hashes which wish to generate
-        salts from a restricted subset of :attribute:`salt_chars`; such as accepting all characters,
+        salts from a restricted subset of :attr:`!salt_chars`; such as accepting all characters,
         but only using a-z.
 
     Instance Attributes

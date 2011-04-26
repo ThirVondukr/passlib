@@ -67,6 +67,7 @@ All of these classes follow a single basic format [#rfc]_:
 ldap_md5, ldap_sha1
 
     These hashes have the format :samp:`{prefix}{checksum}`.
+
     * :samp:`{prefix}` is `{MD5}` for ldap_md5,
       and `{SHA}` for ldap_sha1.
     * :samp:`{checksum}` is the base64 encoding

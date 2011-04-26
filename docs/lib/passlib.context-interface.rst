@@ -3,7 +3,7 @@
 .. _cryptcontext-interface:
 
 ===============================================
-:mod:`passlib.context` - CryptContext Interface
+:mod:`passlib.context` - Module Contents
 ===============================================
 
 .. currentmodule:: passlib.context
@@ -13,12 +13,18 @@ and :class:`!CryptPolicy`.
 
 .. seealso::
 
-    * :doc:`passlib.context-options` -- for a list of all the keyword options accepted by these classes.
+    * :doc:`passlib.context-usage`
 
-    * :doc:`passlib.context` -- for an overview and some usage examples.
+    * :doc:`passlib.context-options`
 
+The Context Object
+==================
 .. autoclass:: CryptContext(schemes=None, policy=<default policy>, \*\*kwds)
 
+The Policy Object
+=================
 .. autoclass:: CryptPolicy(\*\*kwds)
 
+Other Helpers
+=============
 .. autoclass:: LazyCryptContext([schemes=None,] **kwds [, create_policy=None])

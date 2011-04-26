@@ -7,8 +7,8 @@
 
 This lists a number of :class:`!CryptContext` instances that are predefined
 by PassLib for easily handling the multiple formats used by various applications.
-(For details about how to *use* a :class:`!CryptContext` instance,
-see the documentation for the :class:`CryptContext` class itself).
+(For details about how to use a :class:`!CryptContext` instance,
+see :doc:`passlib.context-usage`).
 
 .. _quickstart-custom-applications:
 

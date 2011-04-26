@@ -3,7 +3,7 @@
 .. _cryptcontext-options:
 
 =============================================
-:mod:`passlib.context` - CryptContext options
+:mod:`passlib.context` - Constructor Options
 =============================================
 
 .. currentmodule:: passlib.context
@@ -15,7 +15,9 @@ which affect the context treats a particular type of hash:
 
 .. seealso::
 
-    :doc:`passlib.context` -- for an overview of the classes and some usage examples.
+    * :doc:`passlib.context-usage`
+
+    * :doc:`passlib.context-interface`
 
 Context Options
 ===============
@@ -190,7 +192,9 @@ or viewed in the source code under ``$SOURCE/passlib/default.cfg``.
 
 Sample Policy File
 ==================
-A sample policy file::
+A sample policy file:
+
+.. code-block:: ini
 
     [passlib]
     #configure what schemes the context supports (note the "context." prefix is implied for these keys)
