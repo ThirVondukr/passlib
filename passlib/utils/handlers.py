@@ -1542,9 +1542,9 @@ class PrefixWrapper(object):
     _wrapped_handler = None
 
     def _check_handler(self, handler):
-        if 'ident' in handler.setting_kwds:
+        if 'ident' in handler.setting_kwds and self.orig_prefix:
             #TODO: look into way to fix the issues.
-            warn("PrefixWrapper may not work correctly for handlers which have multiple identifiers: %r" % (handler.name,))
+            warn("PrefixWrapper: 'orig_prefix' option may not work correctly for handlers which have multiple identifiers: %r" % (handler.name,))
 
     def _get_wrapped(self):
         handler = self._wrapped_handler
