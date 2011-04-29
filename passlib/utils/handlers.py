@@ -1510,8 +1510,8 @@ class PrefixWrapper(object):
     altering the constant prefix that's prepended to the wrapped
     handlers' hashes.
 
-    this is used mainly by the :samp:`ldap_{digest}_crypt` methods,
-    such as :class:`ldap_md5_crypt`, which wraps :class:`md5_crypt` and adds a ``{CRYPT}`` prefix.
+    this is used mainly by the :doc:`ldap crypt <passlib.hash.ldap_crypt>` handlers;
+    such as :class:`~passlib.hash.ldap_md5_crypt` which wraps :class:`~passlib.hash.md5_crypt` and adds a ``{CRYPT}`` prefix.
 
     usage::
 

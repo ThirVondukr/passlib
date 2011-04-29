@@ -70,6 +70,8 @@ Passlib provides two contexts related to ldap hashes:
     This object recognizes all the standard ldap schemes that :data:`!ldap_context`
     does, *except* for the ``{CRYPT}``-based schemes.
 
+.. index:: mysql; crypt context
+
 .. _mysql-contexts:
 
 MySQL
@@ -93,7 +95,7 @@ for handling MySQL user passwords:
 
     This should be used only with MySQL version 3.2.3 - 4.0.
 
-.. index:: drupal, wordpress, phpbb, phpass
+.. index:: drupal; crypt context, wordpress; crypt context, phpbb3; crypt context, phpass; crypt context
 
 PHPass
 ======
@@ -113,6 +115,8 @@ It is found in a wide range of PHP applications, including Drupal and Wordpress.
 .. data:: phpbb3_context
 
     This object supports phpbb3 password hashes, which use a variant of :class:`~passlib.hash.phpass`.
+
+.. index:: postgres; crypt context
 
 PostgreSQL
 ==========

@@ -29,8 +29,8 @@ as in the following example::
 
 .. seealso::
 
-    * the :ref:`password hash api <password-hash-api>` for details of the
-      interface used by all password hashes in this module.
+    the :ref:`password-hash-api` details the
+    interface used by all password hashes in this module.
 
 .. _mcf-hashes:
 
@@ -131,8 +131,6 @@ and are supported by OpenLDAP.
     :maxdepth: 1
 
     passlib.hash.ldap_crypt
-
-Also present is a special handler for LDAP plaintext passwords:
 
 * :class:`passlib.hash.ldap_plaintext` - LDAP-Aware Plaintext Handler
 

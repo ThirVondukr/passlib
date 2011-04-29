@@ -12,7 +12,7 @@ Password Hash API
 
 Overview
 ========
-All of the hashes supported by PassLib are implemented using classes
+All of the hashes supported by PassLib are implemented using classes [#otypes]_
 which support an identical interface; this document describes that
 interface in terms of a non-existent abstract class called :class:`!PasswordHash`.
 All of the supported password hashes [#supported]_ expose (at a minimum) the following:
@@ -458,5 +458,11 @@ the following attributes are usually exposed.
 
 Footnotes
 =========
+.. [#otypes]    While this specification is written referring to classes and classmethods,
+                password hash handlers can be any type of object (instance, module, etc),
+                so long as they offer attributes and functions with the required
+                signatures. For example, some of the handlers in Passlib are
+                instances of the :class:`~passlib.utils.handlers.PrefixWrapper` class.
+
 .. [#supported] all supported password hashes, whether builtin or registered
                 from an external source can be found in the :mod:`passlib.hash` module.

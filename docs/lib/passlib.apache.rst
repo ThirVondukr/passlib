@@ -8,6 +8,8 @@
 This module provides utilities for reading and writing Apache's
 htpasswd and htdigest files; though the use of two helper classes.
 
+.. index:: apache; htpasswd
+
 Htpasswd Files
 ==============
 The :class:`!HTpasswdFile` class allows managing of htpasswd files.
@@ -43,6 +45,8 @@ A quick summary of it's usage::
     anotheruser:$apr1$vBdPWvh1$GrhfbyGvN/7HalW5cS9XB1
 
 .. autoclass:: HtpasswdFile(path, default=None, autoload=True)
+
+.. index:: apache; htdigest
 
 Htdigest Files
 ==============

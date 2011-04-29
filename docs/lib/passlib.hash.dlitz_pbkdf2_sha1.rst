@@ -2,7 +2,7 @@
 :class:`passlib.hash.dlitz_pbkdf2_sha1` - Dwayne Litzenger's PBKDF2 hash
 ========================================================================
 
-.. index:: pbkdf2; password hash
+.. index:: pbkdf2 hash; dlitz
 
 .. currentmodule:: passlib.hash
 

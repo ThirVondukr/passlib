@@ -2,8 +2,9 @@
 :class:`passlib.hash.atlassian_pbkdf2_sha1` - Atlassian's PBKDF2-based Hash
 ===========================================================================
 
-.. index:: atlassian, pbkdf2; password hash
-
+.. index::
+    pair: atlassian; pbkdf2 hash
+    
 .. currentmodule:: passlib.hash
 
 This class provides an implementation of

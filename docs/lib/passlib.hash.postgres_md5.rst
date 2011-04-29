@@ -1,3 +1,5 @@
+.. index:: postgres; md5 hash
+
 ==================================================================
 :class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
@@ -57,7 +59,7 @@ PostgreSQL account passwords, due to the following flaws:
   (eg ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
-* Since the keyspace of ``user+password`` is still a subset of ascii characters, 
+* Since the keyspace of ``user+password`` is still a subset of ascii characters,
   existing MD5 lookup tables have an increased chance of being able to reverse common hashes.
 
 * It's simplicity makes high-speed brute force attacks much more feasible.

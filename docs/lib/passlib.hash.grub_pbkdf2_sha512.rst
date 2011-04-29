@@ -2,7 +2,7 @@
 :class:`passlib.hash.grub_pbkdf2_sha512` - Grub's PBKDF2 Hash
 =============================================================
 
-.. index:: pbkdf2; password hash
+.. index:: pbkdf2 hash; grub
 
 .. currentmodule:: passlib.hash
 
