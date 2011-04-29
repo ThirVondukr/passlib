@@ -21,11 +21,11 @@ Interface
 
 .. note::
 
-    All password hashes registered with passlib are exposed as objects
-    importable from :mod:`passlib.hash`. This is true not just of the builtin
-    classes, but ones that are registered using the functions below.
-    The :mod:`!passlib.hash` module acts as a proxy object for this registry,
-    changes made here will affect it as well.
+    All password hashes registered with passlib
+    can be imported by name from the :mod:`passlib.hash` module.
+    This is true just just of the built-in hashes,
+    but for any hash registered with the registration functions
+    in this module.
 
 Usage
 =====

@@ -53,7 +53,7 @@ Passlib provides two contexts related to ldap hashes:
 
     This object provides a pre-configured :class:`!CryptContext` instance
     for handling LDAPv2 password hashes. It recognizes all
-    the formats in the :doc:`ldap_digests listing <passlib.hash.ldap_digests>`.
+    the :ref:`standard ldap hashes <standard-ldap-hashes>`.
 
     It defaults to using the ``{SSHA}`` password hash.
     For times when there should be another default, using code such as the following::

@@ -669,7 +669,16 @@ class CryptContext(object):
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
     def replace(self, **kwds):
-        "returns new CryptContext with specified options modified from original; similar to CryptPolicy.replace"
+        """return mutated CryptContext instance
+
+        this function operates much like :meth:`datetime.replace()` - it returns
+        a new CryptContext instance whose configuration is exactly the
+        same as the original, with the exception of any keywords
+        specificed taking precedence over the original settings.
+
+        this is identical to the operation ``CryptContext(policy=self.policy.replace(**kwds))``,
+        see :meth:`CryptPolicy.replace` for more details.
+        """
         return CryptContext(policy=self.policy.replace(**kwds))
 
     #===================================================================

@@ -2,6 +2,8 @@
     single: password hash api
     pair: custom hash handler; requirements
 
+.. currentmodule:: passlib.hash
+
 .. _password-hash-api:
 
 =================
@@ -13,27 +15,30 @@ Overview
 All of the hashes supported by PassLib are implemented using classes
 which support an identical interface; this document describes that
 interface in terms of a non-existent abstract class called :class:`!PasswordHash`.
-All of the :doc:`supported password hashes <lib/passlib.hash>`
-expose (at a minimum) the following methods and attributes:
+All of the supported password hashes [#supported]_ expose (at a minimum) the following:
 
-The `required informational attributes`_
+:ref:`required-attributes`
+
   These consist of the attributes :attr:`~PasswordHash.name`,
   :attr:`~PasswordHash.setting_kwds`, and :attr:`~PasswordHash.context_kwds`.
   They permit users and applications to detect what features a specific :class:`!PasswordHash`
   allows and/or requires.
 
-The `application interface`_
+:ref:`application-methods`
+
   This interface consists of the :meth:`~PasswordHash.encrypt`,
   :meth:`~PasswordHash.identify`, and :meth:`~PasswordHash.verify` classmethods.
-  Most applications will only need to make use of these methods.
+  These are the methods most applications will need to make use of.
 
-The `crypt interface`_
+:ref:`crypt-methods`
+
   This interface consists of the :meth:`~PasswordHash.genconfig`
   and :meth:`~PasswordHash.genhash` classmethods.
   This mimics the standard unix crypt interface,
-  but is not usually needed by applications.
+  and are not usually needed by applications.
 
-The `optional informational attributes`_
+:ref:`optional-attributes`
+
   These attributes provide additional information
   about the capabilities and limitations of certain password hash schemes.
 
@@ -73,9 +78,9 @@ passwords::
     >>> sc.verify("wrongpassword", h)
     False
 
-.. _required-informational-attributes:
+.. _required-attributes:
 
-Required Informational Attributes
+Required Attributes
 =================================
 .. attribute:: PasswordHash.name
 
@@ -155,17 +160,17 @@ Required Informational Attributes
         If present, the class requires a username be specified whenever
         performing a hash calculation (eg: postgres_md5 and oracle10).
 
-.. _application-interface:
+.. _application-methods:
 
-Application Interface
-=====================
+Application Methods
+===================
 The :meth:`~PasswordHash.encrypt`, :meth:`~PasswordHash.identify`, and :meth:`~PasswordHash.verify` methods are designed
 to provide an easy interface for applications. They allow encrypt new passwords
 without having to deal with details such as salt generation, verifying
 passwords without having to deal with hash comparison rules, and determining
 which scheme a hash belongs to when multiple schemes are in use.
 
-.. classmethod:: PasswordHash.encrypt(secret, \*\*settings_and_context)
+.. classmethod:: PasswordHash.encrypt(secret, \*\*settings_and_context_kwds)
 
     encrypt secret, returning resulting hash string.
 
@@ -176,7 +181,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         but the common case is to encode into utf-8
         before processing.
 
-    :param settings_and_context:
+    :param settings_and_context_kwds:
         All other keywords are algorithm-specified,
         and should be listed in :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
@@ -185,10 +190,11 @@ which scheme a hash belongs to when multiple schemes are in use.
 
     :raises ValueError:
         * if settings are invalid and handler cannot correct them.
-          (eg: a provided salt contains invalid characters / length
-          causes an error, but an out of range rounds value is silently clipped).
+          (eg: if a ``salt`` string is to short, this will
+          cause an error; but a ``rounds`` value that's too large
+          should be silently clipped).
 
-        * if a context kwd contains an invalid value, or was required
+        * if a context keyword contains an invalid value, or was required
           but omitted.
 
         * if secret contains forbidden characters (e.g: des-crypt forbids null characters).
@@ -219,7 +225,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         Those that do will raise a ValueError once the hash is passed to :meth:`~PasswordHash.verify`.
         Most handlers, however, will just return ``False``.
 
-.. classmethod:: PasswordHash.verify(secret, hash, \*\*context)
+.. classmethod:: PasswordHash.verify(secret, hash, \*\*context_kwds)
 
     verify a secret against an existing hash.
 
@@ -231,7 +237,7 @@ which scheme a hash belongs to when multiple schemes are in use.
     :param hash:
         A string containing the hash to check against.
 
-    :param context:
+    :param context_kwds:
         Any additional keywords will be passed to the encrypt
         method. These should be limited to those listed
         in :attr:`~PasswordHash.context_kwds`.
@@ -246,11 +252,11 @@ which scheme a hash belongs to when multiple schemes are in use.
     :returns:
         ``True`` if the secret matches, otherwise ``False``.
 
-.. _crypt-interface:
+.. _crypt-methods:
 
-Crypt Interface
-===============
-While the primary interface is generally the most useful when integrating
+Crypt Methods
+=============
+While the application methods are generally the most useful when integrating
 password support into an application, those methods are for the most part
 built on top of the crypt interface, which is somewhat simpler
 for *implementing* new password schemes. It also happens to match
@@ -258,7 +264,7 @@ more closely with the crypt api of most unix systems,
 and consists of two functions: :meth:`~PasswordHash.genconfig()``
 and :meth:`~PasswordHash.genhash()``.
 
-.. classmethod:: PasswordHash.genconfig(\*\*settings)
+.. classmethod:: PasswordHash.genconfig(\*\*settings_kwds)
 
     returns configuration string encoding settings for hash generation
 
@@ -295,7 +301,7 @@ and :meth:`~PasswordHash.genhash()``.
       if the number of rounds is too small or too large, it should
       be clipped but accepted.
 
-    :param settings:
+    :param settings_kwds:
         this function takes in keywords as specified in :attr:`~PasswordHash.setting_kwds`.
         commonly supported keywords include ``salt`` and ``rounds``.
 
@@ -309,7 +315,7 @@ and :meth:`~PasswordHash.genhash()``.
     :returns:
         the configuration string, or ``None`` if the algorithm does not support any configuration options.
 
-.. classmethod:: PasswordHash.genhash(secret, config, \*\*context)
+.. classmethod:: PasswordHash.genhash(secret, config, \*\*context_kwds)
 
     encrypt secret to hash
 
@@ -324,7 +330,7 @@ and :meth:`~PasswordHash.genhash()``.
         returned by :meth:`~PasswordHash.genhash`, or a configuration string
         that was previously created by :meth:`~PasswordHash.genconfig`.
 
-    :param context:
+    :param context_kwds:
         All other keywords must be external contextual information
         required by the algorithm to create the hash. If any,
         these kwds must be specified in :attr:`~PasswordHash.context_kwds`.
@@ -342,7 +348,9 @@ and :meth:`~PasswordHash.genhash()``.
     :returns:
         encoded hash matching specified secret, config, and context.
 
-Optional Informational Attributes
+.. _optional-attributes:
+
+Optional Attributes
 =================================
 Many of the handlers in passlib expose the following informational
 attributes, though their presence is not uniform
@@ -350,7 +358,8 @@ across all handlers in passlib.
 
 .. todo::
 
-    could change these to be required if the appropriate setting kwd is used.
+    Consider making these attributes required for all hashes
+    which support the appropriate :attr:`settings` keyword.
 
 Rounds Information
 ------------------
@@ -427,6 +436,7 @@ the following attributes are usually exposed.
     for their salt keyword, how these attributes change
     in that situtation should be documentated.
 
+
 ..
     not yet documentated, want to make sure this is how we want to do things:
 
@@ -445,3 +455,8 @@ the following attributes are usually exposed.
         than are typically used. This field allows
         the full range to be accepted, while only
         a select subset to be used for generation.
+
+Footnotes
+=========
+.. [#supported] all supported password hashes, whether builtin or registered
+                from an external source can be found in the :mod:`passlib.hash` module.

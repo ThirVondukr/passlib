@@ -19,7 +19,7 @@ hash algorithm was introduced (see :class:`~passlib.hash.mysql41`).
 
 .. seealso::
 
-    :mod:`!passlib.apps` for a :ref:`list of premade mysql contexts <mysql-contexts>`.
+    :mod:`!passlib.apps` for a list of predefined :ref:`mysql contexts <mysql-contexts>`.
 
 Usage
 =====

@@ -100,7 +100,7 @@ def create_pbkdf2_hash(hash_name, digest_size):
         _prf = prf,
         checksum_size=digest_size,
         encoded_checksum_size=(digest_size*4+2)//3,
-        __doc__="""This class implements passlib's pbkdf2-%(prf)s hash, and follows the :ref:`password-hash-api`.
+        __doc__="""This class implements Passlib's PBKDF2-%(prf)s based hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
 
@@ -118,7 +118,7 @@ def create_pbkdf2_hash(hash_name, digest_size):
     :param rounds:
         Optional number of rounds to use.
         Defaults to %(dr)d, but must be within ``range(1,1<<32)``.
-    """ % dict(prf=prf, dsc=base.default_salt_size, dr=base.default_rounds)
+    """ % dict(prf=prf.upper(), dsc=base.default_salt_size, dr=base.default_rounds)
     ))
 
 #---------------------------------------------------------

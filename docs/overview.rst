@@ -13,7 +13,7 @@ Password Hash Schemes
 All of the hash schemes supported by passlib are implemented
 as classes importable from the :mod:`passlib.hash` module.
 All of these classes support a single uniform interface of standard class methods.
-These methods are documented in detail by next section, the :doc:`password hash api <password_hash_api>`.
+These methods are documented in detail by the :ref:`password hash api <password-hash-api>`.
 
 As a quick example of how a password hash can be used directly::
 
@@ -99,11 +99,7 @@ A quick example of how a password context can be used::
 
 Utility Functions
 =================
-The :mod:`passlib.utils` module contains a large number
+The :mod:`passlib.registry` and :mod:`passlib.utils` modules contain a large number
 of support functions, most of which are only needed when
 are implementing custom password hash schemes. Most users of passlib
-will not need to use this subpackage.
-
-.. todo::
-
-    Add documentation showing how to create custom password hash handlers.
+will not need to use these.

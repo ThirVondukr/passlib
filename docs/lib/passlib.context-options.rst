@@ -34,7 +34,9 @@ of the :class:`!CryptContext` instance itself:
 
     Potential names can include the name of any class importable from the :mod:`passlib.hash` module.
     For example, to specify the :class:`passlib.hash.sha256_crypt` and the :class:`passlib.hash.des_crypt` schemes
-    should be supported for your new context, set ``schemes=["sha256_crypt", "des_crypt"]``.
+    should be supported for your new context::
+
+        >>> myctx = CryptContext(schemes=["sha256_crypt", "des_crypt"])
 
 ``deprecated``
 
