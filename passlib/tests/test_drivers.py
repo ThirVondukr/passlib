@@ -273,6 +273,42 @@ class LdapMd5CryptTest(HandlerCase):
 BuiltinLdapMd5CryptTest = create_backend_case(LdapMd5CryptTest, "builtin")
 
 #=========================================================
+#ldap_pbkdf2_{digest}
+#=========================================================
+from passlib.handlers import pbkdf2 as pk2
+
+#NOTE: since these are all wrappers for the pbkdf2_{digest} hasehs,
+# they don't extensive separate testing.
+
+class LdapPbkdf2Test(TestCase):
+
+    def test_wrappers(self):
+        "test ldap pbkdf2 wrappers"
+
+        self.assertTrue(
+            pk2.ldap_pbkdf2_sha1.verify(
+                "password",
+                '{PBKDF2}1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI',
+            )
+        )
+
+        self.assertTrue(
+            pk2.ldap_pbkdf2_sha256.verify(
+                "password",
+                '{PBKDF2-SHA256}1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg'
+                '.fJPeq1h/gXXY7acBp9/6c.tmQ'
+            )
+        )
+
+        self.assertTrue(
+            pk2.ldap_pbkdf2_sha512.verify(
+                "password",
+                '{PBKDF2-SHA512}1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1'
+                '7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww'
+            )
+        )
+
+#=========================================================
 #md5 crypt
 #=========================================================
 from passlib.handlers.md5_crypt import md5_crypt, raw_md5_crypt
@@ -458,9 +494,9 @@ class AtlassianPbkdf2Sha1Test(HandlerCase):
 class Pbkdf2Sha1Test(HandlerCase):
     handler = pk2.pbkdf2_sha1
     known_correct_hashes = (
-        ("password", '$pbkdf2-sha1$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
+        ("password", '$pbkdf2$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
-            '$pbkdf2-sha1$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
+            '$pbkdf2$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
     )
 
 class Pbkdf2Sha256Test(HandlerCase):

@@ -1,14 +1,14 @@
 ===============================================================
-:samp:`passlib.hash.pbkdf2_{digest}` - Simple PBKDF2 Hashes
+:samp:`passlib.hash.pbkdf2_{digest}` - Generic PBKDF2 Hashes
 ===============================================================
 
-.. index:: pbkdf2; password hash
+.. index:: pbkdf2 hash; generic mcf 
 
 .. currentmodule:: passlib.hash
 
 PassLib provides three custom hash schemes based on the PBKDF2 [#pbkdf2]_ algorithm
 which are compatible with the :ref:`modular crypt format <modular-crypt-format>`:
-:class:`pbkdf2_sha1`, :class:`pbkdf2_sha256`, :class:`pbkdf2_sha512`.
+:class:`!pbkdf2_sha1`, :class:`!pbkdf2_sha256`, :class:`!pbkdf2_sha512`.
 They feature variable length salts, variable rounds.
 
 Security-wise, PBKDF2 is currently one of the leading key derivation functions,
@@ -17,6 +17,10 @@ Though the original PBKDF2 specification uses the SHA-1 message digest,
 it is not vulnerable to any of the known weaknesses of SHA-1 [#hmac-sha1]_,
 and can be safely used. However, for those still concerned, SHA-256 and SHA-512
 versions are offered as well.
+
+.. seealso::
+
+    Alternate version of these hashes - :doc:`LDAP-Compatible Simple PBKDF2 Hashes <passlib.hash.ldap_pbkdf2_digest>`
 
 Usage
 =====
@@ -42,9 +46,9 @@ Interface
 
 Format & Algorithm
 ==================
-An example :class:`!pbkdf2_sha256` hash (of ``password``):
+An example :class:`!pbkdf2_sha256` hash (of ``password``)::
 
-``$pbkdf2-sha256$6400$.6UI/S.nXIk8jcbdHx3Fhg$98jZicV16ODfEsEZeYPGHU3kbrUrvUEXOPimVSQDD44``.
+    $pbkdf2-sha256$6400$.6UI/S.nXIk8jcbdHx3Fhg$98jZicV16ODfEsEZeYPGHU3kbrUrvUEXOPimVSQDD44
 
 All of the pbkdf2 hashes defined by passlib
 follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
@@ -82,4 +86,5 @@ References
 .. [#pbkdf2] The specification for the PBKDF2 algorithm - `<http://tools.ietf.org/html/rfc2898#section-5.2>`_,
              part of :rfc:`2898`.
 
-.. [#hmac-sha1] While SHA1 has fallen to collision attacks, HMAC-SHA1 is still considered secure - `<http://www.schneier.com/blog/archives/2005/02/sha1_broken.html>`_.
+.. [#hmac-sha1] While SHA1 has fallen to collision attacks, HMAC-SHA1 as used by PBKDF2
+                is still considered secure - `<http://www.schneier.com/blog/archives/2005/02/sha1_broken.html>`_.

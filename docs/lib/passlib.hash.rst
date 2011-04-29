@@ -144,6 +144,7 @@ but follow the LDAP format:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.ldap_pbkdf2_digest
     passlib.hash.atlassian_pbkdf2_sha1
 
 ..

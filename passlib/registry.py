@@ -103,6 +103,11 @@ _handler_locations = {
     "ldap_sha1_crypt":  ("passlib.handlers.ldap_digests","ldap_sha1_crypt"),
     "ldap_sha256_crypt":("passlib.handlers.ldap_digests","ldap_sha256_crypt"),
     "ldap_sha512_crypt":("passlib.handlers.ldap_digests","ldap_sha512_crypt"),
+    "ldap_pbkdf2_sha1": ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha1"),
+    "ldap_pbkdf2_sha256":
+                        ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha256"),
+    "ldap_pbkdf2_sha512":
+                        ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha512"),
     "md5_crypt":        ("passlib.handlers.md5_crypt",   "md5_crypt"),
     "mysql323":         ("passlib.handlers.mysql",       "mysql323"),
     "mysql41":          ("passlib.handlers.mysql",       "mysql41"),
@@ -116,8 +121,6 @@ _handler_locations = {
     "plaintext":        ("passlib.handlers.misc",        "plaintext"),
     "postgres_md5":     ("passlib.handlers.postgres",    "postgres_md5"),
     "roundup_plaintext":("passlib.handlers.roundup",     "roundup_plaintext"),
-    "roundup_pbkdf2_sha1":
-                        ("passlib.handlers.roundup",     "roundup_pbkd2_sha1"),
     "sha1_crypt":       ("passlib.handlers.sha1_crypt",  "sha1_crypt"),
     "sha256_crypt":     ("passlib.handlers.sha2_crypt",  "sha256_crypt"),
     "sha512_crypt":     ("passlib.handlers.sha2_crypt",  "sha512_crypt"),
