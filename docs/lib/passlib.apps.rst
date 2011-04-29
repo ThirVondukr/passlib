@@ -134,3 +134,32 @@ PostgreSQL
         True
         >>> postgres_context.verify("wrongpass", 'md578ed0f0ab2be0386645c1b74282917e7', user="dbadmin")
         False
+
+.. index:: roundup; crypt context
+
+Roundup
+=======
+The `Roundup Issue Tracker <http://www.roundup-tracker.org>` has long
+supported a series of different methods for encoding passwords.
+
+.. data:: roundup10_context
+
+    This object should recognize all password hashes used by Roundup:
+    :class:`ldap_hex_sha1` (the default), :class:`ldap_hex_md5`, :class:`ldap_des_crypt`,
+    and :class:`roundup_plaintext`.
+
+.. data:: roundup15_context
+
+    As of 2011-04-28, the next release of Roundup will add support
+    for :class:`ldap_pbkdf2_sha1`. This context supports all the :data:`roundup10_context`
+    hashes, but adds this hash as well (as uses it as the default).
+
+    .. note::
+
+        This version of Roundup has not been released yet,
+        databases using Roundup 1.4.16 and earlier should use the :data:`roundup10_context` instead.
+
+.. data:: roundup_context
+
+    this is an alias for the latest version-specific roundup context supported
+    by passlib, currently the :data:`!roundup15_context`.

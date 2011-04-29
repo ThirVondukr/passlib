@@ -98,10 +98,12 @@ phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")
 #=========================================================
 
 _std_roundup_schemes = [ "ldap_hex_sha1", "ldap_hex_md5", "ldap_des_crypt", "roundup_plaintext" ]
-roundup10 = roundup_context = LazyCryptContext(_std_roundup_schemes)
+roundup10_context = LazyCryptContext(_std_roundup_schemes)
 
-#this roundup hasn't been released yet, may have diff version...
-#roundup_context = roundup15_context = LazyCryptContext(_std_roundup_schemes + [ "roundup_pbkdf2_sha1" ])
+#FIXME: next roundup will feature ldap_pbkdf2_sha1,
+# but that roundup hasn't been released yet,
+# so version number is unknown... currently guessing at '1.5'
+roundup_context = roundup15_context = LazyCryptContext(_std_roundup_schemes + [ "ldap_pbkdf2_sha1" ])
 
 #=========================================================
 # eof

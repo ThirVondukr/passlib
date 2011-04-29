@@ -142,15 +142,20 @@ None of the following schemes are actually used by LDAP,
 but follow the LDAP format:
 
 .. toctree::
+    :hidden:
+
+    passlib.hash.ldap_other
+
+* :class:`ldap_hex_md5` - Hex-encoded MD5 Digest
+* :class:`ldap_hex_sha1` - Hex-encoded SHA1 Digest
+
+.. toctree::
     :maxdepth: 1
 
     passlib.hash.ldap_pbkdf2_digest
     passlib.hash.atlassian_pbkdf2_sha1
 
-..
-    passlib.hash.roundup_plaintext
-    passlib.hash.ldap_hex_md5
-    passlib.hash.ldap_hex_sha1
+* :class:`roundup_plaintext` - Roundup-specific LDAP Plaintext Handler
 
 .. _database-hashes:
 
