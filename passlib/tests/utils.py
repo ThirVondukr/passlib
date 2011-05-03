@@ -492,16 +492,21 @@ class HandlerCase(TestCase):
                 continue
             self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="scheme=%r, hash=%r:" % (name, hash))
 
-    def test_22_verify_invalid(self):
-        "test verify() throws error against known-invalid hashes"
-        if not self.known_unidentified_hashes and not self.known_malformed_hashes:
+    def test_22_verify_unidentified(self):
+        "test verify() throws error against known-unidentified hashes"
+        if not self.known_unidentified_hashes:
             raise SkipTest
         for hash in self.known_unidentified_hashes:
             self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
+
+    def test_23_verify_malformed(self):
+        "test verify() throws error against known-malformed hashes"
+        if not self.known_malformed_hashes:
+            raise SkipTest
         for hash in self.known_malformed_hashes:
             self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
 
-    def test_23_verify_none(self):
+    def test_24_verify_none(self):
         "test verify() throws error against hash=None/empty string"
         #find valid hash so that doesn't mask error
         self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
