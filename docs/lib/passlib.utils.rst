@@ -9,6 +9,31 @@ This module contains a number of utility functions used by passlib
 to implement the builtin handlers, and other code within passlib.
 They may also be useful when implementing custom handlers for existing legacy formats.
 
+Constants
+=========
+
+.. data:: sys_bits
+
+    Native bit size of host architecture (either 32 or 64 bit).
+    used for various purposes internally.
+
+.. data:: unix_crypt_schemes
+
+    List of the names of all the handlers in :mod:`passlib.hash`
+    which are supported by the native :func:`crypt()` function
+    of at least one OS.
+
+    For all hashes in this list, the expression
+    ``get_crypt_handler(name).has_backend("os_crypt")``
+    will return ``True`` iff there is native OS support for that hash.
+
+    This list is used by :data:`~passlib.hosts.host_context`
+    and :data:`~passlib.apps.ldap_context` to determine
+    which hashes are supported by the host.
+
+    See :ref:`mcf-identifiers` for a table of which OSes
+    are known to support which hashes.
+
 Decorators
 ==========
 .. autofunction:: classproperty
