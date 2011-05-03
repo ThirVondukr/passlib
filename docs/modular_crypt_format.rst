@@ -69,9 +69,9 @@ by the modular crypt format hashes found in passlib:
    identifying strings (eg ``$sha1$`` for :class:`sha1_crypt`);
    so in general identifier strings should not be assumed to use a single character.
 
-3. Aside from the prefix, hashes should contain only ascii letters,
-   ascii numbers, and the characters in ``./``; though ``$``
-   may be used as an internal field separator.
+3. Aside from the prefix, hashes should contain only ascii letters a-z A-Z,
+   ascii numbers 0-9, and the characters ``./``; though additionally ``$``
+   may/should be used as an internal field separator.
 
    This is the least adhered-to of any modular crypt format rule.
    Other characters (such as ``=``, ``,``) are sometimes
@@ -110,6 +110,8 @@ by the modular crypt format hashes found in passlib:
     hashes and OS implementations; and was written merely
     to clarify the issue of what the "modular crypt format" is.
     It is drawn from no authoritative sources.
+
+.. index:: modular crypt format; known identifiers
 
 .. _mcf-identifiers:
 

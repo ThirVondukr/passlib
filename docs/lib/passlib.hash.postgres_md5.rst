@@ -62,7 +62,7 @@ PostgreSQL account passwords, due to the following flaws:
 * Since the keyspace of ``user+password`` is still a subset of ascii characters,
   existing MD5 lookup tables have an increased chance of being able to reverse common hashes.
 
-* It's simplicity makes high-speed brute force attacks much more feasible.
+* It's simplicity makes high-speed brute force attacks much more feasible [#brute]_ .
 
 References
 ==========
@@ -71,3 +71,5 @@ References
 
 .. [#] Message explaining postgres md5 hash algorithm -
        `<http://archives.postgresql.org/pgsql-php/2003-01/msg00021.php>`_
+
+.. [#brute] Blog post demonstrating brute-force attack `<http://pentestmonkey.net/blog/cracking-postgres-hashes/>`_.

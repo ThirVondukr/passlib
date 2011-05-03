@@ -33,7 +33,7 @@ PassLib is a password hash library, which provides cross-platform
 implementations of over 20 password hashing algorithms; as well as a framework for managing
 and migrating existing password hashes. It's designed to be useful
 for any task from quickly verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user application.
+to providing full-strength password hashing for multi-user applications.
 """,
 
     keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest pbkdf2",
