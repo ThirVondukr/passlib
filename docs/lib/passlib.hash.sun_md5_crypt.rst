@@ -1,22 +1,21 @@
+.. index:: solaris; sun_md5_crypt
+
 =================================================================
 :class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt
 =================================================================
 
 .. currentmodule:: passlib.hash
 
-This algorithm is used by Solaris, as a replacement for the aging :class:`~passlib.hash.des_crypt`.
-It is mainly used on later versions of Solaris, and is not found many other
-places. While based on the MD5 message digest, it has very little at all
+This algorithm was developed by Alec Muffett [#mct]_ for Solaris, as a replacement for the aging :class:`~passlib.hash.des_crypt`.
+It was introduced in Solaris 9u2. While based on the MD5 message digest, it has very little at all
 in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
 32 bit variable rounds and an 8 character salt.
 
 .. warning::
 
-    This implementation has not been compared
-    very carefully against the official implementation or reference documentation,
-    and it's behavior may not match under various border cases.
-    It should not be relied on for anything but novelty purposes
-    for the time being.
+    The original Solaris implementation has some hash encoding quirks
+    which may not be properly accounted for in Passlib.
+    For now, this implementation should not be relied on for anything but novelty purposes.
 
 Usage
 =====
@@ -26,12 +25,12 @@ as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
 
 Interface
 =========
-.. autoclass:: sun_md5_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: sun_md5_crypt(checksum=None, salt=None, rounds=None, bare_salt=False, strict=False)
 
 Format
 ======
-An example hash (of ``passwd``) is ``$md5,rounds=5000$GUBv0xjJ$mSwgIswdjlTY0YxV7HBVm0``.
-A sun-md5-crypt hash string has the format :samp:`$md5,rounds={rounds}${salt}${checksum}`, where:
+An example hash (of ``passwd``) is ``$md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0``.
+A sun-md5-crypt hash string has the format :samp:`$md5,rounds={rounds}${salt}$${checksum}`, where:
 
 * ``$md5,`` is the prefix used to identify the hash.
 * :samp:`{rounds}` is the decimal number of rounds to use (5000 in the example).
@@ -39,23 +38,32 @@ A sun-md5-crypt hash string has the format :samp:`$md5,rounds={rounds}${salt}${c
 * :samp:`{checksum}` is 22 characters drawn from the same set,
   encoding a 128-bit checksum (``mSwgIswdjlTY0YxV7HBVm0`` in the example).
 
-An alternate format, :samp:`$md5${salt}${checksum}` is used when the rounds value is 0.
+An alternate format, :samp:`$md5${salt}$${checksum}` is used when the rounds value is 0.
+
+There also exists some hashes which have only a single ``$`` between the
+salt and the checksum; these have a slightly different checksum calculation
+(see :ref:`smc-bare-salt` for details).
 
 .. note::
     Solaris seems to deviate from the :ref:`modular-crypt-format` in that
-    it considers ``$`` *or* ``,`` to indicate the end of the identifier.
+    it considers ``,`` to indicate the end of the identifier
+    in addition to ``$``.
 
 .. rst-class:: html-toggle
 
 Algorithm
 =========
-The algorithm used is based around the MD5 message digest and the "Muffett Coin Toss" algorithm (so named
-by one of the creators [#mct]_ ).
+The algorithm used is based around the MD5 message digest and the "Muffett Coin Toss" algorithm.
 
 1. Given a password, the number of rounds, and a salt string.
 
+.. _smc-digest-step:
+
 2. an initial MD5 digest is created from the concatentation of the password,
-   and the configuration string (using the format :samp:`$md5,rounds={rounds}${salt}`).
+   and the configuration string (using the format :samp:`$md5,rounds={rounds}${salt}$`,
+   or :samp:`$md5${salt}$` if rounds is 0).
+
+   (See :ref:`smc-bare-salt` for details about an issue affecting this step)
 
 3. for rounds+4096 iterations, a new digest is created:
     i. a buffer is initialized, containing the previous round's MD5 digest (for the first round,
@@ -67,11 +75,11 @@ by one of the creators [#mct]_ ).
          (``To be, or not to be...all my sins remember'd.\n``),
          including an appended null character.
 
-    iv. the current round as an integer (zero-indexed) is converted to a string (not zero-padded) and added to the buffer.
-    v. the output for this round is the MD5 digest of the buffer's contents.
+    iv. the current iteration as a zero-indexed integer is converted to a string (not zero-padded) and added to the buffer.
+    v. the output for this iteration is the MD5 digest of the buffer's contents.
 
-4. The final checksum is then encoded into :mod:`hash64 <passlib.hash.h64>` format using the same
-   transposed byte order that :class:`~passlib.hash.md5_crypt` uses.
+4. The final digest is then encoded into :mod:`hash64 <passlib.hash.h64>` format using the same
+   transposed byte order that :class:`~passlib.hash.md5_crypt` uses, and returned.
 
 Muffet Coin Toss
 ----------------
@@ -108,20 +116,39 @@ using the following formula:
 
 5. the final result is :samp:`{X}`'th bit of the digest XORed against :samp:`{Y}`'th bit of the digest.
 
-..
-    todo: should review / verify this --
+.. _smc-bare-salt:
 
-    Security Issues
-    ===============
-    Note that this has a weakness in that the per-round operation appends data
-    which is known to the attacker, the coin flip algorithm only serves to
-    frustrate brute-force attacks. Reversing this hash is dependant
-    on MD5's general pre-image attack resistance (which is currently theoretically vulnerable).
+Bare Salt Issue
+---------------
+According to the only existing documentation of this algorithm [#mct]_,
+it's hashes were supposed to have the format :samp:`$md5${salt}${checksum}`,
+and include only the bare string :samp:`$md5${salt}` in the salt digest step
+(see :ref:`step 2 <smc-digest-step>`, above).
+
+However, almost all hashes encountered in production environments
+have the format :samp:`$md5${salt}$${checksum}` (note the double ``$$``).
+Unfortunately, it is not merely a cosmetic difference: hashes of this format
+incorporate the first ``$`` after the salt within the
+salt digest step, so the resulting checksum is different.
+
+The documentation hints that this stems from a bug within the production
+implementation's parser. This bug causes the implementation to return
+``$$``-format hashes when passed a configuration string that ends with ``$``.
+It returns the intended original format & checksum
+only if there is at least one letter after the ``$``, eg :samp:`$md5${salt}$x`.
+
+Passlib attempts to accomodate both formats using the special ``bare_salt``
+keyword. It is set to ``True`` to indicate a configuration or hash string which
+contains only a single ``$``, and does not incorporate it into the hash calculation.
+The ``$$`` hash is encountered more often in production since it seems
+the Solaris salt generator always appends a ``$``; because of this ``bare_salt=False``
+was chosen as the default, so that hashes will be generated which by default
+conform to what users are used to.
 
 Deviations
 ==========
-PassLib's implementation of Sun-MD5-Crypt deviates from the official implementation
-in at least one way:
+PassLib's implementation of Sun-MD5-Crypt deliberately
+deviates from the official implementation in the following ways:
 
 * Unicode Policy:
 
@@ -136,14 +163,31 @@ in at least one way:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-Since PassLib's pure python implmentation was written based on the algorithm
-description above, and has not been properly tested against a reference implementation,
-it may have other bugs and deviations from the correct behavior.
+* Rounds encoding
 
-* One of the remaining issues with this implementation is that some
-  existing sun-md5-crypt hashes found on the web use a ``$`` in place of the ``,``.
+  The underlying scheme implicitly allows rounds to have zero padding (eg ``$md5,rounds=001$abc$``),
+  and also allows 0 rounds to be specified two ways (``$md5$abc$`` and ``$md5,rounds=0$abc$``).
+  Allowing either of these would result in multiple possible checksums
+  for the same password & salt. To prevent ambiguity,
+  Passlib will throw a :exc:`ValueError` if the rounds value is zero-padded,
+  or specified explicitly as 0 (eg ``$md5,rounds=0$abc$``).
+
+.. _smc-quirks:
+
+Given the lack of documentation, lack of test vectors, and known bugs
+which accompany the original Solaris implementation, Passlib may not
+accurately be able to generate and verify all hashes encountered in a
+Solaris environment. Issues of concern include:
+
+* Some hashes found on the web use a ``$`` in place of the ``,``.
   It is unclear whether this is an accepted alternate format or just a typo,
   nor whether this is supposed to affect the checksum in the resulting hash string.
+
+* The current implementation needs addition test vectors;
+  especially ones which contain an explicitly specific number of rounds.
+
+* More information is needed about the parsing / formatting issue described
+  in the :ref:`smc-bare-salt` section.
 
 References
 ==========

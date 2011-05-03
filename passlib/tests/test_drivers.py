@@ -872,18 +872,82 @@ class SunMD5CryptTest(HandlerCase):
     handler = sun_md5_crypt
 
     known_correct_hashes = [
-        #sample hash found at http://compgroups.net/comp.unix.solaris/password-file-in-linux-and-solaris-8-9
+        #TODO: this scheme needs some real test vectors,
+        # especially due to the "bare salt" issue.
+
+        #--------------------------------------
+        #sample hashes culled from web messages
+        #--------------------------------------
+
+        #http://forums.halcyoninc.com/showthread.php?t=258
+        ("Gpcs3_adm", "$md5$zrdhpMlZ$$wBvMOEqbSjU.hu5T2VEP01"),
+
+        #http://www.c0t0d0s0.org/archives/4453-Less-known-Solaris-features-On-passwords-Part-2-Using-stronger-password-hashing.html
+        ("aa12345678", "$md5$vyy8.OVF$$FY4TWzuauRl4.VQNobqMY."),
+
+        #http://www.cuddletech.com/blog/pivot/entry.php?id=778
+        ("this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
+
+        #http://compgroups.net/comp.unix.solaris/password-file-in-linux-and-solaris-8-9
         ("passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
+
+        #-------------------------------
+        #potential sample hashes - all have issues
+        #-------------------------------
+
+        #source: http://solaris-training.com/301_HTML/docs/deepdiv.pdf page 27
+        #FIXME: password unknown
+        #"$md5,rounds=8000$kS9FT1JC$$mnUrRO618lLah5iazwJ9m1"
+
+        #source: http://www.visualexams.com/310-303.htm
+        #XXX: this has 9 salt chars unlike all other hashes. is that valid?
+        #FIXME: password unknown
+        #"$md5,rounds=2006$2amXesSj5$$kCF48vfPsHDjlKNXeEw7V."
+
         ]
+
+    known_correct_configs = [
+        #(config, secret, hash)
+
+        #---------------------------
+        #test salt string handling
+        #
+        #these tests attempt to verify that passlib is handling
+        #the "bare salt" issue (see sun md5 crypt docs)
+        #in a sane manner
+        #---------------------------
+
+        #config with "$" suffix, hash strings with "$$" suffix,
+        # should all be treated the same, with one "$" added to salt digest.
+        ("$md5$3UqYqndY$",
+            "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
+        ("$md5$3UqYqndY$$x",
+            "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
+
+        #config with no suffix, hash strings with "$" suffix,
+        # should all be treated the same, and no suffix added to salt digest.
+        #NOTE: this is just a guess re: config w/ no suffix,
+        #      but otherwise there's no sane way to encode bare_salt=False
+        #      within config string.
+        ("$md5$RPgLF6IJ",
+            "passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
+        ("$md5$RPgLF6IJ$x",
+            "passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
+    ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
-        "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/"
-        ]
+        "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/",
 
-    def test_raw(self):
-        #check raw func handles salt clipping right
-        self.assertEqual(raw_sun_md5_crypt("s",1,"s"*10),'oV9bYatWWWc8S7qSpMKU2.')
+        #2+ "$" at end of salt in config
+        #NOTE: not sure what correct behavior is, so forbidding format for now.
+        "$md5$3UqYqndY$$",
+
+        #3+ "$" at end of salt in hash
+        #NOTE: not sure what correct behavior is, so forbidding format for now.
+        "$md5$RPgLa6IJ$$$WTvAlUJ7MqH5xak2FMEwS/",
+
+        ]
 
 #=========================================================
 #unix fallback
