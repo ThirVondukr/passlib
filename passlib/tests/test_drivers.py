@@ -729,7 +729,7 @@ class RoundupTest(TestCase):
             '{plaintext}sekrit')
 
         self._test_pair(
-            roundup.roundup_pbkdf2_sha1,
+            pk2.ldap_pbkdf2_sha1,
             "sekrit",
             '{PBKDF2}5000$7BvbBq.EZzz/O0HuwX3iP.nAG3s$g3oPnFFaga2BJaX5PoPRljl4XIE')
 
