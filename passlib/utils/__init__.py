@@ -62,6 +62,8 @@ unix_crypt_schemes = [
     "bsdi_crypt", "des_crypt"
     ]
 
+#: list of rounds_cost constants
+rounds_cost_values = [ "linear", "log2" ]
 
 #: special byte string containing all possible byte values, used in a few places.
 #XXX: treated as singleton by some of the code for efficiency.
@@ -168,6 +170,14 @@ def is_crypt_context(obj):
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
         ))
+
+def has_rounds_info(handler):
+    "check if handler provides the optional :ref:`rounds information <optional-rounds-attributes>` attributes"
+    return 'rounds' in handler.setting_kwds and getattr(handler, "min_rounds", None) is not None
+
+def has_salt_info(handler):
+    "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
+    return 'salt' in handler.setting_kwds and getattr(handler, "min_salt_size", None) is not None
 
 #=================================================================================
 #string helpers

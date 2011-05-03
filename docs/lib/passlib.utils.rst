@@ -54,6 +54,10 @@ Object Tests
 
 .. autofunction:: is_crypt_context
 
+.. autofunction:: has_rounds_info
+
+.. autofunction:: has_salt_info
+
 Submodules
 ==========
 There are also a few sub modules which provide additional utility functions:

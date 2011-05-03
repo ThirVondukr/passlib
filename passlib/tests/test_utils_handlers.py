@@ -101,7 +101,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_checksum, 'xxxxx')
         self.assertRaises(ValueError, d1.norm_checksum, 'xxyx')
 
-    def test_12_norm_salt(self):
+    def test_20_norm_salt(self):
         "test GenericHandler+HasSalt: .norm_salt(), .generate_salt()"
         class d1(uh.HasSalt, uh.GenericHandler):
             name = 'd1'
@@ -129,7 +129,31 @@ class SkeletonTest(TestCase):
         self.assertEquals(len(d1.norm_salt(None,salt_size=5)), 3)
         self.assertRaises(ValueError, d1.norm_salt, None, salt_size=5, strict=True)
 
-    def test_13_norm_rounds(self):
+    def test_21_norm_salt(self):
+        "test GenericHandler+HasSalt: .norm_salt(), .generate_salt() - with no max_salt_size"
+        class d1(uh.HasSalt, uh.GenericHandler):
+            name = 'd1'
+            setting_kwds = ('salt',)
+            min_salt_size = 1
+            max_salt_size = None
+            default_salt_size = 2
+            salt_chars = 'a'
+
+        #check salt=None
+        self.assertEqual(d1.norm_salt(None), 'aa')
+        self.assertRaises(ValueError, d1.norm_salt, None, strict=True)
+
+        #check small & large salts
+        self.assertRaises(ValueError, d1.norm_salt, '')
+        self.assertEqual(d1.norm_salt('aaaa', strict=True), 'aaaa')
+
+        #check generate salt (indirectly)
+        self.assertEquals(len(d1.norm_salt(None)), 2)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=1)), 1)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=3)), 3)
+        self.assertEquals(len(d1.norm_salt(None,salt_size=5)), 5)
+
+    def test_30_norm_rounds(self):
         "test GenericHandler+HasRounds: .norm_rounds()"
         class d1(uh.HasRounds, uh.GenericHandler):
             name = 'd1'
@@ -154,7 +178,7 @@ class SkeletonTest(TestCase):
         d1.default_rounds = None
         self.assertRaises(ValueError, d1.norm_rounds, None)
 
-    def test_14_backends(self):
+    def test_40_backends(self):
         "test GenericHandler+HasManyBackends"
         class d1(uh.HasManyBackends, uh.GenericHandler):
             name = 'd1'
@@ -198,7 +222,7 @@ class SkeletonTest(TestCase):
         d1.set_backend('a')
         self.assertEquals(obj.calc_checksum('s'), 'a')
 
-    def test_15_bh_norm_ident(self):
+    def test_50_bh_norm_ident(self):
         "test GenericHandler+HasManyIdents: .norm_ident() & .identify()"
         class d1(uh.HasManyIdents, uh.GenericHandler):
             name = 'd1'

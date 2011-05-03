@@ -1262,7 +1262,7 @@ class HasSalt(GenericHandler):
 
         #check max size
         mx = cls.max_salt_size
-        if len(salt) > mx:
+        if mx is not None and len(salt) > mx:
             if strict:
                 raise ValueError("%s salt string must be at most %d characters" % (cls.name, mx))
             salt = salt[:mx]

@@ -10,6 +10,7 @@ import os
 import tempfile
 import unittest
 import warnings
+from warnings import warn
 try:
     from warnings import catch_warnings
 except ImportError:
@@ -25,7 +26,9 @@ except ImportError:
 from nose.plugins.skip import SkipTest
 #pkg
 from passlib import registry
-from passlib.utils import classproperty, handlers as uh
+from passlib.utils import classproperty, handlers as uh, \
+        has_rounds_info, has_salt_info, \
+        rounds_cost_values
 #local
 __all__ = [
     #util funcs
@@ -305,14 +308,6 @@ class HandlerCase(TestCase):
             name += " (%s backend)" % (backend(),)
         return name
 
-    @classproperty
-    def has_salt_info(cls):
-        return 'salt' in cls.handler.setting_kwds and getattr(cls.handler, "max_salt_size", None) > 0
-
-    @classproperty
-    def has_rounds_info(cls):
-        return 'rounds' in cls.handler.setting_kwds and getattr(cls.handler, "max_rounds", None) > 0
-
     backend = "default"
 
     def setUp(self):
@@ -348,51 +343,80 @@ class HandlerCase(TestCase):
         self.assert_(context is not None, "context_kwds must be defined:")
         self.assertIsInstance(context, tuple, "context_kwds must be a tuple:")
 
-    #TODO: check optional rounds attributes & salt attributes
+    def test_01_optional_salt_attributes(self):
+        "validate optional salt attributes"
+        cls = self.handler
+        if not has_salt_info(cls):
+            raise SkipTest
+
+        #check max_salt_size
+        mx_set = (cls.max_salt_size is not None)
+        if mx_set and cls.max_salt_size < 1:
+            raise AssertionError("max_salt_chars must be >= 1")
+
+        #check min_salt_size
+        if cls.min_salt_size < 0:
+            raise AssertionError("min_salt_chars must be >= 0")
+        if mx_set and cls.min_salt_size > cls.max_salt_size:
+            raise AssertionError("min_salt_chars must be <= max_salt_chars")
+
+        #check default_salt_size
+        if cls.default_salt_size < cls.min_salt_size:
+            raise AssertionError("default_salt_size must be >= min_salt_size")
+        if mx_set and cls.default_salt_size > cls.max_salt_size:
+            raise AssertionError("default_salt_size must be <= max_salt_size")
+
+        #check for 'salt_size' keyword
+        if 'salt_size' not in cls.setting_kwds and \
+                (not mx_set or cls.min_salt_size < cls.max_salt_size):
+            #NOTE: for now, only bothering to issue warning if default_salt_size isn't maxed out
+            if (not mx_set or cls.default_salt_size < cls.max_salt_size):
+                warn("%s: hash handler supports range of salt sizes, but doesn't specify 'salt_size' setting" % (cls.name,))
+
+        #check salt_chars & default_salt_chars
+        if cls.salt_chars:
+            if not cls.default_salt_chars:
+                raise AssertionError("default_salt_chars must not be empty")
+            if any(c not in cls.salt_chars for c in cls.default_salt_chars):
+                raise AssertionError("default_salt_chars must be subset of salt_chars: %r not in salt_chars" % (c,))
+        else:
+            if not cls.default_salt_chars:
+                raise AssertionError("default_salt_chars MUST be specified if salt_chars is empty")
+
+    def test_02_optional_rounds_attributes(self):
+        "validate optional rounds attributes"
+        cls = self.handler
+        if not has_rounds_info(cls):
+            raise SkipTest
+
+        #check max_rounds
+        if cls.max_rounds is None:
+            raise AssertionError("max_rounds not specified")
+        if cls.max_rounds < 1:
+            raise AssertionError("max_rounds must be >= 1")
+
+        #check min_rounds
+        if cls.min_rounds < 0:
+            raise AssertionError("min_rounds must be >= 0")
+        if cls.min_rounds > cls.max_rounds:
+            raise AssertionError("min_rounds must be <= max_rounds")
+
+        #check default_rounds
+        if cls.default_rounds is not None:
+            if cls.default_rounds < cls.min_rounds:
+                raise AssertionError("default_rounds must be >= min_rounds")
+            if cls.default_rounds > cls.max_rounds:
+                raise AssertionError("default_rounds must be <= max_rounds")
+
+        #check rounds_cost
+        if cls.rounds_cost not in rounds_cost_values:
+            raise AssertionError("unknown rounds cost constant: %r" % (cls.rounds_cost,))
 
     def test_05_ext_handler(self):
         "check configuration of GenericHandler-derived classes"
         cls = self.handler
         if not isinstance(cls, type) or not issubclass(cls, uh.GenericHandler):
             raise SkipTest
-
-        if 'salt' in cls.setting_kwds:
-            # assume HasSalt / HasRawSalt
-
-            if cls.min_salt_size > cls.max_salt_size:
-                raise AssertionError("min salt chars too large")
-
-            if cls.default_salt_size < cls.min_salt_size:
-                raise AssertionError("default salt chars too small")
-            if cls.default_salt_size > cls.max_salt_size:
-                raise AssertionError("default salt chars too large")
-
-            if cls.salt_chars:
-                if not cls.default_salt_chars:
-                    raise AssertionError("default salt charset must not be empty")
-                if any(c not in cls.salt_chars for c in cls.default_salt_chars):
-                    raise AssertionError("default salt charset not subset of salt charset: %r" % (c,))
-            else:
-                if not cls.default_salt_chars:
-                    raise AssertionError("default salt charset must be specified if salt_chars is empty")
-
-
-        if 'rounds' in cls.setting_kwds:
-            # assume uses HasRounds
-            if cls.max_rounds is None:
-                raise AssertionError("max rounds not specified")
-
-            if cls.min_rounds > cls.max_rounds:
-                raise AssertionError("min rounds too large")
-
-            if cls.default_rounds is not None:
-                if cls.default_rounds < cls.min_rounds:
-                    raise AssertionError("default rounds too small")
-                if cls.default_rounds > cls.max_rounds:
-                    raise AssertionError("default rounds too large")
-
-            if cls.rounds_cost not in ("linear", "log2"):
-                raise AssertionError("unknown rounds cost function")
 
         if 'ident' in cls.setting_kwds:
             # assume uses HasManyIdents
@@ -528,9 +552,9 @@ class HandlerCase(TestCase):
 
     def test_31_genconfig_minsalt(self):
         "test genconfig() honors min salt chars"
-        if not self.has_salt_info:
-            raise SkipTest
         handler = self.handler
+        if not has_salt_info(handler):
+            raise SkipTest
         cs = handler.salt_chars
         mn = handler.min_salt_size
         c1 = self.do_genconfig(salt=cs[0] * mn)
@@ -539,35 +563,52 @@ class HandlerCase(TestCase):
 
     def test_32_genconfig_maxsalt(self):
         "test genconfig() honors max salt chars"
-        if not self.has_salt_info:
-            raise SkipTest
         handler = self.handler
+        if not has_salt_info(handler):
+            raise SkipTest
         cs = handler.salt_chars
         mx = handler.max_salt_size
-        c1 = self.do_genconfig(salt=cs[0] * mx)
-        c2 = self.do_genconfig(salt=cs[0] * (mx+1))
-        self.assertEquals(c1,c2)
+        if mx is None:
+            #make sure salt is NOT truncated,
+            #use a really large salt for testing
+            salt = cs[0] * 1024
+            c1 = self.do_genconfig(salt=salt)
+            c2 = self.do_genconfig(salt=salt + cs[0])
+            self.assertNotEqual(c1,c2)
+        else:
+            #make sure salt is truncated exactly where it should be.
+            salt = cs[0] * mx
+            c1 = self.do_genconfig(salt=salt)
+            c2 = self.do_genconfig(salt=salt + cs[0])
+            self.assertEqual(c1,c2)
+
+            #if min_salt supports it, check smaller than mx is NOT truncated
+            if handler.min_salt_size < mx:
+                c3 = self.do_genconfig(salt=salt[:-1])
+                self.assertNotEqual(c1,c3)
 
     def test_33_genconfig_saltcharset(self):
         "test genconfig() honors salt charset"
-        if not self.has_salt_info:
-            raise SkipTest
         handler = self.handler
+        if not has_salt_info(handler):
+            raise SkipTest
         mx = handler.max_salt_size
         mn = handler.min_salt_size
         cs = handler.salt_chars
 
         #make sure all listed chars are accepted
-        for i in xrange(0,len(cs),mx):
-            salt = cs[i:i+mx]
+        chunk = 1024 if mx is None else mx
+        for i in xrange(0,len(cs),chunk):
+            salt = cs[i:i+chunk]
             if len(salt) < mn:
-                salt = (salt*(mn//len(salt)+1))[:mx]
+                salt = (salt*(mn//len(salt)+1))[:chunk]
             self.do_genconfig(salt=salt)
 
-        #check some invalid salt chars are rejected
+        #check some invalid salt chars, make sure they're rejected
+        chunk = mn if mn > 0 else 1
         for c in '\x00\xff':
             if c not in cs:
-                self.assertRaises(ValueError, self.do_genconfig, salt=c*mx)
+                self.assertRaises(ValueError, self.do_genconfig, salt=c*chunk)
 
     #=========================================================
     #genhash()

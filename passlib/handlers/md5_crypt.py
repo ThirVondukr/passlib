@@ -149,7 +149,7 @@ class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #--GenericHandler--
     name = "md5_crypt"
-    setting_kwds = ("salt",)
+    setting_kwds = ("salt", "salt_size")
     ident = "$1$"
     checksum_size = 22
 
@@ -217,7 +217,7 @@ class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #--GenericHandler--
     name = "apr_md5_crypt"
-    setting_kwds = ("salt",)
+    setting_kwds = ("salt", "salt_size")
     ident = "$apr1$"
     checksum_size = 22
 
