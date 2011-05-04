@@ -3,12 +3,21 @@
 #init script env
 #=========================================================
 import os
-os.chdir(os.path.abspath(os.path.join(__file__,"..")))
+root_dir = os.path.abspath(os.path.join(__file__,".."))
+os.chdir(root_dir)
 #=========================================================
 #imports
 #=========================================================
+import re
 from setuptools import setup, find_packages
-from passlib import __version__ as version
+
+#=========================================================
+#version string
+#=========================================================
+vh = file(os.path.join(root_dir, "passlib", "__init__.py"))
+VERSION = re.search(r'^__version__\s*=\s*"(.*?)"\s*$', vh.read(), re.M).group(1)
+vh.close()
+
 #=========================================================
 #setup
 #=========================================================
@@ -32,7 +41,7 @@ setup(
 
     # metadata
     name = "passlib",
-    version = version,
+    version = VERSION,
     author = "Eli Collins",
     author_email = "elic@assurancetechnologies.com",
     license = "BSD",
