@@ -4,6 +4,8 @@
 The PassLib Python Library
 ==========================
 
+Welcome
+=======
 PassLib is a password hash library, which provides cross-platform
 implementations of over 20 password hashing algorithms; as well as a framework for managing
 and migrating existing password hashes. It's designed to be useful
@@ -13,17 +15,26 @@ to providing full-strength password hashing for multi-user application.
 The latest documentation can be found online at `<http://packages.python.org/passlib>`_.
 
 Requirements
------------
+============
 * Python 2.5 - 2.7
 * PyBCrypt (optional; required only if bcrypt support is needed)
 * M2Crypto (optional; accelerates PBKDF2-based hashes)
 
 Installation
-------------
+============
 To install from source using ``setup.py``::
 
    python setup.py build
    sudo python setup.py install
 
-For more detailed installation & testing instructions, see "docs/install.rst".
-For additional online resources, see the bottom of "docs/index.rst".
+For more detailed installation & testing instructions, see "docs/install.rst"
+
+Online Resources
+================
+* Homepage -   http://code.google.com/p/passlib
+* Docs -       http://packages.python.org/passlib
+* Discussion - http://groups.google.com/group/passlib-users
+
+* PyPI -       http://pypi.python.org/pypi/passlib
+* Downloads -  http://code.google.com/p/passlib/downloads
+* Source -     http://code.google.com/p/passlib/source
