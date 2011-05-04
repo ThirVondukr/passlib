@@ -8,8 +8,8 @@ as stored in mysql and postgres, and various other places.
 PassLib's contents can be roughly grouped into three categories:
 password hashes, password contexts, and utility functions.
 
-Password Hash Schemes
-=====================
+Password Hashes
+===============
 All of the hash schemes supported by passlib are implemented
 as classes importable from the :mod:`passlib.hash` module.
 All of these classes support a single uniform interface of standard class methods.
@@ -49,35 +49,12 @@ Mature applications frequently have to deal with tables of existing password
 hashes. Over time, they have to migrate to newer and stronger schemes; as well as raise
 the requirements for existing algorithms as more processing power becomes available.
 In this case, directly importing and handling the various schemes
-generally becomes complicated and tedious. For these and similar use-cases,
-the :mod:`passlib.context` module provides the :class:`!CryptContext` class, which handles
-multiple password hash schemes, deprecation of old hashes, and
+generally becomes complicated and tedious.
+
+The :mod:`passlib.context` module provides the :class:`!CryptContext` class and other
+utilties to help with these use-cases. This class handles
+managing multiple password hash schemes, deprecation & migration of old hashes, and
 many other policy requirements.
-
-In addition to using the class itself, PassLib provides a number of
-pre-configured :class:`!CryptContext` instances
-in order to get users started quickly:
-
-* The :mod:`passlib.apache` module contains classes
-  for managing htpasswd and htdigest files.
-
-* The :mod:`passlib.apps` module contains pre-configured
-  instances for managing hashes used by postgres, mysql, and ldap.
-
-* The :mod:`passlib.hosts` module contains pre-configured
-  instances for managing hashes as found in the /etc/shadow files
-  on Linux and BSD systems.
-
-* And finally the :mod:`passlib.context` module, which provides
-  the :class:`!CryptContext` class itself, allowing
-  an application to setup the particular configuration it required.
-
-.. note::
-
-    For new applications which just need drop-in support for some manner
-    of password encryption, so they can secure store passwords
-    and then forget about it, they should use
-    the :data:`passlib.apps.custom_app_context` object.
 
 A quick example of how a password context can be used::
 
@@ -96,6 +73,29 @@ A quick example of how a password context can be used::
     >>> #try verifying a password (scheme is autodetected)
     >>> lc.verify('password', 'q1Oyx5r9mdGZ2')
     True
+
+.. note::
+
+    For new applications which just need drop-in support for some manner
+    of password encryption, so they can secure store passwords
+    and then forget about it, they should use
+    the :data:`passlib.apps.custom_app_context` object.
+
+Predefined Password Contexts
+============================
+In addition to the :mod:`passlib.context` module,
+PassLib provides a number of pre-configured :class:`!CryptContext` instances
+in order to get users started quickly:
+
+* The :mod:`passlib.apache` module contains classes
+  for managing htpasswd and htdigest files.
+
+* The :mod:`passlib.apps` module contains pre-configured
+  instances for managing hashes used by Postgres, Mysql, and LDAP, and others.
+
+* The :mod:`passlib.hosts` module contains pre-configured
+  instances for managing hashes as found in the /etc/shadow files
+  on Linux and BSD systems.
 
 Utility Functions
 =================

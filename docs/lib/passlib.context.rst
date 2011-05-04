@@ -9,6 +9,8 @@
 .. module:: passlib.context
     :synopsis: CryptContext class for managing multiple password hash schemes
 
+Motivation
+==========
 Though there is a wide range of password hashing schemes,
 within a specific context (like a linux "shadow" file)
 only a select list of schemes will be used.
@@ -28,10 +30,13 @@ Passlib also offers a number of predefined :class:`!CryptContext` instances
 which can be used out-of-the box (see :mod:`passlib.apps` and :mod:`passlib.hosts`),
 or :ref:`modified <using-predefined-contexts>` to suit the application.
 
+Subtopics
+=========
 New users should see the usage examples
-to get a feel for how the :class:`!CryptContext` class works.
+in the next section to get a feel for how the :class:`!CryptContext` class works.
 
 .. toctree::
+    :maxdepth: 1
 
     passlib.context-usage
     passlib.context-interface

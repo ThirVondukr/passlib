@@ -45,13 +45,11 @@ by the modular crypt format hashes found in passlib:
 
 1. Hash strings must use only 7-bit ascii characters.
 
-   This is not strictly enforced at all;
-   for example Linux will accept 8-bit characters
-   within hash salt strings. However, **no** known
-   system generates hashes violating this rule;
-   and no such test vectors exist either,
-   so it can probably be assumed to be a case
-   of "permissive in what you accept, strict in what you generate".
+   No known OS or application generates hashes which violate this rule.
+   However, some systems (eg Linux's shadow routines) will happily
+   and correctly accept hashes which contain 8-bit characters in their salt.
+   This is probably a case of "permissive in what you accept,
+   strict in what you generate".
 
 2. Hash strings should always start with the prefix :samp:`${identifier}$`,
    where :samp:`{identifier}` is a short string uniquely identifying
@@ -69,17 +67,17 @@ by the modular crypt format hashes found in passlib:
    identifying strings (eg ``$sha1$`` for :class:`sha1_crypt`);
    so in general identifier strings should not be assumed to use a single character.
 
-3. Aside from the prefix, hashes should contain only ascii letters a-z A-Z,
-   ascii numbers 0-9, and the characters ``./``; though additionally ``$``
-   may/should be used as an internal field separator.
+3. Hashes should contain only ascii letters ``a``-``z`` and ``A``-``Z``,
+   ascii numbers 0-9, and the characters ``./``; though additionally
+   they should use the ``$`` character as an internal field separator.
 
    This is the least adhered-to of any modular crypt format rule.
-   Other characters (such as ``=``, ``,``) are sometimes
-   used by various formats.
+   Other characters (such as ``=,-``) are sometimes
+   used by various formats, though sparingly.
 
    The only hard and fast stricture
-   is that ``:`` and non-printable characters be avoided,
-   since this would interfere with parsing of /etc/passwd
+   is that ``:;!*`` and non-printable characters be avoided,
+   since this would interfere with parsing of /etc/shadow
    where these hashes are typically stored.
 
    Pretty much all modular-crypt-format hashes
@@ -96,13 +94,19 @@ by the modular crypt format hashes found in passlib:
    to a "configuration string" containing just
    the identifying prefix, rounds, salt, etc.
 
-   This string then encodes all the information
+   This configuration string then encodes all the information
    generated needed to generate a new hash
    in order to verify a password, without
    having to perform excessive parsing.
 
    Most modular crypt format hashes follow this,
    though some (like :class:`~passlib.hash.bcrypt`) omit the ``$`` separator.
+
+   As well, there is no set standard about whether configuration
+   strings should or should not include a trailing ``$`` at the end,
+   though the general rule is that a hash behave the same regardless
+   (:class:`~passlib.hash.sun_md5_crypt` behaves particularly poorly
+   regarding this last point).
 
 .. note::
 
@@ -125,15 +129,15 @@ identifying prefix.
 ==================================== ================== =========== =========== =========== ===========
 Scheme                               Prefix             Linux       FreeBSD     NetBSD      OpenBSD
 ==================================== ================== =========== =========== =========== ===========
-:class:`~passlib.hash.nthash`        ``$3$``                        y
 :class:`~passlib.hash.des_crypt`     n/a                y           y           y           y
 :class:`~passlib.hash.bsdi_crypt`    ``_``                          y           y
 :class:`~passlib.hash.md5_crypt`     ``$1$``            y           y           y           y
 :class:`~passlib.hash.sun_md5_crypt` ``$md5$``
 :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``              y           y           y
-:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                 y
+:class:`~passlib.hash.nthash`        ``$3$``                        y
 :class:`~passlib.hash.sha256_crypt`  ``$5$``            y
 :class:`~passlib.hash.sha512_crypt`  ``$6$``            y
+:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                 y
 ==================================== ================== =========== =========== =========== ===========
 
 .. note::

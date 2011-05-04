@@ -2,23 +2,28 @@
 PassLib |release| documentation
 ==========================================
 
-Introduction
-============
-PassLib is a library for encrypting, verifying, and managing password hashes.
-It supports over 20 different password hash schemes.
-It can be used for a variety of purposes:
+Welcome
+=======
+Passlib is a password hashing library for Python, which provides cross-platform
+implementations of over 20 password hashing algorithms;
+as well as a framework for managing and migrating existing password hashes.
+It's designed to be useful for a large range of tasks...
 
-* cross-platform replacement for stdlib's :func:`!crypt`.
-* encrypting & verifying most known hash formats used by:
-    - Linux & BSD shadow files
-    - Apache htpasswd & htdigest files
+* as a cross-platform replacement for stdlib's :func:`!crypt` --> :data:`~passlib.hosts.host_context`.
+
+* encrypting & verifying most hash formats used by:
+    - Linux & BSD shadow files --> :mod:`passlib.hosts`
+    - Apache htpasswd & htdigest files --> :mod:`passlib.apache`
     - MySQL, PostgreSQL, and Oracle user account tables
-    - LDAP style password hashes
-* drop-in password hash support for new python applications.
-* building a configurable hashing policy
-  for python applications to migrate existing hashing schemes.
+    - OpenLDAP password hashes
+    - Many other applications --> :mod:`passlib.apps`.
 
-See the library overview for usage examples.
+* drop-in password hash support for new python applications --> :data:`~passlib.apps.custom_app_context`.
+
+* building a configurable hashing policy
+  for python applications to migrate existing hashing schemes --> :mod:`passlib.context`.
+
+See the :doc:`library overview <overview>` for more details and usage examples.
 
 Quick Links
 ===========
@@ -30,12 +35,7 @@ Quick Links
         <td width="50%" valign="top">
             <p class="biglink">
                 <a class="biglink" href="overview.html">Library Overview</a><br>
-                <span class="linkdescr">describes how PassLib is laid out</span>
-            </p>
-
-            <p class="biglink">
-                <a class="biglink" href="install.html">Installation</a><br>
-                <span class="linkdescr">requirements and installation instructions</span>
+                <span class="linkdescr">describes how Passlib is laid out</span>
             </p>
 
             <p class="biglink">
@@ -43,15 +43,30 @@ Quick Links
                 <span class="linkdescr">complete list of supported password hash algorithms</span>
             </p>
         </td>
+        <td width="50%" valign="top">
+            <p class="biglink">
+                <a class="biglink" href="install.html">Installation</a><br>
+                <span class="linkdescr">requirements and installation instructions</span>
+            </p>
+
+            <p class="biglink">
+                <a class="biglink" href="history.html">Changelog</a><br>
+                <span class="linkdescr">history of current and past releases</span>
+            </p>
     </tr>
     </table>
 
 Online Resources
 ================
-* **Homepage**:   `<http://code.google.com/p/passlib>`_
-* **Docs**:       `<http://packages.python.org/passlib>`_
-* **Discussion**: `<http://groups.google.com/group/passlib-users>`_
 
-* **Downloads**:   `<http://code.google.com/p/passlib/downloads>`_
-* **PyPI**:       `<http://pypi.python.org/pypi/passlib>`_
-* **Source**:     `<http://code.google.com/p/passlib/source>`_
+.. rst-class:: html-plain-table
+
+=============== ===================================================
+**Homepage**:   `<http://code.google.com/p/passlib>`_
+**Docs**:       `<http://packages.python.org/passlib>`_
+**Discussion**: `<http://groups.google.com/group/passlib-users>`_
+
+**PyPI**:       `<http://pypi.python.org/pypi/passlib>`_
+**Downloads**:  `<http://code.google.com/p/passlib/downloads>`_
+**Source**:     `<http://code.google.com/p/passlib/source>`_
+=============== ===================================================

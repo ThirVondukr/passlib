@@ -12,10 +12,23 @@ from passlib import __version__ as version
 #=========================================================
 #setup
 #=========================================================
+DESCRIPTION = "comprehensive password hashing framework supporting over 20 schemes"
+
+LONG_DESCRIPTION = """\
+PassLib is a password hash library, which provides cross-platform
+implementations of over 20 password hashing algorithms; as well as a framework for managing
+and migrating existing password hashes. It's designed to be useful
+for any task from quickly verifying a hash found in /etc/shadow,
+to providing full-strength password hashing for multi-user applications.
+"""
+
+KEYWORDS = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest pbkdf2"
+
 setup(
     #package info
     packages = find_packages(),
     package_data = { "passlib": ["*.cfg"] },
+    zip_safe=True,
 
     # metadata
     name = "passlib",
@@ -25,18 +38,12 @@ setup(
     license = "BSD",
 
     url = "http://code.google.com/p/passlib/",
-    download_url = "http://code.google.com/p/passlib/downloads/list",
+    #er, is download url for the sdist, or for the project?
+##    download_url = "http://code.google.com/p/passlib/downloads/list",
 
-    description = "comprehensive password hashing framework supporting over 20 schemes",
-    long_description = """\
-PassLib is a password hash library, which provides cross-platform
-implementations of over 20 password hashing algorithms; as well as a framework for managing
-and migrating existing password hashes. It's designed to be useful
-for any task from quickly verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user applications.
-""",
-
-    keywords = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest pbkdf2",
+    description = DESCRIPTION,
+    long_description = LONG_DESCRIPTION,
+    keywords = KEYWORDS,
     classifiers = [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
@@ -49,7 +56,6 @@ to providing full-strength password hashing for multi-user applications.
         "Topic :: Security :: Cryptography",
         "Topic :: Software Development :: Libraries",
     ],
-    zip_safe=True,
 
     test_suite = 'nose.collector',
 )

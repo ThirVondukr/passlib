@@ -6,6 +6,11 @@ Release History
 
 **1.4** (NOT YET RELEASED)
 
+    This release contains a large number of changes, both large and small.
+    It adds a number of PBKDF2-based schemes, better support
+    for LDAP-format hashes, improved documentation,
+    and faster load times. In detail...
+
     Hashes
 
         * added LDAP ``{CRYPT}`` support for all hashes

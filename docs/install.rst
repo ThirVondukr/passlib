@@ -4,37 +4,36 @@ Installation
 
 Requirements
 ============
-* Python 2.5 - 2.7 is required.
+* Python 2.5 - 2.7.
 
-    .. note::
+    PassLib has not been tested with Python 2.4 or earlier,
+    and no guarantees are made about whether PassLib will work with those versions.
 
-        PassLib has not been tested with Python 2.4 or earlier,
-        and no guarantees are made about whether PassLib will work with those versions.
+    Python 3.x is not yet supported, work is `ongoing <http://code.google.com/p/passlib/issues/detail?id=1>`_.
 
-    .. note::
-
-        Python 3.x is **not** yet supported, work is ongoing.
+    Passlib is pure-python, and should be useable on all platforms
+    (eg CPython, PyPy, and Jython).
 
 * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ (optional)
 
    If installed, pybcrypt will be used to support the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
-   and stdlib :mod:`!crypt` does not support BCrypt
-   (which is pretty much all non-BSD systems).
+   and your OS does not provide native BCrypt support
+   via stdlib's :mod:`!crypt`. This includes pretty much all non-BSD systems.
 
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_ (optional)
 
-   If installed, M2Crypto will be used to accelerate some
-   internal support functions, but it is not required.
-
-PassLib is pure-python, and should be useable on all platforms.
+   If installed, M2Crypto will be used to accelerate some internal
+   functions used by PBKDF2-based hashes, but it is not required
+   even in that case.
 
 Installing
 ==========
-* To install from source directory using ``setup.py`` (requires Setuptools or Distribute)::
+* To install from source directory using ``setup.py``
+  (requires Setuptools or Distribute)::
 
-   python setup.py build
-   sudo python setup.py install
+        python setup.py build
+        sudo python setup.py install
 
 * To install using easy_install::
 
@@ -70,5 +69,5 @@ you will need to:
 2. install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
 3. download the PassLib source
 4. from the PassLib source directory, run :samp:`python docs/make.py clean html`.
-5. Once Sphinx completes it's run, point a web browser to the file at :samp:`docs/_build/html/index.html`
+5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/docs/_build/html/index.html`
    to access the PassLib documentation in html format.
