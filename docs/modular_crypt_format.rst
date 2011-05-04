@@ -148,3 +148,17 @@ Scheme                               Prefix             Linux       FreeBSD     
 .. todo::
 
     include Solaris and other Unix flavors in this chart.
+
+The following chart lists other MCF schemes supported by passlib,
+most of which are only used by applications:
+
+=========================================== =================== =======================
+Scheme                                      Prefix              Known Uses
+=========================================== =================== =======================
+:class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
+:class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass applications
+:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2-sha1$``
+:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
+:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
+:class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$``
+=========================================== =================== =======================
