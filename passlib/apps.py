@@ -103,7 +103,12 @@ roundup10_context = LazyCryptContext(_std_roundup_schemes)
 #FIXME: next roundup will feature ldap_pbkdf2_sha1,
 # but that roundup hasn't been released yet,
 # so version number is unknown... currently guessing at '1.5'
-roundup_context = roundup15_context = LazyCryptContext(_std_roundup_schemes + [ "ldap_pbkdf2_sha1" ])
+roundup_context = roundup15_context = LazyCryptContext(
+    schemes=_std_roundup_schemes + [ "ldap_pbkdf2_sha1" ],
+    deprecated=_std_roundup_schemes,
+    default = "ldap_pbkdf2_sha1",
+    ldap_pbkdf2_sha1__default_rounds = 10000,
+    )
 
 #=========================================================
 # eof
