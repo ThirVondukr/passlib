@@ -4,7 +4,7 @@
 Release History
 ===============
 
-**1.4** (NOT YET RELEASED)
+**1.4** (2011-05-04)
 
     This release contains a large number of changes, both large and small.
     It adds a number of PBKDF2-based schemes, better support
