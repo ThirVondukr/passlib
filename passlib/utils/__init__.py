@@ -50,6 +50,9 @@ __all__ = [
 #constants
 #=================================================================================
 
+#: detect what we're running on
+pypy_vm = hasattr(sys, "pypy_version_info")
+
 #: number of bits in system architecture
 sys_bits = int(logb(sys.maxint,2)+1.5)
 assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)

@@ -13,6 +13,8 @@ implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
 #core
 from binascii import hexlify
 import struct
+from warnings import warn
+#site
 #local
 __all__ = [ "md4" ]
 #=========================================================================
@@ -226,16 +228,33 @@ class md4(object):
 #=========================================================================
 #check if hashlib provides accelarated md4
 #=========================================================================
+from passlib.utils import pypy_vm
 import hashlib
-try:
-    hashlib.new("md4")
-except ValueError:
-    del hashlib
-else:
+
+def _has_native_md4():
+    try:
+        h = hashlib.new("md4")
+    except ValueError:
+        #not supported
+        return False
+    result = h.hexdigest()
+    if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
+        return True
+    if pypy_vm and result == '':
+        #as of 1.5, pypy md4 just returns null!
+        #since this is expected, don't bother w/ warning.
+        return False
+    #anything else should alert user
+    warn("native md4 support disabled, incorrect value returned")
+    return False
+
+if _has_native_md4():
     #overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         "wrapper for hashlib.new('md4')"
         return hashlib.new('md4', content or '')
+else:
+    del hashlib
 
 #=========================================================================
 #eof
