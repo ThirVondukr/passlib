@@ -122,43 +122,33 @@ by the modular crypt format hashes found in passlib:
 Identifiers & Platform Support
 ==============================
 
-The following chart lists the various operating systems, which
-hash algorithms are known to be supported, as well as the hash's
-identifying prefix.
+The following table lists of all the major MCF hashes supported by passlib,
+and indicates which operating systems offer native support. 
 
-==================================== ================== =========== =========== =========== ===========
-Scheme                               Prefix             Linux       FreeBSD     NetBSD      OpenBSD
-==================================== ================== =========== =========== =========== ===========
-:class:`~passlib.hash.des_crypt`     n/a                y           y           y           y
+==================================== ================== =========== =========== =========== =========== =======
+Scheme                               Prefix             Linux       FreeBSD     NetBSD      OpenBSD     Solaris
+==================================== ================== =========== =========== =========== =========== =======
+:class:`~passlib.hash.des_crypt`     n/a                y           y           y           y           y
 :class:`~passlib.hash.bsdi_crypt`    ``_``                          y           y
-:class:`~passlib.hash.md5_crypt`     ``$1$``            y           y           y           y
-:class:`~passlib.hash.sun_md5_crypt` ``$md5$``
-:class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``              y           y           y
+:class:`~passlib.hash.md5_crypt`     ``$1$``            y           y           y           y           y
+:class:`~passlib.hash.sun_md5_crypt` ``$md5$``                                                          y
+:class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``              y           y           y           y
 :class:`~passlib.hash.nthash`        ``$3$``                        y
-:class:`~passlib.hash.sha256_crypt`  ``$5$``            y
-:class:`~passlib.hash.sha512_crypt`  ``$6$``            y
-:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                 y
-==================================== ================== =========== =========== =========== ===========
+:class:`~passlib.hash.sha256_crypt`  ``$5$``            y                                               y
+:class:`~passlib.hash.sha512_crypt`  ``$6$``            y                                               y
+:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                 y 
+==================================== ================== =========== =========== =========== =========== =======
 
-.. note::
-
-    :class:`!des_crypt` and :class:`!bsdi_crypt` do not conform to the MCF,
-    but are listed here for completeness.
-
-.. todo::
-
-    include Solaris and other Unix flavors in this chart.
-
-The following chart lists other MCF schemes supported by passlib,
+The following table lists the other MCF hashes supported by passlib,
 most of which are only used by applications:
 
-=========================================== =================== =======================
+=========================================== =================== ===========================
 Scheme                                      Prefix              Known Uses
-=========================================== =================== =======================
+=========================================== =================== ===========================
 :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
-:class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass applications
+:class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
 :class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2-sha1$``
 :class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
 :class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
 :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$``
-=========================================== =================== =======================
+=========================================== =================== ===========================

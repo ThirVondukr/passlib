@@ -78,13 +78,19 @@ Current Host OS
 
     :platform: Unix
 
-    It should support all the algorithms the native OS :func:`!crypt` will support.
-    The main difference is that it provides introspection about *which* schemes
-    are available on a given system, as well as defaulting to the strongest
-    algorithm and decent number of rounds when encrypting new passwords
-    (whereas :func:`!crypt` invariably defaults to using :mod:`~passlib.hash.des_crypt`).
+    This :class:`~passlib.context.CryptContext` instance should detect and support
+    all the algorithms the native OS :func:`!crypt` offers.
+    The main differences between this object and :func:`!crypt`:
 
-    This can be used in conjunction with stdlib's :mod:`!spwd` module
+    * this object provides introspection about *which* schemes
+      are available on a given system (via ``host_context.policy.schemes()``).
+    * it defaults to the strongest algorithm available,
+      automatically configured to an appropriate strength
+      for encrypting new passwords.
+    * whereas :func:`!crypt` typically defaults to using
+      :mod:`~passlib.hash.des_crypt`; and provides little introspection.
+
+    As an example, this can be used in conjunction with stdlib's :mod:`!spwd` module
     to verify user passwords on the local system::
 
         >>> #NOTE/WARNING: this example requires running as root on most systems.
@@ -97,7 +103,6 @@ Current Host OS
     .. versionchanged:: 1.4
         This object is only available on systems where the stdlib :mod:`!crypt` module is present.
         In version 1.3 and earlier, it was available on non-Unix systems, though it did nothing useful.
-
 
 References
 ==========

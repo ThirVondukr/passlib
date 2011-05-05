@@ -7,21 +7,23 @@ Welcome
 Passlib is a password hashing library for Python, which provides cross-platform
 implementations of over 20 password hashing algorithms;
 as well as a framework for managing and migrating existing password hashes.
-It's designed to be useful for a large range of tasks...
+It's designed to be useful for a large range of tasks:
 
-* as a cross-platform replacement for stdlib's :func:`!crypt` --> :data:`~passlib.hosts.host_context`.
+* as a cross-platform replacement for stdlib's crypt ~
+  :data:`passlib.hosts.host_context`
 
 * encrypting & verifying most hash formats used by:
-    - Linux & BSD shadow files --> :mod:`passlib.hosts`
-    - Apache htpasswd & htdigest files --> :mod:`passlib.apache`
-    - MySQL, PostgreSQL, and Oracle user account tables
-    - OpenLDAP password hashes
-    - Many other applications --> :mod:`passlib.apps`.
 
-* drop-in password hash support for new python applications --> :data:`~passlib.apps.custom_app_context`.
+    - Linux & BSD shadow files ~ :mod:`passlib.hosts`
+    - Apache htpasswd & htdigest files ~ :mod:`passlib.apache`
+    - MySQL, PostgreSQL, and Oracle, OpenLDAP, and other applications ~
+      :mod:`passlib.apps`
 
-* building a configurable hashing policy
-  for python applications to migrate existing hashing schemes --> :mod:`passlib.context`.
+* quick-start password hashing for new python applications ~
+  :data:`passlib.apps.custom_app_context`
+
+* construct a configurable hashing policy
+  to match the needs of any python application ~ :data:`passlib.context`
 
 See the :doc:`library overview <overview>` for more details and usage examples.
 
