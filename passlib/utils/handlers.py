@@ -955,7 +955,7 @@ class HasRawChecksum(GenericHandler):
         if checksum is None:
             return None
         if isinstance(checksum, unicode):
-            raise TypeError, "checksum must be specified as bytes"
+            raise TypeError("checksum must be specified as bytes")
         cc = cls.checksum_size
         if cc and len(checksum) != cc:
             raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
