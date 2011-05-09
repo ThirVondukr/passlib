@@ -86,6 +86,8 @@ postgres_context = LazyCryptContext(["postgres_md5"])
 #=========================================================
 phpass_context = LazyCryptContext(
     schemes=["bcrypt", "bsdi_crypt", "phpass",],
+
+    #XXX: make this lazy as well? causes bcrypt hash to always get loaded
     default="bcrypt" if hash.bcrypt.has_backend() else "bsdi_crypt",
     )
 
