@@ -23,7 +23,7 @@ Interface
 
     All password hashes registered with passlib
     can be imported by name from the :mod:`passlib.hash` module.
-    This is true just just of the built-in hashes,
+    This is true not just of the built-in hashes,
     but for any hash registered with the registration functions
     in this module.
 
