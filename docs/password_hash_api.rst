@@ -454,14 +454,6 @@ the following attributes are usually exposed.
     to be specified in salt parameter.
     for most hashes, this is equal to :data:`passlib.utils.h64.CHARS`.
 
-.. warning::
-
-    In Passlib 1.3 and earlier, these attributes were named ``min_salt_chars``,
-    ``max_salt_chars``, and ``salt_charset``, respectively.
-    These names have been deprecated, due to their ambiguity. Passlib 1.4 contains aliases
-    for these names, so client applications may continue to use them;
-    but these aliases will be removed in Passlib 1.5.
-
 .. todo::
 
     this list the behavior for handlers which accept
