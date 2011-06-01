@@ -13,12 +13,14 @@ Requirements
 
     Passlib is pure-python, and should support all available Python implementations and platforms.
 
-* `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ (optional)
+* `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ or
+  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_ (optional)
 
-   If installed, pybcrypt will be used to support the BCrypt hash algorithm.
+   If either of these packages are installed, they will be used to provide
+   support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support
-   via stdlib's :mod:`!crypt`. This includes pretty much all non-BSD systems.
+   via stdlib's :mod:`!crypt` (which includes pretty much all non-BSD systems).
 
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_ (optional)
 

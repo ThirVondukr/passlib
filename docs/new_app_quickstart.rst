@@ -81,7 +81,7 @@ of simultaneous logon attempts (eg web apps).
 
     For BCrypt support on non-BSD systems,
     Passlib requires a C-extension module
-    provided by the external pybcrypt package.
+    provided by the external pybcrypt or bcryptor packages.
 
 SHA512-Crypt
 ------------

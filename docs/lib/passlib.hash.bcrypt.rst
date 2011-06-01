@@ -11,7 +11,7 @@ password hash for many systems (notably BSD), and has no known weaknesses.
 
 .. note::
 
-    It is strongly recommended to install PyBcrypt if this algorithm
+    It is strongly recommended to install PyBcrypt or BCryptor if this algorithm
     is going to be used.
 
 Usage

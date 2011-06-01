@@ -20,6 +20,10 @@ try:
     from bcrypt import hashpw as pybcrypt_hashpw
 except ImportError: #pragma: no cover - though should run whole suite w/o pybcrypt installed
     pybcrypt_hashpw = None
+try:
+    from bcryptor.engine import Engine as bcryptor_engine
+except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
+    bcryptor_engine = None
 #libs
 from passlib.utils import os_crypt, classproperty, handlers as uh, h64
 
@@ -54,10 +58,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         Typically you want to leave this alone, and let it default to ``2a``,
         but it can be set to ``2`` to use the older version of BCrypt.
 
-    It will use the first available of two possible backends:
+    It will use the first available of three possible backends:
 
     * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
-    * stdlib :func:`crypt()`, if the host OS supports BCrypt.
+    * `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
+    * stdlib :func:`crypt()`, if the host OS supports BCrypt (eg BSD).
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
@@ -119,12 +124,16 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #=========================================================
     #primary interface
     #=========================================================
-    backends = ("pybcrypt", "os_crypt")
+    backends = ("pybcrypt", "bcryptor", "os_crypt")
 
     @classproperty
     def _has_backend_pybcrypt(cls):
         return pybcrypt_hashpw is not None
 
+    @classproperty
+    def _has_backend_bcryptor(cls):
+        return bcryptor_engine is not None
+    
     @classproperty
     def _has_backend_os_crypt(cls):
         return (
@@ -139,7 +148,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classmethod
     def _no_backends_msg(cls):
-        return "no BCrypt backends available - please install pybcrypt for BCrypt support"
+        return "no BCrypt backends available - please install pybcrypt or bcryptor for BCrypt support"
 
     def _calc_checksum_os_crypt(self, secret):
         if isinstance(secret, unicode):
@@ -151,6 +160,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             secret = secret.encode("utf-8")
         return pybcrypt_hashpw(secret, self.to_string())[-31:]
 
+    def _calc_checksum_bcryptor(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return bcryptor_engine(False).hash_key(secret, self.to_string())[-31:]
+        
     #=========================================================
     #eoc
     #=========================================================

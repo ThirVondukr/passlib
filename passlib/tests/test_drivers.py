@@ -87,7 +87,7 @@ class BCryptTest(HandlerCase):
                 bcrypt.set_backend(orig)
                 bcrypt_mod.os_crypt = orig
 
-bcrypt._no_backends_msg()
+bcrypt._no_backends_msg() #call this for coverage purposes
 
 try:
     bcrypt.get_backend()
@@ -95,11 +95,9 @@ except EnvironmentError:
     #no bcrypt backends available!
     BCryptTest = None
 
-#NOTE: pybcrypt backend will be chosen as primary if possible, so just check for os crypt and builtin
+#NOTE: pybcrypt backend will be chosen as primary if possible, so just check for bcryptor, os crypt
+BCryptor_BCryptTest = create_backend_case(BCryptTest, "bcryptor")
 OsCrypt_BCryptTest = create_backend_case(BCryptTest, "os_crypt")
-
-###this one's unusuablly slow, don't test it unless user asks for it.
-##Builtin_BCryptTest = create_backend_case(BCryptTest, "builtin") if enable_option("slow") else None
 
 #=========================================================
 #bigcrypt
