@@ -144,8 +144,8 @@ but follow the LDAP format:
 
     passlib.hash.ldap_other
 
-* :class:`ldap_hex_md5` - Hex-encoded MD5 Digest
-* :class:`ldap_hex_sha1` - Hex-encoded SHA1 Digest
+* :class:`passlib.hash.ldap_hex_md5` - Hex-encoded MD5 Digest
+* :class:`passlib.hash.ldap_hex_sha1` - Hex-encoded SHA1 Digest
 
 .. toctree::
     :maxdepth: 1
@@ -153,7 +153,7 @@ but follow the LDAP format:
     passlib.hash.ldap_pbkdf2_digest
     passlib.hash.atlassian_pbkdf2_sha1
 
-* :class:`roundup_plaintext` - Roundup-specific LDAP Plaintext Handler
+* :class:`passlib.hash.roundup_plaintext` - Roundup-specific LDAP Plaintext Handler
 
 .. _database-hashes:
 

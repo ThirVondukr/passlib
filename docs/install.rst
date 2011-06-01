@@ -11,8 +11,7 @@ Requirements
 
     Python 3.x is not yet supported, work is `ongoing <http://code.google.com/p/passlib/issues/detail?id=1>`_.
 
-    Passlib is pure-python, and should be useable on all platforms
-    (eg CPython, PyPy, and Jython).
+    Passlib is pure-python, and should support all available Python implementations and platforms.
 
 * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ (optional)
 
@@ -56,6 +55,10 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
 
     # to run all tests...
     PASSLIB_TESTS="all" nosetests -v passlib/tests
+
+    # to run nose with the optional coverage plugin...
+    PASSLIB_TESTS="all" nosetests -v passlib/tests --with-coverage \
+        --cover-package=passlib --cover-html --cover-html-dir build/coverage
 
 Documentation
 =============

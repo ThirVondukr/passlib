@@ -16,11 +16,11 @@ have the format :samp:`${identifier}${content}`; where
 :samp:`{identifier}` is an short alphanumeric string uniquely
 identifying a particular scheme, and :samp:`{content}`
 is the contents of the scheme, using only the characters
-``[a-zA-Z0-9./]``.
+in the regexp range ``[a-zA-Z0-9./]``.
 
-However, there appears to be no actual rules, specification document,
-or central registry of identifiers; so the modular
-crypt format is more of an ad-hoc idea than a true standard.
+However, there appears to be no central registry of identifiers,
+no specification document, and no actual rules;
+so the modular crypt format is more of an ad-hoc idea rather than a true standard.
 
 History
 =======
@@ -147,7 +147,7 @@ Scheme                                      Prefix              Known Uses
 =========================================== =================== ===========================
 :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
 :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
-:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2-sha1$``
+:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``
 :class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
 :class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
 :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$``

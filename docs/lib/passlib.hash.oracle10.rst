@@ -76,7 +76,7 @@ Oracle10 hashes can be formed by the following procedure:
 Security Issues
 ===============
 This algorithm it not suitable for *any* use besides manipulating existing
-Oracle10 account passwords, due to the following flaws:
+Oracle10 account passwords, due to the following flaws [#flaws]:
 
 * It's use of the username as a salt value means that common usernames
   (eg ``system``) will occur more frequently as salts,
@@ -112,5 +112,9 @@ References
           PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors
           and supports unicode input.
 
+.. [#flaws] Whitepaper analyzing flaws in this algorithm - 
+            `<http://www.isg.rhul.ac.uk/~ccid/publications/oracle_passwd.pdf>`_.
+
 .. [#] Description of Oracle10g and Oracle11g algorithms -
        `<http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/>`_.
+

@@ -67,7 +67,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    The salt string uses little-endian
    :func:`hash64 <passlib.utils.h64.decode_int24>` encoding.
 
-4. The password is NULL-padded on the end to the smallests non-zero multiple of 8 bytes.
+4. The password is NULL-padded on the end to the smallest non-zero multiple of 8 bytes.
 
 5. The lower 7 bits of the first 8 bytes of the password are used
    to form a 56-bit integer; with the first byte providing
@@ -81,7 +81,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
     b. Step 5 is repeated for the current 8-byte block, and xored against the
        existing DES key.
 
-7. Repeated rounds of modified DES encryption are performed;
+7. Repeated rounds of (modified) DES encryption are performed;
    starting with a null input block,
    and using the 56-bit integer from step 5/6 as the DES key.
 
@@ -89,7 +89,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    by swapping bits :samp:`{i}` and :samp:`{i}+24` in the DES E-Box output
    if and only if bit :samp:`{i}` is set in the salt value.
 
-   The number of rounds to is controlled by the value decoded in step 2.
+   The number of rounds is controlled by the value decoded in step 2.
 
 8. The 64-bit result of the last round of step 7 is then
    lsb-padded with 2 zero bits.

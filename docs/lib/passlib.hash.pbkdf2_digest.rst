@@ -42,6 +42,8 @@ Interface
 
 .. autoclass:: pbkdf2_sha512()
 
+.. _mcf-pbkdf2-format:
+
 Format & Algorithm
 ==================
 An example :class:`!pbkdf2_sha256` hash (of ``password``)::

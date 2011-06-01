@@ -43,12 +43,12 @@ Most of the handlers built into PassLib are based around the :class:`GenericHand
 class. This class is designed under the assumption that the common
 workflow for hashes is some combination of the following:
 
-1. parse hash into constituent parts - performed by :meth:`GenericHandler.from_string`.
+1. parse hash into constituent parts - performed by :meth:`~GenericHandler.from_string`.
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
-   add the normalization functions such as :meth:`norm_checksum` and :meth:`norm_salt`
+   and the normalization functions such as :meth:`~GenericHandler.norm_checksum` and :meth:`~HasSalt.norm_salt`
    which are provided by it's related mixin classes.
-3. calculate the raw checksum for a specific password - performed by :meth:`GenericHandler.calc_checksum`.
-4. assemble hash, including new checksum, into a new string - performed by :meth:`GenericHandler.to_string`.
+3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler.calc_checksum`.
+4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
 
 With this in mind, :class:`!GenericHandler` provides implementations
 of most of the :ref:`password-hash-api` methods, eliminating the need
@@ -92,16 +92,18 @@ In order to use :class:`!GenericHandler`, just subclass it, and then do the foll
 
 Some additional notes:
 
-    * In addition to simple subclassing :class:`!GenericHandler`, most handlers
+    * In addition to simply subclassing :class:`!GenericHandler`, most handlers
       will also benefit from adding in some of the mixin classes
       that are designed to add features to :class:`!GenericHandler`.
       See :ref:`generic-handler-mixins` for more details.
 
-    * Most implementations will want to optimize the behavior of the default :meth:`identify` method.
-      If left alone, it will identify any hash which :meth:`from_string` does not raise :exc:`ValueError` for.
-      For faster identification purposes, subclasses may fill in the :attr:`ident` attribute
-      with the hash's identifying prefix, which :meth:`identify` will then be use instead.
-      For more complex situations, a custom implementation can be provided, though
+    * Most implementations will want to alter/override the default :meth:`~GenericHandler.identify` method.
+      By default, it returns ``True`` for all hashes that :meth:`~GenericHandler.from_string`
+      can parse without raising a :exc:`ValueError`; which is reliable, but somewhat slow.
+      For faster identification purposes, subclasses may fill in the :attr:`~GenericHandler.ident` attribute
+      with the hash's identifying prefix, which :meth:`~GenericHandler.identify` will then test for
+      instead of calling :meth:`~GenericHandler.from_string`.
+      For more complex situations, a custom implementation should be used; 
       the :class:`HasManyIdents` mixin may also be helpful.
 
     * This class does not support context kwds of any type,
@@ -140,11 +142,11 @@ The StaticHandler class
 .. index::
     pair: custom hash handler; testing
 
-.. _testing-hash-handlers:
-
 Other Constructors
 ==================
 .. autoclass:: PrefixWrapper
+
+.. _testing-hash-handlers:
 
 Testing Hash Handlers
 =====================

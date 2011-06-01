@@ -149,8 +149,19 @@ def register_crypt_handler_path(name, path):
     :arg path: module import path
 
     the specified module path should contain a password hash handler
-    called :samp:`{name}`, or the path may contain a semicolon,
+    called :samp:`{name}`, or the path may contain a colon,
     specifying the module and module attribute to use.
+    for example, the following would cause ``get_handler("myhash")`` to look
+    for a class named ``myhash`` within the ``myapp.helpers`` module:: 
+
+        >>> from passlib.registry import registry_crypt_handler_path
+        >>> registry_crypt_handler_path("myhash", "myapp.helpers")
+
+    ...while this form would cause ``get_handler("myhash")`` to look
+    for a class name ``MyHash`` within the ``myapp.helpers`` module::
+
+        >>> from passlib.registry import registry_crypt_handler_path
+        >>> registry_crypt_handler_path("myhash", "myapp.helpers:MyHash")
     """
     global _handler_locations
     if ':' in path:
@@ -167,6 +178,9 @@ def register_crypt_handler(handler, force=False, name=None):
 
     :arg handler: the password hash handler to register
     :param force: force override of existing handler (defaults to False)
+    :param name:
+        [internal kwd] if specified, ensures ``handler.name``
+        matches this value, or raises :exc:`ValueError`.
 
     :raises TypeError:
         if the specified object does not appear to be a valid handler.
@@ -228,11 +242,11 @@ def get_crypt_handler(name, default=Undef):
     it checks if the location is known, and loads it first.
 
     :arg name: name of handler to return
-    :param default: if specified, returns default value if no handler found.
+    :param default: optional default value to return if no handler with specified name is found.
 
-    :raises KeyError: if no handler matching that name is found, and no default specified
+    :raises KeyError: if no handler matching that name is found, and no default specified, a KeyError will be raised.
 
-    :returns: handler attached to name, or default if specified
+    :returns: handler attached to name, or default value (if specified).
     """
     global _handlers, _handler_locations
 

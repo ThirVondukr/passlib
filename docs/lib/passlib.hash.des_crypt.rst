@@ -105,9 +105,10 @@ This implementation of des-crypt differs from others in a few ways:
 
 * Minimum salt string:
 
-  Some implementations of des-crypt allow empty and single-character salt strings.
-  However, the behavior in these cases varies wildly between implementations,
-  including errors and broken hashes.
+  Some implementations of des-crypt permit empty and single-character salt strings.
+  However, behavior in these cases varies wildly;
+  with implementations returning everything from errors
+  to incorrect hashes that never validate.
   To avoid all this, PassLib will throw an "invalid salt" if the provided
   salt string is not at least 2 characters.
 

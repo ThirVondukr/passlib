@@ -44,7 +44,7 @@ Format & Algorithm
 ==================
 An example oracle11 hash (of the string ``password``) is:
 
-    ``'S:4143053633E59B4992A8EA17D2FF542C9EDEB335C886EED9C80450C1B4E6'``
+    ``S:4143053633E59B4992A8EA17D2FF542C9EDEB335C886EED9C80450C1B4E6``
 
 An oracle11 hash string has the format :samp:`S:{checksum}{salt}`, where:
 
