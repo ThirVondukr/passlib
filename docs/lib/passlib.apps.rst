@@ -39,9 +39,9 @@ Custom Applications
         >>> #[optional] encrypting a password for an admin account - uses stronger settings
         >>> hash = pwd_context.encrypt("somepass", category="admin")
 
-    For applications which started using this preset, but whose needs
-    have grown beyond it, it is recommended to create your own CryptContext
-    instance; the configuration used to create this object can be a good starting point.
+.. seealso::
+
+    The :doc:`/new_app_quickstart` guide.
 
 .. _ldap-contexts:
 

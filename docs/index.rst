@@ -20,7 +20,7 @@ It's designed to be useful for a large range of tasks:
       :mod:`passlib.apps`
 
 * quick-start password hashing for new python applications ~
-  :data:`passlib.apps.custom_app_context`
+  :doc:`new application quickstart <new_app_quickstart>`
 
 * construct a configurable hashing policy
   to match the needs of any python application ~ :data:`passlib.context`

@@ -6,6 +6,9 @@ Table Of Contents
 
     Front Page <index>
     install
+
+    new_app_quickstart
+
     overview
 
     password_hash_api
