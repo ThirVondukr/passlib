@@ -5,6 +5,7 @@
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
 os.chdir(root_dir)
+
 #=========================================================
 #imports
 #=========================================================
@@ -29,9 +30,17 @@ implementations of over 20 password hashing algorithms; as well as a framework f
 and migrating existing password hashes. It's designed to be useful
 for any task from quickly verifying a hash found in /etc/shadow,
 to providing full-strength password hashing for multi-user applications.
+
+* See the `online documentation <http://packages.python.org/passlib>`_ for details and examples.
+
+* See the `passlib homepage <http://passlib.googlecode.com>`_ for the latest news, more information, and additional downloads. 
+
+* See the `changelog <http://packages.python.org/passlib/history.html>`_ for list of what's new in passlib.
+
+All releases are signed with the gpg key `4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """
 
-KEYWORDS = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt htpasswd htdigest pbkdf2"
+KEYWORDS = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2 ntlm"
 
 setup(
     #package info
@@ -46,9 +55,8 @@ setup(
     author_email = "elic@assurancetechnologies.com",
     license = "BSD",
 
-    url = "http://code.google.com/p/passlib/",
-    #er, is download url for the sdist, or for the project?
-##    download_url = "http://code.google.com/p/passlib/downloads/list",
+    url = "http://passlib.googlecode.com",
+    download_url = "http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz",
 
     description = DESCRIPTION,
     long_description = LONG_DESCRIPTION,
