@@ -91,6 +91,21 @@ class UndefType(object):
 #: singleton used as default kwd value in some functions, indicating "NO VALUE"
 Undef = UndefType()
 
+#==========================================================
+#bytes/unicode helpers
+#==========================================================
+if sys.version_info < (2,6):
+    bytes = str
+
+def to_bytes(source, name="value", encoding="utf8"):
+    "helper to convert unicode to utf8; passes existing code through unchanged"
+    if isinstance(source, unicode):
+        return source.encode(encoding)
+    elif isinstance(source, bytes):
+        return source
+    else:
+        raise TypeError(name + " must be bytes or unicode")
+
 #=================================================================================
 #os crypt helpers
 #=================================================================================
