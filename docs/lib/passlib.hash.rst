@@ -90,6 +90,7 @@ compatible by along side others in this section.
     passlib.hash.phpass
     passlib.hash.nthash
     passlib.hash.pbkdf2_digest
+    passlib.hash.cta_pbkdf2_sha1
     passlib.hash.dlitz_pbkdf2_sha1
 
 Special note should be made of the fallback helper,

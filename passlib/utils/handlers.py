@@ -39,6 +39,7 @@ __all__ = [
 #common salt_chars & checksum_chars values
 H64_CHARS = h64.CHARS
 B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+U64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 HEX_CHARS = "0123456789abcdefABCDEF"
 UC_HEX_CHARS = "0123456789ABCDEF"
 LC_HEX_CHARS = "0123456789abcdef"

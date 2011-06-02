@@ -567,6 +567,18 @@ class Pbkdf2Sha512Test(HandlerCase):
             ),
     )
 
+class CtaPbkdf2Sha1Test(HandlerCase):
+    handler = pk2.cta_pbkdf2_sha1
+    known_correct_hashes = (
+        #test vectors from original implementation
+        (u"hashy the \N{SNOWMAN}", '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
+
+        #additional test vectors
+        ("password", "$p5k2$1$$h1TDLGSw9ST8UMAPeIE13i0t12c="),
+        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+            "$p5k2$4321$OTg3NjU0MzIx$jINJrSvZ3LXeIbUdrJkRpN62_WQ="),
+        )
+
 class DlitzPbkdf2Sha1Test(HandlerCase):
     handler = pk2.dlitz_pbkdf2_sha1
     known_correct_hashes = (
