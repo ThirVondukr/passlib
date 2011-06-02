@@ -152,6 +152,7 @@ but follow the LDAP format:
 
     passlib.hash.ldap_pbkdf2_digest
     passlib.hash.atlassian_pbkdf2_sha1
+    passlib.hash.fshp
 
 * :class:`passlib.hash.roundup_plaintext` - Roundup-specific LDAP Plaintext Handler
 

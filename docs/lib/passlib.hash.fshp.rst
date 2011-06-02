@@ -1,0 +1,124 @@
+==========================================================
+:class:`passlib.hash.fshp` - Fairly Secure Hashed Password
+==========================================================
+
+.. index:: fshp
+    
+.. currentmodule:: passlib.hash
+
+The Fairly Secure Hashed Password (FSHP) scheme [#home]_ 
+is a cross-platform hash based on PBKDF1 [#pbk]_, and uses an LDAP-style hash format.
+It features a variable length salt, variable rounds, and support for cryptographic
+hashes from SHA-1 up to SHA-512. For the SHA-2 variants, there are no major security vulnerabilities.
+
+Usage
+=====
+This class supports the standard passlib options for rounds and salt,
+as well as a special digest keyword for selecting the variant of FSHP to use.
+
+This class can be used directly as follows::
+
+    >>> from passlib.hash import fshp
+    
+    >>> #generate new salt, encrypt password
+    >>> h = fshp.encrypt("password")
+    >>> h
+    '{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C'
+
+    >>> #same, but with explict number of rounds, larger salt, and specific variant
+    >>> fshp.encrypt("password", rounds=40000, salt_size=32, variant="sha512")
+    '{FSHP3|32|40000}cB8yE/CuADSgUTQZjWy+YTf/cvbU11D/rHNKiUiB6z4dIaO77U/rmNWpgZcZllZbCra5GJ8ZfFRNwCHirPqvYTAnbaQQeFQbWym/frRrRev3buoygFQRYexl4091Pc5m'
+
+    >>> #check if hash is recognized
+    >>> fshp.identify(h)
+    True
+    >>> #check if some other hash is recognized
+    >>> fshp.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+    >>> #verify correct password
+    >>> fshp.verify("password", h)
+    True
+    >>> fshp.verify("secret", h) #verify incorrect password
+    False
+
+Interface
+=========
+.. autoclass:: fshp()
+
+Format & Algorithm
+==================
+
+All of this scheme's hashes have the format: ``{FSHP<variant>|<saltsize>|<rounds>}<data>``.
+A example hash (of ``password``) is:
+
+    ``{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C``
+
+* :samp:`<variant>` is a decimal integer identifying the version of FSHP;
+  in particular, which cryptographic hash function should be used
+  to calculate the checksum. ``1`` in the example.
+  (see the class description above for a list of possible values).
+
+* :samp:`<saltsize>` is a decimal integer identifying the number of bytes
+  in the salt. ``16`` in the example.
+
+* :samp:`<rounds>` is a decimal integer identifying the number
+  of rounds to apply when calculating the checksum (see below).
+  ``16384`` in the example.
+  
+* :samp:`<data>` is a base64-encoded string which, when decoded,
+  contains a salt string of the specified size, followed
+  by the checksum. In the example, the data portion decodes to
+  a salt value (in hexdecimal octets) of:
+
+    ``3eda2a70651eb66544cbfb91f3bd794c``
+
+  and a checksum value (in hexidecimal octets) of:
+
+    ``da8a6bcfad78c17da993b5940f6524d526d444012cf67ea8f44b7843c7ab2e82``
+
+FSHP is basically just a wrapper around PBKDF1:
+The checksum is calculated using :func:`~passlib.utils.pbkdf2.pbkdf1`,
+passing in the password, the decoded salt string, the number of
+rounds, and hash function specified by the variant identifier.
+FSHP has one quirk in that the password is passed in as the pbkdf1 salt,
+and the salt is passed in as the pbkdf1 password. 
+
+Security Issues
+===============
+* A minor concern is that FSHP swaps values of the password and salt
+  from what is described in the PBKDF1 standard. For a single
+  round, this opens the route for pre-calculating part of the digest
+  when performing a brute force attack; but the cpu/time savings
+  is vastly outweighed by the use of a large number of rounds.
+
+* Since PBKDF1 is based on repeated composition of a hash,
+  it is slightly vulnerable to any first-preimage attacks on the underlying hash.
+  this has led to the deprecation of using SHA-1 or earlier hashes with PBKDF1.
+  In contrast, it's successor PBKDF2 was designed to mitigate
+  this issue (among other things), and enjoys much stronger preimage resistance
+  when using with the same cryptographic hash.
+
+Deviations
+==========
+* Unicode Policy:
+
+  The official FSHP python implementation takes in a password specified
+  as a series of bytes, and does not specify what encoding
+  should be used; though a ``us-ascii`` compatible encoding
+  is implied by the implementation,
+  as well as all known reference hashes.
+
+  In order to provide support for unicode strings,
+  PassLib will encode unicode passwords using ``utf-8``
+  before running them through FSHP. If a different
+  encoding is desired by an application, the password should be encoded
+  before handing it to PassLib.
+
+References
+==========
+.. [#home] The FSHP homepage contains implementations in a wide variety of
+           programming languages -- `<https://github.com/bdd/fshp>`_.
+
+.. [#pbk] rfc defining PBKDF1 & PBKDF2 -
+          `<http://tools.ietf.org/html/rfc2898>`_ -

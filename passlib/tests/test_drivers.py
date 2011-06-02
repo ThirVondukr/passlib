@@ -194,6 +194,52 @@ class DesCryptTest(HandlerCase):
 BuiltinDesCryptTest = create_backend_case(DesCryptTest, "builtin")
 
 #=========================================================
+#fshp
+#=========================================================
+from passlib.hash import fshp
+
+class FSHPTest(HandlerCase):
+    "test fshp algorithm"
+    handler = fshp
+
+    known_correct_hashes = [
+        #secret, example hash which matches secret
+        
+        #test vectors from FSHP reference implementation
+        ('test', '{FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M='),
+ 
+        ('test',
+            '{FSHP1|8|4096}MTIzNDU2NzjTdHcmoXwNc0f'
+            'f9+ArUHoN0CvlbPZpxFi1C6RDM/MHSA=='
+            ),
+        
+        ('OrpheanBeholderScryDoubt',
+            '{FSHP1|8|4096}GVSUFDAjdh0vBosn1GUhz'
+            'GLHP7BmkbCZVH/3TQqGIjADXpc+6NCg3g=='
+            ),
+        ('ExecuteOrder66',
+            '{FSHP3|16|8192}0aY7rZQ+/PR+Rd5/I9ss'
+            'RM7cjguyT8ibypNaSp/U1uziNO3BVlg5qPU'
+            'ng+zHUDQC3ao/JbzOnIBUtAeWHEy7a2vZeZ'
+            '7jAwyJJa2EqOsq4Io='
+            ),
+        ]
+
+    known_unidentified_hashes = [
+        #bad char in otherwise correctly formatted hash
+        '{FSHX0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
+        'FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
+        ]
+    
+    known_malformed_hashes = [
+        #wrong salt size
+        '{FSHP0|1|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
+        
+        #bad rounds
+        '{FSHP0|0|A}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
+    ]
+  
+#=========================================================
 #hex digests
 #=========================================================
 from passlib.handlers import digests

@@ -82,6 +82,7 @@ _handler_locations = {
     "crypt16":          ("passlib.handlers.des_crypt",   "crypt16"),
     "des_crypt":        ("passlib.handlers.des_crypt",   "des_crypt"),
     "dlitz_pbkdf2_sha1":("passlib.handlers.pbkdf2",      "dlitz_pbkdf2_sha1"),
+    "fshp":             ("passlib.handlers.fshp",        "fshp"),
     "grub_pbkdf2_sha512":
                         ("passlib.handlers.pbkdf2",      "grub_pbkdf2_sha512"),
     "hex_md4":          ("passlib.handlers.digests",     "hex_md4"),
