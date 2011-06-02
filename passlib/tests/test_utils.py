@@ -17,6 +17,8 @@ from passlib.utils import h64, des, Undef, sys_bits
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
+hb = unhexlify #'hex bytes'
+
 #=========================================================
 #byte funcs
 #=========================================================
@@ -413,6 +415,24 @@ from passlib.utils import pbkdf2
 
 #TODO: should we bother testing hmac_sha1() function? it's verified via sha1_crypt testing.
 
+class KdfTest(TestCase):
+    "test kdf helpers"
+    
+    def test_pbkdf1(self):
+        "test pbkdf1"
+        for secret, salt, rounds, klen, hash, correct in [
+            #http://www.di-mgt.com.au/cryptoKDFs.html
+            ('password', hb('78578E5A5D63CB06'), 1000, 16, 'sha1',
+                hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
+        ]:
+            result = pbkdf2.pbkdf1(secret, salt, rounds, klen, hash)
+            self.assertEqual(result, correct)
+            
+        #test rounds < 1
+        #test klen < 0
+        #test klen > block size
+        #test invalid hash
+
 #NOTE: this is not run directly, but via two subclasses (below)
 class _Pbkdf2BackendTest(TestCase):
     "test builtin unix crypt backend"
@@ -426,10 +446,14 @@ class _Pbkdf2BackendTest(TestCase):
         else:
             #set flag so tests can check for m2crypto presence quickly
             self.enable_m2crypto = bool(pbkdf2._EVP)
+        pbkdf2._clear_prf_cache()
 
     def tearDown(self):
         if not self.enable_m2crypto:
             pbkdf2._EVP = self._orig_EVP
+        pbkdf2._clear_prf_cache()
+
+    #TODO: test get_prf() behavior in various situations - though overall behavior tested via pbkdf2
 
     def test_rfc3962(self):
         "rfc3962 test vectors"
