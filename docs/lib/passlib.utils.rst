@@ -50,8 +50,6 @@ Bytes Manipulation
 
 .. autofunction:: bytes_to_int
 .. autofunction:: int_to_bytes
-.. autofunction:: list_to_bytes
-.. autofunction:: bytes_to_list
 
 .. autofunction:: xor_bytes
 

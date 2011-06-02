@@ -32,8 +32,6 @@ __all__ = [
     'is_crypt_context',
 
     #byte manipulation
-    "bytes_to_list",
-    "list_to_bytes",
     "xor_bytes",
 
     #random

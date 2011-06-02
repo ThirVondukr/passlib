@@ -588,7 +588,7 @@ class HandlerCase(TestCase):
                 self.assertNotEqual(c1,c3)
 
     def test_33_genconfig_saltcharset(self):
-        "test genconfig() honors salt charset"
+        "test genconfig() honors salt_chars"
         handler = self.handler
         if not has_salt_info(handler):
             raise SkipTest
