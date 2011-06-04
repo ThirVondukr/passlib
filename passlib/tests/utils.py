@@ -162,17 +162,15 @@ class TestCase(unittest.TestCase):
 
     def assertRaises(self, type, func, *args, **kwds):
         msg = kwds.pop("__msg__", None)
-        err = None
         try:
             result = func(*args, **kwds)
         except Exception, err:
-            pass
-        if err is None:
-            msg = self._format_msg(msg, "function returned %r, expected it to raise %r", result, type)
-            raise AssertionError(msg)
-        elif not isinstance(err, type):
+            if isinstance(err, type):
+                return True
             msg = self._format_msg(msg, "function raised %r, expected %r", err, type)
             raise AssertionError(msg)
+        msg = self._format_msg(msg, "function returned %r, expected it to raise %r", result, type)
+        raise AssertionError(msg)
 
     def assertFunctionResults(self, func, cases):
         """helper for running through function calls.
