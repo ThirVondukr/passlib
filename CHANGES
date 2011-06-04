@@ -6,11 +6,16 @@ Release History
 
 **1.5** (NOT YET RELEASED)
 
-    * added support for FSHP family of hashes
-    * added support for Cryptacular's PBKDF2 format
-    * added support for using BCryptor as BCrypt backend
-    * added quickstart guide to documentation
-    * removed deprecated parts of :mod:`passlib.utils.handlers`.
+    Hashes
+        * added support for FSHP family of hashes
+        * added support for Cryptacular's PBKDF2 format
+        * added support for using BCryptor as BCrypt backend
+    
+    Documentation
+        * added quickstart guide to documentation
+        
+    Other
+        * removed deprecated parts of :mod:`passlib.utils.handlers`.
     
 **1.4** (2011-05-04)
 
