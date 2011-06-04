@@ -149,22 +149,17 @@ The following contexts are available for reading Roundup password hash fields:
 
 .. data:: roundup10_context
 
-    This object should recognize all password hashes used by Roundup:
+    This object should recognize all password hashes used by Roundup 1.4.16 and earlier:
     :class:`~passlib.hash.ldap_hex_sha1` (the default),
     :class:`~passlib.hash.ldap_hex_md5`, :class:`~passlib.hash.ldap_des_crypt`,
     and :class:`~passlib.hash.roundup_plaintext`.
 
 .. data:: roundup15_context
 
-    As of 2011-04-28, the next release of Roundup will add support
-    for :class:`~passlib.hash.ldap_pbkdf2_sha1`. This context supports
-    all the :data:`roundup10_context` hashes, but adds this hash as well
-    (and uses it as the default).
-
-    .. note::
-
-        This version of Roundup has not been released yet,
-        databases using Roundup 1.4.16 and earlier should use the :data:`roundup10_context` instead.
+    Roundup 1.4.17 adds support for :class:`~passlib.hash.ldap_pbkdf2_sha1`
+    as it's preferred hash format.  
+    This context supports all the :data:`roundup10_context` hashes, 
+    but adds that hash as well (and uses it as the default).
 
 .. data:: roundup_context
 
