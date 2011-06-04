@@ -134,9 +134,9 @@ sha512_crypt.min_rounds = 45000
     sample_config_4s = """
 [passlib]
 schemes = sha512_crypt
-all.vary_rounds = 10%
+all.vary_rounds = 10%%
 default.sha512_crypt.max_rounds = 20000
-admin.all.vary_rounds = 5%
+admin.all.vary_rounds = 5%%
 admin.sha512_crypt.max_rounds = 40000
 """
 
