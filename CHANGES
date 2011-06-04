@@ -11,6 +11,16 @@ Release History
         * added support for Cryptacular's PBKDF2 format
         * added support for using BCryptor as BCrypt backend
     
+    CryptContext
+        * interpolation deprecation:
+        
+          CryptPolicy.from_file() / .from_string() now
+          use SafeConfigParser instead of ConfigParser.
+          This may cause some existing config files containing unescaped ``%``
+          to result in errors; passlib 1.5 will demote these to warnings,
+          but any extant config files should be updated,
+          as the errors will be fatal in passlib 1.6.
+    
     Documentation
         * added quickstart guide to documentation
         

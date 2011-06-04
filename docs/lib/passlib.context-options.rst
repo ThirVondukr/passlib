@@ -206,7 +206,8 @@ A sample policy file:
     min_verify_time = 0.1
 
     #set some common options for all schemes
-    all.vary_rounds = 10%
+    all.vary_rounds = 10%%
+        ; NOTE the '%' above has to be escaped due to configparser interpolation
 
     #setup some hash-specific defaults
     sha512_crypt.min_rounds = 40000

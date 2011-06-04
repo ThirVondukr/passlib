@@ -5,7 +5,7 @@
 from __future__ import with_statement
 #core
 from cStringIO import StringIO
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser, SafeConfigParser, InterpolationSyntaxError
 import inspect
 import re
 import hashlib
@@ -88,6 +88,29 @@ def parse_policy_items(source):
         value = _parse_policy_value(cat, name, opt, value)
         yield cat, name, opt, value
 
+def _is_legacy_parse_error(err):
+    "helper for parsing config files"
+    #NOTE: passlib 1.4 and earlier used ConfigParser,
+    # when they should have been using SafeConfigParser
+    # (which passlib 1.5+ switched to)
+    # this has no real security effects re: passlib,
+    # but some 1.4 config files that have "vary_rounds = 10%"
+    # may throw an error under SafeConfigParser,
+    # and should read "vary_rounds = 10%%"
+    #
+    # passlib 1.6 and on will only use SafeConfigParser,
+    # but passlib 1.5 tries to detect the above 10% error,
+    # issue a warning, and retry w/ ConfigParser,
+    # for backward compat.
+    #
+    # this function's purpose is to encapsulate that
+    # backward-compat behavior.
+    value = err.args[0]
+    #'%' must be followed by '%' or '(', found: '%'
+    if value == "'%' must be followed by '%' or '(', found: '%'":
+        return True
+    return False
+
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
 
@@ -141,10 +164,21 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        p = ConfigParser()
+        p = SafeConfigParser()
         if not p.read([path]):
             raise EnvironmentError("failed to read config file")
-        return cls(**dict(p.items(section)))
+        try:
+            items = p.items(section)
+        except InterpolationSyntaxError, err:
+            if not _is_legacy_parse_error(err):
+                raise
+            #support for deprecated 1.4 behavior, will be removed in 1.6
+            warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=2)
+            p = ConfigParser()
+            if not p.read([path]):
+                raise EnvironmentError("failed to read config file")
+            items = p.items(section)
+        return cls(**dict(items))
 
     @classmethod
     def from_string(cls, source, section="passlib"):
@@ -155,10 +189,21 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        p = ConfigParser()
         b = StringIO(source)
+        p = SafeConfigParser()
         p.readfp(b)
-        return cls(**dict(p.items(section)))
+        try:
+            items = p.items(section)
+        except InterpolationSyntaxError, err:
+            if not _is_legacy_parse_error(err):
+                raise
+            #support for deprecated 1.4 behavior, will be removed in 1.6
+            warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=2)
+            p = ConfigParser()
+            b.seek(0)
+            p.readfp(b)
+            items = p.items(section)
+        return cls(**dict(items))
 
     @classmethod
     def from_source(cls, source):
@@ -560,10 +605,16 @@ class CryptPolicy(object):
         "return policy as dictionary of keywords"
         return dict(self.iter_config(resolve=resolve))
 
+    def _escape_ini_pair(self, k, v):
+        if isinstance(v, str):
+            v = v.replace("%", "%%") #escape any percent signs.
+        return k,v
+
     def _write_to_parser(self, parser, section):
         "helper for to_string / to_file"
         parser.add_section(section)
         for k,v in self.iter_config(ini=True):
+            k,v = self._escape_ini_pair(k,v)
             parser.set(section, k,v)
 
     def to_file(self, stream, section="passlib"):
@@ -697,6 +748,9 @@ class CryptContext(object):
                     if isinstance(vr, str):
                         rc = getattr(handler, "rounds_cost", "linear")
                         vr = int(vr.rstrip("%"))
+                            #NOTE: deliberately strip >1 %,
+                            #in case an interpolation-escaped %%
+                            #makes it through to here.
                         assert 0 <= vr < 100
                         if rc == "log2":
                             #let % variance scale the number of actual rounds, not the logarithmic value

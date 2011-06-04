@@ -142,7 +142,8 @@ applications with advanced policy requirements may want to create a hash policy 
     ;the 'vary' field will cause each new hash to randomly vary
     ;from the default by the specified %.
     pbkdf2_sha1.default_rounds = 20000
-    pbkdf2_sha1.vary_rounds = 10%
+    pbkdf2_sha1.vary_rounds = 10%%
+        ; NOTE the '%' above has to be doubled due to configparser interpolation
 
     ;applications can choose to treat certain user accounts differently,
     ;by assigning different types of account to a 'user category',
