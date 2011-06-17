@@ -78,7 +78,11 @@ rounds_cost_values = [ "linear", "log2" ]
 
 #: special byte string containing all possible byte values, used in a few places.
 #XXX: treated as singleton by some of the code for efficiency.
+# Py2k #
 ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
+# Py3k #
+#ALL_BYTE_VALUES = bytes(xrange(256))
+# end Py3k #
 
 #NOTE: Undef is only used in *one* place now, could just remove it
 class UndefType(object):
@@ -100,6 +104,8 @@ class UndefType(object):
 
 #: singleton used as default kwd value in some functions, indicating "NO VALUE"
 Undef = UndefType()
+
+NoneType = type(None)
 
 #==========================================================
 #bytes compat aliases - bytes, native_str, b()
@@ -322,6 +328,12 @@ def to_native_str(source, encoding="utf-8", errname="value"):
 
     else:
         raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
+
+def to_hash_str(hash, encoding="ascii", errname="hash"):
+    "given hash string as bytes or unicode; normalize according to hash policy"
+    #NOTE: for now, policy is ascii-bytes under py2, unicode under py3.
+    #      but plan to make flag allowing apps to enable unicode behavior under py2.
+    return to_native_str(hash, encoding, errname)
 
 #--------------------------------------------------
 #support utils
