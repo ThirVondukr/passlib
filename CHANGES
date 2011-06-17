@@ -21,6 +21,9 @@ Release History
           but any extant config files should be updated,
           as the errors will be fatal in passlib 1.6.
     
+        * added encoding keyword to CryptContext's from_path, from_string,
+          and to_string methods.          
+    
     Documentation
         * added quickstart guide to documentation
         

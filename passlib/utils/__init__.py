@@ -4,6 +4,7 @@
 #=================================================================================
 #core
 from base64 import b64encode, b64decode
+from codecs import lookup as _lookup_codec
 from cStringIO import StringIO
 from functools import update_wrapper
 from hashlib import sha256
@@ -24,12 +25,20 @@ __all__ = [
 ##    "abstractmethod",
 ##    "abstractclassmethod",
 
+    #byte compat aliases
+    'bytes', 'native_str',
+
     #misc
     'os_crypt',
 
     #tests
     'is_crypt_handler',
     'is_crypt_context',
+
+    #bytes<->unicode
+    'to_bytes',
+    'to_unicode',
+    'is_same_codec',
 
     #byte manipulation
     "xor_bytes",
@@ -92,19 +101,23 @@ class UndefType(object):
 Undef = UndefType()
 
 #==========================================================
-#bytes/unicode helpers
+#bytes compat aliases - bytes, native_str, b()
 #==========================================================
-if sys.version_info < (2,6):
-    bytes = str
 
-def to_bytes(source, name="value", encoding="utf8"):
-    "helper to convert unicode to utf8; passes existing code through unchanged"
-    if isinstance(source, unicode):
-        return source.encode(encoding)
-    elif isinstance(source, bytes):
-        return source
-    else:
-        raise TypeError(name + " must be bytes or unicode")
+# Py2k #
+if sys.version_info < (2,6):
+    #py25 doesn't define 'bytes', so we have to here -
+    #and then import it everywhere bytes is needed,
+    #just so we retain py25 compat - if that were sacrificed,
+    #the need for this would go away
+    bytes = str
+else:
+    bytes = bytes #just so it *can* be imported from this module
+native_str = bytes
+# Py3k #
+#bytes = bytes #just so it *can* be imported from this module
+#native_str = unicode
+# end Py3k #
 
 #=================================================================================
 #os crypt helpers
@@ -194,6 +207,87 @@ def has_rounds_info(handler):
 def has_salt_info(handler):
     "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
     return 'salt' in handler.setting_kwds and getattr(handler, "min_salt_size", None) is not None
+
+#==========================================================
+#bytes <-> unicode conversion helpers
+#==========================================================
+
+def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
+    """helper to encoding unicode -> bytes
+    
+    this function takes in a ``source`` string.
+    if unicode, encodes it using the specified ``encoding``.    
+    if bytes, returns unchanged - unless ``source_encoding``
+    is specified, in which case the bytes are transcoded
+    if and only if the source encoding doesn't match
+    the desired encoding.
+    all other types result in a :exc:`TypeError`.
+    
+    :arg source: source bytes/unicode to process
+    :arg encoding: target character encoding or ``None``.
+    :param source_encoding: optional source encoding
+    :param errname: optional name of variable/noun to reference when raising errors
+
+    :raises TypeError: if unicode encountered but ``encoding=None`` specified;
+                       or if source is not unicode or bytes.
+    
+    :returns: bytes object
+    
+    .. note::
+    
+        if ``encoding`` is set to ``None``, then unicode strings
+        will be rejected, and only byte strings will be allowed through.
+    """
+    if isinstance(source, bytes):
+        if source_encoding and encoding and \
+                not is_same_codec(source_encoding, encoding):
+            return source.decode(source_encoding).encode(encoding)
+        else:
+            return source
+    elif not encoding:
+        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))    
+    elif isinstance(source, unicode):
+        return source.encode(encoding)
+    elif source_encoding:
+        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
+                        (errname, source_encoding, type(source)))
+    else:
+        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
+    
+def to_unicode(source, source_encoding="utf-8", errname="value"):
+    """take in unicode or bytes, return unicode
+    
+    if bytes provided, decodes using specified encoding.
+    leaves unicode alone.
+    
+    :raises TypeError: if source is not unicode or bytes.
+    
+    :arg source: source bytes/unicode to process
+    :arg source_encoding: encoding to use when decoding bytes instances
+    :param errname: optional name of variable/noun to reference when raising errors
+
+    :returns: unicode object
+    """
+    if isinstance(source, unicode):
+        return source
+    elif not source_encoding:
+        raise TypeError("%s must be unicode, not %s" % (errname, type(source)))
+    elif isinstance(source, bytes):
+        return source.decode(source_encoding)
+    else:
+        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
+                        (errname, source_encoding, type(source)))
+
+#--------------------------------------------------
+#support utils
+#--------------------------------------------------
+def is_same_codec(left, right):
+    "check if two codecs names are aliases for same codec"
+    if left == right:
+        return True
+    if not (left and right):
+        return False
+    return _lookup_codec(left).name == _lookup_codec(right).name
 
 #=================================================================================
 #string helpers

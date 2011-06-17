@@ -5,7 +5,11 @@
 from __future__ import with_statement
 #core
 from cStringIO import StringIO
-from ConfigParser import ConfigParser, SafeConfigParser, InterpolationSyntaxError
+# Py2k #
+    #note: importing this to handle passlib 1.4 / earlier files
+from ConfigParser import ConfigParser, InterpolationSyntaxError
+# end Py2k #
+from ConfigParser import SafeConfigParser
 import inspect
 import re
 import hashlib
@@ -18,7 +22,8 @@ from warnings import warn
 from pkg_resources import resource_string
 #libs
 from passlib.registry import get_crypt_handler, _unload_handler_name
-from passlib.utils import Undef, is_crypt_handler, splitcomma, rng
+from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
+                          is_crypt_handler, splitcomma, rng
 #pkg
 #local
 __all__ = [
@@ -71,8 +76,13 @@ def _parse_policy_value(cat, name, opt, value):
 
 def parse_policy_items(source):
     "helper to parse CryptPolicy options"
+    # py2k #
     if hasattr(source, "iteritems"):
-        source = source.iteritems()
+        source = source.iteritems()    
+    # py3k #
+    #if hasattr(source, "items"):
+    #    source = source.items()        
+    # end py3k #
     for key, value in source:
         cat, name, opt = _parse_policy_key(key)
         if name == "context":
@@ -88,6 +98,7 @@ def parse_policy_items(source):
         value = _parse_policy_value(cat, name, opt, value)
         yield cat, name, opt, value
 
+# Py2k #
 def _is_legacy_parse_error(err):
     "helper for parsing config files"
     #NOTE: passlib 1.4 and earlier used ConfigParser,
@@ -110,6 +121,7 @@ def _is_legacy_parse_error(err):
     if value == "'%' must be followed by '%' or '(', found: '%'":
         return True
     return False
+# end Py2k #
 
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
@@ -148,63 +160,100 @@ class CryptPolicy(object):
 
     .. note::
         Instances of CryptPolicy should be treated as immutable.
+        Use the :meth:`replace` method to mutate existing instances.
     """
 
     #=========================================================
     #class methods
     #=========================================================
     @classmethod
-    def from_path(cls, path, section="passlib"):
+    def from_path(cls, path, section="passlib", encoding="utf-8"):
         """create new policy from specified section of an ini file.
 
         :arg path: path to ini file
         :param section: option name of section to read from.
+        :arg encoding: optional encoding (defaults to utf-8)
 
         :raises EnvironmentError: if the file cannot be read
 
         :returns: new CryptPolicy instance.
         """
-        p = SafeConfigParser()
-        if not p.read([path]):
-            raise EnvironmentError("failed to read config file")
-        try:
-            items = p.items(section)
-        except InterpolationSyntaxError, err:
-            if not _is_legacy_parse_error(err):
-                raise
-            #support for deprecated 1.4 behavior, will be removed in 1.6
-            warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=2)
-            p = ConfigParser()
-            if not p.read([path]):
-                raise EnvironmentError("failed to read config file")
-            items = p.items(section)
-        return cls(**dict(items))
+        #NOTE: we want config parser object to have native strings as keys.
+        #      so we parse as bytes under py2, and unicode under py3.
+        #      
+        #      encoding issues are handled under py2 via to_bytes(),
+        #      which ensures everything is utf-8 internally.
 
+        # Py2k #
+        if encoding == "utf-8":
+            #we want utf-8 anyways, so just load file in raw mode.
+            with open(path, "rb") as stream:
+                return cls._from_stream(stream, section, path)
+        else:
+            #kinda hacked - load whole file, transcode, and parse.
+            with open(path, "rb") as stream:
+                source = stream.read()
+            source = source.decode(encoding).encode("utf-8")
+            return cls._from_stream(StringIO(source), section, path)            
+        # Py3k #
+        #with open(path, "r", encoding=encoding) as stream:
+        #    return cls._from_stream(stream, section, path)
+        # end Py3k #
+        
     @classmethod
-    def from_string(cls, source, section="passlib"):
+    def from_string(cls, source, section="passlib", encoding="utf-8"):
         """create new policy from specified section of an ini-formatted string.
 
-        :arg source: string containing ini-formatted content.
+        :arg source: bytes/unicode string containing ini-formatted content.
         :param section: option name of section to read from.
+        :arg encoding: optional encoding if source is bytes (defaults to utf-8)
 
         :returns: new CryptPolicy instance.
         """
-        b = StringIO(source)
+        #NOTE: we want config parser object to have native strings as keys.
+        #      so we parse as bytes under py2, and unicode under py3.
+        #      to handle encoding issues under py2, we use
+        #      "to_bytes()" to transcode to utf-8 as needed.
+        
+        # Py2k #
+        source = to_bytes(source, "utf-8", source_encoding=encoding, errname="source")
+        # Py3k #
+        #source = to_unicode(source, encoding, errname="source")
+        # end Py3k #
+        return cls._from_stream(StringIO(source), section, "<???>")
+
+    @classmethod
+    def _from_stream(cls, stream, section, filename=None):
+        "helper for from_string / from_path"
+        # Py2k #
+        pos = stream.tell()
+        # end Py2k #
+
         p = SafeConfigParser()
-        p.readfp(b)
+        p.readfp(stream, filename or "<???>")
+
+        # Py2k #
         try:
             items = p.items(section)
         except InterpolationSyntaxError, err:
             if not _is_legacy_parse_error(err):
                 raise
             #support for deprecated 1.4 behavior, will be removed in 1.6
-            warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=2)
+            if filename:
+                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=3)                
+            else:
+                warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=3)
             p = ConfigParser()
-            b.seek(0)
-            p.readfp(b)
+            stream.seek(pos)
+            p.readfp(stream)
             items = p.items(section)
+            
+        # py3k #
+        #items = p.items(section)
+        # end py3k #
+        
         return cls(**dict(items))
-
+        
     @classmethod
     def from_source(cls, source):
         """create new policy from input.
@@ -226,7 +275,7 @@ class CryptPolicy(object):
         elif isinstance(source, dict):
             return cls(**source)
 
-        elif isinstance(source, (str,unicode)):
+        elif isinstance(source, (bytes,unicode)):
             #FIXME: this autodetection makes me uncomfortable...
             if any(c in source for c in "\n\r\t") or not source.strip(" \t./\;:"): #none of these chars should be in filepaths, but should be in config string
                 return cls.from_string(source)
@@ -608,6 +657,8 @@ class CryptPolicy(object):
     def _escape_ini_pair(self, k, v):
         if isinstance(v, str):
             v = v.replace("%", "%%") #escape any percent signs.
+        elif isinstance(v, (int, long)):
+            v = str(v)
         return k,v
 
     def _write_to_parser(self, parser, section):
@@ -619,15 +670,21 @@ class CryptPolicy(object):
 
     def to_file(self, stream, section="passlib"):
         "serialize to INI format and write to specified stream"
-        p = ConfigParser()
+        p = SafeConfigParser()
         self._write_to_parser(p, section)
         p.write(stream)
 
-    def to_string(self, section="passlib"):
+    def to_string(self, section="passlib", encoding=None):    
         "render to INI string; inverse of from_string() constructor"
-        b = StringIO()
-        self.to_file(b, section)
-        return b.getvalue()
+        buf = StringIO()
+        self.to_file(buf, section)
+        out = buf.getvalue()
+        # Py2k #
+        out = out.decode("utf-8")
+        # end Py2k #
+        if encoding:
+            out = out.encode(encoding)
+        return out
 
     ##def to_path(self, path, section="passlib", update=False):
     ##    "write to INI file"
