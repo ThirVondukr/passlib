@@ -119,6 +119,18 @@ native_str = bytes
 #native_str = unicode
 # end Py3k #
 
+#NOTE: have to provide b() because we're supporting py25,
+#      and py25 doesn't support the b'' notation.
+#      if py25 compat were sacrificed, this func could be removed.
+def b(source):
+    "convert native str to bytes (noop under py2; uses latin-1 under py3)"
+    #assert isinstance(source, native_str)    
+    # Py2k #
+    return source
+    # Py3k #
+    #return source.encode("latin-1")
+    # end Py3k #
+
 #=================================================================================
 #os crypt helpers
 #=================================================================================
@@ -299,6 +311,73 @@ def splitcomma(source, sep=","):
         for elem in source.split(sep)
         if elem.strip()
     ]
+
+#==========================================================
+#bytes helpers
+#==========================================================
+
+#some common constants / aliases
+BEMPTY = b('')
+
+#helpers for joining / extracting elements
+bjoin = BEMPTY.join
+
+def belem_join(elems):
+    """takes series of bytes elements, returns bytes.
+    
+    elem should be result of bytes[x].
+    this is another bytes instance under py2,
+    but it int under py3.
+    
+    returns bytes.
+    
+    this is bytes() constructor under py3,
+    but b"".join() under py2.
+    """
+    # Py2k #
+    return bjoin(elems)
+    # Py3k #
+    #return bytes(elems)
+    # end Py3k #
+
+#for efficiency, don't bother with above wrapper...
+# Py2k #
+belem_join = bjoin
+# Py3k #
+#belem_join = bytes
+# end Py3k #
+
+def bord(elem):
+    """takes bytes element, returns integer.
+    
+    elem should be result of bytes[x].
+    this is another bytes instance under py2,
+    but it int under py3.
+    
+    returns int in range(0,256).
+    
+    this is ord() under py2, and noop under py3.
+    """
+    # Py2k #
+    assert isinstance(elem, bytes)
+    return ord(elem)
+    # Py3k #
+    ##assert isinstance(elem, int)
+    #return elem
+    # end Py3k #
+
+#for efficiency, don't bother with wrapper
+# Py2k #
+bord = ord
+# end Py2k #
+
+def bchrs(*values):
+    "takes series of ints, returns bytes"
+    # Py2k #
+    return bjoin(chr(v) for v in values)
+    # Py3k #
+    #return bytes(values)
+    # end Py3k #
 
 #=================================================================================
 #numeric helpers

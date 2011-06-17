@@ -13,7 +13,7 @@ import warnings
 #module
 from passlib import utils
 from passlib.context import CryptContext
-from passlib.utils import h64, des, Undef, sys_bits
+from passlib.utils import h64, des, Undef, sys_bits, b
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
@@ -173,31 +173,31 @@ class H64_Test(TestCase):
     #=========================================================
     encoded_bytes = [
         #test lengths 0..6 to ensure tail is encoded properly
-        ("",""),
-        ("\x55","J/"),
-        ("\x55\xaa","Jd8"),
-        ("\x55\xaa\x55","JdOJ"),
-        ("\x55\xaa\x55\xaa","JdOJe0"),
-        ("\x55\xaa\x55\xaa\x55","JdOJeK3"),
-        ("\x55\xaa\x55\xaa\x55\xaa","JdOJeKZe"),
+        (b(""),b("")),
+        (b("\x55"),b("J/")),
+        (b("\x55\xaa"),b("Jd8")),
+        (b("\x55\xaa\x55"),b("JdOJ")),
+        (b("\x55\xaa\x55\xaa"),b("JdOJe0")),
+        (b("\x55\xaa\x55\xaa\x55"),b("JdOJeK3")),
+        (b("\x55\xaa\x55\xaa\x55\xaa"),b("JdOJeKZe")),
 
         #test padding bits are null
-        ("\x55\xaa\x55\xaf","JdOJj0"), # len = 1 mod 3
-        ("\x55\xaa\x55\xaa\x5f","JdOJey3"), # len = 2 mod 3
+        (b("\x55\xaa\x55\xaf"),b("JdOJj0")), # len = 1 mod 3
+        (b("\x55\xaa\x55\xaa\x5f"),b("JdOJey3")), # len = 2 mod 3
     ]
 
     decode_padding_bytes = [
         #len = 2 mod 4 -> 2 msb of last digit is padding
-        ("..", "\x00"), # . = h64.CHARS[0b000000]
-        (".0", "\x80"), # 0 = h64.CHARS[0b000010]
-        (".2", "\x00"), # 2 = h64.CHARS[0b000100]
-        (".U", "\x00"), # U = h64.CHARS[0b100000]
+        (b(".."), b("\x00")), # . = h64.CHARS[0b000000]
+        (b(".0"), b("\x80")), # 0 = h64.CHARS[0b000010]
+        (b(".2"), b("\x00")), # 2 = h64.CHARS[0b000100]
+        (b(".U"), b("\x00")), # U = h64.CHARS[0b100000]
 
         #len = 3 mod 4 -> 4 msb of last digit is padding
-        ("...", "\x00\x00"),
-        ("..6", "\x00\x80"), # 6 = h64.CHARS[0b001000]
-        ("..E", "\x00\x00"), # E = h64.CHARS[0b010000]
-        ("..U", "\x00\x00"),
+        (b("..."), b("\x00\x00")),
+        (b("..6"), b("\x00\x80")), # 6 = h64.CHARS[0b001000]
+        (b("..E"), b("\x00\x00")), # E = h64.CHARS[0b010000]
+        (b("..U"), b("\x00\x00")),
     ]
 
     def test_encode_bytes(self):
@@ -211,35 +211,44 @@ class H64_Test(TestCase):
             self.assertEqual(out, result)
 
         #wrong size (1 % 4)
-        self.assertRaises(ValueError, h64.decode_bytes, 'abcde')
+        self.assertRaises(ValueError, h64.decode_bytes, b('abcde'))
+
+        self.assertRaises(TypeError, h64.decode_bytes, u'abcd')
 
     def test_encode_int(self):
-        self.assertEqual(h64.encode_int(63, 11, True), '..........z')
-        self.assertEqual(h64.encode_int(63, 11), 'z..........')
+        self.assertEqual(h64.encode_int(63, 11, True), b('..........z'))
+        self.assertEqual(h64.encode_int(63, 11), b('z..........'))
 
         self.assertRaises(ValueError, h64.encode_int64, -1)
 
     def test_decode_int(self):
-        self.assertEqual(h64.decode_int64('...........'), 0)
+        self.assertEqual(h64.decode_int64(b('...........')), 0)
 
-        self.assertRaises(ValueError, h64.decode_int12, 'a?')
-        self.assertRaises(ValueError, h64.decode_int24, 'aaa?')
-        self.assertRaises(ValueError, h64.decode_int64, 'aaa?aaa?aaa')
-        self.assertRaises(ValueError, h64.decode_dc_int64, 'aaa?aaa?aaa')
+        self.assertRaises(ValueError, h64.decode_int12, b('a?'))
+        self.assertRaises(ValueError, h64.decode_int24, b('aaa?'))
+        self.assertRaises(ValueError, h64.decode_int64, b('aaa?aaa?aaa'))
+        self.assertRaises(ValueError, h64.decode_dc_int64, b('aaa?aaa?aaa'))
+
+        self.assertRaises(TypeError, h64.decode_int12, u'a'*2)
+        self.assertRaises(TypeError, h64.decode_int24, u'a'*4)
+        self.assertRaises(TypeError, h64.decode_int64, u'a'*11)
+        self.assertRaises(TypeError, h64.decode_dc_int64, u'a'*11)
 
     def test_decode_bytes_padding(self):
         for source, result in self.decode_padding_bytes:
             out = h64.decode_bytes(source)
             self.assertEqual(out, result)
+        self.assertRaises(TypeError, h64.decode_bytes, u'..')
 
     def test_decode_int6(self):
-        self.assertEquals(h64.decode_int6('.'),0)
-        self.assertEquals(h64.decode_int6('z'),63)
-        self.assertRaises(ValueError, h64.decode_int6, '?')
+        self.assertEquals(h64.decode_int6(b('.')),0)
+        self.assertEquals(h64.decode_int6(b('z')),63)
+        self.assertRaises(ValueError, h64.decode_int6, b('?'))
+        self.assertRaises(TypeError, h64.decode_int6, u'?')
 
     def test_encode_int6(self):
-        self.assertEquals(h64.encode_int6(0),'.')
-        self.assertEquals(h64.encode_int6(63),'z')
+        self.assertEquals(h64.encode_int6(0),b('.'))
+        self.assertEquals(h64.encode_int6(63),b('z'))
         self.assertRaises(ValueError, h64.encode_int6, -1)
         self.assertRaises(ValueError, h64.encode_int6, 64)
 
@@ -247,12 +256,12 @@ class H64_Test(TestCase):
     #test transposed encode/decode
     #=========================================================
     encode_transposed = [
-        ("\x33\x22\x11", "\x11\x22\x33",[2,1,0]),
-        ("\x22\x33\x11", "\x11\x22\x33",[1,2,0]),
+        (b("\x33\x22\x11"), b("\x11\x22\x33"),[2,1,0]),
+        (b("\x22\x33\x11"), b("\x11\x22\x33"),[1,2,0]),
     ]
 
     encode_transposed_dups = [
-        ("\x11\x11\x22", "\x11\x22\x33",[0,0,1]),
+        (b("\x11\x11\x22"), b("\x11\x22\x33"),[0,0,1]),
     ]
 
     def test_encode_transposed_bytes(self):
