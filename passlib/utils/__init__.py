@@ -38,6 +38,7 @@ __all__ = [
     #bytes<->unicode
     'to_bytes',
     'to_unicode',
+    'to_native_str',
     'is_same_codec',
 
     #byte manipulation
@@ -290,6 +291,38 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
         raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
                         (errname, source_encoding, type(source)))
 
+def to_native_str(source, encoding="utf-8", errname="value"):
+    """take in unicode or bytes, return native string
+    
+    python 2: encodes unicode using specified encoding, leaves bytes alone.
+    python 3: decodes bytes using specified encoding, leaves unicode alone.
+    
+    :raises TypeError: if source is not unicode or bytes.
+    
+    :arg source: source bytes/unicode to process
+    :arg encoding: encoding to use when encoding unicode / decoding bytes
+    :param errname: optional name of variable/noun to reference when raising errors
+
+    :returns: :class:`str` instance
+    """
+    assert encoding
+    if isinstance(source, bytes):
+        # Py2k #
+        return source
+        # Py3k #
+        #return source.decode(encoding)
+        # end Py3k #
+        
+    elif isinstance(source, unicode):
+        # Py2k #
+        return source.encode(encoding)
+        # Py3k #
+        #return source
+        # end Py3k #
+
+    else:
+        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
+
 #--------------------------------------------------
 #support utils
 #--------------------------------------------------
@@ -321,6 +354,7 @@ BEMPTY = b('')
 
 #helpers for joining / extracting elements
 bjoin = BEMPTY.join
+ujoin = u''.join
 
 def belem_join(elems):
     """takes series of bytes elements, returns bytes.
@@ -509,7 +543,7 @@ def genseed(value=None):
     #if value is rng, extract a bunch of bits from it's state
     if hasattr(value, "getrandbits"):
         value = value.getrandbits(256)
-    text = "%s %s %s %.15f %s" % (
+    text = u"%s %s %s %.15f %s" % (
         value,
             #if user specified a seed value (eg current rng state), mix it in
 
@@ -523,11 +557,11 @@ def genseed(value=None):
         time.time(),
             #the current time, to whatever precision os uses
 
-        os.urandom(16) if has_urandom else 0,
+        os.urandom(16).decode("latin-1") if has_urandom else 0,
             #if urandom available, might as well mix some bytes in.
         )
     #hash it all up and return it as int
-    return long(sha256(text).hexdigest(), 16)
+    return long(sha256(text.encode("utf-8")).hexdigest(), 16)
 
 if has_urandom:
     rng = random.SystemRandom()
@@ -548,18 +582,28 @@ def getrandbytes(rng, count):
     ##if meth:
     ##    return meth(count)
 
-    #XXX: break into chunks for large number of bits?
     if not count:
-        return ''
-    value = rng.getrandbits(count<<3)
-    buf = StringIO()
-    for i in xrange(count):
-        buf.write(chr(value & 0xff))
-        value //= 0xff
-    return buf.getvalue()
+        return BEMPTY
+    def helper():
+        #XXX: break into chunks for large number of bits?
+        value = rng.getrandbits(count<<3)
+        i = 0
+        while i < count:
+            # Py2k #
+            yield chr(value & 0xff)
+            # Py3k #
+            #yield value & 0xff
+            # end Py3k #
+            value >>= 3
+            i += 1
+    # Py2k #
+    return bjoin(helper())
+    # Py3k #
+    #return bytes(helper())
+    # end Py3k #
 
 def getrandstr(rng, charset, count):
-    """return character string containg *count* number of chars, whose elements are drawn from specified charset, using specified rng"""
+    """return string containing *count* number of chars/bytes, whose elements are drawn from specified charset, using specified rng"""
     #check alphabet & count
     if count < 0:
         raise ValueError("count must be >= 0")
@@ -570,16 +614,25 @@ def getrandstr(rng, charset, count):
         return charset * count
 
     #get random value, and write out to buffer
-    #XXX: break into chunks for large number of letters?
-    value = rng.randrange(0, letters**count)
-    buf = StringIO()
-    for i in xrange(count):
-        buf.write(charset[value % letters])
-        value //= letters
-    assert value == 0
-    return buf.getvalue()
+    def helper():
+        #XXX: break into chunks for large number of letters?
+        value = rng.randrange(0, letters**count)
+        i = 0
+        while i < count:
+            yield charset[value % letters]
+            value //= letters
+            i += 1
+    
+    if isinstance(charset, unicode):
+        return ujoin(helper())
+    else:
+        # Py2k #
+        return bjoin(helper())
+        # Py3k #
+        #return bytes(helper())
+        # end Py3k #
 
-def generate_password(size=10, charset=u'2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
+def generate_password(size=10, charset='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
     """generate random password using given length & chars
 
     :param size:

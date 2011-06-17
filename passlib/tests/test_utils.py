@@ -11,18 +11,25 @@ import warnings
 #site
 #pkg
 #module
-from passlib import utils
 from passlib.context import CryptContext
-from passlib.utils import h64, des, Undef, sys_bits, b
+from passlib import utils
+from passlib.utils import h64, des, Undef, sys_bits, bytes, b, \
+    native_str, to_bytes, to_unicode, to_native_str, \
+    is_same_codec
 from passlib.utils.md4 import md4
-from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
+from passlib.tests.utils import TestCase, Params as ak, \
+    enable_option, catch_warnings, SkipTest
 
-hb = unhexlify #'hex bytes'
+def hb(source):
+    return unhexlify(b(source))
 
 #=========================================================
 #byte funcs
 #=========================================================
-class UtilsTest(TestCase):
+class MiscTest(TestCase):
+    "tests various parts of utils module"
+
+    #NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
 
     def test_undef(self):
         "test Undef singleton"
@@ -35,16 +42,19 @@ class UtilsTest(TestCase):
         self.assertTrue(Undef!=True,)
 
     def test_getrandbytes(self):
+        "test getrandbytes()"
         def f(*a,**k):
             return utils.getrandbytes(utils.rng, *a, **k)
         self.assertEqual(len(f(0)), 0)
         a = f(10)
         b = f(10)
+        self.assertIsInstance(a, bytes)
         self.assertEqual(len(a), 10)
         self.assertEqual(len(b), 10)
         self.assertNotEqual(a, b)
 
     def test_getrandstr(self):
+        "test getrandstr()"
         def f(*a,**k):
             return utils.getrandstr(utils.rng, *a, **k)
 
@@ -61,20 +71,31 @@ class UtilsTest(TestCase):
         self.assertEqual(f('a',5), 'aaaaa')
 
         #letters
-        a = f('abc', 16)
-        b = f('abc', 16)
-        self.assertNotEqual(a,b)
-        self.assertEqual(sorted(set(a)), ['a','b','c'])
+        x = f(u'abc', 16)
+        y = f(u'abc', 16)
+        self.assertIsInstance(x, unicode)
+        self.assertNotEqual(x,y)
+        self.assertEqual(sorted(set(x)), [u'a',u'b',u'c'])
 
+        #bytes
+        x = f(b('abc'), 16)
+        y = f(b('abc'), 16)
+        self.assertIsInstance(x, bytes)
+        self.assertNotEqual(x,y)
+        #NOTE: decoding this due to py3 bytes
+        self.assertEqual(sorted(set(x.decode("ascii"))), [u'a',u'b',u'c'])
+        
         #generate_password
         self.assertEqual(len(utils.generate_password(15)), 15)
 
     def test_is_crypt_context(self):
+        "test is_crypt_context()"
         cc = CryptContext(["des_crypt"])
         self.assertTrue(utils.is_crypt_context(cc))
         self.assertFalse(not utils.is_crypt_context(cc))
 
     def test_genseed(self):
+        "test genseed()"
         rng = utils.random.Random(utils.genseed())
         a = rng.randint(0, 100000)
 
@@ -85,6 +106,120 @@ class UtilsTest(TestCase):
 
         rng.seed(utils.genseed(rng))
 
+#=========================================================
+#byte/unicode helpers
+#=========================================================
+class CodecTest(TestCase):
+    "tests bytes/unicode helpers in passlib.utils"
+    
+    def test_bytes(self):
+        "test b() helper, bytes and native_str types"
+        # Py2k #
+        self.assertIs(bytes, type(''))
+        self.assertIs(native_str, bytes)
+        # Py3k #
+        #self.assertIs(bytes, type(b''))
+        #self.assertIs(native_str, unicode)
+        # end Py3k #
+
+        self.assertIsInstance(b(''), bytes)
+        self.assertIsInstance(b('\x00\xff'), bytes)
+        # Py2k #
+        self.assertEqual(b('\x00\xff'), "\x00\xff")
+        # Py3k #
+        #self.assertEqual(b('\x00\xff'), b"\x00\xff")
+        # end Py3k #
+        
+    def test_to_bytes(self):
+        "test to_bytes()"
+        
+        #check unicode inputs
+        self.assertEqual(to_bytes(u'abc'),                  b('abc'))
+        self.assertEqual(to_bytes(u'\x00\xff'),             b('\x00\xc3\xbf'))
+        
+        #check unicode w/ encodings
+        self.assertEqual(to_bytes(u'\x00\xff', 'latin-1'),  b('\x00\xff'))
+        self.assertRaises(ValueError, to_bytes, u'\x00\xff', 'ascii')
+        self.assertRaises(TypeError, to_bytes, u'abc',      None)
+
+        #check bytes inputs
+        self.assertEqual(to_bytes(b('abc')),                b('abc'))
+        self.assertEqual(to_bytes(b('\x00\xff')),           b('\x00\xff'))
+        self.assertEqual(to_bytes(b('\x00\xc3\xbf')),       b('\x00\xc3\xbf'))
+
+        #check byte inputs ignores enocding
+        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1"),
+                                                            b('\x00\xc3\xbf'))        
+        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), None, "utf-8"),
+                                                            b('\x00\xc3\xbf'))
+        
+        #check bytes transcoding
+        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "utf-8"),
+                                                            b('\x00\xff'))
+    
+        #check other
+        self.assertRaises(TypeError, to_bytes, None)
+
+    def test_to_unicode(self):
+        "test to_unicode()"
+        
+        #check unicode inputs
+        self.assertEqual(to_unicode(u'abc'),                u'abc')
+        self.assertEqual(to_unicode(u'\x00\xff'),           u'\x00\xff')
+        
+        #check unicode input ignores encoding
+        self.assertEqual(to_unicode(u'\x00\xff', None),     u'\x00\xff')
+        self.assertEqual(to_unicode(u'\x00\xff', "ascii"),  u'\x00\xff')
+        
+        #check bytes input
+        self.assertEqual(to_unicode(b('abc')),              u'abc')
+        self.assertEqual(to_unicode(b('\x00\xc3\xbf')),     u'\x00\xff')
+        self.assertEqual(to_unicode(b('\x00\xff'), 'latin-1'),
+                                                            u'\x00\xff')
+        self.assertRaises(ValueError, to_unicode, b('\x00\xff'))
+        self.assertRaises(TypeError, to_unicode, b('\x00\xff'), None)
+        
+        #check other
+        self.assertRaises(TypeError, to_unicode, None)
+        
+    def test_to_native_str(self):
+        "test to_native_str()"
+        
+        self.assertEqual(to_native_str(u'abc'),             'abc')
+        self.assertEqual(to_native_str(b('abc')),           'abc')
+        self.assertRaises(TypeError, to_native_str, None)
+
+        # Py2k #
+        self.assertEqual(to_native_str(u'\x00\xff'),        b('\x00\xc3\xbf'))
+        self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  b('\x00\xc3\xbf'))
+        self.assertEqual(to_native_str(u'\x00\xff', 'latin-1'),
+                                                            b('\x00\xff'))
+        self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
+                                                            b('\x00\xff'))
+        
+        # Py3k #
+        #self.assertEqual(to_native_str(u'\x00\xff'),        '\x00\xff')
+        #self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  '\x00\xff')
+        #self.assertEqual(to_native_str(u'\x00\xff', 'latin-1'),
+        #                                                    '\x00\xff')
+        #self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
+        #                                                    '\x00\xff')
+        #
+        # end Py3k #
+    def test_is_same_codec(self):
+        "test is_same_codec()"
+        self.assertTrue(is_same_codec(None, None))
+        self.assertFalse(is_same_codec(None, 'ascii'))
+        
+        self.assertTrue(is_same_codec("ascii", "ascii"))
+        self.assertTrue(is_same_codec("ascii", "ASCII"))
+                        
+        self.assertTrue(is_same_codec("utf-8", "utf-8"))
+        self.assertTrue(is_same_codec("utf-8", "utf8"))
+        self.assertTrue(is_same_codec("utf-8", "UTF_8"))
+
+        self.assertFalse(is_same_codec("ascii", "utf-8"))
+        
 #=========================================================
 #test des module
 #=========================================================
@@ -293,24 +428,30 @@ class MD4_Test(TestCase):
 
     vectors = [
         # input -> hex digest
-        ("", "31d6cfe0d16ae931b73c59d7e0c089c0"),
-        ("a", "bde52cb31de33e46245e05fbdbd6fb24"),
-        ("abc", "a448017aaf21d8525fc10ae87aa6729d"),
-        ("message digest", "d9130a8164549fe818874806e1c7014b"),
-        ("abcdefghijklmnopqrstuvwxyz", "d79e1c308aa5bbcdeea8ed63df412da9"),
-        ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "043f8582f241db351ce627e153e7f0e4"),
-        ("12345678901234567890123456789012345678901234567890123456789012345678901234567890", "e33b4ddc9c38f2199c3e7b164fcc0536"),
+        (b(""), "31d6cfe0d16ae931b73c59d7e0c089c0"),
+        (b("a"), "bde52cb31de33e46245e05fbdbd6fb24"),
+        (b("abc"), "a448017aaf21d8525fc10ae87aa6729d"),
+        (b("message digest"), "d9130a8164549fe818874806e1c7014b"),
+        (b("abcdefghijklmnopqrstuvwxyz"), "d79e1c308aa5bbcdeea8ed63df412da9"),
+        (b("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"), "043f8582f241db351ce627e153e7f0e4"),
+        (b("12345678901234567890123456789012345678901234567890123456789012345678901234567890"), "e33b4ddc9c38f2199c3e7b164fcc0536"),
     ]
 
     def test_md4_update(self):
         "test md4 update"
-        h = md4('')
+        h = md4(b(''))
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
+        
+        #NOTE: under py2, hashlib methods try to encode to ascii,
+        #      though shouldn't rely on that. 
+        # Py3k #
+        #self.assertRaises(TypeError, h.update, u'x')
+        # end Py3k #
 
-        h.update('a')
+        h.update(b('a'))
         self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")
 
-        h.update('bcdefghijklmnopqrstuvwxyz')
+        h.update(b('bcdefghijklmnopqrstuvwxyz'))
         self.assertEqual(h.hexdigest(), "d79e1c308aa5bbcdeea8ed63df412da9")
 
     def test_md4_hexdigest(self):
@@ -323,17 +464,17 @@ class MD4_Test(TestCase):
         "test md4 digest()"
         for input, hex in self.vectors:
             out = md4(input).digest()
-            self.assertEqual(hexlify(out), hex)
+            self.assertEqual(to_native_str(hexlify(out)), hex)
 
     def test_md4_copy(self):
         "test md4 copy()"
-        h = md4('abc')
+        h = md4(b('abc'))
 
         h2 = h.copy()
-        h2.update('def')
+        h2.update(b('def'))
         self.assertEquals(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
 
-        h.update('ghi')
+        h.update(b('ghi'))
         self.assertEquals(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
 
 #=========================================================
@@ -352,7 +493,7 @@ class KdfTest(TestCase):
         "test pbkdf1"
         for secret, salt, rounds, klen, hash, correct in [
             #http://www.di-mgt.com.au/cryptoKDFs.html
-            ('password', hb('78578E5A5D63CB06'), 1000, 16, 'sha1',
+            (b('password'), hb('78578E5A5D63CB06'), 1000, 16, 'sha1',
                 hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
         ]:
             result = pbkdf2.pbkdf1(secret, salt, rounds, klen, hash)
@@ -392,44 +533,44 @@ class _Pbkdf2BackendTest(TestCase):
 
             #test case 1 / 128 bit
             (
-                unhexlify("cdedb5281bb2f801565a1122b2563515"),
-                "password", "ATHENA.MIT.EDUraeburn", 1, 16
+                hb("cdedb5281bb2f801565a1122b2563515"),
+                b("password"), b("ATHENA.MIT.EDUraeburn"), 1, 16
             ),
 
             #test case 2 / 128 bit
             (
-                unhexlify("01dbee7f4a9e243e988b62c73cda935d"),
-                "password", "ATHENA.MIT.EDUraeburn", 2, 16
+                hb("01dbee7f4a9e243e988b62c73cda935d"),
+                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 16
             ),
 
             #test case 2 / 256 bit
             (
-                unhexlify("01dbee7f4a9e243e988b62c73cda935da05378b93244ec8f48a99e61ad799d86"),
-                "password", "ATHENA.MIT.EDUraeburn", 2, 32
+                hb("01dbee7f4a9e243e988b62c73cda935da05378b93244ec8f48a99e61ad799d86"),
+                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 32
             ),
 
             #test case 3 / 256 bit
             (
-                unhexlify("5c08eb61fdf71e4e4ec3cf6ba1f5512ba7e52ddbc5e5142f708a31e2e62b1e13"),
-                "password", "ATHENA.MIT.EDUraeburn", 1200, 32
+                hb("5c08eb61fdf71e4e4ec3cf6ba1f5512ba7e52ddbc5e5142f708a31e2e62b1e13"),
+                b("password"), b("ATHENA.MIT.EDUraeburn"), 1200, 32
             ),
 
             #test case 4 / 256 bit
             (
-                unhexlify("d1daa78615f287e6a1c8b120d7062a493f98d203e6be49a6adf4fa574b6e64ee"),
-                "password", '\x12\x34\x56\x78\x78\x56\x34\x12', 5, 32
+                hb("d1daa78615f287e6a1c8b120d7062a493f98d203e6be49a6adf4fa574b6e64ee"),
+                b("password"), b('\x12\x34\x56\x78\x78\x56\x34\x12'), 5, 32
             ),
 
             #test case 5 / 256 bit
             (
-                unhexlify("139c30c0966bc32ba55fdbf212530ac9c5ec59f1a452f5cc9ad940fea0598ed1"),
-                "X"*64, "pass phrase equals block size", 1200, 32
+                hb("139c30c0966bc32ba55fdbf212530ac9c5ec59f1a452f5cc9ad940fea0598ed1"),
+                b("X"*64), b("pass phrase equals block size"), 1200, 32
             ),
 
             #test case 6 / 256 bit
             (
-                unhexlify("9ccad6d468770cd51b10e6a68721be611a8b4d282601db3b36be9246915ec82a"),
-                "X"*65, "pass phrase exceeds block size", 1200, 32
+                hb("9ccad6d468770cd51b10e6a68721be611a8b4d282601db3b36be9246915ec82a"),
+                b("X"*65), b("pass phrase exceeds block size"), 1200, 32
             ),
         ])
 
@@ -438,18 +579,18 @@ class _Pbkdf2BackendTest(TestCase):
         self.assertFunctionResults(pbkdf2.pbkdf2, [
 
             (
-                unhexlify("0c60c80f961f0e71f3a9b524af6012062fe037a6"),
-                "password", "salt" , 1, 20,
+                hb("0c60c80f961f0e71f3a9b524af6012062fe037a6"),
+                b("password"), b("salt"), 1, 20,
             ),
 
             (
-                unhexlify("ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957"),
-                "password", "salt", 2, 20,
+                hb("ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957"),
+                b("password"), b("salt"), 2, 20,
             ),
 
             (
-                unhexlify("4b007901b765489abead49d926f721d065a429c1"),
-                "password", "salt", 4096, 20,
+                hb("4b007901b765489abead49d926f721d065a429c1"),
+                b("password"), b("salt"), 4096, 20,
             ),
 
             #just runs too long - could enable if ALL option is set
@@ -460,51 +601,51 @@ class _Pbkdf2BackendTest(TestCase):
             ##),
 
             (
-                unhexlify("3d2eec4fe41c849b80c8d83662c0e44a8b291a964cf2f07038"),
-                "passwordPASSWORDpassword",
-                "saltSALTsaltSALTsaltSALTsaltSALTsalt",
+                hb("3d2eec4fe41c849b80c8d83662c0e44a8b291a964cf2f07038"),
+                b("passwordPASSWORDpassword"),
+                b("saltSALTsaltSALTsaltSALTsaltSALTsalt"),
                 4096, 25,
             ),
 
             (
-                unhexlify("56fa6aa75548099dcc37d7f03425e0c3"),
-                "pass\00word", "sa\00lt", 4096, 16,
+                hb("56fa6aa75548099dcc37d7f03425e0c3"),
+                b("pass\00word"), b("sa\00lt"), 4096, 16,
             ),
         ])
 
     def test_invalid_values(self):
 
         #invalid rounds
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', -1, 16)
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 0, 16)
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 'salt', 'x', 16)
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), -1, 16)
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 0, 16)
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 'x', 16)
 
         #invalid keylen
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 20*(2**32-1)+1)
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 20*(2**32-1)+1)
 
         #invalid salt type
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 5, 1, 10)
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), 5, 1, 10)
 
         #invalid secret type
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, 5, 'salt', 1, 10)
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, 5, b('salt'), 1, 10)
 
         #invalid hash
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 'hmac-foo')
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 'foo')
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, 'password', 'salt', 1, 16, 5)
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'hmac-foo')
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'foo')
+        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 5)
 
     def test_hmac_sha1(self):
         "test independant hmac_sha1() method"
         self.assertEqual(
-            pbkdf2.hmac_sha1("secret", "salt"),
-            '\xfc\xd4\x0c;]\r\x97\xc6\xf1S\x8d\x93\xb9\xeb\xc6\x00\x04.\x8b\xfe'
+            pbkdf2.hmac_sha1(b("secret"), b("salt")),
+            b('\xfc\xd4\x0c;]\r\x97\xc6\xf1S\x8d\x93\xb9\xeb\xc6\x00\x04.\x8b\xfe')
             )
 
-    def test_hmac_sha1_string(self):
+    def test_sha1_string(self):
         "test various prf values"
         self.assertEqual(
-            pbkdf2.pbkdf2(u"secret", u"salt", 10, 16, "hmac-sha1"),
-            '\xe2H\xfbk\x136QF\xf8\xacc\x07\xcc"(\x12'
+            pbkdf2.pbkdf2(b("secret"), b("salt"), 10, 16, "hmac-sha1"),
+            b('\xe2H\xfbk\x136QF\xf8\xacc\x07\xcc"(\x12')
         )
 
     def test_sha512_string(self):
@@ -514,9 +655,9 @@ class _Pbkdf2BackendTest(TestCase):
 
             #case taken from example in http://grub.enbug.org/Authentication
             (
-               unhexlify("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
-               "hello",
-               unhexlify("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
+               hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
+               b("hello"),
+               hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
                10000, 64, "hmac-sha512"
             ),
         ])
@@ -531,9 +672,9 @@ class _Pbkdf2BackendTest(TestCase):
 
             #case taken from example in http://grub.enbug.org/Authentication
             (
-               unhexlify("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
-               "hello",
-               unhexlify("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
+               hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
+               b("hello"),
+               hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
                10000, 64, prf,
             ),
         ])

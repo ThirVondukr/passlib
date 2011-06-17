@@ -15,6 +15,7 @@ from binascii import hexlify
 import struct
 from warnings import warn
 #site
+from passlib.utils import b, bytes, to_native_str
 #local
 __all__ = [ "md4" ]
 #=========================================================================
@@ -71,7 +72,7 @@ class md4(object):
     def __init__(self, content=None):
         self._count = 0
         self._state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
-        self._buf = ''
+        self._buf = b('')
         if content:
             self.update(content)
 
@@ -173,6 +174,8 @@ class md4(object):
             orig[i] = (orig[i]+state[i]) & MASK_32
 
     def update(self, content):
+        if not isinstance(content, bytes):
+            raise TypeError("expected bytes")
         buf = self._buf
         if buf:
             content = buf + content
@@ -205,7 +208,7 @@ class md4(object):
         # then last 8 bytes = msg length in bits
         buf = self._buf
         msglen = self._count*512 + len(buf)*8
-        block = buf + '\x80' + '\x00' * ((119-len(buf)) % 64) + \
+        block = buf + b('\x80') + b('\x00') * ((119-len(buf)) % 64) + \
             struct.pack("<2I", msglen & MASK_32, (msglen>>32) & MASK_32)
         if len(block) == 128:
             self._process(block[:64])
@@ -220,7 +223,8 @@ class md4(object):
         return out
 
     def hexdigest(self):
-        return hexlify(self.digest())
+        return to_native_str(hexlify(self.digest()), "latin-1")
+        
     #=========================================================================
     #eoc
     #=========================================================================
@@ -252,7 +256,7 @@ if _has_native_md4():
     #overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         "wrapper for hashlib.new('md4')"
-        return hashlib.new('md4', content or '')
+        return hashlib.new('md4', content or b(''))
 else:
     del hashlib
 

@@ -8,7 +8,6 @@ maybe rename to "kdf" since it's getting more key derivation functions added.
 #=================================================================================
 #core
 from binascii import unhexlify
-from cStringIO import StringIO
 import hashlib
 import hmac
 import logging; log = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ try:
 except ImportError:
     _EVP = None
 #pkg
-from passlib.utils import xor_bytes
+from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
 #local
 __all__ = [
     "hmac_sha1",
@@ -29,6 +28,12 @@ __all__ = [
     "pbkdf1",
     "pbkdf2",
 ]
+
+# Py2k #
+from cStringIO import StringIO as BytesIO
+# Py3k #
+#from io import BytesIO
+# end Py3k #
 
 #=================================================================================
 #quick hmac_sha1 implementation used various places
@@ -40,12 +45,12 @@ def hmac_sha1(key, msg):
 if _EVP:
     #default *should* be sha1, which saves us a wrapper function, but might as well check.
     try:
-        result = _EVP.hmac('x','y')
+        result = _EVP.hmac(b('x'),b('y'))
     except ValueError: #pragma: no cover
         #this is probably not a good sign if it happens.
         warn("PassLib: M2Crypt.EVP.hmac() unexpected threw value error during passlib startup test")
     else:
-        if result == ',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i':
+        if result == b(',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i'):
             hmac_sha1 = _EVP.hmac
 
 #=================================================================================
@@ -56,7 +61,7 @@ def _get_hmac_prf(digest):
     #check if m2crypto is present and supports requested digest
     if _EVP:
         try:
-            result = _EVP.hmac('x', 'y', digest)
+            result = _EVP.hmac(b('x'), b('y'), digest)
         except ValueError:
             pass
         else:
@@ -132,14 +137,14 @@ def get_prf(name):
     global _prf_cache
     if name in _prf_cache:
         return _prf_cache[name]
-    if isinstance(name, str):
+    if isinstance(name, native_str):
         if name.startswith("hmac-") or name.startswith("hmac_"):
             retval = _get_hmac_prf(name[5:])
         else:
             raise ValueError("unknown prf algorithm: %r" % (name,))
     elif callable(name):
         #assume it's a callable, use it directly
-        digest_size = len(name('x','y'))
+        digest_size = len(name(b('x'),b('y')))
         retval = (name, digest_size)
     else:
         raise TypeError("prf must be string or callable")
@@ -175,19 +180,11 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
     than the digest size of the specified hash.
     
     """
-    #prepare secret
-    if isinstance(secret, unicode):
-        secret = secret.encode(encoding)
-    elif not isinstance(secret, str):
-        raise TypeError("secret must be str or unicode")
+    #prepare secret & salt
+    secret = to_bytes(secret, encoding, errname="secret")
+    salt = to_bytes(salt, encoding, errname="salt")
 
-    #prepare salt
-    if isinstance(salt, unicode):
-        salt = salt.encode(encoding)
-    elif not isinstance(salt, str):
-        raise TypeError("salt must be str or unicode")
-
-    #preprare rounds
+    #prepare rounds
     if not isinstance(rounds, (int, long)):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
@@ -198,7 +195,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
         raise ValueError("keylen must be at least 0")
 
     #resolve hash
-    if isinstance(hash, str):
+    if isinstance(hash, native_str):
         #check for builtin hash
         hf = getattr(hashlib, hash, None)
         if hf is None:
@@ -244,20 +241,11 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1", encoding="utf8"):
     :returns:
         raw bytes of generated key
     """
+    #prepare secret & salt
+    secret = to_bytes(secret, encoding, errname="secret")
+    salt = to_bytes(salt, encoding, errname="salt")
 
-    #prepare secret
-    if isinstance(secret, unicode):
-        secret = secret.encode(encoding)
-    elif not isinstance(secret, str):
-        raise TypeError("secret must be str or unicode")
-
-    #prepare salt
-    if isinstance(salt, unicode):
-        salt = salt.encode(encoding)
-    elif not isinstance(salt, str):
-        raise TypeError("salt must be str or unicode")
-
-    #preprare rounds
+    #prepare rounds
     if not isinstance(rounds, (int, long)):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
@@ -284,7 +272,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1", encoding="utf8"):
         raise ValueError("key length to long")
 
     #build up key from blocks
-    out = StringIO()
+    out = BytesIO()
     write = out.write
     for i in xrange(1,bcount+1):
         block = tmp = encode_block(secret, salt + pack(">L", i))
