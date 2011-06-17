@@ -109,31 +109,48 @@ class TestCase(unittest.TestCase):
     easier to distinguish from eachother.
     """
 
+    #=============================================================
+    #make it ease for test cases to add common prefix to all descs
+    #=============================================================
+    #: string or method returning string - prepended to all tests in TestCase
     case_prefix = None
 
-    def __init__(self, *a, **k):
-        #set the doc strings for all test messages to begin w/ case_prefix
-        #yes, this is incredibly hacked.
+    #: flag to disable feature
+    longDescription = True
+        
+    def shortDescription(self):
+        "wrap shortDescription() method to prepend case_prefix"
+        desc = super(TestCase, self).shortDescription()
+        if desc is None:
+            #would still like to add prefix, but munges things up.
+            return None
         prefix = self.case_prefix
-        if prefix:
+        if prefix and self.longDescription:
             if callable(prefix):
                 prefix = prefix()
-            for attr in dir(self):
-                if not attr.startswith("test"):
-                    continue
-                v = getattr(self, attr)
-                if not hasattr(v, "im_func"):
-                    continue
-                d = v.im_func.__doc__ or v.im_func.__name__
-                idx = d.find(": ")
-                if idx > -1:
-                    d = d[idx+1:]
-                v.im_func.__doc__ = d = "%s: %s" % (prefix, d.lstrip())
-                assert v.__doc__ == d
-        unittest.TestCase.__init__(self, *a, **k)
+            desc = "%s: %s" % (prefix, desc)
+        return desc
 
+    #============================================================
+    # tweak msg formatting for some assert methods
+    #============================================================    
+    #NOTE: most of this is _format_msg() hack would could be
+    #      better implemented by overridding _formatMessage()
+    #      under unittest2 - but should keep it till we abandon ut1
+
+    def _format_msg(self, msg, template, *args, **kwds):
+        "helper for generating default message"
+        if msg and not msg.endswith(":"):
+            return msg
+        if args:
+            template %= args
+        if kwds:
+            template %= kwds
+        if msg:
+            return msg + " " + template
+        return template
+    
     def assertEquals(self, real, correct, msg=None):
-        #NOTE: overriding this to get msg formatting capability
         msg = self._format_msg(msg, "got %r, expected would equal %r", real, correct)
         return self.assert_(real == correct, msg)
 
@@ -141,13 +158,31 @@ class TestCase(unittest.TestCase):
         return self.assertEquals(*a, **k)
 
     def assertNotEquals(self, real, correct, msg=None):
-        #NOTE: overriding this to get msg formatting capability
         msg = self._format_msg(msg, "got %r, expected would not equal %r", real, correct)
         return self.assert_(real != correct, msg)
 
     def assertNotEqual(self, *a, **k):
         return self.assertNotEquals(*a, **k)
 
+    def assertRaises(self, type, func, *args, **kwds):
+        #NOTE: overriding this for format ability,
+        #      but ALSO adding "__msg__" kwd so we can set custom msg
+        msg = kwds.pop("__msg__", None)
+        try:
+            result = func(*args, **kwds)
+        except Exception, err:
+            if isinstance(err, type):
+                return True
+            import traceback, sys
+            print >>sys.stderr, traceback.print_exception(*sys.exc_info())
+            msg = self._format_msg(msg, "function raised %r, expected %r", err, type)
+            raise AssertionError(msg)
+        msg = self._format_msg(msg, "function returned %r, expected it to raise %r", result, type)
+        raise AssertionError(msg)
+
+    #============================================================
+    #add some extra methods (these are present in unittest2)
+    #============================================================    
     def assertIs(self, real, correct, msg=None):
         msg = self._format_msg(msg, "got %r, expected would be %r", real, correct)
         return self.assert_(real is correct, msg)
@@ -160,18 +195,9 @@ class TestCase(unittest.TestCase):
         msg = self._format_msg(msg, "got %r, expected instance of %r", obj, klass)
         return self.assert_(isinstance(obj, klass), msg)
 
-    def assertRaises(self, type, func, *args, **kwds):
-        msg = kwds.pop("__msg__", None)
-        try:
-            result = func(*args, **kwds)
-        except Exception, err:
-            if isinstance(err, type):
-                return True
-            msg = self._format_msg(msg, "function raised %r, expected %r", err, type)
-            raise AssertionError(msg)
-        msg = self._format_msg(msg, "function returned %r, expected it to raise %r", result, type)
-        raise AssertionError(msg)
-
+    #============================================================
+    #add some custom methods
+    #============================================================    
     def assertFunctionResults(self, func, cases):
         """helper for running through function calls.
 
@@ -188,17 +214,9 @@ class TestCase(unittest.TestCase):
                     "error for case %s: got %r, expected would equal %r" % (elem.render(1), result, correct)
                     )
 
-    def _format_msg(self, msg, template, *args, **kwds):
-        "helper for generating default message"
-        if msg and not msg.endswith(":"):
-            return msg
-        if args:
-            template %= args
-        if kwds:
-            template %= kwds
-        if msg:
-            return msg + " " + template
-        return template
+    #============================================================
+    #eoc
+    #============================================================    
 
 #=========================================================
 #other unittest helpers
