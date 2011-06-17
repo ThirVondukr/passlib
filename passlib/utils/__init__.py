@@ -372,12 +372,19 @@ bord = ord
 # end Py2k #
 
 def bchrs(*values):
-    "takes series of ints, returns bytes"
+    "takes series of ints, returns bytes; like chr() but for bytes, and w/ multi args"
     # Py2k #
     return bjoin(chr(v) for v in values)
     # Py3k #
     #return bytes(values)
     # end Py3k #
+
+# Py2k #
+def bjoin_ints(values):
+    return bjoin(chr(v) for v in values)
+# Py3k #
+#bjoin_ints = bytes
+# end Py3k #
 
 #=================================================================================
 #numeric helpers
@@ -422,21 +429,25 @@ def bytes_to_int(value):
     "decode string of bytes as single big-endian integer"
     out = 0
     for v in value:
-        out = (out<<8) | ord(v)
+        out = (out<<8) | bord(v)
     return out
 
 def int_to_bytes(value, count):
     "encodes integer into single big-endian byte string"
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
-    return ''.join(
-        chr((value>>s) & 0xff)
+    return bjoin_ints(
+        ((value>>s) & 0xff)
         for s in xrange(8*count-8,-8,-8)
     )
 
-_join = "".join
 def xor_bytes(left, right):
     "perform bitwise-xor of two byte-strings"
-    return _join(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+    #NOTE: this could use bjoin_ints(), but speed is *really* important here (c.f. PBKDF2)
+    # Py2k #
+    return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+    # Py3k #
+    #return bytes(l ^ r for l, r in zip(left, right))
+    # end Py3k #
 
 #=================================================================================
 #alt base64 encoding

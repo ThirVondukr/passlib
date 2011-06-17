@@ -43,7 +43,7 @@ which has some nice notes on how this all works -
 #imports
 #=========================================================
 #pkg
-from passlib.utils import bytes_to_int, int_to_bytes
+from passlib.utils import bytes_to_int, int_to_bytes, bytes, bord, bjoin_ints
 #local
 __all__ = [
     "expand_des_key",
@@ -571,45 +571,54 @@ def permute(c, p):
 #=========================================================
 #des frontend
 #=========================================================
-def expand_des_key(source):
+def expand_des_key(key):
     "convert 7 byte des key to 8 byte des key (by adding parity bit every 7 bits)"
+    if not isinstance(key, bytes):
+        raise TypeError("key must be bytes, not %s" % (type(key),))
+    
     #NOTE: could probably do this much more cleverly and efficiently,
     # but no need really given it's use.
 
     #NOTE: the parity bits are generally ignored, including by des_encrypt_block below
-    assert len(source) == 7
+    assert len(key) == 7
 
     def iter_bits(source):
         for c in source:
-            v = ord(c)
+            v = bord(c)
             for i in xrange(7,-1,-1):
                 yield (v>>i) & 1
 
     out = 0
     p = 1
-    for i, b in enumerate(iter_bits(source)):
+    for i, b in enumerate(iter_bits(key)):
         out = (out<<1) + b
         p ^= b
         if i % 7 == 6:
             out = (out<<1) + p
             p = 1
 
-    return ''.join(
-        chr((out>>s) & 0xFF)
+    return bjoin_ints(
+        ((out>>s) & 0xFF)
         for s in xrange(8*7,-8,-8)
     )
 
 def des_encrypt_block(key, input):
     """do traditional encryption of a single DES block
 
-    :arg key: 8 byte des key string
-    :arg input: 8 byte plaintext string
-    :returns: 8 byte ciphertext string
+    :arg key: 8 byte des key 
+    :arg input: 8 byte plaintext
+    :returns: 8 byte ciphertext
+    
+    all values must be :class:`bytes`
     """
-    assert len(input) == 8
+    if not isinstance(key, bytes):
+        raise TypeError("key must be bytes, not %s" % (type(key),))
     if len(key) == 7:
         key = expand_des_key(key)
     assert len(key) == 8
+    if not isinstance(input, bytes):
+        raise TypeError("input must be bytes, not %s" % (type(input),))
+    assert len(input) == 8
     input = bytes_to_int(input)
     key = bytes_to_int(key)
     out = mdes_encrypt_int_block(key, input, 0, 1)

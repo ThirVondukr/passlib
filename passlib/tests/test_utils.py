@@ -96,7 +96,7 @@ class DesTest(TestCase):
     test_des_vectors = [
         (line[4:20], line[21:37], line[38:54])
         for line in
- """    0000000000000000 0000000000000000 8CA64DE9C1B123A7
+b("""    0000000000000000 0000000000000000 8CA64DE9C1B123A7
     FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF 7359B2163E4EDC58
     3000000000000000 1000000000000001 958E6E627A05557B
     1111111111111111 1111111111111111 F40379AB9E0EC533
@@ -130,7 +130,7 @@ class DesTest(TestCase):
     FFFFFFFFFFFFFFFF 0000000000000000 CAAAAF4DEAF1DBAE
     0123456789ABCDEF 0000000000000000 D5D44FF720683D0D
     FEDCBA9876543210 FFFFFFFFFFFFFFFF 2A2BB008DF97C2F2
-    """.split("\n") if line.strip()
+    """).split(b("\n")) if line.strip()
     ]
 
     def test_des_encrypt_block(self):
@@ -143,7 +143,7 @@ class DesTest(TestCase):
 
         #test 7 byte key
         #FIXME: use a better key
-        k,p,c = '00000000000000', 'FFFFFFFFFFFFFFFF', '355550B2150E2451'
+        k,p,c = b('00000000000000'), b('FFFFFFFFFFFFFFFF'), b('355550B2150E2451')
         k = unhexlify(k)
         p = unhexlify(p)
         c = unhexlify(c)
