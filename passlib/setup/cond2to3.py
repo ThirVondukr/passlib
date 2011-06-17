@@ -53,7 +53,7 @@ def preprocess(data, name):
                 idx += 1
                 continue
             #states 1 this is an error...
-            raise SyntaxError("unexpected py3k-start marker on line %d of %r" % (idx, name))
+            raise SyntaxError("unexpected py3k-start marker on line %d of %r: %r" % (idx, name, line))
 
         #check for py3k stop marker
         if py3k_stop_re.match(line):
@@ -62,7 +62,7 @@ def preprocess(data, name):
                 idx += 1
                 continue
             #states 0,2 this is an error...
-            raise SyntaxError("unexpected py3k-stop marker on line %d of %r" % (idx, name))
+            raise SyntaxError("unexpected py3k-stop marker on line %d of %r: %r" % (idx, name, line))
 
         #check for py2k start marker
         m = py2k_start_re.match(line)
@@ -73,7 +73,7 @@ def preprocess(data, name):
                 idx += 1
                 continue
             #states 2 this is an error...
-            raise SyntaxError("unexpected py2k-start marker on line %d of %r" % (idx, name))
+            raise SyntaxError("unexpected py2k-start marker on line %d of %r: %r" % (idx, name, line))
 
         #check for py2k end marker
         if py2k_stop_re.match(line):
@@ -82,7 +82,7 @@ def preprocess(data, name):
                 idx += 1
                 continue
             #states 0,1 this is an error...
-            raise SyntaxError("unexpected py2k-stop marker on line %d of %r" % (idx, name))
+            raise SyntaxError("unexpected py2k-stop marker on line %d of %r: %r" % (idx, name, line))
 
         #state 0 - leave non-marker lines alone
         if state == 0:
@@ -93,7 +93,7 @@ def preprocess(data, name):
         if state == 1:
             m = bare_comment_re.match(line)
             if not m:
-                raise SyntaxError("unexpected non-comment in py3k block on line %d of %r" % (idx,name))
+                raise SyntaxError("unexpected non-comment in py3k block on line %d of %r: %r" % (idx,name, line))
             pad, content = m.group(1,2)
             lines[idx] = pad + content
             changed = True
@@ -104,7 +104,7 @@ def preprocess(data, name):
         if state == 2:
             m = bare_re.match(line)
             if not m:
-                raise RuntimeError("unexpected failure to parse line %d (%r) of %r" % (idx, line, name))
+                raise RuntimeError("unexpected failure to parse line %d of %r: %r" % (idx, name, line))
             pad, content = m.group(1,2)
             if pad.startswith(ident): #try to put comments on same level
                 content = pad[len(ident):] + content
