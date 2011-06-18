@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh
+from passlib.utils import handlers as uh, to_hash_str
 from passlib.utils.md4 import md4
 #pkg
 #local
@@ -33,23 +33,31 @@ class HexDigestHash(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
+        if not hash:
+            return False
+        if isinstance(hash, bytes):
+            try:
+                hash = hash.decode("ascii")
+            except UnicodeDecodeError:
+                return False
         cc = cls.checksum_chars
-        return bool(hash) and len(hash) == cls.checksum_size and all(c in cc for c in hash)
+        return len(hash) == cls.checksum_size and all(c in cc for c in hash)
 
     @classmethod
     def genhash(cls, secret, hash):
+        if hash is not None and not cls.identify(hash):
+            raise ValueError("not a %s hash" % (cls.name,))
         if secret is None:
             raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        if hash is not None and not cls.identify(hash):
-            raise ValueError("not a %s hash" % (cls.name,))
-        return cls._hash_func(secret).hexdigest()
+        return to_hash_str(cls._hash_func(secret).hexdigest())
 
     @classmethod
     def verify(cls, secret, hash):
         if hash is None:
             raise ValueError("no hash specified")
+        hash = to_hash_str(hash)
         return cls.genhash(secret, hash) == hash.lower()
 
 def create_hex_hash(hash, digest_name):

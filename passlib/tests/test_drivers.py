@@ -9,7 +9,8 @@ import logging; log = logging.getLogger(__name__)
 import warnings
 #site
 #pkg
-from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, enable_option
+from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
+        enable_option, b
 #module
 
 #=========================================================
@@ -300,14 +301,14 @@ class LdapPlaintextTest(HandlerCase):
 class LdapMd5CryptTest(HandlerCase):
     handler = ldap_digests.ldap_md5_crypt
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('', '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
         (' ', '{CRYPT}$1$m/5ee7ol$bZn0kIBFipq39e.KDXX8I0'),
         ('test', '{CRYPT}$1$ec6XvcoW$ghEtNK2U1MC5l.Dwgi3020'),
         ('Compl3X AlphaNu3meric', '{CRYPT}$1$nX1e7EeI$ljQn72ZUgt6Wxd9hfvHdV0'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '{CRYPT}$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '{CRYPT}$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
-        )
+        ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
@@ -655,10 +656,10 @@ from passlib.handlers.misc import plaintext
 class PlaintextTest(HandlerCase):
     handler = plaintext
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('',''),
         ('password', 'password'),
-    )
+    ]
 
     known_other_hashes = [] #all strings are identified as belonging to this scheme
 
@@ -1027,10 +1028,7 @@ class UnixFallbackTest(HandlerCase):
 
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
-        if self.supports_unicode:
-            secret = u"unic\u00D6de"
-        else:
-            secret = "too many secrets"
+        secret = u"\u20AC\u00A5$"
         result = self.do_encrypt(secret)
         self.assertEquals(result, "!")
         self.assert_(not self.do_verify(secret, result))
