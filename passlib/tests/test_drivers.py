@@ -519,11 +519,11 @@ from passlib.handlers import pbkdf2 as pk2
 
 class AtlassianPbkdf2Sha1Test(HandlerCase):
     handler = pk2.atlassian_pbkdf2_sha1
-    known_correct_hashes = (
+    known_correct_hashes = [
         ("admin", '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/p'),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
                   "{PKCS5S2}cE9Yq6Am5tQGdHSHhky2XLeOnURwzaLBG2sur7FHKpvy2u0qDn6GcVGRjlmJoIUy"),
-    )
+    ]
 
     known_malformed_hashes = [
         #bad char
@@ -538,26 +538,26 @@ class AtlassianPbkdf2Sha1Test(HandlerCase):
 
 class Pbkdf2Sha1Test(HandlerCase):
     handler = pk2.pbkdf2_sha1
-    known_correct_hashes = (
+    known_correct_hashes = [
         ("password", '$pbkdf2$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
             '$pbkdf2$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
-    )
+    ]
 
 class Pbkdf2Sha256Test(HandlerCase):
     handler = pk2.pbkdf2_sha256
-    known_correct_hashes = (
+    known_correct_hashes = [
         ("password",
             '$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ'
             ),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
             '$pbkdf2-sha256$1212$3SABFJGDtyhrQMVt1uABPw$WyaUoqCLgvz97s523nF4iuOqZNbp5Nt8do/cuaa7AiI'
             ),
-    )
+    ]
 
 class Pbkdf2Sha512Test(HandlerCase):
     handler = pk2.pbkdf2_sha512
-    known_correct_hashes = (
+    known_correct_hashes = [
         ("password",
             '$pbkdf2-sha512$1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1'
             '7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww'
@@ -566,11 +566,11 @@ class Pbkdf2Sha512Test(HandlerCase):
             '$pbkdf2-sha512$1212$KkbvoKGsAIcF8IslDR6skQ$8be/PRmd88Ps8fmPowCJt'
             'tH9G3vgxpG.Krjt3KT.NP6cKJ0V4Prarqf.HBwz0dCkJ6xgWnSj2ynXSV7MlvMa8Q'
             ),
-    )
+    ]
 
 class CtaPbkdf2Sha1Test(HandlerCase):
     handler = pk2.cta_pbkdf2_sha1
-    known_correct_hashes = (
+    known_correct_hashes = [
         #test vectors from original implementation
         (u"hashy the \N{SNOWMAN}", '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
 
@@ -578,11 +578,11 @@ class CtaPbkdf2Sha1Test(HandlerCase):
         ("password", "$p5k2$1$$h1TDLGSw9ST8UMAPeIE13i0t12c="),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
             "$p5k2$4321$OTg3NjU0MzIx$jINJrSvZ3LXeIbUdrJkRpN62_WQ="),
-        )
+        ]
 
 class DlitzPbkdf2Sha1Test(HandlerCase):
     handler = pk2.dlitz_pbkdf2_sha1
-    known_correct_hashes = (
+    known_correct_hashes = [
         #test vectors from original implementation
         ('cloadm',  '$p5k2$$exec$r1EWMCMk7Rlv3L/RNcFXviDefYa0hlql'),
         ('gnu',     '$p5k2$c$u9HvcT4d$Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g'),
@@ -590,11 +590,11 @@ class DlitzPbkdf2Sha1Test(HandlerCase):
         ('spam',    '$p5k2$3e8$H0NX9mT/$wk/sE8vv6OMKuMaqazCJYDSUhWY9YB2J'),
         (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
                     '$p5k2$$KosHgqNo$9mjN8gqjt02hDoP0c2J0ABtLIwtot8cQ'),
-        )
+        ]
 
 class GrubPbkdf2Sha512Test(HandlerCase):
     handler = pk2.grub_pbkdf2_sha512
-    known_correct_hashes = (
+    known_correct_hashes = [
         #test vectors generated from cmd line tool
 
         #salt=32 bytes
@@ -614,7 +614,7 @@ class GrubPbkdf2Sha512Test(HandlerCase):
             '2D3256ECC9F765D84956FC5CA5C4B6FD711AA285F0A04DCF4'
             '634083F9A20F4B6F339A52FBD6BED618E527B'),
 
-        )
+        ]
 
 #=========================================================
 #PHPass Portable Crypt

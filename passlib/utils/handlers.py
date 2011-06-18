@@ -366,6 +366,12 @@ class GenericHandler(object):
             should return native string type (ascii-bytes under python 2,
             unicode under python 3)
         """
+        #NOTE: documenting some non-standardized but common kwd flags
+        #      that passlib to_string() method may have
+        #
+        #      native=True -- if false, return unicode under py2 -- ignored under py3
+        #      withchk=True -- if false, omit checksum portion of hash
+        #
         raise NotImplementedError("%s must implement from_string()" % (type(self),))
 
     ##def to_config_string(self):

@@ -498,6 +498,10 @@ def xor_bytes(left, right):
 #=================================================================================
 #alt base64 encoding
 #=================================================================================
+_A64_ALTCHARS = b("./")
+_A64_STRIP = b("=\n")
+_A64_PAD1 = b("=")
+_A64_PAD2 = b("==")
 
 def adapted_b64_encode(data):
     """encode using variant of base64
@@ -508,7 +512,7 @@ def adapted_b64_encode(data):
 
     it is primarily used for by passlib's custom pbkdf2 hashes.
     """
-    return b64encode(data, "./").strip("=\n")
+    return b64encode(data, _A64_ALTCHARS).strip(_A64_STRIP)
 
 def adapted_b64_decode(data, sixthree="."):
     """decode using variant of base64
@@ -521,13 +525,13 @@ def adapted_b64_decode(data, sixthree="."):
     """
     off = len(data) % 4
     if off == 0:
-        return b64decode(data, "./")
+        return b64decode(data, _A64_ALTCHARS)
     elif off == 1:
         raise ValueError("invalid bas64 input")
     elif off == 2:
-        return b64decode(data + "==", "./")
+        return b64decode(data + _A64_PAD2, _A64_ALTCHARS)
     else:
-        return b64decode(data + "=", "./")
+        return b64decode(data + _A64_PAD1, _A64_ALTCHARS)
 
 #=================================================================================
 #randomness
