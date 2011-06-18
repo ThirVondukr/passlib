@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-import passlib.utils.handlers as uh
+from passlib.utils import handlers as uh, to_hash_str, b, bord
 #local
 __all__ = [
     'mysql323',
@@ -52,7 +52,7 @@ class mysql323(uh.StaticHandler):
     #=========================================================
     name = "mysql323"
 
-    _pat = re.compile(r"^[0-9a-f]{16}$", re.I)
+    _pat = re.compile(ur"^[0-9a-f]{16}$", re.I)
 
     #=========================================================
     #methods
@@ -60,7 +60,7 @@ class mysql323(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def genhash(cls, secret, config):
@@ -78,18 +78,20 @@ class mysql323(uh.StaticHandler):
         nr2 = 0x12345671
         add = 7
         for c in secret:
-            if c in ' \t':
+            if c in b(' \t'):
                 continue
-            tmp = ord(c)
+            tmp = bord(c)
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
-        return "%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
+        hash = u"%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
+        return to_hash_str(hash)
 
     @classmethod
     def verify(cls, secret, hash):
         if not hash:
             raise ValueError("no hash specified")
+        hash = to_hash_str(hash)
         return hash.lower() == cls.genhash(secret, hash)
 
     #=========================================================
@@ -133,6 +135,7 @@ class mysql41(uh.StaticHandler):
     def verify(cls, secret, hash):
         if not hash:
             raise ValueError("no hash specified")
+        hash = to_hash_str(hash)
         return hash.upper() == cls.genhash(secret, hash)
 
     #=========================================================

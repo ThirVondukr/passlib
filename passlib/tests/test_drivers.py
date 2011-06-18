@@ -387,9 +387,9 @@ from passlib.handlers.mysql import mysql323, mysql41
 class Mysql323Test(HandlerCase):
     handler = mysql323
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('mypass', '6f8c114b58f2ce9e'),
-    )
+    ]
     known_unidentified_hashes = [
         #bad char in otherwise correct hash
         '6z8c114b58f2ce9e',
@@ -403,9 +403,9 @@ class Mysql323Test(HandlerCase):
 
 class Mysql41Test(HandlerCase):
     handler = mysql41
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('mypass', '*6C8989366EAF75BB670AD8EA7A7FC1176A95CEF4'),
-    )
+    ]
     known_unidentified_hashes = [
         #bad char in otherwise correct hash
         '*6Z8989366EAF75BB670AD8EA7A7FC1176A95CEF4',
@@ -624,11 +624,11 @@ from passlib.handlers.phpass import phpass
 class PHPassTest(HandlerCase):
     handler = phpass
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('', '$P$7JaFQsPzJSuenezefD/3jHgt5hVfNH0'),
         ('compL3X!', '$P$FiS0N5L672xzQx1rt1vgdJQRYKnQM9/'),
         ('test12345', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0'), #from the source
-        )
+        ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash

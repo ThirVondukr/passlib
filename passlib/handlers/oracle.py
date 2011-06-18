@@ -11,7 +11,8 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import xor_bytes, handlers as uh
+from passlib.utils import xor_bytes, handlers as uh, bytes, to_unicode, \
+    to_hash_str, b
 from passlib.utils.des import des_encrypt_block
 #local
 __all__ = [
@@ -22,7 +23,7 @@ __all__ = [
 #=========================================================
 #oracle10
 #=========================================================
-def des_cbc_encrypt(key, value, iv='\x00' * 8, pad='\x00'):
+def des_cbc_encrypt(key, value, iv=b('\x00') * 8, pad=b('\x00')):
     """performs des-cbc encryption, returns only last block.
 
     this performs a specific DES-CBC encryption implementation
@@ -44,6 +45,9 @@ def des_cbc_encrypt(key, value, iv='\x00' * 8, pad='\x00'):
         chunk = xor_bytes(hash, value[offset:offset+8])
         hash = des_encrypt_block(key, chunk)
     return hash
+
+#: magic string used as initial des key by oracle10
+ORACLE10_MAGIC = b("\x01\x23\x45\x67\x89\xAB\xCD\xEF")
 
 class oracle10(object):
     """This class implements the password hash used by Oracle up to version 10g, and follows the :ref:`password-hash-api`.
@@ -67,11 +71,11 @@ class oracle10(object):
     #=========================================================
     #formatting
     #=========================================================
-    _pat = re.compile(r"^[0-9a-fA-F]{16}$")
+    _pat = re.compile(ur"^[0-9a-fA-F]{16}$")
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     #=========================================================
     #primary interface
@@ -104,30 +108,29 @@ class oracle10(object):
         #
         # so for now, encoding secret & user to utf-16-be,
         # since that fits,
-        # and if secret/user is bytes, inserting artificial
-        # null bytes in between.
+        # and if secret/user is bytes, we assume utf-8, and decode first.
         #
         # this whole mess really needs someone w/ an oracle system,
         # and some answers :)
 
         def encode(value):
             "encode according to guess at how oracle encodes strings (see note above)"
-            if not isinstance(value, unicode):
-                #we can't trust what original encoding was.
-                #user should have passed us unicode in the first place.
-                #but try decoding as ascii just to work for most common case.
-                value = value.decode("ascii")
+            #we can't trust what original encoding was.
+            #user should have passed us unicode in the first place.
+            #but try decoding as utf-8 just to work for most common case.
+            value = to_unicode(value, "utf-8")
             return value.upper().encode("utf-16-be")
 
         input = encode(user) + encode(secret)
-        hash = des_cbc_encrypt("\x01\x23\x45\x67\x89\xAB\xCD\xEF", input)
+        hash = des_cbc_encrypt(ORACLE10_MAGIC, input)
         hash = des_cbc_encrypt(hash, input)
-        return hexlify(hash).upper()
+        return to_hash_str(hexlify(hash)).upper()
 
     @classmethod
     def verify(cls, secret, hash, user):
         if not hash:
             raise ValueError("no hash specified")
+        hash = to_hash_str(hash)
         return cls.genhash(secret, hash, user) == hash.upper()
 
     #=========================================================
@@ -158,7 +161,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     checksum_size = 40
     checksum_chars = uh.UC_HEX_CHARS
 
-    _stub_checksum = '0' * 40
+    _stub_checksum = u'0' * 40
 
     #--HasSalt--
     min_salt_size = max_salt_size = 20
@@ -168,7 +171,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #methods
     #=========================================================
-    _pat = re.compile("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
+    _pat = re.compile(u"^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -178,8 +181,8 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash provided")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid oracle11 hash")
@@ -187,12 +190,15 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk.upper(), strict=True)
 
     def to_string(self):
-        return "S:%s%s" % ((self.checksum or self._stub_checksum).upper(), self.salt.upper())
+        chk = (self.checksum or self._stub_checksum)
+        hash = u"S:%s%s" % (chk.upper(), self.salt.upper())
+        return to_hash_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return sha1(secret + unhexlify(self.salt)).hexdigest().upper()
+        chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()
+        return to_unicode(chk, 'ascii').upper()
 
     #=========================================================
     #eoc

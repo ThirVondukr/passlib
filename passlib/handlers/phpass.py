@@ -15,7 +15,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh
+from passlib.utils import h64, handlers as uh, bytes, b, to_unicode, to_hash_str
 #pkg
 #local
 __all__ = [
@@ -68,9 +68,9 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     _strict_rounds_bounds = True
 
     #--HasManyIdents--
-    default_ident = "$P$"
-    ident_values = ["$P$", "$H$"]
-    ident_aliases = {"P":"$P$", "H":"$H$"}
+    default_ident = u"$P$"
+    ident_values = [u"$P$", u"$H$"]
+    ident_aliases = {u"P":u"$P$", u"H":u"$H$"}
 
     #=========================================================
     #formatting
@@ -86,8 +86,8 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode('ascii')
+        if isinstance(hash, bytes):
+            hash = hash.decode('ascii')
         for ident in cls.ident_values:
             if hash.startswith(ident):
                 break
@@ -97,14 +97,18 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         rounds, salt, chk = data[0], data[1:9], data[9:]
         return cls(
             ident=ident,
-            rounds=h64.decode_6bit(rounds),
+            rounds=h64.decode_int6(rounds.encode("ascii")),
             salt=salt,
             checksum=chk,
             strict=bool(chk),
         )
 
     def to_string(self):
-        return "%s%s%s%s" % (self.ident, h64.encode_6bit(self.rounds), self.salt, self.checksum or '')
+        hash = u"%s%s%s%s" % (self.ident,
+                              h64.encode_int6(self.rounds).decode("ascii"),
+                              self.salt,
+                              self.checksum or u'')
+        return to_hash_str(hash)
 
     #=========================================================
     #backend
@@ -114,12 +118,12 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         real_rounds = 1<<self.rounds
-        result = md5(self.salt + secret).digest()
+        result = md5(self.salt.encode("ascii") + secret).digest()
         r = 0
         while r < real_rounds:
             result = md5(result + secret).digest()
             r += 1
-        return h64.encode_bytes(result)
+        return h64.encode_bytes(result).decode("ascii")
 
     #=========================================================
     #eoc

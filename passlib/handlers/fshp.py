@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh
+from passlib.utils import handlers as uh, bytes, b, to_hash_str
 from passlib.utils.pbkdf2 import pbkdf1
 #pkg
 #local
@@ -79,7 +79,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         3: ("sha512",   64),
         }
     _variant_aliases = dict(
-        [(str(k),k) for k in _variant_info] +
+        [(unicode(k),k) for k in _variant_info] +
         [(v[0],k) for k,v in _variant_info.items()]
         )
 
@@ -101,7 +101,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             if strict:
                 raise ValueError("no variant specified")
             variant = cls.default_variant
-        if isinstance(variant, str):
+        if isinstance(variant, bytes):
+            variant = variant.decode("ascii")
+        if isinstance(variant, unicode):
             try:
                 variant = cls._variant_aliases[variant]
             except KeyError:
@@ -128,14 +130,23 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     
     @classmethod
     def identify(cls, hash):
-        return bool(hash) and hash.startswith("{FSHP") 
+        if not hash:
+            return False
+        if isinstance(hash, bytes):
+            try:
+                hash = hash.decode("ascii")
+            except UnicodeDecodeError:
+                return False
+        return hash.startswith(u"{FSHP") 
 
-    _fshp_re = re.compile(r"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
+    _fshp_re = re.compile(ur"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
     
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._fshp_re.match(hash)
         if not m:
             raise ValueError("not a valid FSHP hash")
@@ -144,7 +155,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         salt_size = int(salt_size)
         rounds = int(rounds)
         try:
-            data = b64decode(data)
+            data = b64decode(data.encode("ascii"))
         except ValueError:
             raise ValueError("malformed FSHP hash")
         salt = data[:salt_size]
@@ -155,26 +166,29 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def to_string(self):
         chk = self.checksum
         if not chk: #fill in stub checksum
-            chk = '\x00' * self._info[1]
+            chk = b('\x00') * self._info[1]
         salt = self.salt
-        data = b64encode(salt+chk)
-        return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
+        data = b64encode(salt+chk).decode("ascii")
+        hash = u"{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
+        return to_hash_str(hash)
 
     #=========================================================
     #backend
     #=========================================================
 
     def calc_checksum(self, secret):
-        #NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.
-        #this has only a minimal impact on security, but is an odd deviation.
         hash, klen = self._info
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        #NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.
+        #      this has only a minimal impact on security,
+        #      but it is worth noting this deviation.
         return pbkdf1(
             secret=self.salt,
             salt=secret,
             rounds=self.rounds,
             keylen=klen,
             hash=hash,
-            encoding="utf8", #FSHP doesn't specify unicode policy, picking this
             )
 
     #=========================================================

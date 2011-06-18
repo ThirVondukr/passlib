@@ -10,6 +10,7 @@ from warnings import warn
 #site
 #libs
 #pkg
+from passlib.utils import handlers as uh, to_unicode, to_hash_str, bytes, b
 #local
 __all__ = [
     "postgres_md5",
@@ -40,11 +41,11 @@ class postgres_md5(object):
     #=========================================================
     #formatting
     #=========================================================
-    _pat = re.compile(r"^md5[0-9a-f]{32}$")
+    _pat = re.compile(ur"^md5[0-9a-f]{32}$")
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     #=========================================================
     #primary interface
@@ -71,12 +72,14 @@ class postgres_md5(object):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        return "md5" + md5(secret + user).hexdigest()
+        hash = u"md5" + to_unicode(md5(secret + user).hexdigest(), "ascii")
+        return to_hash_str(hash)
 
     @classmethod
     def verify(cls, secret, hash, user):
         if not hash:
             raise ValueError("no hash specified")
+        hash = to_hash_str(hash)
         return hash == cls.genhash(secret, hash, user)
 
     #=========================================================
