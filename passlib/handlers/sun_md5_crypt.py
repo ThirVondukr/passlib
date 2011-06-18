@@ -17,7 +17,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh
+from passlib.utils import h64, handlers as uh, to_hash_str, to_unicode, bytes, b, bord
 #pkg
 #local
 __all__ = [
@@ -31,7 +31,7 @@ __all__ = [
 # exact bytes as in http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt
 # from Project Gutenberg.
 
-MAGIC_HAMLET = (
+MAGIC_HAMLET = b(
     "To be, or not to be,--that is the question:--\n"
     "Whether 'tis nobler in the mind to suffer\n"
     "The slings and arrows of outrageous fortune\n"
@@ -82,12 +82,8 @@ del xr
 def raw_sun_md5_crypt(secret, rounds, salt):
     "given secret & salt, return encoded sun-md5-crypt checksum"
     global MAGIC_HAMLET
-
-    #validate secret
-    #FIXME: no definitive information about how it handles unicode,
-    # so using this as a fallback...
-    if isinstance(secret, unicode):
-        secret = secret.encode("utf-8")
+    assert isinstance(secret, bytes)
+    assert isinstance(salt, bytes)
 
     #validate rounds
     if rounds <= 0:
@@ -117,7 +113,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     round = 0
     while round < real_rounds:
         #convert last result byte string to list of byte-ints for easy access
-        rval = [ ord(c) for c in result ].__getitem__
+        rval = [ bord(c) for c in result ].__getitem__
 
         #build up X bit by bit
         x = 0
@@ -144,7 +140,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
         h = md5(result)
         if coin:
             h.update(MAGIC_HAMLET)
-        h.update(str(round))
+        h.update(unicode(round).encode("ascii"))
         result = h.digest()
 
         round += 1
@@ -233,25 +229,32 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        return bool(hash) and (hash.startswith("$md5$") or hash.startswith("$md5,"))
+        if not hash:
+            return False
+        if isinstance(hash, bytes):
+            try:
+                hash = hash.decode("ascii")
+            except UnicodeDecodeError:
+                return False
+        return hash.startswith(u"$md5$") or hash.startswith(u"$md5,")
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
 
         #
         #detect if hash specifies rounds value.
         #if so, parse and validate it.
         #by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
-        if hash.startswith("$md5$"):
+        if hash.startswith(u"$md5$"):
             rounds = 0
             salt_idx = 5
-        elif hash.startswith("$md5,rounds="):
-            idx = hash.find("$", 12)
+        elif hash.startswith(u"$md5,rounds="):
+            idx = hash.find(u"$", 12)
             if idx == -1:
                 raise ValueError("invalid sun-md5-crypt hash (unexpected end of rounds)")
             rstr = hash[12:idx]
@@ -259,7 +262,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                 rounds = int(rstr)
             except ValueError:
                 raise ValueError("invalid sun-md5-crypt hash (bad rounds)")
-            if rstr != str(rounds):
+            if rstr != unicode(rounds):
                 raise ValueError("invalid sun-md5-crypt hash (zero-padded rounds)")
             if rounds == 0:
                 #NOTE: not sure if this is *forbidden* precisely,
@@ -275,20 +278,20 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         #to deal cleanly with some backward-compatible workarounds
         #implemented by original implementation.
         #
-        chk_idx = hash.rfind("$", salt_idx)
+        chk_idx = hash.rfind(u"$", salt_idx)
         if chk_idx == -1:
             # ''-config for $-hash
             salt = hash[salt_idx:]
             chk = None
             bare_salt = True
         elif chk_idx == len(hash)-1:
-            if chk_idx > salt_idx and hash[-2] == "$":
+            if chk_idx > salt_idx and hash[-2] == u"$":
                 raise ValueError("invalid sun-md5-crypt hash (too many $)")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None
             bare_salt = False
-        elif chk_idx > 0 and hash[chk_idx-1] == "$":
+        elif chk_idx > 0 and hash[chk_idx-1] == u"$":
             # $$-hash
             salt = hash[salt_idx:chk_idx-1]
             chk = hash[chk_idx+1:]
@@ -307,18 +310,18 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             strict=bool(chk),
         )
 
-    def to_string(self, withchk=True):
-        ss = '' if self.bare_salt else '$'
+    def to_string(self, withchk=True, native=True):
+        ss = u'' if self.bare_salt else u'$'
         rounds = self.rounds
         if rounds > 0:
-            out = "$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
+            out = u"$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
         else:
-            out = "$md5$%s%s" % (self.salt, ss)
+            out = u"$md5$%s%s" % (self.salt, ss)
         if withchk:
             chk = self.checksum
             if chk:
-                out = "%s$%s" % (out, chk)
-        return out
+                out = u"%s$%s" % (out, chk)
+        return to_hash_str(out) if native else out
 
     #=========================================================
     #primary interface
@@ -329,8 +332,13 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # especially, when using ''-config, make sure to append '$x' to string.
 
     def calc_checksum(self, secret):
-        config = self.to_string(withchk=False)
-        return raw_sun_md5_crypt(secret, self.rounds, config)
+        #NOTE: no reference for how sun_md5_crypt handles unicode
+        if secret is None:
+            raise TypeError("no secret specified")
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        config = self.to_string(withchk=False,native=False).encode("ascii")
+        return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
     #=========================================================
     #eoc

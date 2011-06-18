@@ -9,7 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, os_crypt, classproperty, handlers as uh
+from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
+    to_hash_str, to_unicode, bytes, b, bord
 #pkg
 #local
 __all__ = [
@@ -20,6 +21,8 @@ __all__ = [
 #=========================================================
 #pure-python backend (shared between sha256-crypt & sha512-crypt)
 #=========================================================
+INVALID_SALT_VALUES = b("\x00$")
+
 def raw_sha_crypt(secret, salt, rounds, hash):
     """perform raw sha crypt
 
@@ -33,8 +36,8 @@ def raw_sha_crypt(secret, salt, rounds, hash):
 
     """
     #validate secret
-    if isinstance(secret, unicode):
-        secret = secret.encode("utf-8")
+    if not isinstance(secret, bytes):
+        raise TypeError("secret must be encoded as bytes")
 
     #validate rounds
     if rounds < 1000:
@@ -43,7 +46,9 @@ def raw_sha_crypt(secret, salt, rounds, hash):
         rounds = 999999999
 
     #validate salt
-    if any(c in salt for c in '\x00$'):
+    if not isinstance(salt, bytes):
+        raise TypeError("salt must be encoded as bytes")
+    if any(c in salt for c in INVALID_SALT_VALUES):
         raise ValueError("invalid chars in salt")
     if len(salt) > 16:
         salt = salt[:16]
@@ -86,7 +91,7 @@ def raw_sha_crypt(secret, salt, rounds, hash):
     dp_result = extend(dp.digest(), secret)
 
     #calc DS - hash of salt, extended to size of salt
-    ds = hash(salt * (16+ord(a_result[0])))
+    ds = hash(salt * (16+bord(a_result[0])))
     ds_result = extend(ds.digest(), salt) #aka 'S'
 
     #
@@ -242,7 +247,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #--GenericHandler--
     name = "sha256_crypt"
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
-    ident = "$5$"
+    ident = u"$5$"
 
     #--HasSalt--
     min_salt_size = 0
@@ -270,7 +275,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         \$5
         (\$rounds=(?P<rounds>\d+))?
@@ -289,13 +294,13 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid sha256-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
-        if rounds and rounds.startswith("0"):
+        if rounds and rounds.startswith(u"0"):
             raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
         return cls(
             implicit_rounds = not rounds,
@@ -305,11 +310,12 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             strict=bool(chk),
         )
 
-    def to_string(self):
+    def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            return "$5$%s$%s" % (self.salt, self.checksum or '')
+            hash = u"$5$%s$%s" % (self.salt, self.checksum or u'')
         else:
-            return "$5$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or '')
+            hash = u"$5$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -321,27 +327,34 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     @classproperty
     def _has_backend_os_crypt(cls):
         return bool(
-            os_crypt is not None and
-            os_crypt("test", "$5$rounds=1000$test") ==
-            "$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
+            safe_os_crypt and
+            safe_os_crypt(u"test", u"$5$rounds=1000$test")[1] ==
+            u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
             )
 
     def _calc_checksum_builtin(self, secret):
-        checksum, salt, rounds = raw_sha256_crypt(secret, self.salt, self.rounds)
-        assert salt == self.salt, "class doesn't agree w/ builtin backend"
-        assert rounds == self.rounds, "class doesn't agree w/ builtin backend"
-        return checksum
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")        
+        checksum, salt, rounds = raw_sha256_crypt(secret,
+                                                  self.salt.encode("ascii"),
+                                                  self.rounds)
+        assert salt == self.salt.encode("ascii"), \
+            "class doesn't agree w/ builtin backend: salt %r != %r" % (salt, self.salt.encode("ascii"))
+        assert rounds == self.rounds, \
+            "class doesn't agree w/ builtin backend: rounds %r != %r" % (rounds, self.rounds)
+        return checksum.decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        #NOTE: avoiding full parsing routine via from_string().checksum,
-        # and just extracting the bit we need.
-        result = os_crypt(secret, self.to_string())
-        assert result.startswith("$5$")
-        chk = result[-43:]
-        assert '$' not in chk
-        return chk
+        ok, result = safe_os_crypt(secret, self.to_string(native=False))
+        if ok:
+            #NOTE: avoiding full parsing routine via from_string().checksum,
+            # and just extracting the bit we need.
+            assert result.startswith(u"$5$")
+            chk = result[-43:]
+            assert u'$' not in chk
+            return chk
+        else:
+            return self._calc_checksum_builtin(secret)
 
     #=========================================================
     #eoc
@@ -386,7 +399,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #algorithm information
     #=========================================================
     name = "sha512_crypt"
-    ident = "$6$"
+    ident = u"$6$"
 
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
 
@@ -414,7 +427,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         \$6
         (\$rounds=(?P<rounds>\d+))?
@@ -435,8 +448,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid sha512-crypt hash")
@@ -451,11 +464,12 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             strict=bool(chk),
         )
 
-    def to_string(self):
+    def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            return "$6$%s$%s" % (self.salt, self.checksum or '')
+            hash = u"$6$%s$%s" % (self.salt, self.checksum or u'')
         else:
-            return "$6$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or '')
+            hash = u"$6$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -467,29 +481,36 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     @classproperty
     def _has_backend_os_crypt(cls):
         return bool(
-            os_crypt is not None and
-            os_crypt("test", "$6$rounds=1000$test") ==
-            "$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
+            safe_os_crypt and
+            safe_os_crypt(u"test", u"$6$rounds=1000$test")[1] ==
+            u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
             )
 
     #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
 
     def _calc_checksum_builtin(self, secret):
-        checksum, salt, rounds = raw_sha512_crypt(secret, self.salt, self.rounds)
-        assert salt == self.salt, "class doesn't agree w/ builtin backend"
-        assert rounds == self.rounds, "class doesn't agree w/ builtin backend"
-        return checksum
-
-    def _calc_checksum_os_crypt(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        #NOTE: avoiding full parsing routine via from_string().checksum,
-        # and just extracting the bit we need.
-        result = os_crypt(secret, self.to_string())
-        assert result.startswith("$6$")
-        chk = result[-86:]
-        assert '$' not in chk
-        return chk
+        checksum, salt, rounds = raw_sha512_crypt(secret,
+                                                  self.salt.encode("ascii"),
+                                                  self.rounds)
+        assert salt == self.salt.encode("ascii"), \
+            "class doesn't agree w/ builtin backend: salt %r != %r" % (salt, self.salt.encode("ascii"))
+        assert rounds == self.rounds, \
+            "class doesn't agree w/ builtin backend: rounds %r != %r" % (rounds, self.rounds)
+        return checksum.decode("ascii")
+
+    def _calc_checksum_os_crypt(self, secret):
+        ok, result = safe_os_crypt(secret, self.to_string(native=False))
+        if ok:
+            #NOTE: avoiding full parsing routine via from_string().checksum,
+            # and just extracting the bit we need.
+            assert result.startswith(u"$6$")
+            chk = result[-86:]
+            assert u'$' not in chk
+            return chk
+        else:
+            return self._calc_checksum_builtin(secret)
 
     #=========================================================
     #eoc

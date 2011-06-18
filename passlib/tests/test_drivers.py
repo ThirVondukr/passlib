@@ -36,17 +36,18 @@ class AprMd5CryptTest(HandlerCase):
 from passlib.handlers.bcrypt import bcrypt
 
 class BCryptTest(HandlerCase):
+    
     handler = bcrypt
     secret_chars = 72
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         #selected bcrypt test vectors
         ('', '$2a$06$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'),
         ('a', '$2a$10$k87L/MF28Q673VKh8/cPi.SUl7MU/rWuSiIDDFayrKk/1tBsSQu4u'),
         ('abc', '$2a$10$WvvTPHKwdBJ3uk0Z37EMR.hLA2W6N9AEBhEgrAOljy2Ae5MtaSIUi'),
         ('abcdefghijklmnopqrstuvwxyz', '$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'),
         ('~!@#$%^&*()      ~!@#$%^&*()PNBFRD', '$2a$10$LgfYWkbzEvQ4JakH7rOvHe0y8pHKF9OaFgwUZ2q7W2FFZmZzJYlfS'),
-        )
+        ]
 
     known_unidentified_hashes = [
         #unsupported minor version
@@ -73,20 +74,20 @@ class BCryptTest(HandlerCase):
         kwds['ident'] = 'Q'
         self.assertRaises(ValueError, handler, **kwds)
 
-    #this method is added in order to maximize test coverage on systems
-    #where os_crypt is missing or doesn't support bcrypt
-    if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
-        def test_backend(self):
-            from passlib.handlers import bcrypt as bcrypt_mod
-            orig = bcrypt_mod.os_crypt
-            bcrypt_mod.os_crypt = bcrypt_mod.pybcrypt_hashpw
-            orig = bcrypt.get_backend()
-            try:
-                bcrypt.set_backend("os_crypt")
-                bcrypt.encrypt(u"test", rounds=4)
-            finally:
-                bcrypt.set_backend(orig)
-                bcrypt_mod.os_crypt = orig
+    ###this method is added in order to maximize test coverage on systems
+    ###where os_crypt is missing or doesn't support bcrypt
+    ##if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
+    ##    def test_backend(self):
+    ##        from passlib.handlers import bcrypt as bcrypt_mod
+    ##        orig = bcrypt_mod.safe_os_crypt
+    ##        bcrypt_mod.safe_os_crypt = bcrypt_mod.pybcrypt_hashpw
+    ##        orig = bcrypt.get_backend()
+    ##        try:
+    ##            bcrypt.set_backend("os_crypt")
+    ##            bcrypt.encrypt(u"test", rounds=4)
+    ##        finally:
+    ##            bcrypt.set_backend(orig)
+    ##            bcrypt_mod.os_crypt = orig
 
 bcrypt._no_backends_msg() #call this for coverage purposes
 
@@ -174,7 +175,7 @@ class DesCryptTest(HandlerCase):
     handler = des_crypt
     secret_chars = 8
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         #secret, example hash which matches secret
         ('', 'OgAwTx2l6NADI'),
         (' ', '/Hk.VPuwQTXbc'),
@@ -183,7 +184,7 @@ class DesCryptTest(HandlerCase):
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', 'sNYqfOyauIyic'),
         ('AlOtBsOl', 'cEpWz5IUCShqM'),
         (u'hell\u00D6', 'saykDgk3BPZ9E'),
-        )
+        ]
     known_unidentified_hashes = [
         #bad char in otherwise correctly formatted hash
         '!gAwTx2l6NADI',
@@ -423,10 +424,10 @@ from passlib.handlers.nthash import nthash
 class NTHashTest(HandlerCase):
     handler = nthash
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
         ('passphrase', '$NT$7f8fe03093cc84b267b109625f6bbf4b'),
-    )
+    ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
@@ -740,10 +741,10 @@ from passlib.handlers.sha1_crypt import sha1_crypt
 class SHA1CryptTest(HandlerCase):
     handler = sha1_crypt
 
-    known_correct_hashes = (
+    known_correct_hashes = [
         ("password", "$sha1$19703$iVdJqfSE$v4qYKl1zqYThwpjJAoKX6UvlHq/a"),
         ("password", "$sha1$21773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH"),
-    )
+    ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
@@ -852,12 +853,12 @@ class SHA256CryptTest(HandlerCase):
     def test_raw(self):
         #run some tests on raw backend func to ensure it works right
         self.assertEqual(
-             raw_sha_crypt('secret', 'salt'*10, 1, hashlib.md5),
-             ('\x1f\x96\x1cO\x11\xa9h\x12\xc4\xf3\x9c\xee\xf5\x93\xf3\xdd',
-            'saltsaltsaltsalt',
+             raw_sha_crypt(b('secret'), b('salt')*10, 1, hashlib.md5),
+             (b('\x1f\x96\x1cO\x11\xa9h\x12\xc4\xf3\x9c\xee\xf5\x93\xf3\xdd'),
+            b('saltsaltsaltsalt'),
             1000)
             )
-        self.assertRaises(ValueError, raw_sha_crypt, 'secret', '$', 1, hashlib.md5)
+        self.assertRaises(ValueError, raw_sha_crypt, b('secret'), b('$'), 1, hashlib.md5)
 
 BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
 

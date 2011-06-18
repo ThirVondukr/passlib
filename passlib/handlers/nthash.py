@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh
+from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes
 from passlib.utils.md4 import md4
 #pkg
 #local
@@ -41,12 +41,12 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
     setting_kwds = ("ident",)
     checksum_chars = uh.LC_HEX_CHARS
 
-    _stub_checksum = "0" * 32
+    _stub_checksum = u"0" * 32
 
     #--HasManyIdents--
-    default_ident = "$3$$"
-    ident_values = ("$3$$", "$NT$")
-    ident_aliases = {"3": "$3$$", "NT": "$NT$"}
+    default_ident = u"$3$$"
+    ident_values = (u"$3$$", u"$NT$")
+    ident_aliases = {u"3": u"$3$$", u"NT": u"$NT$"}
 
     #=========================================================
     #formatting
@@ -56,8 +56,8 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         for ident in cls.ident_values:
             if hash.startswith(ident):
                 break
@@ -67,22 +67,30 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
         return cls(ident=ident, checksum=chk, strict=True)
 
     def to_string(self):
-        return self.ident + (self.checksum or self._stub_checksum)
+        hash = self.ident + (self.checksum or self._stub_checksum)
+        return to_hash_str(hash)
 
     #=========================================================
     #primary interface
     #=========================================================
 
     def calc_checksum(self, secret):
-        if secret is None:
-            raise TypeError("secret must be a string")
         return self.raw_nthash(secret, hex=True)
 
     @staticmethod
     def raw_nthash(secret, hex=False):
-        "encode password using md4-based NTHASH algorithm; returns string of raw bytes"
+        """encode password using md4-based NTHASH algorithm
+        
+        :returns:
+            returns string of raw bytes if ``hex=False``,
+            returns digest as hexidecimal unicode if ``hex=True``.
+        """
+        secret = to_unicode(secret, "utf-8")
         hash = md4(secret.encode("utf-16le"))
-        return hash.hexdigest() if hex else hash.digest()
+        if hex:
+            return to_unicode(hash.hexdigest(), 'ascii')
+        else:
+            return hash.digest()
 
     #=========================================================
     #eoc

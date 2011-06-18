@@ -58,7 +58,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, classproperty, os_crypt, handlers as uh
+from passlib.utils import h64, classproperty, safe_os_crypt, b, bytes, \
+            to_hash_str, handlers as uh, bord
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
@@ -75,7 +76,7 @@ __all__ = [
 def _crypt_secret_to_key(secret):
     "crypt helper which converts lower 7 bits of first 8 chars of secret -> 56-bit des key, padded to 64 bits"
     return sum(
-        (ord(c) & 0x7f) << (57-8*i)
+        (bord(c) & 0x7f) << (57-8*i)
         for i, c in enumerate(secret[:8])
     )
 
@@ -111,7 +112,7 @@ def raw_ext_crypt(secret, rounds, salt):
         raise ValueError("invalid salt")
 
     #validate secret
-    if '\x00' in secret: #pragma: no cover - always caught by class
+    if b('\x00') in secret: #pragma: no cover - always caught by class
         #builtin linux crypt doesn't like this, so we don't either
         #XXX: would make more sense to raise ValueError, but want to be compatible w/ stdlib crypt
         raise ValueError("secret must be string without null bytes")
@@ -171,7 +172,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11})?
@@ -179,19 +180,20 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         salt, chk = hash[:2], hash[2:]
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
-    def to_string(self):
-        return "%s%s" % (self.salt, self.checksum or '')
+    def to_string(self, native=True):
+        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -202,25 +204,30 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return os_crypt is not None and os_crypt("test", "ab") == 'abgOeLfPimXQo'
+        return safe_os_crypt and safe_os_crypt(u"test", u"ab")[1] == u'abgOeLfPimXQo'
 
     def _calc_checksum_builtin(self, secret):
-        #forbidding nul chars because linux crypt (and most C implementations) won't accept it either.
-        if '\x00' in secret:
-            raise ValueError("null char in secret")
         #gotta do something - no official policy since des-crypt predates unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return raw_crypt(secret, self.salt)
+        #forbidding nul chars because linux crypt (and most C implementations) won't accept it either.
+        if b('\x00') in secret:
+            raise ValueError("null char in secret")
+        return raw_crypt(secret, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
         #os_crypt() would raise less useful error
-        if '\x00' in secret:
+        null = u'\x00' if isinstance(secret, unicode) else b('\x00')
+        if null in secret:
             raise ValueError("null char in secret")
-        #gotta do something - no official policy since des-crypt predates unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return os_crypt(secret, self.salt)[2:]
+
+        #NOTE: safe_os_crypt encodes unicode secret -> utf8
+        #no official policy since des-crypt predates unicode
+        ok, hash = safe_os_crypt(secret, self.salt)
+        if ok:
+            return hash[2:]
+        else:
+            return self._calc_checksum_builtin(secret)
 
     #=========================================================
     #eoc
@@ -270,7 +277,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     salt_chars = uh.H64_CHARS
 
     #--HasRounds--
-    default_rounds = 5000
+    default_rounds = 5001
     min_rounds = 0
     max_rounds = 16777215 # (1<<24)-1
     rounds_cost = "linear"
@@ -281,7 +288,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         _
         (?P<rounds>[./a-z0-9]{4})
@@ -291,27 +298,29 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid ext-des-crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         return cls(
-            rounds=h64.decode_int24(rounds),
+            rounds=h64.decode_int24(rounds.encode("ascii")),
             salt=salt,
             checksum=chk,
             strict=bool(chk),
         )
 
-    def to_string(self):
-        return "_%s%s%s" % (h64.encode_int24(self.rounds), self.salt, self.checksum or '')
+    def to_string(self, native=True):
+        hash = u"_%s%s%s" % (h64.encode_int24(self.rounds).decode("ascii"),
+                             self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -322,18 +331,20 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = '_/...lLDAxARksGCHin.'
-        return os_crypt is not None and os_crypt("test", h) == h
+        h = u'_/...lLDAxARksGCHin.'
+        return safe_os_crypt and safe_os_crypt(u"test", h)[1] == h
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return raw_ext_crypt(secret, self.rounds, self.salt)
+        return raw_ext_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return os_crypt(secret, self.to_string())[9:]
+        ok, hash = safe_os_crypt(secret, self.salt)
+        if ok:
+            return hash[9:]
+        else:
+            return self._calc_checksum_builtin(secret)
 
     #=========================================================
     #eoc
@@ -370,7 +381,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11,})?
@@ -378,22 +389,30 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash)) and (len(hash)-2) % 11 == 0
+        if not hash:
+            return False
+        if isinstance(hash, bytes):
+            try:
+                hash = hash.decode("ascii")
+            except UnicodeDecodeError:
+                return False
+        return bool(cls._pat.match(hash)) and (len(hash)-2) % 11 == 0
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid bigcrypt hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
-    def to_string(self):
-        return "%s%s" % (self.salt, self.checksum or '')
+    def to_string(self, native=True):
+        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     @classmethod
     def norm_checksum(cls, value, strict=False):
@@ -410,14 +429,14 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        chk = raw_crypt(secret, self.salt)
+        chk = raw_crypt(secret, self.salt.encode("ascii"))
         idx = 8
         end = len(secret)
         while idx < end:
             next = idx + 8
             chk += raw_crypt(secret[idx:next], chk[-11:-9])
             idx = next
-        return chk
+        return chk.decode("ascii")
 
     #=========================================================
     #eoc
@@ -453,7 +472,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(r"""
+    _pat = re.compile(ur"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{22})?
@@ -461,22 +480,23 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        if isinstance(hash, unicode):
-            hash = hash.encode("ascii")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
             raise ValueError("invalid crypt16 hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
-    def to_string(self):
-        return "%s%s" % (self.salt, self.checksum or '')
+    def to_string(self, native=True):
+        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        return to_hash_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -489,7 +509,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
         #parse salt value
         try:
-            salt_value = h64.decode_int12(self.salt)
+            salt_value = h64.decode_int12(self.salt.encode("ascii"))
         except ValueError: #pragma: no cover - caught by class
             raise ValueError("invalid chars in salt")
 
@@ -506,7 +526,8 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         result2 = mdes_encrypt_int_block(key2, 0, salt_value, 5)
 
         #done
-        return h64.encode_dc_int64(result1) + h64.encode_dc_int64(result2)
+        chk = h64.encode_dc_int64(result1) + h64.encode_dc_int64(result2)
+        return chk.decode("ascii")
 
     #=========================================================
     #eoc
