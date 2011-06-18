@@ -9,7 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, os_crypt, classproperty, handlers as uh
+from passlib.utils import b, bytes, to_bytes, h64, safe_os_crypt, \
+                          classproperty, handlers as uh
 #pkg
 #local
 __all__ = [
@@ -20,8 +21,26 @@ __all__ = [
 #=========================================================
 #pure-python backend
 #=========================================================
+B_NULL = b("\x00")
+B_MD5_MAGIC = b("$1$")
+B_APR_MAGIC = b("$apr1$")
+
 def raw_md5_crypt(secret, salt, apr=False):
-    "perform raw md5 encryption"
+    """perform raw md5-crypt calculation
+    
+    :arg secret:
+        password, bytes or unicode (encoded to utf-8)
+    
+    :arg salt:
+        salt portion of hash, bytes or unicode (encoded to ascii),
+        clipped to max 8 bytes.
+    
+    :param apr:
+        flag to use apache variant
+        
+    :returns:
+        encoded checksum as unicode
+    """
     #NOTE: regarding 'apr' format:
     # really, apache? you had to invent a whole new "$apr1$" format,
     # when all you did was change the ident incorporated into the hash?
@@ -29,16 +48,19 @@ def raw_md5_crypt(secret, salt, apr=False):
     # implementation of $1$ wasn't sufficient. *nothing* else was changed.
 
     #validate secret
-    if not isinstance(secret, str):
-        raise TypeError("secret must be an encoded string")
+    #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
+    if isinstance(secret, unicode):
+        secret = secret.encode("utf-8")
 
     #validate salt
+    if isinstance(salt, unicode):
+        salt = salt.encode("ascii")
     if len(salt) > 8:
         salt = salt[:8]
 
     #primary hash = secret+id+salt+...
     h = md5(secret)
-    h.update("$apr1$" if apr else "$1$")
+    h.update(B_APR_MAGIC if apr else B_MD5_MAGIC)
     h.update(salt)
 
     # primary hash - add len(secret) chars of tmp hash,
@@ -60,7 +82,7 @@ def raw_md5_crypt(secret, salt, apr=False):
     idx = len(secret)
     evenchar = secret[:1]
     while idx > 0:
-        h.update('\x00' if idx & 1 else evenchar)
+        h.update(B_NULL if idx & 1 else evenchar)
         idx >>= 1
     result = h.digest()
 
@@ -77,7 +99,11 @@ def raw_md5_crypt(secret, salt, apr=False):
     # instead of doing this directly, this implementation
     # pre-computes all the combinations of strings & md5 hash objects
     # that will be needed, in order to perform round operations as fast as possible
-    # (each round consists of one hash create/copy + 1 update + 1 digest)
+    # (so that each round consists of one hash create/copy + 1 update + 1 digest)
+    #
+    #TODO: might be able to optimize even further by removing need for tests, since
+    # if/then pattern is easily predicatble -
+    # pattern is 7-0-1-0-3-0 (where 1 bit = mult 2, 2 bit = mult 3, 3 bit = mult 7)
     secret_secret = secret*2
     salt_secret = salt+secret
     salt_secret_secret = salt + secret*2
@@ -111,7 +137,7 @@ def raw_md5_crypt(secret, salt, apr=False):
         result = h.digest()
 
     #encode resulting hash
-    return h64.encode_transposed_bytes(result, _chk_offsets)
+    return h64.encode_transposed_bytes(result, _chk_offsets).decode("ascii")
 
 _chk_offsets = (
     12,6,0,
@@ -125,7 +151,47 @@ _chk_offsets = (
 #=========================================================
 #handler
 #=========================================================
-class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
+class _Md5Common(uh.HasSalt, uh.GenericHandler):
+    "common code for md5_crypt and apr_md5_crypt"
+    #=========================================================
+    #algorithm information
+    #=========================================================
+    #--GenericHandler--
+    #name in subclass
+    setting_kwds = ("salt", "salt_size")
+    #ident in subclass
+    checksum_size = 22
+
+    #--HasSalt--
+    min_salt_size = 0
+    max_salt_size = 8
+    salt_chars = uh.H64_CHARS
+
+    #=========================================================
+    #internal helpers
+    #=========================================================
+
+    @classmethod
+    def from_string(cls, hash):
+        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
+        return cls(salt=salt, checksum=chk, strict=bool(chk))
+
+    def to_string(self):
+        return uh.render_mc2(self.ident, self.salt, self.checksum)
+
+    #=========================================================
+    #primary interface
+    #=========================================================
+    #calc_checksum in subclass
+
+    #=========================================================
+    #eoc
+    #=========================================================
+
+#=========================================================
+#handler
+#=========================================================
+class md5_crypt(uh.HasManyBackends, _Md5Common):
     """This class implements the MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -147,51 +213,33 @@ class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #algorithm information
     #=========================================================
-    #--GenericHandler--
     name = "md5_crypt"
-    setting_kwds = ("salt", "salt_size")
-    ident = "$1$"
-    checksum_size = 22
-
-    #--HasSalt--
-    min_salt_size = 0
-    max_salt_size = 8
-    salt_chars = uh.H64_CHARS
-
-    #=========================================================
-    #internal helpers
-    #=========================================================
-
-    @classmethod
-    def from_string(cls, hash):
-        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
-
-    def to_string(self):
-        return "$1$%s$%s" % (self.salt, self.checksum or '')
-
+    ident = u"$1$"
+            
     #=========================================================
     #primary interface
     #=========================================================
+    #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
+    # all backends currently coerce -> utf-8
+    
     backends = ("os_crypt", "builtin")
 
     _has_backend_builtin = True
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return os_crypt is not None and os_crypt("test", "$1$test") == '$1$test$pi/xDtU5WFVRqYS6BMU8X/'
+        return safe_os_crypt and safe_os_crypt(u"test", u"$1$test")[1] == \
+                                 u'$1$test$pi/xDtU5WFVRqYS6BMU8X/'
 
     def _calc_checksum_builtin(self, secret):
-        #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         return raw_md5_crypt(secret, self.salt)
 
     def _calc_checksum_os_crypt(self, secret):
-        #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return os_crypt(secret, self.to_string())[-22:]
+        ok, hash = safe_os_crypt(secret, self.ident + self.salt)
+        if ok:
+            return hash[-22:]
+        else:
+            return self._calc_checksum_builtin(secret)
 
     #=========================================================
     #eoc
@@ -200,7 +248,7 @@ class md5_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 #=========================================================
 #apache variant of md5-crypt
 #=========================================================
-class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
+class apr_md5_crypt(_Md5Common):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -215,36 +263,13 @@ class apr_md5_crypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #algorithm information
     #=========================================================
-    #--GenericHandler--
     name = "apr_md5_crypt"
-    setting_kwds = ("salt", "salt_size")
-    ident = "$apr1$"
-    checksum_size = 22
-
-    #--HasSalt--
-    min_salt_size = 0
-    max_salt_size = 8
-    salt_chars = uh.H64_CHARS
-
-    #=========================================================
-    #internal helpers
-    #=========================================================
-
-    @classmethod
-    def from_string(cls, hash):
-        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
-
-    def to_string(self):
-        return "$apr1$%s$%s" % (self.salt, self.checksum or '')
+    ident = u"$apr1$"
 
     #=========================================================
     #primary interface
     #=========================================================
     def calc_checksum(self, secret):
-        #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         return raw_md5_crypt(secret, self.salt, apr=True)
 
     #=========================================================

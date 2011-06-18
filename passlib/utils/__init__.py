@@ -141,11 +141,67 @@ def b(source):
 #=================================================================================
 #os crypt helpers
 #=================================================================================
+
+#expose crypt function as 'os_crypt', set to None if not available.
 try:
-    #NOTE: just doing this import once, for all the various hashes that need it.
     from crypt import crypt as os_crypt
 except ImportError: #pragma: no cover
-    os_crypt = None
+    safe_os_crypt = os_crypt = None
+else:    
+    def safe_os_crypt(secret, hash):
+        """wrapper around stdlib's crypt.
+        
+        Python 3's crypt behaves slightly differently from Python 2's crypt.
+        for one, it takes in and returns unicode.
+        internally, it converts to utf-8 before hashing.   
+        Annoyingly, *there is no way to call it using bytes*.
+        thus, it can't be used to hash non-ascii passwords
+        using any encoding but utf-8 (eg, using latin-1).
+        
+        This wrapper attempts to gloss over all those issues:
+        Under Python 2, it accept passwords as unicode or bytes,
+        accepts hashes only as unicode, and always returns unicode.
+        Under Python 3, it will signal that it cannot hash a password
+        if provided as non-utf-8 bytes, but otherwise behave the same as crypt.
+        
+        :arg secret: password as bytes or unicode
+        :arg hash: hash/salt as unicode
+        :returns:
+            ``(False, None)`` if the password can't be hashed (3.x only),
+            or ``(True, result: unicode)`` otherwise.
+        """
+        #XXX: source indicates crypt() may return None on some systems
+        # if an error occurrs - could make this return False in that case. 
+        
+        # Py2k #
+        #NOTE: this guard logic is designed purely to match py3 behavior,
+        #      with the exception that it accepts secret as bytes
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        if isinstance(hash, bytes):
+            raise TypeError("hash must be unicode")
+        else:
+            hash = hash.encode("utf-8")
+        return True, os_crypt(secret, hash).decode("ascii")
+        
+        # Py3k #
+        #if isinstance(secret, bytes):
+        #    #decode to utf-8. if successful, will be reencoded with os_crypt,
+        #    #and we'll get back correct hash.
+        #    #if not, we can't use os_crypt for this.
+        #    orig = secret
+        #    try:
+        #        secret = secret.decode("utf-8")
+        #    except UnicodeDecodeError:
+        #        return False, None
+        #    if secret.encode("utf-8") != orig:
+        #        #just in case original encoding wouldn't be reproduced
+        #        #during call to os_crypt.
+        #        #not sure if/how this could happen, but being paranoid.
+        #        warn("utf-8 password didn't re-encode correctly")
+        #        return False, None
+        #return True, os_crypt(secret, hash)
+        # end Py3k #
 
 #=================================================================================
 #decorators and meta helpers

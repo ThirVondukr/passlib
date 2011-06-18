@@ -104,6 +104,25 @@ def parse_mc3(hash, prefix, name="<unnamed>", sep=u"$"):
         raise ValueError("not a valid %s hash" % (name,))
 
 #=====================================================
+#formatting helpers
+#=====================================================
+def render_mc2(ident, salt, checksum, sep=u"$"):
+    "format hash using 2-part modular crypt format; inverse of parse_mc2"
+    if checksum:
+        hash = u"%s%s%s%s" % (ident, salt, sep, checksum)
+    else:
+        hash = u"%s%s" % (ident, salt)
+    return to_hash_str(hash)
+
+def render_mc3(ident, rounds, salt, checksum, sep=u"$"):
+    "format hash using 3-part modular crypt format; inverse of parse_mc3"
+    if checksum:
+        hash = u"%s%s%s%s%s%s" % (ident, rounds, sep, salt, sep, checksum)
+    else:
+        hash = u"%s%s%s%s" % (ident, rounds, sep, salt)
+    return to_hash_str(hash)
+
+#=====================================================
 #StaticHandler
 #=====================================================
 class StaticHandler(object):

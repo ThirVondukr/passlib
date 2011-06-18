@@ -21,9 +21,9 @@ class AprMd5CryptTest(HandlerCase):
     handler = apr_md5_crypt
 
     #values taken from http://httpd.apache.org/docs/2.2/misc/password_encryptions.html
-    known_correct_hashes = (
+    known_correct_hashes = [
         ('myPassword', '$apr1$r31.....$HqJZimcKQFAMYayBlzkrA/'),
-        )
+        ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
@@ -360,14 +360,18 @@ from passlib.handlers.md5_crypt import md5_crypt, raw_md5_crypt
 class Md5CryptTest(HandlerCase):
     handler = md5_crypt
 
-    known_correct_hashes = (
+    known_correct_hashes = [
+        #NOTE: would need to patch HandlerCase to coerce hashes
+        #to_hash_str() for this first one to work under py3.
+##        ('', b('$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.')),
         ('', '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
         (' ', '$1$m/5ee7ol$bZn0kIBFipq39e.KDXX8I0'),
         ('test', '$1$ec6XvcoW$ghEtNK2U1MC5l.Dwgi3020'),
         ('Compl3X AlphaNu3meric', '$1$nX1e7EeI$ljQn72ZUgt6Wxd9hfvHdV0'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
-        )
+        (b('test'), '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
+        ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
@@ -375,7 +379,7 @@ class Md5CryptTest(HandlerCase):
         ]
 
     def test_raw(self):
-        self.assertEquals(raw_md5_crypt('s','s'*16), 'YgmLTApYTv12qgTwBoj8i/')
+        self.assertEquals(raw_md5_crypt(u's',u's'*16), u'YgmLTApYTv12qgTwBoj8i/')
 
 BuiltinMd5CryptTest = create_backend_case(Md5CryptTest, "builtin")
 
