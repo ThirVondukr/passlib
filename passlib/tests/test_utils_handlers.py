@@ -13,7 +13,8 @@ import warnings
 from passlib.hash import ldap_md5
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
-from passlib.utils import rng, getrandstr, handlers as uh
+from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
+    to_hash_str, to_unicode
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
 #module
@@ -37,31 +38,38 @@ class SkeletonTest(TestCase):
 
             @classmethod
             def genhash(cls, secret, hash, flag=False):
-                if hash not in ('a','b'):
+                if isinstance(hash, bytes):
+                    hash = hash.decode("ascii")
+                if hash not in (u'a',u'b'):
                     raise ValueError
-                return 'b' if flag else 'a'
+                return to_hash_str(u'b' if flag else u'a')
 
         #check default identify method
-        self.assertTrue(d1.identify('a'))
-        self.assertTrue(d1.identify('b'))
-        self.assertFalse(d1.identify('c'))
-        self.assertFalse(d1.identify(''))
+        self.assertTrue(d1.identify(u'a'))
+        self.assertTrue(d1.identify(b('a')))
+        self.assertTrue(d1.identify(u'b'))
+        self.assertFalse(d1.identify(u'c'))
+        self.assertFalse(d1.identify(b('c')))
+        self.assertFalse(d1.identify(u''))
         self.assertFalse(d1.identify(None))
 
         #check default genconfig method
         self.assertIs(d1.genconfig(), None)
-        d1._stub_config = 'b'
-        self.assertEqual(d1.genconfig(), 'b')
+        d1._stub_config = u'b'
+        self.assertEqual(d1.genconfig(), to_hash_str('b'))
 
         #check default verify method
         self.assertTrue(d1.verify('s','a'))
+        self.assertTrue(d1.verify('s',u'a'))
         self.assertFalse(d1.verify('s','b'))
+        self.assertFalse(d1.verify('s',u'b'))
         self.assertTrue(d1.verify('s', 'b', flag=True))
         self.assertRaises(ValueError, d1.verify, 's', 'c')
 
         #check default encrypt method
-        self.assertEqual(d1.encrypt('s'), 'a')
-        self.assertEqual(d1.encrypt('s', flag=True), 'b')
+        self.assertEqual(d1.encrypt('s'), to_hash_str('a'))
+        self.assertEqual(d1.encrypt('s'), to_hash_str('a'))
+        self.assertEqual(d1.encrypt('s', flag=True), to_hash_str('b'))
 
     #=========================================================
     #GenericHandler & mixins
@@ -84,7 +92,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify('b'))
 
         #check ident-based
-        d1.ident = '!'
+        d1.ident = u'!'
         self.assertFalse(d1.identify(None))
         self.assertFalse(d1.identify(''))
         self.assertTrue(d1.identify('!a'))
@@ -227,33 +235,33 @@ class SkeletonTest(TestCase):
         class d1(uh.HasManyIdents, uh.GenericHandler):
             name = 'd1'
             setting_kwds = ('ident',)
-            ident_values = [ "!A", "!B" ]
-            ident_aliases = { "A": "!A"}
+            ident_values = [ u"!A", u"!B" ]
+            ident_aliases = { u"A": u"!A"}
 
         #check ident=None w/ no default
         self.assertIs(d1.norm_ident(None), None)
         self.assertRaises(ValueError, d1.norm_ident, None, strict=True)
 
         #check ident=None w/ default
-        d1.default_ident = "!A"
-        self.assertEqual(d1.norm_ident(None), '!A')
+        d1.default_ident = u"!A"
+        self.assertEqual(d1.norm_ident(None), u'!A')
         self.assertRaises(ValueError, d1.norm_ident, None, strict=True)
 
         #check explicit
-        self.assertEqual(d1.norm_ident('!A'), '!A')
-        self.assertEqual(d1.norm_ident('!B'), '!B')
-        self.assertRaises(ValueError, d1.norm_ident, '!C')
+        self.assertEqual(d1.norm_ident(u'!A'), u'!A')
+        self.assertEqual(d1.norm_ident(u'!B'), u'!B')
+        self.assertRaises(ValueError, d1.norm_ident, u'!C')
 
         #check aliases
-        self.assertEqual(d1.norm_ident('A'), '!A')
-        self.assertRaises(ValueError, d1.norm_ident, 'B')
+        self.assertEqual(d1.norm_ident(u'A'), u'!A')
+        self.assertRaises(ValueError, d1.norm_ident, u'B')
 
         #check identify
-        self.assertTrue(d1.identify("!Axxx"))
-        self.assertTrue(d1.identify("!Bxxx"))
-        self.assertFalse(d1.identify("!Cxxx"))
-        self.assertFalse(d1.identify("A"))
-        self.assertFalse(d1.identify(""))
+        self.assertTrue(d1.identify(u"!Axxx"))
+        self.assertTrue(d1.identify(u"!Bxxx"))
+        self.assertFalse(d1.identify(u"!Cxxx"))
+        self.assertFalse(d1.identify(u"A"))
+        self.assertFalse(d1.identify(u""))
         self.assertFalse(d1.identify(None))
 
     #=========================================================
@@ -350,7 +358,7 @@ class UnsaltedHash(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and re.match("^[0-9a-f]{40}$", hash))
+        return uh.identify_regexp(hash, re.compile(u"^[0-9a-f]{40}$"))
 
     @classmethod
     def genhash(cls, secret, hash):
@@ -358,7 +366,8 @@ class UnsaltedHash(uh.StaticHandler):
             raise ValueError("not a unsalted-example hash")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return hashlib.sha1("boblious" + secret).hexdigest()
+        data = b("boblious") + secret
+        return to_hash_str(hashlib.sha1(data).hexdigest())
 
 class SaltedHash(uh.HasSalt, uh.GenericHandler):
     "test algorithm with a salt"
@@ -372,23 +381,27 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and re.match("^@salt[0-9a-f]{42,44}$", hash))
+        return uh.identify_regexp(hash, re.compile(u"^@salt[0-9a-f]{42,44}$"))
 
     @classmethod
     def from_string(cls, hash):
         if not cls.identify(hash):
             raise ValueError("not a salted-example hash")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
         return cls(salt=hash[5:-40], checksum=hash[-40:], strict=True)
 
     _stub_checksum = '0' * 40
 
     def to_string(self):
-        return "@salt%s%s" % (self.salt, self.checksum or self._stub_checksum)
+        hash = u"@salt%s%s" % (self.salt, self.checksum or self._stub_checksum)
+        return to_hash_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return hashlib.sha1(self.salt + secret + self.salt).hexdigest()
+        data = self.salt.encode("ascii") + secret + self.salt.encode("ascii")
+        return to_unicode(hashlib.sha1(data).hexdigest(), "latin-1")
 
 #=========================================================
 #test sample algorithms - really a self-test of HandlerCase

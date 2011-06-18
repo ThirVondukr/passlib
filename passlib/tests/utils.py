@@ -28,7 +28,7 @@ from nose.plugins.skip import SkipTest
 from passlib import registry
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, \
-        rounds_cost_values
+        rounds_cost_values, b, bytes, native_str, NoneType
 #local
 __all__ = [
     #util funcs
@@ -244,9 +244,6 @@ class HandlerCase(TestCase):
     #specify handler object here (required)
     handler = None
 
-    #this option is available for hashes which can't handle unicode
-    supports_unicode = True
-
     #maximum number of chars which hash will include in checksum
     #override this only if hash doesn't use all chars (the default)
     secret_chars = -1
@@ -304,7 +301,10 @@ class HandlerCase(TestCase):
         "return other secret which won't match"
         #NOTE: this is subclassable mainly for some algorithms
         #which accept non-strings in secret
-        return 'x' + secret
+        if isinstance(secret, unicode):
+            return u'x' + secret
+        else:
+            return b('x') + secret
 
     #=========================================================
     #internal class attrs
@@ -312,7 +312,7 @@ class HandlerCase(TestCase):
     @classproperty
     def __test__(cls):
         #so nose won't auto run *this* cls, but it will for subclasses
-        return cls is not HandlerCase
+        return cls is not HandlerCase and not cls.__name__.startswith("_")
 
     #optional prefix to prepend to name of test method as it's called,
     #useful when multiple handler test classes being run.
@@ -348,6 +348,7 @@ class HandlerCase(TestCase):
 
         name = ga("name")
         self.assert_(name, "name not defined:")
+        self.assertIsInstance(name, native_str, "name must be native str")
         self.assert_(name.lower() == name, "name not lower-case:")
         self.assert_(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
 
@@ -387,7 +388,7 @@ class HandlerCase(TestCase):
                 (not mx_set or cls.min_salt_size < cls.max_salt_size):
             #NOTE: for now, only bothering to issue warning if default_salt_size isn't maxed out
             if (not mx_set or cls.default_salt_size < cls.max_salt_size):
-                warn("%s: hash handler supports range of salt sizes, but doesn't specify 'salt_size' setting" % (cls.name,))
+                warn("%s: hash handler supports range of salt sizes, but doesn't offer 'salt_size' setting" % (cls.name,))
 
         #check salt_chars & default_salt_chars
         if cls.salt_chars:
@@ -428,21 +429,39 @@ class HandlerCase(TestCase):
         if cls.rounds_cost not in rounds_cost_values:
             raise AssertionError("unknown rounds cost constant: %r" % (cls.rounds_cost,))
 
-    def test_05_ext_handler(self):
-        "check configuration of GenericHandler-derived classes"
+    def test_03_HasManyIdents(self):
+        "check configuration of HasManyIdents-derived classes"
         cls = self.handler
-        if not isinstance(cls, type) or not issubclass(cls, uh.GenericHandler):
+        if not isinstance(cls, type) or not issubclass(cls, uh.HasManyIdents):
             raise SkipTest
 
-        if 'ident' in cls.setting_kwds:
-            # assume uses HasManyIdents
-            self.assertTrue(len(cls.ident_values)>1, "cls.ident_values must have 2+ elements")
-            self.assertTrue(cls.default_ident in cls.ident_values, "cls.default_ident must specify member of cls.ident_values")
-            if cls.ident_aliases:
-                for alias, ident in cls.ident_aliases.iteritems():
-                    self.assertTrue(ident in cls.ident_values, "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
+        #check settings
+        self.assertTrue('ident' in cls.setting_kwds)
+            
+        #check ident_values list
+        for value in cls.ident_values:
+            self.assertIsInstance(value, unicode,
+                                  "cls.ident_values must be unicode:")            
+        self.assertTrue(len(cls.ident_values)>1,
+                        "cls.ident_values must have 2+ elements:")
 
-    def test_06_backend_handler(self):
+        #check default_ident value
+        self.assertIsInstance(cls.default_ident, unicode,
+                              "cls.default_ident must be unicode:")
+        self.assertTrue(cls.default_ident in cls.ident_values,
+                        "cls.default_ident must specify member of cls.ident_values")
+
+        #check optional aliases list
+        if cls.ident_aliases:
+            for alias, ident in cls.ident_aliases.iteritems():
+                self.assertIsInstance(alias, unicode,
+                                      "cls.ident_aliases keys must be unicode:") #XXX: allow ints?
+                self.assertIsInstance(ident, unicode,
+                                      "cls.ident_aliases values must be unicode:")
+                self.assertTrue(ident in cls.ident_values,
+                                "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
+
+    def test_04_backend_handler(self):
         "check behavior of multiple-backend handlers"
         h = self.handler
         if not hasattr(h, "get_backend"):
@@ -507,7 +526,8 @@ class HandlerCase(TestCase):
     def test_15_identify_none(self):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
-        self.assertEqual(self.do_identify(''), self.accepts_empty_hash)
+        self.assertEqual(self.do_identify(b('')), self.accepts_empty_hash)
+        self.assertEqual(self.do_identify(u''), self.accepts_empty_hash)
 
     #=========================================================
     #verify()
@@ -551,9 +571,11 @@ class HandlerCase(TestCase):
         #find valid hash so that doesn't mask error
         self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
         if self.accepts_empty_hash:
-            self.do_verify("stub", "")
+            self.do_verify("stub", u"")
+            self.do_verify("stub", b(""))
         else:
-            self.assertRaises(ValueError, self.do_verify, 'stub', '', __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', u'', __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', b(''), __msg__="hash='':")
 
     #=========================================================
     #genconfig()
@@ -564,6 +586,8 @@ class HandlerCase(TestCase):
             raise SkipTest
         c1 = self.do_genconfig()
         c2 = self.do_genconfig()
+        self.assertIsInstance(c1, native_str, "genconfig() must return native str:")
+        self.assertIsInstance(c2, native_str, "genconfig() must return native str:")
         self.assertNotEquals(c1,c2)
 
     def test_31_genconfig_minsalt(self):
@@ -572,10 +596,11 @@ class HandlerCase(TestCase):
         if not has_salt_info(handler):
             raise SkipTest
         cs = handler.salt_chars
+        cc = cs[0:1]
         mn = handler.min_salt_size
-        c1 = self.do_genconfig(salt=cs[0] * mn)
+        c1 = self.do_genconfig(salt=cc * mn)
         if mn > 0:
-            self.assertRaises(ValueError, self.do_genconfig, salt=cs[0]*(mn-1))
+            self.assertRaises(ValueError, self.do_genconfig, salt=cc*(mn-1))
 
     def test_32_genconfig_maxsalt(self):
         "test genconfig() honors max salt chars"
@@ -583,19 +608,20 @@ class HandlerCase(TestCase):
         if not has_salt_info(handler):
             raise SkipTest
         cs = handler.salt_chars
+        cc = cs[0:1]
         mx = handler.max_salt_size
         if mx is None:
             #make sure salt is NOT truncated,
             #use a really large salt for testing
-            salt = cs[0] * 1024
+            salt = cc * 1024
             c1 = self.do_genconfig(salt=salt)
-            c2 = self.do_genconfig(salt=salt + cs[0])
+            c2 = self.do_genconfig(salt=salt + cc)
             self.assertNotEqual(c1,c2)
         else:
             #make sure salt is truncated exactly where it should be.
-            salt = cs[0] * mx
+            salt = cc * mx
             c1 = self.do_genconfig(salt=salt)
-            c2 = self.do_genconfig(salt=salt + cs[0])
+            c2 = self.do_genconfig(salt=salt + cc)
             self.assertEqual(c1,c2)
 
             #if min_salt supports it, check smaller than mx is NOT truncated
@@ -603,7 +629,7 @@ class HandlerCase(TestCase):
                 c3 = self.do_genconfig(salt=salt[:-1])
                 self.assertNotEqual(c1,c3)
 
-    def test_33_genconfig_saltcharset(self):
+    def test_33_genconfig_saltchars(self):
         "test genconfig() honors salt_chars"
         handler = self.handler
         if not has_salt_info(handler):
@@ -611,9 +637,10 @@ class HandlerCase(TestCase):
         mx = handler.max_salt_size
         mn = handler.min_salt_size
         cs = handler.salt_chars
-
+        raw = isinstance(cs, bytes)
+        
         #make sure all listed chars are accepted
-        chunk = 1024 if mx is None else mx
+        chunk = 32 if mx is None else mx
         for i in xrange(0,len(cs),chunk):
             salt = cs[i:i+chunk]
             if len(salt) < mn:
@@ -621,10 +648,13 @@ class HandlerCase(TestCase):
             self.do_genconfig(salt=salt)
 
         #check some invalid salt chars, make sure they're rejected
-        chunk = mn if mn > 0 else 1
-        for c in '\x00\xff':
+        source = u'\x00\xff'
+        if raw:
+            source = source.encode("latin-1")
+        chunk = max(mn, 1)
+        for c in source:
             if c not in cs:
-                self.assertRaises(ValueError, self.do_genconfig, salt=c*chunk)
+                self.assertRaises(ValueError, self.do_genconfig, salt=c*chunk, __msg__="invalid salt char %r:" % (c,))
 
     #=========================================================
     #genhash()
@@ -675,11 +705,17 @@ class HandlerCase(TestCase):
     #=========================================================
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
-        if self.supports_unicode:
-            secret = u"unic\u00D6de"
-        else:
-            secret = "too many secrets"
+        #check it handles unicode password
+        secret = u"\u20AC\u00A5$"
         result = self.do_encrypt(secret)
+        self.assertIsInstance(result, native_str, "encrypt must return native str:")
+        self.assert_(self.do_identify(result))
+        self.assert_(self.do_verify(secret, result))
+        
+        #check it handles bytes password as well
+        secret = b('\xe2\x82\xac\xc2\xa5$')
+        result = self.do_encrypt(secret)
+        self.assertIsInstance(result, native_str, "encrypt must return native str:")
         self.assert_(self.do_identify(result))
         self.assert_(self.do_verify(secret, result))
 

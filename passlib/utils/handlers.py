@@ -46,6 +46,20 @@ UC_HEX_CHARS = u"0123456789ABCDEF"
 LC_HEX_CHARS = u"0123456789abcdef"
 
 #=========================================================
+#identify helpers
+#=========================================================
+def identify_regexp(hash, pat):
+    "identify() helper for matching regexp"
+    if not hash:
+        return False
+    if isinstance(hash, bytes):
+        try:
+            hash = hash.decode("ascii")
+        except UnicodeDecodeError:
+            return False
+    return pat.match(hash) is not None
+
+#=========================================================
 #parsing helpers
 #=========================================================
 def parse_mc2(hash, prefix, name="<unnamed>", sep=u"$"):
