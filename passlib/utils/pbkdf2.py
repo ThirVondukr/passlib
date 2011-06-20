@@ -154,7 +154,7 @@ def get_prf(name):
 #=================================================================================
 #pbkdf1 support
 #=================================================================================
-def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
+def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
     """pkcs#5 password-based key derivation v1.5
 
     :arg secret: passphrase to use to generate key
@@ -167,10 +167,6 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
 
         * a callable with the prototype ``hash(message) -> raw digest``
         * a string matching one of the hashes recognized by hashlib
-
-    :param encoding:
-        encoding to use when converting unicode secret and salt to bytes.
-        defaults to ``utf8``.
         
     :returns:
         raw bytes of generated key
@@ -181,8 +177,10 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
     
     """
     #prepare secret & salt
-    secret = to_bytes(secret, encoding, errname="secret")
-    salt = to_bytes(salt, encoding, errname="salt")
+    if not isinstance(secret, bytes):
+        raise TypeError("secret must be bytes, not %s" % (type(secret),))
+    if not isinstance(salt, bytes):
+        raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
     if not isinstance(rounds, (int, long)):
@@ -222,7 +220,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1", encoding="utf8"):
 MAX_BLOCKS = 0xffffffff #2**32-1
 MAX_HMAC_SHA1_KEYLEN = MAX_BLOCKS*20
 
-def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1", encoding="utf8"):
+def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
 
     :arg secret: passphrase to use to generate key
@@ -234,16 +232,15 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1", encoding="utf8"):
         this can be any string or callable accepted by :func:`get_prf`.
         this defaults to ``hmac-sha1`` (the only prf explicitly listed in
         the PBKDF2 specification)
-    :param encoding:
-        encoding to use when converting unicode secret and salt to bytes.
-        defaults to ``utf8``.
         
     :returns:
         raw bytes of generated key
     """
     #prepare secret & salt
-    secret = to_bytes(secret, encoding, errname="secret")
-    salt = to_bytes(salt, encoding, errname="salt")
+    if not isinstance(secret, bytes):
+        raise TypeError("secret must be bytes, not %s" % (type(secret),))
+    if not isinstance(salt, bytes):
+        raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
     if not isinstance(rounds, (int, long)):
