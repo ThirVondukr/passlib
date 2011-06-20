@@ -57,7 +57,7 @@ class _Base64DigestHelper(uh.StaticHandler):
         if hash is not None and not cls.identify(hash):
             raise ValueError("not a %s hash" % (cls.name,))
         chk = cls._hash_func(secret).digest()
-        hash = cls.ident + b64encode(chk).decode("ascii").strip()
+        hash = cls.ident + b64encode(chk).decode("ascii")
         return to_hash_str(hash)
 
 class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):

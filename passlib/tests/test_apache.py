@@ -380,7 +380,7 @@ class HtdigestFileTest(TestCase):
         #check returns bytes if encoding explicitly disabled
         ht = apache.HtdigestFile(path, encoding=None)
         self.assertIsInstance(ht.realms()[0], bytes)
-        self.assertIsInstance(ht.users("realm")[0], bytes)
+        self.assertIsInstance(ht.users(b("realm"))[0], bytes)
 
         #check sample utf-8
         set_file(path, self.sample_04_utf8)
