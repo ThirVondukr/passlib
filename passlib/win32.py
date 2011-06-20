@@ -27,6 +27,7 @@ See also :mod:`passlib.hash.nthash`.
 from binascii import hexlify
 #site
 #pkg
+from passlib.utils import to_native_str, b
 from passlib.utils.des import des_encrypt_block
 from passlib.hash import nthash
 #local
@@ -38,16 +39,22 @@ __all__ = [
 #=========================================================
 #helpers
 #=========================================================
-LM_MAGIC = "KGS!@#$%"
+LM_MAGIC = b("KGS!@#$%")
 
 raw_nthash = nthash.raw_nthash
 
-def raw_lmhash(secret, hex=False):
-    "encode password using des-based LMHASH algorithm; returns string of raw bytes"
-    #XXX: encoding should be oem ascii
-    ns = secret.upper()[:14] + "\x00" * (14-len(secret))
+def raw_lmhash(secret, encoding="ascii", hex=False):
+    "encode password using des-based LMHASH algorithm; returns string of raw bytes, or unicode hex"
+    #NOTE: various references say LMHASH uses the OEM codepage of the host
+    #      for it's encoding. until a clear reference is found,
+    #      as well as a path for getting the encoding,
+    #      letting this default to "ascii" to prevent incorrect hashes
+    #      from being made w/o user explicitly choosing an encoding. 
+    if isinstance(secret, unicode):
+        secret = secret.encode(encoding)
+    ns = secret.upper()[:14] + b("\x00") * (14-len(secret))
     out = des_encrypt_block(ns[:7], LM_MAGIC) + des_encrypt_block(ns[7:], LM_MAGIC)
-    return hexlify(out) if hex else out
+    return hexlify(out).decode("ascii") if hex else out
 
 #=========================================================
 #eoc
