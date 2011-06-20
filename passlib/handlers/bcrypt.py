@@ -74,6 +74,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident")
     checksum_size = 31
+    checksum_chars = uh.H64_CHARS
 
     #--HasManyIdents--
     default_ident = u"$2a$"

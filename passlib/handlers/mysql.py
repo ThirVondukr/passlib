@@ -51,6 +51,7 @@ class mysql323(uh.StaticHandler):
     #class attrs
     #=========================================================
     name = "mysql323"
+    checksum_chars = uh.HEX_CHARS
 
     _pat = re.compile(ur"^[0-9a-f]{16}$", re.I)
 

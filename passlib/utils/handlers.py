@@ -40,6 +40,7 @@ __all__ = [
 #common salt_chars & checksum_chars values
 H64_CHARS = h64.CHARS
 B64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+PADDED_B64_CHARS = B64_CHARS + u"="
 U64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 HEX_CHARS = u"0123456789abcdefABCDEF"
 UC_HEX_CHARS = u"0123456789ABCDEF"
@@ -302,7 +303,7 @@ class GenericHandler(object):
     ident = None #identifier prefix if known
 
     checksum_size = None #if specified, norm_checksum will require this length
-    checksum_chars = H64_CHARS #if specified, norm_checksum() will validate this
+    checksum_chars = None #if specified, norm_checksum() will validate this
 
     #=====================================================
     #instance attrs

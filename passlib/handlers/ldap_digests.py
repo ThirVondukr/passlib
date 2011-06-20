@@ -43,6 +43,7 @@ class _Base64DigestHelper(uh.StaticHandler):
     ident = None #required - prefix identifier
     _hash_func = None #required - hash function
     _pat = None #required - regexp to recognize hash
+    checksum_chars = uh.PADDED_B64_CHARS
 
     @classmethod
     def identify(cls, hash):
@@ -63,6 +64,7 @@ class _Base64DigestHelper(uh.StaticHandler):
 class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
     setting_kwds = ("salt",)
+    checksum_chars = uh.PADDED_B64_CHARS
 
     ident = None #required - prefix identifier
     _hash_func = None #required - hash function

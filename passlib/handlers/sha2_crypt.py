@@ -248,6 +248,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     name = "sha256_crypt"
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
     ident = u"$5$"
+    checksum_chars = uh.H64_CHARS
 
     #--HasSalt--
     min_salt_size = 0
@@ -400,6 +401,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
     name = "sha512_crypt"
     ident = u"$6$"
+    checksum_chars = uh.H64_CHARS
 
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
 

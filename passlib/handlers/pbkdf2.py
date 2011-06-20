@@ -35,6 +35,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
 
     #--GenericHandler--
     setting_kwds = ("salt", "salt_size", "rounds")
+    checksum_chars = uh.H64_CHARS
 
     #--HasSalt--
     default_salt_size = 16
