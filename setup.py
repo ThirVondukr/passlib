@@ -10,12 +10,23 @@ os.chdir(root_dir)
 #imports
 #=========================================================
 import re
+import sys
+py3k = (sys.version_info >= (3,0))
 from setuptools import setup, find_packages
+
+#=========================================================
+#monkeypatch & enable 2to3 
+#=========================================================
+opts = {}
+if py3k:
+    from passlib.setup.cond2to3 import patch2to3
+    patch2to3()
+    opts['use_2to3'] = True
 
 #=========================================================
 #version string
 #=========================================================
-vh = file(os.path.join(root_dir, "passlib", "__init__.py"))
+vh = open(os.path.join(root_dir, "passlib", "__init__.py"))
 VERSION = re.search(r'^__version__\s*=\s*"(.*?)"\s*$', vh.read(), re.M).group(1)
 vh.close()
 
@@ -70,11 +81,15 @@ setup(
         "Programming Language :: Python :: 2.5",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
         "Topic :: Security :: Cryptography",
         "Topic :: Software Development :: Libraries",
     ],
 
     test_suite = 'nose.collector',
+
+    #extra opts
+    **opts
 )
 #=========================================================
 #EOF
