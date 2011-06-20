@@ -14,8 +14,8 @@ import warnings
 from passlib.context import CryptContext
 from passlib import utils
 from passlib.utils import h64, des, Undef, sys_bits, bytes, b, \
-    native_str, to_bytes, to_unicode, to_native_str, \
-    is_same_codec
+    native_str, to_bytes, to_unicode, to_native_str, to_hash_str, \
+    is_same_codec, is_ascii_safe, safe_os_crypt
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, \
     enable_option, catch_warnings, SkipTest
@@ -105,6 +105,43 @@ class MiscTest(TestCase):
         self.assertNotEqual(a,b)
 
         rng.seed(utils.genseed(rng))
+
+    def test_safe_os_crypt(self):
+        "test safe_os_crypt() wrapper"
+        if not safe_os_crypt:
+            raise SkipTest
+        
+        #NOTE: this is assuming EVERY crypt will support des_crypt.
+        #      if this fails on some platform, this test will need modifying.
+
+        #test normal case
+        ok, hash = safe_os_crypt(u'test', u'aa')
+        self.assertTrue(ok)
+        self.assertIsInstance(hash, unicode)
+        self.assertEqual(hash, u'aaqPiZY5xR5l.')
+        
+        #test hash-as-bytes
+        self.assertRaises(TypeError, safe_os_crypt, u'test', b('aa'))
+        
+        #test password as ascii
+        ret = safe_os_crypt(b('test'), u'aa')
+        self.assertEqual(ret, (True, u'aaqPiZY5xR5l.'))
+        
+        #test unicode password w/ high char
+        ret = safe_os_crypt(u'test\u1234', u'aa')
+        self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
+        
+        #test utf-8 password w/ high char
+        ret = safe_os_crypt(b('test\xe1\x88\xb4'), u'aa')
+        self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
+
+        #test latin-1 password
+        ret = safe_os_crypt(b('test\xff'), u'aa')
+        # Py2k #
+        self.assertEqual(ret, (True, u'aaOx.5nbTU/.M'))
+        # Py3k #
+        #self.assertEqual(ret, (False, None))
+        # end Py3k #
 
 #=========================================================
 #byte/unicode helpers
@@ -206,6 +243,17 @@ class CodecTest(TestCase):
         #                                                    '\x00\xff')
         #
         # end Py3k #
+                    
+    #TODO: test to_hash_str()
+                        
+    def test_is_ascii_safe(self):
+        "test is_ascii_safe()"        
+        self.assertTrue(is_ascii_safe(b("\x00abc\x7f")))
+        self.assertTrue(is_ascii_safe(u"\x00abc\x7f"))
+        self.assertFalse(is_ascii_safe(b("\x00abc\x80")))
+        self.assertFalse(is_ascii_safe(u"\x00abc\x80"))
+                        
+                                                                    
     def test_is_same_codec(self):
         "test is_same_codec()"
         self.assertTrue(is_same_codec(None, None))

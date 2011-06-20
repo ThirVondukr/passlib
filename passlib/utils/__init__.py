@@ -283,6 +283,18 @@ def has_salt_info(handler):
     "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
     return 'salt' in handler.setting_kwds and getattr(handler, "min_salt_size", None) is not None
 
+##def has_raw_salt(handler):
+##    "check if handler takes in encoded salt as unicode (False), or decoded salt as bytes (True)"
+##    sc = getattr(handler, "salt_chars", None)
+##    if sc is None:
+##        return None
+##    elif isinstance(sc, unicode):
+##        return False
+##    elif isinstance(sc, bytes):
+##        return True
+##    else:
+##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
+
 #==========================================================
 #bytes <-> unicode conversion helpers
 #==========================================================
@@ -401,6 +413,20 @@ def is_same_codec(left, right):
     if not (left and right):
         return False
     return _lookup_codec(left).name == _lookup_codec(right).name
+
+_U80 = u'\x80'
+_B80 = b('\x80')
+
+def is_ascii_safe(source):
+    "check if source (bytes or unicode) contains only 7-bit ascii"
+    if isinstance(source, bytes):
+        # Py2k #
+        return all(c < _B80 for c in source)
+        # Py3k #
+        #return all(c < 128 for c in source)
+        # end Py3k #
+    else:
+        return all(c < _U80 for c in source)
 
 #=================================================================================
 #string helpers

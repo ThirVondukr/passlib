@@ -41,9 +41,6 @@ class HtpasswdFileTest(TestCase):
     "test HtpasswdFile class"
     case_prefix = "HtpasswdFile"
     
-    #TODO: add sample so we can test w/ specific encoding (eg latin-1, utf-8)
-    #      and test w/ explicit encoding=None/latin-1/utf-8 settings. 
-
     sample_01 = b('user2:2CHkkwa2AtqGs\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n')
     sample_02 = b('user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n')
     sample_03 = b('user2:pass2x\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\nuser5:pass5\n')
