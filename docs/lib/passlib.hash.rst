@@ -80,8 +80,7 @@ They all follow the modular crypt format.
 Other Modular Crypt Schemes
 ---------------------------
 While most of these schemes are not (commonly) used by any Unix flavor to store user passwords,
-these are compatible with the modular crypt format, and can be used
-compatible by along side others in this section.
+they can be used compatibly along side other modular crypt format hashes.
 
 .. toctree::
     :maxdepth: 1

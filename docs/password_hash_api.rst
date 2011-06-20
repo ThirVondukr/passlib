@@ -575,7 +575,7 @@ and ease of implementation issues:
     The primary exception to this is handlers implementing
     plaintext passwords. The implementations in passlib generally
     use ``utf-8`` to encode unicode passwords,
-    and reproduce unchanged any passwords encoded as opaque bytes.
+    and reproduce existing passwords as opaque bytes.
 
 *   Internally, it is recommended that handlers
     operate on :class:`unicode` for parsing / formatting

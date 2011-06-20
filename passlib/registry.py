@@ -59,7 +59,7 @@ class PasslibRegistryProxy(object):
     #eoc
     #=========================================================
 
-#singleton instance
+#singleton instance - available publicallly as 'passlib.hash'
 _proxy = PasslibRegistryProxy()
 
 #==========================================================
@@ -253,14 +253,14 @@ def get_crypt_handler(name, default=Undef):
     global _handlers, _handler_locations
 
     #check if handler loaded
-    handler = _handlers.get(name, None)
+    handler = _handlers.get(name)
     if handler:
         return handler
 
     #normalize name (and if changed, check dict again)
     alt = name.replace("-","_").lower()
     if alt != name:
-        warn("handler names be lower-case, and use underscores instead of hyphens: %r => %r" % (name, alt))
+        warn("handler names should be lower-case, and use underscores instead of hyphens: %r => %r" % (name, alt))
         name = alt
 
         #check if handler loaded
