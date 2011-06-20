@@ -488,6 +488,26 @@ def bjoin_ints(values):
 #bjoin_ints = bytes
 # end Py3k #
 
+def render_bytes(source, *args):
+    """helper for using formatting operator with bytes.
+    
+    this function is motivated by the fact that
+    :class:`bytes` instances do not support % or {} formatting under python 3.
+    this function is an attempt to provide a replacement
+    that will work uniformly under python 2 & 3.
+    
+    it converts everything to unicode (including bytes arguments),
+    then encodes the result to latin-1.
+    """
+    if isinstance(source, bytes):
+        source = source.decode("latin-1")
+    def adapt(arg):
+        if isinstance(arg, bytes):
+            return arg.decode("latin-1")
+        return arg
+    result = source % tuple(adapt(arg) for arg in args)
+    return result.encode("latin-1")
+
 #=================================================================================
 #numeric helpers
 #=================================================================================

@@ -29,21 +29,28 @@ from __future__ import with_statement
 from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 import os
+import sys
 #site
 #libs
 from passlib.context import CryptContext
+from passlib.utils import render_bytes, bjoin, bytes, b, to_unicode, to_bytes
 #pkg
 #local
 __all__ = [
 ]
 
+BCOLON = b(":")
+
 #=========================================================
 #common helpers
 #=========================================================
+DEFAULT_ENCODING = "utf-8" if sys.version_info >= (3,0) else None
+
 class _CommonFile(object):
     "helper for HtpasswdFile / HtdigestFile"
 
-    #NOTE: 'path' is a property so that mtime is wiped if path is changed.
+    #NOTE: 'path' is a property instead of attr,
+    #      so that .mtime is wiped whenever path is changed.
     _path = None
     def _get_path(self):
         return self._path
@@ -53,7 +60,13 @@ class _CommonFile(object):
         self._path = path
     path = property(_get_path, _set_path)
 
-    def __init__(self, path=None, autoload=True):
+    def __init__(self, path=None, autoload=True,
+                 encoding=DEFAULT_ENCODING,
+                 ):
+        if encoding and u":\n".encode(encoding) != b(":\n"):
+            #rest of file assumes ascii bytes, and uses ":" as separator.
+            raise ValueError, "encoding must be 7-bit ascii compatible"
+        self.encoding = encoding
         self.path = path
         ##if autoload == "exists":
         ##    autoload = bool(path and os.path.exists(path))
@@ -81,7 +94,7 @@ class _CommonFile(object):
             raise RuntimeError("no load path specified")
         if not force and self.mtime and self.mtime == os.path.getmtime(path):
             return False
-        with file(path, "rU") as fh:
+        with open(path, "rbU") as fh:
             self.mtime = os.path.getmtime(path)
             self._load_lines(fh)
         return True
@@ -91,6 +104,8 @@ class _CommonFile(object):
         entry_order = self._entry_order = []
         entry_map = self._entry_map = {}
         for line in lines:
+            #XXX: found mention that "#" comment lines may be supported by htpasswd,
+            #     should verify this. 
             key, value = pl(line)
             if key in entry_map:
                 #XXX: should we use data from first entry, or last entry?
@@ -109,17 +124,17 @@ class _CommonFile(object):
         entry_order = self._entry_order
         entry_map = self._entry_map
         assert len(entry_order) == len(entry_map), "internal error in entry list"
-        with file(self.path, "wb") as fh:
+        with open(self.path, "wb") as fh:
             fh.writelines(rl(key, entry_map[key]) for key in entry_order)
         self.mtime = os.path.getmtime(self.path)
 
     def to_string(self):
-        "export whole database as a string"
+        "export whole database as a byte string"
         rl = self._render_line
         entry_order = self._entry_order
         entry_map = self._entry_map
         assert len(entry_order) == len(entry_map), "internal error in entry list"
-        return "".join(rl(key, entry_map[key]) for key in entry_order)
+        return bjoin(rl(key, entry_map[key]) for key in entry_order)
 
     #subclass: _render_line(entry) -> line
 
@@ -142,27 +157,51 @@ class _CommonFile(object):
         else:
             return False
 
-    invalid_chars = ":\n\r\t\x00"
+    invalid_chars = b(":\n\r\t\x00")
 
-    def _validate_user(self, user):
-        if len(user) > 255:
-            raise ValueError("user must be at most 255 characters: %r" % (user,))
-        ic = self.invalid_chars
-        if any(c in ic for c in user):
-            raise ValueError("user contains invalid characters: %r" % (user,))
-        return True
+    def _norm_user(self, user):
+        "encode user to bytes, validate against format requirements"
+        return self._norm_ident(user, errname="user")
 
-    def _validate_realm(self, realm):
-        if len(realm) > 255:
-            raise ValueError("realm must be at most 255 characters: %r" % (realm,))
-        ic = self.invalid_chars
-        if any(c in ic for c in realm):
-            raise ValueError("realm contains invalid characters: %r" % (realm,))
-        return True
+    def _norm_realm(self, realm):
+        "encode realm to bytes, validate against format requirements"
+        return self._norm_ident(realm, errname="realm")
+
+    def _norm_ident(self, ident, errname="user/realm"):
+        ident = self._encode_ident(ident, errname)
+        if len(ident) > 255:
+            raise ValueError("%s must be at most 255 characters: %r" % (errname, ident))
+        if any(c in self.invalid_chars for c in ident):
+            raise ValueError("%s contains invalid characters: %r" % (errname, ident,))
+        return ident
+
+    def _encode_ident(self, ident, errname="user/realm"):
+        "ensure identifier is bytes encoded using specified encoding, or rejected"
+        encoding = self.encoding        
+        if encoding:
+            if isinstance(ident, unicode):
+                return ident.encode(encoding)
+            raise TypeError("%s must be unicode, not %s" %
+                            (errname, type(ident)))
+        else:
+            if isinstance(ident, bytes):
+                return ident
+            raise TypeError("%s must be bytes, not %s" %
+                            (errname, type(ident)))
+
+    def _decode_ident(self, ident, errname="user/realm"):
+        "decode an identifier (if encoding is specified, else return encoded bytes)"
+        assert isinstance(ident, bytes)
+        encoding = self.encoding
+        if encoding:
+            return ident.decode(encoding)
+        else:
+            return ident
 
     #FIXME: htpasswd doc sez passwords limited to 255 chars under Windows & MPE,
-    # longer ones are truncated.
-
+    # longer ones are truncated. may be side-effect of those platforms
+    # supporting plaintext. we don't currently check for this.
+    
 #=========================================================
 #htpasswd editing
 #=========================================================
@@ -194,6 +233,39 @@ class HtpasswdFile(_CommonFile):
         Set to ``False`` to disable automatic loading (primarily used when
         creating new htdigest file).
 
+    :param encoding:
+        optionally specify encoding used for usernames.
+
+        if set to ``None``,
+        user names must be specified as bytes,
+        and will be returned as bytes.
+        
+        if set to an encoding,
+        user names must be specified as unicode,
+        and will be returned as unicode.
+        when stored, then will use the specified encoding.
+        
+        for backwards compatibility with passlib 1.4,
+        this defaults to ``None`` under Python 2,
+        and ``utf-8`` under Python 3.
+        
+        .. note::
+
+            this is not the encoding for the entire file,
+            just for the usernames within the file.
+            this must be an encoding which is compatible
+            with 7-bit ascii (which is used by rest of file). 
+
+    :param context:
+        :class:`~passlib.context.CryptContext` instance used to handle
+        hashes in this file.
+        
+        .. warning::
+        
+            this should usually be left at the default,
+            though it can be overridden to implement non-standard hashes
+            within the htpasswd file.
+
     Loading & Saving
     ================
     .. automethod:: load
@@ -218,29 +290,29 @@ class HtpasswdFile(_CommonFile):
         contains one of the forbidden characters ``:\\r\\n\\t\\x00``,
         or is longer than 255 characters.
     """
-    def __init__(self, path=None, default=None, **kwds):
-        self.context = htpasswd_context
+    def __init__(self, path=None, default=None, context=htpasswd_context, **kwds):
+        self.context = context
         if default:
             self.context = self.context.replace(default=default)
         super(HtpasswdFile, self).__init__(path, **kwds)
 
     def _parse_line(self, line):
         #should be user, hash
-        return line.rstrip().split(":")
+        return line.rstrip().split(BCOLON)
 
     def _render_line(self, user, hash):
-        return "%s:%s\n" % (user, hash)
-
+        return render_bytes("%s:%s\n", user, hash)
+        
     def users(self):
         "return list of all users in file"
-        return list(self._entry_order)
+        return map(self._decode_ident, self._entry_order)
 
     def update(self, user, password):
         """update password for user; adds user if needed.
 
         :returns: ``True`` if existing user was updated, ``False`` if user added.
         """
-        self._validate_user(user)
+        user = self._norm_user(user)
         hash = self.context.encrypt(password)
         return self._update_key(user, hash)
 
@@ -249,7 +321,7 @@ class HtpasswdFile(_CommonFile):
 
         :returns: ``True`` if user deleted, ``False`` if user not found.
         """
-        self._validate_user(user)
+        user = self._norm_user(user)
         return self._delete_key(user)
 
     def verify(self, user, password):
@@ -260,7 +332,7 @@ class HtpasswdFile(_CommonFile):
             * ``False`` if password does not match
             * ``True`` if password matches.
         """
-        self._validate_user(user)
+        user = self._norm_user(user)
         hash = self._entry_map.get(user)
         if hash is None:
             return None
@@ -271,7 +343,6 @@ class HtpasswdFile(_CommonFile):
 #=========================================================
 #htdigest editing
 #=========================================================
-
 class HtdigestFile(_CommonFile):
     """class for reading & writing Htdigest files
 
@@ -283,6 +354,29 @@ class HtdigestFile(_CommonFile):
 
         Set to ``False`` to disable automatic loading (primarily used when
         creating new htdigest file).
+
+    :param encoding:
+        optionally specify encoding used for usernames / realms.
+        
+        if set to ``None``,
+        user names & realms must be specified as bytes,
+        and will be returned as bytes.
+        
+        if set to an encoding,
+        user names & realms must be specified as unicode,
+        and will be returned as unicode.
+        when stored, then will use the specified encoding.
+        
+        for backwards compatibility with passlib 1.4,
+        this defaults to ``None`` under Python 2,
+        and ``utf-8`` under Python 3.
+
+        .. note::
+
+            this is not the encoding for the entire file,
+            just for the usernames & realms within the file.
+            this must be an encoding which is compatible
+            with 7-bit ascii (which is used by rest of file). 
 
     Loading & Saving
     ================
@@ -312,30 +406,58 @@ class HtdigestFile(_CommonFile):
         or is longer than 255 characters.
 
     """
+    #XXX: don't want password encoding to change if user account encoding does.
+    #     but also *can't* use unicode itself. setting this to utf-8 for now,
+    #     until it causes problems - in which case stopgap of setting this attr
+    #     per-instance can be used.
+    password_encoding = "utf-8"
+    
+    #XXX: provide rename() & rename_realm() ? 
+    
     def _parse_line(self, line):
-        user, realm, hash = line.rstrip().split(":")
+        user, realm, hash = line.rstrip().split(BCOLON)
         return (user, realm), hash
 
     def _render_line(self, key, hash):
-        return "%s:%s:%s\n" % (key[0], key[1], hash)
+        return render_bytes("%s:%s:%s\n", key[0], key[1], hash)
+        
+    #TODO: would frontend to calc_digest be useful?
+    ##def encrypt(self, password, user, realm):
+    ##    user = self._norm_user(user)
+    ##    realm = self._norm_realm(realm)
+    ##    hash = self._calc_digest(user, realm, password)
+    ##    if self.encoding:
+    ##        #decode hash if in unicode mode
+    ##        hash = hash.decode("ascii")
+    ##    return hash
+
+    def _calc_digest(self, user, realm, password):
+        "helper to calculate digest"
+        if isinstance(password, unicode):
+            password = password.encode(self.password_encoding)
+        #NOTE: encode('ascii') is noop under py2, required under py3
+        return md5(render_bytes("%s:%s:%s", user, realm, password)).hexdigest().encode("ascii")
 
     def realms(self):
         "return all realms listed in file"
-        return list(set(key[1] for key in self._entry_order))
+        return map(self._decode_ident,
+                      set(key[1] for key in self._entry_order))
 
     def users(self, realm):
         "return list of all users within specified realm"
-        return [ key[0] for key in self._entry_order if key[1] == realm ]
+        realm = self._norm_realm(realm)
+        return map(self._decode_ident,
+                      (key[0] for key in self._entry_order if key[1] == realm))
 
     def update(self, user, realm, password):
         """update password for user under specified realm; adding user if needed
 
         :returns: ``True`` if existing user was updated, ``False`` if user added.
         """
-        self._validate_user(user)
-        self._validate_realm(realm)
+        user = self._norm_user(user)
+        realm = self._norm_realm(realm)
         key = (user,realm)
-        hash = md5("%s:%s:%s" % (user,realm,password)).hexdigest()
+        hash = self._calc_digest(user, realm, password)
         return self._update_key(key, hash)
 
     def delete(self, user, realm):
@@ -343,8 +465,8 @@ class HtdigestFile(_CommonFile):
 
         :returns: ``True`` if user deleted, ``False`` if user not found in realm.
         """
-        self._validate_user(user)
-        self._validate_realm(realm)
+        user = self._norm_user(user)
+        realm = self._norm_realm(realm)
         return self._delete_key((user,realm))
 
     def delete_realm(self, realm):
@@ -352,7 +474,7 @@ class HtdigestFile(_CommonFile):
 
         :returns: number of users deleted
         """
-        self._validate_realm(realm)
+        realm = self._norm_realm(realm)
         keys = [
             key for key in self._entry_map
             if key[1] == realm
@@ -362,11 +484,19 @@ class HtdigestFile(_CommonFile):
         return len(keys)
 
     def find(self, user, realm):
-        """return digest hash for specified user+realm; returns ``None`` if not found"""
-        self._validate_user(user)
-        self._validate_realm(realm)
-        return self._entry_map.get((user,realm))
-
+        """return digest hash for specified user+realm; returns ``None`` if not found
+        
+        :returns: htdigest hash or None
+        :rtype: bytes or None
+        """
+        user = self._norm_user(user)
+        realm = self._norm_realm(realm)
+        hash = self._entry_map.get((user,realm))
+        if hash is not None and self.encoding:
+            #decode hash if in unicode mode
+            hash = hash.decode("ascii")
+        return hash
+        
     def verify(self, user, realm, password):
         """verify password for specified user + realm.
 
@@ -375,12 +505,12 @@ class HtdigestFile(_CommonFile):
             * ``False`` if password does not match
             * ``True`` if password matches.
         """
-        self._validate_user(user)
-        self._validate_realm(realm)
+        user = self._norm_user(user)
+        realm = self._norm_realm(realm)
         hash = self._entry_map.get((user,realm))
         if hash is None:
             return None
-        return hash == md5("%s:%s:%s" % (user,realm,password)).hexdigest()
+        return hash == self._calc_digest(user, realm, password)
 
 #=========================================================
 # eof

@@ -11,16 +11,19 @@ import time
 #site
 #pkg
 from passlib import apache
+from passlib.utils import b, native_str, bytes
 from passlib.tests.utils import TestCase, mktemp
 #module
 log = getLogger(__name__)
 
 def set_file(path, content):
-    with file(path, "wb") as fh:
+    if isinstance(content, unicode):
+        content = content.encode("utf-8")
+    with open(path, "wb") as fh:
         fh.write(content)
 
 def get_file(path):
-    with file(path, "rb") as fh:
+    with open(path, "rb") as fh:
         return fh.read()
 
 def backdate_file_mtime(path, offset=10):
@@ -37,12 +40,18 @@ def backdate_file_mtime(path, offset=10):
 class HtpasswdFileTest(TestCase):
     "test HtpasswdFile class"
     case_prefix = "HtpasswdFile"
+    
+    #TODO: add sample so we can test w/ specific encoding (eg latin-1, utf-8)
+    #      and test w/ explicit encoding=None/latin-1/utf-8 settings. 
 
-    sample_01 = 'user2:2CHkkwa2AtqGs\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n'
-    sample_02 = 'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n'
-    sample_03 = 'user2:pass2x\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\nuser5:pass5\n'
+    sample_01 = b('user2:2CHkkwa2AtqGs\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n')
+    sample_02 = b('user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n')
+    sample_03 = b('user2:pass2x\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\nuser5:pass5\n')
 
-    sample_dup = 'user1:pass1\nuser1:pass2\n'
+    sample_04_utf8 = b('user\xc3\xa6:2CHkkwa2AtqGs\n')
+    sample_04_latin1 = b('user\xe6:2CHkkwa2AtqGs\n')
+
+    sample_dup = b('user1:pass1\nuser1:pass2\n')
 
     def test_00_constructor(self):
         "test constructor & to_string()"
@@ -54,7 +63,7 @@ class HtpasswdFileTest(TestCase):
 
         #check autoload=False
         ht = apache.HtpasswdFile(path, autoload=False)
-        self.assertEqual(ht.to_string(), "")
+        self.assertEqual(ht.to_string(), b(""))
 
         #check missing file
         os.remove(path)
@@ -62,7 +71,7 @@ class HtpasswdFileTest(TestCase):
 
         #check no path
         ht = apache.HtpasswdFile()
-        self.assertEqual(ht.to_string(), "")
+        self.assertEqual(ht.to_string(), b(""))
 
         #NOTE: "default" option checked via update() test, among others
 
@@ -99,7 +108,7 @@ class HtpasswdFileTest(TestCase):
         ht.update("user3", "pass3")
         self.assertEqual(ht.users(), ["user2", "user4", "user1", "user5", "user3"])
 
-    def test_03_verify(self):
+    def test_04_verify(self):
         "test verify()"
         path = mktemp()
         set_file(path, self.sample_01)
@@ -112,7 +121,7 @@ class HtpasswdFileTest(TestCase):
 
         self.assertRaises(ValueError, ht.verify, "user:", "pass")
 
-    def test_04_load(self):
+    def test_05_load(self):
         "test load()"
 
         #setup empty file
@@ -120,12 +129,12 @@ class HtpasswdFileTest(TestCase):
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtpasswdFile(path, default="plaintext")
-        self.assertEqual(ha.to_string(), "")
+        self.assertEqual(ha.to_string(), b(""))
 
         #make changes, check force=False does nothing
         ha.update("user1", "pass1")
         ha.load(force=False)
-        self.assertEqual(ha.to_string(), "user1:pass1\n")
+        self.assertEqual(ha.to_string(), b("user1:pass1\n"))
 
         #change file
         set_file(path, self.sample_01)
@@ -146,8 +155,8 @@ class HtpasswdFileTest(TestCase):
         set_file(path, self.sample_dup)
         hc = apache.HtpasswdFile(path)
         self.assert_(hc.verify('user1','pass1'))
-
-    def test_05_save(self):
+        
+    def test_06_save(self):
         "test save()"
         #load from file
         path = mktemp()
@@ -165,6 +174,36 @@ class HtpasswdFileTest(TestCase):
         hb.update("user1", "pass1")
         self.assertRaises(RuntimeError, hb.save)
 
+    def test_07_encodings(self):
+        "test encoding parameter"
+        path = mktemp()
+        set_file(path, self.sample_01)
+
+        #test bad encodings cause failure in constructor
+        self.assertRaises(ValueError, apache.HtpasswdFile, path, encoding="utf-16")
+
+        #check users() returns native string by default
+        ht = apache.HtpasswdFile(path)
+        self.assertIsInstance(ht.users()[0], native_str)
+        
+        #check returns unicode if encoding explicitly set
+        ht = apache.HtpasswdFile(path, encoding="utf-8")
+        self.assertIsInstance(ht.users()[0], unicode)
+        
+        #check returns bytes if encoding explicitly disabled
+        ht = apache.HtpasswdFile(path, encoding=None)
+        self.assertIsInstance(ht.users()[0], bytes)
+
+        #check sample utf-8
+        set_file(path, self.sample_04_utf8)
+        ht = apache.HtpasswdFile(path, encoding="utf-8")
+        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+
+        #check sample latin-1
+        set_file(path, self.sample_04_latin1)
+        ht = apache.HtpasswdFile(path, encoding="latin-1")
+        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+
     #=========================================================
     #eoc
     #=========================================================
@@ -176,9 +215,12 @@ class HtdigestFileTest(TestCase):
     "test HtdigestFile class"
     case_prefix = "HtdigestFile"
 
-    sample_01 = 'user2:realm:549d2a5f4659ab39a80dac99e159ab19\nuser3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\nuser1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n'
-    sample_02 = 'user3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\n'
-    sample_03 = 'user2:realm:5ba6d8328943c23c64b50f8b29566059\nuser3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\nuser1:realm:2a6cf53e7d8f8cf39d946dc880b14128\nuser5:realm:03c55fdc6bf71552356ad401bdb9af19\n'
+    sample_01 = b('user2:realm:549d2a5f4659ab39a80dac99e159ab19\nuser3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\nuser1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n')
+    sample_02 = b('user3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\n')
+    sample_03 = b('user2:realm:5ba6d8328943c23c64b50f8b29566059\nuser3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\nuser1:realm:2a6cf53e7d8f8cf39d946dc880b14128\nuser5:realm:03c55fdc6bf71552356ad401bdb9af19\n')
+
+    sample_04_utf8 = b('user\xc3\xa6:realm\xc3\xa6:549d2a5f4659ab39a80dac99e159ab19\n')
+    sample_04_latin1 = b('user\xe6:realm\xe6:549d2a5f4659ab39a80dac99e159ab19\n')
 
     def test_00_constructor(self):
         "test constructor & to_string()"
@@ -190,7 +232,7 @@ class HtdigestFileTest(TestCase):
 
         #check autoload=False
         ht = apache.HtdigestFile(path, autoload=False)
-        self.assertEqual(ht.to_string(), "")
+        self.assertEqual(ht.to_string(), b(""))
 
         #check missing file
         os.remove(path)
@@ -198,7 +240,7 @@ class HtdigestFileTest(TestCase):
 
         #check no path
         ht = apache.HtdigestFile()
-        self.assertEqual(ht.to_string(), "")
+        self.assertEqual(ht.to_string(), b(""))
 
     def test_01_delete(self):
         "test delete()"
@@ -237,7 +279,7 @@ class HtdigestFileTest(TestCase):
         ht.update("user3", "realm", "pass3")
         self.assertEqual(ht.users("realm"), ["user2", "user4", "user1", "user5", "user3"])
 
-    def test_03_verify(self):
+    def test_04_verify(self):
         "test verify()"
         path = mktemp()
         set_file(path, self.sample_01)
@@ -250,7 +292,7 @@ class HtdigestFileTest(TestCase):
 
         self.assertRaises(ValueError, ht.verify, "user:", "realm", "pass")
 
-    def test_04_load(self):
+    def test_05_load(self):
         "test load()"
 
         #setup empty file
@@ -258,12 +300,12 @@ class HtdigestFileTest(TestCase):
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtdigestFile(path)
-        self.assertEqual(ha.to_string(), "")
+        self.assertEqual(ha.to_string(), b(""))
 
         #make changes, check force=False does nothing
         ha.update("user1", "realm", "pass1")
         ha.load(force=False)
-        self.assertEqual(ha.to_string(), 'user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n')
+        self.assertEqual(ha.to_string(), b('user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n'))
 
         #change file
         set_file(path, self.sample_01)
@@ -280,7 +322,7 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(RuntimeError, hb.load)
         self.assertRaises(RuntimeError, hb.load, force=False)
 
-    def test_05_save(self):
+    def test_06_save(self):
         "test save()"
         #load from file
         path = mktemp()
@@ -298,7 +340,7 @@ class HtdigestFileTest(TestCase):
         hb.update("user1", "realm", "pass1")
         self.assertRaises(RuntimeError, hb.save)
 
-    def test_06_realms(self):
+    def test_07_realms(self):
         "test realms() & delete_realm()"
         path = mktemp()
         set_file(path, self.sample_01)
@@ -309,9 +351,9 @@ class HtdigestFileTest(TestCase):
 
         self.assertEquals(ht.delete_realm("realm"), 4)
         self.assertEquals(ht.realms(), [])
-        self.assertEquals(ht.to_string(), "")
+        self.assertEquals(ht.to_string(), b(""))
 
-    def test_07_find(self):
+    def test_08_find(self):
         "test find()"
         path = mktemp()
         set_file(path, self.sample_01)
@@ -319,6 +361,41 @@ class HtdigestFileTest(TestCase):
         self.assertEquals(ht.find("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744")
         self.assertEquals(ht.find("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
         self.assertEquals(ht.find("user5", "realm"), None)
+
+    def test_09_encodings(self):
+        "test encoding parameter"
+        path = mktemp()
+        set_file(path, self.sample_01)
+
+        #test bad encodings cause failure in constructor
+        self.assertRaises(ValueError, apache.HtdigestFile, path, encoding="utf-16")
+
+        #check users() returns native string by default
+        ht = apache.HtdigestFile(path)
+        self.assertIsInstance(ht.realms()[0], native_str)
+        self.assertIsInstance(ht.users("realm")[0], native_str)
+        
+        #check returns unicode if encoding explicitly set
+        ht = apache.HtdigestFile(path, encoding="utf-8")
+        self.assertIsInstance(ht.realms()[0], unicode)
+        self.assertIsInstance(ht.users(u"realm")[0], unicode)
+        
+        #check returns bytes if encoding explicitly disabled
+        ht = apache.HtdigestFile(path, encoding=None)
+        self.assertIsInstance(ht.realms()[0], bytes)
+        self.assertIsInstance(ht.users("realm")[0], bytes)
+
+        #check sample utf-8
+        set_file(path, self.sample_04_utf8)
+        ht = apache.HtdigestFile(path, encoding="utf-8")
+        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
+        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+
+        #check sample latin-1
+        set_file(path, self.sample_04_latin1)
+        ht = apache.HtdigestFile(path, encoding="latin-1")
+        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
+        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
 
     #=========================================================
     #eoc
