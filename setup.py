@@ -1,6 +1,6 @@
 """passlib setup script"""
 #=========================================================
-#init script env
+#init script env - ensure cwd = root of source dir
 #=========================================================
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
@@ -11,17 +11,31 @@ os.chdir(root_dir)
 #=========================================================
 import re
 import sys
-py3k = (sys.version_info >= (3,0))
-from setuptools import setup, find_packages
+py3k = (sys.version_info[0] >= 3)
+
+try:
+    from setuptools import setup
+    has_distribute = True
+except ImportError:
+    from distutils import setup
+    has_distribute = False
 
 #=========================================================
-#monkeypatch & enable 2to3 
+#monkeypatch preprocessor into 2to3, and enable 2to3
 #=========================================================
-opts = {}
+opts = { "cmdclass": {} }
+
 if py3k:
     from passlib.setup.cond2to3 import patch2to3
     patch2to3()
-    opts['use_2to3'] = True
+    
+    if has_distribute:
+        opts['use_2to3'] = True
+    else:
+        #if we can't use distribute's "use_2to3" flag,
+        #have to override build_py command
+        from distutils.command.build_py import build_py_2to3 as build_py
+        opts['cmdclass']['build_py'] = build_py
 
 #=========================================================
 #version string
@@ -31,11 +45,11 @@ VERSION = re.search(r'^__version__\s*=\s*"(.*?)"\s*$', vh.read(), re.M).group(1)
 vh.close()
 
 #=========================================================
-#setup
+#static text
 #=========================================================
-DESCRIPTION = "comprehensive password hashing framework supporting over 20 schemes"
+SUMMARY = "comprehensive password hashing framework supporting over 20 schemes"
 
-LONG_DESCRIPTION = """\
+DESCRIPTION = """\
 PassLib is a password hash library, which provides cross-platform
 implementations of over 20 password hashing algorithms; as well as a framework for managing
 and migrating existing password hashes. It's designed to be useful
@@ -53,13 +67,22 @@ All releases are signed with the gpg key `4CE1ED31 <http://pgp.mit.edu:11371/pks
 
 KEYWORDS = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2 ntlm"
 
+#=========================================================
+#run setup
+#=========================================================
 setup(
     #package info
-    packages = find_packages(),
+    packages = [
+        "passlib",
+            "passlib.handlers",
+            "passlib.setup",
+            "passlib.tests",
+            "passlib.utils",
+        ],
     package_data = { "passlib": ["*.cfg"] },
     zip_safe=True,
 
-    # metadata
+    #metadata
     name = "passlib",
     version = VERSION,
     author = "Eli Collins",
@@ -69,8 +92,8 @@ setup(
     url = "http://passlib.googlecode.com",
     download_url = "http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz",
 
-    description = DESCRIPTION,
-    long_description = LONG_DESCRIPTION,
+    description = SUMMARY,
+    long_description = DESCRIPTION,
     keywords = KEYWORDS,
     classifiers = [
         "Development Status :: 5 - Production/Stable",
@@ -86,6 +109,7 @@ setup(
         "Topic :: Software Development :: Libraries",
     ],
 
+    tests_require = 'nose >= 1.0',
     test_suite = 'nose.collector',
 
     #extra opts

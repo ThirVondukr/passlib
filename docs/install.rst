@@ -2,53 +2,66 @@
 Installation
 ============
 
-Requirements
-============
-* Python 2.5 - 2.7.
+Supported Platforms
+===================
+Passlib requires Python 2.5 or newer.
+It should work with the following Python implementations:
+    
+* CPython 2 (2.5 or newer)
+* CPython 3 (all versions)
+* `PyPy <www.pypy.org>`_ 1.5 or newer.
+* `Jython <www.jython.org>`_ 2.5 or newer.
 
-    PassLib has not been tested with Python 2.4 or earlier,
-    and no guarantees are made about whether PassLib will work with those versions.
+Passlib should work with all operating systems.
+Passlib contains builtin fallbacks
+for almost all OS-dependant features. 
 
-    Python 3.x is not yet supported, work is `ongoing <http://code.google.com/p/passlib/issues/detail?id=1>`_.
-
-    Passlib is pure-python, and should support all available Python implementations and platforms.
-
+Optional Libraries
+==================
 * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ or
-  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_ (optional)
+  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_ 
 
    If either of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support
-   via stdlib's :mod:`!crypt` (which includes pretty much all non-BSD systems).
+   via stdlib's :mod:`!crypt` (this is pretty much all non-BSD systems).
 
-* `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_ (optional)
+* `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
 
    If installed, M2Crypto will be used to accelerate some internal
    functions used by PBKDF2-based hashes, but it is not required
    even in that case.
+        
+Installation Instructions
+=========================
+To download and install using :command:`easy_install`::
 
-Installing
-==========
-* To install from source directory using ``setup.py``
-  (requires Setuptools or Distribute)::
+    easy_install passlib
 
-        python setup.py build
-        sudo python setup.py install
+To download and install using :command:`pip`::
 
-* To install using easy_install::
+    pip install passlib
+      
+To install from a source directory using :command:`setup.py`::
 
-   easy_install passlib
+    python setup.py install  
 
-* To install using pip::
-
-   pip install passlib
+.. note::
+    
+    Passlib's source ships as Python 2 code,
+    and the setup script invokes the :command:`2to3` tool + a preprocessor
+    to translate the source to Python 3 code at install time.    
+    Aside from this internal detail,
+    installation under Python 3
+    should be identical to that of Python 2.
 
 Testing
 =======
 PassLib contains a comprehensive set of unittests providing nearly complete coverage.
-All unit tests are contained within the :mod:`passlib.tests` package,
-and are designed to be run using the `Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
+All unit tests are contained within the :mod:`passlib.tests` subpackage,
+and are designed to be run using the
+`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
 
 Once PassLib and Nose have been installed, the tests may be run from the source directory::
 
@@ -59,6 +72,7 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     PASSLIB_TESTS="all" nosetests -v passlib/tests
 
     # to run nose with the optional coverage plugin...
+    # (results will be in build/coverage)
     PASSLIB_TESTS="all" nosetests -v passlib/tests --with-coverage \
         --cover-package=passlib --cover-html --cover-html-dir build/coverage
 
