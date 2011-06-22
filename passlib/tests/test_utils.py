@@ -18,7 +18,7 @@ from passlib.utils import h64, des, Undef, sys_bits, bytes, b, \
     is_same_codec, is_ascii_safe, safe_os_crypt
 from passlib.utils.md4 import md4
 from passlib.tests.utils import TestCase, Params as ak, \
-    enable_option, catch_warnings, SkipTest
+    enable_option, catch_warnings
 
 def hb(source):
     return unhexlify(b(source))
@@ -109,7 +109,7 @@ class MiscTest(TestCase):
     def test_safe_os_crypt(self):
         "test safe_os_crypt() wrapper"
         if not safe_os_crypt:
-            raise SkipTest
+            raise self.SkipTest("stdlib crypt module not available")
         
         #NOTE: this is assuming EVERY crypt will support des_crypt.
         #      if this fails on some platform, this test will need modifying.
