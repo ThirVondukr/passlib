@@ -60,7 +60,7 @@ class postgres_md5(uh.StaticHandler):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        hash = u"md5" + md5(secret + user).hexdigest().encode("ascii")
+        hash = u"md5" + to_unicode(md5(secret + user).hexdigest())
         return to_hash_str(hash)
 
     #=========================================================

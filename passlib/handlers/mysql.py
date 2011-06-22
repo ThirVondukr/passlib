@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import handlers as uh, to_hash_str, b, bord
+from passlib.utils import handlers as uh, to_hash_str, b, bord, bytes
 #local
 __all__ = [
     'mysql323',

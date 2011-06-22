@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, to_hash_str
+from passlib.utils import handlers as uh, to_hash_str, bytes
 from passlib.utils.md4 import md4
 #pkg
 #local

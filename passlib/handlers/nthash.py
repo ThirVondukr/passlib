@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes
+from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes, bytes
 from passlib.utils.md4 import md4
 #pkg
 #local
