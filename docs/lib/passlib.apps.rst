@@ -110,7 +110,13 @@ It is found in a wide range of PHP applications, including Drupal and Wordpress.
     and implements an custom scheme called the "phpass portable hash" :class:`~passlib.hash.phpass` as a fallback.
 
     BCrypt is used as the default if support is available,
-    otherwise BSDI-Crypt will be used as the default.
+    otherwise the Portable Hash will be used as the default.
+    
+    .. versionchanged:: 1.5
+        Now uses Portable Hash as fallback if BCrypt isn't available.
+        Previously used BSDI-Crypt as fallback
+        (per original PHPass implementation),
+        but it was decided PHPass is in fact more secure.
 
 .. data:: phpbb3_context
 
