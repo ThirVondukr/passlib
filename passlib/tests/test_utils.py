@@ -727,16 +727,15 @@ class _Pbkdf2BackendTest(TestCase):
             ),
         ])
 
-if (not pbkdf2._EVP and enable_option("active-backends", "all-backends")) or (pbkdf2._EVP and enable_option("active-backends")):
-    class Builtin_Pbkdf2BackendTest(_Pbkdf2BackendTest):
-        case_prefix = "builtin pbkdf2() backend"
-        enable_m2crypto = False
-
-if pbkdf2._EVP and enable_option("active-backends"):
-
+if pbkdf2._EVP:
     class M2Crypto_Pbkdf2BackendTest(_Pbkdf2BackendTest):
-        case_prefix = "m2crypto pbkdf2() backend"
+        case_prefix = "pbkdf2 (m2crypto backend)"
         enable_m2crypto = True
+
+if not pbkdf2._EVP or (pbkdf2._EVP and enable_option("all-backends")):
+    class Builtin_Pbkdf2BackendTest(_Pbkdf2BackendTest):
+        case_prefix = "pbkdf2 (builtin backend)"
+        enable_m2crypto = False
 
 #=========================================================
 #EOF

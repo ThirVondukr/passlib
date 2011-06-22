@@ -64,24 +64,21 @@ __all__ = [
 #=========================================================
 #option flags
 #=========================================================
-DEFAULT_TESTS = "active-backends"
+DEFAULT_TESTS = ""
 
 tests = set(
     v.strip()
     for v
     in os.environ.get("PASSLIB_TESTS", DEFAULT_TESTS).lower().split(",")
     )
-if 'all-backends' in tests:
-    tests.add("backends")
 
 def enable_option(*names):
     """check if a given test should be included based on the env var.
 
     test flags:
-        active-backends     test active backends
-        all-backends        test ALL backends, even the inactive ones
-        cover               enable minor tweaks to maximize coverage testing
-        all                 run ALL tests
+        all-backends    test all backends, even the inactive ones
+        cover           enable minor tweaks to maximize coverage testing
+        all             run all tests
     """
     return 'all' in tests or any(name in tests for name in names)
 
@@ -818,26 +815,46 @@ class HandlerCase(TestCase):
 #=========================================================
 #backend test helpers
 #=========================================================
-def enable_backend_case(handler, name):
+def _enable_backend_case(handler, name):
     "helper to check if a separate test is needed for the specified backend"
     assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
     assert name in handler.backends, "unknown backend: %r" % (name,)
-    return enable_option("all-backends") and handler.get_backend() != name and handler.has_backend(name)
+    if not handler.has_backend(name):
+        return False
+    if enable_option("all-backends"):
+        return True    
+    #otherwise only enable if backend is default
+    orig = handler.get_backend()
+    try:
+        return handler.set_backend("default") == name
+    finally:
+        handler.set_backend(orig)
 
-def create_backend_case(base_test, name):
-    "create a test case (subclassing); if test doesn't need to be enabled, returns None"
-    if base_test is None:
+def create_backend_case(base, name):
+    "create a test case (subclassing)"
+    #NOTE: if backend not available,
+    #      then we return None under UT1,
+    #      but return class w/ skip flag set under UT2.    
+    handler = base.handler
+    enable = _enable_backend_case(handler, name)
+
+    #UT1 doesn't support skipping whole test cases,
+    #so we just return None.
+    if not enable and ut_version < 2:
         return None
-    handler = base_test.handler
 
-    if not enable_backend_case(handler, name):
-        return None
-
-    class dummy(base_test):
-        case_prefix = "%s (%s backend)" % (handler.name, name)
-        backend = name
-
-    dummy.__name__ = name.title() + base_test.__name__
+    dummy = type(
+        "%s_%s" % (name.title(), base.__name__),
+        (base,),
+        dict(
+            case_prefix = "%s (%s backend)" % (handler.name, name),
+            backend = name,            
+        )
+    )
+    
+    if not enable:
+        dummy = unittest.skip("backend not available")(dummy)
+    
     return dummy
 
 #=========================================================

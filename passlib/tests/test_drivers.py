@@ -35,7 +35,8 @@ class AprMd5CryptTest(HandlerCase):
 #=========================================================
 from passlib.handlers.bcrypt import bcrypt
 
-class BCryptTest(HandlerCase):
+class _BCryptTest(HandlerCase):
+    "base for BCrypt test cases"
     
     handler = bcrypt
     secret_chars = 72
@@ -74,13 +75,17 @@ class BCryptTest(HandlerCase):
         kwds['ident'] = 'Q'
         self.assertRaises(ValueError, handler, **kwds)
 
+    #FIXME: this would probably still be useful,
+    #       but have to make it patch os_crypt in utils now,
+    #       so that it's called by safe_os_crypt...
+    #
     ###this method is added in order to maximize test coverage on systems
     ###where os_crypt is missing or doesn't support bcrypt
     ##if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
     ##    def test_backend(self):
     ##        from passlib.handlers import bcrypt as bcrypt_mod
-    ##        orig = bcrypt_mod.safe_os_crypt
-    ##        bcrypt_mod.safe_os_crypt = bcrypt_mod.pybcrypt_hashpw
+    ##        orig = bcrypt_mod.os_crypt
+    ##        bcrypt_mod.sos_crypt = bcrypt_mod.pybcrypt_hashpw
     ##        orig = bcrypt.get_backend()
     ##        try:
     ##            bcrypt.set_backend("os_crypt")
@@ -91,15 +96,10 @@ class BCryptTest(HandlerCase):
 
 bcrypt._no_backends_msg() #call this for coverage purposes
 
-try:
-    bcrypt.get_backend()
-except EnvironmentError:
-    #no bcrypt backends available!
-    BCryptTest = None
-
-#NOTE: pybcrypt backend will be chosen as primary if possible, so just check for bcryptor, os crypt
-BCryptor_BCryptTest = create_backend_case(BCryptTest, "bcryptor")
-OsCrypt_BCryptTest = create_backend_case(BCryptTest, "os_crypt")
+#create test cases for specific backends
+PyBCrypt_BCryptTest = create_backend_case(_BCryptTest, "pybcrypt")
+BCryptor_BCryptTest = create_backend_case(_BCryptTest, "bcryptor")
+OsCrypt_BCryptTest = create_backend_case(_BCryptTest, "os_crypt")
 
 #=========================================================
 #bigcrypt
@@ -170,7 +170,7 @@ class Crypt16Test(HandlerCase):
 #=========================================================
 from passlib.handlers.des_crypt import des_crypt
 
-class DesCryptTest(HandlerCase):
+class _DesCryptTest(HandlerCase):
     "test des-crypt algorithm"
     handler = des_crypt
     secret_chars = 8
@@ -193,7 +193,8 @@ class DesCryptTest(HandlerCase):
     def test_invalid_secret_chars(self):
         self.assertRaises(ValueError, self.do_encrypt, 'sec\x00t')
 
-BuiltinDesCryptTest = create_backend_case(DesCryptTest, "builtin")
+OsCrypt_DesCryptTest = create_backend_case(_DesCryptTest, "os_crypt")
+Builtin_DesCryptTest = create_backend_case(_DesCryptTest, "builtin")
 
 #=========================================================
 #fshp
@@ -299,7 +300,7 @@ class LdapPlaintextTest(HandlerCase):
 #NOTE: since the ldap_{crypt} handlers are all wrappers,
 # don't need separate test. have just one for end-to-end testing purposes.
 
-class LdapMd5CryptTest(HandlerCase):
+class _LdapMd5CryptTest(HandlerCase):
     handler = ldap_digests.ldap_md5_crypt
 
     known_correct_hashes = [
@@ -316,7 +317,8 @@ class LdapMd5CryptTest(HandlerCase):
         '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
 
-BuiltinLdapMd5CryptTest = create_backend_case(LdapMd5CryptTest, "builtin")
+OsCrypt_LdapMd5CryptTest = create_backend_case(_LdapMd5CryptTest, "os_crypt")
+Builtin_LdapMd5CryptTest = create_backend_case(_LdapMd5CryptTest, "builtin")
 
 #=========================================================
 #ldap_pbkdf2_{digest}
@@ -358,7 +360,7 @@ class LdapPbkdf2Test(TestCase):
 #md5 crypt
 #=========================================================
 from passlib.handlers.md5_crypt import md5_crypt, raw_md5_crypt
-class Md5CryptTest(HandlerCase):
+class _Md5CryptTest(HandlerCase):
     handler = md5_crypt
 
     known_correct_hashes = [
@@ -382,7 +384,8 @@ class Md5CryptTest(HandlerCase):
     def test_raw(self):
         self.assertEquals(raw_md5_crypt(u's',u's'*16), u'YgmLTApYTv12qgTwBoj8i/')
 
-BuiltinMd5CryptTest = create_backend_case(Md5CryptTest, "builtin")
+OsCrypt_Md5CryptTest = create_backend_case(_Md5CryptTest, "os_crypt")
+Builtin_Md5CryptTest = create_backend_case(_Md5CryptTest, "builtin")
 
 #=========================================================
 #mysql 323 & 41
@@ -800,7 +803,7 @@ class RoundupTest(TestCase):
 #=========================================================
 from passlib.handlers.sha2_crypt import sha256_crypt, raw_sha_crypt
 
-class SHA256CryptTest(HandlerCase):
+class _SHA256CryptTest(HandlerCase):
     handler = sha256_crypt
 
     known_correct_hashes = [
@@ -860,14 +863,15 @@ class SHA256CryptTest(HandlerCase):
             )
         self.assertRaises(ValueError, raw_sha_crypt, b('secret'), b('$'), 1, hashlib.md5)
 
-BuiltinSHA256CryptTest = create_backend_case(SHA256CryptTest, "builtin")
+OsCrypt_SHA256CryptTest = create_backend_case(_SHA256CryptTest, "os_crypt")
+Builtin_SHA256CryptTest = create_backend_case(_SHA256CryptTest, "builtin")
 
 #=========================================================
 #test sha512-crypt
 #=========================================================
 from passlib.handlers.sha2_crypt import sha512_crypt
 
-class SHA512CryptTest(HandlerCase):
+class _SHA512CryptTest(HandlerCase):
     handler = sha512_crypt
 
     known_correct_hashes = [
@@ -923,7 +927,8 @@ class SHA512CryptTest(HandlerCase):
     def filter_known_config_warnings(self):
         warnings.filterwarnings("ignore", "sha512_crypt does not allow less than 1000 rounds: 10", UserWarning)
 
-BuiltinSHA512CryptTest = create_backend_case(SHA512CryptTest, "builtin")
+OsCrypt_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "os_crypt")
+Builtin_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "builtin")
 
 #=========================================================
 #sun md5 crypt
