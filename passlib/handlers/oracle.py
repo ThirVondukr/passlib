@@ -49,7 +49,7 @@ def des_cbc_encrypt(key, value, iv=b('\x00') * 8, pad=b('\x00')):
 #: magic string used as initial des key by oracle10
 ORACLE10_MAGIC = b("\x01\x23\x45\x67\x89\xAB\xCD\xEF")
 
-class oracle10(object):
+class oracle10(uh.StaticHandler):
     """This class implements the password hash used by Oracle up to version 10g, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -81,20 +81,9 @@ class oracle10(object):
     #primary interface
     #=========================================================
     @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
     def genhash(cls, secret, config, user):
-        if config and not cls.identify(config):
-            raise ValueError("not a oracle10g hash")
-        return cls.encrypt(secret, user)
-
-    #=========================================================
-    #secondary interface
-    #=========================================================
-    @classmethod
-    def encrypt(cls, secret, user):
+        if config is not None and not cls.identify(config):
+            raise ValueError("not an oracle-10g hash")
         if secret is None:
             raise TypeError("secret must be specified")
         if not user:
@@ -127,11 +116,10 @@ class oracle10(object):
         return to_hash_str(hexlify(hash)).upper()
 
     @classmethod
-    def verify(cls, secret, hash, user):
-        if not hash:
-            raise ValueError("no hash specified")
-        hash = to_hash_str(hash)
-        return cls.genhash(secret, hash, user) == hash.upper()
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        return hash.upper()
 
     #=========================================================
     #eoc
@@ -185,7 +173,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
             hash = hash.decode("ascii")
         m = cls._pat.match(hash)
         if not m:
-            raise ValueError("invalid oracle11 hash")
+            raise ValueError("invalid oracle-11g hash")
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk.upper(), strict=True)
 

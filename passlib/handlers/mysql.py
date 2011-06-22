@@ -65,8 +65,8 @@ class mysql323(uh.StaticHandler):
 
     @classmethod
     def genhash(cls, secret, config):
-        if config and not cls.identify(config):
-            raise ValueError("not a mysql-41 hash")
+        if config is not None and not cls.identify(config):
+            raise ValueError("not a mysql-3.2.3 hash")
 
         #FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
@@ -89,11 +89,10 @@ class mysql323(uh.StaticHandler):
         return to_hash_str(hash)
 
     @classmethod
-    def verify(cls, secret, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        hash = to_hash_str(hash)
-        return hash.lower() == cls.genhash(secret, hash)
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        return hash.lower()
 
     #=========================================================
     #eoc
@@ -125,19 +124,18 @@ class mysql41(uh.StaticHandler):
 
     @classmethod
     def genhash(cls, secret, config):
-        if config and not cls.identify(config):
-            raise ValueError("not a mysql-41 hash")
+        if config is not None and not cls.identify(config):
+            raise ValueError("not a mysql-4.1 hash")
         #FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
 
     @classmethod
-    def verify(cls, secret, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        hash = to_hash_str(hash)
-        return hash.upper() == cls.genhash(secret, hash)
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        return hash.upper()
 
     #=========================================================
     #eoc

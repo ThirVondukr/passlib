@@ -61,7 +61,7 @@ class plaintext(uh.StaticHandler):
     Unicode passwords will be encoded using utf-8.
     """
     name = "plaintext"
-
+    
     @classmethod
     def identify(cls, hash):
         return hash is not None
@@ -71,6 +71,16 @@ class plaintext(uh.StaticHandler):
         if secret is None:
             raise TypeError("secret must be string")
         return to_hash_str(secret, "utf-8")
+
+    @classmethod
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            #XXX: current code uses utf-8
+            #     if existing hashes use something else,
+            #     probably have to modify this code to allow hash_encoding
+            #     to be specified as an option.
+            hash = hash.decode("utf-8")
+        return hash
 
 #=========================================================
 #eof

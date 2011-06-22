@@ -197,6 +197,16 @@ class ldap_plaintext(uh.StaticHandler):
             raise TypeError("secret must be string")
         return to_hash_str(secret, "utf-8")
 
+    @classmethod
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            #XXX: current code uses utf-8
+            #     if existing hashes use something else,
+            #     probably have to modify this code to allow hash_encoding
+            #     to be specified as an option.
+            hash = hash.decode("utf-8")
+        return hash
+
 #=========================================================
 #{CRYPT} wrappers
 #=========================================================

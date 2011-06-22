@@ -54,11 +54,10 @@ class HexDigestHash(uh.StaticHandler):
         return to_hash_str(cls._hash_func(secret).hexdigest())
 
     @classmethod
-    def verify(cls, secret, hash):
-        if hash is None:
-            raise ValueError("no hash specified")
-        hash = to_hash_str(hash)
-        return cls.genhash(secret, hash) == hash.lower()
+    def _norm_hash(cls, hash):
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        return hash.lower()
 
 def create_hex_hash(hash, digest_name):
     #NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.

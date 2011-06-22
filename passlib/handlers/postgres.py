@@ -19,7 +19,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class postgres_md5(object):
+class postgres_md5(uh.StaticHandler):
     """This class implements the Postgres MD5 Password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -51,36 +51,17 @@ class postgres_md5(object):
     #primary interface
     #=========================================================
     @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
     def genhash(cls, secret, config, user):
-        if config and not cls.identify(config):
+        if config is not None and not cls.identify(config):
             raise ValueError("not a postgres-md5 hash")
-        return cls.encrypt(secret, user)
-
-    #=========================================================
-    #secondary interface
-    #=========================================================
-    @classmethod
-    def encrypt(cls, secret, user):
-        #FIXME: not sure what postgres' policy is for unicode
         if not user:
             raise ValueError("user keyword must be specified for this algorithm")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        hash = u"md5" + to_unicode(md5(secret + user).hexdigest(), "ascii")
+        hash = u"md5" + md5(secret + user).hexdigest().encode("ascii")
         return to_hash_str(hash)
-
-    @classmethod
-    def verify(cls, secret, hash, user):
-        if not hash:
-            raise ValueError("no hash specified")
-        hash = to_hash_str(hash)
-        return hash == cls.genhash(secret, hash, user)
 
     #=========================================================
     #eoc

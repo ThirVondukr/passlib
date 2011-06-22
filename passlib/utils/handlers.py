@@ -199,16 +199,27 @@ class StaticHandler(object):
         raise NotImplementedError("%s subclass must implement genhash()" % (cls,))
 
     @classmethod
-    def encrypt(cls, secret, **context):
+    def encrypt(cls, secret, *cargs, **context):
+        #NOTE: subclasses generally won't need to override this.
         config = cls.genconfig()
-        return cls.genhash(secret, config, **context)
+        return cls.genhash(secret, config, *cargs, **context)
 
     @classmethod
-    def verify(cls, secret, hash, **context):
+    def verify(cls, secret, hash, *cargs, **context):
+        #NOTE: subclasses generally won't need to override this.
         if hash is None:
             raise ValueError("no hash specified")
-        hash = to_hash_str(hash) #so equality works
-        return cls.genhash(secret, hash, **context) == hash
+        hash = cls._norm_hash(hash)
+        result = cls.genhash(secret, hash, *cargs, **context)
+        return cls._norm_hash(result) == hash
+        
+    @classmethod
+    def _norm_hash(cls, hash):
+        """[helper for verify] normalize hash for comparsion purposes"""
+        #NOTE: this is mainly provided for case-insenstive subclasses to override.
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        return hash
 
     #=====================================================
     #eoc
