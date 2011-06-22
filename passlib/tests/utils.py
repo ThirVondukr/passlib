@@ -14,7 +14,7 @@ import tempfile
 if sys.version_info < (2,7):
 # Py3k #
 #if sys.version_info < (3,2):
-# end Py3k #   
+# end Py3k #
     try:
         import unittest2 as unittest
         ut_version = 2
@@ -133,7 +133,7 @@ class TestCase(unittest.TestCase):
 
     #: flag to disable feature
     longDescription = True
-        
+
     def shortDescription(self):
         "wrap shortDescription() method to prepend case_prefix"
         desc = super(TestCase, self).shortDescription()
@@ -148,10 +148,19 @@ class TestCase(unittest.TestCase):
         return desc
 
     #============================================================
+    #hack to set UT2 private skip attrs to mirror nose's __test__ attr
+    #============================================================
+    if ut_version >= 2:
+
+        @classproperty
+        def __unittest_skip__(cls):
+            return not getattr(cls, "__test__", True)
+
+    #============================================================
     # tweak msg formatting for some assert methods
-    #============================================================    
+    #============================================================
     longMessage = True #override python default (False)
-    
+
     def _formatMessage(self, msg, std):
         "override UT2's _formatMessage - only use longMessage if msg ends with ':'"
         if not msg:
@@ -164,24 +173,24 @@ class TestCase(unittest.TestCase):
     #override some unittest1 methods to support _formatMessage
     #============================================================
     if ut_version < 2:
-            
+
         def assertEqual(self, real, correct, msg=None):
             if real != correct:
                 std = "got %r, expected would equal %r" % (real, correct)
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
-    
+
         def assertNotEqual(self, real, correct, msg=None):
             if real == correct:
                 std = "got %r, expected would not equal %r" % (real, correct)
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
-    
-        assertEquals = assertEqual    
+
+        assertEquals = assertEqual
         assertNotEquals = assertNotEqual
-    
+
     #NOTE: overriding this even under UT2.
-    #FIXME: this doesn't support the fancy context manager UT2 provides.    
+    #FIXME: this doesn't support the fancy context manager UT2 provides.
     def assertRaises(self, type, func, *args, **kwds):
         #NOTE: overriding this for format ability,
         #      but ALSO adding "__msg__" kwd so we can set custom msg
@@ -199,7 +208,7 @@ class TestCase(unittest.TestCase):
         std = "function returned %r, expected it to raise %r" % (result, type)
         msg = self._formatMessage(msg, std)
         raise self.failureException(msg)
-    
+
     #===============================================================
     #add some extra methods (these are already present in unittest2)
     #===============================================================
@@ -210,7 +219,7 @@ class TestCase(unittest.TestCase):
                 std = "got %r, expected would be %r" % (real, correct)
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
-    
+
         def assertIsNot(self, real, correct, msg=None):
             if real is correct:
                 std = "got %r, expected would not be %r" % (real, correct)
@@ -222,13 +231,13 @@ class TestCase(unittest.TestCase):
                 std = "got %r, expected instance of %r" % (obj, klass)
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
-                
+
         def skipTest(self, reason):
             raise SkipTest(reason)
 
     #============================================================
     #add some custom methods
-    #============================================================    
+    #============================================================
     def assertFunctionResults(self, func, cases):
         """helper for running through function calls.
 
@@ -246,7 +255,7 @@ class TestCase(unittest.TestCase):
 
     #============================================================
     #eoc
-    #============================================================    
+    #============================================================
 
 #=========================================================
 #other unittest helpers
@@ -472,11 +481,11 @@ class HandlerCase(TestCase):
 
         #check settings
         self.assertTrue('ident' in cls.setting_kwds)
-            
+
         #check ident_values list
         for value in cls.ident_values:
             self.assertIsInstance(value, unicode,
-                                  "cls.ident_values must be unicode:")            
+                                  "cls.ident_values must be unicode:")
         self.assertTrue(len(cls.ident_values)>1,
                         "cls.ident_values must have 2+ elements:")
 
@@ -673,7 +682,7 @@ class HandlerCase(TestCase):
         mn = handler.min_salt_size
         cs = handler.salt_chars
         raw = isinstance(cs, bytes)
-        
+
         #make sure all listed chars are accepted
         chunk = 32 if mx is None else mx
         for i in xrange(0,len(cs),chunk):
@@ -746,7 +755,7 @@ class HandlerCase(TestCase):
         self.assertIsInstance(result, native_str, "encrypt must return native str:")
         self.assert_(self.do_identify(result))
         self.assert_(self.do_verify(secret, result))
-        
+
         #check it handles bytes password as well
         secret = b('\xe2\x82\xac\xc2\xa5$')
         result = self.do_encrypt(secret)
@@ -822,7 +831,7 @@ def _enable_backend_case(handler, name):
     if not handler.has_backend(name):
         return False
     if enable_option("all-backends"):
-        return True    
+        return True
     #otherwise only enable if backend is default
     orig = handler.get_backend()
     try:
@@ -834,7 +843,7 @@ def create_backend_case(base, name):
     "create a test case (subclassing)"
     #NOTE: if backend not available,
     #      then we return None under UT1,
-    #      but return class w/ skip flag set under UT2.    
+    #      but return class w/ skip flag set under UT2.
     handler = base.handler
     enable = _enable_backend_case(handler, name)
 
@@ -848,13 +857,13 @@ def create_backend_case(base, name):
         (base,),
         dict(
             case_prefix = "%s (%s backend)" % (handler.name, name),
-            backend = name,            
+            backend = name,
         )
     )
-    
+
     if not enable:
         dummy = unittest.skip("backend not available")(dummy)
-    
+
     return dummy
 
 #=========================================================
