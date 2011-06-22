@@ -230,14 +230,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("ascii")
-            except UnicodeDecodeError:
-                return False
-        return hash.startswith(u"$md5$") or hash.startswith(u"$md5,")
+        return uh.identify_prefix(hash, (u"$md5$", u"$md5,"))
 
     @classmethod
     def from_string(cls, hash):

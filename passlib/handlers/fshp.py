@@ -131,14 +131,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("ascii")
-            except UnicodeDecodeError:
-                return False
-        return hash.startswith(u"{FSHP") 
+        return uh.identify_prefix(hash, u"{FSHP") 
 
     _fshp_re = re.compile(ur"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
     

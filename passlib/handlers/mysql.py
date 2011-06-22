@@ -120,7 +120,7 @@ class mysql41(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def genhash(cls, secret, config):

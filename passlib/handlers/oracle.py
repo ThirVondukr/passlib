@@ -163,7 +163,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return bool(hash and cls._pat.match(hash))
+        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):

@@ -60,6 +60,18 @@ def identify_regexp(hash, pat):
             return False
     return pat.match(hash) is not None
 
+def identify_prefix(hash, prefix):
+    "identify() helper for matching against prefixes"
+    #NOTE: prefix may be a tuple of strings (since startswith supports that)
+    if not hash:
+        return False
+    if isinstance(hash, bytes):
+        try:
+            hash = hash.decode("ascii")
+        except UnicodeDecodeError:
+            return False
+    return hash.startswith(prefix) 
+
 #=========================================================
 #parsing helpers
 #=========================================================
