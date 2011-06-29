@@ -50,22 +50,28 @@ vh.close()
 SUMMARY = "comprehensive password hashing framework supporting over 20 schemes"
 
 DESCRIPTION = """\
-PassLib is a password hash library, which provides cross-platform
-implementations of over 20 password hashing algorithms; as well as a framework for managing
-and migrating existing password hashes. It's designed to be useful
-for any task from quickly verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user applications.
+Passlib is a password hashing library for Python 2 & 3,
+which provides cross-platform implementations of over 20
+password hashing algorithms, as well as a framework for
+managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow,
+to providing full-strength password hashing for multi-user application.
 
-* See the `online documentation <http://packages.python.org/passlib>`_ for details and examples.
+* See the `online documentation <http://packages.python.org/passlib>`_
+  for details, installation instructions, and examples.
 
-* See the `passlib homepage <http://passlib.googlecode.com>`_ for the latest news, more information, and additional downloads. 
+* See the `passlib homepage <http://passlib.googlecode.com>`_
+  for the latest news, more information, and additional downloads. 
 
-* See the `changelog <http://packages.python.org/passlib/history.html>`_ for list of what's new in passlib.
+* See the `changelog <http://packages.python.org/passlib/history.html>`_
+  for description of what's new in Passlib.
 
-All releases are signed with the gpg key `4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+All releases are signed with the gpg key
+`4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """
 
-KEYWORDS = "password secret hash security crypt md5-crypt sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2 ntlm"
+KEYWORDS = "password secret hash security crypt md5-crypt \
+sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2 ntlm"
 
 #=========================================================
 #run setup

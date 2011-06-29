@@ -41,7 +41,7 @@ Custom Applications
 
 .. seealso::
 
-    The :doc:`/new_app_quickstart` guide.
+    The :doc:`/new_app_quickstart`.
 
 .. _ldap-contexts:
 

@@ -2,15 +2,20 @@
 Library Overview
 ================
 
-PassLib is a collection of routines for managing password hashes
-as found in unix /etc/shadow files, as returned by stdlib `crypt()`,
+Passlib is a collection of routines for managing password hashes
+such as found in unix "shadow" files, as returned by stdlib's :func:`!crypt`,
 as stored in mysql and postgres, and various other places.
-PassLib's contents can be roughly grouped into three categories:
+Passlib's contents can be roughly grouped into three categories:
 password hashes, password contexts, and utility functions.
+
+.. note::
+
+    New applications which just need drop-in password hashing support
+    should see the :doc:`new_app_quickstart`.
 
 Password Hashes
 ===============
-All of the hash schemes supported by passlib are implemented
+All of the hash schemes supported by Passlib are implemented
 as classes importable from the :mod:`passlib.hash` module.
 All of these classes support a single uniform interface of standard class methods.
 These methods are documented in detail by the :ref:`password hash api <password-hash-api>`.
@@ -74,16 +79,9 @@ A quick example of how a password context can be used::
     >>> lc.verify('password', 'q1Oyx5r9mdGZ2')
     True
 
-.. note::
-
-    For new applications which just need drop-in support for some manner
-    of password encryption, so they can secure store passwords
-    and then forget about it, they should use
-    the :data:`passlib.apps.custom_app_context` object.
-
 Predefined Password Contexts
 ============================
-In addition to the :mod:`passlib.context` module,
+In addition to the :mod:`!passlib.context` module,
 PassLib provides a number of pre-configured :class:`!CryptContext` instances
 in order to get users started quickly:
 

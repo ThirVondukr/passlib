@@ -235,7 +235,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         In order to accomplish this, many implementations perform only minimal
         validation of the candidate hashes. Thus, they may return ``True``
         for hashes which are identifiable, but malformed enough that
-        a :exc:`ValueError` when the string  is passed to
+        a :exc:`ValueError` is raised when the string is passed to
         :func:`~PasswordHash.verify` or :func:`~PasswordHash.genhash`.
         Because of this, applications should rely on this method only for identification,
         not confirmation that a hash is correctly formed.
@@ -482,13 +482,15 @@ the following attributes are usually exposed.
     xxx: what about a bits_per_salt_char or some such, so effective salt strength
     can be compared?
 
+.. _hash-unicode-behavior:
+
 Unicode Behavior
 ================
 
-.. versionadded:: Passlib 1.5
+.. versionadded:: 1.5
 
 Quick summary
-------------
+-------------
 For the application developer in a hurry:
 
 * Passwords should be provided as :class:`unicode` if possible.

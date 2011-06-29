@@ -1,26 +1,4 @@
-"""passlib.apache - apache password support
-
-.. todo::
-
-    support htpasswd context
-
-    needs ldap_sha1 support
-    detect when crypt should be used, and what ones.
-
-.. todo::
-    support htdigest context
-
-.. todo::
-
-    support reading / writing htpasswd & htdigest files using this module.
-
-    references -
-        http://httpd.apache.org/docs/2.2/misc/password_encryptions.html
-        http://httpd.apache.org/docs/2.0/programs/htpasswd.html
-
-    NOTE: htdigest format is md5(user ":" realm ":" passwd).hexdigest()
-        file format is "user:realm:hash"
-"""
+"""passlib.apache - apache password support"""
 #=========================================================
 #imports
 #=========================================================

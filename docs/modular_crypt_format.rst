@@ -125,19 +125,19 @@ Identifiers & Platform Support
 The following table lists of all the major MCF hashes supported by passlib,
 and indicates which operating systems offer native support. 
 
-==================================== ================== =========== =========== =========== =========== =======
-Scheme                               Prefix             Linux       FreeBSD     NetBSD      OpenBSD     Solaris
-==================================== ================== =========== =========== =========== =========== =======
-:class:`~passlib.hash.des_crypt`     n/a                y           y           y           y           y
-:class:`~passlib.hash.bsdi_crypt`    ``_``                          y           y
-:class:`~passlib.hash.md5_crypt`     ``$1$``            y           y           y           y           y
-:class:`~passlib.hash.sun_md5_crypt` ``$md5$``                                                          y
-:class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``              y           y           y           y
-:class:`~passlib.hash.nthash`        ``$3$``                        y
-:class:`~passlib.hash.sha256_crypt`  ``$5$``            y                                               y
-:class:`~passlib.hash.sha512_crypt`  ``$6$``            y                                               y
-:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                 y 
-==================================== ================== =========== =========== =========== =========== =======
+==================================== ==================== =========== =========== =========== =========== =======
+Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
+==================================== ==================== =========== =========== =========== =========== =======
+:class:`~passlib.hash.des_crypt`     n/a                  y           y           y           y           y
+:class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y
+:class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
+:class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                            y
+:class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``                y           y           y           y
+:class:`~passlib.hash.nthash`        ``$3$``                          y
+:class:`~passlib.hash.sha256_crypt`  ``$5$``              y                                               y
+:class:`~passlib.hash.sha512_crypt`  ``$6$``              y                                               y
+:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y 
+==================================== ==================== =========== =========== =========== =========== =======
 
 The following table lists the other MCF hashes supported by passlib,
 most of which are only used by applications:

@@ -49,15 +49,18 @@ For new applications, there are really only three choices:
 :class:`~passlib.hash.sha512_crypt`, and
 :class:`~passlib.hash.pbkdf2_sha512` [#choices]_.
 
-These hashes all have the following properties:
+All of these hashes share the following properties:
 
     * no known vulnerabilties.
     * based on documented & widely reviewed algorithms.
-    * basic architecture has seen scrutiny and use for at least 10 years. 
+    * basic architecture has been under heavy scrutiny and use for at least 10 years. 
     * public-domain or BSD-licensed reference implementations available.
     * in use across a number of OSes and/or a wide variety of applications.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * at least 96 bits of salt.
+
+The following comparison should help you choose which hash is
+most appropriate for your application. 
 
 BCrypt
 ------
@@ -82,6 +85,7 @@ of simultaneous logon attempts (eg web apps).
     For BCrypt support on non-BSD systems,
     Passlib requires a C-extension module
     provided by the external pybcrypt or bcryptor packages.
+    Neither of these currently supports Python 3.
 
 SHA512-Crypt
 ------------
@@ -157,8 +161,8 @@ Insert the following code into your application::
     pwd_context = CryptContext(
         #replace this list with the hash(es) you wish to support.
         #this example sets pbkdf2_sha256 as the default,
-        #with support for sha256_crypt.
-        schemes=["pbkdf2_sha256", "sha256_crypt"],
+        #with support for legacy des_crypt hashes.
+        schemes=["pbkdf2_sha256", "des_crypt" ],
         default="pbkdf2_sha256",
 
         #vary rounds parameter randomly when creating new hashes...
@@ -168,7 +172,6 @@ Insert the following code into your application::
         #(appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
         pbkdf2_sha256__default_rounds = 8000,
-        sha256_crypt__default_rounds = 40000,
         )
 
 Using a CryptContext

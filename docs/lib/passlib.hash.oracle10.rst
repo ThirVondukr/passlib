@@ -76,14 +76,14 @@ Oracle10 hashes can be formed by the following procedure:
 Security Issues
 ===============
 This algorithm it not suitable for *any* use besides manipulating existing
-Oracle10 account passwords, due to the following flaws [#flaws]:
+Oracle10 account passwords, due to the following flaws [#flaws]_:
 
 * It's use of the username as a salt value means that common usernames
   (eg ``system``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * The fact that is it case insensitive, and simply concatenates the username
-  and password, greatly reduces the requirements for brute-force
+  and password, greatly reduces the keyspace for brute-force
   or pre-computed attacks.
 
 * It's simplicity makes high-speed brute force attacks much more feasible.

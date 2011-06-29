@@ -9,12 +9,6 @@ Internal Changes
 
 Other Hash Formats
 ------------------
-* FSHP (a pbkdf1 variant)
-  https://github.com/bdd/fshp
-
-* rfc2307 format hashes
-  http://tools.ietf.org/html/rfc2307
-
 * Mac OSX hash formats
 
 * SCrypt
@@ -23,17 +17,6 @@ Other Hash Formats
 
 Notes on various hash formats
 =============================
-
-LDAP
-----
-still trying to verify if {CRYPT} can contain other formats besides des-crypt
-(eg, md5-crypt etc). see some references to {CRYPT}$1$
-
-this page http://www.ldapexplorer.com/en/manual/107070207-editor-password.htm
-has a longer list than some, but no sample hashes, so can't verify formats.
-
-that page also implies some systems support variable length salts for SSHA etc.
-currently implementation is locked at 4 bytes.
 
 Cisco PIX
 ---------

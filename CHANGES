@@ -6,30 +6,62 @@ Release History
 
 **1.5** (NOT YET RELEASED)
 
+    *"20% more unicode than the other leading breakfast cereal"*
+
+    The main new feature in this release is that
+    Passlib now supports Python 3 (via the 2to3 tool).
+    Everything has been recoded to have better separation
+    between unicode and bytes, and to use unicode internally
+    where possible.
+    When run under Python 2, Passlib 1.5 attempts
+    to provide the same behavior as Passlib 1.4;
+    but when run under Python 3, most functions
+    will return unicode instead of ascii bytes.
+    Besides this major change, there have
+    been some other additions:
+
     Hashes
-        * added support for FSHP family of hashes
+
         * added support for Cryptacular's PBKDF2 format
+        * added support for the FSHP family of hashes
         * added support for using BCryptor as BCrypt backend
-    
+
     CryptContext
+
         * interpolation deprecation:
-        
-          CryptPolicy.from_file() / .from_string() now
-          use SafeConfigParser instead of ConfigParser.
+
+          :meth:`CryptPolicy.from_file` and :meth:`CryptPolicy.from_string`
+          now use SafeConfigParser instead of ConfigParser.
           This may cause some existing config files containing unescaped ``%``
-          to result in errors; passlib 1.5 will demote these to warnings,
+          to result in errors; Passlib 1.5 will demote these to warnings,
           but any extant config files should be updated,
-          as the errors will be fatal in passlib 1.6.
-    
-        * added encoding keyword to CryptContext's from_path, from_string,
-          and to_string methods.          
-    
+          as the errors will be fatal in Passlib 1.6.
+
+        * added encoding keyword to :class:`!CryptPolicy`'s
+          :meth:`!.from_path()`, :meth:`!.from_string`,
+          and :meth:`!.to_string` methods.
+
+        * both classes in :mod:`passlib.apache`
+          now support specifying an encoding for the username/realm.
+
     Documentation
-        * added quickstart guide to documentation
-        
+
+        * Password Hash API expanded to include explicit
+          :ref:`unicode vs bytes policy <hash-unicode-behavior>`.
+        * Added quickstart guide to documentation.
+        * Various minor improvements.
+
+    Utilities
+
+        * Added more handler utility functions to reduce code duplication.
+        * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
+        * Removed deprecated parts of :mod:`passlib.utils.handlers`.
+
     Other
-        * removed deprecated parts of :mod:`passlib.utils.handlers`.
-    
+
+        * Builtin tests now use :mod:`!unittest2` if available.
+        * Setup script no longer requires distribute or setuptools.
+
 **1.4** (2011-05-04)
 
     This release contains a large number of changes, both large and small.

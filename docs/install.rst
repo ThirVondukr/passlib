@@ -4,16 +4,16 @@ Installation
 
 Supported Platforms
 ===================
-Passlib requires Python 2.5 or newer.
+Passlib requires Python 2 (>= 2.5) or Python 3.
 It should work with the following Python implementations:
     
-* CPython 2 (2.5 or newer)
-* CPython 3 (all versions)
-* `PyPy <www.pypy.org>`_ 1.5 or newer.
-* `Jython <www.jython.org>`_ 2.5 or newer.
+* CPython 2 -- 2.5 or newer.
+* CPython 3 -- all versions.
+* PyPy -- 1.5 or newer.
+* Jython -- 2.5 or newer.
 
-Passlib should work with all operating systems.
-Passlib contains builtin fallbacks
+Passlib should work with all operating systems,
+as it contains builtin fallbacks
 for almost all OS-dependant features. 
 
 Optional Libraries
