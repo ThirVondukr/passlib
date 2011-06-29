@@ -10,20 +10,19 @@ import os
 import sys
 import tempfile
 
-# Py2k #
-if sys.version_info < (2,7):
-# Py3k #
-#if sys.version_info < (3,2):
-# end Py3k #
-    try:
-        import unittest2 as unittest
-        ut_version = 2
-    except ImportError:
-        import unittest
-        ut_version = 1
-else:
-    import unittest
+try:
+    import unittest2 as unittest
     ut_version = 2
+except ImportError:
+    import unittest
+    # Py2k #
+    if sys.version_info < (2,7):
+    # Py3k #
+    #if sys.version_info < (3,2):
+    # end Py3k #
+        ut_version = 1
+    else:
+        ut_version = 2
 
 import warnings
 from warnings import warn
@@ -274,7 +273,8 @@ class HandlerCase(TestCase):
 
     .. note::
 
-        This is subclass of :class:`unittest.TestCase`.
+        This is subclass of :class:`unittest.TestCase`
+        (or :class:`unittest2.TestCase` if available).
     """
     #=========================================================
     #attrs to be filled in by subclass for testing specific handler
