@@ -1,6 +1,6 @@
 """passlib setup script"""
 #=========================================================
-#init script env - ensure cwd = root of source dir
+#init script env -- ensure cwd = root of source dir
 #=========================================================
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
@@ -21,14 +21,16 @@ except ImportError:
     has_distribute = False
 
 #=========================================================
-#monkeypatch preprocessor into 2to3, and enable 2to3
+#enable various 2to3 options
 #=========================================================
 opts = { "cmdclass": {} }
 
 if py3k:
+    #monkeypatch preprocessor into lib2to3
     from passlib.setup.cond2to3 import patch2to3
     patch2to3()
     
+    #enable 2to3 translation in build_py
     if has_distribute:
         opts['use_2to3'] = True
     else:
@@ -40,9 +42,7 @@ if py3k:
 #=========================================================
 #version string
 #=========================================================
-vh = open(os.path.join(root_dir, "passlib", "__init__.py"))
-VERSION = re.search(r'^__version__\s*=\s*"(.*?)"\s*$', vh.read(), re.M).group(1)
-vh.close()
+from passlib import __version__ as VERSION
 
 #=========================================================
 #static text
