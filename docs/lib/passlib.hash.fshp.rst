@@ -9,7 +9,14 @@
 The Fairly Secure Hashed Password (FSHP) scheme [#home]_ 
 is a cross-platform hash based on PBKDF1 [#pbk]_, and uses an LDAP-style hash format.
 It features a variable length salt, variable rounds, and support for cryptographic
-hashes from SHA-1 up to SHA-512. For the SHA-2 variants, there are no major security vulnerabilities.
+hashes from SHA-1 up to SHA-512.
+
+.. note::
+
+    While the SHA-2 variants have no critical security vulnerabilities,
+    PBKDF1 has been deprecated in favor of PBKDF2 due to various general weaknesses,
+    and FSHP has been listed as insecure by it's author;
+    so this scheme should probably only be used to support existing hashes.
 
 Usage
 =====
@@ -86,18 +93,18 @@ and the salt is passed in as the pbkdf1 password.
 
 Security Issues
 ===============
-* A minor concern is that FSHP swaps values of the password and salt
-  from what is described in the PBKDF1 standard. For a single
-  round, this opens the route for pre-calculating part of the digest
-  when performing a brute force attack; but the cpu/time savings
-  is vastly outweighed by the use of a large number of rounds.
+* A minor issue is that FSHP swaps the location the password and salt
+  from what is described in the PBKDF1 standard.
+  This issue is mainly noted in order to dismiss it:
+  while the swap permits an attacker to pre-calculate part of the initial digest,
+  the impact of this is negligible when a large number of rounds is used. 
 
 * Since PBKDF1 is based on repeated composition of a hash,
-  it is slightly vulnerable to any first-preimage attacks on the underlying hash.
-  this has led to the deprecation of using SHA-1 or earlier hashes with PBKDF1.
+  it is vulnerable to any first-preimage attacks on the underlying hash.
+  This has led to the deprecation of using SHA-1 or earlier hashes with PBKDF1.
   In contrast, it's successor PBKDF2 was designed to mitigate
-  this issue (among other things), and enjoys much stronger preimage resistance
-  when using with the same cryptographic hash.
+  this weakness (among other things), and enjoys much stronger preimage resistance
+  when used with the same cryptographic hashes.
 
 Deviations
 ==========
@@ -118,7 +125,7 @@ Deviations
 References
 ==========
 .. [#home] The FSHP homepage contains implementations in a wide variety of
-           programming languages -- `<https://github.com/bdd/fshp>`_.
+           programming languages -- `<https://github.com/bdd/fshp-is-not-secure-anymore>`_.
 
 .. [#pbk] rfc defining PBKDF1 & PBKDF2 -
           `<http://tools.ietf.org/html/rfc2898>`_ -
