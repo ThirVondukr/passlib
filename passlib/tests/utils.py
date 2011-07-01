@@ -829,13 +829,16 @@ def _enable_backend_case(handler, name):
     assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
     assert name in handler.backends, "unknown backend: %r" % (name,)
     if not handler.has_backend(name):
-        return False
+        return False, "backend not available"
     if enable_option("all-backends"):
-        return True
+        return True, None
     #otherwise only enable if backend is default
     orig = handler.get_backend()
     try:
-        return handler.set_backend("default") == name
+        if handler.set_backend("default") == name:
+            return True, None
+        else:
+            return False, "only default backend being tested"
     finally:
         handler.set_backend(orig)
 
@@ -845,14 +848,15 @@ def create_backend_case(base, name):
     #      then we return None under UT1,
     #      but return class w/ skip flag set under UT2.
     handler = base.handler
-    enable = _enable_backend_case(handler, name)
+    enable, reason = _enable_backend_case(handler, name)
 
     #UT1 doesn't support skipping whole test cases,
     #so we just return None.
     if not enable and ut_version < 2:
         return None
 
-    dummy = type(
+    #create subclass of 'base' which uses correct backend
+    subcase = type(
         "%s_%s" % (name.title(), base.__name__),
         (base,),
         dict(
@@ -862,9 +866,9 @@ def create_backend_case(base, name):
     )
 
     if not enable:
-        dummy = unittest.skip("backend not available")(dummy)
+        subcase = unittest.skip(reason)(subcase)
 
-    return dummy
+    return subcase
 
 #=========================================================
 #misc helpers

@@ -126,7 +126,7 @@ class RegistryTest(TestCase):
         self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
         with catch_warnings():
-            warnings.filterwarnings("ignore", "handler names be lower-case, and use underscores instead of hyphens:.*", UserWarning)
+            warnings.filterwarnings("ignore", "handler names should be lower-case, and use underscores instead of hyphens:.*", UserWarning)
             self.assertIs(get_crypt_handler("DUMMY-1"), dummy_1)
 
 #=========================================================
