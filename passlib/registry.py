@@ -82,6 +82,11 @@ _handler_locations = {
     "cta_pbkdf2_sha1":  ("passlib.handlers.pbkdf2",      "cta_pbkdf2_sha1"),
     "crypt16":          ("passlib.handlers.des_crypt",   "crypt16"),
     "des_crypt":        ("passlib.handlers.des_crypt",   "des_crypt"),
+    "django_salted_sha1":
+                        ("passlib.handlers.django",      "django_salted_sha1"),
+    "django_salted_md5":("passlib.handlers.django",      "django_salted_md5"),
+    "django_des_crypt": ("passlib.handlers.django",      "django_des_crypt"),
+    "django_disabled":  ("passlib.handlers.django",      "django_disabled"),
     "dlitz_pbkdf2_sha1":("passlib.handlers.pbkdf2",      "dlitz_pbkdf2_sha1"),
     "fshp":             ("passlib.handlers.fshp",        "fshp"),
     "grub_pbkdf2_sha512":

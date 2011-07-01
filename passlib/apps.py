@@ -43,6 +43,18 @@ custom_app_context = LazyCryptContext(
     )
 
 #=========================================================
+#django
+#=========================================================
+django_context = LazyCryptContext(
+    schemes=[
+        "django_salted_sha1", "django_salted_md5", "django_des_crypt",
+        "hex_md5", "django_disabled",
+    ],
+    default="django_salted_sha1",
+    deprecated=["hex_md5"],
+)
+
+#=========================================================
 #ldap
 #=========================================================
 std_ldap_schemes = ["ldap_salted_sha1", "ldap_salted_md5",

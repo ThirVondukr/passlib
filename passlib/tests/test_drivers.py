@@ -9,9 +9,19 @@ import logging; log = logging.getLogger(__name__)
 import warnings
 #site
 #pkg
+from passlib import hash
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b
 #module
+
+
+#=========================================================
+#some
+#=========================================================
+
+#some common passwords which used as test cases...
+UPASS_WAV = u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'
+UPASS_USD = u"\u20AC\u00A5$"
 
 #=========================================================
 #apr md5 crypt
@@ -37,7 +47,7 @@ from passlib.handlers.bcrypt import bcrypt
 
 class _BCryptTest(HandlerCase):
     "base for BCrypt test cases"
-    
+
     handler = bcrypt
     secret_chars = 72
 
@@ -197,25 +207,99 @@ OsCrypt_DesCryptTest = create_backend_case(_DesCryptTest, "os_crypt")
 Builtin_DesCryptTest = create_backend_case(_DesCryptTest, "builtin")
 
 #=========================================================
+#django
+#=========================================================
+class DjangoDisabledTest(HandlerCase):
+    "test django_disabled"
+
+    #NOTE: this class behaves VERY differently from a normal password hash,
+    #so we subclass & disable a number of the default tests.
+    #TODO: combine these features w/ unix_fallback and other disabled handlers.
+
+    handler = hash.django_disabled
+    handler_type = "disabled"
+
+    def test_20_verify_positive(self):
+        for secret, result in [
+            ("password", "!"),
+            ("", "!"),
+        ]:
+            self.assertFalse(self.do_verify(secret, result))
+
+    def test_50_encrypt_plain(self):
+        "test encrypt() basic behavior"
+        secret = UPASS_USD
+        result = self.do_encrypt(secret)
+        self.assertEquals(result, "!")
+        self.assert_(not self.do_verify(secret, result))
+
+class DjangoDesCryptTest(HandlerCase):
+    "test django_des_crypt"
+    handler = hash.django_des_crypt
+    secret_chars = 8
+
+    known_correct_hashes = [
+        ("password", 'crypt$c2e86$c2M87q...WWcU'),
+        (UPASS_USD, 'crypt$c2e86$c2hN1Bxd6ZiWs'),
+    ]
+
+    known_unidentified_hashes = [
+        'sha1$aa$bb',
+    ]
+
+class DjangoSaltedMd5Test(HandlerCase):
+    "test django_salted_md5"
+    handler = hash.django_salted_md5
+
+    known_correct_hashes = [
+        ("password", 'md5$c2e86$a6e6e41fd0113c98d8b82422466dcf55'),
+        (UPASS_USD, 'md5$c2e86$92105508419a81a6babfaecf876a2fa0'),
+    ]
+
+    known_unidentified_hashes = [
+        'sha1$aa$bb',
+    ]
+
+    known_malformed_hashes = [
+        'md5$aa$bb',
+    ]
+
+class DjangoSaltedSha1Test(HandlerCase):
+    "test django_salted_sha1"
+    handler = hash.django_salted_sha1
+
+    known_correct_hashes = [
+        ("password", 'sha1$c2e86$b2949ae168955e92599656edd7a32916e0f5fc51'),
+        (UPASS_USD, 'sha1$c2e86$0f75c5d7fbd100d587c127ef0b693cde611b4ada'),
+        ("MyPassword", 'sha1$54123$893cf12e134c3c215f3a76bd50d13f92404a54d3'),
+    ]
+
+    known_unidentified_hashes = [
+        'md5$aa$bb',
+    ]
+
+    known_malformed_hashes = [
+        'sha1$c2e86$0f75',
+    ]
+
+#=========================================================
 #fshp
 #=========================================================
-from passlib.hash import fshp
-
 class FSHPTest(HandlerCase):
     "test fshp algorithm"
-    handler = fshp
+    handler = hash.fshp
 
     known_correct_hashes = [
         #secret, example hash which matches secret
-        
+
         #test vectors from FSHP reference implementation
         ('test', '{FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M='),
- 
+
         ('test',
             '{FSHP1|8|4096}MTIzNDU2NzjTdHcmoXwNc0f'
             'f9+ArUHoN0CvlbPZpxFi1C6RDM/MHSA=='
             ),
-        
+
         ('OrpheanBeholderScryDoubt',
             '{FSHP1|8|4096}GVSUFDAjdh0vBosn1GUhz'
             'GLHP7BmkbCZVH/3TQqGIjADXpc+6NCg3g=='
@@ -233,15 +317,15 @@ class FSHPTest(HandlerCase):
         '{FSHX0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
         'FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
         ]
-    
+
     known_malformed_hashes = [
         #wrong salt size
         '{FSHP0|1|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
-        
+
         #bad rounds
         '{FSHP0|0|A}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
     ]
-  
+
 #=========================================================
 #hex digests
 #=========================================================
@@ -1024,6 +1108,7 @@ from passlib.handlers.misc import unix_fallback
 class UnixFallbackTest(HandlerCase):
     #NOTE: this class behaves VERY differently from a normal password hash,
     #so we subclass & disable a number of the default tests.
+    #TODO: combine some of these features w/ django_disabled and other fallback handlers.
 
     handler = unix_fallback
 
