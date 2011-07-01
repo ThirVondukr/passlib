@@ -11,6 +11,15 @@ and should not be used in new applications. However, for the sake
 of backwards compatibility when converting existing applications,
 PassLib provides wrappers for few of the common hashes.
 
+.. warning::
+
+    To reiterate the above:
+    Using a single round of any cryptographic hash
+    (especially without a salt) is so insecure
+    that it's barely better than plaintext.
+    Do not use these schemes in new applications.
+
+
 Usage
 =====
 These classes all wrap the underlying hashlib implementations,

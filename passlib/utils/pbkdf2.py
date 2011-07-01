@@ -95,33 +95,33 @@ def _clear_prf_cache():
 
 def get_prf(name):
     """lookup pseudo-random family (prf) by name.
-    
+
     :arg name:
         this must be the name of a recognized prf.
         currently this only recognizes names with the format
         :samp:`hmac-{digest}`, where :samp:`{digest}`
         is the name of a hash function such as
         ``md5``, ``sha256``, etc.
-        
+
         this can also be a callable with the signature
         ``prf(secret, message) -> digest``,
         in which case it will be returned unchanged.
-        
+
     :raises ValueError: if the name is not known
     :raises TypeError: if the name is not a callable or string
-    
+
     :returns:
         a tuple of :samp:`({func}, {digest_size})`.
-        
+
         * :samp:`{func}` is a function implementing
           the specified prf, and has the signature
           ``func(secret, message) -> digest``.
-          
+
         * :samp:`{digest_size}` is an integer indicating
           the number of bytes the function returns.
-          
+
     usage example::
-    
+
         >>> from passlib.utils.pbkdf2 import get_prf
         >>> hmac_sha256, dsize = get_prf("hmac-sha256")
         >>> hmac_sha256
@@ -131,7 +131,7 @@ def get_prf(name):
         >>> digest = hmac_sha256('password', 'message')
 
     this function will attempt to return the fastest implementation
-    it can find; if M2Crypto is present, and supports the specified prf, 
+    it can find; if M2Crypto is present, and supports the specified prf,
     :func:`M2Crypto.EVP.hmac` will be used behind the scenes.
     """
     global _prf_cache
@@ -167,14 +167,16 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
 
         * a callable with the prototype ``hash(message) -> raw digest``
         * a string matching one of the hashes recognized by hashlib
-        
+
     :returns:
         raw bytes of generated key
-    
-    This algorithm is deprecated, new code should use PBKDF2.
-    Among other reasons, ``keylen`` cannot be larger
-    than the digest size of the specified hash.
-    
+
+    .. note::
+
+        This algorithm is deprecated, new code should use PBKDF2.
+        Among other reasons, ``keylen`` cannot be larger
+        than the digest size of the specified hash.
+
     """
     #prepare secret & salt
     if not isinstance(secret, bytes):
@@ -213,7 +215,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
         block = hf(block).digest()
         r += 1
     return block[:keylen]
-    
+
 #=================================================================================
 #pbkdf2
 #=================================================================================
@@ -232,7 +234,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
         this can be any string or callable accepted by :func:`get_prf`.
         this defaults to ``hmac-sha1`` (the only prf explicitly listed in
         the PBKDF2 specification)
-        
+
     :returns:
         raw bytes of generated key
     """
@@ -253,7 +255,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
         #NOTE: doing check here, because M2crypto won't take longs (which this is, under 32bit)
         if keylen > MAX_HMAC_SHA1_KEYLEN:
             raise ValueError("key length too long")
-        
+
         #NOTE: M2crypto reliably segfaults for me if given keylengths
         # larger than 40 (crashes at 41 on one system, 61 on another).
         # so just avoiding it for longer calls.

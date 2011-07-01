@@ -59,7 +59,7 @@ def _parse_policy_key(key):
 
 def _parse_policy_value(cat, name, opt, value):
     "helper to parse policy values"
-    #FIXME: kinda primitive :|
+    #FIXME: kinda primitive to parse things this way :|
     if name == "context":
         if opt == "schemes" or opt == "deprecated":
             if isinstance(value, str):
@@ -78,10 +78,10 @@ def parse_policy_items(source):
     "helper to parse CryptPolicy options"
     # py2k #
     if hasattr(source, "iteritems"):
-        source = source.iteritems()    
+        source = source.iteritems()
     # py3k #
     #if hasattr(source, "items"):
-    #    source = source.items()        
+    #    source = source.items()
     # end py3k #
     for key, value in source:
         cat, name, opt = _parse_policy_key(key)
@@ -180,7 +180,7 @@ class CryptPolicy(object):
         """
         #NOTE: we want config parser object to have native strings as keys.
         #      so we parse as bytes under py2, and unicode under py3.
-        #      
+        #
         #      encoding issues are handled under py2 via to_bytes(),
         #      which ensures everything is utf-8 internally.
 
@@ -194,12 +194,12 @@ class CryptPolicy(object):
             with open(path, "rb") as stream:
                 source = stream.read()
             source = source.decode(encoding).encode("utf-8")
-            return cls._from_stream(StringIO(source), section, path)            
+            return cls._from_stream(StringIO(source), section, path)
         # Py3k #
         #with open(path, "r", encoding=encoding) as stream:
         #    return cls._from_stream(stream, section, path)
         # end Py3k #
-        
+
     @classmethod
     def from_string(cls, source, section="passlib", encoding="utf-8"):
         """create new policy from specified section of an ini-formatted string.
@@ -214,7 +214,7 @@ class CryptPolicy(object):
         #      so we parse as bytes under py2, and unicode under py3.
         #      to handle encoding issues under py2, we use
         #      "to_bytes()" to transcode to utf-8 as needed.
-        
+
         # Py2k #
         source = to_bytes(source, "utf-8", source_encoding=encoding, errname="source")
         # Py3k #
@@ -240,20 +240,20 @@ class CryptPolicy(object):
                 raise
             #support for deprecated 1.4 behavior, will be removed in 1.6
             if filename:
-                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=3)                
+                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=3)
             else:
                 warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=3)
             p = ConfigParser()
             stream.seek(pos)
             p.readfp(stream)
             items = p.items(section)
-            
+
         # py3k #
         #items = p.items(section)
         # end py3k #
-        
+
         return cls(**dict(items))
-        
+
     @classmethod
     def from_source(cls, source):
         """create new policy from input.
@@ -674,7 +674,7 @@ class CryptPolicy(object):
         self._write_to_parser(p, section)
         p.write(stream)
 
-    def to_string(self, section="passlib", encoding=None):    
+    def to_string(self, section="passlib", encoding=None):
         "render to INI string; inverse of from_string() constructor"
         buf = StringIO()
         self.to_file(buf, section)

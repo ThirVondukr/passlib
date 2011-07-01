@@ -6,7 +6,7 @@ Supported Platforms
 ===================
 Passlib requires Python 2 (>= 2.5) or Python 3.
 It should work with the following Python implementations:
-    
+
 * CPython 2 -- 2.5 or newer.
 * CPython 3 -- all versions.
 * PyPy -- 1.5 or newer.
@@ -14,12 +14,12 @@ It should work with the following Python implementations:
 
 Passlib should work with all operating systems,
 as it contains builtin fallbacks
-for almost all OS-dependant features. 
+for almost all OS-dependant features.
 
 Optional Libraries
 ==================
 * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ or
-  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_ 
+  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
    If either of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
@@ -32,7 +32,7 @@ Optional Libraries
    If installed, M2Crypto will be used to accelerate some internal
    functions used by PBKDF2-based hashes, but it is not required
    even in that case.
-        
+
 Installation Instructions
 =========================
 To download and install using :command:`easy_install`::
@@ -42,16 +42,16 @@ To download and install using :command:`easy_install`::
 To download and install using :command:`pip`::
 
     pip install passlib
-      
+
 To install from a source directory using :command:`setup.py`::
 
-    python setup.py install  
+    python setup.py install
 
 .. note::
-    
+
     Passlib's source ships as Python 2 code,
     and the setup script invokes the :command:`2to3` tool + a preprocessor
-    to translate the source to Python 3 code at install time.    
+    to translate the source to Python 3 code at install time.
     Aside from this internal detail,
     installation under Python 3
     should be identical to that of Python 2.
@@ -75,6 +75,8 @@ Once PassLib and Nose have been installed, the tests may be run from the source 
     # (results will be in build/coverage)
     PASSLIB_TESTS="all" nosetests -v passlib/tests --with-coverage \
         --cover-package=passlib --cover-html --cover-html-dir build/coverage
+
+(There will be a large proportion of skipped tests, this is normal).
 
 Documentation
 =============

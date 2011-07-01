@@ -159,7 +159,7 @@ def register_crypt_handler_path(name, path):
     called :samp:`{name}`, or the path may contain a colon,
     specifying the module and module attribute to use.
     for example, the following would cause ``get_handler("myhash")`` to look
-    for a class named ``myhash`` within the ``myapp.helpers`` module:: 
+    for a class named ``myhash`` within the ``myapp.helpers`` module::
 
         >>> from passlib.registry import registry_crypt_handler_path
         >>> registry_crypt_handler_path("myhash", "myapp.helpers")
