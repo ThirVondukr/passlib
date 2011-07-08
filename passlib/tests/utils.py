@@ -314,6 +314,11 @@ class HandlerCase(TestCase):
     #: if handler uses multiple backends, explicitly set this one when running tests.
     backend = None
 
+    #: hack used by create_backend() to signal we should monkeypatch
+    #  safe_os_crypt() to use handler+this backend,
+    #  only used when backend == "os_crypt"
+    _patch_crypt_backend = None
+
     #=========================================================
     #alg interface helpers - allows subclass to overide how
     # default tests invoke the handler (eg for context_kwds)
@@ -366,16 +371,48 @@ class HandlerCase(TestCase):
             name += " (%s backend)" % (get_backend(),)
         return name
 
+    #=========================================================
+    #setup / cleanup
+    #=========================================================
+    _orig_backend = None #backup of original backend
+    _orig_os_crypt = None #backup of original utils.os_crypt
+
     def setUp(self):
         h = self.handler
-        if self.backend and hasattr(h, "set_backend"):
+        backend = self.backend
+        if backend:
+            if not hasattr(h, "set_backend"):
+                raise RuntimeError("handler doesn't support multiple backends")
             self._orig_backend = h.get_backend()
-            h.set_backend(self.backend)
+            alt_backend = None
+            if (backend == "os_crypt" and not h.has_backend("os_crypt")):
+                alt_backend = _has_other_backends(h, "os_crypt")
+            if alt_backend:
+                #monkeypatch utils.safe_os_crypt to use specific handler+backend
+                #this allows use to test as much of the hash's code path
+                #as possible, even if current OS doesn't provide crypt() support
+                #for the hash.
+                self._orig_os_crypt = utils.os_crypt
+                def crypt_stub(secret, hash):
+                    tmp = h.get_backend()
+                    try:
+                        h.set_backend(alt_backend)
+                        hash = h.genhash(secret, hash)
+                    finally:
+                        h.set_backend(tmp)
+                    # Py2k #
+                    if isinstance(hash, unicode):
+                        hash = hash.encode("ascii")
+                    # end Py2k #
+                    return hash
+                utils.os_crypt = crypt_stub
+            h.set_backend(backend)
 
     def tearDown(self):
-        h = self.handler
-        if self.backend and hasattr(h, "set_backend"):
-            h.set_backend(self._orig_backend)
+        if self._orig_os_crypt:
+            utils.os_crypt = self._orig_os_crypt
+        if self._orig_backend:
+            self.handler.set_backend(self._orig_backend)
 
     #=========================================================
     #attributes
@@ -829,30 +866,47 @@ class HandlerCase(TestCase):
 #=========================================================
 #backend test helpers
 #=========================================================
-def _enable_backend_case(handler, name):
-    "helper to check if a separate test is needed for the specified backend"
-    assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
-    assert name in handler.backends, "unknown backend: %r" % (name,)
-    if not handler.has_backend(name):
-        return False, "backend not available"
-    if enable_option("all-backends"):
-        return True, None
-    #otherwise only enable if backend is default
-    orig = handler.get_backend()
-    try:
-        if handler.set_backend("default") == name:
+def _enable_backend_case(handler, backend):
+    "helper to check if testcase should be enabled for the specified backend"
+    assert backend in handler.backends, "unknown backend: %r" % (backend,)
+    if enable_option("all-backends") or _is_default_backend(handler, backend):
+        if handler.has_backend(backend):
             return True, None
+        if backend == "os_crypt" and utils.safe_os_crypt:
+            if enable_option("cover") and _has_other_backends(handler, "os_crypt"):
+                #in this case, HandlerCase will monkeypatch os_crypt
+                #to use another backend, just so we can test os_crypt fully.
+                return True, None
+            else:
+                return False, "hash not supported by os crypt()"
         else:
-            return False, "only default backend being tested"
+            return False, "backend not available"
+    else:
+        return False, "only default backend being tested"
+
+def _is_default_backend(handler, name):
+    "check if backend is the default for handler"
+    try:
+        orig = handler.get_backend()
+    except MissingBackendError:
+        return False
+    try:
+        return handler.set_backend("default") == name
     finally:
         handler.set_backend(orig)
 
+def _has_other_backends(handler, ignore):
+    "helper to check if alternate backend is available"
+    for name in handler.backends:
+        if name != ignore and handler.has_backend(name):
+            return name
+    return None
+
 def create_backend_case(base, name):
-    "create a test case (subclassing)"
-    #NOTE: if backend not available,
-    #      then we return None under UT1,
-    #      but return class w/ skip flag set under UT2.
+    "create a test case for specific backend of a multi-backend handler"
+    #get handler, figure out if backend should be tested
     handler = base.handler
+    assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
     enable, reason = _enable_backend_case(handler, name)
 
     #UT1 doesn't support skipping whole test cases,
