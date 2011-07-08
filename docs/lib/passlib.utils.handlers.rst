@@ -103,7 +103,7 @@ Some additional notes:
       For faster identification purposes, subclasses may fill in the :attr:`~GenericHandler.ident` attribute
       with the hash's identifying prefix, which :meth:`~GenericHandler.identify` will then test for
       instead of calling :meth:`~GenericHandler.from_string`.
-      For more complex situations, a custom implementation should be used; 
+      For more complex situations, a custom implementation should be used;
       the :class:`HasManyIdents` mixin may also be helpful.
 
     * This class does not support context kwds of any type,

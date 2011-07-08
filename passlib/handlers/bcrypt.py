@@ -135,7 +135,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     @classproperty
     def _has_backend_bcryptor(cls):
         return bcryptor_engine is not None
-    
+
     @classproperty
     def _has_backend_os_crypt(cls):
         return (
@@ -181,11 +181,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         #        returns ascii bytes
         #   py3: can't get to install
         if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")            
+            secret = secret.encode("utf-8")
         hash = bcryptor_engine(False).hash_key(secret,
                                                self.to_string(native=False))
         return hash[-31:].decode("ascii")
-        
+
     #=========================================================
     #eoc
     #=========================================================

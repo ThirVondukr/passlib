@@ -84,7 +84,7 @@ class MiscTest(TestCase):
         self.assertNotEqual(x,y)
         #NOTE: decoding this due to py3 bytes
         self.assertEqual(sorted(set(x.decode("ascii"))), [u'a',u'b',u'c'])
-        
+
         #generate_password
         self.assertEqual(len(utils.generate_password(15)), 15)
 
@@ -110,7 +110,7 @@ class MiscTest(TestCase):
         "test safe_os_crypt() wrapper"
         if not safe_os_crypt:
             raise self.SkipTest("stdlib crypt module not available")
-        
+
         #NOTE: this is assuming EVERY crypt will support des_crypt.
         #      if this fails on some platform, this test will need modifying.
 
@@ -119,18 +119,18 @@ class MiscTest(TestCase):
         self.assertTrue(ok)
         self.assertIsInstance(hash, unicode)
         self.assertEqual(hash, u'aaqPiZY5xR5l.')
-        
+
         #test hash-as-bytes
         self.assertRaises(TypeError, safe_os_crypt, u'test', b('aa'))
-        
+
         #test password as ascii
         ret = safe_os_crypt(b('test'), u'aa')
         self.assertEqual(ret, (True, u'aaqPiZY5xR5l.'))
-        
+
         #test unicode password w/ high char
         ret = safe_os_crypt(u'test\u1234', u'aa')
         self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
-        
+
         #test utf-8 password w/ high char
         ret = safe_os_crypt(b('test\xe1\x88\xb4'), u'aa')
         self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
@@ -148,7 +148,7 @@ class MiscTest(TestCase):
 #=========================================================
 class CodecTest(TestCase):
     "tests bytes/unicode helpers in passlib.utils"
-    
+
     def test_bytes(self):
         "test b() helper, bytes and native_str types"
         # Py2k #
@@ -166,14 +166,14 @@ class CodecTest(TestCase):
         # Py3k #
         #self.assertEqual(b('\x00\xff'), b"\x00\xff")
         # end Py3k #
-        
+
     def test_to_bytes(self):
         "test to_bytes()"
-        
+
         #check unicode inputs
         self.assertEqual(to_bytes(u'abc'),                  b('abc'))
         self.assertEqual(to_bytes(u'\x00\xff'),             b('\x00\xc3\xbf'))
-        
+
         #check unicode w/ encodings
         self.assertEqual(to_bytes(u'\x00\xff', 'latin-1'),  b('\x00\xff'))
         self.assertRaises(ValueError, to_bytes, u'\x00\xff', 'ascii')
@@ -186,28 +186,28 @@ class CodecTest(TestCase):
 
         #check byte inputs ignores enocding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1"),
-                                                            b('\x00\xc3\xbf'))        
+                                                            b('\x00\xc3\xbf'))
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), None, "utf-8"),
                                                             b('\x00\xc3\xbf'))
-        
+
         #check bytes transcoding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "utf-8"),
                                                             b('\x00\xff'))
-    
+
         #check other
         self.assertRaises(TypeError, to_bytes, None)
 
     def test_to_unicode(self):
         "test to_unicode()"
-        
+
         #check unicode inputs
         self.assertEqual(to_unicode(u'abc'),                u'abc')
         self.assertEqual(to_unicode(u'\x00\xff'),           u'\x00\xff')
-        
+
         #check unicode input ignores encoding
         self.assertEqual(to_unicode(u'\x00\xff', None),     u'\x00\xff')
         self.assertEqual(to_unicode(u'\x00\xff', "ascii"),  u'\x00\xff')
-        
+
         #check bytes input
         self.assertEqual(to_unicode(b('abc')),              u'abc')
         self.assertEqual(to_unicode(b('\x00\xc3\xbf')),     u'\x00\xff')
@@ -215,13 +215,13 @@ class CodecTest(TestCase):
                                                             u'\x00\xff')
         self.assertRaises(ValueError, to_unicode, b('\x00\xff'))
         self.assertRaises(TypeError, to_unicode, b('\x00\xff'), None)
-        
+
         #check other
         self.assertRaises(TypeError, to_unicode, None)
-        
+
     def test_to_native_str(self):
         "test to_native_str()"
-        
+
         self.assertEqual(to_native_str(u'abc'),             'abc')
         self.assertEqual(to_native_str(b('abc')),           'abc')
         self.assertRaises(TypeError, to_native_str, None)
@@ -233,7 +233,7 @@ class CodecTest(TestCase):
                                                             b('\x00\xff'))
         self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
                                                             b('\x00\xff'))
-        
+
         # Py3k #
         #self.assertEqual(to_native_str(u'\x00\xff'),        '\x00\xff')
         #self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  '\x00\xff')
@@ -243,31 +243,31 @@ class CodecTest(TestCase):
         #                                                    '\x00\xff')
         #
         # end Py3k #
-                    
+
     #TODO: test to_hash_str()
-                        
+
     def test_is_ascii_safe(self):
-        "test is_ascii_safe()"        
+        "test is_ascii_safe()"
         self.assertTrue(is_ascii_safe(b("\x00abc\x7f")))
         self.assertTrue(is_ascii_safe(u"\x00abc\x7f"))
         self.assertFalse(is_ascii_safe(b("\x00abc\x80")))
         self.assertFalse(is_ascii_safe(u"\x00abc\x80"))
-                        
-                                                                    
+
+
     def test_is_same_codec(self):
         "test is_same_codec()"
         self.assertTrue(is_same_codec(None, None))
         self.assertFalse(is_same_codec(None, 'ascii'))
-        
+
         self.assertTrue(is_same_codec("ascii", "ascii"))
         self.assertTrue(is_same_codec("ascii", "ASCII"))
-                        
+
         self.assertTrue(is_same_codec("utf-8", "utf-8"))
         self.assertTrue(is_same_codec("utf-8", "utf8"))
         self.assertTrue(is_same_codec("utf-8", "UTF_8"))
 
         self.assertFalse(is_same_codec("ascii", "utf-8"))
-        
+
 #=========================================================
 #test des module
 #=========================================================
@@ -489,9 +489,9 @@ class MD4_Test(TestCase):
         "test md4 update"
         h = md4(b(''))
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
-        
+
         #NOTE: under py2, hashlib methods try to encode to ascii,
-        #      though shouldn't rely on that. 
+        #      though shouldn't rely on that.
         # Py3k #
         #self.assertRaises(TypeError, h.update, u'x')
         # end Py3k #
@@ -536,7 +536,7 @@ from passlib.utils import pbkdf2
 
 class KdfTest(TestCase):
     "test kdf helpers"
-    
+
     def test_pbkdf1(self):
         "test pbkdf1"
         for secret, salt, rounds, klen, hash, correct in [
@@ -546,7 +546,7 @@ class KdfTest(TestCase):
         ]:
             result = pbkdf2.pbkdf1(secret, salt, rounds, klen, hash)
             self.assertEqual(result, correct)
-            
+
         #test rounds < 1
         #test klen < 0
         #test klen > block size

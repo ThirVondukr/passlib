@@ -335,7 +335,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")        
+            secret = secret.encode("utf-8")
         checksum, salt, rounds = raw_sha256_crypt(secret,
                                                   self.salt.encode("ascii"),
                                                   self.rounds)

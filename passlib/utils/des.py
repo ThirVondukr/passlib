@@ -7,7 +7,7 @@ found at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_.
 
 The copyright & license for that source is as follows::
 
-    UnixCrypt.java	0.9 96/11/25
+    UnixCrypt.java 0.9 96/11/25
     Copyright (c) 1996 Aki Yoshida. All rights reserved.
     Permission to use, copy, modify and distribute this software
     for non-commercial or commercial purposes and without fee is
@@ -17,8 +17,8 @@ The copyright & license for that source is as follows::
     ---
 
     Unix crypt(3C) utility
-    @version 	0.9, 11/25/96
-    @author 	Aki Yoshida
+    @version 0.9, 11/25/96
+    @author  Aki Yoshida
 
     ---
 
@@ -575,7 +575,7 @@ def expand_des_key(key):
     "convert 7 byte des key to 8 byte des key (by adding parity bit every 7 bits)"
     if not isinstance(key, bytes):
         raise TypeError("key must be bytes, not %s" % (type(key),))
-    
+
     #NOTE: could probably do this much more cleverly and efficiently,
     # but no need really given it's use.
 
@@ -605,10 +605,10 @@ def expand_des_key(key):
 def des_encrypt_block(key, input):
     """do traditional encryption of a single DES block
 
-    :arg key: 8 byte des key 
+    :arg key: 8 byte des key
     :arg input: 8 byte plaintext
     :returns: 8 byte ciphertext
-    
+
     all values must be :class:`bytes`
     """
     if not isinstance(key, bytes):

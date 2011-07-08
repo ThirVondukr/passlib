@@ -70,7 +70,7 @@ def identify_prefix(hash, prefix):
             hash = hash.decode("ascii")
         except UnicodeDecodeError:
             return False
-    return hash.startswith(prefix) 
+    return hash.startswith(prefix)
 
 #=========================================================
 #parsing helpers
@@ -224,7 +224,7 @@ class StaticHandler(object):
         hash = cls._norm_hash(hash)
         result = cls.genhash(secret, hash, *cargs, **context)
         return cls._norm_hash(result) == hash
-        
+
     @classmethod
     def _norm_hash(cls, hash):
         """[helper for verify] normalize hash for comparsion purposes"""
@@ -273,7 +273,7 @@ class GenericHandler(object):
         If this attribute is filled in, the default :meth:`identify` method will use
         it as a identifying prefix that can be used to recognize instances of this handler's
         hash. Filling this out is recommended for speed.
-        
+
         This should be a unicode str.
 
     .. attribute:: checksum_size
@@ -389,9 +389,9 @@ class GenericHandler(object):
     @classmethod
     def from_string(cls, hash): #pragma: no cover
         """return parsed instance from hash/configuration string
-        
+
         :raises ValueError: if hash is incorrectly formatted
-        
+
         :returns:
             hash parsed into components,
             for formatting / calculating checksum.
@@ -400,12 +400,12 @@ class GenericHandler(object):
 
     def to_string(self): #pragma: no cover
         """render instance to hash or configuration string
-        
+
         :returns:
             if :attr:`checksum` is set, should return full hash string.
             if not, should either return abbreviated configuration string,
             or fill in a stub checksum.
-            
+
             should return native string type (ascii-bytes under python 2,
             unicode under python 3)
         """

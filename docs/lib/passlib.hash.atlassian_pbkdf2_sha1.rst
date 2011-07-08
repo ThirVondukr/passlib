@@ -4,7 +4,7 @@
 
 .. index::
     pair: atlassian; pbkdf2 hash
-    
+
 .. currentmodule:: passlib.hash
 
 This class provides an implementation of

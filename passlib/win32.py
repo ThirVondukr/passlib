@@ -49,7 +49,7 @@ def raw_lmhash(secret, encoding="ascii", hex=False):
     #      for it's encoding. until a clear reference is found,
     #      as well as a path for getting the encoding,
     #      letting this default to "ascii" to prevent incorrect hashes
-    #      from being made w/o user explicitly choosing an encoding. 
+    #      from being made w/o user explicitly choosing an encoding.
     if isinstance(secret, unicode):
         secret = secret.encode(encoding)
     ns = secret.upper()[:14] + b("\x00") * (14-len(secret))

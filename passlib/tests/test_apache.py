@@ -40,7 +40,7 @@ def backdate_file_mtime(path, offset=10):
 class HtpasswdFileTest(TestCase):
     "test HtpasswdFile class"
     case_prefix = "HtpasswdFile"
-    
+
     sample_01 = b('user2:2CHkkwa2AtqGs\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n')
     sample_02 = b('user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n')
     sample_03 = b('user2:pass2x\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\nuser5:pass5\n')
@@ -152,7 +152,7 @@ class HtpasswdFileTest(TestCase):
         set_file(path, self.sample_dup)
         hc = apache.HtpasswdFile(path)
         self.assert_(hc.verify('user1','pass1'))
-        
+
     def test_06_save(self):
         "test save()"
         #load from file
@@ -182,11 +182,11 @@ class HtpasswdFileTest(TestCase):
         #check users() returns native string by default
         ht = apache.HtpasswdFile(path)
         self.assertIsInstance(ht.users()[0], native_str)
-        
+
         #check returns unicode if encoding explicitly set
         ht = apache.HtpasswdFile(path, encoding="utf-8")
         self.assertIsInstance(ht.users()[0], unicode)
-        
+
         #check returns bytes if encoding explicitly disabled
         ht = apache.HtpasswdFile(path, encoding=None)
         self.assertIsInstance(ht.users()[0], bytes)
@@ -371,12 +371,12 @@ class HtdigestFileTest(TestCase):
         ht = apache.HtdigestFile(path)
         self.assertIsInstance(ht.realms()[0], native_str)
         self.assertIsInstance(ht.users("realm")[0], native_str)
-        
+
         #check returns unicode if encoding explicitly set
         ht = apache.HtdigestFile(path, encoding="utf-8")
         self.assertIsInstance(ht.realms()[0], unicode)
         self.assertIsInstance(ht.users(u"realm")[0], unicode)
-        
+
         #check returns bytes if encoding explicitly disabled
         ht = apache.HtdigestFile(path, encoding=None)
         self.assertIsInstance(ht.realms()[0], bytes)

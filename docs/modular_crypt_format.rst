@@ -123,7 +123,7 @@ Identifiers & Platform Support
 ==============================
 
 The following table lists of all the major MCF hashes supported by passlib,
-and indicates which operating systems offer native support. 
+and indicates which operating systems offer native support.
 
 ==================================== ==================== =========== =========== =========== =========== =======
 Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
@@ -136,7 +136,7 @@ Scheme                               Prefix               Linux       FreeBSD   
 :class:`~passlib.hash.nthash`        ``$3$``                          y
 :class:`~passlib.hash.sha256_crypt`  ``$5$``              y                                               y
 :class:`~passlib.hash.sha512_crypt`  ``$6$``              y                                               y
-:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y 
+:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
 ==================================== ==================== =========== =========== =========== =========== =======
 
 The following table lists the other MCF hashes supported by passlib,
@@ -159,4 +159,4 @@ Scheme                                      Prefix              Known Uses
     the same identifier. They can be distinguished
     by the fact that cta hashes will always end in ``=``, while dlitz
     hashes contain no ``=`` at all.
-    
+

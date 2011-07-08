@@ -83,7 +83,7 @@ class _CommonFile(object):
         entry_map = self._entry_map = {}
         for line in lines:
             #XXX: found mention that "#" comment lines may be supported by htpasswd,
-            #     should verify this. 
+            #     should verify this.
             key, value = pl(line)
             if key in entry_map:
                 #XXX: should we use data from first entry, or last entry?
@@ -155,7 +155,7 @@ class _CommonFile(object):
 
     def _encode_ident(self, ident, errname="user/realm"):
         "ensure identifier is bytes encoded using specified encoding, or rejected"
-        encoding = self.encoding        
+        encoding = self.encoding
         if encoding:
             if isinstance(ident, unicode):
                 return ident.encode(encoding)
@@ -179,7 +179,7 @@ class _CommonFile(object):
     #FIXME: htpasswd doc sez passwords limited to 255 chars under Windows & MPE,
     # longer ones are truncated. may be side-effect of those platforms
     # supporting plaintext. we don't currently check for this.
-    
+
 #=========================================================
 #htpasswd editing
 #=========================================================
@@ -217,29 +217,29 @@ class HtpasswdFile(_CommonFile):
         if set to ``None``,
         user names must be specified as bytes,
         and will be returned as bytes.
-        
+
         if set to an encoding,
         user names must be specified as unicode,
         and will be returned as unicode.
         when stored, then will use the specified encoding.
-        
+
         for backwards compatibility with passlib 1.4,
         this defaults to ``None`` under Python 2,
         and ``utf-8`` under Python 3.
-        
+
         .. note::
 
             this is not the encoding for the entire file,
             just for the usernames within the file.
             this must be an encoding which is compatible
-            with 7-bit ascii (which is used by rest of file). 
+            with 7-bit ascii (which is used by rest of file).
 
     :param context:
         :class:`~passlib.context.CryptContext` instance used to handle
         hashes in this file.
-        
+
         .. warning::
-        
+
             this should usually be left at the default,
             though it can be overridden to implement non-standard hashes
             within the htpasswd file.
@@ -280,7 +280,7 @@ class HtpasswdFile(_CommonFile):
 
     def _render_line(self, user, hash):
         return render_bytes("%s:%s\n", user, hash)
-        
+
     def users(self):
         "return list of all users in file"
         return map(self._decode_ident, self._entry_order)
@@ -335,16 +335,16 @@ class HtdigestFile(_CommonFile):
 
     :param encoding:
         optionally specify encoding used for usernames / realms.
-        
+
         if set to ``None``,
         user names & realms must be specified as bytes,
         and will be returned as bytes.
-        
+
         if set to an encoding,
         user names & realms must be specified as unicode,
         and will be returned as unicode.
         when stored, then will use the specified encoding.
-        
+
         for backwards compatibility with passlib 1.4,
         this defaults to ``None`` under Python 2,
         and ``utf-8`` under Python 3.
@@ -354,7 +354,7 @@ class HtdigestFile(_CommonFile):
             this is not the encoding for the entire file,
             just for the usernames & realms within the file.
             this must be an encoding which is compatible
-            with 7-bit ascii (which is used by rest of file). 
+            with 7-bit ascii (which is used by rest of file).
 
     Loading & Saving
     ================
@@ -389,16 +389,16 @@ class HtdigestFile(_CommonFile):
     #     until it causes problems - in which case stopgap of setting this attr
     #     per-instance can be used.
     password_encoding = "utf-8"
-    
-    #XXX: provide rename() & rename_realm() ? 
-    
+
+    #XXX: provide rename() & rename_realm() ?
+
     def _parse_line(self, line):
         user, realm, hash = line.rstrip().split(BCOLON)
         return (user, realm), hash
 
     def _render_line(self, key, hash):
         return render_bytes("%s:%s:%s\n", key[0], key[1], hash)
-        
+
     #TODO: would frontend to calc_digest be useful?
     ##def encrypt(self, password, user, realm):
     ##    user = self._norm_user(user)
@@ -463,7 +463,7 @@ class HtdigestFile(_CommonFile):
 
     def find(self, user, realm):
         """return digest hash for specified user+realm; returns ``None`` if not found
-        
+
         :returns: htdigest hash or None
         :rtype: bytes or None
         """
@@ -474,7 +474,7 @@ class HtdigestFile(_CommonFile):
             #decode hash if in unicode mode
             hash = hash.decode("ascii")
         return hash
-        
+
     def verify(self, user, realm, password):
         """verify password for specified user + realm.
 

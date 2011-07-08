@@ -112,7 +112,7 @@ References
           PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors
           and supports unicode input.
 
-.. [#flaws] Whitepaper analyzing flaws in this algorithm - 
+.. [#flaws] Whitepaper analyzing flaws in this algorithm -
             `<http://www.isg.rhul.ac.uk/~ccid/publications/oracle_passwd.pdf>`_.
 
 .. [#] Description of Oracle10g and Oracle11g algorithms -

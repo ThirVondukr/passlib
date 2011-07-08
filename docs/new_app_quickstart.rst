@@ -53,14 +53,14 @@ All of these hashes share the following properties:
 
     * no known vulnerabilties.
     * based on documented & widely reviewed algorithms.
-    * basic architecture has been under heavy scrutiny and use for at least 10 years. 
+    * basic architecture has been under heavy scrutiny and use for at least 10 years.
     * public-domain or BSD-licensed reference implementations available.
     * in use across a number of OSes and/or a wide variety of applications.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * at least 96 bits of salt.
 
 The following comparison should help you choose which hash is
-most appropriate for your application. 
+most appropriate for your application.
 
 BCrypt
 ------

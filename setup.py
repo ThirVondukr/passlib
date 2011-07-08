@@ -29,7 +29,7 @@ if py3k:
     #monkeypatch preprocessor into lib2to3
     from passlib.setup.cond2to3 import patch2to3
     patch2to3()
-    
+
     #enable 2to3 translation in build_py
     if has_distribute:
         opts['use_2to3'] = True
@@ -61,7 +61,7 @@ to providing full-strength password hashing for multi-user application.
   for details, installation instructions, and examples.
 
 * See the `passlib homepage <http://passlib.googlecode.com>`_
-  for the latest news, more information, and additional downloads. 
+  for the latest news, more information, and additional downloads.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
   for description of what's new in Passlib.

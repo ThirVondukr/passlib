@@ -207,7 +207,7 @@ admin.sha512_crypt.max_rounds = 40000
 
         policy = CryptPolicy.from_string(self.sample_config_4s)
         self.assertEquals(policy.to_dict(), self.sample_config_4pd)
-    
+
         #test with custom encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         policy = CryptPolicy.from_string(uc2, encoding="utf-16")

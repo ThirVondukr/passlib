@@ -3,10 +3,10 @@
 ==========================================================
 
 .. index:: fshp
-    
+
 .. currentmodule:: passlib.hash
 
-The Fairly Secure Hashed Password (FSHP) scheme [#home]_ 
+The Fairly Secure Hashed Password (FSHP) scheme [#home]_
 is a cross-platform hash based on PBKDF1 [#pbk]_, and uses an LDAP-style hash format.
 It features a variable length salt, variable rounds, and support for cryptographic
 hashes from SHA-1 up to SHA-512.
@@ -26,7 +26,7 @@ as well as a special digest keyword for selecting the variant of FSHP to use.
 This class can be used directly as follows::
 
     >>> from passlib.hash import fshp
-    
+
     >>> #generate new salt, encrypt password
     >>> h = fshp.encrypt("password")
     >>> h
@@ -72,7 +72,7 @@ A example hash (of ``password``) is:
 * :samp:`<rounds>` is a decimal integer identifying the number
   of rounds to apply when calculating the checksum (see below).
   ``16384`` in the example.
-  
+
 * :samp:`<data>` is a base64-encoded string which, when decoded,
   contains a salt string of the specified size, followed
   by the checksum. In the example, the data portion decodes to
@@ -89,7 +89,7 @@ The checksum is calculated using :func:`~passlib.utils.pbkdf2.pbkdf1`,
 passing in the password, the decoded salt string, the number of
 rounds, and hash function specified by the variant identifier.
 FSHP has one quirk in that the password is passed in as the pbkdf1 salt,
-and the salt is passed in as the pbkdf1 password. 
+and the salt is passed in as the pbkdf1 password.
 
 Security Issues
 ===============
@@ -97,7 +97,7 @@ Security Issues
   from what is described in the PBKDF1 standard.
   This issue is mainly noted in order to dismiss it:
   while the swap permits an attacker to pre-calculate part of the initial digest,
-  the impact of this is negligible when a large number of rounds is used. 
+  the impact of this is negligible when a large number of rounds is used.
 
 * Since PBKDF1 is based on repeated composition of a hash,
   it is vulnerable to any first-preimage attacks on the underlying hash.

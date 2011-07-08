@@ -114,7 +114,7 @@ Required Attributes
 
     ``salt``
         If present, this means the algorithm contains some number of bits of salt
-        which should vary with every new hash created. 
+        which should vary with every new hash created.
 
         Additionally, this means
         :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.encrypt`
@@ -239,7 +239,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         :func:`~PasswordHash.verify` or :func:`~PasswordHash.genhash`.
         Because of this, applications should rely on this method only for identification,
         not confirmation that a hash is correctly formed.
-        
+
 .. classmethod:: PasswordHash.verify(secret, hash, \*\*context_kwds)
 
     verify a secret against an existing hash.
@@ -453,7 +453,7 @@ the following attributes are usually exposed.
     string containing list of all characters which are allowed
     to be specified in salt parameter.
     for most hashes, this is equal to :data:`passlib.utils.h64.CHARS`.
-    
+
     this must be a unicode string if the salt is encoded,
     or (rarely) bytes if the salt is unencoded raw bytes.
 
@@ -497,7 +497,7 @@ For the application developer in a hurry:
   While they may be provided as :class:`bytes`,
   in that case it is strongly suggested
   they be encoded using ``utf-8`` or ``ascii``.
-  
+
 * Passlib will always return hashes as native python strings.
   This means :class:`unicode` under Python 3,
   and ``ascii``-encoded :class:`bytes` under Python 2.
@@ -525,23 +525,23 @@ the following issues:
    For handlers implementing such hashes,
    passwords provided as :class:`unicode` should be encoded to ``utf-8``,
    and passwords provided as :class:`bytes` should be treated as opaque.
-   
+
    A few of these hashes officially specify this behavior;
    the rest have no preferred encoding at all,
    so this was chosen as a sensible standard behavior.
    Unless the underlying algorithm specifies an alternate policy,
    handlers should always encode unicode to ``utf-8``.
- 
+
 *  Because of the above behavior for :class:`unicode` inputs,
    applications which encode their passwords are urged
    to use ``utf-8`` or ``ascii``,
    so that hashes they generate with encoded bytes
    will verify correctly if/when they start using unicode.
-   
+
    Applications which need to verify existing hashes
    using an alternate encoding such as ``latin-1``
-   should be wary of this future "gotcha". 
- 
+   should be wary of this future "gotcha".
+
 *  A few hashes operate on :class:`unicode` strings instead.
    For handlers implementing such hashes:
    passwords provided as :class:`unicode` should be handled as appropriate,
@@ -568,7 +568,7 @@ by design requirements, and more by compatibility
 and ease of implementation issues:
 
 *   Handlers should accept hashes as either :class:`unicode` or
-    as ``ascii``-encoded :class:`bytes`. 
+    as ``ascii``-encoded :class:`bytes`.
 
     This behavior allows applications to provide hashes
     as unicode or as bytes, as they please; making
@@ -587,12 +587,12 @@ and ease of implementation issues:
 *   Handlers should return hashes as native python strings.
     This means :class:`unicode` under Python 3,
     and ``ascii``-encoded :class:`bytes` under Python 2.
-    
+
     This behavior was chosen to fit with Python 3's
     unicode-oriented philosophy, while retaining
     backwards compatibility with Passlib 1.4 and earlier
     under Python 2.
-    
+
     Handlers should use the :func:`passlib.utils.to_hash_str` function
     to coerce their unicode hashes to whatever is appropriate
     for the platform before returning them.

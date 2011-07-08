@@ -61,7 +61,7 @@ class plaintext(uh.StaticHandler):
     Unicode passwords will be encoded using utf-8.
     """
     name = "plaintext"
-    
+
     @classmethod
     def identify(cls, hash):
         return hash is not None

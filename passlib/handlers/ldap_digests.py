@@ -90,10 +90,10 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
         return cls(checksum=chk, salt=salt, strict=True)
 
     def to_string(self):
-        data = (self.checksum or self._stub_checksum) + self.salt        
+        data = (self.checksum or self._stub_checksum) + self.salt
         hash = self.ident + b64encode(data).decode("ascii")
         return to_hash_str(hash)
-        
+
     def calc_checksum(self, secret):
         if secret is None:
             raise TypeError("no secret provided")

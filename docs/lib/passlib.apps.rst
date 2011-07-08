@@ -111,7 +111,7 @@ It is found in a wide range of PHP applications, including Drupal and Wordpress.
 
     BCrypt is used as the default if support is available,
     otherwise the Portable Hash will be used as the default.
-    
+
     .. versionchanged:: 1.5
         Now uses Portable Hash as fallback if BCrypt isn't available.
         Previously used BSDI-Crypt as fallback
@@ -163,8 +163,8 @@ The following contexts are available for reading Roundup password hash fields:
 .. data:: roundup15_context
 
     Roundup 1.4.17 adds support for :class:`~passlib.hash.ldap_pbkdf2_sha1`
-    as it's preferred hash format.  
-    This context supports all the :data:`roundup10_context` hashes, 
+    as it's preferred hash format.
+    This context supports all the :data:`roundup10_context` hashes,
     but adds that hash as well (and uses it as the default).
 
 .. data:: roundup_context

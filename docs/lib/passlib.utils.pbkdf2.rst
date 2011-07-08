@@ -27,6 +27,6 @@ Helper Functions
 ================
 .. autofunction:: get_prf
 
-..  
+..
     given how this module is expanding in scope,
     perhaps it should be renamed "kdf"?

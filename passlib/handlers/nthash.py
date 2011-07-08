@@ -80,7 +80,7 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
     @staticmethod
     def raw_nthash(secret, hex=False):
         """encode password using md4-based NTHASH algorithm
-        
+
         :returns:
             returns string of raw bytes if ``hex=False``,
             returns digest as hexidecimal unicode if ``hex=True``.

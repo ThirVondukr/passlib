@@ -65,7 +65,7 @@ The source file ``passlib/utils/des.py`` contains code derived from
 a pure-java implementation of the historic unix-crypt password hash algorithm.
 It is available under the following license::
 
-    UnixCrypt.java	0.9 96/11/25
+    UnixCrypt.java 0.9 96/11/25
     Copyright (c) 1996 Aki Yoshida. All rights reserved.
     Permission to use, copy, modify and distribute this software
     for non-commercial or commercial purposes and without fee is

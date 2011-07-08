@@ -27,17 +27,17 @@ B_APR_MAGIC = b("$apr1$")
 
 def raw_md5_crypt(secret, salt, apr=False):
     """perform raw md5-crypt calculation
-    
+
     :arg secret:
         password, bytes or unicode (encoded to utf-8)
-    
+
     :arg salt:
         salt portion of hash, bytes or unicode (encoded to ascii),
         clipped to max 8 bytes.
-    
+
     :param apr:
         flag to use apache variant
-        
+
     :returns:
         encoded checksum as unicode
     """
@@ -216,13 +216,13 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
     #=========================================================
     name = "md5_crypt"
     ident = u"$1$"
-            
+
     #=========================================================
     #primary interface
     #=========================================================
     #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
     # all backends currently coerce -> utf-8
-    
+
     backends = ("os_crypt", "builtin")
 
     _has_backend_builtin = True

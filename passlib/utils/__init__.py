@@ -131,7 +131,7 @@ native_str = bytes
 #      if py25 compat were sacrificed, this func could be removed.
 def b(source):
     "convert native str to bytes (noop under py2; uses latin-1 under py3)"
-    #assert isinstance(source, native_str)    
+    #assert isinstance(source, native_str)
     # Py2k #
     return source
     # Py3k #
@@ -147,23 +147,23 @@ try:
     from crypt import crypt as os_crypt
 except ImportError: #pragma: no cover
     safe_os_crypt = os_crypt = None
-else:    
+else:
     def safe_os_crypt(secret, hash):
         """wrapper around stdlib's crypt.
-        
+
         Python 3's crypt behaves slightly differently from Python 2's crypt.
         for one, it takes in and returns unicode.
-        internally, it converts to utf-8 before hashing.   
+        internally, it converts to utf-8 before hashing.
         Annoyingly, *there is no way to call it using bytes*.
         thus, it can't be used to hash non-ascii passwords
         using any encoding but utf-8 (eg, using latin-1).
-        
+
         This wrapper attempts to gloss over all those issues:
         Under Python 2, it accept passwords as unicode or bytes,
         accepts hashes only as unicode, and always returns unicode.
         Under Python 3, it will signal that it cannot hash a password
         if provided as non-utf-8 bytes, but otherwise behave the same as crypt.
-        
+
         :arg secret: password as bytes or unicode
         :arg hash: hash/salt as unicode
         :returns:
@@ -171,8 +171,8 @@ else:
             or ``(True, result: unicode)`` otherwise.
         """
         #XXX: source indicates crypt() may return None on some systems
-        # if an error occurrs - could make this return False in that case. 
-        
+        # if an error occurrs - could make this return False in that case.
+
         # Py2k #
         #NOTE: this guard logic is designed purely to match py3 behavior,
         #      with the exception that it accepts secret as bytes
@@ -183,7 +183,7 @@ else:
         else:
             hash = hash.encode("utf-8")
         return True, os_crypt(secret, hash).decode("ascii")
-        
+
         # Py3k #
         #if isinstance(secret, bytes):
         #    #decode to utf-8. if successful, will be reencoded with os_crypt,
@@ -301,15 +301,15 @@ def has_salt_info(handler):
 
 def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
     """helper to encoding unicode -> bytes
-    
+
     this function takes in a ``source`` string.
-    if unicode, encodes it using the specified ``encoding``.    
+    if unicode, encodes it using the specified ``encoding``.
     if bytes, returns unchanged - unless ``source_encoding``
     is specified, in which case the bytes are transcoded
     if and only if the source encoding doesn't match
     the desired encoding.
     all other types result in a :exc:`TypeError`.
-    
+
     :arg source: source bytes/unicode to process
     :arg encoding: target character encoding or ``None``.
     :param source_encoding: optional source encoding
@@ -317,11 +317,11 @@ def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
 
     :raises TypeError: if unicode encountered but ``encoding=None`` specified;
                        or if source is not unicode or bytes.
-    
+
     :returns: bytes object
-    
+
     .. note::
-    
+
         if ``encoding`` is set to ``None``, then unicode strings
         will be rejected, and only byte strings will be allowed through.
     """
@@ -332,7 +332,7 @@ def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
         else:
             return source
     elif not encoding:
-        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))    
+        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))
     elif isinstance(source, unicode):
         return source.encode(encoding)
     elif source_encoding:
@@ -340,15 +340,15 @@ def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
                         (errname, source_encoding, type(source)))
     else:
         raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
-    
+
 def to_unicode(source, source_encoding="utf-8", errname="value"):
     """take in unicode or bytes, return unicode
-    
+
     if bytes provided, decodes using specified encoding.
     leaves unicode alone.
-    
+
     :raises TypeError: if source is not unicode or bytes.
-    
+
     :arg source: source bytes/unicode to process
     :arg source_encoding: encoding to use when decoding bytes instances
     :param errname: optional name of variable/noun to reference when raising errors
@@ -367,12 +367,12 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
 
 def to_native_str(source, encoding="utf-8", errname="value"):
     """take in unicode or bytes, return native string
-    
+
     python 2: encodes unicode using specified encoding, leaves bytes alone.
     python 3: decodes bytes using specified encoding, leaves unicode alone.
-    
+
     :raises TypeError: if source is not unicode or bytes.
-    
+
     :arg source: source bytes/unicode to process
     :arg encoding: encoding to use when encoding unicode / decoding bytes
     :param errname: optional name of variable/noun to reference when raising errors
@@ -386,7 +386,7 @@ def to_native_str(source, encoding="utf-8", errname="value"):
         # Py3k #
         #return source.decode(encoding)
         # end Py3k #
-        
+
     elif isinstance(source, unicode):
         # Py2k #
         return source.encode(encoding)
@@ -452,13 +452,13 @@ ujoin = u''.join
 
 def belem_join(elems):
     """takes series of bytes elements, returns bytes.
-    
+
     elem should be result of bytes[x].
     this is another bytes instance under py2,
     but it int under py3.
-    
+
     returns bytes.
-    
+
     this is bytes() constructor under py3,
     but b"".join() under py2.
     """
@@ -477,13 +477,13 @@ belem_join = bjoin
 
 def bord(elem):
     """takes bytes element, returns integer.
-    
+
     elem should be result of bytes[x].
     this is another bytes instance under py2,
     but it int under py3.
-    
+
     returns int in range(0,256).
-    
+
     this is ord() under py2, and noop under py3.
     """
     # Py2k #
@@ -516,12 +516,12 @@ def bjoin_ints(values):
 
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
-    
+
     this function is motivated by the fact that
     :class:`bytes` instances do not support % or {} formatting under python 3.
     this function is an attempt to provide a replacement
     that will work uniformly under python 2 & 3.
-    
+
     it converts everything to unicode (including bytes arguments),
     then encodes the result to latin-1.
     """
@@ -740,7 +740,7 @@ def getrandstr(rng, charset, count):
             yield charset[value % letters]
             value //= letters
             i += 1
-    
+
     if isinstance(charset, unicode):
         return ujoin(helper())
     else:
