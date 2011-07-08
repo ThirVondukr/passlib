@@ -5,8 +5,8 @@
 .. currentmodule:: passlib.hash
 
 SHA-512 Crypt and SHA-256 Crypt were developed in 2008 by Ulrich Drepper [#f1]_
-as a successor to :class:`~passlib.hash.md5_crypt`. They includes fixes
-and advancements such as variable rounds, and use of NIST-approved cryptgraphic primitives.
+as a successor to :class:`~passlib.hash.md5_crypt`. They include fixes
+and advancements such as variable rounds, and use of NIST-approved cryptographic primitives.
 SHA-256 / SHA-512 Crypt are currently the default password hash for many systems
 (notably Linux), and have no known weaknesses.
 

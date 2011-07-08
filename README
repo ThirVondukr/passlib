@@ -25,8 +25,7 @@ Installation
 ============
 To install from source using ``setup.py``::
 
-   python setup.py build
-   sudo python setup.py install
+   python setup.py install
 
 For more detailed installation & testing instructions, see "docs/install.rst"
 
@@ -39,4 +38,3 @@ Online Resources
 * PyPI -       http://pypi.python.org/pypi/passlib
 * Downloads -  http://code.google.com/p/passlib/downloads
 * Source -     http://code.google.com/p/passlib/source
-

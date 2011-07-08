@@ -64,7 +64,7 @@ by the modular crypt format hashes found in passlib:
 
    Despite this, as Unix systems have branched off,
    new hashes have been developed which used larger
-   identifying strings (eg ``$sha1$`` for :class:`sha1_crypt`);
+   identifying strings (eg ``$sha1$`` for :class:`~passlib.hash.sha1_crypt`);
    so in general identifier strings should not be assumed to use a single character.
 
 3. Hashes should contain only ascii letters ``a``-``z`` and ``A``-``Z``,
