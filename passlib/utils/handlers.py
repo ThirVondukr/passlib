@@ -16,7 +16,7 @@ from warnings import warn
 from passlib.registry import get_crypt_handler
 from passlib.utils import to_hash_str, bytes, b, \
         classproperty, h64, getrandstr, getrandbytes, \
-        rng, is_crypt_handler, ALL_BYTE_VALUES
+        rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
 #pkg
 #local
 __all__ = [
@@ -979,6 +979,23 @@ class HasManyBackends(GenericHandler):
     .. todo::
 
         document this class's usage
+
+    .. attribute:: backends
+    
+        tuple containing names of the backends which are supported.
+        two common names are ``"os_crypt"`` (if backend uses :mod:`crypt`),
+        and ``"builtin"`` (if the backend is a pure-python fallback).
+
+    .. automethod:: get_backend
+    .. automethod:: set_backend
+    .. automethod:: has_backend
+
+    .. attribute:: _has_backend_{xxx}
+
+        implementation detail - private class attr used by :meth:`has_backend`
+        to check if a specific backend is available.
+        one of these should be preset for each backend
+        listed in :attr:`backends`.
     """
 
     #NOTE: subclass must provide:
@@ -988,43 +1005,117 @@ class HasManyBackends(GenericHandler):
 
     backends = None #: list of backend names, provided by subclass.
 
-    _backend = None #: holds currently loaded backend (if any)
+    _backend = None #: holds currently loaded backend (if any) or None
 
     @classmethod
     def get_backend(cls):
-        "return name of active backend"
-        return cls._backend or cls.set_backend()
+        """return name of currently active backend.
+
+        if no backend has been loaded,
+        loads and returns name of default backend.
+
+        :raises MissingBackendError: if no backends are available.
+
+        :returns: name of active backend
+        """
+        name = cls._backend
+        if not name:
+            cls.set_backend()
+            name = cls._backend
+            assert name, "set_backend() didn't load any backends"
+        return name
 
     @classmethod
-    def has_backend(cls, name=None):
-        "check if specified backend is currently available"
-        if name is None:
+    def has_backend(cls, name="any"):
+        """check if support is currently available for specified backend.
+
+        :arg name:
+            name of backend to check for.
+            defaults to ``"any"``,
+            but can be any string accepted by :meth:`set_backend`.
+
+        :raises ValueError: if backend name is unknown
+
+        :returns:
+            ``True`` if backend is currently supported, else ``False``.
+        """
+        if name in (None, "any", "default"):
+            if name is None:
+                warn("has_backend(None) is deprecated,"
+                     " and support will be removed in Passlib 1.6;"
+                     " use has_backend('any') instead.",
+                    DeprecationWarning, stacklevel=2)
             try:
                 cls.set_backend()
                 return True
-            except EnvironmentError:
+            except MissingBackendError:
                 return False
-        return getattr(cls, "_has_backend_" + name)
+        elif name in cls.backends:
+            return getattr(cls, "_has_backend_" + name)
+        else:
+            raise ValueError("unknown backend: %r" % (name,))
 
     @classmethod
     def _no_backends_msg(cls):
         return "no %s backends available" % (cls.name,)
 
     @classmethod
-    def set_backend(cls, name=None):
-        "change class to use specified backend"
-        if not name:
+    def set_backend(cls, name="any"):
+        """load specified backend to be used for future calc_checksum() calls
+
+        this method replaces :meth:`calc_checksum` with a method
+        which uses the specified backend.
+
+        :arg name:
+            name of backend to load, defaults to ``"any"``.
+            this can be any of the following values:
+
+            * any string in :attr:`backends`,
+              indicating the specific backend to use.
+
+            * the special string ``"default"``, which means to use
+              the preferred backend on the given host
+              (this is generally the first backend in :attr:`backends`
+              which can be loaded).
+
+            * the special string ``"any"``, which means to use
+              the current backend if one has been loaded,
+              else acts like ``"default"``.
+
+        :raises MissingBackendError:
+            * if a specific backend was specified,
+              but is not currently available.
+
+            * if ``"any"`` or ``"default"`` was specified,
+              and NO backends are currently available.
+    
+        return value should be ignored.
+        
+        .. note::
+
+            :exc:`~passlib.utils.MissingBackendError` derives
+            from :exc:`RuntimeError`, since this usually indicates
+            lack of an external library or OS feature.
+        """
+        if name is None:
+            warn("set_backend(None) is deprecated,"
+                 " and support will be removed in Passlib 1.6;"
+                 " use set_backend('any') instead.",
+                DeprecationWarning, stacklevel=2)
+            name = "any"
+        if name == "any":
             name = cls._backend
             if name:
                 return name
-        if not name or name == "default":
+            name = "default"
+        if name == "default":
             for name in cls.backends:
                 if cls.has_backend(name):
                     break
             else:
-                raise EnvironmentError(cls._no_backends_msg())
-        elif not cls.has_backend(name):
-            raise ValueError("%s backend not available: %r" % (cls.name, name))
+                raise MissingBackendError(cls._no_backends_msg())
+        elif cls.has_backend(name):
+            raise MissingBackendError("%s backend not available: %r" % (cls.name, name))
         cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
         return name

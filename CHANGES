@@ -56,6 +56,11 @@ Release History
         * Added more handler utility functions to reduce code duplication.
         * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
         * Removed deprecated parts of :mod:`passlib.utils.handlers`.
+        * Various minor changes to
+          :class:`passlib.utils.handlers.HasManyBackends`;
+          main change is that multi-backend handlers now raise
+          :exc:`~passlib.utils.MissingBackendError`
+          if no backends are not available.
 
     Other
 

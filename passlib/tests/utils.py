@@ -43,9 +43,9 @@ if ut_version < 2:
     #used to provide replacement skipTest() method
     from nose.plugins.skip import SkipTest
 #pkg
-from passlib import registry
+from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
-        has_rounds_info, has_salt_info, \
+        has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
 #local
 __all__ = [
@@ -505,16 +505,21 @@ class HandlerCase(TestCase):
                 self.assertTrue(ident in cls.ident_values,
                                 "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
 
+    RESERVED_BACKEND_NAMES = [ "any", "default", None ]
+
     def test_04_backend_handler(self):
         "check behavior of multiple-backend handlers"
         h = self.handler
-        if not hasattr(h, "get_backend"):
+        if not hasattr(h, "set_backend"):
             raise self.skipTest("handler has single backend")
+
         #preserve current backend
         orig = h.get_backend()
         try:
             #run through all backends handler supports
             for backend in h.backends:
+                self.assertFalse(backend in RESERVED_BACKEND_NAMES,
+                                 "invalid backend name: %r" % (backend,))
                 #check has_backend() returns bool value
                 r = h.has_backend(backend)
                 if r is True:
@@ -523,7 +528,7 @@ class HandlerCase(TestCase):
                     self.assertEquals(h.get_backend(), backend)
                 elif r is False:
                     #check backend CAN'T be loaded
-                    self.assertRaises(ValueError, h.set_backend, backend)
+                    self.assertRaises(MissingBackendError, h.set_backend, backend)
                 else:
                     #failure eg: used classmethod instead of classproperty in _has_backend_xxx
                     raise TypeError("has_backend(%r) returned invalid value: %r" % (backend, r,))

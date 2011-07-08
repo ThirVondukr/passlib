@@ -62,6 +62,8 @@ All of these hashes share the following properties:
 The following comparison should help you choose which hash is
 most appropriate for your application.
 
+.. rst-class:: html-toggle
+
 BCrypt
 ------
 :class:`~passlib.hash.bcrypt`
@@ -86,6 +88,9 @@ of simultaneous logon attempts (eg web apps).
     Passlib requires a C-extension module
     provided by the external pybcrypt or bcryptor packages.
     Neither of these currently supports Python 3.
+
+
+.. rst-class:: html-toggle
 
 SHA512-Crypt
 ------------
@@ -114,6 +119,9 @@ for future flaws.
     References to this algorithm are frequently confused with a raw SHA-512 hash;
     while it uses SHA-512 as a cryptographic primitive,
     this algorithm's resulting password hash is far more secure.
+
+
+.. rst-class:: html-toggle
 
 PBKDF2
 ------

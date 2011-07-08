@@ -14,7 +14,7 @@ from passlib.hash import ldap_md5
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
-    to_hash_str, to_unicode
+    to_hash_str, to_unicode, MissingBackendError
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
 #module
@@ -204,7 +204,10 @@ class SkeletonTest(TestCase):
                 return 'b'
 
         #test no backends
-        self.assertRaises(EnvironmentError, d1.set_backend, 'default')
+        self.assertRaises(MissingBackendError, d1.get_backend)
+        self.assertRaises(MissingBackendError, d1.set_backend)
+        self.assertRaises(MissingBackendError, d1.set_backend, 'any')
+        self.assertRaises(MissingBackendError, d1.set_backend, 'default')
         self.assertFalse(d1.has_backend())
 
         #enable 'b' backend
@@ -216,11 +219,13 @@ class SkeletonTest(TestCase):
 
         #test repeat load
         d1.set_backend('b')
-        d1.set_backend(None)
+        d1.set_backend('any')
         self.assertEquals(obj.calc_checksum('s'), 'b')
 
         #test unavailable
-        self.assertRaises(ValueError, d1.set_backend, 'a')
+        self.assertRaises(MissingBackendError, d1.set_backend, 'a')
+        self.assertTrue(d1.has_backend, 'b')
+        self.assertFalse(d1.has_backend, 'a')
 
         #enable 'a' backend also
         d1._has_backend_a = True
@@ -229,6 +234,10 @@ class SkeletonTest(TestCase):
         self.assertTrue(d1.has_backend())
         d1.set_backend('a')
         self.assertEquals(obj.calc_checksum('s'), 'a')
+        
+        #test unknown backend
+        self.assertRaises(ValueError, d1.set_backend, 'c')
+        self.assertRaises(ValueError, d1.has_backend, 'c')
 
     def test_50_bh_norm_ident(self):
         "test GenericHandler+HasManyIdents: .norm_ident() & .identify()"

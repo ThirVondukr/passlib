@@ -107,6 +107,13 @@ Undef = UndefType()
 
 NoneType = type(None)
 
+class MissingBackendError(RuntimeError):
+    """error raised if multi-backend handler has no backends;
+    or specific backend not available.
+
+    see :class:`~passlib.utils.handlers.HasManyBackends`.
+    """
+
 #==========================================================
 #bytes compat aliases - bytes, native_str, b()
 #==========================================================
@@ -274,6 +281,11 @@ def is_crypt_context(obj):
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
         ))
+
+##def has_many_backends(handler):
+##    "check if handler provides multiple baceknds"
+##    #NOTE: should also provide get_backend(), .has_backend(), and .backends attr
+##    return hasattr(handler, "set_backend")
 
 def has_rounds_info(handler):
     "check if handler provides the optional :ref:`rounds information <optional-rounds-attributes>` attributes"
