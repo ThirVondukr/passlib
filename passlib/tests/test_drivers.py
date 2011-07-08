@@ -137,11 +137,9 @@ class BigCryptTest(HandlerCase):
 #=========================================================
 #bsdi crypt
 #=========================================================
-from passlib.handlers.des_crypt import bsdi_crypt
-
-class BSDiCryptTest(HandlerCase):
+class _BSDiCryptTest(HandlerCase):
     "test BSDiCrypt algorithm"
-    handler = bsdi_crypt
+    handler = hash.bsdi_crypt
     known_correct_hashes = [
         (" ", "_K1..crsmZxOLzfJH8iw"),
         ("my", '_KR/.crsmykRplHbAvwA'), #<- to detect old 12-bit rounds bug
@@ -153,6 +151,9 @@ class BSDiCryptTest(HandlerCase):
         #bad char in otherwise correctly formatted hash
        "_K1.!crsmZxOLzfJH8iw"
     ]
+
+OsCrypt_BSDiCryptTest = create_backend_case(_BSDiCryptTest, "os_crypt")
+Builtin_BSDiCryptTest = create_backend_case(_BSDiCryptTest, "builtin")
 
 #=========================================================
 #crypt16
@@ -823,10 +824,8 @@ class PostgresMD5CryptTest(HandlerCase):
 #=========================================================
 # (netbsd's) sha1 crypt
 #=========================================================
-from passlib.handlers.sha1_crypt import sha1_crypt
-
-class SHA1CryptTest(HandlerCase):
-    handler = sha1_crypt
+class _SHA1CryptTest(HandlerCase):
+    handler = hash.sha1_crypt
 
     known_correct_hashes = [
         ("password", "$sha1$19703$iVdJqfSE$v4qYKl1zqYThwpjJAoKX6UvlHq/a"),
@@ -840,6 +839,9 @@ class SHA1CryptTest(HandlerCase):
         #zero padded rounds
         '$sha1$01773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
     ]
+
+OsCrypt_SHA1CryptTest = create_backend_case(_SHA1CryptTest, "os_crypt")
+Builtin_SHA1CryptTest = create_backend_case(_SHA1CryptTest, "builtin")
 
 #=========================================================
 #roundup
