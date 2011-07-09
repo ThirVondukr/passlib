@@ -5,3 +5,5 @@ glob:.coverage
 glob:cover
 glob:build
 glob:dist
+glob:*$py.class
+glob:MANIFEST
