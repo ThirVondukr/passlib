@@ -1114,7 +1114,7 @@ class HasManyBackends(GenericHandler):
                     break
             else:
                 raise MissingBackendError(cls._no_backends_msg())
-        elif cls.has_backend(name):
+        elif not cls.has_backend(name):
             raise MissingBackendError("%s backend not available: %r" % (cls.name, name))
         cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name

@@ -327,11 +327,8 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return bool(
-            safe_os_crypt and
-            safe_os_crypt(u"test", u"$5$rounds=1000$test")[1] ==
-            u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
-            )
+        h = u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -482,11 +479,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return bool(
-            safe_os_crypt and
-            safe_os_crypt(u"test", u"$6$rounds=1000$test")[1] ==
-            u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
-            )
+        h = u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
 
     #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
 

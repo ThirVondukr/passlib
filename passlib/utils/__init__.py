@@ -60,6 +60,7 @@ __all__ = [
 
 #: detect what we're running on
 pypy_vm = hasattr(sys, "pypy_version_info")
+jython_vm = sys.platform.startswith('java')
 
 #: number of bits in system architecture
 sys_bits = int(logb(sys.maxint,2)+1.5)

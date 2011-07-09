@@ -555,7 +555,7 @@ class HandlerCase(TestCase):
         try:
             #run through all backends handler supports
             for backend in h.backends:
-                self.assertFalse(backend in RESERVED_BACKEND_NAMES,
+                self.assertFalse(backend in self.RESERVED_BACKEND_NAMES,
                                  "invalid backend name: %r" % (backend,))
                 #check has_backend() returns bool value
                 r = h.has_backend(backend)

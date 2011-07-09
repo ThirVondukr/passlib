@@ -205,7 +205,8 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return safe_os_crypt and safe_os_crypt(u"test", u"ab")[1] == u'abgOeLfPimXQo'
+        h = u'abgOeLfPimXQo'
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         #gotta do something - no official policy since des-crypt predates unicode
@@ -334,15 +335,15 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     @classproperty
     def _has_backend_os_crypt(cls):
         h = u'_/...lLDAxARksGCHin.'
-        return safe_os_crypt and safe_os_crypt(u"test", h)[1] == h
-
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return raw_ext_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, hash = safe_os_crypt(secret, self.salt)
+        ok, hash = safe_os_crypt(secret, self.to_string(native=False))
         if ok:
             return hash[9:]
         else:

@@ -138,15 +138,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return (
-            safe_os_crypt is not None
-            and
-            safe_os_crypt(u"test", u"$2a$04$......................")[1] ==
-                u'$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'
-            and
-            safe_os_crypt(u"test", u"$2$04$......................")[1] ==
-                u'$2$04$......................1O4gOrCYaqBG3o/4LnT2ykQUt1wbyju'
-        )
+        h1 = u'$2$04$......................1O4gOrCYaqBG3o/4LnT2ykQUt1wbyju'
+        h2 = u'$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h1)[1]==h1 and
+                    safe_os_crypt(u"test", h2)[1]==h2)
 
     @classmethod
     def _no_backends_msg(cls):

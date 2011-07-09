@@ -229,8 +229,8 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        return safe_os_crypt and safe_os_crypt(u"test", u"$1$test")[1] == \
-                                 u'$1$test$pi/xDtU5WFVRqYS6BMU8X/'
+        h = u'$1$test$pi/xDtU5WFVRqYS6BMU8X/'
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         return raw_md5_crypt(secret, self.salt)

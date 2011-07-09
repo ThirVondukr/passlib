@@ -105,7 +105,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     @classproperty
     def _has_backend_os_crypt(cls):
         h = u'$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe'
-        return safe_os_crypt and safe_os_crypt(u"test", h)[1] == h
+        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):

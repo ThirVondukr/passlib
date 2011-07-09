@@ -109,7 +109,7 @@ class MiscTest(TestCase):
     def test_safe_os_crypt(self):
         "test safe_os_crypt() wrapper"
         if not safe_os_crypt:
-            raise self.SkipTest("stdlib crypt module not available")
+            raise self.skipTest("stdlib crypt module not available")
 
         #NOTE: this is assuming EVERY crypt will support des_crypt.
         #      if this fails on some platform, this test will need modifying.
