@@ -155,6 +155,11 @@ class TestCase(unittest.TestCase):
         def __unittest_skip__(cls):
             return not getattr(cls, "__test__", True)
 
+    @classproperty
+    def __test__(cls):
+        #so nose won't auto run *this* cls, but it will for subclasses
+        return cls is not TestCase and not cls.__name__.startswith("_")
+
     #============================================================
     # tweak msg formatting for some assert methods
     #============================================================
