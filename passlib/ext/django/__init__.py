@@ -6,5 +6,5 @@
     and not officially documented in Passlib just yet
     (though it should work).
 
-see ``models`` submodule for details on how this app works.
+see the Passlib documentation for details on how to use this app
 """

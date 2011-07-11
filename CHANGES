@@ -67,6 +67,9 @@ Release History
 
         * Builtin tests now use :mod:`!unittest2` if available.
         * Setup script no longer requires distribute or setuptools.
+        * added (undocumented, experimental) Django app
+          for overriding Django's default hash format,
+          see ``docs/lib/passlib.ext.django.rst`` for more.
 
 **1.4** (2011-05-04)
 

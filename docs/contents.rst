@@ -21,7 +21,7 @@ Table Of Contents
 
     lib/passlib.registry
     lib/passlib.utils
-
+    
     modular_crypt_format
 
     history
@@ -29,3 +29,8 @@ Table Of Contents
 
 * :ref:`General Index <genindex>`
 * :ref:`Module List <modindex>`
+
+..
+    unlisted:
+    
+    lib/passlib.ext.django
