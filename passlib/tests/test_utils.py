@@ -15,8 +15,7 @@ from passlib.context import CryptContext
 from passlib import utils
 from passlib.utils import h64, des, Undef, sys_bits, bytes, b, \
     native_str, to_bytes, to_unicode, to_native_str, to_hash_str, \
-    is_same_codec, is_ascii_safe, safe_os_crypt
-from passlib.utils.md4 import md4
+    is_same_codec, is_ascii_safe, safe_os_crypt, md4 as md4_mod
 from passlib.tests.utils import TestCase, Params as ak, \
     enable_option, catch_warnings
 
@@ -471,8 +470,10 @@ class H64_Test(TestCase):
 #=========================================================
 #test md4
 #=========================================================
-class MD4_Test(TestCase):
+class _MD4_Test(TestCase):
     #test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
+
+    hash = None
 
     vectors = [
         # input -> hex digest
@@ -487,6 +488,7 @@ class MD4_Test(TestCase):
 
     def test_md4_update(self):
         "test md4 update"
+        md4 = self.hash        
         h = md4(b(''))
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 
@@ -504,18 +506,21 @@ class MD4_Test(TestCase):
 
     def test_md4_hexdigest(self):
         "test md4 hexdigest()"
+        md4 = self.hash
         for input, hex in self.vectors:
             out = md4(input).hexdigest()
             self.assertEqual(out, hex)
 
     def test_md4_digest(self):
         "test md4 digest()"
+        md4 = self.hash
         for input, hex in self.vectors:
             out = md4(input).digest()
             self.assertEqual(to_native_str(hexlify(out)), hex)
 
     def test_md4_copy(self):
         "test md4 copy()"
+        md4 = self.hash
         h = md4(b('abc'))
 
         h2 = h.copy()
@@ -524,6 +529,22 @@ class MD4_Test(TestCase):
 
         h.update(b('ghi'))
         self.assertEquals(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
+
+#
+#now do a bunch of things to test multiple possible backends.
+#
+
+has_ssl_md4 = (md4_mod.md4 is not md4_mod._builtin_md4)
+
+if has_ssl_md4:
+    class MD4_SSL_Test(_MD4_Test):
+        case_prefix = "MD4 (SSL version)"
+        hash = staticmethod(md4_mod.md4)
+
+if not has_ssl_md4 or enable_option("cover"):
+    class MD4_Builtin_Test(_MD4_Test):
+        case_prefix = "MD4 (builtin version)"
+        hash = md4_mod._builtin_md4
 
 #=========================================================
 #test passlib.utils.pbkdf2
@@ -727,13 +748,15 @@ class _Pbkdf2BackendTest(TestCase):
             ),
         ])
 
-if pbkdf2._EVP:
-    class M2Crypto_Pbkdf2BackendTest(_Pbkdf2BackendTest):
+has_m2crypto = (pbkdf2._EVP is not None)
+
+if has_m2crypto:
+    class Pbkdf2_M2Crypto_Test(_Pbkdf2BackendTest):
         case_prefix = "pbkdf2 (m2crypto backend)"
         enable_m2crypto = True
 
-if not pbkdf2._EVP or (pbkdf2._EVP and enable_option("all-backends")):
-    class Builtin_Pbkdf2BackendTest(_Pbkdf2BackendTest):
+if not has_m2crypto or enable_option("cover"):
+    class Pbkdf2_Builtin_Test(_Pbkdf2BackendTest):
         case_prefix = "pbkdf2 (builtin backend)"
         enable_m2crypto = False
 

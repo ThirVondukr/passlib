@@ -192,7 +192,7 @@ class md4(object):
                 return
 
     def copy(self):
-        other = md4()
+        other = _builtin_md4()
         other._count = self._count
         other._state = list(self._state)
         other._buf = self._buf
@@ -229,6 +229,9 @@ class md4(object):
     #eoc
     #=========================================================================
 
+#keep ref around for unittest, 'md4' usually replaced by ssl wrapper, below.
+_builtin_md4 = md4
+
 #=========================================================================
 #check if hashlib provides accelarated md4
 #=========================================================================
@@ -252,7 +255,7 @@ def _has_native_md4():
     warn("native md4 support disabled, incorrect value returned")
     return False
 
-if _has_native_md4():
+if _has_native_md4():    
     #overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         "wrapper for hashlib.new('md4')"
