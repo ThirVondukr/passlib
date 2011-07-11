@@ -34,6 +34,28 @@ __all__ = [
 #=========================================================
 #crypt policy
 #=========================================================
+
+#--------------------------------------------------------
+#constants controlling parsing of special kwds
+#--------------------------------------------------------
+
+#: CryptContext kwds which aren't allowed to have category specifiers
+_forbidden_category_context_options = frozenset([ "schemes", ])
+    #NOTE: forbidding 'schemes' because it would really complicate the behavior
+    # of CryptContext.identify & CryptContext.lookup.
+    # most useful behaviors here can be had by overriding deprecated
+    # and default, anyways.
+
+#: hash settings which aren't allowed to be set via policy
+_forbidden_hash_options = frozenset([ "salt" ])
+    #NOTE: doing this for security purposes, why would you ever want a fixed salt?
+
+#: CryptContext kwds which should be parsed into comma separated list of strings
+_context_comma_options = frozenset([ "schemes", "deprecated" ])
+
+#--------------------------------------------------------
+#parsing helpers
+#--------------------------------------------------------
 def _parse_policy_key(key):
     "helper to normalize & parse policy keys; returns ``(category, name, option)``"
     orig = key
@@ -61,7 +83,7 @@ def _parse_policy_value(cat, name, opt, value):
     "helper to parse policy values"
     #FIXME: kinda primitive to parse things this way :|
     if name == "context":
-        if opt == "schemes" or opt == "deprecated":
+        if opt in _context_comma_options:
             if isinstance(value, str):
                 return splitcomma(value)
         elif opt == "min_verify_time":
@@ -86,15 +108,11 @@ def parse_policy_items(source):
     for key, value in source:
         cat, name, opt = _parse_policy_key(key)
         if name == "context":
-            if cat and opt == "schemes":
-                raise KeyError("current code does not support per-category schemes")
-                #NOTE: forbidding this because it would really complicate the behavior
-                # of CryptContext.identify & CryptContext.lookup.
-                # most useful behaviors here can be had by overridding deprecated and default, anyways.
+            if cat and opt in _forbidden_category_context_options:
+                raise KeyError("%r context option is not allowed per-category" % (opt,))
         else:
-            if opt == "salt":
-                raise KeyError("'salt' option is not allowed to be set via a policy object")
-                #NOTE: doing this for security purposes, why would you ever want a fixed salt?
+            if opt in _forbidden_hash_options:
+                raise KeyError("%r handler option is not allowed to be set via a policy object" % (opt,))
         value = _parse_policy_value(cat, name, opt, value)
         yield cat, name, opt, value
 
@@ -123,6 +141,9 @@ def _is_legacy_parse_error(err):
     return False
 # end Py2k #
 
+#--------------------------------------------------------
+#policy class proper
+#--------------------------------------------------------
 class CryptPolicy(object):
     """stores configuration options for a CryptContext object.
 
@@ -240,7 +261,7 @@ class CryptPolicy(object):
                 raise
             #support for deprecated 1.4 behavior, will be removed in 1.6
             if filename:
-                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (path,), stacklevel=3)
+                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (filename,), stacklevel=3)
             else:
                 warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=3)
             p = ConfigParser()
@@ -320,13 +341,12 @@ class CryptPolicy(object):
         """return copy of policy, with specified options replaced by new values.
 
         this is essentially a convience wrapper around :meth:`from_sources`,
-        except that it always inserts the current policy as the first element
-        in the list.
-
+        except that it always inserts the current policy
+        as the first element in the list;
         this allows easily making minor changes from an existing policy object.
 
-        :param args: optional list of sources as accepted by :meth:`from_sources`.
-        :param kwds: optional specific options to override in the new policy.
+        :param \*args: optional list of sources as accepted by :meth:`from_sources`.
+        :param \*\*kwds: optional specific options to override in the new policy.
 
         :returns: new CryptPolicy instance
         """
@@ -377,7 +397,8 @@ class CryptPolicy(object):
         #
         #init cache & options
         #
-        options = self._options = {None:{"context":{}}}
+        context_options = {}
+        options = self._options = {None:{"context":context_options}}
         self._cache = {}
 
         #
@@ -396,9 +417,9 @@ class CryptPolicy(object):
         #
         #parse list of schemes, and resolve to handlers.
         #
+        schemes = context_options.get("schemes") or []
         handlers = self._handlers = []
-        seen = set()
-        schemes = options[None]['context'].get("schemes") or []
+        handler_names = set()
         for scheme in schemes:
             #resolve & validate handler
             if is_crypt_handler(scheme):
@@ -410,12 +431,13 @@ class CryptPolicy(object):
                 raise TypeError("handler lacks name: %r" % (handler,))
 
             #check name hasn't been re-used
-            if name in seen:
+            if name in handler_names:
+                #XXX: should this just be a warning ?
                 raise KeyError("multiple handlers with same name: %r" % (name,))
-            seen.add(name)
 
             #add to handler list
             handlers.append(handler)
+            handler_names.add(name)
 
         #
         #build _deprecated & _default maps
@@ -429,11 +451,11 @@ class CryptPolicy(object):
                 continue
 
             #list of deprecated schemes
-            deps = kwds.get("deprecated")
+            deps = kwds.get("deprecated") or []
             if deps:
                 if handlers:
                     for scheme in deps:
-                        if scheme not in seen:
+                        if scheme not in handler_names:
                             raise KeyError("known scheme in deprecated list: %r" % (scheme,))
                 dmap[cat] = frozenset(deps)
 
@@ -443,7 +465,7 @@ class CryptPolicy(object):
                 if handlers:
                     if hasattr(fb, "name"):
                         fb = fb.name
-                    if fb not in seen:
+                    if fb not in handler_names:
                         raise KeyError("unknown scheme set as default: %r" % (fb,))
                     fmap[cat] = self.get_handler(fb, required=True)
                 else:
