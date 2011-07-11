@@ -78,7 +78,7 @@ There is only one known issue:
   This behavior may be altered in the future, if further testing
   reveals another behavior is more in line with the official representation.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] Description of Oracle10g and Oracle11g algorithms -
        `<http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/>`_.

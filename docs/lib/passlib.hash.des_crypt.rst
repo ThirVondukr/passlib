@@ -133,6 +133,6 @@ This implementation of des-crypt differs from others in a few ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] A java implementation of des-crypt, used as base for PassLib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_

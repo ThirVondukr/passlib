@@ -56,6 +56,6 @@ Using the specified salt, and a fixed 10000 rounds,
 PBKDF2-HMAC-SHA1 is used to generate a 32 byte key,
 which appended to the salt and encoded in base64.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#pbkdf2] The specification for the PBKDF2 algorithm - `<http://tools.ietf.org/html/rfc2898#section-5.2>`_.

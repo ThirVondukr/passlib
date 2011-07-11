@@ -64,8 +64,8 @@ Lacking any sort of salt, ignoring all whitespace,
 and having a simplistic algorithm amounts to little more than a checksum,
 this is not secure, and should not be used for *any* purpose but verifying existing MySQL 3.2.3 - 4.0 password hashes.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#f1] Source of implementation used by passlib -
          `<http://djangosnippets.org/snippets/1508/>`_
 

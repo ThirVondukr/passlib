@@ -76,8 +76,7 @@ The result is then encoded into hexidecimal.
         >>> grub_pbkdf2_sha512.verify("password", g)
         True
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#grub] Information about Grub's password hashes - `<http://grub.enbug.org/Authentication>`_.
 

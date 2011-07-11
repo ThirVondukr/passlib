@@ -106,8 +106,8 @@ There is only one known issue:
   This note applies as well to any provided username,
   as they are run through the same policy.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references.
           PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors
           and supports unicode input.

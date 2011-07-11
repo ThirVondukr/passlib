@@ -104,7 +104,6 @@ Current Host OS
         This object is only available on systems where the stdlib :mod:`!crypt` module is present.
         In version 1.3 and earlier, it was available on non-Unix systems, though it did nothing useful.
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#shadow] Man page for Linux /etc/shadow - `<http://linux.die.net/man/5/shadow>`_

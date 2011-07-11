@@ -61,8 +61,7 @@ the specified number of rounds, and using HMAC-SHA1 as it's psuedorandom functio
 24 bytes of derived key are requested, and the resulting key is encoded and used
 as the checksum portion of the hash.
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#dlitz] The reference for this hash format - `<http://www.dlitz.net/software/python-pbkdf2/>`_.
 

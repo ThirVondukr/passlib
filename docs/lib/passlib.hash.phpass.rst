@@ -71,7 +71,7 @@ This implementation of phpass differs from the specification in one way:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#pp] PHPass homepage, which describes the Portable Hash algorithm -
          `<http://www.openwall.com/phpass/>`_

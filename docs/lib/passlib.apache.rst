@@ -55,8 +55,7 @@ in a similar fashion to :class:`HtpasswdFile`.
 
 .. autoclass:: HtdigestFile(path, autoload=True)
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#] Htpasswd Manual - `<http://httpd.apache.org/docs/current/programs/htpasswd.html>`_
 

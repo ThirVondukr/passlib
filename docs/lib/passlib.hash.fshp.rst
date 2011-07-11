@@ -122,8 +122,8 @@ Deviations
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#home] The FSHP homepage contains implementations in a wide variety of
            programming languages -- `<https://github.com/bdd/fshp-is-not-secure-anymore>`_.
 

@@ -81,8 +81,8 @@ along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
 The result is then encoded using :func:`~passlib.utils.adapted_b64_encode`.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#pbkdf2] The specification for the PBKDF2 algorithm - `<http://tools.ietf.org/html/rfc2898#section-5.2>`_,
              part of :rfc:`2898`.
 

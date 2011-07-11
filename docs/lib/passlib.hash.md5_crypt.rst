@@ -166,8 +166,8 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#f1] The authoritative reference for MD5-Crypt is Poul-Henning Kamp's original
          FreeBSD implementation -
          `<http://www.freebsd.org/cgi/cvsweb.cgi/~checkout~/src/lib/libcrypt/crypt.c?rev=1.2>`_

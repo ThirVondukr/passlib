@@ -43,7 +43,6 @@ Other Hashes
 
     an example hash (of ``password``) is ``{plaintext}password``.
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#roundup] Roundup Issue Tracker homepage - `<http://www.roundup-tracker.org>`_.

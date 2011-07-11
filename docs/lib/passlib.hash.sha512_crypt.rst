@@ -108,6 +108,6 @@ and other implementations, in a few ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#f1] Ulrich Drepper's SHA-256/512-Crypt specification, reference implementation, and test vectors - `sha-crypt specification <http://www.akkadia.org/drepper/sha-crypt.html>`_

@@ -32,7 +32,7 @@ Interface
     this is the same as :class:`pbkdf2_sha512`, except that it
     uses ``{PBKDF2-SHA512}`` as it's identifying prefix instead of ``$pdkdf2-sha512$``.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#pbkdf2] The specification for the PBKDF2 algorithm - `<http://tools.ietf.org/html/rfc2898#section-5.2>`_,
              part of :rfc:`2898`.

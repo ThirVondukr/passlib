@@ -62,8 +62,7 @@ the specified number of rounds, and using HMAC-SHA1 as it's psuedorandom functio
 20 bytes of derived key are requested, and the resulting key is encoded and used
 as the checksum portion of the hash.
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#cta] The reference for this hash format - `<https://bitbucket.org/dholth/cryptacular/>`_.
 

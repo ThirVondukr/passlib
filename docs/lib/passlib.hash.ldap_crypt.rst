@@ -65,8 +65,7 @@ Interface
     natively by your host OS, use an test such as
     ``ldap_des_crypt.has_backend("os_crypt")`` or similar.
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#pwd] The manpage for :command:`slappasswd` - `<http://gd.tuwien.ac.at/linuxcommand.org/man_pages/slappasswd8.html>`_.
 

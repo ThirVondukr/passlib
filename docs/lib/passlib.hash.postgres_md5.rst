@@ -64,8 +64,8 @@ PostgreSQL account passwords, due to the following flaws:
 
 * It's simplicity makes high-speed brute force attacks much more feasible [#brute]_ .
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] Discussion leading up to design of algorithm -
        `<http://archives.postgresql.org/pgsql-hackers/2001-06/msg00952.php>`_
 

@@ -65,6 +65,6 @@ This implementation of bcrypt differs from others in a few ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#f1] `<http://www.usenix.org/event/usenix99/provos/provos_html/>`_ - the bcrypt format specification

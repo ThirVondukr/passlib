@@ -132,7 +132,7 @@ This implementation of bigcrypt differs from others in two ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] discussion of bigcrypt & crypt16 -
        `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_

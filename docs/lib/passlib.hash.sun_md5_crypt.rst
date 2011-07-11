@@ -189,8 +189,8 @@ Solaris environment. Issues of concern include:
 * More information is needed about the parsing / formatting issue described
   in the :ref:`smc-bare-salt` section.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#mct] Overview of & motivations for the algorithm - `<http://dropsafe.crypticide.com/article/1389>`_
 
 .. [#f2] The source of Hamlet's speech, used byte-for-byte as the constant data - `<http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt>`_

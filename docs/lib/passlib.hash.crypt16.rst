@@ -112,7 +112,7 @@ This implementation of crypt16 deviates from public documentation of the format 
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] One source of information about bigcrypt & crypt16 -
        `<http://www.mail-archive.com/exim-dev@exim.org/msg00970.html>`_

@@ -131,8 +131,8 @@ This implementation of bsdi-crypt differs from others in one way:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#] Primary source used for description of bsdi-crypt format & algorithm -
        `<http://fuse4bsd.creo.hu/localcgi/man-cgi.cgi?crypt+3>`_
 

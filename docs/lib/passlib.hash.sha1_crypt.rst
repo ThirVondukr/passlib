@@ -97,8 +97,8 @@ in a few ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
-References
-==========
+.. rubric:: Footnotes
+
 .. [#desc] description of sha1-crypt algorithm -
            `<http://mail-index.netbsd.org/tech-userlevel/2004/05/29/0001.html>`_
 
