@@ -992,10 +992,10 @@ class HasManyBackends(GenericHandler):
 
     .. attribute:: _has_backend_{xxx}
 
-        implementation detail - private class attr used by :meth:`has_backend`
+        private class attr used by :meth:`has_backend`
         to check if a specific backend is available.
-        one of these should be preset for each backend
-        listed in :attr:`backends`.
+        one of these should be provided by subclass 
+        for each backend listed in :attr:`backends`.
     """
 
     #NOTE: subclass must provide:

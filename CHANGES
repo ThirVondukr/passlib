@@ -17,6 +17,7 @@ Release History
     to provide the same behavior as Passlib 1.4;
     but when run under Python 3, most functions
     will return unicode instead of ascii bytes.
+    
     Besides this major change, there have
     been some other additions:
 
