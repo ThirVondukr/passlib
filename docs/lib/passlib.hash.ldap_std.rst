@@ -7,7 +7,7 @@
 Passlib provides support for all the standard
 LDAP hash formats specified by :rfc:`2307`.
 This includes ``{MD5}``, ``{SMD5}``, ``{SHA}``, ``{SSHA}``.
-Many of these schemes are somewhat to very insecure,
+These schemes range from somewhat to very insecure,
 and should not be used except when required.
 
 .. note::
@@ -51,6 +51,9 @@ Plain Hashes
 .. autoclass:: ldap_md5()
 .. autoclass:: ldap_sha1()
 
+Format
+------
+
 These hashes have the format :samp:`{prefix}{checksum}`.
 
 * :samp:`{prefix}` is `{MD5}` for ldap_md5, and `{SHA}` for ldap_sha1.
@@ -60,6 +63,10 @@ These hashes have the format :samp:`{prefix}{checksum}`.
 
 An example ldap_md5 hash (of ``password``) is ``{MD5}X03MO1qnZdYdgyfeuILPmQ==``.
 An example ldap_sha1 hash (of ``password``) is ``{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=``.
+
+These hashes should be considered secure in any manner,
+as they are nothing but raw MD5 & SHA-1 digests,
+which are extremely vulnerable to brute-force attacks.
 
 Salted Hashes
 =============
@@ -76,6 +83,9 @@ These hashes have the format :samp:`{prefix}{data}`.
   the string :samp:`{password}{salt}`,
   using the appropriate digest algorithm.
 
+Format
+------
+
 An example hash (of ``password``) is ``{SMD5}jNoSMNY0cybfuBWiaGlFw3Mfi/U=``.
 After decoding, this results in a raw salt string ``s\x1f\x8b\xf5``,
 and a raw MD5 checksum of ``\x8c\xda\x120\xd64s&\xdf\xb8\x15\xa2hiE\xc3``.
@@ -83,6 +93,17 @@ and a raw MD5 checksum of ``\x8c\xda\x120\xd64s&\xdf\xb8\x15\xa2hiE\xc3``.
 An example hash (of ``password``) is ``{SSHA}pKqkNr1tq3wtQqk+UcPyA3HnA2NsU5NJ``.
 After decoding, this results in a raw salt string ``lS\x93I``,
 and a raw SHA1 checksum of ``\xa4\xaa\xa46\xbdm\xab|-B\xa9>Q\xc3\xf2\x03q\xe7\x03c``.
+
+Security Issues
+---------------
+The LDAP salted hashes should not be considered very secure.
+
+* They use only a single round of digests with known collision
+  and pre-image attacks (SHA1 & MD5).
+
+* They currently use only 32 bits of entropy in their salt,
+  which is only borderline sufficient to defeat rainbow tables,
+  and cannot (portably) be increased.
 
 Plaintext
 =========
@@ -94,8 +115,8 @@ The only difference between this class and :class:`passlib.hash.plaintext`
 is that this class will NOT recognize any strings using
 the ``{SCHEME}HASH`` format.
 
-References
-==========
+
+.. rubric:: Footnotes
 
 .. [#pwd] The manpage for :command:`slappasswd` - `<http://gd.tuwien.ac.at/linuxcommand.org/man_pages/slappasswd8.html>`_.
 

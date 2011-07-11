@@ -190,7 +190,6 @@ in one of the above categories:
     passlib.hash.hex_digests
     passlib.hash.plaintext
 
-References
-==========
+.. rubric:: Footnotes
 
 .. [#openldap] OpenLDAP homepage - `<http://www.openldap.org/>`_.

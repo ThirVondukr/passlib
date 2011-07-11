@@ -459,11 +459,11 @@ the following attributes are usually exposed.
 
 .. todo::
 
-    this list the behavior for handlers which accept
+    This section lists the behavior for handlers which accept
     salt strings containing encoded characters.
-    some handlers instead take raw bytes for their salt keyword,
+    Some handlers may instead expect raw bytes for their salt keyword,
     and handle encoding / decoding them internally.
-    it should be documented how these attributes
+    It should be documented how these attributes
     behave in that situation.
 
 ..
@@ -597,8 +597,8 @@ and ease of implementation issues:
     to coerce their unicode hashes to whatever is appropriate
     for the platform before returning them.
 
-Footnotes
-=========
+.. rubric:: Footnotes
+
 .. [#otypes]    While this specification is written referring to classes and classmethods,
                 password hash handlers can be any type of object (instance, module, etc),
                 so long as they offer attributes and functions with the required

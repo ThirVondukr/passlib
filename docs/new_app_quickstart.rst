@@ -44,28 +44,35 @@ If you'd like to set up a configuration that's right for your
 application, the first thing to do is choose a password hashing scheme.
 Passlib contains a large number of schemes, but most of them
 should only be used when a specific format is explicitly required.
-For new applications, there are really only three choices:
-:class:`~passlib.hash.bcrypt`,
-:class:`~passlib.hash.sha512_crypt`, and
-:class:`~passlib.hash.pbkdf2_sha512` [#choices]_.
+For new applications, there are really only three choices [#choices]_:
 
-All of these hashes share the following properties:
+    * :class:`~passlib.hash.bcrypt`
+    * :class:`~passlib.hash.sha512_crypt`
+    * :class:`~passlib.hash.pbkdf2_sha512`
+
+All three password hashes share the following properties:
 
     * no known vulnerabilties.
     * based on documented & widely reviewed algorithms.
-    * basic architecture has been under heavy scrutiny and use for at least 10 years.
+    * basic algorithm has seen heavy scrutiny
+      and use for at least 10 years.
     * public-domain or BSD-licensed reference implementations available.
     * in use across a number of OSes and/or a wide variety of applications.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * at least 96 bits of salt.
 
 The following comparison should help you choose which hash is
-most appropriate for your application.
+most appropriate for your application; if in doubt,
+any of these is a good choice, though PBKDF2 is probably the best
+for portability. 
 
 .. rst-class:: html-toggle
 
+Detailed Comparison of Choices
+------------------------------
+
 BCrypt
-------
+......
 :class:`~passlib.hash.bcrypt`
 is `based <http://www.usenix.org/event/usenix99/provos/provos_html/>`_
 on the well-tested Blowfish cipher. In use since 1999,
@@ -89,11 +96,8 @@ of simultaneous logon attempts (eg web apps).
     provided by the external pybcrypt or bcryptor packages.
     Neither of these currently supports Python 3.
 
-
-.. rst-class:: html-toggle
-
 SHA512-Crypt
-------------
+............
 :class:`~passlib.hash.sha512_crypt` is
 based on well-tested :class:`~passlib.hash.md5_crypt`
 algorithm. In use since 2008, it's the default hash on most Linux systems;
@@ -120,11 +124,8 @@ for future flaws.
     while it uses SHA-512 as a cryptographic primitive,
     this algorithm's resulting password hash is far more secure.
 
-
-.. rst-class:: html-toggle
-
 PBKDF2
-------
+......
 :class:`~passlib.hash.pbkdf2_sha512` is a custom has format designed for Passlib.
 However, it directly uses the
 `PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
@@ -182,6 +183,7 @@ Insert the following code into your application::
         pbkdf2_sha256__default_rounds = 8000,
         )
 
+
 Using a CryptContext
 ====================
 To start using your CryptContext, import the context you created
@@ -206,8 +208,8 @@ in the previous section wherever needed::
     * :mod:`passlib.hash` - list of all hashes supported by passlib.
     * :mod:`passlib.context` - for more details about the CryptContext class.
 
-Footnotes
-=========
+.. rubric:: Footnotes
+
 .. [#choices] BCrypt, SHA-512 Crypt, and PBKDF2 are the most commonly
               used password hashes as of May 2011, when this document
               was written. You should make sure you are reading a current
