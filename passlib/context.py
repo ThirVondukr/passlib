@@ -3,13 +3,19 @@
 #imports
 #=========================================================
 from __future__ import with_statement
+from passlib.utils import py32_lang
 #core
 from cStringIO import StringIO
 # Py2k #
-    #note: importing this to handle passlib 1.4 / earlier files
-from ConfigParser import ConfigParser, InterpolationSyntaxError
-# end Py2k #
-from ConfigParser import SafeConfigParser
+    #note: importing ConfigParser to handle passlib 1.4 / earlier files
+from ConfigParser import SafeConfigParser,ConfigParser,InterpolationSyntaxError
+# Py3k #
+#if py32_lang:
+#    #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
+#    from ConfigParser import ConfigParser as SafeConfigParser
+#else:
+#    from ConfigParser import SafeConfigParser
+# end Py3k #
 import inspect
 import re
 import hashlib
@@ -251,7 +257,11 @@ class CryptPolicy(object):
         # end Py2k #
 
         p = SafeConfigParser()
-        p.readfp(stream, filename or "<???>")
+        if py32_lang:
+            # Py3.2 deprecated readfp
+            p.read_file(stream, filename or "<???>")
+        else:
+            p.readfp(stream, filename or "<???>")
 
         # Py2k #
         try:

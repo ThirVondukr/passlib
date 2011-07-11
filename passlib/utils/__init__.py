@@ -50,6 +50,8 @@ __all__ = [
     'getrandstr',
 
     #constants
+    'pypy_vm', 'jython_vm',
+    'py32_lang', 'py3k_lang',
     'sys_bits',
     'unix_crypt_schemes',
 ]
@@ -61,6 +63,8 @@ __all__ = [
 #: detect what we're running on
 pypy_vm = hasattr(sys, "pypy_version_info")
 jython_vm = sys.platform.startswith('java')
+py3k_lang = sys.version_info >= (3,0)
+py32_lang = sys.version_info >= (3,2)
 
 #: number of bits in system architecture
 sys_bits = int(logb(sys.maxint,2)+1.5)
