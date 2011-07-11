@@ -13,11 +13,11 @@ variable length salts, variable number of rounds.
 
 .. seealso::
 
-    :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
-    for some other PBKDF2-based hashes.
+    * :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
+      for some other PBKDF2-based hashes.
 
-    :doc:`passlib.hash.dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
-    for another hash which looks almost exactly like this one.
+    * :doc:`passlib.hash.dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
+      for another hash which looks almost exactly like this one.
 
 Usage
 =====
