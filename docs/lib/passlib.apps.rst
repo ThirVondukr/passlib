@@ -43,6 +43,18 @@ Custom Applications
 
     The :doc:`/new_app_quickstart`.
 
+.. index:: django; crypt context
+
+Django
+======
+.. data:: django_context
+
+    This object provides a pre-configured :class:`!CryptContext` instance
+    for handling `Django <http://www.djangoproject.com>`_
+    password hashes, as used by Django's ``django.contrib.auth`` module.
+    It recognizes all the :doc:`builtin Django hashes <passlib.hash.django_std>`.
+    It defaults to using the :class:`~passlib.hash.django_salted_sha1` hash.
+    
 .. _ldap-contexts:
 
 LDAP

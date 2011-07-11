@@ -22,9 +22,10 @@ Release History
 
     Hashes
 
-        * added support for Cryptacular's PBKDF2 format
-        * added support for the FSHP family of hashes
-        * added support for using BCryptor as BCrypt backend
+        * added support for Cryptacular's PBKDF2 format.
+        * added support for the FSHP family of hashes.
+        * added support for using BCryptor as BCrypt backend.
+        * added support for all of Django's hash formats.
 
     CryptContext
 

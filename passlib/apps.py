@@ -14,6 +14,7 @@ from passlib.utils import sys_bits
 #local
 __all__ = [
     'custom_app_context',
+    'django_context',
     'ldap_context', 'ldap_nocrypt_context',
     'mysql_context', 'mysql4_context', 'mysql3_context',
     'phpass_context',
