@@ -424,17 +424,17 @@ class HandlerCase(TestCase):
             return getattr(handler, name, None)
 
         name = ga("name")
-        self.assert_(name, "name not defined:")
+        self.assertTrue(name, "name not defined:")
         self.assertIsInstance(name, native_str, "name must be native str")
-        self.assert_(name.lower() == name, "name not lower-case:")
-        self.assert_(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
+        self.assertTrue(name.lower() == name, "name not lower-case:")
+        self.assertTrue(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
 
         settings = ga("setting_kwds")
-        self.assert_(settings is not None, "setting_kwds must be defined:")
+        self.assertTrue(settings is not None, "setting_kwds must be defined:")
         self.assertIsInstance(settings, tuple, "setting_kwds must be a tuple:")
 
         context = ga("context_kwds")
-        self.assert_(context is not None, "context_kwds must be defined:")
+        self.assertTrue(context is not None, "context_kwds must be defined:")
         self.assertIsInstance(context, tuple, "context_kwds must be a tuple:")
 
     def test_01_optional_salt_attributes(self):
@@ -562,7 +562,7 @@ class HandlerCase(TestCase):
                 if r is True:
                     #check backend can be loaded
                     h.set_backend(backend)
-                    self.assertEquals(h.get_backend(), backend)
+                    self.assertEqual(h.get_backend(), backend)
                 elif r is False:
                     #check backend CAN'T be loaded
                     self.assertRaises(MissingBackendError, h.set_backend, backend)
@@ -620,7 +620,7 @@ class HandlerCase(TestCase):
     #=========================================================
     def test_20_verify_positive(self):
         "test verify() against known-correct secret/hash pairs"
-        self.assert_(self.known_correct_hashes or self.known_correct_configs,
+        self.assertTrue(self.known_correct_hashes or self.known_correct_configs,
                      "test must define at least one of known_correct_hashes or known_correct_configs")
 
         for secret, hash in self.known_correct_hashes:
@@ -674,7 +674,7 @@ class HandlerCase(TestCase):
         c2 = self.do_genconfig()
         self.assertIsInstance(c1, native_str, "genconfig() must return native str:")
         self.assertIsInstance(c2, native_str, "genconfig() must return native str:")
-        self.assertNotEquals(c1,c2)
+        self.assertNotEqual(c1,c2)
 
     def test_31_genconfig_minsalt(self):
         "test genconfig() honors min salt chars"
@@ -758,7 +758,7 @@ class HandlerCase(TestCase):
             fk()
         for config, secret, hash in self.known_correct_configs:
             result = self.do_genhash(secret, config)
-            self.assertEquals(result, hash, "config=%r,secret=%r:" % (config,secret))
+            self.assertEqual(result, hash, "config=%r,secret=%r:" % (config,secret))
         if fk:
             ctx.__exit__(None,None,None)
 
@@ -769,14 +769,14 @@ class HandlerCase(TestCase):
         handler = self.handler
         for secret, hash in self.known_correct_hashes:
             result = self.do_genhash(secret, hash)
-            self.assertEquals(result, hash, "secret=%r:" % (secret,))
+            self.assertEqual(result, hash, "secret=%r:" % (secret,))
 
     def test_42_genhash_genconfig(self):
         "test genhash() against genconfig() output"
         handler = self.handler
         config = handler.genconfig()
         hash = self.do_genhash("stub", config)
-        self.assert_(handler.identify(hash))
+        self.assertTrue(handler.identify(hash))
 
     def test_43_genhash_none(self):
         "test genhash() against hash=None"
@@ -795,15 +795,15 @@ class HandlerCase(TestCase):
         secret = u"\u20AC\u00A5$"
         result = self.do_encrypt(secret)
         self.assertIsInstance(result, native_str, "encrypt must return native str:")
-        self.assert_(self.do_identify(result))
-        self.assert_(self.do_verify(secret, result))
+        self.assertTrue(self.do_identify(result))
+        self.assertTrue(self.do_verify(secret, result))
 
         #check it handles bytes password as well
         secret = b('\xe2\x82\xac\xc2\xa5$')
         result = self.do_encrypt(secret)
         self.assertIsInstance(result, native_str, "encrypt must return native str:")
-        self.assert_(self.do_identify(result))
-        self.assert_(self.do_verify(secret, result))
+        self.assertTrue(self.do_identify(result))
+        self.assertTrue(self.do_verify(secret, result))
 
     def test_51_encrypt_none(self):
         "test encrypt() refused secret=None"
@@ -816,7 +816,7 @@ class HandlerCase(TestCase):
         #test encrypt()
         h1 = self.do_encrypt("stub")
         h2 = self.do_encrypt("stub")
-        self.assertNotEquals(h1, h2)
+        self.assertNotEqual(h1, h2)
 
     #=========================================================
     #test max password size
@@ -839,16 +839,16 @@ class HandlerCase(TestCase):
 
             #check sc value isn't too large
             #by verifying that sc-1'th char affects hash
-            self.assert_(not self.do_verify(secret[:-2] + alt + secret[-1], hash), "secret_chars value is too large")
+            self.assertTrue(not self.do_verify(secret[:-2] + alt + secret[-1], hash), "secret_chars value is too large")
 
             #check sc value isn't too small
             #by verifying adding sc'th char doesn't affect hash
-            self.assert_(self.do_verify(secret[:-1] + alt, hash))
+            self.assertTrue(self.do_verify(secret[:-1] + alt, hash))
 
         else:
             #hash counts all characters
             #eg: md5-crypt
-            self.assertEquals(sc, -1)
+            self.assertEqual(sc, -1)
 
             #NOTE: this doesn't do an exhaustive search to verify algorithm
             #doesn't have some cutoff point, it just tries
@@ -857,7 +857,7 @@ class HandlerCase(TestCase):
             #the new secret shouldn't verify.
             secret = base * 64
             hash = self.do_encrypt(secret)
-            self.assert_(not self.do_verify(secret[:-1] + alt, hash))
+            self.assertTrue(not self.do_verify(secret[:-1] + alt, hash))
 
     #=========================================================
     #eoc

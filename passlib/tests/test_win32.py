@@ -26,7 +26,7 @@ class UtilTest(TestCase):
             ("welcome", u"c23413a8a1e7665faad3b435b51404ee"),
             ]:
             result = mod.raw_lmhash(secret, hex=True)
-            self.assertEquals(result, hash)
+            self.assertEqual(result, hash)
 
     def test_nthash(self):
         for secret, hash in [
@@ -34,7 +34,7 @@ class UtilTest(TestCase):
             ("NEWPASSWORD", u"256781a62031289d3c2c98c14f1efc8c"),
             ]:
             result = mod.raw_nthash(secret, hex=True)
-            self.assertEquals(result, hash)
+            self.assertEqual(result, hash)
 
 #=========================================================
 #EOF

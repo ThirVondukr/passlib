@@ -155,7 +155,7 @@ admin.sha512_crypt.max_rounds = 40000
     def test_00_constructor(self):
         "test CryptPolicy() constructor"
         policy = CryptPolicy(**self.sample_config_1pd)
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #check with bad key
         self.assertRaises(KeyError, CryptPolicy,
@@ -187,14 +187,14 @@ admin.sha512_crypt.max_rounds = 40000
         with open(path, "w") as fh:
             fh.write(self.sample_config_1s)
         policy = CryptPolicy.from_path(path)
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #test with custom encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         with open(path, "wb") as fh:
             fh.write(uc2)
         policy = CryptPolicy.from_path(path, encoding="utf-16")
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #test if path missing
         os.remove(path)
@@ -203,15 +203,15 @@ admin.sha512_crypt.max_rounds = 40000
     def test_02_from_string(self):
         "test CryptPolicy.from_string() constructor"
         policy = CryptPolicy.from_string(self.sample_config_1s)
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         policy = CryptPolicy.from_string(self.sample_config_4s)
-        self.assertEquals(policy.to_dict(), self.sample_config_4pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_4pd)
 
         #test with custom encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         policy = CryptPolicy.from_string(uc2, encoding="utf-16")
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
     def test_03_from_source(self):
         "test CryptPolicy.from_source() constructor"
@@ -221,15 +221,15 @@ admin.sha512_crypt.max_rounds = 40000
         with open(path, "w") as fh:
             fh.write(self.sample_config_1s)
         policy = CryptPolicy.from_source(path)
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass it a string
         policy = CryptPolicy.from_source(self.sample_config_1s)
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass it a dict (NOTE: make a copy to detect in-place modifications)
         policy = CryptPolicy.from_source(self.sample_config_1pd.copy())
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass it existing policy
         p2 = CryptPolicy.from_source(policy)
@@ -247,7 +247,7 @@ admin.sha512_crypt.max_rounds = 40000
 
         #pass it one-element list
         policy = CryptPolicy.from_sources([self.sample_config_1s])
-        self.assertEquals(policy.to_dict(), self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass multiple sources
         path = mktemp()
@@ -258,7 +258,7 @@ admin.sha512_crypt.max_rounds = 40000
             self.sample_config_2s,
             self.sample_config_3pd,
             ])
-        self.assertEquals(policy.to_dict(), self.sample_config_123pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_123pd)
 
     def test_05_replace(self):
         "test CryptPolicy.replace() constructor"
@@ -267,15 +267,15 @@ admin.sha512_crypt.max_rounds = 40000
 
         #check overlaying sample 2
         p2 = p1.replace(**self.sample_config_2pd)
-        self.assertEquals(p2.to_dict(), self.sample_config_12pd)
+        self.assertEqual(p2.to_dict(), self.sample_config_12pd)
 
         #check repeating overlay makes no change
         p2b = p2.replace(**self.sample_config_2pd)
-        self.assertEquals(p2b.to_dict(), self.sample_config_12pd)
+        self.assertEqual(p2b.to_dict(), self.sample_config_12pd)
 
         #check overlaying sample 3
         p3 = p2.replace(self.sample_config_3pd)
-        self.assertEquals(p3.to_dict(), self.sample_config_123pd)
+        self.assertEqual(p3.to_dict(), self.sample_config_123pd)
 
     def test_06_forbidden(self):
         "test CryptPolicy() forbidden kwds"
@@ -303,20 +303,20 @@ admin.sha512_crypt.max_rounds = 40000
         "test has_schemes() method"
 
         p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assert_(p1.has_schemes())
+        self.assertTrue(p1.has_schemes())
 
         p3 = CryptPolicy(**self.sample_config_3pd)
-        self.assert_(not p3.has_schemes())
+        self.assertTrue(not p3.has_schemes())
 
     def test_11_iter_handlers(self):
         "test iter_handlers() method"
 
         p1 = CryptPolicy(**self.sample_config_1pd)
         s = self.sample_config_1prd['schemes']
-        self.assertEquals(list(p1.iter_handlers()), s)
+        self.assertEqual(list(p1.iter_handlers()), s)
 
         p3 = CryptPolicy(**self.sample_config_3pd)
-        self.assertEquals(list(p3.iter_handlers()), [])
+        self.assertEqual(list(p3.iter_handlers()), [])
 
     def test_12_get_handler(self):
         "test get_handler() method"
@@ -338,31 +338,31 @@ admin.sha512_crypt.max_rounds = 40000
 
         p12 = CryptPolicy(**self.sample_config_12pd)
 
-        self.assertEquals(p12.get_options("bsdi_crypt"),dict(
+        self.assertEqual(p12.get_options("bsdi_crypt"),dict(
             vary_rounds = "10%",
             min_rounds = 29000,
             max_rounds = 35000,
             default_rounds = 31000,
         ))
 
-        self.assertEquals(p12.get_options("sha512_crypt"),dict(
+        self.assertEqual(p12.get_options("sha512_crypt"),dict(
             vary_rounds = "10%",
             min_rounds = 45000,
             max_rounds = 50000,
         ))
 
         p4 = CryptPolicy.from_string(self.sample_config_4s)
-        self.assertEquals(p4.get_options("sha512_crypt"), dict(
+        self.assertEqual(p4.get_options("sha512_crypt"), dict(
             vary_rounds="10%",
             max_rounds=20000,
         ))
 
-        self.assertEquals(p4.get_options("sha512_crypt", "user"), dict(
+        self.assertEqual(p4.get_options("sha512_crypt", "user"), dict(
             vary_rounds="10%",
             max_rounds=20000,
         ))
 
-        self.assertEquals(p4.get_options("sha512_crypt", "admin"), dict(
+        self.assertEqual(p4.get_options("sha512_crypt", "admin"), dict(
             vary_rounds="5%",
             max_rounds=40000,
         ))
@@ -372,13 +372,13 @@ admin.sha512_crypt.max_rounds = 40000
         pa = CryptPolicy(**self.sample_config_1pd)
         pb = pa.replace(deprecated=["des_crypt", "bsdi_crypt"], admin__context__deprecated=["des_crypt"])
 
-        self.assert_(not pa.handler_is_deprecated("des_crypt"))
-        self.assert_(not pa.handler_is_deprecated(hash.bsdi_crypt))
-        self.assert_(not pa.handler_is_deprecated("sha512_crypt"))
+        self.assertTrue(not pa.handler_is_deprecated("des_crypt"))
+        self.assertTrue(not pa.handler_is_deprecated(hash.bsdi_crypt))
+        self.assertTrue(not pa.handler_is_deprecated("sha512_crypt"))
 
-        self.assert_(pb.handler_is_deprecated("des_crypt"))
-        self.assert_(pb.handler_is_deprecated(hash.bsdi_crypt))
-        self.assert_(not pb.handler_is_deprecated("sha512_crypt"))
+        self.assertTrue(pb.handler_is_deprecated("des_crypt"))
+        self.assertTrue(pb.handler_is_deprecated(hash.bsdi_crypt))
+        self.assertTrue(not pb.handler_is_deprecated("sha512_crypt"))
 
         #check categories as well
         self.assertTrue(pb.handler_is_deprecated("des_crypt", "user"))
@@ -412,22 +412,22 @@ admin.sha512_crypt.max_rounds = 40000
     def test_20_iter_config(self):
         "test iter_config() method"
         p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assertEquals(dict(p1.iter_config()), self.sample_config_1pd)
-        self.assertEquals(dict(p1.iter_config(resolve=True)), self.sample_config_1prd)
-        self.assertEquals(dict(p1.iter_config(ini=True)), self.sample_config_1pid)
+        self.assertEqual(dict(p1.iter_config()), self.sample_config_1pd)
+        self.assertEqual(dict(p1.iter_config(resolve=True)), self.sample_config_1prd)
+        self.assertEqual(dict(p1.iter_config(ini=True)), self.sample_config_1pid)
 
     def test_21_to_dict(self):
         "test to_dict() method"
         p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assertEquals(p1.to_dict(), self.sample_config_1pd)
-        self.assertEquals(p1.to_dict(resolve=True), self.sample_config_1prd)
+        self.assertEqual(p1.to_dict(), self.sample_config_1pd)
+        self.assertEqual(p1.to_dict(resolve=True), self.sample_config_1prd)
 
     def test_22_to_string(self):
         "test to_string() method"
         pa = CryptPolicy(**self.sample_config_1pd)
         s = pa.to_string() #NOTE: can't compare string directly, ordering etc may not match
         pb = CryptPolicy.from_string(s)
-        self.assertEquals(pb.to_dict(), self.sample_config_1pd)
+        self.assertEqual(pb.to_dict(), self.sample_config_1pd)
 
     #=========================================================
     #
@@ -515,43 +515,43 @@ class CryptContextTest(TestCase):
         cc = CryptContext(policy=None, **self.sample_policy_1)
 
         # hash specific settings
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(scheme="nthash"),
             '$NT$00000000000000000000000000000000',
             )
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(scheme="nthash", ident="3"),
             '$3$$00000000000000000000000000000000',
             )
 
         # min rounds
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(rounds=1999, salt="nacl"),
             '$5$rounds=2000$nacl$',
             )
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(rounds=2001, salt="nacl"),
             '$5$rounds=2001$nacl$'
             )
 
         #max rounds
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(rounds=2999, salt="nacl"),
             '$5$rounds=2999$nacl$',
             )
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(rounds=3001, salt="nacl"),
             '$5$rounds=3000$nacl$'
             )
 
         #default rounds - specified
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(scheme="bsdi_crypt", salt="nacl"),
             '_N...nacl',
             )
 
         #default rounds - fall back to max rounds
-        self.assertEquals(
+        self.assertEqual(
             cc.genconfig(salt="nacl"),
             '$5$rounds=3000$nacl$',
             )
@@ -559,7 +559,7 @@ class CryptContextTest(TestCase):
         #default rounds - out of bounds
         cc2 = CryptContext(policy=cc.policy.replace(
             bsdi_crypt__default_rounds=35))
-        self.assertEquals(
+        self.assertEqual(
             cc2.genconfig(scheme="bsdi_crypt", salt="nacl"),
             '_S...nacl',
             )
@@ -575,8 +575,8 @@ class CryptContextTest(TestCase):
             h = cc3.genconfig("bsdi_crypt", salt="nacl")
             r = bc.from_string(h).rounds
             seen.add(r)
-        self.assert_(min(seen)==22)
-        self.assert_(max(seen)==28)
+        self.assertTrue(min(seen)==22)
+        self.assertTrue(max(seen)==28)
 
         # default+vary % rounds
         # this runs enough times the min and max *should* be hit,
@@ -589,29 +589,29 @@ class CryptContextTest(TestCase):
             h = cc4.genconfig(salt="nacl")
             r = sc.from_string(h).rounds
             seen.add(r)
-        self.assert_(min(seen)==2970)
-        self.assert_(max(seen)==3000) #NOTE: would be 3030, but clipped by max_rounds
+        self.assertTrue(min(seen)==2970)
+        self.assertTrue(max(seen)==3000) #NOTE: would be 3030, but clipped by max_rounds
 
     def test_11_encrypt_settings(self):
         "test encrypt() honors policy settings"
         cc = CryptContext(**self.sample_policy_1)
 
         # hash specific settings
-        self.assertEquals(
+        self.assertEqual(
             cc.encrypt("password", scheme="nthash"),
             '$NT$8846f7eaee8fb117ad06bdd830b7586c',
             )
-        self.assertEquals(
+        self.assertEqual(
             cc.encrypt("password", scheme="nthash", ident="3"),
             '$3$$8846f7eaee8fb117ad06bdd830b7586c',
             )
 
         # min rounds
-        self.assertEquals(
+        self.assertEqual(
             cc.encrypt("password", rounds=1999, salt="nacl"),
             '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
             )
-        self.assertEquals(
+        self.assertEqual(
             cc.encrypt("password", rounds=2001, salt="nacl"),
             '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
             )
@@ -629,7 +629,7 @@ class CryptContextTest(TestCase):
         cc2 = cc.replace(sha256_crypt__default_rounds=4000)
         with catch_warnings():
             warnings.filterwarnings("ignore", "vary default rounds: lower bound > upper bound.*", UserWarning)
-            self.assertEquals(
+            self.assertEqual(
                 cc2.encrypt("password", salt="nacl"),
                 '$5$rounds=3000$nacl$oH831OVMbkl.Lbw1SXflly4dW8L3mSxpxDz1u1CK/B0',
                 )
@@ -639,16 +639,16 @@ class CryptContextTest(TestCase):
         cc = CryptContext(**self.sample_policy_1)
 
         #check deprecated scheme
-        self.assert_(cc.hash_needs_update('9XXD4trGYeGJA'))
-        self.assert_(not cc.hash_needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
+        self.assertTrue(cc.hash_needs_update('9XXD4trGYeGJA'))
+        self.assertTrue(not cc.hash_needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
 
         #check min rounds
-        self.assert_(cc.hash_needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
-        self.assert_(not cc.hash_needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
+        self.assertTrue(cc.hash_needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
+        self.assertTrue(not cc.hash_needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
 
         #check max rounds
-        self.assert_(not cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
-        self.assert_(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
+        self.assertTrue(not cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
+        self.assertTrue(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
     #=========================================================
     #identify
@@ -661,21 +661,21 @@ class CryptContextTest(TestCase):
         #run through handlers
         for crypt in handlers:
             h = cc.encrypt("test", scheme=crypt.name)
-            self.assertEquals(cc.identify(h), crypt.name)
-            self.assertEquals(cc.identify(h, resolve=True), crypt)
-            self.assert_(cc.verify('test', h))
-            self.assert_(not cc.verify('notest', h))
+            self.assertEqual(cc.identify(h), crypt.name)
+            self.assertEqual(cc.identify(h, resolve=True), crypt)
+            self.assertTrue(cc.verify('test', h))
+            self.assertTrue(not cc.verify('notest', h))
 
         #test default
         h = cc.encrypt("test")
-        self.assertEquals(cc.identify(h), "md5_crypt")
+        self.assertEqual(cc.identify(h), "md5_crypt")
 
         #test genhash
         h = cc.genhash('secret', cc.genconfig())
-        self.assertEquals(cc.identify(h), 'md5_crypt')
+        self.assertEqual(cc.identify(h), 'md5_crypt')
 
         h = cc.genhash('secret', cc.genconfig(), scheme='md5_crypt')
-        self.assertEquals(cc.identify(h), 'md5_crypt')
+        self.assertEqual(cc.identify(h), 'md5_crypt')
 
         self.assertRaises(ValueError, cc.genhash, 'secret', cc.genconfig(), scheme="des_crypt")
 
@@ -685,11 +685,11 @@ class CryptContextTest(TestCase):
         cc = CryptContext(handlers, policy=None)
 
         #check unknown hash
-        self.assertEquals(cc.identify('$9$232323123$1287319827'), None)
+        self.assertEqual(cc.identify('$9$232323123$1287319827'), None)
         self.assertRaises(ValueError, cc.identify, '$9$232323123$1287319827', required=True)
 
         #make sure "None" is accepted
-        self.assertEquals(cc.identify(None), None)
+        self.assertEqual(cc.identify(None), None)
         self.assertRaises(ValueError, cc.identify, None, required=True)
 
     def test_22_verify(self):
@@ -700,12 +700,12 @@ class CryptContextTest(TestCase):
         h = hash.md5_crypt.encrypt("test")
 
         #check base verify
-        self.assert_(cc.verify("test", h))
-        self.assert_(not cc.verify("notest", h))
+        self.assertTrue(cc.verify("test", h))
+        self.assertTrue(not cc.verify("notest", h))
 
         #check verify using right alg
-        self.assert_(cc.verify('test', h, scheme='md5_crypt'))
-        self.assert_(not cc.verify('notest', h, scheme='md5_crypt'))
+        self.assertTrue(cc.verify('test', h, scheme='md5_crypt'))
+        self.assertTrue(not cc.verify('notest', h, scheme='md5_crypt'))
 
         #check verify using wrong alg
         self.assertRaises(ValueError, cc.verify, 'test', h, scheme='bsdi_crypt')
@@ -714,9 +714,9 @@ class CryptContextTest(TestCase):
         "test verify() allows hash=None"
         handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, policy=None)
-        self.assert_(not cc.verify("test", None))
+        self.assertTrue(not cc.verify("test", None))
         for handler in handlers:
-            self.assert_(not cc.verify("test", None, scheme=handler.name))
+            self.assertTrue(not cc.verify("test", None, scheme=handler.name))
 
     def test_24_min_verify_time(self):
         cc = CryptContext(["plaintext", "bsdi_crypt"], min_verify_time=.1)

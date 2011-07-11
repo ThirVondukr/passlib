@@ -423,14 +423,14 @@ class H64_Test(TestCase):
         self.assertRaises(TypeError, h64.decode_bytes, u'..')
 
     def test_decode_int6(self):
-        self.assertEquals(h64.decode_int6(b('.')),0)
-        self.assertEquals(h64.decode_int6(b('z')),63)
+        self.assertEqual(h64.decode_int6(b('.')),0)
+        self.assertEqual(h64.decode_int6(b('z')),63)
         self.assertRaises(ValueError, h64.decode_int6, b('?'))
         self.assertRaises(TypeError, h64.decode_int6, u'?')
 
     def test_encode_int6(self):
-        self.assertEquals(h64.encode_int6(0),b('.'))
-        self.assertEquals(h64.encode_int6(63),b('z'))
+        self.assertEqual(h64.encode_int6(0),b('.'))
+        self.assertEqual(h64.encode_int6(63),b('z'))
         self.assertRaises(ValueError, h64.encode_int6, -1)
         self.assertRaises(ValueError, h64.encode_int6, 64)
 
@@ -525,10 +525,10 @@ class _MD4_Test(TestCase):
 
         h2 = h.copy()
         h2.update(b('def'))
-        self.assertEquals(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
+        self.assertEqual(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
 
         h.update(b('ghi'))
-        self.assertEquals(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
+        self.assertEqual(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
 
 #
 #now do a bunch of things to test multiple possible backends.

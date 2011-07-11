@@ -231,8 +231,8 @@ class DjangoDisabledTest(HandlerCase):
         "test encrypt() basic behavior"
         secret = UPASS_USD
         result = self.do_encrypt(secret)
-        self.assertEquals(result, "!")
-        self.assert_(not self.do_verify(secret, result))
+        self.assertEqual(result, "!")
+        self.assertTrue(not self.do_verify(secret, result))
 
 class DjangoDesCryptTest(HandlerCase):
     "test django_des_crypt"
@@ -467,7 +467,7 @@ class _Md5CryptTest(HandlerCase):
         ]
 
     def test_raw(self):
-        self.assertEquals(raw_md5_crypt(u's',u's'*16), u'YgmLTApYTv12qgTwBoj8i/')
+        self.assertEqual(raw_md5_crypt(u's',u's'*16), u'YgmLTApYTv12qgTwBoj8i/')
 
 OsCrypt_Md5CryptTest = create_backend_case(_Md5CryptTest, "os_crypt")
 Builtin_Md5CryptTest = create_backend_case(_Md5CryptTest, "builtin")
@@ -779,9 +779,9 @@ class PostgresMD5CryptTest(HandlerCase):
     #NOTE: used to support secret=(password, user) format, but removed it for now.
     ##def test_tuple_mode(self):
     ##    "check tuple mode works for encrypt/verify"
-    ##    self.assertEquals(self.handler.encrypt(('mypass', 'postgres')),
+    ##    self.assertEqual(self.handler.encrypt(('mypass', 'postgres')),
     ##        'md55fba2ea04fd36069d2574ea71c8efe9d')
-    ##    self.assertEquals(self.handler.verify(('mypass', 'postgres'),
+    ##    self.assertEqual(self.handler.verify(('mypass', 'postgres'),
     ##        'md55fba2ea04fd36069d2574ea71c8efe9d'), True)
 
     def test_user(self):
@@ -1127,8 +1127,8 @@ class UnixFallbackTest(HandlerCase):
         "test encrypt() basic behavior"
         secret = u"\u20AC\u00A5$"
         result = self.do_encrypt(secret)
-        self.assertEquals(result, "!")
-        self.assert_(not self.do_verify(secret, result))
+        self.assertEqual(result, "!")
+        self.assertTrue(not self.do_verify(secret, result))
 
     def test_wildcard(self):
         "test enable_wildcard flag"

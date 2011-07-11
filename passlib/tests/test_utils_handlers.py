@@ -131,10 +131,10 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.norm_salt, 'aaaa', strict=True)
 
         #check generate salt (indirectly)
-        self.assertEquals(len(d1.norm_salt(None)), 2)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=1)), 1)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=3)), 3)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=5)), 3)
+        self.assertEqual(len(d1.norm_salt(None)), 2)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=1)), 1)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=3)), 3)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=5)), 3)
         self.assertRaises(ValueError, d1.norm_salt, None, salt_size=5, strict=True)
 
     def test_21_norm_salt(self):
@@ -156,10 +156,10 @@ class SkeletonTest(TestCase):
         self.assertEqual(d1.norm_salt('aaaa', strict=True), 'aaaa')
 
         #check generate salt (indirectly)
-        self.assertEquals(len(d1.norm_salt(None)), 2)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=1)), 1)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=3)), 3)
-        self.assertEquals(len(d1.norm_salt(None,salt_size=5)), 5)
+        self.assertEqual(len(d1.norm_salt(None)), 2)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=1)), 1)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=3)), 3)
+        self.assertEqual(len(d1.norm_salt(None,salt_size=5)), 5)
 
     def test_30_norm_rounds(self):
         "test GenericHandler+HasRounds: .norm_rounds()"
@@ -215,12 +215,12 @@ class SkeletonTest(TestCase):
 
         #test lazy load
         obj = d1()
-        self.assertEquals(obj.calc_checksum('s'), 'b')
+        self.assertEqual(obj.calc_checksum('s'), 'b')
 
         #test repeat load
         d1.set_backend('b')
         d1.set_backend('any')
-        self.assertEquals(obj.calc_checksum('s'), 'b')
+        self.assertEqual(obj.calc_checksum('s'), 'b')
 
         #test unavailable
         self.assertRaises(MissingBackendError, d1.set_backend, 'a')
@@ -233,7 +233,7 @@ class SkeletonTest(TestCase):
         #test explicit
         self.assertTrue(d1.has_backend())
         d1.set_backend('a')
-        self.assertEquals(obj.calc_checksum('s'), 'a')
+        self.assertEqual(obj.calc_checksum('s'), 'a')
         
         #test unknown backend
         self.assertRaises(ValueError, d1.set_backend, 'c')

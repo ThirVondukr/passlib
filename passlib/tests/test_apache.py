@@ -77,9 +77,9 @@ class HtpasswdFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path)
-        self.assert_(ht.delete("user1"))
-        self.assert_(ht.delete("user2"))
-        self.assert_(not ht.delete("user5"))
+        self.assertTrue(ht.delete("user1"))
+        self.assertTrue(ht.delete("user2"))
+        self.assertTrue(not ht.delete("user5"))
         self.assertEqual(ht.to_string(), self.sample_02)
 
         self.assertRaises(ValueError, ht.delete, "user:")
@@ -89,8 +89,8 @@ class HtpasswdFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path, default="plaintext")
-        self.assert_(ht.update("user2", "pass2x"))
-        self.assert_(not ht.update("user5", "pass5"))
+        self.assertTrue(ht.update("user2", "pass2x"))
+        self.assertTrue(not ht.update("user5", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
 
         self.assertRaises(ValueError, ht.update, "user:", "pass")
@@ -110,11 +110,11 @@ class HtpasswdFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path)
-        self.assert_(ht.verify("user5","pass5") is None)
+        self.assertTrue(ht.verify("user5","pass5") is None)
         for i in xrange(1,5):
             i = str(i)
-            self.assert_(ht.verify("user"+i, "pass"+i))
-            self.assert_(ht.verify("user"+i, "pass5") is False)
+            self.assertTrue(ht.verify("user"+i, "pass"+i))
+            self.assertTrue(ht.verify("user"+i, "pass5") is False)
 
         self.assertRaises(ValueError, ht.verify, "user:", "pass")
 
@@ -151,7 +151,7 @@ class HtpasswdFileTest(TestCase):
         #test load w/ dups
         set_file(path, self.sample_dup)
         hc = apache.HtpasswdFile(path)
-        self.assert_(hc.verify('user1','pass1'))
+        self.assertTrue(hc.verify('user1','pass1'))
 
     def test_06_save(self):
         "test save()"
@@ -164,7 +164,7 @@ class HtpasswdFileTest(TestCase):
         ht.delete("user1")
         ht.delete("user2")
         ht.save()
-        self.assertEquals(get_file(path), self.sample_02)
+        self.assertEqual(get_file(path), self.sample_02)
 
         #test save w/ no path
         hb = apache.HtpasswdFile()
@@ -244,9 +244,9 @@ class HtdigestFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
-        self.assert_(ht.delete("user1", "realm"))
-        self.assert_(ht.delete("user2", "realm"))
-        self.assert_(not ht.delete("user5", "realm"))
+        self.assertTrue(ht.delete("user1", "realm"))
+        self.assertTrue(ht.delete("user2", "realm"))
+        self.assertTrue(not ht.delete("user5", "realm"))
         self.assertEqual(ht.to_string(), self.sample_02)
 
         self.assertRaises(ValueError, ht.delete, "user:", "realm")
@@ -256,8 +256,8 @@ class HtdigestFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
-        self.assert_(ht.update("user2", "realm", "pass2x"))
-        self.assert_(not ht.update("user5", "realm", "pass5"))
+        self.assertTrue(ht.update("user2", "realm", "pass2x"))
+        self.assertTrue(not ht.update("user5", "realm", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
 
         self.assertRaises(ValueError, ht.update, "user:", "realm", "pass")
@@ -281,11 +281,11 @@ class HtdigestFileTest(TestCase):
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
-        self.assert_(ht.verify("user5", "realm","pass5") is None)
+        self.assertTrue(ht.verify("user5", "realm","pass5") is None)
         for i in xrange(1,5):
             i = str(i)
-            self.assert_(ht.verify("user"+i, "realm", "pass"+i))
-            self.assert_(ht.verify("user"+i, "realm", "pass5") is False)
+            self.assertTrue(ht.verify("user"+i, "realm", "pass"+i))
+            self.assertTrue(ht.verify("user"+i, "realm", "pass5") is False)
 
         self.assertRaises(ValueError, ht.verify, "user:", "realm", "pass")
 
@@ -330,7 +330,7 @@ class HtdigestFileTest(TestCase):
         ht.delete("user1", "realm")
         ht.delete("user2", "realm")
         ht.save()
-        self.assertEquals(get_file(path), self.sample_02)
+        self.assertEqual(get_file(path), self.sample_02)
 
         #test save w/ no path
         hb = apache.HtdigestFile()
@@ -343,21 +343,21 @@ class HtdigestFileTest(TestCase):
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
 
-        self.assertEquals(ht.delete_realm("x"), 0)
-        self.assertEquals(ht.realms(), ['realm'])
+        self.assertEqual(ht.delete_realm("x"), 0)
+        self.assertEqual(ht.realms(), ['realm'])
 
-        self.assertEquals(ht.delete_realm("realm"), 4)
-        self.assertEquals(ht.realms(), [])
-        self.assertEquals(ht.to_string(), b(""))
+        self.assertEqual(ht.delete_realm("realm"), 4)
+        self.assertEqual(ht.realms(), [])
+        self.assertEqual(ht.to_string(), b(""))
 
     def test_08_find(self):
         "test find()"
         path = mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
-        self.assertEquals(ht.find("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744")
-        self.assertEquals(ht.find("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
-        self.assertEquals(ht.find("user5", "realm"), None)
+        self.assertEqual(ht.find("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744")
+        self.assertEqual(ht.find("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
+        self.assertEqual(ht.find("user5", "realm"), None)
 
     def test_09_encodings(self):
         "test encoding parameter"
