@@ -97,10 +97,10 @@ There is only one known issue:
 * Unicode Policy
 
   Lack of testing (and test vectors) leaves it unclear
-  as to how Oracle 11g handles passwords containing non-7bit ascii.
+  as to how Oracle 10g handles passwords containing non-7bit ascii.
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-16-be``
-  before running them through Oracle11.
+  PassLib will encode unicode passwords using ``utf-16-be`` [#enc]_
+  before running them through the Oracle10g algorithm.
   This behavior may be altered in the future, if further testing
   reveals another behavior is more in line with the official representation.
   This note applies as well to any provided username,

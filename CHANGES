@@ -6,7 +6,7 @@ Release History
 
 **1.5** (2011-07-11)
 
-    *"20% more unicode than the other leading breakfast cereal"*
+    *"20% more unicode than the leading breakfast cereal"*
 
     The main new feature in this release is that
     Passlib now supports Python 3 (via the 2to3 tool).
@@ -62,7 +62,7 @@ Release History
           :class:`passlib.utils.handlers.HasManyBackends`;
           main change is that multi-backend handlers now raise
           :exc:`~passlib.utils.MissingBackendError`
-          if no backends are not available.
+          if no backends are available.
 
     Other
 

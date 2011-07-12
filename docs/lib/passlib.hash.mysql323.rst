@@ -56,13 +56,14 @@ lower-case letters, and so does PassLib
 (though PassLib will recognize upper case letters as well).
 
 The algorithm used is extremely simplistic, for details,
-see the source implementation linked to below [#f1]_.
+see the source implementation in the footnotes [#f1]_.
 
 Security Issues
 ===============
 Lacking any sort of salt, ignoring all whitespace,
-and having a simplistic algorithm amounts to little more than a checksum,
-this is not secure, and should not be used for *any* purpose but verifying existing MySQL 3.2.3 - 4.0 password hashes.
+and having a simplistic algorithm that amounts to little more than a checksum,
+this is not secure, and should not be used for *any* purpose
+but verifying existing MySQL 3.2.3 - 4.0 password hashes.
 
 .. rubric:: Footnotes
 

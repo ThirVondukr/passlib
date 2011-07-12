@@ -94,7 +94,8 @@ Required Attributes
         All handlers built into passlib are implemented as classes
         located under :samp:`passlib.hash.{name}`, where :samp:`{name}`
         is both the class name, and the value of the ``name`` attribute.
-        This is not a requirement, and may not be true for externally-defined handers.
+        This is not a requirement, and may not be true for
+        externally-defined handlers.
 
 .. attribute:: PasswordHash.setting_kwds
 
@@ -102,10 +103,8 @@ Required Attributes
     (such as salts, variable rounds, etc), this attribute
     should contain a tuple of keywords corresponding
     to each of those configuration options.
-
     This should list all the main configuration keywords accepted
     by :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.encrypt`.
-
     If no configuration options are supported, this attribute should be an empty tuple.
 
     While each class may support a variety of options, each with their own meaning
@@ -190,7 +189,7 @@ which scheme a hash belongs to when multiple schemes are in use.
         but the common case is to encode into utf-8
         before processing.
 
-    :param settings_and_context_kwds:
+    :param \*\*settings_and_context_kwds:
         All other keywords are algorithm-specified,
         and should be listed in :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
@@ -252,7 +251,7 @@ which scheme a hash belongs to when multiple schemes are in use.
     :param hash:
         A string containing the hash to check against.
 
-    :param context_kwds:
+    :param \*\*context_kwds:
         Any additional keywords will be passed to the encrypt
         method. These should be limited to those listed
         in :attr:`~PasswordHash.context_kwds`.
@@ -275,9 +274,9 @@ While the application methods are generally the most useful when integrating
 password support into an application, those methods are for the most part
 built on top of the crypt interface, which is somewhat simpler
 for *implementing* new password schemes. It also happens to match
-more closely with the crypt api of most unix systems,
-and consists of two functions: :meth:`~PasswordHash.genconfig()``
-and :meth:`~PasswordHash.genhash()``.
+more closely with the crypt api of most Unix systems,
+and consists of two functions: :meth:`~PasswordHash.genconfig`
+and :meth:`~PasswordHash.genhash`.
 
 .. classmethod:: PasswordHash.genconfig(\*\*settings_kwds)
 
@@ -294,7 +293,6 @@ and :meth:`~PasswordHash.genhash()``.
     of which should be found in :attr:`~PasswordHash.setting_kwds`), validates
     the inputs, fills in defaults where appropriate, and returns
     a configuration string.
-
     For algorithms which do not have any configuration options,
     this function should always return ``None``.
 
@@ -316,7 +314,7 @@ and :meth:`~PasswordHash.genhash()``.
       if the number of rounds is too small or too large, it should
       be clipped but accepted.
 
-    :param settings_kwds:
+    :param \*\*settings_kwds:
         this function takes in keywords as specified in :attr:`~PasswordHash.setting_kwds`.
         commonly supported keywords include ``salt`` and ``rounds``.
 
@@ -345,7 +343,7 @@ and :meth:`~PasswordHash.genhash()``.
         returned by :meth:`~PasswordHash.genhash`, or a configuration string
         that was previously created by :meth:`~PasswordHash.genconfig`.
 
-    :param context_kwds:
+    :param \*\*context_kwds:
         All other keywords must be external contextual information
         required by the algorithm to create the hash. If any,
         these kwds must be specified in :attr:`~PasswordHash.context_kwds`.
@@ -367,9 +365,9 @@ and :meth:`~PasswordHash.genhash()``.
 
 Optional Attributes
 =================================
-Many of the handlers in passlib expose the following informational
-attributes, though their presence is not uniform
-across all handlers in passlib.
+Many of the handlers expose the following informational
+attributes (though their presence is not uniform or required
+as of this version of Passlib).
 
 .. todo::
 
@@ -452,10 +450,11 @@ the following attributes are usually exposed.
 
     string containing list of all characters which are allowed
     to be specified in salt parameter.
-    for most hashes, this is equal to :data:`passlib.utils.h64.CHARS`.
+    for most :ref:`MCF <modular-crypt-format>` hashes,
+    this is equal to :data:`passlib.utils.h64.CHARS`.
 
-    this must be a unicode string if the salt is encoded,
-    or (rarely) bytes if the salt is unencoded raw bytes.
+    this must be a :class:`!unicode` string if the salt is encoded,
+    or (rarely) :class:`!bytes` if the salt is manipulating as unencoded raw bytes.
 
 .. todo::
 
