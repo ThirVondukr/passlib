@@ -30,6 +30,10 @@ sys.path.insert(0, source_root)
 #which contains some sphinx extensions used by passlib
 import cloud_sptheme
 
+#hack to make autodoc generate documentation from the correct class...
+from passlib.utils import md4
+md4.md4 = md4._builtin_md4
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

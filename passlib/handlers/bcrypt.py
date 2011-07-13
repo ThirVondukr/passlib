@@ -62,7 +62,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
     * `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
-    * stdlib :func:`crypt()`, if the host OS supports BCrypt (eg BSD).
+    * stdlib :func:`crypt()`, if the host OS supports BCrypt (eg: BSD).
+    * if no backends are available at runtime,
+      :exc:`~passlib.utils.MissingBackendError` will be raised
+      whenever :meth:`encrypt` or :meth:`verify` are called.
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
