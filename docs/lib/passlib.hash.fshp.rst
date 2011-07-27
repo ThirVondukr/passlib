@@ -13,9 +13,9 @@ hashes from SHA-1 up to SHA-512.
 
 .. note::
 
-    While the SHA-2 variants have no critical security vulnerabilities,
-    PBKDF1 has been deprecated in favor of PBKDF2 due to various general weaknesses,
-    and FSHP has been listed as insecure by it's author;
+    While the SHA-2 variants of PBKDF1 have no critical security vulnerabilities,
+    PBKDF1 itself has been deprecated in favor of it's successor, PBKDF2.
+    Furthermore, FSHP has been listed as insecure by it's author (for unspecified reasons);
     so this scheme should probably only be used to support existing hashes.
 
 Usage

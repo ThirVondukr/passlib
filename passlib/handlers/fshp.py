@@ -43,12 +43,10 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     :param variant:
         Optionally specifies variant of FSHP to use.
 
-        * ``0`` - uses SHA-1 digest (deprecated)
-        * ``1`` - uses SHA-2/256 digest (default)
-        * ``2`` - uses SHA-2/384 digest
-        * ``3`` - uses SHA-2/512 digest
-
-        Aliases ``sha1``, ``sha256`` etc are also allowed.
+        * ``0`` - uses SHA-1 digest (deprecated).
+        * ``1`` - uses SHA-2/256 digest (default).
+        * ``2`` - uses SHA-2/384 digest.
+        * ``3`` - uses SHA-2/512 digest.
     """
 
     #=========================================================

@@ -5,7 +5,7 @@ Installation
 Supported Platforms
 ===================
 Passlib requires Python 2 (>= 2.5) or Python 3.
-It should work with the following Python implementations:
+It is known to work with the following Python implementations:
 
 * CPython 2 -- 2.5 or newer.
 * CPython 3 -- all versions.
