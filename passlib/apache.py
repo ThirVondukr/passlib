@@ -56,6 +56,8 @@ class _CommonFile(object):
             self._entry_order = []
             self._entry_map = {}
 
+    #TODO: load_string ? 
+
     def load(self, force=True):
         """load entries from file
 
@@ -94,25 +96,25 @@ class _CommonFile(object):
 
     #subclass: _parse_line(line) -> (key, hash)
 
+    def _iter_lines(self):
+        "iterator yielding lines of database"
+        rl = self._render_line
+        entry_order = self._entry_order
+        entry_map = self._entry_map
+        assert len(entry_order) == len(entry_map), "internal error in entry list"
+        return (rl(key, entry_map[key]) for key in entry_order)
+    
     def save(self):
         "save entries to file"
         if not self.path:
             raise RuntimeError("no save path specified")
-        rl = self._render_line
-        entry_order = self._entry_order
-        entry_map = self._entry_map
-        assert len(entry_order) == len(entry_map), "internal error in entry list"
         with open(self.path, "wb") as fh:
-            fh.writelines(rl(key, entry_map[key]) for key in entry_order)
+            fh.writelines(self._iter_lines())
         self.mtime = os.path.getmtime(self.path)
 
     def to_string(self):
         "export whole database as a byte string"
-        rl = self._render_line
-        entry_order = self._entry_order
-        entry_map = self._entry_map
-        assert len(entry_order) == len(entry_map), "internal error in entry list"
-        return bjoin(rl(key, entry_map[key]) for key in entry_order)
+        return bjoin(self._iter_lines())
 
     #subclass: _render_line(entry) -> line
 
