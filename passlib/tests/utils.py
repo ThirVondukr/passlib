@@ -27,17 +27,6 @@ except ImportError:
 import warnings
 from warnings import warn
 
-try:
-    from warnings import catch_warnings
-except ImportError:
-    #catch_warnings wasn't added until py26
-    #put stub in place
-    class catch_warnings(object):
-        def __enter__(self):
-            return None
-        def __exit__(self, *exc_info):
-            return None
-        __name__ = 'stub'
 #site
 if ut_version < 2:
     #used to provide replacement skipTest() method
@@ -256,6 +245,50 @@ class TestCase(unittest.TestCase):
             result = func(*elem.args[1:], **elem.kwds)
             msg = "error for case %r:" % (elem.render(1),)
             self.assertEqual(result, correct, msg)
+
+    def assertWarningMatches(self, warning, 
+                             message=None, message_re=None,
+                             category=None,
+                             ##filename=None, filename_re=None,
+                             ##lineno=None,
+                             msg=None,
+                             ):
+        "check if WarningMessage instance (as returned by catch_warnings) matches parameters"
+        
+        #determine if we have WarningMessage object,
+        #and ensure 'warning' contains only warning instances.
+        if hasattr(warning, "category"):
+            wmsg = warning
+            warning = warning.message
+        else:
+            wmsg = None
+        
+        #tests that can use a warning instance or WarningMessage object
+        if message:
+            self.assertEqual(str(warning), message, msg)
+        if message_re:
+            self.assertRegexpMatches(str(warning), message_re, msg)
+        if category:
+            self.assertIsInstance(warning, category, msg)
+            
+        #commented out until needed...
+        ###tests that require a WarningMessage object
+        ##if filename or filename_re:
+        ##    if not wmsg:
+        ##        raise TypeError("can't read filename from warning object")
+        ##    real = wmsg.filename
+        ##    if real.endswith(".pyc") or real.endswith(".pyo"):
+        ##        #FIXME: should use a stdlib call to resolve this back
+        ##        #       to original module's path
+        ##        real = real[:-1]
+        ##    if filename:
+        ##        self.assertEqual(real, filename, msg)
+        ##    if filename_re:
+        ##        self.assertRegexpMatches(real, filename_re, msg)
+        ##if lineno:
+        ##    if not wmsg:
+        ##        raise TypeError("can't read lineno from warning object")
+        ##    self.assertEqual(wmsg.lineno, lineno, msg)
 
     #============================================================
     #eoc
@@ -971,6 +1004,96 @@ def mktemp(*args, **kwds):
     tmp_files.append(path)
     os.close(fd)
     return path
+
+#=========================================================
+#make sure catch_warnings() is available
+#=========================================================
+try:
+    from warnings import catch_warnings
+except ImportError:
+    #catch_warnings wasn't added until py26.
+    #this adds backported copy from py26's stdlib
+    #so we can use it under py25.
+    
+    class WarningMessage(object):
+    
+        """Holds the result of a single showwarning() call."""
+    
+        _WARNING_DETAILS = ("message", "category", "filename", "lineno", "file",
+                            "line")
+    
+        def __init__(self, message, category, filename, lineno, file=None,
+                        line=None):
+            local_values = locals()
+            for attr in self._WARNING_DETAILS:
+                setattr(self, attr, local_values[attr])
+            self._category_name = category.__name__ if category else None
+    
+        def __str__(self):
+            return ("{message : %r, category : %r, filename : %r, lineno : %s, "
+                        "line : %r}" % (self.message, self._category_name,
+                                        self.filename, self.lineno, self.line))
+    
+    
+    class catch_warnings(object):
+    
+        """A context manager that copies and restores the warnings filter upon
+        exiting the context.
+    
+        The 'record' argument specifies whether warnings should be captured by a
+        custom implementation of warnings.showwarning() and be appended to a list
+        returned by the context manager. Otherwise None is returned by the context
+        manager. The objects appended to the list are arguments whose attributes
+        mirror the arguments to showwarning().
+    
+        The 'module' argument is to specify an alternative module to the module
+        named 'warnings' and imported under that name. This argument is only useful
+        when testing the warnings module itself.
+    
+        """
+    
+        def __init__(self, record=False, module=None):
+            """Specify whether to record warnings and if an alternative module
+            should be used other than sys.modules['warnings'].
+    
+            For compatibility with Python 3.0, please consider all arguments to be
+            keyword-only.
+    
+            """
+            self._record = record
+            self._module = sys.modules['warnings'] if module is None else module
+            self._entered = False
+    
+        def __repr__(self):
+            args = []
+            if self._record:
+                args.append("record=True")
+            if self._module is not sys.modules['warnings']:
+                args.append("module=%r" % self._module)
+            name = type(self).__name__
+            return "%s(%s)" % (name, ", ".join(args))
+    
+        def __enter__(self):
+            if self._entered:
+                raise RuntimeError("Cannot enter %r twice" % self)
+            self._entered = True
+            self._filters = self._module.filters
+            self._module.filters = self._filters[:]
+            self._showwarning = self._module.showwarning
+            if self._record:
+                log = []
+                def showwarning(*args, **kwargs):
+                    log.append(WarningMessage(*args, **kwargs))
+                self._module.showwarning = showwarning
+                return log
+            else:
+                return None
+    
+        def __exit__(self, *exc_info):
+            if not self._entered:
+                raise RuntimeError("Cannot exit %r without entering first" % self)
+            self._module.filters = self._filters
+            self._module.showwarning = self._showwarning
 
 #=========================================================
 #EOF
