@@ -30,7 +30,6 @@ custom_app_context = LazyCryptContext(
     schemes=["sha512_crypt", "sha256_crypt"],
 
     #set some useful global options
-    min_verify_time = .125,
     all__vary_rounds = "10%",
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
 
