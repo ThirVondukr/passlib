@@ -1082,7 +1082,8 @@ class CryptContext(object):
                 time.sleep(delta)
             elif delta < 0:
                 #warn app they aren't being protected against timing attacks...
-                warn("CryptContext: verify exceeded min_verify_time: scheme=%r min_verify_time=%r elapsed=%r", handler.name, mvt, end-start)
+                warn("CryptContext: verify exceeded min_verify_time: scheme=%r min_verify_time=%r elapsed=%r" %
+                     (handler.name, mvt, end-start))
 
         return result
 

@@ -719,22 +719,51 @@ class CryptContextTest(TestCase):
             self.assertTrue(not cc.verify("test", None, scheme=handler.name))
 
     def test_24_min_verify_time(self):
-        cc = CryptContext(["plaintext", "bsdi_crypt"], min_verify_time=.1)
+        "test verify() honors min_verify_time"
+        #NOTE: this whole test assumes time.sleep() and time.time()
+        #      have at least 1ms accuracy
+        
+        class TimedHash(uh.StaticHandler):
+            "psuedo hash that takes specified amount of time"
+            name = "timed_hash"            
+            delay = 0
+            
+            @classmethod
+            def identify(cls, hash):
+                return True
+        
+            @classmethod
+            def genhash(cls, secret, hash):
+                time.sleep(cls.delay)
+                return hash or 'x'
+        
+        cc = CryptContext([TimedHash], min_verify_time=.1)
 
-        #plaintext should (in reality) take <.01,
-        #so this test checks mvt makes it take 0.09 - .5
-        s = time.time()
-        cc.verify("password", "password")
-        d = time.time()-s
-        self.assertTrue(d>=.09,d)
-        self.assertTrue(d<.5)
+        def timecall(func, *args, **kwds):
+            start = time.time()
+            result = func(*args, **kwds)
+            end = time.time()
+            return end-start, result
 
-        #this may take longer, so we just check min
-        s = time.time()
-        cc.verify("password", '_2b..iHVSUNMkJT.GcFU')
-        d = time.time()-s
-        self.assertTrue(d>=.09, "mvt=.1, delta=%r" % (d,))
-
+        #verify hashing works
+        TimedHash.delay = .05
+        elapsed, _ = timecall(TimedHash.genhash, 'stub', 'stub')
+        self.assertAlmostEquals(elapsed, .05, delta=.01)
+        
+        #ensure min verify time is honored
+        elapsed, _ = timecall(cc.verify, "stub", "stub")
+        self.assertAlmostEquals(elapsed, .1, delta=.01)
+        
+        #ensure taking longer emits a warning.
+        TimedHash.delay = .15
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+            elapsed, _ = timecall(cc.verify, "stub", "stub")
+        self.assertAlmostEquals(elapsed, .15, delta=.01)
+        self.assertEqual(len(wlog), 1)
+        self.assertWarningMatches(wlog[0],
+            message_re="CryptContext: verify exceeded min_verify_time")
+        
     def test_25_verify_and_update(self):
         "test verify_and_update()"
         cc = CryptContext(**self.sample_policy_1)
