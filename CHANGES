@@ -9,13 +9,13 @@ Release History
     * Google App Engine compatibility:
 
         - bugfix: make ``passlib.hash.__loader__`` attribute writable -
-          needed by Google App Engine [issue 19]
+          needed by Google App Engine [issue 19].
 
-        - provide fallback for loading ``passlib/default.cfg``
+        - bugfix: provide fallback for loading ``passlib/default.cfg``
           if :mod:`pkg_resources` is not present.
 
-        - under GAE, disable CryptContext unittests which
-          require writing to filesystem
+        - under GAE, disable all unittests which
+          require writing to filesystem.
 
     * bugfix: fixed error thrown by CryptContext.verify
       when issuing min_verify_time warning [issue 17]

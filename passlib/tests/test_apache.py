@@ -12,7 +12,7 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils import b, native_str, bytes
-from passlib.tests.utils import TestCase, mktemp
+from passlib.tests.utils import TestCase, mktemp, gae_env
 #module
 log = getLogger(__name__)
 
@@ -50,8 +50,11 @@ class HtpasswdFileTest(TestCase):
 
     sample_dup = b('user1:pass1\nuser1:pass2\n')
 
-    def test_00_constructor(self):
-        "test constructor & to_string()"
+    def test_00_constructor_autoload(self):
+        "test constructor autoload"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
         #check with existing file
         path = mktemp()
         set_file(path, self.sample_01)
@@ -66,17 +69,11 @@ class HtpasswdFileTest(TestCase):
         os.remove(path)
         self.assertRaises(IOError, apache.HtpasswdFile, path)
 
-        #check no path
-        ht = apache.HtpasswdFile()
-        self.assertEqual(ht.to_string(), b(""))
-
         #NOTE: "default" option checked via update() test, among others
 
     def test_01_delete(self):
         "test delete()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtpasswdFile(path)
+        ht = apache.HtpasswdFile._from_string(self.sample_01)
         self.assertTrue(ht.delete("user1"))
         self.assertTrue(ht.delete("user2"))
         self.assertTrue(not ht.delete("user5"))
@@ -86,9 +83,8 @@ class HtpasswdFileTest(TestCase):
 
     def test_02_update(self):
         "test update()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtpasswdFile(path, default="plaintext")
+        ht = apache.HtpasswdFile._from_string(
+            self.sample_01, default="plaintext")
         self.assertTrue(ht.update("user2", "pass2x"))
         self.assertTrue(not ht.update("user5", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
@@ -97,9 +93,7 @@ class HtpasswdFileTest(TestCase):
 
     def test_03_users(self):
         "test users()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtpasswdFile(path)
+        ht = apache.HtpasswdFile._from_string(self.sample_01)
         ht.update("user5", "pass5")
         ht.delete("user3")
         ht.update("user3", "pass3")
@@ -107,9 +101,7 @@ class HtpasswdFileTest(TestCase):
 
     def test_04_verify(self):
         "test verify()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtpasswdFile(path)
+        ht = apache.HtpasswdFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5","pass5") is None)
         for i in xrange(1,5):
             i = str(i)
@@ -120,6 +112,8 @@ class HtpasswdFileTest(TestCase):
 
     def test_05_load(self):
         "test load()"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
 
         #setup empty file
         path = mktemp()
@@ -155,6 +149,9 @@ class HtpasswdFileTest(TestCase):
 
     def test_06_save(self):
         "test save()"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
         #load from file
         path = mktemp()
         set_file(path, self.sample_01)
@@ -172,34 +169,41 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(RuntimeError, hb.save)
 
     def test_07_encodings(self):
-        "test encoding parameter"
-        path = mktemp()
-        set_file(path, self.sample_01)
-
+        "test encoding parameter behavior"
         #test bad encodings cause failure in constructor
-        self.assertRaises(ValueError, apache.HtpasswdFile, path, encoding="utf-16")
+        self.assertRaises(ValueError, apache.HtpasswdFile, encoding="utf-16")
 
         #check users() returns native string by default
-        ht = apache.HtpasswdFile(path)
+        ht = apache.HtpasswdFile._from_string(self.sample_01)
         self.assertIsInstance(ht.users()[0], native_str)
 
         #check returns unicode if encoding explicitly set
-        ht = apache.HtpasswdFile(path, encoding="utf-8")
+        ht = apache.HtpasswdFile._from_string(self.sample_01, encoding="utf-8")
         self.assertIsInstance(ht.users()[0], unicode)
 
         #check returns bytes if encoding explicitly disabled
-        ht = apache.HtpasswdFile(path, encoding=None)
+        ht = apache.HtpasswdFile._from_string(self.sample_01, encoding=None)
         self.assertIsInstance(ht.users()[0], bytes)
 
         #check sample utf-8
-        set_file(path, self.sample_04_utf8)
-        ht = apache.HtpasswdFile(path, encoding="utf-8")
+        ht = apache.HtpasswdFile._from_string(self.sample_04_utf8, encoding="utf-8")
         self.assertEqual(ht.users(), [ u"user\u00e6" ])
 
         #check sample latin-1
-        set_file(path, self.sample_04_latin1)
-        ht = apache.HtpasswdFile(path, encoding="latin-1")
+        ht = apache.HtpasswdFile._from_string(self.sample_04_latin1,
+                                              encoding="latin-1")
         self.assertEqual(ht.users(), [ u"user\u00e6" ])
+
+    def test_08_to_string(self):
+        "test to_string"
+
+        #check with known sample
+        ht = apache.HtpasswdFile._from_string(self.sample_01)
+        self.assertEqual(ht.to_string(), self.sample_01)
+
+        #test blank
+        ht = apache.HtpasswdFile()
+        self.assertEqual(ht.to_string(), b(""))
 
     #=========================================================
     #eoc
@@ -219,8 +223,11 @@ class HtdigestFileTest(TestCase):
     sample_04_utf8 = b('user\xc3\xa6:realm\xc3\xa6:549d2a5f4659ab39a80dac99e159ab19\n')
     sample_04_latin1 = b('user\xe6:realm\xe6:549d2a5f4659ab39a80dac99e159ab19\n')
 
-    def test_00_constructor(self):
-        "test constructor & to_string()"
+    def test_00_constructor_autoload(self):
+        "test constructor autoload"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
         #check with existing file
         path = mktemp()
         set_file(path, self.sample_01)
@@ -235,15 +242,9 @@ class HtdigestFileTest(TestCase):
         os.remove(path)
         self.assertRaises(IOError, apache.HtdigestFile, path)
 
-        #check no path
-        ht = apache.HtdigestFile()
-        self.assertEqual(ht.to_string(), b(""))
-
     def test_01_delete(self):
         "test delete()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertTrue(ht.delete("user1", "realm"))
         self.assertTrue(ht.delete("user2", "realm"))
         self.assertTrue(not ht.delete("user5", "realm"))
@@ -253,9 +254,7 @@ class HtdigestFileTest(TestCase):
 
     def test_02_update(self):
         "test update()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertTrue(ht.update("user2", "realm", "pass2x"))
         self.assertTrue(not ht.update("user5", "realm", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
@@ -268,9 +267,7 @@ class HtdigestFileTest(TestCase):
 
     def test_03_users(self):
         "test users()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         ht.update("user5", "realm", "pass5")
         ht.delete("user3", "realm")
         ht.update("user3", "realm", "pass3")
@@ -278,9 +275,7 @@ class HtdigestFileTest(TestCase):
 
     def test_04_verify(self):
         "test verify()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5", "realm","pass5") is None)
         for i in xrange(1,5):
             i = str(i)
@@ -291,6 +286,8 @@ class HtdigestFileTest(TestCase):
 
     def test_05_load(self):
         "test load()"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
 
         #setup empty file
         path = mktemp()
@@ -321,6 +318,9 @@ class HtdigestFileTest(TestCase):
 
     def test_06_save(self):
         "test save()"
+        if gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
         #load from file
         path = mktemp()
         set_file(path, self.sample_01)
@@ -339,9 +339,7 @@ class HtdigestFileTest(TestCase):
 
     def test_07_realms(self):
         "test realms() & delete_realm()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
 
         self.assertEqual(ht.delete_realm("x"), 0)
         self.assertEqual(ht.realms(), ['realm'])
@@ -352,47 +350,52 @@ class HtdigestFileTest(TestCase):
 
     def test_08_find(self):
         "test find()"
-        path = mktemp()
-        set_file(path, self.sample_01)
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertEqual(ht.find("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744")
         self.assertEqual(ht.find("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
         self.assertEqual(ht.find("user5", "realm"), None)
 
     def test_09_encodings(self):
         "test encoding parameter"
-        path = mktemp()
-        set_file(path, self.sample_01)
-
         #test bad encodings cause failure in constructor
-        self.assertRaises(ValueError, apache.HtdigestFile, path, encoding="utf-16")
+        self.assertRaises(ValueError, apache.HtdigestFile, encoding="utf-16")
 
         #check users() returns native string by default
-        ht = apache.HtdigestFile(path)
+        ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertIsInstance(ht.realms()[0], native_str)
         self.assertIsInstance(ht.users("realm")[0], native_str)
 
         #check returns unicode if encoding explicitly set
-        ht = apache.HtdigestFile(path, encoding="utf-8")
+        ht = apache.HtdigestFile._from_string(self.sample_01, encoding="utf-8")
         self.assertIsInstance(ht.realms()[0], unicode)
         self.assertIsInstance(ht.users(u"realm")[0], unicode)
 
         #check returns bytes if encoding explicitly disabled
-        ht = apache.HtdigestFile(path, encoding=None)
+        ht = apache.HtdigestFile._from_string(self.sample_01, encoding=None)
         self.assertIsInstance(ht.realms()[0], bytes)
         self.assertIsInstance(ht.users(b("realm"))[0], bytes)
 
         #check sample utf-8
-        set_file(path, self.sample_04_utf8)
-        ht = apache.HtdigestFile(path, encoding="utf-8")
+        ht = apache.HtdigestFile._from_string(self.sample_04_utf8, encoding="utf-8")
         self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
         self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
 
         #check sample latin-1
-        set_file(path, self.sample_04_latin1)
-        ht = apache.HtdigestFile(path, encoding="latin-1")
+        ht = apache.HtdigestFile._from_string(self.sample_04_latin1, encoding="latin-1")
         self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
         self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+
+
+    def test_10_to_string(self):
+        "test to_string()"
+
+        #check sample
+        ht = apache.HtdigestFile._from_string(self.sample_01)
+        self.assertEqual(ht.to_string(), self.sample_01)
+
+        #check blank
+        ht = apache.HtdigestFile()
+        self.assertEqual(ht.to_string(), b(""))
 
     #=========================================================
     #eoc

@@ -27,6 +27,15 @@ DEFAULT_ENCODING = "utf-8" if sys.version_info >= (3,0) else None
 class _CommonFile(object):
     "helper for HtpasswdFile / HtdigestFile"
 
+    #XXX: would like to add 'path' keyword to load() / save(),
+    #     but that makes .mtime somewhat meaningless.
+    #     to simplify things, should probably deprecate mtime & force=False
+    #     options.
+    #XXX: would also like to make _load_string available via public interface,
+    #     such as via 'content' keyword in load() method.
+    #     in short, need to clean up the htpasswd api a little bit in 1.6.
+    #     keeping _load_string private for now, cause just using it for UTing.
+
     #NOTE: 'path' is a property instead of attr,
     #      so that .mtime is wiped whenever path is changed.
     _path = None
@@ -37,6 +46,13 @@ class _CommonFile(object):
             self.mtime = 0
         self._path = path
     path = property(_get_path, _set_path)
+
+    @classmethod
+    def _from_string(cls, content, **kwds):
+        #NOTE: not public yet, just using it for unit tests.
+        self = cls(**kwds)
+        self._load_string(content)
+        return self
 
     def __init__(self, path=None, autoload=True,
                  encoding=DEFAULT_ENCODING,
@@ -56,7 +72,24 @@ class _CommonFile(object):
             self._entry_order = []
             self._entry_map = {}
 
-    #TODO: load_string ? 
+    def _load_string(self, content):
+        """UT helper for loading from string
+
+        to be improved/made public in later release.
+
+
+        :param content:
+            if specified, should be a bytes object.
+            passwords will be loaded directly from this string,
+            and any files will be ignored.
+        """
+        if isinstance(content, unicode):
+            content = content.encode(self.encoding or 'utf-8')
+        self.mtime = 0
+        #XXX: replace this with iterator?
+        lines = content.splitlines()
+        self._load_lines(lines)
+        return True
 
     def load(self, force=True):
         """load entries from file
@@ -74,7 +107,7 @@ class _CommonFile(object):
             raise RuntimeError("no load path specified")
         if not force and self.mtime and self.mtime == os.path.getmtime(path):
             return False
-        with open(path, "rbU") as fh:
+        with open(path, "rb") as fh:
             self.mtime = os.path.getmtime(path)
             self._load_lines(fh)
         return True
@@ -103,7 +136,7 @@ class _CommonFile(object):
         entry_map = self._entry_map
         assert len(entry_order) == len(entry_map), "internal error in entry list"
         return (rl(key, entry_map[key]) for key in entry_order)
-    
+
     def save(self):
         "save entries to file"
         if not self.path:
