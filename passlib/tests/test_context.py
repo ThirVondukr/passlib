@@ -11,6 +11,10 @@ import time
 import warnings
 import sys
 #site
+try:
+    from pkg_resources import resource_filename
+except ImportError:
+    resource_filename = None
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
@@ -52,6 +56,10 @@ sha512_crypt.min_rounds = 40000
 """
     sample_config_1s_path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "sample_config_1s.cfg"))
+    if not os.path.exists(sample_config_1s_path) and resource_filename:
+        #in case we're zipped up in an egg.
+        sample_config_1s_path = resource_filename("passlib.tests",
+                                                  "sample_config_1s.cfg")
 
     #make sure sample_config_1s uses \n linesep - tests rely on this
     assert sample_config_1s.startswith("[passlib]\nschemes")
