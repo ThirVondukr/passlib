@@ -12,19 +12,9 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils import b, native_str, bytes
-from passlib.tests.utils import TestCase, mktemp, gae_env
+from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
 #module
 log = getLogger(__name__)
-
-def set_file(path, content):
-    if isinstance(content, unicode):
-        content = content.encode("utf-8")
-    with open(path, "wb") as fh:
-        fh.write(content)
-
-def get_file(path):
-    with open(path, "rb") as fh:
-        return fh.read()
 
 def backdate_file_mtime(path, offset=10):
     "backdate file's mtime by specified amount"

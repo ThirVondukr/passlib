@@ -25,7 +25,7 @@ class AppsTest(TestCase):
 
     def test_custom_app_context(self):
         ctx = apps.custom_app_context
-        self.assertEquals(ctx.policy.schemes(), ["sha512_crypt", "sha256_crypt"])
+        self.assertEqual(ctx.policy.schemes(), ["sha512_crypt", "sha256_crypt"])
         for hash in [
             ('$6$rounds=41128$VoQLvDjkaZ6L6BIE$4pt.1Ll1XdDYduEwEYPCMOBiR6W6'
                 'znsyUEoNlcVXpv2gKKIbQolgmTGe6uEEVJ7azUxuc8Tf7zV9SD2z7Ij751'),
@@ -44,7 +44,7 @@ class AppsTest(TestCase):
         ]:
             self.assertTrue(ctx.verify("test", hash))
 
-        self.assertEquals(ctx.identify("!"), "django_disabled")
+        self.assertEqual(ctx.identify("!"), "django_disabled")
         self.assertFalse(ctx.verify("test", "!"))
 
     def test_ldap_nocrypt_context(self):

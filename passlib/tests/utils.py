@@ -2,6 +2,7 @@
 #=========================================================
 #imports
 #=========================================================
+from __future__ import with_statement
 #core
 import atexit
 import logging; log = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ __all__ = [
     #util funcs
     'enable_option',
     'Params',
+    'set_file', 'get_file',
 
     #unit testing
     'TestCase',
@@ -61,7 +63,6 @@ except ImportError:
     gae_env = False
 else:
     gae_env = True
-assert gae_env
 
 #=========================================================
 #option flags
@@ -113,6 +114,18 @@ class Params(object):
         if txt.endswith(", "):
             txt = txt[:-2]
         return txt
+
+def set_file(path, content):
+    "set file to specified bytes"
+    if isinstance(content, unicode):
+        content = content.encode("utf-8")
+    with open(path, "wb") as fh:
+        fh.write(content)
+
+def get_file(path):
+    "read file as bytes"
+    with open(path, "rb") as fh:
+        return fh.read()
 
 #=========================================================
 #custom test base
@@ -217,7 +230,7 @@ class TestCase(unittest.TestCase):
         raise self.failureException(msg)
 
     #===============================================================
-    #add some extra methods (these are already present in unittest2)
+    #backport some methods from unittest2
     #===============================================================
     if ut_version < 2:
 
@@ -241,6 +254,44 @@ class TestCase(unittest.TestCase):
 
         def skipTest(self, reason):
             raise SkipTest(reason)
+
+        def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
+            """Fail if the two objects are unequal as determined by their
+               difference rounded to the given number of decimal places
+               (default 7) and comparing to zero, or by comparing that the
+               between the two objects is more than the given delta.
+
+               Note that decimal places (from zero) are usually not the same
+               as significant digits (measured from the most signficant digit).
+
+               If the two objects compare equal then they will automatically
+               compare almost equal.
+            """
+            if first == second:
+                # shortcut
+                return
+            if delta is not None and places is not None:
+                raise TypeError("specify delta or places not both")
+
+            if delta is not None:
+                if abs(first - second) <= delta:
+                    return
+
+                standardMsg = '%s != %s within %s delta' % (repr(first),
+                                                            repr(second),
+                                                            repr(delta))
+            else:
+                if places is None:
+                    places = 7
+
+                if round(abs(second-first), places) == 0:
+                    return
+
+                standardMsg = '%s != %s within %r places' % (repr(first),
+                                                              repr(second),
+                                                              places)
+            msg = self._formatMessage(msg, standardMsg)
+            raise self.failureException(msg)
 
     #============================================================
     #add some custom methods

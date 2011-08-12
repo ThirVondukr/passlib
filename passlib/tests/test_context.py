@@ -20,9 +20,10 @@ from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_warnings, gae_env
+from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
+    gae_env, set_file
 from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
-        _unload_handler_name as unload_handler_name
+    _unload_handler_name as unload_handler_name
 #module
 log = getLogger(__name__)
 
@@ -209,27 +210,24 @@ admin.sha512_crypt.max_rounds = 40000
 
     def test_01_from_path(self):
         "test CryptPolicy.from_path() constructor with encodings"
-        if not gae_env:
+        if gae_env:
             return self.skipTest("GAE doesn't offer read/write filesystem access")
 
         path = mktemp()
 
         #test "\n" linesep
-        with open(path, "wb") as fh:
-            fh.write(self.sample_config_1s)
+        set_file(path, self.sample_config_1s)
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #test "\r\n" linesep
-        with open(path, "wb") as fh:
-            fh.write(self.sample_config_1s.replace("\n","\r\n"))
+        set_file(path, self.sample_config_1s.replace("\n","\r\n"))
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #test with custom encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
-        with open(path, "wb") as fh:
-            fh.write(uc2)
+        set_file(path, uc2)
         policy = CryptPolicy.from_path(path, encoding="utf-16")
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
@@ -787,18 +785,18 @@ class CryptContextTest(TestCase):
         #verify hashing works
         TimedHash.delay = .05
         elapsed, _ = timecall(TimedHash.genhash, 'stub', 'stub')
-        self.assertAlmostEquals(elapsed, .05, delta=.01)
+        self.assertAlmostEqual(elapsed, .05, delta=.01)
 
         #ensure min verify time is honored
         elapsed, _ = timecall(cc.verify, "stub", "stub")
-        self.assertAlmostEquals(elapsed, .1, delta=.01)
+        self.assertAlmostEqual(elapsed, .1, delta=.01)
 
         #ensure taking longer emits a warning.
         TimedHash.delay = .15
         with catch_warnings(record=True) as wlog:
             warnings.simplefilter("always")
             elapsed, _ = timecall(cc.verify, "stub", "stub")
-        self.assertAlmostEquals(elapsed, .15, delta=.01)
+        self.assertAlmostEqual(elapsed, .15, delta=.01)
         self.assertEqual(len(wlog), 1)
         self.assertWarningMatches(wlog[0],
             message_re="CryptContext: verify exceeded min_verify_time")
