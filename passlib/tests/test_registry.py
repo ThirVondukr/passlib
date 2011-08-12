@@ -21,7 +21,11 @@ from passlib.tests.utils import TestCase, mktemp, catch_warnings
 log = getLogger(__name__)
 
 #=========================================================
-#test registry
+#dummy handlers
+#
+#NOTE: these are defined outside of test case
+#      since they're used by test_register_crypt_handler_path(),
+#      which needs them to be available as module globals.
 #=========================================================
 class dummy_0(uh.StaticHandler):
     name = "dummy_0"
@@ -31,6 +35,9 @@ class alt_dummy_0(uh.StaticHandler):
 
 dummy_x = 1
 
+#=========================================================
+#test registry
+#=========================================================
 class RegistryTest(TestCase):
 
     case_prefix = "passlib registry"
@@ -82,7 +89,7 @@ class RegistryTest(TestCase):
         self.assertFalse(hasattr(hash, 'dummy_0'))
 
         #try lazy load
-        register_crypt_handler_path('dummy_0', 'passlib.tests.test_registry')
+        register_crypt_handler_path('dummy_0', __name__)
         self.assertTrue('dummy_0' in list_crypt_handlers())
         self.assertTrue('dummy_0' not in list_crypt_handlers(loaded_only=True))
         self.assertIs(hash.dummy_0, dummy_0)
@@ -90,16 +97,16 @@ class RegistryTest(TestCase):
         unload_handler_name('dummy_0')
 
         #try lazy load w/ alt
-        register_crypt_handler_path('dummy_0', 'passlib.tests.test_registry:alt_dummy_0')
+        register_crypt_handler_path('dummy_0', __name__ + ':alt_dummy_0')
         self.assertIs(hash.dummy_0, alt_dummy_0)
         unload_handler_name('dummy_0')
 
         #check lazy load w/ wrong type fails
-        register_crypt_handler_path('dummy_x', 'passlib.tests.test_registry')
+        register_crypt_handler_path('dummy_x', __name__)
         self.assertRaises(TypeError, get_crypt_handler, 'dummy_x')
 
         #check lazy load w/ wrong name fails
-        register_crypt_handler_path('alt_dummy_0', 'passlib.tests.test_registry')
+        register_crypt_handler_path('alt_dummy_0', __name__)
         self.assertRaises(ValueError, get_crypt_handler, "alt_dummy_0")
 
         #TODO: check lazy load which calls register_crypt_handler (warning should be issued)

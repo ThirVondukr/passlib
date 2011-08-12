@@ -1,5 +1,4 @@
 "helper for method in test_registry.py"
-
 from passlib.registry import register_crypt_handler
 import passlib.utils.handlers as uh
 
@@ -9,4 +8,8 @@ class dummy_bad(uh.StaticHandler):
 class alt_dummy_bad(uh.StaticHandler):
     name = "dummy_bad"
 
-register_crypt_handler(alt_dummy_bad)
+#NOTE: if passlib.tests is being run from symlink (eg via gaeunit),
+#      this module may be imported a second time as test._test_bad_registry.
+#      we don't want it to do anything in that case.
+if __name__.startswith("passlib.tests"):
+    register_crypt_handler(alt_dummy_bad)
