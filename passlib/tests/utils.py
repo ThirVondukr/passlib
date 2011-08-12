@@ -246,7 +246,7 @@ class TestCase(unittest.TestCase):
             msg = "error for case %r:" % (elem.render(1),)
             self.assertEqual(result, correct, msg)
 
-    def assertWarningMatches(self, warning, 
+    def assertWarningMatches(self, warning,
                              message=None, message_re=None,
                              category=None,
                              ##filename=None, filename_re=None,
@@ -254,7 +254,7 @@ class TestCase(unittest.TestCase):
                              msg=None,
                              ):
         "check if WarningMessage instance (as returned by catch_warnings) matches parameters"
-        
+
         #determine if we have WarningMessage object,
         #and ensure 'warning' contains only warning instances.
         if hasattr(warning, "category"):
@@ -262,7 +262,7 @@ class TestCase(unittest.TestCase):
             warning = warning.message
         else:
             wmsg = None
-        
+
         #tests that can use a warning instance or WarningMessage object
         if message:
             self.assertEqual(str(warning), message, msg)
@@ -270,7 +270,7 @@ class TestCase(unittest.TestCase):
             self.assertRegexpMatches(str(warning), message_re, msg)
         if category:
             self.assertIsInstance(warning, category, msg)
-            
+
         #commented out until needed...
         ###tests that require a WarningMessage object
         ##if filename or filename_re:
@@ -952,9 +952,12 @@ def create_backend_case(base, name):
     if not enable and ut_version < 2:
         return None
 
+    #make classname match what it's stored under, to be tidy
+    cname = name.title().replace("_","") + "_" + base.__name__.lstrip("_")
+
     #create subclass of 'base' which uses correct backend
     subcase = type(
-        "%s_%s" % (name.title(), base.__name__),
+        cname,
         (base,),
         dict(
             case_prefix = "%s (%s backend)" % (handler.name, name),
@@ -1014,56 +1017,56 @@ except ImportError:
     #catch_warnings wasn't added until py26.
     #this adds backported copy from py26's stdlib
     #so we can use it under py25.
-    
+
     class WarningMessage(object):
-    
+
         """Holds the result of a single showwarning() call."""
-    
+
         _WARNING_DETAILS = ("message", "category", "filename", "lineno", "file",
                             "line")
-    
+
         def __init__(self, message, category, filename, lineno, file=None,
                         line=None):
             local_values = locals()
             for attr in self._WARNING_DETAILS:
                 setattr(self, attr, local_values[attr])
             self._category_name = category.__name__ if category else None
-    
+
         def __str__(self):
             return ("{message : %r, category : %r, filename : %r, lineno : %s, "
                         "line : %r}" % (self.message, self._category_name,
                                         self.filename, self.lineno, self.line))
-    
-    
+
+
     class catch_warnings(object):
-    
+
         """A context manager that copies and restores the warnings filter upon
         exiting the context.
-    
+
         The 'record' argument specifies whether warnings should be captured by a
         custom implementation of warnings.showwarning() and be appended to a list
         returned by the context manager. Otherwise None is returned by the context
         manager. The objects appended to the list are arguments whose attributes
         mirror the arguments to showwarning().
-    
+
         The 'module' argument is to specify an alternative module to the module
         named 'warnings' and imported under that name. This argument is only useful
         when testing the warnings module itself.
-    
+
         """
-    
+
         def __init__(self, record=False, module=None):
             """Specify whether to record warnings and if an alternative module
             should be used other than sys.modules['warnings'].
-    
+
             For compatibility with Python 3.0, please consider all arguments to be
             keyword-only.
-    
+
             """
             self._record = record
             self._module = sys.modules['warnings'] if module is None else module
             self._entered = False
-    
+
         def __repr__(self):
             args = []
             if self._record:
@@ -1072,7 +1075,7 @@ except ImportError:
                 args.append("module=%r" % self._module)
             name = type(self).__name__
             return "%s(%s)" % (name, ", ".join(args))
-    
+
         def __enter__(self):
             if self._entered:
                 raise RuntimeError("Cannot enter %r twice" % self)
@@ -1088,7 +1091,7 @@ except ImportError:
                 return log
             else:
                 return None
-    
+
         def __exit__(self, *exc_info):
             if not self._entered:
                 raise RuntimeError("Cannot exit %r without entering first" % self)

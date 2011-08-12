@@ -107,8 +107,8 @@ class _BCryptTest(HandlerCase):
 bcrypt._no_backends_msg() #call this for coverage purposes
 
 #create test cases for specific backends
-PyBCrypt_BCryptTest = create_backend_case(_BCryptTest, "pybcrypt")
-BCryptor_BCryptTest = create_backend_case(_BCryptTest, "bcryptor")
+Pybcrypt_BCryptTest = create_backend_case(_BCryptTest, "pybcrypt")
+Bcryptor_BCryptTest = create_backend_case(_BCryptTest, "bcryptor")
 OsCrypt_BCryptTest = create_backend_case(_BCryptTest, "os_crypt")
 
 #=========================================================
