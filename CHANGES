@@ -8,9 +8,12 @@ Release History
 
     * bugfix: fixed error thrown by CryptContext.verify
       when issuing min_verify_time warning [issue 17]
-      
+
     * removed min_verify_time setting from custom_app_context,
       min_verify_time is too host & load dependant to be hardcoded [issue 17].
+
+    * bugfix: make ``passlib.hash.__loader__`` attribute writable -
+      needed by Google App Engine [issue 19]
 
 **1.5** (2011-07-11)
 
@@ -25,7 +28,7 @@ Release History
     to provide the same behavior as Passlib 1.4;
     but when run under Python 3, most functions
     will return unicode instead of ascii bytes.
-    
+
     Besides this major change, there have
     been some other additions:
 

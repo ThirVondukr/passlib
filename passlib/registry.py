@@ -42,7 +42,12 @@ class PasslibRegistryProxy(object):
             raise AttributeError("unknown password hash: %r" % (attr,))
 
     def __setattr__(self, attr, value):
-        register_crypt_handler(value, name=attr)
+        if attr.startswith("_"):
+            #NOTE: this is required for GAE,
+            #      since it tries to set passlib.hash.__loader__
+            object.__setattr__(self, attr, value)
+        else:
+            register_crypt_handler(value, name=attr)
 
     def __repr__(self):
         return "<proxy module 'passlib.hash'>"

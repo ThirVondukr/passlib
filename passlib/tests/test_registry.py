@@ -41,13 +41,39 @@ class RegistryTest(TestCase):
 
     def test_hash_proxy(self):
         "test passlib.hash proxy object"
+        #check dir works
         dir(hash)
+
+        #check repr works
         repr(hash)
+
+        #check non-existent attrs raise error
         self.assertRaises(AttributeError, getattr, hash, 'fooey')
+
+        #GAE tries to set __loader__,
+        #make sure that doesn't call register_crypt_handler.
+        old = getattr(hash, "__loader__", None)
+        test = object()
+        hash.__loader__ = test
+        self.assertIs(hash.__loader__, test)
+        if old is None:
+            del hash.__loader__
+            self.assertFalse(hasattr(hash, "__loader__"))
+        else:
+            hash.__loader__ = old
+            self.assertIs(hash.__loader__, old)
+
+        #check storing attr calls register_crypt_handler
+        class dummy_1(uh.StaticHandler):
+            name = "dummy_1"
+        hash.dummy_1 = dummy_1
+        self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
+
+        #check storing under wrong name results in error
+        self.assertRaises(ValueError, setattr, hash, "dummy_1x", dummy_1)
 
     def test_register_crypt_handler_path(self):
         "test register_crypt_handler_path()"
-
         #NOTE: this messes w/ internals of registry, shouldn't be used publically.
         paths = registry._handler_locations
 
