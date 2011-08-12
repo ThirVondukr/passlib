@@ -14,7 +14,7 @@ import sys
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
-from passlib.utils import to_bytes
+from passlib.utils import to_bytes, to_unicode
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, gae_env
 from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
@@ -205,8 +205,16 @@ admin.sha512_crypt.max_rounds = 40000
             return self.skipTest("GAE doesn't offer read/write filesystem access")
 
         path = mktemp()
-        with open(path, "w") as fh:
+
+        #test "\n" linesep
+        with open(path, "wb") as fh:
             fh.write(self.sample_config_1s)
+        policy = CryptPolicy.from_path(path)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
+
+        #test "\r\n" linesep
+        with open(path, "wb") as fh:
+            fh.write(self.sample_config_1s.replace("\n","\r\n"))
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
@@ -219,16 +227,28 @@ admin.sha512_crypt.max_rounds = 40000
 
     def test_02_from_string(self):
         "test CryptPolicy.from_string() constructor"
+        #test "\n" linesep
         policy = CryptPolicy.from_string(self.sample_config_1s)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        policy = CryptPolicy.from_string(self.sample_config_4s)
-        self.assertEqual(policy.to_dict(), self.sample_config_4pd)
+        #test "\r\n" linesep
+        policy = CryptPolicy.from_string(
+            self.sample_config_1s.replace("\n","\r\n"))
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test with custom encoding
+        #test with unicode
+        data = to_unicode(self.sample_config_1s)
+        policy = CryptPolicy.from_string(data)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
+
+        #test with non-ascii-compatible encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         policy = CryptPolicy.from_string(uc2, encoding="utf-16")
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
+
+        #test category specific options
+        policy = CryptPolicy.from_string(self.sample_config_4s)
+        self.assertEqual(policy.to_dict(), self.sample_config_4pd)
 
     def test_03_from_source(self):
         "test CryptPolicy.from_source() constructor"
