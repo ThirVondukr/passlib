@@ -16,7 +16,7 @@ from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_warnings
+from passlib.tests.utils import TestCase, mktemp, catch_warnings, gae_env
 from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
         _unload_handler_name as unload_handler_name
 #module
@@ -39,6 +39,7 @@ class CryptPolicyTest(TestCase):
     #-----------------------------------------------------
     #sample 1 - average config file
     #-----------------------------------------------------
+    #NOTE: copy of this is stored in file passlib/tests/sample_config_1s.cfg
     sample_config_1s = """\
 [passlib]
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
@@ -49,6 +50,11 @@ bsdi_crypt.default_rounds = 25000
 sha512_crypt.max_rounds = 50000
 sha512_crypt.min_rounds = 40000
 """
+    sample_config_1s_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "sample_config_1s.cfg"))
+
+    #make sure sample_config_1s uses \n linesep - tests rely on this
+    assert sample_config_1s.startswith("[passlib]\nschemes")
 
     sample_config_1pd = dict(
         schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"],
@@ -181,8 +187,23 @@ admin.sha512_crypt.max_rounds = 40000
                           schemes=['des_crypt'],
                           default='md5_crypt')
 
-    def test_01_from_path(self):
+    def test_01_from_path_simple(self):
         "test CryptPolicy.from_path() constructor"
+        #NOTE: this is separate so it can also run under GAE
+
+        #test preset stored in existing file
+        path = self.sample_config_1s_path
+        policy = CryptPolicy.from_path(path)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
+
+        #test if path missing
+        self.assertRaises(EnvironmentError, CryptPolicy.from_path, path + 'xxx')
+
+    def test_01_from_path(self):
+        "test CryptPolicy.from_path() constructor with encodings"
+        if not gae_env:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
         path = mktemp()
         with open(path, "w") as fh:
             fh.write(self.sample_config_1s)
@@ -195,10 +216,6 @@ admin.sha512_crypt.max_rounds = 40000
             fh.write(uc2)
         policy = CryptPolicy.from_path(path, encoding="utf-16")
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
-
-        #test if path missing
-        os.remove(path)
-        self.assertRaises(EnvironmentError, CryptPolicy.from_path, path)
 
     def test_02_from_string(self):
         "test CryptPolicy.from_string() constructor"
@@ -215,12 +232,8 @@ admin.sha512_crypt.max_rounds = 40000
 
     def test_03_from_source(self):
         "test CryptPolicy.from_source() constructor"
-
         #pass it a path
-        path = mktemp()
-        with open(path, "w") as fh:
-            fh.write(self.sample_config_1s)
-        policy = CryptPolicy.from_source(path)
+        policy = CryptPolicy.from_source(self.sample_config_1s_path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass it a string
@@ -250,11 +263,9 @@ admin.sha512_crypt.max_rounds = 40000
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #pass multiple sources
-        path = mktemp()
-        with open(path, "w") as fh:
-            fh.write(self.sample_config_1s)
-        policy = CryptPolicy.from_sources([
-            path,
+        policy = CryptPolicy.from_sources(
+            [
+            self.sample_config_1s_path,
             self.sample_config_2s,
             self.sample_config_3pd,
             ])
@@ -722,21 +733,21 @@ class CryptContextTest(TestCase):
         "test verify() honors min_verify_time"
         #NOTE: this whole test assumes time.sleep() and time.time()
         #      have at least 1ms accuracy
-        
+
         class TimedHash(uh.StaticHandler):
             "psuedo hash that takes specified amount of time"
-            name = "timed_hash"            
+            name = "timed_hash"
             delay = 0
-            
+
             @classmethod
             def identify(cls, hash):
                 return True
-        
+
             @classmethod
             def genhash(cls, secret, hash):
                 time.sleep(cls.delay)
                 return hash or 'x'
-        
+
         cc = CryptContext([TimedHash], min_verify_time=.1)
 
         def timecall(func, *args, **kwds):
@@ -749,11 +760,11 @@ class CryptContextTest(TestCase):
         TimedHash.delay = .05
         elapsed, _ = timecall(TimedHash.genhash, 'stub', 'stub')
         self.assertAlmostEquals(elapsed, .05, delta=.01)
-        
+
         #ensure min verify time is honored
         elapsed, _ = timecall(cc.verify, "stub", "stub")
         self.assertAlmostEquals(elapsed, .1, delta=.01)
-        
+
         #ensure taking longer emits a warning.
         TimedHash.delay = .15
         with catch_warnings(record=True) as wlog:
@@ -763,7 +774,7 @@ class CryptContextTest(TestCase):
         self.assertEqual(len(wlog), 1)
         self.assertWarningMatches(wlog[0],
             message_re="CryptContext: verify exceeded min_verify_time")
-        
+
     def test_25_verify_and_update(self):
         "test verify_and_update()"
         cc = CryptContext(**self.sample_policy_1)

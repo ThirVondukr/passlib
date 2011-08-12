@@ -47,7 +47,21 @@ __all__ = [
     'HandlerCase',
     'enable_backend_case',
     'create_backend_case',
+
+    #flags
+    'gae_env',
 ]
+
+#figure out if we're running under GAE...
+#some tests (eg FS related) should be skipped.
+    #XXX: is there better way to do this?
+try:
+    import google.appengine
+except ImportError:
+    gae_env = False
+else:
+    gae_env = True
+assert gae_env
 
 #=========================================================
 #option flags
