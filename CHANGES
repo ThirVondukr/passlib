@@ -11,14 +11,16 @@ Release History
         - bugfix: make ``passlib.hash.__loader__`` attribute writable -
           needed by Google App Engine [issue 19]
 
-        - provide fallback for loading passlib/default.cfg
-          if pkg_resources is not present.
+        - provide fallback for loading ``passlib/default.cfg``
+          if :mod:`pkg_resources` is not present.
 
     * bugfix: fixed error thrown by CryptContext.verify
       when issuing min_verify_time warning [issue 17]
 
     * removed min_verify_time setting from custom_app_context,
       min_verify_time is too host & load dependant to be hardcoded [issue 17].
+
+    * more UT coverage for :mod:`passlib.apps` and :mod:`passlib.hosts`
 
 **1.5** (2011-07-11)
 
