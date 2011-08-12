@@ -25,7 +25,11 @@ import time
 import os
 from warnings import warn
 #site
-from pkg_resources import resource_string
+try:
+    from pkg_resources import resource_string
+except ImportError:
+    #not available eg: under GAE
+    resource_string = None
 #libs
 from passlib.registry import get_crypt_handler, _unload_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
@@ -700,6 +704,7 @@ class CryptPolicy(object):
             k,v = self._escape_ini_pair(k,v)
             parser.set(section, k,v)
 
+    #XXX: rename as "to_stream" or "write_to_stream" ?
     def to_file(self, stream, section="passlib"):
         "serialize to INI format and write to specified stream"
         p = SafeConfigParser()
@@ -734,8 +739,30 @@ class CryptPolicy(object):
     #eoc
     #=========================================================
 
-#load the default policy instance setup by passlib, which all CryptContexts inherit by default
-default_policy = CryptPolicy.from_string(resource_string("passlib", "default.cfg"))
+#=========================================================
+#load default policy from default.cfg
+#=========================================================
+def _load_default_policy():
+    "helper to try to load default policy from file"
+    #if pkg_resources available, try to read out of egg (common case)
+    if resource_string:
+        try:
+            return CryptPolicy.from_string(resource_string("passlib", "default.cfg"))
+        except IOError:
+            log.warn("error reading passlib/default.cfg, is passlib installed correctly?")
+            pass
+
+    #failing that, see if we can read it from package dir
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "default.cfg"))
+    if os.path.exists(path):
+        with open(path, "rb") as fh:
+            return CryptPolicy.from_string(fh.read())
+
+    #give up - this is not desirable at all, could use another fallback.
+    log.error("can't find passlib/default.cfg, is passlib installed correctly?")
+    return CryptPolicy()
+
+default_policy = _load_default_policy()
 
 #=========================================================
 #
