@@ -682,8 +682,9 @@ def genseed(value=None):
         value,
             #if user specified a seed value (eg current rng state), mix it in
 
-        os.getpid(),
+        os.getpid() if hasattr(os, "getpid") else None,
             #add current process id
+            #NOTE: not available in some environments, eg GAE
 
         id(object()),
             #id of a freshly created object.
