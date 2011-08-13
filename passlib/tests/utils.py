@@ -293,6 +293,18 @@ class TestCase(unittest.TestCase):
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
 
+    if not hasattr(unittest.TestCase, "assertRegexpMatches"):
+        #added in 2.7/UT2 and 3.1        
+        def assertRegexpMatches(self, text, expected_regex, msg=None):
+            """Fail the test unless the text matches the regular expression."""
+            if isinstance(expected_regex, basestring):
+                assert expected_regex, "expected_regex must not be empty."
+                expected_regex = re.compile(expected_regex)
+            if not expected_regex.search(text):
+                msg = msg or "Regex didn't match"
+                msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
+                raise self.failureException(msg)
+
     #============================================================
     #add some custom methods
     #============================================================
