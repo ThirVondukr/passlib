@@ -46,6 +46,15 @@ if py3k:
         opts['cmdclass']['build_py'] = build_py
 
 #=========================================================
+#register docdist command (not required)
+#=========================================================
+try:
+    from passlib._setup.docdist import docdist
+    opts['cmdclass']['docdist'] = docdist
+except ImportError:
+    pass
+
+#=========================================================
 # version string / datestamps
 #=========================================================
 from passlib import __version__ as VERSION

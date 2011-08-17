@@ -172,7 +172,8 @@ class StaticHandler(object):
 
     The default :meth:`verify` method uses simple equality to compare hash strings.
     If your hash may have multiple encoding (eg case-insensitive), this
-    method should be overridden on a per-handler basis.
+    method (or the private :meth:`_norm_hash` method)
+    should be overridden on a per-handler basis.
 
     If your hash has options, such as multiple identifiers, salts,
     or variable rounds, this is not the right class to start with.
