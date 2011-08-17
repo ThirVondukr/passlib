@@ -118,6 +118,10 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
+This algorithm is probably the best choice for Google App Engine,
+as Google's production servers appear to provide native support
+via :mod:`crypt`, which will be used by Passlib. 
+
 .. note::
 
     References to this algorithm are frequently confused with a raw SHA-512 hash;
