@@ -6,6 +6,8 @@
 import os
 from distutils import dir_util
 from distutils.cmd import Command
+from distutils.errors import *
+from distutils.spawn import spawn
 #local
 __all__ = [
     "docdist"
@@ -24,6 +26,8 @@ class docdist(Command):
          "[default: dist]"),        
         ('format=', 'f',
          "archive format to create (tar, ztar, gztar, zip)"),
+        ('sign', 's', 'sign files using gpg'),
+        ('identity=', 'i', 'GPG identity used to sign files'),
     ]
     
     def initialize_options(self):
@@ -31,8 +35,14 @@ class docdist(Command):
         self.dist_dir = None
         self.format = None
         self.keep_temp = False
+        self.sign = False
+        self.identity = None
         
     def finalize_options(self):
+        if self.identity and not self.sign:
+            raise DistutilsOptionError(
+                "Must use --sign for --identity to have meaning"
+            )
         if self.build_dir is None:
             cmd = self.get_finalized_command('build')
             self.build_dir = os.path.join(cmd.build_base, 'docdist')
@@ -60,6 +70,14 @@ class docdist(Command):
         self.arc_filename = self.make_archive(arc_base, self.format,
                                               self.build_dir)
 
+        # Sign if requested
+        if self.sign:
+            gpg_args = ["gpg", "--detach-sign", "-a", self.arc_filename]
+            if self.identity:
+                gpg_args[2:2] = ["--local-user", self.identity]
+            spawn(gpg_args,
+                  dry_run=self.dry_run)
+            
         #cleanup
         if not self.keep_temp:
             dir_util.remove_tree(tmp_dir, dry_run=self.dry_run)
