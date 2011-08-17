@@ -35,6 +35,8 @@ For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
 instance; see below for more...
 
+.. _recommended-hashes:
+
 Choosing a Hash
 ================
 *If you already know what hash algorithm(s) you want to use,
@@ -93,7 +95,8 @@ of simultaneous logon attempts (eg web apps).
 
     For BCrypt support on non-BSD systems,
     Passlib requires a C-extension module
-    provided by the external pybcrypt or bcryptor packages.
+    provided by the external
+    :ref:`PyBcrypt or BCryptor <optional-libraries>`  packages.
     Neither of these currently supports Python 3.
 
 SHA512-Crypt

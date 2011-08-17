@@ -17,6 +17,8 @@ Though the original PBKDF2 specification uses the SHA-1 message digest,
 it is not vulnerable to any of the known weaknesses of SHA-1 [#hmac-sha1]_,
 and can be safely used. However, for those still concerned, SHA-256 and SHA-512
 versions are offered as well.
+PBKDF2-SHA512 is one of the three hashes Passlib
+:ref:`recommends <recommended-hashes>` for new applications.
 
 .. seealso::
 
@@ -24,9 +26,32 @@ versions are offered as well.
 
 Usage
 =====
-These classes support both rounds and salts,
-and can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
+All of the following classes can be used directly as follows::
+
+    >>> from passlib.hash import pbkdf2_sha256 as engine
+
+    >>> #generate new salt, encrypt password
+    >>> hash = engine.encrypt("password")
+    >>> hash
+    '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'
+
+    >>> #same, but with explicit number of rounds and salt length
+    >>> engine.encrypt("password", rounds=8000, salt_size=10) 
+    '$pbkdf2-sha256$8000$XAuBMIYQQogxRg$tRRlz8hYn63B9LYiCd6PRo6FMiunY9ozmMMI3srxeRE'
+
+    >>> #check if hash is a pbkdf2-sha256 hash
+    >>> engine.identify(hash)
+    True
+    >>> #check if some other hash is recognized
+    >>> engine.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+    >>> #verify correct password
+    >>> engine.verify("password", hash)
+    True
+    >>> #verify incorrect password
+    >>> engine.verify("wrong", hash)
+    False
 
 Interface
 =========

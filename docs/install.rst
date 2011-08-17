@@ -16,6 +16,8 @@ Passlib should work with all operating systems,
 as it contains builtin fallbacks
 for almost all OS-dependant features.
 
+.. _optional-libraries: 
+
 Optional Libraries
 ==================
 * `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ or
@@ -25,7 +27,7 @@ Optional Libraries
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support
-   via stdlib's :mod:`!crypt` (this is pretty much all non-BSD systems).
+   via stdlib's :mod:`!crypt` (which includes pretty much all non-BSD systems).
 
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
 

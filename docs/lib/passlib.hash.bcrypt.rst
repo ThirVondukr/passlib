@@ -8,18 +8,43 @@ BCrypt was developed to replace :class:`~passlib.hash.md5_crypt` for BSD systems
 It uses a modified version of the Blowfish stream cipher. Featuring
 a large salt and variable number of rounds, it's currently the default
 password hash for many systems (notably BSD), and has no known weaknesses.
+It is one of the three hashes Passlib :ref:`recommends <recommended-hashes>`
+for new applications.
 
 .. note::
 
-    It is strongly recommended to install PyBcrypt or BCryptor if this algorithm
-    is going to be used.
+    It is strongly recommended to install
+    :ref:`PyBcrypt or BCryptor <optional-libraries>`
+    if this algorithm is going to be used.
 
 Usage
 =====
+This class can be used directly as follows::
 
-.. todo::
+    >>> from passlib.hash import bcrypt
 
-    write usage instructions
+    >>> #generate new salt, encrypt password
+    >>> h = bcrypt.encrypt("password")
+    >>> h
+    '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
+
+    >>> #same, but with explict number of rounds
+    >>> bcrypt.encrypt("password", rounds=8)
+    '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
+
+    >>> #check if hash is a bcrypt hash
+    >>> bcrypt.identify(h)
+    True
+    >>> #check if some other hash is recognized
+    >>> bcrypt.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+    >>> #verify correct password
+    >>> bcrypt.verify("password", h)
+    True
+    >>> #verify incorrect password
+    >>> bcrypt.verify("wrong", h)
+    False
 
 Interface
 =========
