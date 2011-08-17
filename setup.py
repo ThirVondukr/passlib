@@ -1,16 +1,18 @@
 """passlib setup script"""
 #=========================================================
-#init script env -- ensure cwd = root of source dir
+# init script env -- ensure cwd = root of source dir
 #=========================================================
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
 os.chdir(root_dir)
 
 #=========================================================
-#imports
+# imports
 #=========================================================
 import re
 import sys
+import time
+
 py3k = (sys.version_info[0] >= 3)
 
 try:
@@ -19,31 +21,68 @@ try:
 except ImportError:
     from distutils import setup
     has_distribute = False
+    
+#=========================================================
+# init setup options
+#=========================================================
+opts = { "cmdclass": { } }
+args = sys.argv[1:]
 
 #=========================================================
-#enable various 2to3 options
+# 2to3 translation
 #=========================================================
-opts = { "cmdclass": {} }
-
 if py3k:
-    #monkeypatch preprocessor into lib2to3
-    from passlib.setup.cond2to3 import patch2to3
+    # monkeypatch preprocessor into lib2to3
+    from passlib._setup.cond2to3 import patch2to3
     patch2to3()
 
-    #enable 2to3 translation in build_py
+    # enable 2to3 translation in build_py
     if has_distribute:
         opts['use_2to3'] = True
     else:
-        #if we can't use distribute's "use_2to3" flag,
-        #have to override build_py command
+        # if we can't use distribute's "use_2to3" flag,
+        # have to override build_py command
         from distutils.command.build_py import build_py_2to3 as build_py
         opts['cmdclass']['build_py'] = build_py
 
 #=========================================================
-#version string
+# version string / datestamps
 #=========================================================
 from passlib import __version__ as VERSION
 
+# if this is an hg checkout of passlib, add datestamp to version string.
+# XXX: could check for *absence* of PKG-INFO instead
+if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
+
+    # check for --for-release flag indicating this isn't a snapshot
+    for_release = False
+    i = 0
+    while i < len(args):
+        v = args[i]
+        if v == '--for-release':
+            for_release = True
+            del args[i]
+            break
+        elif not v.startswith("-"):
+            break
+        i += 1
+    
+    if for_release:
+        assert '.dev' not in VERSION and '.post' not in VERSION
+    else:
+        # add datestamp if doing a snapshot
+        dstr = time.strftime("%Y%m%d")
+        if VERSION.endswith(".dev0") or VERSION.endswith(".post0"):
+            VERSION = VERSION[:-1] + dstr
+        else:
+            assert '.dev' not in VERSION and '.post' not in VERSION
+            VERSION += ".post" + dstr
+
+        # subclass build_py & sdist so they rewrite passlib/__init__.py
+        # to have the correct version string
+        from passlib._setup.stamp import stamp_distutils_output
+        stamp_distutils_output(opts, VERSION)
+    
 #=========================================================
 #static text
 #=========================================================
@@ -71,21 +110,44 @@ All releases are signed with the gpg key
 """
 
 KEYWORDS = "password secret hash security crypt md5-crypt \
-sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2 ntlm"
+sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2"
+
+CLASSIFIERS = """\
+Intended Audience :: Developers
+License :: OSI Approved :: BSD License
+Natural Language :: English
+Operating System :: OS Independent
+Programming Language :: Python :: 2.5
+Programming Language :: Python :: 2.6
+Programming Language :: Python :: 2.7
+Programming Language :: Python :: 3
+Topic :: Security :: Cryptography
+Topic :: Software Development :: Libraries
+""".splitlines()
+
+is_release = False
+if '.dev' in VERSION:
+    CLASSIFIERS.append("Development Status :: 3 - Alpha")
+elif '.post' in VERSION:
+    CLASSIFIERS.append("Development Status :: 4 - Beta")
+else:
+    is_release = True
+    CLASSIFIERS.append("Development Status :: 5 - Production/Stable")
 
 #=========================================================
 #run setup
 #=========================================================
+# XXX: could omit 'passlib.setup' from eggs, but not sdist
 setup(
     #package info
     packages = [
         "passlib",
             "passlib.handlers",
-            "passlib.setup",
             "passlib.tests",
             "passlib.utils",
+            "passlib._setup",
         ],
-    package_data = { "passlib": ["*.cfg"] },
+    package_data = { "passlib": ["*.cfg" ], "passlib.tests": ["*.cfg"] },
     zip_safe=True,
 
     #metadata
@@ -96,29 +158,20 @@ setup(
     license = "BSD",
 
     url = "http://passlib.googlecode.com",
-    download_url = "http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz",
+    download_url =
+        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
+        if is_release else None,
 
     description = SUMMARY,
     long_description = DESCRIPTION,
     keywords = KEYWORDS,
-    classifiers = [
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
-        "Natural Language :: English",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2.5",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Topic :: Security :: Cryptography",
-        "Topic :: Software Development :: Libraries",
-    ],
+    classifiers = CLASSIFIERS,
 
     tests_require = 'nose >= 1.0',
     test_suite = 'nose.collector',
 
     #extra opts
+    script_args=args,
     **opts
 )
 #=========================================================
