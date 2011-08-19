@@ -122,8 +122,10 @@ by the modular crypt format hashes found in passlib:
 Identifiers & Platform Support
 ==============================
 
-The following table lists of all the major MCF hashes supported by passlib,
-and indicates which operating systems offer native support.
+The following table lists of all the major MCF hashes supported by Passlib,
+and indicates which operating systems [#gae]_ offer native support.
+
+.. todo:: include MacOS X in this list
 
 ==================================== ==================== =========== =========== =========== =========== =======
 Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
@@ -139,24 +141,28 @@ Scheme                               Prefix               Linux       FreeBSD   
 :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
 ==================================== ==================== =========== =========== =========== =========== =======
 
-The following table lists the other MCF hashes supported by passlib,
+The following table lists the other MCF hashes supported by Passlib,
 most of which are only used by applications:
 
 =========================================== =================== ===========================
-Scheme                                      Prefix              Known Uses
+Scheme                                      Prefix              Primary Use (if known)
 =========================================== =================== ===========================
 :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
 :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
 :class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``
 :class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
 :class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
-:class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$``
-:class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$``
+:class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
+:class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
 =========================================== =================== ===========================
 
-.. note::
-    :class:`!cta_pbkdf2_sha1` and :class:`!dlitz_pbkdf2_sha1` both use
-    the same identifier. They can be distinguished
-    by the fact that cta hashes will always end in ``=``, while dlitz
-    hashes contain no ``=`` at all.
+.. rubric:: Footnotes
+
+.. [#gae] As of 2011-08-19, Google App Engine's :mod:`crypt` implementation 
+          appears to provide hash support matching that of a typical Linux system.
+
+.. [#cta] :class:`!cta_pbkdf2_sha1` and :class:`!dlitz_pbkdf2_sha1` both use
+          the same identifier. They can be distinguished
+          by the fact that cta hashes will always end in ``=``, while dlitz
+          hashes contain no ``=`` at all.
 

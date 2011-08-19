@@ -29,8 +29,11 @@ as in the following example::
 
 .. seealso::
 
-    the :ref:`password-hash-api` details the
-    interface used by all password hashes in this module.
+    * :ref:`password-hash-api` -- details the
+      interface used by all password hashes in this module.
+
+    * :doc:`Quickstart Guide </new_app_quickstart>` --
+      for advice on choosing an appropriately secure hash for your new application.
 
 .. _mcf-hashes:
 

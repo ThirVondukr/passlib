@@ -11,7 +11,7 @@ is a cross-platform hash based on PBKDF1 [#pbk]_, and uses an LDAP-style hash fo
 It features a variable length salt, variable rounds, and support for cryptographic
 hashes from SHA-1 up to SHA-512.
 
-.. note::
+.. warning::
 
     While the SHA-2 variants of PBKDF1 have no critical security vulnerabilities,
     PBKDF1 itself has been deprecated in favor of it's successor, PBKDF2.

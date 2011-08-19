@@ -7,14 +7,15 @@ Supported Platforms
 Passlib requires Python 2 (>= 2.5) or Python 3.
 It is known to work with the following Python implementations:
 
-* CPython 2 -- 2.5 or newer.
+* CPython 2 -- v2.5 or newer.
 * CPython 3 -- all versions.
-* PyPy -- 1.5 or newer.
-* Jython -- 2.5 or newer.
+* PyPy -- v1.5 or newer.
+* Jython -- v2.5 or newer.
 
-Passlib should work with all operating systems,
+Passlib should work with all operating systems and enviroments,
 as it contains builtin fallbacks
 for almost all OS-dependant features.
+Google App Engine is supported as well.
 
 .. _optional-libraries: 
 
