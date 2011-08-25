@@ -6,16 +6,11 @@ from __future__ import with_statement
 from passlib.utils import py32_lang
 #core
 from cStringIO import StringIO
-# Py2k #
-    #note: importing ConfigParser to handle passlib 1.4 / earlier files
-from ConfigParser import SafeConfigParser,ConfigParser,InterpolationSyntaxError
-# Py3k #
-#if py32_lang:
-#    #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
-#    from ConfigParser import ConfigParser as SafeConfigParser
-#else:
-#    from ConfigParser import SafeConfigParser
-# end Py3k #
+if py32_lang:
+    #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
+    from ConfigParser import ConfigParser as SafeConfigParser
+else:
+    from ConfigParser import SafeConfigParser
 import inspect
 import re
 import hashlib
@@ -126,31 +121,6 @@ def parse_policy_items(source):
         value = _parse_policy_value(cat, name, opt, value)
         yield cat, name, opt, value
 
-# Py2k #
-def _is_legacy_parse_error(err):
-    "helper for parsing config files"
-    #NOTE: passlib 1.4 and earlier used ConfigParser,
-    # when they should have been using SafeConfigParser
-    # (which passlib 1.5+ switched to)
-    # this has no real security effects re: passlib,
-    # but some 1.4 config files that have "vary_rounds = 10%"
-    # may throw an error under SafeConfigParser,
-    # and should read "vary_rounds = 10%%"
-    #
-    # passlib 1.6 and on will only use SafeConfigParser,
-    # but passlib 1.5 tries to detect the above 10% error,
-    # issue a warning, and retry w/ ConfigParser,
-    # for backward compat.
-    #
-    # this function's purpose is to encapsulate that
-    # backward-compat behavior.
-    value = err.args[0]
-    #'%' must be followed by '%' or '(', found: '%'
-    if value == "'%' must be followed by '%' or '(', found: '%'":
-        return True
-    return False
-# end Py2k #
-
 #--------------------------------------------------------
 #policy class proper
 #--------------------------------------------------------
@@ -256,37 +226,13 @@ class CryptPolicy(object):
     @classmethod
     def _from_stream(cls, stream, section, filename=None):
         "helper for from_string / from_path"
-        # Py2k #
-        pos = stream.tell()
-        # end Py2k #
-
         p = SafeConfigParser()
         if py32_lang:
             # Py3.2 deprecated readfp
             p.read_file(stream, filename or "<???>")
         else:
             p.readfp(stream, filename or "<???>")
-
-        # Py2k #
-        try:
-            items = p.items(section)
-        except InterpolationSyntaxError, err:
-            if not _is_legacy_parse_error(err):
-                raise
-            #support for deprecated 1.4 behavior, will be removed in 1.6
-            if filename:
-                warn("from_path(): the file %r contains an unescaped '%%', this will be fatal in passlib 1.6" % (filename,), stacklevel=3)
-            else:
-                warn("from_string(): the provided string contains an unescaped '%', this will be fatal in passlib 1.6", stacklevel=3)
-            p = ConfigParser()
-            stream.seek(pos)
-            p.readfp(stream)
-            items = p.items(section)
-
-        # py3k #
-        #items = p.items(section)
-        # end py3k #
-
+        items = p.items(section)
         return cls(**dict(items))
 
     @classmethod

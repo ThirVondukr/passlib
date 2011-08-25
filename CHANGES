@@ -4,8 +4,26 @@
 Release History
 ===============
 
+**1.6** (NOT YET RELEASED)
+
+    Removal of Deprecated Features
+
+        * Config files should now use :class:`SafeConfigParser` interpolation.
+
+          :meth:`CryptPolicy.from_file` and :meth:`CryptPolicy.from_string`
+          previously used :class:`!ConfigParser` interpolation.
+          Release 1.5 switched to :class:`SafeConfigParser`,
+          but kept support for the old format as a (deprecated) fallback.
+          This fallback has been removed in 1.6; any remaining
+          legacy config files may need to escape some ``%`` characters
+          in order to load correctly.
+
+        * Calls to :meth:`~passlib.hash.HasManyBackends.set_backend` should now
+          use the string ``"any"`` instead of the value ``None``. ``None``
+          was deprecated in release 1.5, and is no longer supported.
+
 **1.5.1** (2011-08-17)
-    
+
     Minor bugfix release; now compatible with Google App Engine.
 
     * bugfix: make ``passlib.hash.__loader__`` attribute writable -
@@ -23,7 +41,7 @@ Release History
     * under GAE, disable all unittests which require writing to filesystem.
 
     * more unittest coverage for :mod:`passlib.apps` and :mod:`passlib.hosts`.
-    
+
     * improved version datestamps in build script.
 
 **1.5** (2011-07-11)

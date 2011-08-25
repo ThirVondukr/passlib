@@ -982,7 +982,7 @@ class HasManyBackends(GenericHandler):
         document this class's usage
 
     .. attribute:: backends
-    
+
         tuple containing names of the backends which are supported.
         two common names are ``"os_crypt"`` (if backend uses :mod:`crypt`),
         and ``"builtin"`` (if the backend is a pure-python fallback).
@@ -995,7 +995,7 @@ class HasManyBackends(GenericHandler):
 
         private class attr used by :meth:`has_backend`
         to check if a specific backend is available.
-        one of these should be provided by subclass 
+        one of these should be provided by subclass
         for each backend listed in :attr:`backends`.
     """
 
@@ -1040,12 +1040,7 @@ class HasManyBackends(GenericHandler):
         :returns:
             ``True`` if backend is currently supported, else ``False``.
         """
-        if name in (None, "any", "default"):
-            if name is None:
-                warn("has_backend(None) is deprecated,"
-                     " and support will be removed in Passlib 1.6;"
-                     " use has_backend('any') instead.",
-                    DeprecationWarning, stacklevel=2)
+        if name in ("any", "default"):
             try:
                 cls.set_backend()
                 return True
@@ -1089,21 +1084,15 @@ class HasManyBackends(GenericHandler):
 
             * if ``"any"`` or ``"default"`` was specified,
               and NO backends are currently available.
-    
+
         return value should be ignored.
-        
+
         .. note::
 
             :exc:`~passlib.utils.MissingBackendError` derives
             from :exc:`RuntimeError`, since this usually indicates
             lack of an external library or OS feature.
         """
-        if name is None:
-            warn("set_backend(None) is deprecated,"
-                 " and support will be removed in Passlib 1.6;"
-                 " use set_backend('any') instead.",
-                DeprecationWarning, stacklevel=2)
-            name = "any"
         if name == "any":
             name = cls._backend
             if name:
