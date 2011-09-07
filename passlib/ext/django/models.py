@@ -29,6 +29,7 @@ def patch():
 
     #parse & validate input value
     if not ctx:
+        set_django_password_context(None)
         return
     if ctx == "passlib-default":
         ctx = DEFAULT_CTX
