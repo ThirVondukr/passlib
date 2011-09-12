@@ -4,8 +4,24 @@
 Release History
 ===============
 
+**1.5.2** (NOT YET RELEASED)
+
+    Minor bugfix release; mainly Django-related
+
+    .. currentmodule:: passlib.hash
+
+    * *bugfix:* :class:`django_des_crypt` now accepts all
+      :mod:`Hash64 <passlib.utils.h64>` characters in it's salts;
+      previously it accepted only lower-case hexidecimal characters [issue 22].
+
+    * additional unittests added for all
+      standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
+
+    * :class:`django_des_crypt` now rejects hashes where salt and checksum
+      containing mismatched salt characters.
+
 **1.5.1** (2011-08-17)
-    
+
     Minor bugfix release; now compatible with Google App Engine.
 
     * bugfix: make ``passlib.hash.__loader__`` attribute writable -
@@ -23,7 +39,7 @@ Release History
     * under GAE, disable all unittests which require writing to filesystem.
 
     * more unittest coverage for :mod:`passlib.apps` and :mod:`passlib.hosts`.
-    
+
     * improved version datestamps in build script.
 
 **1.5** (2011-07-11)

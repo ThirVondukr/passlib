@@ -19,9 +19,10 @@ from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
 #some
 #=========================================================
 
-#some common passwords which used as test cases...
+#some common unicode passwords which used as test cases...
 UPASS_WAV = u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'
 UPASS_USD = u"\u20AC\u00A5$"
+UPASS_TABLE = u"t\u00e1\u0411\u2113\u0259"
 
 #=========================================================
 #apr md5 crypt
@@ -210,6 +211,22 @@ Builtin_DesCryptTest = create_backend_case(_DesCryptTest, "builtin")
 #=========================================================
 #django
 #=========================================================
+class _DjangoHelper(object):
+
+    def test_django_reference(self):
+        "run known correct hashes through Django's check_password()"
+        if not self.known_correct_hashes:
+            return self.skipTest("no known correct hashes specified")
+        try:
+            from django.conf import settings
+        except ImportError:
+            return self.skipTest("Django not installed")
+        settings.configure()
+        from django.contrib.auth.models import check_password
+        for secret, hash in self.known_correct_hashes:
+            self.assertTrue(check_password(secret, hash))
+            self.assertFalse(check_password('x' + secret, hash))
+
 class DjangoDisabledTest(HandlerCase):
     "test django_disabled"
 
@@ -234,27 +251,54 @@ class DjangoDisabledTest(HandlerCase):
         self.assertEqual(result, "!")
         self.assertTrue(not self.do_verify(secret, result))
 
-class DjangoDesCryptTest(HandlerCase):
+class DjangoDesCryptTest(HandlerCase, _DjangoHelper):
     "test django_des_crypt"
     handler = hash.django_des_crypt
     secret_chars = 8
 
     known_correct_hashes = [
-        ("password", 'crypt$c2e86$c2M87q...WWcU'),
+        #ensures only first two digits of salt count.
+        ("password",         'crypt$c2$c2M87q...WWcU'),
+        ("password",         'crypt$c2e86$c2M87q...WWcU'),
+        ("passwordignoreme", 'crypt$c2.AZ$c2M87q...WWcU'),
+
+        #ensures utf-8 used for unicode
         (UPASS_USD, 'crypt$c2e86$c2hN1Bxd6ZiWs'),
+        (UPASS_TABLE, 'crypt$0.aQs$0.wB.TT0Czvlo'),
+        (u"hell\u00D6", "crypt$sa$saykDgk3BPZ9E"),
+
+        #prevent regression of issue 22
+        ("foo", 'crypt$MNVY.9ajgdvDQ$MNVY.9ajgdvDQ'),
     ]
 
     known_unidentified_hashes = [
         'sha1$aa$bb',
     ]
 
-class DjangoSaltedMd5Test(HandlerCase):
+    known_malformed_hashes = [
+        # checksum too short
+        'crypt$c2$c2M87q',
+
+        # salt must be >2
+        'crypt$$c2M87q...WWcU',
+        'crypt$f$c2M87q...WWcU',
+
+        # this format duplicates salt inside checksum,
+        # reject any where the two copies don't match
+        'crypt$ffe86$c2M87q...WWcU',
+    ]
+
+class DjangoSaltedMd5Test(HandlerCase, _DjangoHelper):
     "test django_salted_md5"
     handler = hash.django_salted_md5
 
     known_correct_hashes = [
-        ("password", 'md5$c2e86$a6e6e41fd0113c98d8b82422466dcf55'),
-        (UPASS_USD, 'md5$c2e86$92105508419a81a6babfaecf876a2fa0'),
+        #test extra large salt
+        ("password",    'md5$123abcdef$c8272612932975ee80e8a35995708e80'),
+
+        #test unicode uses utf-8
+        (UPASS_USD,     'md5$c2e86$92105508419a81a6babfaecf876a2fa0'),
+        (UPASS_TABLE,   'md5$d9eb8$01495b32852bffb27cf5d4394fe7a54c'),
     ]
 
     known_unidentified_hashes = [
@@ -262,17 +306,24 @@ class DjangoSaltedMd5Test(HandlerCase):
     ]
 
     known_malformed_hashes = [
+        # checksum too short
         'md5$aa$bb',
     ]
 
-class DjangoSaltedSha1Test(HandlerCase):
+class DjangoSaltedSha1Test(HandlerCase, _DjangoHelper):
     "test django_salted_sha1"
     handler = hash.django_salted_sha1
 
     known_correct_hashes = [
-        ("password", 'sha1$c2e86$b2949ae168955e92599656edd7a32916e0f5fc51'),
-        (UPASS_USD, 'sha1$c2e86$0f75c5d7fbd100d587c127ef0b693cde611b4ada'),
-        ("MyPassword", 'sha1$54123$893cf12e134c3c215f3a76bd50d13f92404a54d3'),
+        #test extra large salt
+        ("password",'sha1$123abcdef$e4a1877b0e35c47329e7ed7e58014276168a37ba'),
+
+        #test unicode uses utf-8
+        (UPASS_USD,     'sha1$c2e86$0f75c5d7fbd100d587c127ef0b693cde611b4ada'),
+        (UPASS_TABLE,   'sha1$6d853$ef13a4d8fb57aed0cb573fe9c82e28dc7fd372d4'),
+
+        #generic password
+        ("MyPassword",  'sha1$54123$893cf12e134c3c215f3a76bd50d13f92404a54d3'),
     ]
 
     known_unidentified_hashes = [
@@ -280,6 +331,7 @@ class DjangoSaltedSha1Test(HandlerCase):
     ]
 
     known_malformed_hashes = [
+        # checksum too short
         'sha1$c2e86$0f75',
     ]
 
