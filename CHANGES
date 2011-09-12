@@ -5,8 +5,9 @@ Release History
 ===============
 
 **1.5.2** (NOT YET RELEASED)
+============================
 
-    Minor bugfix release; mainly Django-related
+    Minor bugfix release -- mainly Django-related fixes
 
     .. currentmodule:: passlib.hash
 
@@ -21,16 +22,17 @@ Release History
       containing mismatched salt characters.
 
 **1.5.1** (2011-08-17)
+======================
 
-    Minor bugfix release; now compatible with Google App Engine.
+    Minor bugfix release -- now compatible with Google App Engine.
 
-    * bugfix: make ``passlib.hash.__loader__`` attribute writable -
+    * *bugfix:* make ``passlib.hash.__loader__`` attribute writable -
       needed by Google App Engine (GAE) [issue 19].
 
-    * bugfix: provide fallback for loading ``passlib/default.cfg``
+    * *bugfix:* provide fallback for loading ``passlib/default.cfg``
       if :mod:`pkg_resources` is not present, such as for GAE [issue 19].
 
-    * bugfix: fixed error thrown by CryptContext.verify
+    * *bugfix:* fixed error thrown by CryptContext.verify
       when issuing min_verify_time warning [issue 17].
 
     * removed min_verify_time setting from custom_app_context,
@@ -43,6 +45,7 @@ Release History
     * improved version datestamps in build script.
 
 **1.5** (2011-07-11)
+====================
 
     *"20% more unicode than the leading breakfast cereal"*
 
@@ -68,10 +71,12 @@ Release History
 
     CryptContext
 
+        .. currentmodule:: passlib.context
+
         * interpolation deprecation:
 
-          :meth:`CryptPolicy.from_file` and :meth:`CryptPolicy.from_string`
-          now use SafeConfigParser instead of ConfigParser.
+          :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
+          now use :class:`!SafeConfigParser` instead of :class:`!ConfigParser`.
           This may cause some existing config files containing unescaped ``%``
           to result in errors; Passlib 1.5 will demote these to warnings,
           but any extant config files should be updated,
@@ -91,7 +96,7 @@ Release History
         * Added quickstart guide to documentation.
         * Various minor improvements.
 
-    Utilities
+    Internals
 
         * Added more handler utility functions to reduce code duplication.
         * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
@@ -111,6 +116,7 @@ Release History
           see ``docs/lib/passlib.ext.django.rst`` for more.
 
 **1.4** (2011-05-04)
+====================
 
     This release contains a large number of changes, both large and small.
     It adds a number of PBKDF2-based schemes, better support
@@ -140,7 +146,11 @@ Release History
         * added predefined context for Roundup Issue Tracker database.
         * added CryptContext.verify_and_update() convience method,
           to make it easier to perform both operations at once.
-        * bugfix: fixed NameError in category+min_verify_time border case
+        * *bugfix:* fixed NameError in category+min_verify_time border case
+        * apps & hosts modules now use new
+          :class:`LazyCryptContext` wrapper class -
+          this should speed up initial import,
+          and reduce memory by not loading uneeded hashes.
 
     Documentation
 
@@ -149,7 +159,7 @@ Release History
           custom password handlers.
         * various minor improvements.
 
-    Utilities
+    Internals
 
         * added generate_password() convenience method
         * refactored framework for building hash handlers,
@@ -157,11 +167,7 @@ Release History
         * deprecated old handler framework - will remove in 1.5
         * deprecated list_to_bytes & bytes_to_list - not used, will remove in 1.5
 
-    Internals
-
-        * apps & hosts now use new LazyCryptContext wrapper class -
-          should speed up initial import, and reduce memory
-          by not loading uneeded hashes.
+    Other
 
         * password hash api - as part of cleaning up optional attributes
           specification, renamed a number of them to reduce ambiguity:
@@ -178,6 +184,9 @@ Release History
         * PyPy compatibility
 
 **1.3.1** (2011-03-28)
+======================
+
+    Minor bugfix release.
 
     * bugfix: replaced "sys.maxsize" reference that was failing under py25
     * bugfix: fixed default_rounds>max_rounds border case that could
@@ -186,8 +195,10 @@ Release History
     * added instructions for building html documentation from source
 
 **1.3** (2011-03-25)
+====================
 
-    * first public release
+    First public release.
+
     * documentation completed
     * 99% unittest coverage
     * some refactoring and lots of bugfixes
@@ -196,24 +207,27 @@ Release History
       phpass, sha1, generic hex digests, ldap digests.
 
 **1.2** (2011-01-06)
+====================
+
+    .. note::
+
+        For this and all previous versions, PassLib did not exist independantly,
+        but as a subpackage of *BPS*, a private & unreleased toolkit library.
 
     * many bugfixes
     * global registry added
     * transitional release for applications using BPS library.
     * first truly functional release since splitting from BPS library (see below).
 
-.. note::
-
-    For all previous versions, PassLib did not exist independantly,
-    but as a subpackage of *BPS*, a private & unreleased toolkit library.
-
 **1.0** (2009-12-11)
+====================
 
     * CryptContext & CryptHandler framework
     * added support for: des-crypt, bcrypt (via pybcrypt), postgres, mysql
     * added unit tests
 
 **0.5** (2008-05-10)
+====================
 
     * initial production version
     * consolidated from code scattered across multiple applications
