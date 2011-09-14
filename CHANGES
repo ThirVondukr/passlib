@@ -9,9 +9,9 @@ Release History
 
     Minor bugfix release -- mainly Django-related fixes
 
-    .. currentmodule:: passlib.hash
-
     Hashes
+
+        .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
           :mod:`Hash64 <passlib.utils.h64>` characters in it's salts;
@@ -23,10 +23,15 @@ Release History
         * :class:`django_des_crypt` now rejects hashes where salt and checksum
           containing mismatched salt characters.
 
-    Documentation
+    CryptContext
 
-        * added documentation for the mistakenly undocumented
-          :meth:`CryptContext.verify_and_update<passlib.context.CryptContext.verify_and_update>`.
+        .. currentmodule:: passlib.context
+
+        * *bugfix:* fixed exception in :meth:`CryptPolicy.iter_config`
+          that occurred when iterating over deprecation options.
+
+        * added documentation for the (mistakenly undocumented)
+          :meth:`CryptContext.verify_and_update` method.
 
 **1.5.1** (2011-08-17)
 ======================

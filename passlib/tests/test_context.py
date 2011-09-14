@@ -158,11 +158,39 @@ admin.sha512_crypt.max_rounds = 40000
 
     sample_config_4pd = dict(
         schemes = [ "sha512_crypt" ],
-        all__vary_rounds = "10%",
+         all__vary_rounds = "10%",
         sha512_crypt__max_rounds = 20000,
         admin__all__vary_rounds = "5%",
         admin__sha512_crypt__max_rounds = 40000,
         )
+
+    #-----------------------------------------------------
+    #sample 5 - to_string & deprecation testing
+    #-----------------------------------------------------
+    sample_config_5s = sample_config_1s + """\
+deprecated = des_crypt
+admin__context__deprecated = des_crypt, bsdi_crypt
+"""
+
+    sample_config_5pd = sample_config_1pd.copy()
+    sample_config_5pd.update(
+        deprecated = [ "des_crypt" ],
+        admin__context__deprecated = [ "des_crypt", "bsdi_crypt" ],
+    )
+
+    sample_config_5pid = sample_config_1pid.copy()
+    sample_config_5pid.update({
+        "deprecated": "des_crypt",
+        "admin.context.deprecated": "des_crypt, bsdi_crypt",
+    })
+
+    sample_config_5prd = sample_config_1prd.copy()
+    sample_config_5prd.update({
+        # XXX: should deprecated return the actual handlers in this case?
+        #      would have to modify how policy stores info, for one.
+        "deprecated": ["des_crypt"],
+        "admin__context__deprecated": ["des_crypt", "bsdi_crypt"],
+    })
 
     #=========================================================
     #constructors
@@ -407,20 +435,21 @@ admin.sha512_crypt.max_rounds = 40000
     def test_14_handler_is_deprecated(self):
         "test handler_is_deprecated() method"
         pa = CryptPolicy(**self.sample_config_1pd)
-        pb = pa.replace(deprecated=["des_crypt", "bsdi_crypt"], admin__context__deprecated=["des_crypt"])
+        pb = CryptPolicy(**self.sample_config_5pd)
 
-        self.assertTrue(not pa.handler_is_deprecated("des_crypt"))
-        self.assertTrue(not pa.handler_is_deprecated(hash.bsdi_crypt))
-        self.assertTrue(not pa.handler_is_deprecated("sha512_crypt"))
+        self.assertFalse(pa.handler_is_deprecated("des_crypt"))
+        self.assertFalse(pa.handler_is_deprecated(hash.bsdi_crypt))
+        self.assertFalse(pa.handler_is_deprecated("sha512_crypt"))
 
         self.assertTrue(pb.handler_is_deprecated("des_crypt"))
-        self.assertTrue(pb.handler_is_deprecated(hash.bsdi_crypt))
-        self.assertTrue(not pb.handler_is_deprecated("sha512_crypt"))
+        self.assertFalse(pb.handler_is_deprecated(hash.bsdi_crypt))
+        self.assertFalse(pb.handler_is_deprecated("sha512_crypt"))
 
         #check categories as well
         self.assertTrue(pb.handler_is_deprecated("des_crypt", "user"))
+        self.assertFalse(pb.handler_is_deprecated("bsdi_crypt", "user"))
         self.assertTrue(pb.handler_is_deprecated("des_crypt", "admin"))
-        self.assertFalse(pb.handler_is_deprecated("bsdi_crypt", "admin"))
+        self.assertTrue(pb.handler_is_deprecated("bsdi_crypt", "admin"))
 
     def test_15_min_verify_time(self):
         pa = CryptPolicy()
@@ -448,23 +477,23 @@ admin.sha512_crypt.max_rounds = 40000
     #=========================================================
     def test_20_iter_config(self):
         "test iter_config() method"
-        p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assertEqual(dict(p1.iter_config()), self.sample_config_1pd)
-        self.assertEqual(dict(p1.iter_config(resolve=True)), self.sample_config_1prd)
-        self.assertEqual(dict(p1.iter_config(ini=True)), self.sample_config_1pid)
+        p5 = CryptPolicy(**self.sample_config_5pd)
+        self.assertEqual(dict(p5.iter_config()), self.sample_config_5pd)
+        self.assertEqual(dict(p5.iter_config(resolve=True)), self.sample_config_5prd)
+        self.assertEqual(dict(p5.iter_config(ini=True)), self.sample_config_5pid)
 
     def test_21_to_dict(self):
         "test to_dict() method"
-        p1 = CryptPolicy(**self.sample_config_1pd)
-        self.assertEqual(p1.to_dict(), self.sample_config_1pd)
-        self.assertEqual(p1.to_dict(resolve=True), self.sample_config_1prd)
+        p5 = CryptPolicy(**self.sample_config_5pd)
+        self.assertEqual(p5.to_dict(), self.sample_config_5pd)
+        self.assertEqual(p5.to_dict(resolve=True), self.sample_config_5prd)
 
     def test_22_to_string(self):
         "test to_string() method"
-        pa = CryptPolicy(**self.sample_config_1pd)
+        pa = CryptPolicy(**self.sample_config_5pd)
         s = pa.to_string() #NOTE: can't compare string directly, ordering etc may not match
         pb = CryptPolicy.from_string(s)
-        self.assertEqual(pb.to_dict(), self.sample_config_1pd)
+        self.assertEqual(pb.to_dict(), self.sample_config_5pd)
 
     #=========================================================
     #

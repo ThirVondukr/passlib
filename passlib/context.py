@@ -642,14 +642,16 @@ class CryptPolicy(object):
                 return h.name
             def encode_hlist(hl):
                 return ", ".join(h.name for h in hl)
+            def encode_nlist(hl):
+                return ", ".join(name for name in hl)
         else:
             fmt1 = "%s__%s__%s"
             fmt2 = "%s__%s"
+            encode_nlist = list
             if resolve:
                 def encode_handler(h):
                     return h
-                def encode_hlist(hl):
-                    return list(hl)
+                encode_hlist = list
             else:
                 def encode_handler(h):
                     return h.name
@@ -671,7 +673,7 @@ class CryptPolicy(object):
             yield format_key(None, None, "schemes"), encode_hlist(value)
 
         for cat, value in self._deprecated.iteritems():
-            yield format_key(cat, None, "deprecated"), encode_hlist(value)
+            yield format_key(cat, None, "deprecated"), encode_nlist(value)
 
         for cat, value in self._default.iteritems():
             yield format_key(cat, None, "default"), encode_handler(value)
@@ -822,7 +824,7 @@ class CryptContext(object):
     #init
     #===================================================================
     def __init__(self, schemes=None, policy=default_policy, **kwds):
-        #XXX: add a name for the contexts?
+        #XXX: add a name for the contexts, to help out repr?
         if schemes:
             kwds['schemes'] = schemes
         if not policy:
@@ -835,6 +837,8 @@ class CryptContext(object):
         #XXX: *could* have proper repr(), but would have to render policy object options, and it'd be *really* long
         names = [ handler.name for handler in self.policy.iter_handlers() ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
+
+    #XXX: make an update() method that just updates policy?
 
     def replace(self, **kwds):
         """return mutated CryptContext instance
