@@ -110,6 +110,7 @@ bcrypt._no_backends_msg() #call this for coverage purposes
 Pybcrypt_BCryptTest = create_backend_case(_BCryptTest, "pybcrypt")
 Bcryptor_BCryptTest = create_backend_case(_BCryptTest, "bcryptor")
 OsCrypt_BCryptTest = create_backend_case(_BCryptTest, "os_crypt")
+Builtin_BCryptTest = create_backend_case(_BCryptTest, "builtin")
 
 #=========================================================
 #bigcrypt

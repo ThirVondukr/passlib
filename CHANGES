@@ -30,6 +30,17 @@ Release History
           This affects all schemes in :mod:`passlib.hash` which support
           multiple backends.
 
+    Other
+
+        * Restored builtin pure-python BCrypt implementation
+          (:mod:`passlib.utils._slow_bcrypt`) that was removed in v1.3.
+          This implementation is still *WAY* to slow to be suitable
+          for production. However, it's almost fast enough under PyPy,
+          and might be sped up in the future... so while it is disabled
+          by default, developers who really want to use it
+          should set the environment variable ``PASSLIB_BUILTIN_BCRYPT=enabled``
+          before loading Passlib.
+
 **1.5.1** (2011-08-17)
 
     Minor bugfix release; now compatible with Google App Engine.
