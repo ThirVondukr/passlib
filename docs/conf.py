@@ -140,7 +140,7 @@ html_theme_path = [cloud_sptheme.get_theme_dir()]
 html_title = project + " v" + release + " Documentation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = project + " Documentation"
+html_short_title = project + " " + version + " Documentation"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.

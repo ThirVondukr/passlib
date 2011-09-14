@@ -40,9 +40,9 @@ Decorators
 ==========
 .. autofunction:: classproperty
 
-String Manipulation
-===================
-.. autofunction:: splitcomma
+..
+    String Manipulation
+    .. autofunction:: splitcomma
 
 Bytes Manipulation
 ==================

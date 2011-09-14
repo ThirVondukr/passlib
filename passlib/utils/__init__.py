@@ -113,10 +113,15 @@ Undef = UndefType()
 NoneType = type(None)
 
 class MissingBackendError(RuntimeError):
-    """error raised if multi-backend handler has no available backends;
+    """Error raised if multi-backend handler has no available backends;
     or if specifically requested backend is not available.
 
-    see :class:`~passlib.utils.handlers.HasManyBackends`.
+    :exc:`!MissingBackendError` derives
+    from :exc:`RuntimeError`, since this usually indicates
+    lack of an external library or OS feature.
+
+    This is primarily used by handlers which derive
+    from :class:`~passlib.utils.handlers.HasManyBackends`.
     """
 
 #==========================================================

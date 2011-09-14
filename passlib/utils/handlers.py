@@ -1015,7 +1015,7 @@ class HasManyBackends(GenericHandler):
         if no backend has been loaded,
         loads and returns name of default backend.
 
-        :raises MissingBackendError: if no backends are available.
+        :raises passlib.utils.MissingBackendError: if no backends are available.
 
         :returns: name of active backend
         """
@@ -1078,20 +1078,16 @@ class HasManyBackends(GenericHandler):
               the current backend if one has been loaded,
               else acts like ``"default"``.
 
-        :raises MissingBackendError:
-            * if a specific backend was specified,
+        :raises passlib.utils.MissingBackendError:
+            * ... if a specific backend was requested,
               but is not currently available.
 
-            * if ``"any"`` or ``"default"`` was specified,
-              and NO backends are currently available.
+            * ... if ``"any"`` or ``"default"`` was specified,
+              and *no* backends are currently available.
 
-        return value should be ignored.
+        :returns:
 
-        .. note::
-
-            :exc:`~passlib.utils.MissingBackendError` derives
-            from :exc:`RuntimeError`, since this usually indicates
-            lack of an external library or OS feature.
+            The return value of this function should be ignored.
         """
         if name == "any":
             name = cls._backend
