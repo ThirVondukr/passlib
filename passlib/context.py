@@ -811,6 +811,7 @@ class CryptContext(object):
     Migration Helpers
     =================
     .. automethod:: hash_needs_update
+    .. automethod:: verify_and_update
     """
     #===================================================================
     #instance attrs
@@ -1073,7 +1074,15 @@ class CryptContext(object):
         :arg hash:
             hash string to compare to
         :param scheme:
-            optional force context to use specfic scheme (must be allowed by context)
+            optional force context to use specfic scheme
+            (must be listed in context)
+        :param category:
+            optional user category, if used by the application.
+            defaults to ``None``.
+        :param \*\*context:
+            all additional keywords are passed to the appropriate handler,
+            and should match it's
+            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
 
         :returns: True/False
         """
@@ -1115,6 +1124,44 @@ class CryptContext(object):
         return result
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
+        """verify secret and check if hash needs upgrading, in a single call.
+
+        This is a convience method for a common situation in most applications:
+        When a user logs in, they must :meth:`verify` if the password matches;
+        if successful, check if the hash algorithm
+        has been deprecated (:meth:`hash_needs_update`); and if so,
+        re-:meth:`encrypt` the secret.
+        This method takes care of calling all of these 3 methods,
+        returning a simple tuple for the application to use.
+
+        :arg secret:
+            the secret to verify
+        :arg hash:
+            hash string to compare to
+        :param scheme:
+            optional force context to use specfic scheme
+            (must be listed in context)
+        :param category:
+            optional user category, if used by the application.
+            defaults to ``None``.
+        :param \*\*context:
+            all additional keywords are passed to the appropriate handler,
+            and should match it's
+            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
+
+        :returns:
+            The tuple ``(verified, new_hash)``, where one of the following
+            cases is true:
+
+            * ``(False, None)`` indicates the secret failed to verify.
+            * ``(True, None)`` indicates the secret verified correctly,
+              and the hash does not need upgrading.
+            * ``(True, str)`` indicates the secret verified correctly,
+              but the existing hash has been deprecated, and should be replaced
+              by the one returned as ``new_hash``.
+
+        .. seealso:: :ref:`context-migrating-passwords` for a usage example.
+        """
         ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
         if not ok:
             return False, None

@@ -11,15 +11,22 @@ Release History
 
     .. currentmodule:: passlib.hash
 
-    * *bugfix:* :class:`django_des_crypt` now accepts all
-      :mod:`Hash64 <passlib.utils.h64>` characters in it's salts;
-      previously it accepted only lower-case hexidecimal characters [issue 22].
+    Hashes
 
-    * additional unittests added for all
-      standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
+        * *bugfix:* :class:`django_des_crypt` now accepts all
+          :mod:`Hash64 <passlib.utils.h64>` characters in it's salts;
+          previously it accepted only lower-case hexidecimal characters [issue 22].
 
-    * :class:`django_des_crypt` now rejects hashes where salt and checksum
-      containing mismatched salt characters.
+        * additional unittests added for all
+          standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
+
+        * :class:`django_des_crypt` now rejects hashes where salt and checksum
+          containing mismatched salt characters.
+
+    Documentation
+
+        * added documentation for the mistakenly undocumented
+          :meth:`CryptContext.verify_and_update<passlib.context.CryptContext.verify_and_update>`.
 
 **1.5.1** (2011-08-17)
 ======================

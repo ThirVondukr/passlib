@@ -197,6 +197,8 @@ the configuration once the application starts:
             # ... other code ...
             #
 
+.. _context-encrypting-passwords:
+
 Encrypting New Passwords
 ------------------------
 When it comes time to create a new user's password, insert
@@ -233,6 +235,8 @@ the following code in the correct function::
 
     See :ref:`user-categories` for more details.
 
+.. _context-verifying-passwords:
+
 Verifying Existing Passwords
 ----------------------------
 Finally, when it comes time to check a users' password, insert
@@ -264,6 +268,8 @@ the following code at the correct place::
             #... password matched ...
             #... do successful login actions ...
             pass
+
+.. _context-migrating-passwords:
 
 Verifying & Migrating Existing Passwords
 ----------------------------------------
