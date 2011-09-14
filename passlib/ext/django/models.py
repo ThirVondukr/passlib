@@ -29,6 +29,8 @@ def patch():
 
     #parse & validate input value
     if not ctx:
+        # remove any patching that was already set, just in case.
+        set_django_password_context(None)
         return
     if ctx == "passlib-default":
         ctx = DEFAULT_CTX

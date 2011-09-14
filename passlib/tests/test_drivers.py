@@ -221,9 +221,10 @@ class _DjangoHelper(object):
             from django.conf import settings
         except ImportError:
             return self.skipTest("Django not installed")
-        settings.configure()
+        if not settings.configured:
+            settings.configure()
         from django.contrib.auth.models import check_password
-        for secret, hash in self.known_correct_hashes:
+        for secret, hash in self.all_correct_hashes:
             self.assertTrue(check_password(secret, hash))
             self.assertFalse(check_password('x' + secret, hash))
 

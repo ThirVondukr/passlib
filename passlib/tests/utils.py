@@ -294,7 +294,7 @@ class TestCase(unittest.TestCase):
             raise self.failureException(msg)
 
     if not hasattr(unittest.TestCase, "assertRegexpMatches"):
-        #added in 2.7/UT2 and 3.1        
+        #added in 2.7/UT2 and 3.1
         def assertRegexpMatches(self, text, expected_regex, msg=None):
             """Fail the test unless the text matches the regular expression."""
             if isinstance(expected_regex, basestring):
@@ -485,6 +485,19 @@ class HandlerCase(TestCase):
         if get_backend:
             name += " (%s backend)" % (get_backend(),)
         return name
+
+    @classproperty
+    def all_correct_hashes(cls):
+        hashes = cls.known_correct_hashes
+        configs = cls.known_correct_configs
+        if configs:
+            hashes = hashes + [
+                (secret,hash)
+                for config,secret,hash
+                in configs
+                if (secret,hash) not in hashes
+            ]
+        return hashes
 
     #=========================================================
     #setup / cleanup

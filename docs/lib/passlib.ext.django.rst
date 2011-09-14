@@ -26,8 +26,14 @@ It contains a Django app which allows you to override
 Django's :doc:`default <passlib.hash.django_std>` password hash formats
 with any passlib :doc:`CryptContext <passlib.context>`.
 By default, it comes configured to add support for
-:class:`~passlib.hash.pbkdf2_sha256`, and will automatically
+:class:`~passlib.hash.sha512_crypt`, and will automatically
 upgrade all existing Django passwords as your users log in.
+
+.. note::
+
+    SHA512-Crypt was chosen as probably the best choice for
+    the average Django deployment. Accelerated implementations
+    are available on most Linux systems, as well as Google App Engine.
 
 Installation
 =============
@@ -58,21 +64,16 @@ You can set the following options in django ``settings.py``:
 
      This is the default behavior if ``PASSLIB_CONTEXT`` is not set.
 
-     The exact default policy can be found at
-     :data:`passlib.ext.django.utils.DEFAULT_CTX`.
+     The exact default policy can be found in
+     :data:`~passlib.ext.django.utils.DEFAULT_CTX`.
 
    * ``None``, in which case this app will do nothing when django is loaded.
 
-   * A :class:`~passlib.context.CryptContext`
-     instance which will be used in place of the normal Django password
-     hash routines.
-
-     It is *strongly* recommended to use a context which will support
-     the existing Django hashes.
-
-   * A multiline config string suitable for passing to
+   * A multiline configuration string suitable for passing to
      :meth:`passlib.context.CryptPolicy.from_string`.
-     This will be parsed and used much like a :class:`!CryptContext` instance.
+     It is *strongly* recommended to use a configuration which will support
+     the existing Django hashes
+     (see :data:`~passlib.ext.django.utils.STOCK_CTX`).
 
 ``PASSLIB_GET_CATEGORY``
 
@@ -102,28 +103,47 @@ Django's password hashes:
 
     This is a string containing the default hashing policy
     that will be used by this application if none is specified
-    via ``settings.PASSLIB_CONTEXT``.    
+    via ``settings.PASSLIB_CONTEXT``.
     It defaults to the following::
-    
+
         [passlib]
         schemes =
-            pbkdf2_sha256,
+            sha512_crypt,
             django_salted_sha1, django_salted_md5,
             django_des_crypt, hex_md5,
             django_disabled
-        
-        default = pbkdf2_sha256
-        
+
+        default = sha512_crypt
+
         deprecated =
             django_salted_sha1, django_salted_md5,
             django_des_crypt, hex_md5
-        
+
         all__vary_rounds = 5%%
-        
-        pbkdf2_sha256__default_rounds = 4000
-        staff__pbkdf2_sha256__default_rounds = 8000
-        superuser__pbkdf2_sha256__default_rounds = 10000
-    
+
+        sha512_crypt__default_rounds = 15000
+        staff__sha512_crypt__default_rounds = 25000
+        superuser__sha512_crypt__default_rounds = 35000
+
+.. data:: STOCK_CTX
+
+    This is a string containing the a hashing policy
+    which should be exactly the same as Django's default behavior.
+    It is mainly useful as a template for building off of
+    when defining your own custom hashing policy
+    via ``settings.PASSLIB_CONTEXT``.
+    It defaults to the following::
+
+        [passlib]
+        schemes =
+            django_salted_sha1, django_salted_md5,
+            django_des_crypt, hex_md5,
+            django_disabled
+
+        default = django_salted_sha1
+
+        deprecated = hex_md5
+
 .. autofunction:: get_category
 
 .. autofunction:: set_django_password_context
