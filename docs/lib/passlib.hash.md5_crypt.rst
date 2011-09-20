@@ -59,7 +59,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 1. A password string and salt string are provided.
 
    (The salt should not include the magic prefix,
-   it should match string referred to as :samp:`{salt}` in the format section).
+   it should match the string referred to as :samp:`{salt}` in the format section, above).
 
 2. If needed, the salt should be truncated to a maximum of 8 characters.
 
@@ -81,7 +81,9 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 9. Add the password to digest A.
 
-10. Add the constant string ``$1$`` to digest A.
+10. Add the constant string ``$1$`` to digest A. 
+    (The Apache variant of MD5-Crypt uses ``$apr1$`` instead,
+    this is the only change made by this variant).
 
 11. Add the salt to digest A.
 
@@ -91,12 +93,14 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 13. For the remaining N bytes of the password string,
     add the first N bytes of digest B to digest A.
 
-14. For each bit of the binary representation of the length
+14. For each bit in the binary representation of the length
     of the password string; starting with the lowest value bit,
-    up to and including the largest bit set to 1:
+    up to and including the largest-valued bit that is set to ``1``:
 
     a. If the current bit is set 1, add the first character of the password to digest A.
     b. Otherwise, add a NULL character to digest A.
+
+    (If the password is the empty string, step 14 is omitted entirely).
 
 15. Finish MD5 digest A.
 
@@ -110,9 +114,9 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
     c. If the round is even, add the previous round's result to digest C (for round 0, add digest A instead).
     d. If the round is not a multiple of 3, add the salt to digest C.
     e. If the round is not a multiple of 7, add the password to digest C.
-    f. If the round is even, repeat step b.
-    g. If the round is odd, repeat step c.
-    h. Finish MD5 digest C for the round; this is the result for this round.
+    f. If the round is even, add the password to digest C.
+    g. If the round is odd, add the previous round's result to digest C (for round 0, add digest A instead).
+    h. Use the final value of MD5 digest C as the result for this round.
 
 17. Transpose the 16 bytes of the final round's result in the
     following order: ``12,6,0,13,7,1,14,8,2,15,9,3,5,10,4,11``.

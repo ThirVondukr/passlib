@@ -9,8 +9,8 @@
 .. warning::
 
     This module is currently under development.
-    It will probably work, but has not seen very much
-    testing or real-world use, and may change in future releases;
+    It works and has good unittest coverage,
+    but has not seen very much real-world use;
     *caveat emptor*.
 
 .. todo::
@@ -23,35 +23,36 @@ Overview
 This module is intended for use with
 `Django <http://www.djangoproject.com>`_-based web applications.
 It contains a Django app which allows you to override
-Django's :doc:`default <passlib.hash.django_std>` password hash formats
-with any passlib :doc:`CryptContext <passlib.context>`.
+Django's builtin password hashing routine
+with any Passlib :doc:`CryptContext <passlib.context>` instance.
 By default, it comes configured to add support for
 :class:`~passlib.hash.sha512_crypt`, and will automatically
-upgrade all existing Django passwords as your users log in.
+upgrade all existing Django password hashes as your users log in.
 
-.. note::
-
-    SHA512-Crypt was chosen as probably the best choice for
-    the average Django deployment. Accelerated implementations
-    are available on most Linux systems, as well as Google App Engine.
+:doc:`SHA512-Crypt <passlib.hash.sha512_crypt>`
+was chosen as the best choice for the average Django deployment:
+accelerated implementations are available on most stock Linux systems,
+as well as Google App Engine, and Passlib provides a pure-python
+fallback for all other platforms. 
 
 Installation
 =============
-Installation is simple, just add ``passlib.ext.django`` to
-``settings.INSTALLED_APPS``. This module will handle
+Installation is simple: just add ``"passlib.ext.django"`` to
+Django's ``settings.INSTALLED_APPS``. This app will handle
 everything else.
 
 Once done, when this app is imported by Django,
 it will automatically monkeypatch
 :class:`!django.contrib.auth.models.User`
-to use a Passlib CryptContext instance in place of normal Django
-password authentication. This provides hash migration,
-ability to set stronger policies for superuser & staff passwords,
-and stronger password hashing schemes.
+to use a Passlib :class:`~passlib.context.CryptContext` instance
+in place of the normal Django password authentication routines.
+
+This provides hash migration, the ability to set stronger policies
+for superuser & staff passwords, and stronger password hashing schemes.
 
 Configuration
 =============
-You can set the following options in django ``settings.py``:
+Once installed, you can set the following options in django ``settings.py``:
 
 ``PASSLIB_CONTEXT``
    This may be one of a number of values:
@@ -64,10 +65,10 @@ You can set the following options in django ``settings.py``:
 
      This is the default behavior if ``PASSLIB_CONTEXT`` is not set.
 
-     The exact default policy can be found in
+     The exact default policy used can be found in
      :data:`~passlib.ext.django.utils.DEFAULT_CTX`.
 
-   * ``None``, in which case this app will do nothing when django is loaded.
+   * ``None``, in which case this app will do nothing when Django is loaded.
 
    * A multiline configuration string suitable for passing to
      :meth:`passlib.context.CryptPolicy.from_string`.
@@ -83,9 +84,10 @@ You can set the following options in django ``settings.py``:
    staff to the ``staff`` category, and all other accounts
    assigned to ``None``.
 
-   This allows overriding that logic by specifying an alternate
-   function of the format ``get_category(user) -> category|None``.
-
+   This configuration option allows overriding that logic
+   by specifying an alternate function with the call signature
+   ``get_category(user) -> category|None``.
+   
    .. seealso::
 
         See :ref:`user-categories` for more details about

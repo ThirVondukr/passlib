@@ -151,6 +151,8 @@ setup(
     #package info
     packages = [
         "passlib",
+            "passlib.ext",
+                "passlib.ext.django",
             "passlib.handlers",
             "passlib.tests",
             "passlib.utils",
