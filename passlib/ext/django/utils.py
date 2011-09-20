@@ -23,12 +23,15 @@ __all__ = [
 #lazy imports
 #===================================================================
 
+_has_django0 = None # old 0.9 django - lacks unusable_password support
 _dam = None #django.contrib.auth.models reference
 
 def _import_django():
-    global _dam
+    global _dam, _has_django0
     if _dam is None:
         import django.contrib.auth.models as _dam
+        from django import VERSION
+        _has_django0 = VERSION < (1,0)
     return _dam
 
 #===================================================================
@@ -139,7 +142,7 @@ def set_django_password_context(context=None, get_category=get_category):
     :data:`!django.contrib.auth.models.User.password_context`,
     for easy access.
     """
-    global _django_patch_state, _dam
+    global _django_patch_state, _dam, _has_django0
     _import_django()
     state = _django_patch_state
     User = _dam.User
@@ -181,10 +184,19 @@ def set_django_password_context(context=None, get_category=get_category):
         )
 
     #prepare replacements
+    if _has_django0:
+        UNUSABLE_PASSWORD = "!"
+    else:
+        UNUSABLE_PASSWORD = _dam.UNUSABLE_PASSWORD
+
     def set_password(user, raw_password):
         "passlib replacement for User.set_password()"
         if raw_password is None:
-            user.set_unusable_password()
+            if _has_django0:
+                # django 0.9
+                user.password = UNUSABLE_PASSWORD
+            else:
+                user.set_unusable_password()
         else:
             cat = get_category(user) if get_category else None
             user.password = context.encrypt(raw_password, category=cat)
@@ -194,7 +206,7 @@ def set_django_password_context(context=None, get_category=get_category):
         if raw_password is None:
             return False
         hash = user.password
-        if not hash or hash == _dam.UNUSABLE_PASSWORD:
+        if not hash or hash == UNUSABLE_PASSWORD:
             return False
         cat = get_category(user) if get_category else None
         ok, new_hash = context.verify_and_update(raw_password, hash,
@@ -206,7 +218,7 @@ def set_django_password_context(context=None, get_category=get_category):
 
     def raw_check_password(raw_password, enc_password):
         "passlib replacement for check_password()"
-        if not enc_password or enc_password == _dam.UNUSABLE_PASSWORD:
+        if not enc_password or enc_password == UNUSABLE_PASSWORD:
             raise ValueError("no password hash specified")
         return context.verify(raw_password, enc_password)
 

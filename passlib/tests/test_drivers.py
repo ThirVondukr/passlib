@@ -217,12 +217,9 @@ class _DjangoHelper(object):
         "run known correct hashes through Django's check_password()"
         if not self.known_correct_hashes:
             return self.skipTest("no known correct hashes specified")
-        try:
-            from django.conf import settings
-        except ImportError:
+        from passlib.tests.test_ext_django import has_django1
+        if not has_django1:
             return self.skipTest("Django not installed")
-        if not settings.configured:
-            settings.configure()
         from django.contrib.auth.models import check_password
         for secret, hash in self.all_correct_hashes:
             self.assertTrue(check_password(secret, hash))

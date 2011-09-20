@@ -30,20 +30,36 @@ except ImportError:
     settings = None
     has_django = False
 
+has_django0 = False #are we using django 0.9 release?
+has_django1 = False #inverse - are we using django >= 1.0
+
 if has_django:
+    from django import VERSION
+    has_django0 = (VERSION < (1,0))
+    has_django1 = (VERSION >= (1,0))
+
     if not isinstance(settings, LazySettings):
         #this could mean django has been configured somehow,
         #which we don't want, since test cases reset and manipulate settings.
         raise RuntimeError("expected django.conf.settings to be LazySettings: %r" % (settings,))
 
     #else configure a blank settings instance for our unittests
-    settings.configure()
+    if has_django0:
+        if settings._target is None:
+            from django.conf import UserSettingsHolder, global_settings
+            settings._target = UserSettingsHolder(global_settings)
+    else:
+        if not settings.configured:
+            settings.configure()
 
 def update_settings(**kwds):
     for k,v in kwds.iteritems():
         if v is Undef:
             if hasattr(settings, k):
-                delattr(settings, k)
+                if has_django0:
+                    delattr(settings._target, k)
+                else:
+                    delattr(settings, k)
         else:
             setattr(settings, k, v)
 
@@ -190,6 +206,14 @@ class PatchTest(TestCase):
         utils.set_django_password_context(None)
         self.assert_unpatched()
 
+        #patch to use stock django context again
+        utils.set_django_password_context(django_context)
+        self.assert_patched(context=django_context)
+
+        #try to remove patch again
+        utils.set_django_password_context(None)
+        self.assert_unpatched()
+
     def test_01_patch_control_detection(self):
         "test set_django_password_context detection of foreign monkeypatches"
         def dummy():
@@ -262,7 +286,7 @@ class PatchTest(TestCase):
         self.assert_patched(context=simple_context)
 
         # test that blank hash is never accepted
-        self.assertIs(user.password, '')
+        self.assertEqual(user.password, '')
         self.assertIs(user.saved_password, None)
         self.assertFalse(user.check_password('x'))
 
@@ -273,15 +297,16 @@ class PatchTest(TestCase):
         self.assertFalse(user.check_password(None))
 
         # none of that should have triggered update of password
-        self.assertIs(user.password, sample1_md5)
+        self.assertEqual(user.password, sample1_md5)
         self.assertIs(user.saved_password, None)
 
         #check unusable password
-        user.set_unusable_password()
-        self.assertFalse(user.has_usable_password())
-        self.assertFalse(user.check_password(None))
-        self.assertFalse(user.check_password(''))
-        self.assertFalse(user.check_password(sample1))
+        if has_django1:
+            user.set_unusable_password()
+            self.assertFalse(user.has_usable_password())
+            self.assertFalse(user.check_password(None))
+            self.assertFalse(user.check_password(''))
+            self.assertFalse(user.check_password(sample1))
 
     def test_04_check_password_migration(self):
         "test User.check_password() hash migration"
@@ -294,7 +319,7 @@ class PatchTest(TestCase):
 
         # set things up with a password that needs migration
         user.password = sample1_des
-        self.assertIs(user.password, sample1_des)
+        self.assertEqual(user.password, sample1_des)
         self.assertIs(user.saved_password, None)
 
         # run check with bad password...
@@ -302,7 +327,7 @@ class PatchTest(TestCase):
         self.assertFalse(user.check_password('x'))
         self.assertFalse(user.check_password(None))
 
-        self.assertIs(user.password, sample1_des)
+        self.assertEqual(user.password, sample1_des)
         self.assertIs(user.saved_password, None)
 
         # run check with correct password...
@@ -310,7 +335,7 @@ class PatchTest(TestCase):
         self.assertTrue(user.check_password(sample1))
 
         self.assertTrue(user.password.startswith("$1$"))
-        self.assertIs(user.saved_password, user.password)
+        self.assertEqual(user.saved_password, user.password)
 
         # check resave doesn't happen
         user.saved_password = None
@@ -326,9 +351,10 @@ class PatchTest(TestCase):
         self.assert_patched(context=simple_context)
 
         # sanity check
-        self.assertIs(user.password, '')
+        self.assertEqual(user.password, '')
         self.assertIs(user.saved_password, None)
-        self.assertTrue(user.has_usable_password())
+        if has_django1:
+            self.assertTrue(user.has_usable_password())
 
         # set password
         user.set_password(sample1)
@@ -338,7 +364,8 @@ class PatchTest(TestCase):
 
         #check unusable password
         user.set_password(None)
-        self.assertFalse(user.has_usable_password())
+        if has_django1:
+            self.assertFalse(user.has_usable_password())
         self.assertIs(user.saved_password, None)
 
     def test_06_get_category(self):
@@ -389,6 +416,9 @@ django_hash_tests = [
 
 default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest ]
 
+if has_django0:
+    django_hash_tests.remove(td.DjangoDesCryptTest)
+
 class PluginTest(TestCase):
     "test django plugin via settings"
 
@@ -427,6 +457,8 @@ class PluginTest(TestCase):
 
                 # check against valid password
                 u.password = hash
+                if has_django0 and isinstance(secret, unicode):
+                    secret = secret.encode("utf-8")
                 self.assertTrue(u.check_password(secret))
                 if new_hash and deprecated and test.handler.name in deprecated:
                     self.assertFalse(handler.identify(hash))
@@ -440,10 +472,11 @@ class PluginTest(TestCase):
                     self.assertEquals(u.password, hash)
 
         # check disabled handling
-        u.set_password(None)
-        handler = get_crypt_handler("django_disabled")
-        self.assertTrue(handler.identify(u.password))
-        self.assertFalse(u.check_password('placeholder'))
+        if has_django1:
+            u.set_password(None)
+            handler = get_crypt_handler("django_disabled")
+            self.assertTrue(handler.identify(u.password))
+            self.assertFalse(u.check_password('placeholder'))
 
     def test_00_actual_django(self):
         "test actual Django behavior has not changed"
