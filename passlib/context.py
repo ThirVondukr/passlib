@@ -588,14 +588,16 @@ class CryptPolicy(object):
                 return h.name
             def encode_hlist(hl):
                 return ", ".join(h.name for h in hl)
+            def encode_nlist(hl):
+                return ", ".join(name for name in hl)
         else:
             fmt1 = "%s__%s__%s"
             fmt2 = "%s__%s"
+            encode_nlist = list
             if resolve:
                 def encode_handler(h):
                     return h
-                def encode_hlist(hl):
-                    return list(hl)
+                encode_hlist = list
             else:
                 def encode_handler(h):
                     return h.name
@@ -617,7 +619,7 @@ class CryptPolicy(object):
             yield format_key(None, None, "schemes"), encode_hlist(value)
 
         for cat, value in self._deprecated.iteritems():
-            yield format_key(cat, None, "deprecated"), encode_hlist(value)
+            yield format_key(cat, None, "deprecated"), encode_nlist(value)
 
         for cat, value in self._default.iteritems():
             yield format_key(cat, None, "default"), encode_handler(value)
@@ -757,6 +759,7 @@ class CryptContext(object):
     Migration Helpers
     =================
     .. automethod:: hash_needs_update
+    .. automethod:: verify_and_update
     """
     #===================================================================
     #instance attrs
@@ -767,7 +770,7 @@ class CryptContext(object):
     #init
     #===================================================================
     def __init__(self, schemes=None, policy=default_policy, **kwds):
-        #XXX: add a name for the contexts?
+        #XXX: add a name for the contexts, to help out repr?
         if schemes:
             kwds['schemes'] = schemes
         if not policy:
@@ -780,6 +783,8 @@ class CryptContext(object):
         #XXX: *could* have proper repr(), but would have to render policy object options, and it'd be *really* long
         names = [ handler.name for handler in self.policy.iter_handlers() ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
+
+    #XXX: make an update() method that just updates policy?
 
     def replace(self, **kwds):
         """return mutated CryptContext instance
@@ -1019,7 +1024,15 @@ class CryptContext(object):
         :arg hash:
             hash string to compare to
         :param scheme:
-            optional force context to use specfic scheme (must be allowed by context)
+            optional force context to use specfic scheme
+            (must be listed in context)
+        :param category:
+            optional user category, if used by the application.
+            defaults to ``None``.
+        :param \*\*context:
+            all additional keywords are passed to the appropriate handler,
+            and should match it's
+            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
 
         :returns: True/False
         """
@@ -1061,6 +1074,44 @@ class CryptContext(object):
         return result
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
+        """verify secret and check if hash needs upgrading, in a single call.
+
+        This is a convience method for a common situation in most applications:
+        When a user logs in, they must :meth:`verify` if the password matches;
+        if successful, check if the hash algorithm
+        has been deprecated (:meth:`hash_needs_update`); and if so,
+        re-:meth:`encrypt` the secret.
+        This method takes care of calling all of these 3 methods,
+        returning a simple tuple for the application to use.
+
+        :arg secret:
+            the secret to verify
+        :arg hash:
+            hash string to compare to
+        :param scheme:
+            optional force context to use specfic scheme
+            (must be listed in context)
+        :param category:
+            optional user category, if used by the application.
+            defaults to ``None``.
+        :param \*\*context:
+            all additional keywords are passed to the appropriate handler,
+            and should match it's
+            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
+
+        :returns:
+            The tuple ``(verified, new_hash)``, where one of the following
+            cases is true:
+
+            * ``(False, None)`` indicates the secret failed to verify.
+            * ``(True, None)`` indicates the secret verified correctly,
+              and the hash does not need upgrading.
+            * ``(True, str)`` indicates the secret verified correctly,
+              but the existing hash has been deprecated, and should be replaced
+              by the one returned as ``new_hash``.
+
+        .. seealso:: :ref:`context-migrating-passwords` for a usage example.
+        """
         ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
         if not ok:
             return False, None

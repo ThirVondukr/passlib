@@ -48,6 +48,12 @@ However, they can be used directly as follows::
 
 Plain Hashes
 ============
+.. warning::
+
+    These hashes should be considered secure in any manner,
+    as they are nothing but raw MD5 & SHA-1 digests,
+    which are extremely vulnerable to brute-force attacks.
+
 .. autoclass:: ldap_md5()
 .. autoclass:: ldap_sha1()
 
@@ -63,10 +69,6 @@ These hashes have the format :samp:`{prefix}{checksum}`.
 
 An example ldap_md5 hash (of ``password``) is ``{MD5}X03MO1qnZdYdgyfeuILPmQ==``.
 An example ldap_sha1 hash (of ``password``) is ``{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=``.
-
-These hashes should be considered secure in any manner,
-as they are nothing but raw MD5 & SHA-1 digests,
-which are extremely vulnerable to brute-force attacks.
 
 Salted Hashes
 =============
