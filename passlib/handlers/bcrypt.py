@@ -25,13 +25,22 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
     bcryptor_engine = None
 #libs
-from passlib.utils import safe_os_crypt, classproperty, handlers as uh, h64, to_hash_str
+from passlib.utils import safe_os_crypt, classproperty, handlers as uh, \
+    h64, to_hash_str, rng, getrandstr
 
 #pkg
 #local
 __all__ = [
     "bcrypt",
 ]
+
+# base64 character->value mapping used by bcrypt.
+# this is same as as H64_CHARS, but the positions are different.
+BCHARS = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+# last bcrypt salt char should have 4 padding bits set to 0.
+# thus, only the following chars are allowed:
+BCLAST = ".Oeu"
 
 #=========================================================
 #handler
@@ -77,7 +86,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident")
     checksum_size = 31
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = BCHARS
 
     #--HasManyIdents--
     default_ident = u"$2a$"
@@ -86,7 +95,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     #--HasSalt--
     min_salt_size = max_salt_size = 22
-    salt_chars = uh.H64_CHARS
+    salt_chars = BCHARS
+    #NOTE: 22nd salt char must be in BCLAST, not full BCHARS
 
     #--HasRounds--
     default_rounds = 12 #current passlib default
@@ -125,6 +135,38 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     def to_string(self, native=True):
         hash = u"%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum or u'')
         return to_hash_str(hash) if native else hash
+
+    #=========================================================
+    # specialized salt generation - fixes passlib issue 25
+    #=========================================================
+
+    @classmethod
+    def normhash(cls, hash):
+        "helper to normalize hash, correcting any bcrypt padding bits"
+        if cls.identify(hash):
+            return cls.from_string(hash).to_string()
+        else:
+            return hash
+
+    @classmethod
+    def generate_salt(cls, salt_size=None, strict=False):
+        assert cls.min_salt_size == cls.max_salt_size == cls.default_salt_size == 22
+        if salt_size is not None and salt_size != 22:
+            raise ValueError("bcrypt salts must be 22 characters in length")
+        return getrandstr(rng, BCHARS, 21) + getrandstr(rng, BCLAST, 1)
+
+    @classmethod
+    def norm_salt(cls, *args, **kwds):
+        salt = super(bcrypt, cls).norm_salt(*args, **kwds)
+        if salt and salt[-1] not in BCLAST:
+            salt = salt[:-1] + BCHARS[BCHARS.index(salt[-1]) & ~15]
+            assert salt[-1] in BCLAST
+            warn(
+                "encountered a bcrypt hash with incorrectly set padding bits; "
+                "you may want to run bcrypt.normhash() "
+                "to fix these hashes (see Passlib issue 25)."
+                )
+        return salt
 
     #=========================================================
     #primary interface
