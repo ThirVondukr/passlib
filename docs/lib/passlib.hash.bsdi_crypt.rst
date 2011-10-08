@@ -40,7 +40,7 @@ Interface
 Format
 ======
 An example hash (of the string ``password``) is ``_EQ0.jzhSVeUyoSqLupI``.
-An ext_des_crypt hash string consists of a 21 character string of the form :samp:`_{rounds}{salt}{checksum}`.
+A bsdi_crypt hash string consists of a 21 character string of the form :samp:`_{rounds}{salt}{checksum}`.
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
@@ -48,7 +48,7 @@ All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 * :samp:`{salt}` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
 * :samp:`{checksum}` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
 
-A ext_des_crypt configuration string is also accepted by this module;
+A bsdi_crypt configuration string is also accepted by this module;
 and has the same format as the hash string, but with the checksum portion omitted.
 
 .. rst-class:: html-toggle

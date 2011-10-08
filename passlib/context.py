@@ -1167,7 +1167,7 @@ class CryptContext(object):
               and the hash does not need upgrading.
             * ``(True, str)`` indicates the secret verified correctly,
               but the existing hash has been deprecated, and should be replaced
-              by the one returned as ``new_hash``.
+              by the :class:`str` returned as ``new_hash``.
 
         .. seealso:: :ref:`context-migrating-passwords` for a usage example.
         """

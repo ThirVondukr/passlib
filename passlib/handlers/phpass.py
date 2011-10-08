@@ -3,7 +3,7 @@
 phppass located - http://www.openwall.com/phpass/
 algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
 
-phpass context - blowfish, ext_des_crypt, phpass
+phpass context - blowfish, bsdi_crypt, phpass
 """
 #=========================================================
 #imports

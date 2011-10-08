@@ -972,31 +972,47 @@ class HasRounds(GenericHandler):
 class HasManyBackends(GenericHandler):
     """GenericHandler mixin which provides selecting from multiple backends.
 
+    .. todo::
+
+        finish documenting this class's usage
+
     For hashes which need to select from multiple backends,
     depending on the host environment, this class
     offers a way to specify alternate :meth:`calc_checksum` methods,
-    will dynamically chose the best one at runtime.
+    and will dynamically chose the best one at runtime.
 
-    .. todo::
-
-        document this class's usage
-
-    .. attribute:: backends
-    
-        tuple containing names of the backends which are supported.
-        two common names are ``"os_crypt"`` (if backend uses :mod:`crypt`),
-        and ``"builtin"`` (if the backend is a pure-python fallback).
+    Backend Methods
+    ---------------
 
     .. automethod:: get_backend
     .. automethod:: set_backend
     .. automethod:: has_backend
 
-    .. attribute:: _has_backend_{xxx}
+    Subclass Hooks
+    --------------
+    The following attributes and methods should be filled in by the subclass
+    which is using :class:`HasManyBackends` as a mixin:
 
-        private class attr used by :meth:`has_backend`
-        to check if a specific backend is available.
-        one of these should be provided by subclass 
-        for each backend listed in :attr:`backends`.
+    .. attribute:: backends
+    
+        This attribute should be a tuple containing the names of the backends
+        which are supported. Two common names are ``"os_crypt"`` (if backend
+        uses :mod:`crypt`), and ``"builtin"`` (if the backend is a pure-python
+        fallback). 
+
+    .. attribute:: _has_backend_{name}
+
+        private class attribute checked by :meth:`has_backend` to see if a
+        specific backend is available, it should be either ``True``
+        or ``False``. One of these should be provided by
+        the subclass for each backend listed in :attr:`backends`.
+        
+    .. classmethod:: _calc_checksum_{name}
+    
+        private class method that should implement :meth:`calc_checksum`
+        for a given backend. it will only be called if the backend has
+        been selected by :meth:`set_backend`. One of these should be provided
+        by the subclass for each backend listed in :attr:`backends`.
     """
 
     #NOTE: subclass must provide:
