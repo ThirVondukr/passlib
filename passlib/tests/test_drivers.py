@@ -132,9 +132,9 @@ class _BCryptTest(HandlerCase):
         # correct provided salts to handle ending correctly,
         # so test_33_genconfig_saltchars doesn't throw warnings.
         if 'salt' in kwds:
-            from passlib.handlers.bcrypt import BCHARS, BCLAST
+            from passlib.handlers.bcrypt import BCHARS, BSLAST
             salt = kwds['salt']
-            if salt and salt[-1] not in BCLAST:
+            if salt and salt[-1] not in BSLAST:
                 salt = salt[:-1] + BCHARS[BCHARS.index(salt[-1])&~15]
             kwds['salt'] = salt
         return self.handler.genconfig(**kwds)
@@ -152,13 +152,13 @@ class _BCryptTest(HandlerCase):
         def check_padding(hash):
             "check bcrypt hash doesn't have salt padding bits set"
             assert hash.startswith("$2a$") and len(hash) >= 28
-            self.assertTrue(hash[28] in BCLAST,
+            self.assertTrue(hash[28] in BSLAST,
                             "padding bits set in hash: %r" % (hash,))
 
         #===============================================================
         # test generated salts
         #===============================================================
-        from passlib.handlers.bcrypt import BCHARS, BCLAST
+        from passlib.handlers.bcrypt import BCHARS, BSLAST
 
         # make sure genconfig & encrypt don't return bad hashes.
         # bug had 15/16 chance of occurring every time salt generated.
@@ -184,13 +184,20 @@ class _BCryptTest(HandlerCase):
         # test handling existing hashes
         #===============================================================
 
+        # 2 bits of salt padding set
         PASS1 = "loppux"
         BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
         GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
 
+        # all 4 bits of salt padding set
         PASS2 = "Passlib11"
         BAD2  = "$2a$12$M8mKpW9a2vZ7PYhq/8eJVcUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"
         GOOD2 = "$2a$12$M8mKpW9a2vZ7PYhq/8eJVOUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"
+
+        # bad checksum padding
+        PASS3 = "test"
+        BAD3  = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIV"
+        GOOD3 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
 
         # make sure genhash() corrects input
         with catch_warnings(record=True) as wlog:
@@ -204,7 +211,11 @@ class _BCryptTest(HandlerCase):
 
             self.assertEqual(bcrypt.genhash(PASS2, GOOD2), GOOD2)
             self.assertFalse(wlog)
-
+            
+            self.assertEqual(bcrypt.genhash(PASS3, BAD3), GOOD3)
+            check_warning(wlog)
+            self.assertFalse(wlog)
+            
         # make sure verify works on both bad and good hashes
         with catch_warnings(record=True) as wlog:
             warnings.simplefilter("always")

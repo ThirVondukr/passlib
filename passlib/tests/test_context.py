@@ -863,6 +863,31 @@ class CryptContextTest(TestCase):
         self.assertIs(new_hash, None)
 
     #=========================================================
+    # other
+    #=========================================================
+    def test_90_bcrypt_normhash(self):
+        "teset verify_and_update / hash_needs_update corrects bcrypt padding"
+        # see issue 25.
+        bcrypt = hash.bcrypt
+        
+        PASS1 = "loppux"
+        BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
+        GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
+        ctx = CryptContext(["bcrypt"])
+        
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+
+            self.assertTrue(ctx.hash_needs_update(BAD1))
+            self.assertFalse(ctx.hash_needs_update(GOOD1))
+    
+            if bcrypt.has_backend():            
+                self.assertEquals(ctx.verify_and_update(PASS1,GOOD1), (True,None))
+                self.assertEquals(ctx.verify_and_update("x",BAD1), (False,None))
+                res = ctx.verify_and_update(PASS1, BAD1)
+                self.assertTrue(res[0] and res[1] and res[1] != BAD1)
+
+    #=========================================================
     #eoc
     #=========================================================
 
