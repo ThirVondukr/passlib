@@ -900,6 +900,11 @@ class CryptContext(object):
 
         #XXX: could check if handler provides it's own helper, eg getattr(handler, "hash_needs_update", None),
         #and call that instead of the following default behavior
+        if hasattr(handler, "_hash_needs_update"):
+            #NOTE: hacking this in for the sake of bcrypt & issue 25,
+            #      will formalize (and possibly change) interface later.
+            if handler._hash_needs_update(hash, **opts):
+                return True
 
         if opts:
             #check if we can parse hash to check it's rounds parameter
@@ -1108,7 +1113,7 @@ class CryptContext(object):
               and the hash does not need upgrading.
             * ``(True, str)`` indicates the secret verified correctly,
               but the existing hash has been deprecated, and should be replaced
-              by the one returned as ``new_hash``.
+              by the :class:`str` returned as ``new_hash``.
 
         .. seealso:: :ref:`context-migrating-passwords` for a usage example.
         """

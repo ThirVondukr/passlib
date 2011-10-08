@@ -128,7 +128,7 @@ def decode_transposed_bytes(source, offsets):
     return belem_join(buf)
 
 #=================================================================================
-# int <-> b64 string, used by des_crypt, ext_des_crypt
+# int <-> b64 string, used by des_crypt, bsdi_crypt
 #=================================================================================
 
 def decode_int6(source):

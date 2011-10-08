@@ -90,6 +90,19 @@ This implementation of bcrypt differs from others in a few ways:
   encoding is desired by an application, the password should be encoded
   before handing it to PassLib.
 
+* Padding Bits
+
+  BCrypt's base64 encoding results in the last character of the salt
+  encoding only 2 bits of data, the remaining 4 are "padding" bits.
+  Similarly, the last character of the digest contains 4 bits of data,
+  and 2 padding bits. Because of the way they are coded, many BCrypt implementations
+  will reject all passwords if these padding bits are not set to 0.
+  Due to a legacy issue with Passlib <= 1.5.2,
+  Passlib instead prints a warning if it encounters hashes with any padding bits set,
+  and will then validate them correctly. 
+  (This behavior will eventually be deprecated and such hashes
+  will throw a :exc:`ValueError` instead).
+
 .. rubric:: Footnotes
 
 .. [#f1] `<http://www.usenix.org/event/usenix99/provos/provos_html/>`_ - the bcrypt format specification

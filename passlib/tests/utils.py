@@ -946,6 +946,45 @@ class HandlerCase(TestCase):
         h2 = self.do_encrypt("stub")
         self.assertNotEqual(h1, h2)
 
+    # optional helper used by test_53_external_verifiers
+    iter_external_verifiers = None
+
+    def test_53_external_verifiers(self):
+        "test encrypt() output verifies against external libs"
+        # this makes sure our output can be verified by external libs,
+        # to avoid repeat of things like issue 25.
+
+        handler = self.handler
+        possible = False
+        if self.iter_external_verifiers:
+            helpers = list(self.iter_external_verifiers())
+            possible = True
+        else:
+            helpers = []
+
+        # provide default "os_crypt" helper
+        if hasattr(handler, "has_backend") and \
+                'os_crypt' in handler.backends and \
+                not hasattr(handler, "orig_prefix"):
+            possible = True
+            if handler.has_backend("os_crypt"):
+                def check_crypt(secret, hash):
+                    self.assertEqual(utils.os_crypt(secret, hash), hash,
+                                     "os_crypt(%r,%r):" % (secret, hash))
+                helpers.append(check_crypt)
+
+        if not helpers:
+            if possible:
+                raise self.skipTest("no external libs available")
+            else:
+                raise self.skipTest("not applicable")
+
+        # generate a single hash, and verify it using all helpers.
+        secret = 't\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99'
+        hash = self.do_encrypt(secret)
+        for helper in helpers:
+            helper(secret, hash)
+
     #=========================================================
     #test max password size
     #=========================================================

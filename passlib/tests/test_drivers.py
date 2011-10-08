@@ -11,7 +11,7 @@ import warnings
 #pkg
 from passlib import hash
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
-        enable_option, b
+        enable_option, b, catch_warnings
 #module
 
 
@@ -44,12 +44,10 @@ class AprMd5CryptTest(HandlerCase):
 #=========================================================
 #bcrypt
 #=========================================================
-from passlib.handlers.bcrypt import bcrypt
-
 class _BCryptTest(HandlerCase):
     "base for BCrypt test cases"
 
-    handler = bcrypt
+    handler = hash.bcrypt
     secret_chars = 72
 
     known_correct_hashes = [
@@ -57,8 +55,10 @@ class _BCryptTest(HandlerCase):
         ('', '$2a$06$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'),
         ('a', '$2a$10$k87L/MF28Q673VKh8/cPi.SUl7MU/rWuSiIDDFayrKk/1tBsSQu4u'),
         ('abc', '$2a$10$WvvTPHKwdBJ3uk0Z37EMR.hLA2W6N9AEBhEgrAOljy2Ae5MtaSIUi'),
-        ('abcdefghijklmnopqrstuvwxyz', '$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'),
-        ('~!@#$%^&*()      ~!@#$%^&*()PNBFRD', '$2a$10$LgfYWkbzEvQ4JakH7rOvHe0y8pHKF9OaFgwUZ2q7W2FFZmZzJYlfS'),
+        ('abcdefghijklmnopqrstuvwxyz',
+                '$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'),
+        ('~!@#$%^&*()      ~!@#$%^&*()PNBFRD',
+                '$2a$10$LgfYWkbzEvQ4JakH7rOvHe0y8pHKF9OaFgwUZ2q7W2FFZmZzJYlfS'),
         ]
 
     known_unidentified_hashes = [
@@ -69,43 +69,175 @@ class _BCryptTest(HandlerCase):
     known_malformed_hashes = [
         #bad char in otherwise correct hash
         "$2a$12$EXRkfkdmXn!gzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
+
         #rounds not zero-padded (pybcrypt rejects this, therefore so do we)
         '$2a$6$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'
+
+        #NOTE: salts with padding bits set are technically malformed,
+        #      but that's one we can reliably correct & issue warning for.
         ]
 
-    def test_idents(self):
+    #===============================================================
+    # extra tests
+    #===============================================================
+    def iter_external_verifiers(self):
+        try:
+            from bcrypt import hashpw
+        except ImportError:
+            pass
+        else:
+            def check_pybcrypt(secret, hash):
+                self.assertEqual(hashpw(secret, hash), hash,
+                                 "pybcrypt: bcrypt.hashpw(%r,%r):" % (secret, hash))
+            yield check_pybcrypt
+
+        try:
+            from bcryptor.engine import Engine
+        except ImportError:
+            pass
+        else:
+            def check_bcryptor(secret, hash):
+                result = Engine(False).hash_key(secret, hash)
+                self.assertEqual(result, hash,
+                                 "bcryptor: hash_key(%r,%r):" % (secret, hash))
+            yield check_bcryptor
+
+    def test_90_idents(self):
+        "test identifier validation"
         handler = self.handler
 
-        kwds = dict(checksum='8CIhhFCj15KqqFvo/n.Jatx8dJ92f82', salt='VlsfIX9.apXuQBr6tego0M', rounds=12, ident="2a", strict=True)
+        kwds = dict(checksum='8CIhhFCj15KqqFvo/n.Jatx8dJ92f82',
+                    salt='VlsfIX9.apXuQBr6tego0.',
+                    rounds=12, ident="2a", strict=True)
+
         handler(**kwds)
 
         kwds['ident'] = None
         self.assertRaises(ValueError, handler, **kwds)
 
         del kwds['strict']
+
         kwds['ident'] = 'Q'
         self.assertRaises(ValueError, handler, **kwds)
 
-    #FIXME: this would probably still be useful,
-    #       but have to make it patch os_crypt in utils now,
-    #       so that it's called by safe_os_crypt...
-    #
-    ###this method is added in order to maximize test coverage on systems
-    ###where os_crypt is missing or doesn't support bcrypt
-    ##if enable_option("cover") and not bcrypt.has_backend("os_crypt") and bcrypt.has_backend("pybcrypt"):
-    ##    def test_backend(self):
-    ##        from passlib.handlers import bcrypt as bcrypt_mod
-    ##        orig = bcrypt_mod.os_crypt
-    ##        bcrypt_mod.sos_crypt = bcrypt_mod.pybcrypt_hashpw
-    ##        orig = bcrypt.get_backend()
-    ##        try:
-    ##            bcrypt.set_backend("os_crypt")
-    ##            bcrypt.encrypt(u"test", rounds=4)
-    ##        finally:
-    ##            bcrypt.set_backend(orig)
-    ##            bcrypt_mod.os_crypt = orig
+    #===============================================================
+    # see issue 25 - https://code.google.com/p/passlib/issues/detail?id=25
+    # bcrypt's salt ends with 4 padding bits.
+    # openbsd, pybcrypt, etc assume these bits are always 0.
+    # passlib <= 1.5.2 generated salts where this wasn't usually the case.
+    # as of 1.5.3, we want to always generate salts w/ 0 padding,
+    # and clear the padding of any incoming hashes
+    #===============================================================
+    def do_genconfig(self, **kwds):
+        # correct provided salts to handle ending correctly,
+        # so test_33_genconfig_saltchars doesn't throw warnings.
+        if 'salt' in kwds:
+            from passlib.handlers.bcrypt import BCHARS, BSLAST
+            salt = kwds['salt']
+            if salt and salt[-1] not in BSLAST:
+                salt = salt[:-1] + BCHARS[BCHARS.index(salt[-1])&~15]
+            kwds['salt'] = salt
+        return self.handler.genconfig(**kwds)
 
-bcrypt._no_backends_msg() #call this for coverage purposes
+    def test_91_bcrypt_padding(self):
+        "test passlib correctly handles bcrypt padding bits"
+        bcrypt = self.handler
+
+        def check_warning(wlog):
+            self.assertWarningMatches(wlog.pop(0),
+                message_re="^encountered a bcrypt hash with incorrectly set padding bits.*",
+            )
+            self.assertFalse(wlog)
+
+        def check_padding(hash):
+            "check bcrypt hash doesn't have salt padding bits set"
+            assert hash.startswith("$2a$") and len(hash) >= 28
+            self.assertTrue(hash[28] in BSLAST,
+                            "padding bits set in hash: %r" % (hash,))
+
+        #===============================================================
+        # test generated salts
+        #===============================================================
+        from passlib.handlers.bcrypt import BCHARS, BSLAST
+
+        # make sure genconfig & encrypt don't return bad hashes.
+        # bug had 15/16 chance of occurring every time salt generated.
+        # so we call it a few different way a number of times.
+        for i in xrange(6):
+            check_padding(bcrypt.genconfig())
+        for i in xrange(3):
+            check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
+
+        # check passing salt to genconfig causes it to be normalized.
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+
+            hash = bcrypt.genconfig(salt="."*21 + "A.")
+            check_warning(wlog)
+            self.assertEqual(hash, "$2a$12$" + "." * 22)
+
+            hash = bcrypt.genconfig(salt="."*23)
+            self.assertFalse(wlog)
+            self.assertEqual(hash, "$2a$12$" + "." * 22)
+
+        #===============================================================
+        # test handling existing hashes
+        #===============================================================
+
+        # 2 bits of salt padding set
+        PASS1 = "loppux"
+        BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
+        GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
+
+        # all 4 bits of salt padding set
+        PASS2 = "Passlib11"
+        BAD2  = "$2a$12$M8mKpW9a2vZ7PYhq/8eJVcUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"
+        GOOD2 = "$2a$12$M8mKpW9a2vZ7PYhq/8eJVOUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"
+
+        # bad checksum padding
+        PASS3 = "test"
+        BAD3  = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIV"
+        GOOD3 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+
+        # make sure genhash() corrects input
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+
+            self.assertEqual(bcrypt.genhash(PASS1, BAD1), GOOD1)
+            check_warning(wlog)
+
+            self.assertEqual(bcrypt.genhash(PASS2, BAD2), GOOD2)
+            check_warning(wlog)
+
+            self.assertEqual(bcrypt.genhash(PASS2, GOOD2), GOOD2)
+            self.assertFalse(wlog)
+            
+            self.assertEqual(bcrypt.genhash(PASS3, BAD3), GOOD3)
+            check_warning(wlog)
+            self.assertFalse(wlog)
+            
+        # make sure verify works on both bad and good hashes
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+
+            self.assertTrue(bcrypt.verify(PASS1, BAD1))
+            check_warning(wlog)
+
+            self.assertTrue(bcrypt.verify(PASS1, GOOD1))
+            self.assertFalse(wlog)
+
+        #===============================================================
+        # test normhash cleans things up correctly
+        #===============================================================
+        with catch_warnings(record=True) as wlog:
+            warnings.simplefilter("always")
+            self.assertEqual(bcrypt.normhash(BAD1), GOOD1)
+            self.assertEqual(bcrypt.normhash(BAD2), GOOD2)
+            self.assertEqual(bcrypt.normhash(GOOD1), GOOD1)
+            self.assertEqual(bcrypt.normhash(GOOD2), GOOD2)
+            self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
+
+hash.bcrypt._no_backends_msg() #call this for coverage purposes
 
 #create test cases for specific backends
 Pybcrypt_BCryptTest = create_backend_case(_BCryptTest, "pybcrypt")

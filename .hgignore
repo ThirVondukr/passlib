@@ -7,3 +7,4 @@ glob:build
 glob:dist
 glob:*$py.class
 glob:MANIFEST
+glob:.tox
