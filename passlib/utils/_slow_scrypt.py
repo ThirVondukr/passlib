@@ -7,10 +7,9 @@ NOTICE
 This module is just a feasibility study, to see if it's possible
 to implement SCrypt in pure Python in any meaningful way.
 
-The current approach uses byte arrays, unpacking them for the Salsa 20/8 round.
-One approach yet to be tried is converting this to work with arrays
-of 32 bit integers, eliminating the unpack stage, and possibly simplifying
-the xor operations.
+The current approach uses lists of integers, allowing them to be
+passed directly into salsa20 without decoding. Byte strings, array objects,
+have all proved slower.
 
 If run as a script, this module will run a limited number of the SCrypt
 test vectors... though currently any value of ``n>128`` is too slow
@@ -20,11 +19,14 @@ to be useful, and that's far too low for secure purposes.
 # imports
 #==========================================================================
 # core
-import array
+from itertools import izip
+import operator
 import struct
+from warnings import warn
 # pkg
-from passlib.utils import xor_bytes
+from passlib.utils import BEMPTY
 from passlib.utils.pbkdf2 import pbkdf2
+from passlib.utils._salsa import salsa20
 # local
 __all__ =[
     "scrypt",
@@ -33,82 +35,11 @@ __all__ =[
 # constants
 #==========================================================================
 
-_SALSA_OPS = [
-        # row = (target idx, source idx 1, source idx 2, rotate)
-        # interpreted as salsa operation over uint32...
-        #   target = (source1+source2)<<rotate
-
-        ##/* Operate on columns. */
-        ##define R(a,b) (((a) << (b)) | ((a) >> (32 - (b))))
-        ##x[ 4] ^= R(x[ 0]+x[12], 7);  x[ 8] ^= R(x[ 4]+x[ 0], 9);
-        ##x[12] ^= R(x[ 8]+x[ 4],13);  x[ 0] ^= R(x[12]+x[ 8],18);
-        (  4,  0, 12,  7),
-        (  8,  4,  0,  9),
-        ( 12,  8,  4, 13),
-        (  0, 12,  8, 18),       
-
-        ##x[ 9] ^= R(x[ 5]+x[ 1], 7);  x[13] ^= R(x[ 9]+x[ 5], 9);
-        ##x[ 1] ^= R(x[13]+x[ 9],13);  x[ 5] ^= R(x[ 1]+x[13],18);
-        (  9,  5,  1,  7),
-        ( 13,  9,  5,  9),
-        (  1, 13,  9, 13),
-        (  5,  1, 13, 18),
-
-        ##x[14] ^= R(x[10]+x[ 6], 7);  x[ 2] ^= R(x[14]+x[10], 9);
-        ##x[ 6] ^= R(x[ 2]+x[14],13);  x[10] ^= R(x[ 6]+x[ 2],18);
-        ( 14, 10,  6,  7),
-        (  2, 14, 10,  9),
-        (  6,  2, 14, 13),
-        ( 10,  6,  2, 18),
-
-        ##x[ 3] ^= R(x[15]+x[11], 7);  x[ 7] ^= R(x[ 3]+x[15], 9);
-        ##x[11] ^= R(x[ 7]+x[ 3],13);  x[15] ^= R(x[11]+x[ 7],18);
-        (  3, 15, 11,  7),
-        (  7,  3, 15,  9),
-        ( 11,  7,  3, 13),
-        ( 15, 11,  7, 18),
-        
-        ##/* Operate on rows. */
-        ##x[ 1] ^= R(x[ 0]+x[ 3], 7);  x[ 2] ^= R(x[ 1]+x[ 0], 9);
-        ##x[ 3] ^= R(x[ 2]+x[ 1],13);  x[ 0] ^= R(x[ 3]+x[ 2],18);
-        (  1,  0,  3,  7),
-        (  2,  1,  0,  9),
-        (  3,  2,  1, 13),
-        (  0,  3,  2, 18),
-
-        ##x[ 6] ^= R(x[ 5]+x[ 4], 7);  x[ 7] ^= R(x[ 6]+x[ 5], 9);
-        ##x[ 4] ^= R(x[ 7]+x[ 6],13);  x[ 5] ^= R(x[ 4]+x[ 7],18);
-        (  6,  5,  4,  7),
-        (  7,  6,  5,  9),
-        (  4,  7,  6, 13),
-        (  5,  4,  7, 18),
-
-        ##x[11] ^= R(x[10]+x[ 9], 7);  x[ 8] ^= R(x[11]+x[10], 9);
-        ##x[ 9] ^= R(x[ 8]+x[11],13);  x[10] ^= R(x[ 9]+x[ 8],18);
-        ( 11, 10,  9,  7),
-        (  8, 11, 10,  9),
-        (  9,  8, 11, 13),
-        ( 10,  9,  8, 18),
-
-        ##x[12] ^= R(x[15]+x[14], 7);  x[13] ^= R(x[12]+x[15], 9);
-        ##x[14] ^= R(x[13]+x[12],13);  x[15] ^= R(x[14]+x[13],18);
-        ( 12, 15, 14,  7),
-        ( 13, 12, 15,  9),
-        ( 14, 13, 12, 13),
-        ( 15, 14, 13, 18),    
-]
-
-_salsa_iter1 = range(0,8,2)
-_salsa_iter2 = range(0,16)
-
-s = struct.Struct("<16I")
-_salsa_unpack = s.unpack
-_salsa_pack = s.pack
-del s
-
-MASK32 = 0xFfffFfff
 MAX_KEYLEN = ((1<<32)-1)*32
 MAX_RP = (1<<30)
+
+class ScryptCompatWarning(UserWarning):
+    pass
 
 #==========================================================================
 # scrypt engine
@@ -139,17 +70,36 @@ class _ScryptEngine(object):
             raise ValueError("r*p must be < (1<<30)")
         if n < 1:
             raise ValueError("n must be >= 1")
-        if n&(n-1):
-            # NOTE: this is due to the way smix() is coded,
-            #       it's not set up to deal w/ other values of 'n',
-            #       though they are technically valid under scrypt.
-            raise ValueError("n must be power of 2")
+        n_is_log2 = not (n&(n-1))
+        if not n_is_log2:
+            # NOTE: this is due to the way the reference scrypt integerify is
+            #       only coded for powers of two, and doesn't have a fallback.
+            warn("Running scrypt with an 'N' value that's not a power of 2, "
+                 "such values aren't supported by the reference SCrypt implementation",
+                 ScryptCompatWarning)
             
         # store config
         self.n = n
+        self.n_is_log2 = n_is_log2
         self.r = r
         self.p = p
-        
+        self.smix_bytes = r<<7 # num bytes in smix input - 2*r*16*4
+        self.iv_bytes = self.smix_bytes * p
+        self.bmix_len = bmix_len = r<<5 # length of bmix block list - 32*r integers
+        assert struct.calcsize("I") == 4
+        self.bmix_struct = struct.Struct("<" + str(bmix_len) + "I")
+                             
+        # pick best integerify/getoffset function
+        if n <= 0xFFFFffff:
+            integerify = operator.itemgetter(-16)
+        else:
+            assert n <= 0xFFFFffffFFFFffff
+            ig1 = operator.itemgetter(-16)
+            ig2 = operator.itemgetter(-17)
+            def integerify(X):
+                return ig1(X) | (ig2(X)<<32)
+        self.integerify = integerify
+
     #=================================================================
     # frontend
     #=================================================================
@@ -160,20 +110,21 @@ class _ScryptEngine(object):
             raise ValueError("keylen too large")
         
         # stretch salt into initial byte array via pbkdf2
-        n,r,p = self.n, self.r, self.p
-        mflen = 2*64*r 
+        iv_bytes = self.iv_bytes
         input = pbkdf2(secret, salt, rounds=1,
-                       keylen=p*mflen, prf="hmac-sha256")
-   
-        assert struct.calcsize("I") == 4
-        
+                       keylen=iv_bytes, prf="hmac-sha256")
+           
         # split initial byte array into 'p' mflen-sized chunks,
         # and run each chunk through smix() to generate output chunk.
         smix = self.smix
-        output = ''.join(
-            smix(input[offset:offset+mflen])
-            for offset in range(0,p*mflen, mflen)        
-        )
+        if self.p == 1:
+            output = smix(input)
+        else:
+            smix_bytes = self.smix_bytes
+            output = BEMPTY.join(
+                smix(input[offset:offset+smix_bytes])
+                for offset in range(0,iv_bytes, smix_bytes)        
+            )
         
         # stretch final byte array into output via pbkdf2
         return pbkdf2(secret, output, rounds=1,
@@ -187,138 +138,83 @@ class _ScryptEngine(object):
         
         :arg input:
             byte string containing input data.
-            interpreted as 2*r 64-byte blocks.
+            interpreted as 32*r little endian 4 byte integers.
         
         :returns:
             byte string containing output data
             derived by mixing input using n & r parameters.
         """
-        # load config
+        # gather locals
         bmix = self.bmix
-        n,r = self.n, self.r
-        tr = r<<1 # 2*r        
-        assert len(input) == tr<<6
+        bmix_struct = self.bmix_struct
+        integerify = self.integerify
+        n = self.n
         
-        # start with input chunk,
-        # populate V vector s.t.
-        # V[i] = blockmix_salsa8(X) composed i times
-        def gen():
-            X = input
-            for i in xrange(0,n):
-                yield X
-                X = bmix(X)
-            yield X #return tail value, popped off V later
-        V = list(gen())
+        # parse input into 32*r integers
+        X = list(bmix_struct.unpack(input))
         
-        # grab last value out of generator
-        X = V.pop()
-        assert len(V) == n
-    
-        # work out struct params for integerify
-        unpack, isz = self._get_integerify_info(n)
-        istart = -64
-        iend = istart + isz
+        # starting with X, derive V s.t. V[0]=X; V[i] = bmix(X, V[i-1]);
+        # final X should equal bmix(X,V[n-1])
+        def vgen():
+            i = 0
+            while i < n:
+                tmp = tuple(X)
+                yield tmp
+                bmix(tmp,X)
+                i += 1
+        V = list(vgen())
         
-        # generate final X from buffer.
+        # generate result from X & V.
+        gv = V.__getitem__
         i = 0
-        while i < n:
-            # "integerify" X mod N.
-            # scrypt takes last 64 bytes of X
-            # as little-endian integer.
-            j = unpack(X[istart:iend])[0] % n
-                
-            # calc next X
-            X = bmix(xor_bytes(X, V[j]))
-            i += 1
-            
-        return X
-
-    @staticmethod
-    def _get_integerify_info(n):
-        if n <= 0xffff:
-            isz = 2
-            ifl = "<H"
-        elif n <= 0xFfffFfff:
-            isz = 4
-            ifl = "<I"
+        if self.n_is_log2:
+            mask = n-1
+            while i < n:
+                j = integerify(X) & mask
+                tmp = tuple(a^b for a,b in izip(X, gv(j)))
+                bmix(tmp,X)
+                i += 1
         else:
-            assert n <= 0xFfffFfffFfffFfff
-            isz = 8
-            ifl = "<Q"
-        unpack = struct.Struct(ifl).unpack
-        return unpack, isz
+            while i < n:
+                j = integerify(X) % n
+                tmp = tuple(a^b for a,b in izip(X, gv(j)))
+                bmix(tmp,X)
+                i += 1
+
+        # repack tmp      
+        return bmix_struct.pack(*X)
             
     #=================================================================
     # bmix() 
     #=================================================================
-    def bmix(self, B):
-        """block mixing function used by smix()
-        
+    def bmix(self, source, target):
+        """block mixing function used by smix()        
         uses salsa20/8 core to mix block contents.
         
-        :arg B:
-            bytes string interpreted as 2*r 64-byte blocks.
-        
-        :returns:
-            byte string containing output data
-            derived by mixing input.
+        :arg source:
+            source to read from.
+            should be list of 32*r integers.
+        :arg target:
+            target to write to.
+            should be list of 32*r integers.
+            
+        source & target should NOT be same list.
         """
-        # break B into 64-byte chunks, and run through salsa20
         # Y[-1] = B[2r-1], Y[i] = hash( Y[i-1] xor B[i])
         # B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-        # salsa hash size = 64, hence the '<<6'
-        r = self.r
-        tr = r<<1
-        blocklen = tr<<6
-        salsa = self.salsa
-        assert len(B) == blocklen
-        result = [None] * tr
-        i = 0
+        bmix_len = self.bmix_len # 32*r
         j = 0
-        X = B[-64:]
-        while i < blocklen:
-            iend = i+64
-            X = result[j] = salsa(xor_bytes(X, B[i:iend]))
-            j += 2
-            if j >= tr:
-                j = 1
-            i = iend
-        return "".join(result)
-        
-    #=================================================================
-    # backend hash function
-    #=================================================================
-    @staticmethod
-    def salsa(input):
-        """apply the salsa20/8 core to the provided 64 byte block"""
-        # input should be 64-byte byte string
-        assert len(input) == 64
-        
-        # break input 16 32-bit integers (little endian)
-        buffer = list(_salsa_unpack(input))
-    
-        tmp = list(buffer)
-        get = tmp.__getitem__
-     
-        i = 0
-        while i < 4:
-            for target, source1, source2, rotate in _SALSA_OPS:
-                # perform salsa op: target = (source1+source2)<<<rotate 
-                # using 32 bit uint arithmetic
-                v = (get(source1) + get(source2)) & MASK32
-                v = ((v << rotate) & MASK32) | (v >> (32 - rotate))
-                tmp[target] ^= v
-            i += 1
-                  
-        # add temp back into original
-        output = (
-            (a + b) & MASK32
-            for a,b in zip(buffer, tmp)
-        )
-    
-        # convert to little-endian bytes
-        return _salsa_pack(*output)
-    
+        X = source[-16:]
+        siter = iter(source)
+        while True:
+            target[j:j+16] = X = salsa20(a ^ b for a, b in izip(X, siter))            
+            # increment to next block
+            j += 32
+            if j >= bmix_len:
+                if j > bmix_len:
+                    break
+                j = 16
+            
     #=================================================================
     # eoc
     #=================================================================
@@ -339,7 +235,7 @@ def scrypt(secret, salt, n, r, p, keylen):
     
         - r*p<2**30.
         - keylen < (2**32-1)*32.
-        - n must be power of 2.
+        - n must be a power of 2 (for compatibility with reference scrypt)
     """
     engine = _ScryptEngine(n,r,p)
     return engine.scrypt(secret, salt, keylen)
@@ -355,8 +251,7 @@ def uh(value):
         
 def test():
     # run quick test on salsa bit.
-    salsa = _ScryptEngine.salsa
-    assert salsa(struct.pack("<16I",*range(16))) == \
+    assert struct.pack("<16I",*salsa20(range(16))) == \
         uh('f518dd4fb98883e0a87954c05cab867083bb8808552810752285a05822f56c16'
            '9d4a2a0fd2142523d758c60b36411b682d53860514b871d27659042a5afa475d')
 
