@@ -196,15 +196,8 @@ class _ScryptEngine(object):
         # load config
         bmix = self.bmix
         n,r = self.n, self.r
-        tr = r<<1 # 2*r
-        smix_byte_count = r<<5 # 2*r*64 = total bytes in input
-        
-        # break input into 2*r 16-element uint32 arrays.
-        assert len(input) == smix_byte_count
-        input = [
-            array.array('I', input[i:i+64])
-            for i in xrange(0,smix_byte_count,64)
-        ]        
+        tr = r<<1 # 2*r        
+        assert len(input) == tr<<6
         
         # start with input chunk,
         # populate V vector s.t.
@@ -235,12 +228,10 @@ class _ScryptEngine(object):
             j = unpack(X[istart:iend])[0] % n
                 
             # calc next X
-            for i,v in enumerate(V[j]):
-                X[i] ^= v
             X = bmix(xor_bytes(X, V[j]))
             i += 1
             
-        return "".join(X.tostring())
+        return X
 
     @staticmethod
     def _get_integerify_info(n):
@@ -266,7 +257,7 @@ class _ScryptEngine(object):
         uses salsa20/8 core to mix block contents.
         
         :arg B:
-            interpreted as 2*r 64-byte blocks.
+            bytes string interpreted as 2*r 64-byte blocks.
         
         :returns:
             byte string containing output data
@@ -280,50 +271,31 @@ class _ScryptEngine(object):
         tr = r<<1
         blocklen = tr<<6
         salsa = self.salsa
-        #assert len(B) == blocklen
+        assert len(B) == blocklen
         result = [None] * tr
         i = 0
         j = 0
-        #X = B[-64:]
-        X = B[-1]
+        X = B[-64:]
         while i < blocklen:
-            #iend = i+64
-            iend = i+1
+            iend = i+64
             X = result[j] = salsa(xor_bytes(X, B[i:iend]))
             j += 2
             if j >= tr:
                 j = 1
             i = iend
-        return result
-        #return "".join(result)
-        #    
-        #def gen():
-        #    X = B[-64:]
-        #    for offset in xrange(0, 128*r, 64):
-        #        X = xor_bytes(X, B[offset:offset+64])
-        #        X = salsa20_8(X)
-        #        yield X
-        #Y = list(gen())    
-        ###
-        ###    for (i = 0; i < r; i++)
-        ###        blkcpy(&B[i * 64], &Y[(i * 2) * 64], 64);
-        ###    for (i = 0; i < r; i++)
-        ###        blkcpy(&B[(i + r) * 64], &Y[(i * 2 + 1) * 64], 64);
-        ###}
-        #return "".join(Y[::2] + Y[1::2])   
+        return "".join(result)
         
     #=================================================================
     # backend hash function
     #=================================================================
     @staticmethod
     def salsa(input):
-        "apply the salsa20/8 core in-place to the provided list of 16 uint32"
+        """apply the salsa20/8 core to the provided 64 byte block"""
         # input should be 64-byte byte string
         assert len(input) == 64
         
         # break input 16 32-bit integers (little endian)
-        buffer = array.array('I', input)
-        #buffer = list(_salsa_unpack(input))
+        buffer = list(_salsa_unpack(input))
     
         tmp = list(buffer)
         get = tmp.__getitem__
@@ -345,8 +317,7 @@ class _ScryptEngine(object):
         )
     
         # convert to little-endian bytes
-        return array.array('I', *output)
-        #return _salsa_pack(*output)
+        return _salsa_pack(*output)
     
     #=================================================================
     # eoc
