@@ -4,6 +4,14 @@
 Release History
 ===============
 
+**DEV BRANCH**
+    
+    This development branch contains a pure-python implementation
+    of the scrypt kdf primitive (passlib/utils/_slow_scrypt.py).
+    It's currently of interest as a curiosity only,
+    and may never be fast enough to be useful (in which case
+    this branch may be closed).
+
 **1.6** (NOT YET RELEASED)
 
     CryptContext
