@@ -1,64 +1,25 @@
-#pragma: no cover - this module currently isn't used.
-"""passlib._slow_bcrypt - fallback pure-python bcrypt implementation
-
-History
-==========
-This is a pure-python implementation of the bcrypt hash algorithm,
-based off the java bcrypt implementation jBcrypt 0.2,
-as downloaded from http://www.mindrot.org/projects/jBCrypt/.
-
-jBcrypt was released under the BSD license::
-
-    Copyright (c) 2006 Damien Miller <djm@mindrot.org>
-
-    Permission to use, copy, modify, and distribute this software for any
-    purpose with or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
-
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-This python implementation was adapted from jBcrypt by Eli Collins <elic@astllc.org>,
-and released under the BSD license as part of PassLib.
-
-This module is meant mainly as a fall-back for PassLib to use as a last resort.
-If you need speedy bcrypt support, install the python-bcrypt library,
-and passlib will use it instead of this module.
-This module is not suitable for production use, as it's incredibly slow.
-
-The bcrypt unit-tests in passlib.tests.test_bcrypt
-will test all bcrypt backends found, not just the preferred one,
-in order to ensure no impedance mismatch.
-"""
+"""passlib.utils._blowfish.base - unoptimized pure-python blowfish engine"""
 #=========================================================
 #imports
 #=========================================================
 #core
-from cStringIO import StringIO
-from itertools import chain
 import struct
 #pkg
-from passlib.utils import rng, getrandbytes, bytes, bord, b
-from passlib.utils._blowfish_unrolled import bfs_encipher, bfs_repeat_encipher,\
-                                             bfs_expand0_rounds
 #local
 __all__ = [
-    'raw_bcrypt',
+    "BlowfishEngine",
 ]
 
 #=========================================================
-# bcrypt & blowfish constants
+# blowfish constants
 #=========================================================
-
-BLOWFISH_P = BLOWFISH_S = BCRYPT_CDATA = None
+BLOWFISH_P = BLOWFISH_S = None
 
 def _init_constants():
-    global BLOWFISH_P, BLOWFISH_S, BCRYPT_CDATA
+    global BLOWFISH_P, BLOWFISH_S
+
+    # NOTE: blowfish's spec states these numbers are the hex representation
+    # of the fractional portion of PI, in order. 
 
     # Initial contents of key schedule - 18 integers
     BLOWFISH_P = [
@@ -341,291 +302,143 @@ def _init_constants():
         ]
     ]
 
-    # bcrypt constant data "OrpheanBeholderScryDoubt" as 6 integers
-    BCRYPT_CDATA = [
-        0x4f727068, 0x65616e42, 0x65686f6c,
-        0x64657253, 0x63727944, 0x6f756274
-    ]
-
-# struct used to encode ciphertext as digest (last output byte discarded)
-digest_struct = struct.Struct(">6I")
-
 #=========================================================
-#base64 encoding
+# engine
 #=========================================================
+class BlowfishEngine(object):
 
-# Table for Base64 encoding
-CHARS = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-CHARSIDX = dict( (c, i) for i, c in enumerate(CHARS))
+    def __init__(self):
+        if BLOWFISH_P is None:
+            _init_constants()
+        self.P = list(BLOWFISH_P)
+        self.S = [ list(box) for box in BLOWFISH_S ]
 
-def encode_base64(d):
-    """Encode a byte array using bcrypt's slightly-modified base64 encoding scheme.
+    #=========================================================
+    # common helpers
+    #=========================================================
+    @staticmethod
+    def key_to_words(data, size=18):
+        """convert data to tuple of integers, repeated or truncating data
+        as needed to reach specified size"""
+        assert isinstance(data, bytes)
+        dlen = len(data)
+        if not dlen:
+            # return all zeros - original C code would just read the NUL after
+            # the password, so mimicing that behavior for this edge case.
+            return [0]*size
 
-    Note that this is *not* compatible with the standard MIME-base64 encoding.
+        # repeat data until it fills up 4*size bytes
+        needed = size<<2
+        if dlen > needed:
+            data = data[:needed]
+        elif dlen < needed:
+            count = (needed+dlen-1)//dlen
+            data = (data * count)[:needed]
 
-    :param d:
-        the bytes to encode
-    :returns:
-        the bytes as encoded using bcrypt's base64
-    """
-    if isinstance(d, unicode):
-        d = d.encode("utf-8")
-        #ensure ord() returns something w/in 0..255
+        # unpack
+        return struct.unpack(">%dI" % (size,), data)
 
-    rs = StringIO()
-    write = rs.write
-    dlen = len(d)
-    didx = 0
+    #=========================================================
+    # blowfish routines
+    #=========================================================
+    def encipher(self, l, r):
+        "loop version of blowfish encipher routine"
+        P, S = self.P, self.S
+        l ^= P[0]
+        i = 1
+        while i < 17:
+            # Feistel substitution on left word
+            r = ((((S[0][l >> 24] + S[1][(l >> 16) & 0xff]) ^ S[2][(l >> 8) & 0xff]) +
+                  S[3][l & 0xff]) & 0xffffffff) ^ P[i] ^ r
+            # swap vars so even rounds do Feistel substition on right word
+            l, r = r, l
+            i += 1
+        return r ^ P[17], l
 
-    while True:
-        #encode first byte ->  1 byte (6 bits) w/ 2 bits left over
-        if didx >= dlen:
-            break
-        c1 = ord(d[didx])
-        write(CHARS[(c1 >> 2) & 0x3f])
-        c1 = (c1 & 0x03) << 4
-        didx += 1
+    # NOTE: decipher is same as above, just with reversed(P) instead.
 
-        #encode 2 bits + second byte -> 1 byte (6 bits) w/ 4 bits left over
-        if didx >= dlen:
-            write(CHARS[c1])
-            break
-        c2 = ord(d[didx])
-        write(CHARS[c1 | (c2 >> 4) ])
-        c2 = (c2 & 0x0f) << 2
-        didx += 1
+    def expand(self, key_words):
+        "perform stock Blowfish keyschedule setup"
+        assert len(key_words) >= 18, "key_words must be at least as large as P"
+        P, S, encipher = self.P, self.S, self.encipher
 
-        #encode 4 bits left over + third byte -> 1 byte (6 bits) w/ 2 bits left over
-        if didx >= dlen:
-            write(CHARS[c2])
-            break
-        c3 = ord(d[didx])
-        write(CHARS[c2 | (c3 >> 6)])
-        write(CHARS[c3 & 0x3f])
-        didx += 1
-
-    return rs.getvalue()
-
-def decode_base64(s):
-    """Decode bytes encoded using bcrypt's base64 scheme.
-
-    :param s:
-        string of bcrypt-base64 encoded bytes
-
-    :returns:
-        string of decoded bytes
-
-    :raises ValueError:
-        if invalid values are passed in
-    """
-    rs = StringIO()
-    write = rs.write
-    slen = len(s)
-    sidx = 0
-
-    def char64(c):
-        "look up 6 bit value in table"
-        try:
-            return CHARSIDX[c]
-        except KeyError:
-            raise ValueError, "invalid chars in base64 string"
-
-    while True:
-
-        #decode byte 1 + byte 2 -> 1 byte + 4 bits left over
-        if sidx >= slen-1:
-            break
-        c2 = char64(s[sidx+1])
-        write(chr((char64(s[sidx]) << 2) | (c2 >> 4)))
-        sidx += 2
-
-        #decode 4 bits left over + 3rd byte -> 1 byte + 2 bits left over
-        if sidx >= slen:
-            break
-        c3 = char64(s[sidx])
-        write(chr(((c2 & 0x0f) << 4) | (c3 >> 2)))
-        sidx += 1
-
-        #decode 2 bits left over + 4th byte -> 1 byte
-        if sidx >= slen:
-            break
-        write(chr(((c3 & 0x03) << 6) | char64(s[sidx])))
-        sidx += 1
-
-    return rs.getvalue()
-
-#=========================================================
-#helpers
-#=========================================================
-def make_words(data):
-    """return list of 18 32-bit integers derived from data.
-    if data is not long enough, it will be repeated.
-    """
-    assert isinstance(data, bytes)
-    dlen = len(data)
-    if not dlen:
-        # return all zeros - original C code would just read the NUL after
-        # the password, so mimicing that behavior for this edge case.
-        return [0]*18
-    return [
-        (bord(data[off % dlen])<<24) +
-        (bord(data[(off+1) % dlen])<<16) +
-        (bord(data[(off+2) % dlen])<<8) +
-        (bord(data[(off+3) % dlen]))
-        for off in xrange(0,72,4)
-    ]
-
-# NOTE: bfs_encipher() implemented as unrolled loop in _blowfish_unrolled.py
-
-def bfs_expand(P, S, pass_keys, salt_keys):
-    "perform EKS version of Blowfish keyschedule setup"
-    # NOTE: this code assumes salt_keys will always contain only 4 integers,
-    #       repeated to fill 18 slots. so it only bothers w/ the first 4.
-
-    for i, v in enumerate(pass_keys):
-        P[i] ^= v
-
-    s = i = l = r = 0
-    while i < 18:
-        l ^= salt_keys[s]
-        r ^= salt_keys[s+1]
-        P[i], P[i+1] = l,r = bfs_encipher(P,S,l,r)
-        i += 2
-        s += 2
-        if s == 4:
-            s = 0
-
-    for box in S:
         i = 0
-        while i < 256:
-            l ^= salt_keys[s]
-            r ^= salt_keys[s+1]
-            box[i], box[i+1] = l,r = bfs_encipher(P,S,l,r)
+        while i < 18:
+            P[i] ^= key_words[i]
+            i += 1
+
+        i = l = r = 0
+        while i < 18:
+            P[i], P[i+1] = l,r = encipher(l,r)
             i += 2
+
+        for box in S:
+            i = 0
+            while i < 256:
+                box[i], box[i+1] = l,r = encipher(l,r)
+                i += 2
+
+    #=========================================================
+    # eks-blowfish routines
+    #=========================================================
+    def eks_expand(self, key_words, salt_words):
+        "perform EKS version of Blowfish keyschedule setup"
+        # NOTE: this is the same as expand(), except for the addition
+        #       of the operations involving *salt_words*.
+
+        assert len(key_words) >= 18, "key_words must be at least as large as P"
+        salt_size = len(salt_words)
+        assert salt_size, "salt_words must not be empty"
+        assert not salt_size & 1, "salt_words must have even length"
+        P, S, encipher = self.P, self.S, self.encipher
+
+        i = 0
+        while i < 18:
+            P[i] ^= key_words[i]
+            i += 1
+
+        s = i = l = r = 0
+        while i < 18:
+            l ^= salt_words[s]
+            r ^= salt_words[s+1]
             s += 2
-            if s == 4:
+            if s == salt_size:
                 s = 0
+            P[i], P[i+1] = l,r = encipher(l,r) #next()
+            i += 2
 
-# NOTE: this was replaced by unrolled loop in _blowfish_unrolled.py
-##def bfs_repeat_encipher(P, S, l, r, count):
-##    n = 0
-##    while n < count:
-##        l, r = bfs_encipher(P, S, l, r)
-##        n += 1
-##    return l, r
+        for box in S:
+            i = 0
+            while i < 256:
+                l ^= salt_words[s]
+                r ^= salt_words[s+1]
+                s += 2
+                if s == salt_size:
+                    s = 0
+                box[i], box[i+1] = l,r = encipher(l,r) #next()
+                i += 2
 
-# NOTE: this was replaced by unrolled loop in _blowfish_unrolled.py
-##def bfs_expand0_rounds(P, S, pass_keys, salt_keys, rounds):
-##    "loop version of eks encipher stage"
-##    rounds <<= 1
-##    n = 0
-##    while n < rounds:
-##
-##        #key the blowfish cipher
-##        keys = salt_keys if n & 1 else pass_keys
-##        i = 0
-##        for word in keys:
-##            P[i] ^= word
-##            i += 1
-##
-##        # update P
-##        l = r = 0
-##        i = 0
-##        while i < 18:
-##            P[i], P[i+1] = l,r = bfs_encipher(P,S,l,r)
-##            i += 2
-##
-##        # update S
-##        for box in S:
-##            j = 0
-##            while j < 256:
-##                box[j], box[j+1] = l,r = bfs_encipher(P,S,l,r)
-##                j += 2
-##
-##        n += 1
+    def eks_rounds_expand0(self, key_words, salt_words, rounds):
+        "perform rounds stage of EKS keyschedule setup"
+        expand = self.expand
+        n = 0
+        while n < rounds:
+            expand(key_words)
+            expand(salt_words)
+            n += 1
 
-#=========================================================
-#base bcrypt helper
-#
-#interface designed only for use by passlib.handlers.bcrypt:BCrypt
-#probably not suitable for other purposes
-#=========================================================
-BNULL = b('\x00')
+    def repeat_encipher(self, l, r, count):
+        "repeatedly apply encipher operation to a block"
+        encipher = self.encipher
+        n = 0
+        while n < count:
+            l, r = encipher(l, r)
+            n += 1
+        return l, r
 
-def raw_bcrypt(password, ident, salt, log_rounds):
-    """perform central password hashing step in bcrypt scheme.
-
-    :param password: the password to hash
-    :param ident: identifier w/ minor version (eg 2, 2a)
-    :param salt: the binary salt to use (encoded in bcrypt-base64)
-    :param rounds: the log2 of the number of rounds (as int)
-    :returns: bcrypt-base64 encoded checksum
-    """
-    #===========================================================
-    # parse inputs
-    #===========================================================
-
-    # parse ident
-    assert isinstance(ident, unicode)
-    if ident == u'2':
-        minor = 0
-    elif ident == u'2a':
-        minor = 1
-    else:
-        raise ValueError, "unknown ident: %r" % (ident,)
-
-    # decode & validate salt
-    assert isinstance(salt, bytes)
-    salt = decode_base64(salt)
-    if len(salt) < 16:
-        raise ValueError, "Missing salt bytes"
-    elif len(salt) > 16:
-        salt = salt[:16]
-
-    # prepare password
-    assert isinstance(password, bytes)
-    if minor > 0:
-        password += BNULL
-
-    # validate rounds
-    if log_rounds < 4 or log_rounds > 31:
-        raise ValueError("Bad number of rounds")
-
-    #===========================================================
-    #
-    # run EKS-Blowfish algorithm
-    #
-    # This uses the "enhanced key schedule" step described by
-    # Provos and Mazieres in "A Future-Adaptable Password Scheme"
-    # http:#www.openbsd.org/papers/bcrypt-paper.ps
-    #
-    #===========================================================
-
-    #init blowfish key schedule
-    if BLOWFISH_P is None:
-        _init_constants()
-    P = list(BLOWFISH_P)
-    S = [ list(box) for box in BLOWFISH_S ]
-
-    # convert password & salt into list of 18 32-bit integers.
-    pass_keys = make_words(password)
-    salt_keys = make_words(salt)
-
-    # do EKS key schedule setup
-    bfs_expand(P, S, pass_keys, salt_keys)
-
-    # apply password & salt keys to key schedule a bunch more times.
-    rounds = 1<<log_rounds
-    bfs_expand0_rounds(P, S, pass_keys, salt_keys, rounds)
-
-    #encipher constant data, and encode to bytes as digest.
-    data = list(BCRYPT_CDATA)
-    i = 0
-    while i < 6:
-        data[i], data[i+1] = bfs_repeat_encipher(P, S, data[i], data[i+1], 64)
-        i += 2
-    raw = digest_struct.pack(*data)[:-1]
-    return encode_base64(raw)
+    #=========================================================
+    # eoc
+    #=========================================================
 
 #=========================================================
 #eof
