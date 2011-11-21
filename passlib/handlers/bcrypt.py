@@ -40,7 +40,7 @@ _builtin_bcrypt = None
 def _load_builtin():
     global _builtin_bcrypt
     if _builtin_bcrypt is None:
-        from passlib.utils._slow_bcrypt import raw_bcrypt as _builtin_bcrypt
+        from passlib.utils._blowfish import raw_bcrypt as _builtin_bcrypt
 
 # base64 character->value mapping used by bcrypt.
 # this is same as as H64_CHARS, but the positions are different.
@@ -81,7 +81,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     1. `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
     2. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
     3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt (eg: BSD).
-    
+
     If no backends are available at runtime,
     :exc:`~passlib.utils.MissingBackendError` will be raised
     whenever :meth:`encrypt` or :meth:`verify` are called.
@@ -198,7 +198,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 "to fix this; see Passlib 1.5.3 changelog."
                 )
         return checksum
-    
+
     #=========================================================
     #primary interface
     #=========================================================
