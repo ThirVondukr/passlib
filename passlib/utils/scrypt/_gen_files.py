@@ -22,7 +22,7 @@ _SALSA_OPS = [
         (  4,  0, 12,  7),
         (  8,  4,  0,  9),
         ( 12,  8,  4, 13),
-        (  0, 12,  8, 18),       
+        (  0, 12,  8, 18),
 
         ##x[ 9] ^= R(x[ 5]+x[ 1], 7);  x[13] ^= R(x[ 9]+x[ 5], 9);
         ##x[ 1] ^= R(x[13]+x[ 9],13);  x[ 5] ^= R(x[ 1]+x[13],18);
@@ -44,7 +44,7 @@ _SALSA_OPS = [
         (  7,  3, 15,  9),
         ( 11,  7,  3, 13),
         ( 15, 11,  7, 18),
-        
+
         ##/* Operate on rows. */
         ##x[ 1] ^= R(x[ 0]+x[ 3], 7);  x[ 2] ^= R(x[ 1]+x[ 0], 9);
         ##x[ 3] ^= R(x[ 2]+x[ 1],13);  x[ 0] ^= R(x[ 3]+x[ 2],18);
@@ -72,16 +72,16 @@ _SALSA_OPS = [
         ( 12, 15, 14,  7),
         ( 13, 12, 15,  9),
         ( 14, 13, 12, 13),
-        ( 15, 14, 13, 18),    
+        ( 15, 14, 13, 18),
 ]
 
 def main():
     target = os.path.join(os.path.dirname(__file__), "_salsa.py")
-    fh = file(target, "w")    
+    fh = file(target, "w")
     write = fh.write
 
     VNAMES = ["v%d" % i for i in range(16)]
-    
+
     PAD = " " * 4
     PAD2 = " " * 8
     PAD3 = " " * 12
@@ -100,25 +100,25 @@ def main():
 
 def salsa20(input):
     \"""apply the salsa20/8 core to the provided input
-    
+
     :args input: input list containing 16 32-bit integers
     :returns: result list containing 16 32-bit integers
     \"""
-    
+
     %(TLIST)s = input
     %(VLIST)s = \\
         %(TLIST)s
-    
+
     i = 0
     while i < 4:
 """ % kwds)
-    
+
     for idx, (target, source1, source2, rotate) in enumerate(_SALSA_OPS):
         write("""\
         # salsa op %(idx)d: [%(it)d] ^= ([%(is1)d]+[%(is2)d])<<<%(rot1)d
         t = (%(src1)s + %(src2)s) & 0xffffffff
         %(dst)s ^= ((t & 0x%(rmask)08x) << %(rot1)d) | (t >> %(rot2)d)
-        
+
 """ % dict(
         idx=idx, is1 = source1, is2=source2, it=target,
         src1=VNAMES[source1],
@@ -128,17 +128,17 @@ def salsa20(input):
         rot1=rotate,
         rot2=32-rotate,
     ))
-        
+
     write("""\
         i += 1
 
 """)
-        
+
     for idx in range(16):
         write(PAD + "b%d = (b%d + v%d) & 0xffffffff\n" % (idx,idx,idx))
-        
+
     write("""\
-          
+
     return %(TLIST)s
 
 #=================================================================
