@@ -130,9 +130,14 @@ Programming Language :: Python :: 2.5
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: Jython
+Programming Language :: Python :: Implementation :: PyPy
 Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
 """.splitlines()
+
+# TODO: also test releases under ironpython -- "Programming Language :: Python :: Implementation :: IronPython"
 
 is_release = False
 if '.dev' in VERSION:
