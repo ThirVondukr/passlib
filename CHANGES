@@ -59,10 +59,10 @@ Release History
         BCrypt hashes contain 4 "padding" bits in the encoded salt, and Passlib
         (<= 1.5.2) generated salts in a manner which frequently set some of the
         padding bits to 1.  While Passlib ignores these bits, many BCrypt
-        implementations perform password verification in a way will reject
-        *all* passwords, if any of the padding bits are set.  Thus Passlib's
-        BCrypt salt generation needed to be corrected to ensure compatibility,
-        and a route provided to fix existing hashes already out in the wild
+        implementations perform password verification in a way which rejects
+        *all* passwords if any of the padding bits are set.  Thus Passlib's
+        BCrypt salt generation needed to be fixed to ensure compatibility,
+        and a route provided to correct existing hashes already out in the wild
         [issue 25].
         
     *Changes in this release:*

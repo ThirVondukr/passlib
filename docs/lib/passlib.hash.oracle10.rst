@@ -82,11 +82,12 @@ Oracle10 account passwords, due to the following flaws [#flaws]_:
   (eg ``system``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
-* The fact that is it case insensitive, and simply concatenates the username
-  and password, greatly reduces the keyspace for brute-force
-  or pre-computed attacks.
+* The fact that it is case insensitive, and simply concatenates the username
+  and password, greatly reduces the keyspace that must be searched by 
+  brute-force or pre-computed attacks.
 
-* It's simplicity makes high-speed brute force attacks much more feasible.
+* It's simplicity, and decades of research on high-speed DES 
+  implementations, makes efficient brute force attacks much more feasible.
 
 Deviations
 ==========
@@ -109,7 +110,7 @@ There is only one known issue:
 .. rubric:: Footnotes
 
 .. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references.
-          PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors
+          PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors,
           and supports unicode input.
 
 .. [#flaws] Whitepaper analyzing flaws in this algorithm -

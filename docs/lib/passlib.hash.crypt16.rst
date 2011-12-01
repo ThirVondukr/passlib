@@ -51,7 +51,8 @@ The crypt16 algorithm uses a weakened version of the des-crypt algorithm:
    The salt string uses little-endian
    :func:`hash64 <passlib.utils.h64.decode_int12>` encoding.
 
-3. The password is NULL padded at the end or truncated to 16 bytes, as appropriate.
+3. If the password is larger than 16 bytes, the end is truncated to 16 bytes.
+   If the password is smaller than 16 bytes, the end is NULL padded to 16 bytes.
 
 4. The lower 7 bits of the first 8 characters of the password are used
    to form a 56-bit integer; with the first character providing
@@ -62,9 +63,10 @@ The crypt16 algorithm uses a weakened version of the des-crypt algorithm:
    starting with a null input block,
    and using the 56-bit integer from step 4 as the DES key.
 
-   The salt is used to to mutate the normal DES encrypt operation
-   by swapping bits :samp:`{i}` and :samp:`{i}+24` in the DES E-Box output
-   if and only if bit :samp:`{i}` is set in the salt value.
+   The salt value from step 2 is used to to mutate the normal 
+   DES encrypt operation by swapping bits :samp:`{i}` and :samp:`{i}+24` 
+   in the DES E-Box output if and only if bit :samp:`{i}` is set in 
+   the salt value.
 
 6. The 64-bit result of the last round of step 5 is then
    lsb-padded with 2 zero bits.
