@@ -14,7 +14,7 @@ from warnings import warn
 #site
 #libs
 from passlib.registry import get_crypt_handler
-from passlib.utils import to_hash_str, bytes, b, \
+from passlib.utils import to_hash_str, bytes, b, consteq, \
         classproperty, h64, getrandstr, getrandbytes, \
         rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
 #pkg
@@ -224,7 +224,7 @@ class StaticHandler(object):
             raise ValueError("no hash specified")
         hash = cls._norm_hash(hash)
         result = cls.genhash(secret, hash, *cargs, **context)
-        return cls._norm_hash(result) == hash
+        return consteq(cls._norm_hash(result), hash)
 
     @classmethod
     def _norm_hash(cls, hash):
@@ -462,7 +462,7 @@ class GenericHandler(object):
         # may wish to either override this, or override norm_checksum
         # to normalize any checksums provided by from_string()
         self = cls.from_string(hash)
-        return self.checksum == self.calc_checksum(secret)
+        return consteq(self.calc_checksum(secret), self.checksum)
 
     #=========================================================
     #eoc
@@ -778,6 +778,7 @@ class HasSalt(GenericHandler):
         if salt is None:
             if strict:
                 raise ValueError("no salt specified")
+            #XXX: should we run generated salts through norm_salt? probably.
             return cls.generate_salt(salt_size=salt_size, strict=strict)
 
         #validate input charset
@@ -994,11 +995,11 @@ class HasManyBackends(GenericHandler):
     which is using :class:`HasManyBackends` as a mixin:
 
     .. attribute:: backends
-    
+
         This attribute should be a tuple containing the names of the backends
         which are supported. Two common names are ``"os_crypt"`` (if backend
         uses :mod:`crypt`), and ``"builtin"`` (if the backend is a pure-python
-        fallback). 
+        fallback).
 
     .. attribute:: _has_backend_{name}
 
@@ -1006,9 +1007,9 @@ class HasManyBackends(GenericHandler):
         specific backend is available, it should be either ``True``
         or ``False``. One of these should be provided by
         the subclass for each backend listed in :attr:`backends`.
-        
+
     .. classmethod:: _calc_checksum_{name}
-    
+
         private class method that should implement :meth:`calc_checksum`
         for a given backend. it will only be called if the backend has
         been selected by :meth:`set_backend`. One of these should be provided

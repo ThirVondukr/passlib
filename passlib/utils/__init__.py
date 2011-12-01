@@ -453,6 +453,70 @@ def is_ascii_safe(source):
 #=================================================================================
 #string helpers
 #=================================================================================
+
+def consteq(left, right):
+    """check two strings/bytes for equality, taking constant time relative
+    to the size of the righthand input.
+
+    The purpose of this function is to aid in preventing timing attacks
+    during digest comparisons (see the 1.6 changelog
+    :ref:`entry <consteq-issue>` for more details).
+    """
+    # NOTE:
+    # This function attempts to take an amount of time proportional
+    # to ``THETA(len(right))``. The main loop is designed so that timing attacks
+    # against this function should reveal nothing about how much (or which
+    # parts) of the two inputs match.
+    #
+    # Why ``THETA(len(right))``?
+    # Assuming the attacker controls one of the two inputs, padding to
+    # the largest input or trimming to the smallest input both allow
+    # a timing attack to reveal the length of the controlled input.
+    # However, by fixing the runtime to be proportional to the right input:
+    # * If the right value is attacker controlled, the runtime is proportional
+    #   to their input, giving nothing away about the left value's size.
+    # * If the left value is attacker controlled, the runtime is constant
+    #   relative to their input, giving nothing away about the right value's size.
+
+    # validate types
+    if isinstance(left, unicode):
+        if not isinstance(right, unicode):
+            raise TypeError("inputs must be both unicode or bytes")
+        # Py3k #
+        #isbytes = False
+        # end Py3k #
+    elif isinstance(left, bytes):
+        if not isinstance(right, bytes):
+            raise TypeError("inputs must be both unicode or bytes")
+        # Py3k #
+        #isbytes = True
+        # end Py3k #
+    else:
+        raise TypeError("inputs must be both unicode or bytes")
+
+    # do size comparison.
+    if len(left) == len(right):
+        # if sizes are the same, setup loop to perform actual check of contents.
+        tmp = left
+        result = 0
+    else:
+        # if sizes aren't the same, set 'result' so equality will fail regardless
+        # of contents. then, to ensure we do exactly 'len(right)' iterations
+        # of the loop, just compare 'right' against itself.
+        tmp = right
+        result = 1
+
+    # run constant-time string comparision
+    # Py3k #
+    #if isbytes:
+    #    for l,r in zip(tmp, right):
+    #        result |= l ^ r
+    #    return result == 0
+    # end Py3k #
+    for l,r in zip(tmp, right):
+        result |= ord(l) ^ ord(r)
+    return result == 0
+
 def splitcomma(source, sep=","):
     "split comma-separated string into list of elements, stripping whitespace and discarding empty elements"
     return [

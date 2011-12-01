@@ -142,6 +142,90 @@ class MiscTest(TestCase):
         #self.assertEqual(ret, (False, None))
         # end Py3k #
 
+    def test_consteq(self):
+        "test consteq()"
+        # NOTE: this test is kind of over the top, but that's only because
+        # this is used for the critical task of comparing hashes for equality.
+        consteq = utils.consteq
+
+        # ensure error raises for wrong types
+        self.assertRaises(TypeError, consteq, u'', b(''))
+        self.assertRaises(TypeError, consteq, u'', 1)
+        self.assertRaises(TypeError, consteq, u'', None)
+
+        self.assertRaises(TypeError, consteq, b(''), u'')
+        self.assertRaises(TypeError, consteq, b(''), 1)
+        self.assertRaises(TypeError, consteq, b(''), None)
+
+        self.assertRaises(TypeError, consteq, None, u'')
+        self.assertRaises(TypeError, consteq, None, b(''))
+        self.assertRaises(TypeError, consteq, 1, u'')
+        self.assertRaises(TypeError, consteq, 1, b(''))
+
+        # check equal inputs compare correctly
+        for value in [
+                u"a",
+                u"abc",
+                u"\xff\xa2\x12\x00"*10,
+            ]:
+            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            value = value.encode("latin-1")
+            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+
+        # check non-equal inputs compare correctly
+        for l,r in [
+                # check same-size comparisons with differing contents fail.
+                (u"a",         u"c"),
+                (u"abcabc",    u"zbaabc"),
+                (u"abcabc",    u"abzabc"),
+                (u"abcabc",    u"abcabz"),
+                ((u"\xff\xa2\x12\x00"*10)[:-1] + u"\x01",
+                    u"\xff\xa2\x12\x00"*10),
+
+                # check different-size comparisons fail.
+                (u"",       u"a"),
+                (u"abc",    u"abcdef"),
+                (u"abc",    u"defabc"),
+                (u"qwertyuiopasdfghjklzxcvbnm", u"abc"),
+            ]:
+            self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
+            self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
+            l = l.encode("latin-1")
+            r = r.encode("latin-1")
+            self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
+            self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
+
+        # TODO: add some tests to ensure we take THETA(strlen) time.
+        # this might be hard to do reproducably.
+        # NOTE: below code was used to generate stats for analysis
+        ##from math import log as logb
+        ##import timeit
+        ##multipliers = [ 1<<s for s in range(9)]
+        ##correct =   u"abcdefgh"*(1<<4)
+        ##incorrect = u"abcdxfgh"
+        ##print
+        ##first = True
+        ##for run in xrange(1):
+        ##    times = []
+        ##    chars = []
+        ##    for m in multipliers:
+        ##        supplied = incorrect * m
+        ##        def test():
+        ##            self.assertFalse(consteq(supplied,correct))
+        ##            #self.assertFalse(supplied == correct)
+        ##        times.append(timeit.timeit(test, number=100000))
+        ##        chars.append(len(supplied))
+        ##    # output for wolfram alpha
+        ##    print ", ".join("{%r, %r}" % (c,round(t,4)) for c,t in zip(chars,times))
+        ##    def scale(c):
+        ##        return logb(c,2)
+        ##    print ", ".join("{%r, %r}" % (scale(c),round(t,4)) for c,t in zip(chars,times))
+        ##    # output for spreadsheet
+        ##    ##if first:
+        ##    ##    print "na, " + ", ".join(str(c) for c in chars)
+        ##    ##    first = False
+        ##    ##print ", ".join(str(c) for c in [run] + times)
+
 #=========================================================
 #byte/unicode helpers
 #=========================================================
@@ -488,7 +572,7 @@ class _MD4_Test(TestCase):
 
     def test_md4_update(self):
         "test md4 update"
-        md4 = self.hash        
+        md4 = self.hash
         h = md4(b(''))
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 

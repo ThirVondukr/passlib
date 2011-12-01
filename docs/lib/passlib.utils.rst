@@ -50,6 +50,7 @@ Bytes Manipulation
 .. autofunction:: bytes_to_int
 .. autofunction:: int_to_bytes
 .. autofunction:: xor_bytes
+.. autofunction:: consteq
 
 Randomness
 ==========

@@ -11,7 +11,8 @@ import sys
 #site
 #libs
 from passlib.context import CryptContext
-from passlib.utils import render_bytes, bjoin, bytes, b, to_unicode, to_bytes
+from passlib.utils import render_bytes, bjoin, bytes, b, \
+                          to_unicode, to_bytes, consteq
 #pkg
 #local
 __all__ = [
@@ -523,7 +524,8 @@ class HtdigestFile(_CommonFile):
         hash = self._entry_map.get((user,realm))
         if hash is None:
             return None
-        return hash == self._calc_digest(user, realm, password)
+        result = self._calc_digest(user, realm, password)
+        return consteq(result, hash)
 
 #=========================================================
 # eof
