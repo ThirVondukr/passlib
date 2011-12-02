@@ -174,7 +174,7 @@ number of rounds for that scheme, or just a longer verify time.
 If an application wishes to use this feature, it all that is needed
 is to prefix the name of any hash or context options with the name
 of the category string it wants to use, and add an additional separator to the keyword:
-:samp:`{category}__{hash}__{option}`` or ``{category}__context__{option}``.
+:samp:`{category}__{hash}__{option}`` or :samp:`{category}__context__{option}`.
 
 .. note::
 

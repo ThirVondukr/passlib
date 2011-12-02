@@ -33,8 +33,8 @@ Interface
 Format & Algorithm
 ==================
 
-All of this scheme's hashes have the format :``{PKCS5S2}<data>``,
-where :samp:`<data>` is a 64 character base64 encoded string;
+All of this scheme's hashes have the format :samp:`\\{PKCS5S2\\}{data}`,
+where :samp:`{data}` is a 64 character base64 encoded string;
 which (when decoded), contains a 16 byte salt,
 and a 32 byte checksum.
 

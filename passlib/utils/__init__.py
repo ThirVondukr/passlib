@@ -471,7 +471,7 @@ def consteq(left, right):
     # Why ``THETA(len(right))``?
     # Assuming the attacker controls one of the two inputs, padding to
     # the largest input or trimming to the smallest input both allow
-    # a timing attack to reveal the length of the controlled input.
+    # a timing attack to reveal the length of the other input.
     # However, by fixing the runtime to be proportional to the right input:
     # * If the right value is attacker controlled, the runtime is proportional
     #   to their input, giving nothing away about the left value's size.
@@ -495,6 +495,8 @@ def consteq(left, right):
         raise TypeError("inputs must be both unicode or bytes")
 
     # do size comparison.
+    # XXX: this does one extra branch instruction when the string lengths don't 
+    #      match, compared to when they do. would be nice to equalize the cases.
     if len(left) == len(right):
         # if sizes are the same, setup loop to perform actual check of contents.
         tmp = left
