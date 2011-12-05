@@ -495,13 +495,15 @@ def consteq(left, right):
         raise TypeError("inputs must be both unicode or bytes")
 
     # do size comparison.
-    # XXX: this does one extra branch instruction when the string lengths don't 
-    #      match, compared to when they do. would be nice to equalize the cases.
-    if len(left) == len(right):
+    # NOTE: the double-if construction below is done deliberately, to ensure
+    # the same number of operations (including branches) is performed regardless
+    # of whether left & right are the same size.
+    same = (len(left) == len(right))
+    if same:
         # if sizes are the same, setup loop to perform actual check of contents.
         tmp = left
         result = 0
-    else:
+    if not same:
         # if sizes aren't the same, set 'result' so equality will fail regardless
         # of contents. then, to ensure we do exactly 'len(right)' iterations
         # of the loop, just compare 'right' against itself.
