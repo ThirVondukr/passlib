@@ -15,7 +15,7 @@ import time
 import sys
 #site
 #pkg
-from passlib.utils.compat import iteritems
+from passlib.utils.compat import iteritems, print_
 from passlib.registry import get_crypt_handler
 #local
 log = logging.getLogger(__name__)
@@ -217,8 +217,8 @@ def main(*args):
     setup_std_logging(level="debug", dev=True)
 
     timer = HashTimer("sha256_crypt")
-    print timer.find_rounds_range(.5)
-    print timer.estimate_rps()
+    print_(timer.find_rounds_range(.5))
+    print_(timer.estimate_rps())
 
     #TODO: give script ability to generate timings for a range of schemes, and minimum / maximum times.
 

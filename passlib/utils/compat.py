@@ -125,5 +125,54 @@ else:
         return method.im_func
 
 #=============================================================================
+# output
+#=============================================================================
+if PY3:
+    import builtins
+    print_ = getattr(builtins, "print")
+else:
+    def print_(*args, **kwds):
+        """The new-style print function."""
+        # extract kwd args
+        fp = kwds.pop("file", sys.stdout)
+        sep = kwds.pop("sep", None)
+        end = kwds.pop("end", None)
+        if kwds:
+            raise TypeError("invalid keyword arguments")
+
+        # short-circuit if no target
+        if fp is None:
+            return
+
+        # use unicode or bytes ?
+        want_unicode = isinstance(sep, unicode) or isinstance(end, unicode) or \
+                       any(isinstance(arg, unicode) for arg in args)
+
+        # pick default end sequence
+        if end is None:
+            end = u("\n") if want_unicode else "\n"
+        elif not isinstance(end, sb_types):
+            raise TypeError("end must be None or a string")
+
+        # pick default separator
+        if sep is None:
+            sep = u(" ") if want_unicode else " "
+        elif not isinstance(sep, sb_types):
+            raise TypeError("sep must be None or a string")
+
+        # write to buffer
+        first = True
+        write = fp.write
+        for arg in args:
+            if first:
+                first = False
+            else:
+                write(sep)
+            if not isinstance(arg, basestring):
+                arg = str(arg)
+            write(arg)
+        write(end)
+
+#=============================================================================
 # eof
 #=============================================================================
