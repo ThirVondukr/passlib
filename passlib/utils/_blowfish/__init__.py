@@ -154,7 +154,7 @@ def decode_base64(s):
         try:
             return CHARSIDX[c]
         except KeyError:
-            raise ValueError, "invalid chars in base64 string"
+            raise ValueError("invalid chars in base64 string")
 
     while True:
 
@@ -208,13 +208,13 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     elif ident == u'2a':
         minor = 1
     else:
-        raise ValueError, "unknown ident: %r" % (ident,)
+        raise ValueError("unknown ident: %r" % (ident,))
 
     # decode & validate salt
     assert isinstance(salt, bytes)
     salt = decode_base64(salt)
     if len(salt) < 16:
-        raise ValueError, "Missing salt bytes"
+        raise ValueError("Missing salt bytes")
     elif len(salt) > 16:
         salt = salt[:16]
 

@@ -209,7 +209,8 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
     #run pbkdf1
     block = hf(secret + salt).digest()
     if keylen > len(block):
-        raise ValueError, "keylength too large for digest: %r > %r" % (keylen, len(block))
+        raise ValueError("keylength too large for digest: %r > %r" %
+                         (keylen, len(block)))
     r = 1
     while r < rounds:
         block = hf(block).digest()

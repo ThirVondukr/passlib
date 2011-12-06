@@ -60,7 +60,7 @@ class _CommonFile(object):
                  ):
         if encoding and u":\n".encode(encoding) != b(":\n"):
             #rest of file assumes ascii bytes, and uses ":" as separator.
-            raise ValueError, "encoding must be 7-bit ascii compatible"
+            raise ValueError("encoding must be 7-bit ascii compatible")
         self.encoding = encoding
         self.path = path
         ##if autoload == "exists":

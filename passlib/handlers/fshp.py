@@ -116,7 +116,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def norm_checksum(self, checksum, strict=False):
         checksum = super(fshp, self).norm_checksum(checksum, strict)
         if checksum is not None and len(checksum) != self._variant_info[self.variant][1]:
-            raise ValueError, "invalid checksum length for FSHP variant"
+            raise ValueError("invalid checksum length for FSHP variant")
         return checksum
 
     @property
