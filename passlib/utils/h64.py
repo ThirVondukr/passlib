@@ -7,7 +7,7 @@ import logging; log = logging.getLogger(__name__)
 #site
 #pkg
 from passlib.utils import bytes, bjoin, bchrs, bord, belem_join
-from passlib.utils.import from passlib.utils.compat import irange, u
+from passlib.utils.compat import irange, u, PY3
 #local
 __all__ = [
     "CHARS",
@@ -32,21 +32,18 @@ CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 BCHARS = CHARS.encode("ascii")
 
 #: encode int -> hash64 char as efficiently as possible, w/ minimal checking
-# Py2k #
-_encode_6bit = BCHARS.__getitem__
-# Py3k #
-#_encode_6bit = lambda v: BCHARS[v:v+1]
-# end Py3k #
-
+if PY3:
+    _encode_6bit = lambda v: BCHARS[v:v+1]
+else:
+    _encode_6bit = BCHARS.__getitem__
 
 #: decode hash64 char -> int as efficiently as possible, w/ minimal checking
 _CHARIDX = dict((_encode_6bit(i),i) for i in irange(64))
 _decode_6bit = _CHARIDX.__getitem__ # char -> int
 
 #for py3, enhance _CHARIDX to also support int value of bytes
-# Py3k #
-#_CHARIDX.update((v,i) for i,v in enumerate(BCHARS))
-# end Py3k #
+if Py3:
+    _CHARIDX.update((v,i) for i,v in enumerate(BCHARS))
 
 #=================================================================================
 #encode offsets from buffer - used by md5_crypt, sha_crypt, et al

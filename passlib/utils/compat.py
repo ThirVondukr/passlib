@@ -5,6 +5,7 @@
 import sys
 PY3 = sys.version >= (3,0)
 PY_MAX_25 = sys.version < (2,6) # py 2.5 or earlier
+PY27 = sys.version[:2] == (2,7) # supports last 2.x release
 PY_MIN_32 = sys.version >= (3,2) # py 3.2 or later
 
 #=============================================================================
@@ -91,7 +92,7 @@ if (3,0) <= sys.version < (3,2):
 if PY3:
     int_types = (int,)
 else:
-    int_types = (int,long)
+    int_types = (int, long)
 
 #=============================================================================
 # unicode / bytes helpers
@@ -104,7 +105,7 @@ if PY3:
         return s.encode("latin-1")
     unicode = str
     __all__.append("unicode")
-#    string_types = (str,)
+#    string_types = (unicode,)
 
 else:
     def u(s):
@@ -115,7 +116,7 @@ else:
     if PY_MAX_25:
         bytes = str
         __all__.append("bytes")
-#    string_types = (unicode,str)
+#    string_types = (unicode, bytes)
 
 sb_types = (unicode, bytes)
 
@@ -167,6 +168,10 @@ if PY3:
 else:
     def get_method_function(method):
         return method.im_func
+
+def _add_doc(obj, doc):
+    """add docstring to an object"""
+    object.__doc__ = doc
 
 #=============================================================================
 # input/output

@@ -16,7 +16,7 @@ from passlib import utils
 from passlib.utils import h64, des, Undef, bytes, b, \
     native_str, to_bytes, to_unicode, to_native_str, to_hash_str, \
     is_same_codec, is_ascii_safe, safe_os_crypt, md4 as md4_mod
-from passlib.utils.compat import unicode
+from passlib.utils.compat import unicode, PY3
 from passlib.tests.utils import TestCase, Params as ak, \
     enable_option, catch_warnings
 from passlib.utils.compat import u
@@ -138,11 +138,10 @@ class MiscTest(TestCase):
 
         #test latin-1 password
         ret = safe_os_crypt(b('test\xff'), u('aa'))
-        # Py2k #
-        self.assertEqual(ret, (True, u('aaOx.5nbTU/.M')))
-        # Py3k #
-        #self.assertEqual(ret, (False, None))
-        # end Py3k #
+        if PY3:
+            self.assertEqual(ret, (False, None))
+        else:
+            self.assertEqual(ret, (True, u('aaOx.5nbTU/.M')))
 
     def test_consteq(self):
         "test consteq()"
@@ -236,21 +235,21 @@ class CodecTest(TestCase):
 
     def test_bytes(self):
         "test b() helper, bytes and native_str types"
-        # Py2k #
-        self.assertIs(bytes, type(''))
-        self.assertIs(native_str, bytes)
-        # Py3k #
-        #self.assertIs(bytes, type(b''))
-        #self.assertIs(native_str, unicode)
-        # end Py3k #
+        if PY3:
+            import builtins
+            self.assertIs(bytes, builtins.bytes)
+        else:
+            import __builtin__ as builtins
+            self.assertIs(bytes, builtins.str)
+            
+        self.assertIs(native_str, builtins.str)
 
         self.assertIsInstance(b(''), bytes)
         self.assertIsInstance(b('\x00\xff'), bytes)
-        # Py2k #
-        self.assertEqual(b('\x00\xff'), "\x00\xff")
-        # Py3k #
-        #self.assertEqual(b('\x00\xff'), b"\x00\xff")
-        # end Py3k #
+        if PY3:
+            self.assertEqual(b('\x00\xff').encode("latin-1"), "\x00\xff")
+        else:
+            self.assertEqual(b('\x00\xff'), "\x00\xff")
 
     def test_to_bytes(self):
         "test to_bytes()"
@@ -311,23 +310,14 @@ class CodecTest(TestCase):
         self.assertEqual(to_native_str(b('abc')),           'abc')
         self.assertRaises(TypeError, to_native_str, None)
 
-        # Py2k #
-        self.assertEqual(to_native_str(u('\x00\xff')),        b('\x00\xc3\xbf'))
-        self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  b('\x00\xc3\xbf'))
-        self.assertEqual(to_native_str(u('\x00\xff'), 'latin-1'),
-                                                            b('\x00\xff'))
-        self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
-                                                            b('\x00\xff'))
-
-        # Py3k #
-        #self.assertEqual(to_native_str(u'\x00\xff'),        '\x00\xff')
-        #self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  '\x00\xff')
-        #self.assertEqual(to_native_str(u'\x00\xff', 'latin-1'),
-        #                                                    '\x00\xff')
-        #self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
-        #                                                    '\x00\xff')
-        #
-        # end Py3k #
+        self.assertEqual(to_native_str(u('\x00\xff'), 'latin-1'), '\x00\xff')
+        self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'), '\x00\xff')
+        if PY3:
+            self.assertEqual(to_native_str(u('\x00\xff')),     '\x00\xff')
+            self.assertEqual(to_native_str(b('\x00\xc3\xbf')), '\x00\xff')
+        else:
+            self.assertEqual(to_native_str(u('\x00\xff')),     '\x00\xc3\xbf')
+            self.assertEqual(to_native_str(b('\x00\xc3\xbf')), '\x00\xc3\xbf')
 
     #TODO: test to_hash_str()
 
@@ -580,9 +570,8 @@ class _MD4_Test(TestCase):
 
         #NOTE: under py2, hashlib methods try to encode to ascii,
         #      though shouldn't rely on that.
-        # Py3k #
-        #self.assertRaises(TypeError, h.update, u'x')
-        # end Py3k #
+        if PY3:
+            self.assertRaises(TypeError, h.update, u('x'))
 
         h.update(b('a'))
         self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")

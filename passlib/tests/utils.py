@@ -10,21 +10,17 @@ import re
 import os
 import sys
 import tempfile
-from passlib.utils.compat import u
+from passlib.utils.compat import u, PY27, PY_MIN_32, PY3
 
 try:
     import unittest2 as unittest
     ut_version = 2
 except ImportError:
     import unittest
-    # Py2k #
-    if sys.version_info < (2,7):
-    # Py3k #
-    #if sys.version_info < (3,2):
-    # end Py3k #
-        ut_version = 1
-    else:
+    if PY27 or PY_MIN_32:
         ut_version = 2
+    else:
+        ut_version = 1
 
 import warnings
 from warnings import warn
@@ -532,10 +528,8 @@ class HandlerCase(TestCase):
                         hash = h.genhash(secret, hash)
                     finally:
                         h.set_backend(tmp)
-                    # Py2k #
-                    if isinstance(hash, unicode):
+                    if not PY3 and isinstance(hash, unicode):
                         hash = hash.encode("ascii")
-                    # end Py2k #
                     return hash
                 utils.os_crypt = crypt_stub
             h.set_backend(backend)
