@@ -17,7 +17,7 @@ import time
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, b
+from passlib.utils.compat import irange, b, PY3
 #local
 __all__ = [
     #decorators
@@ -221,6 +221,11 @@ class classproperty(object):
     def __get__(self, obj, cls):
         return self.im_func(cls)
 
+    @property
+    def __func__(self):
+        "py3 compatible alias"
+        return self.im_func
+
 #works but not used
 ##class memoized_class_property(object):
 ##    """function decorator which calls function as classmethod, and replaces itself with result for current and all future invocations"""
@@ -232,6 +237,10 @@ class classproperty(object):
 ##        value = func(cls)
 ##        setattr(cls, func.__name__, value)
 ##        return value
+##
+##    @property
+##    def __func__(self):
+##        "py3 compatible alias"
 
 #works but not used...
 ##def abstractmethod(func):

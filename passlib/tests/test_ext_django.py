@@ -16,7 +16,7 @@ from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_drivers as td
 from passlib.utils import Undef
-from passlib.utils.compat import iteritems
+from passlib.utils.compat import iteritems, get_method_function
 from passlib.registry import get_crypt_handler
 #module
 
@@ -164,8 +164,10 @@ class PatchTest(TestCase):
 
         #make sure methods match
         self.assertIs(dam.check_password, state['models_check_password'])
-        self.assertIs(dam.User.check_password.im_func, state['user_check_password'])
-        self.assertIs(dam.User.set_password.im_func, state['user_set_password'])
+        self.assertIs(get_method_function(dam.User.check_password),
+                      state['user_check_password'])
+        self.assertIs(get_method_function(dam.User.set_password),
+                      state['user_set_password'])
 
         #make sure context matches
         obj = dam.User.password_context
