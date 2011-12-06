@@ -10,6 +10,7 @@ import warnings
 #site
 #pkg
 from passlib import hash
+from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b, catch_warnings
 #module
@@ -163,9 +164,9 @@ class _BCryptTest(HandlerCase):
         # make sure genconfig & encrypt don't return bad hashes.
         # bug had 15/16 chance of occurring every time salt generated.
         # so we call it a few different way a number of times.
-        for i in xrange(6):
+        for i in irange(6):
             check_padding(bcrypt.genconfig())
-        for i in xrange(3):
+        for i in irange(3):
             check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
 
         # check passing salt to genconfig causes it to be normalized.
@@ -211,11 +212,11 @@ class _BCryptTest(HandlerCase):
 
             self.assertEqual(bcrypt.genhash(PASS2, GOOD2), GOOD2)
             self.assertFalse(wlog)
-            
+
             self.assertEqual(bcrypt.genhash(PASS3, BAD3), GOOD3)
             check_warning(wlog)
             self.assertFalse(wlog)
-            
+
         # make sure verify works on both bad and good hashes
         with catch_warnings(record=True) as wlog:
             warnings.simplefilter("always")

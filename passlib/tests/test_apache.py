@@ -12,6 +12,7 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils import b, native_str, bytes
+from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
 #module
 log = getLogger(__name__)
@@ -93,7 +94,7 @@ class HtpasswdFileTest(TestCase):
         "test verify()"
         ht = apache.HtpasswdFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5","pass5") is None)
-        for i in xrange(1,5):
+        for i in irange(1,5):
             i = str(i)
             self.assertTrue(ht.verify("user"+i, "pass"+i))
             self.assertTrue(ht.verify("user"+i, "pass5") is False)
@@ -267,7 +268,7 @@ class HtdigestFileTest(TestCase):
         "test verify()"
         ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5", "realm","pass5") is None)
-        for i in xrange(1,5):
+        for i in irange(1,5):
             i = str(i)
             self.assertTrue(ht.verify("user"+i, "realm", "pass"+i))
             self.assertTrue(ht.verify("user"+i, "realm", "pass5") is False)

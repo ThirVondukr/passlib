@@ -21,6 +21,7 @@ except ImportError:
     _EVP = None
 #pkg
 from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
+from passlib.utils.compat import irange
 #local
 __all__ = [
     "hmac_sha1",
@@ -274,7 +275,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     #build up key from blocks
     out = BytesIO()
     write = out.write
-    for i in xrange(1,bcount+1):
+    for i in irange(1,bcount+1):
         block = tmp = encode_block(secret, salt + pack(">L", i))
         #NOTE: could potentially unroll this loop somewhat for speed,
         # or find some faster way to accumulate & xor tmp values together

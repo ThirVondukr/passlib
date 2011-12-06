@@ -205,7 +205,7 @@ class MiscTest(TestCase):
         ##incorrect = u"abcdxfgh"
         ##print
         ##first = True
-        ##for run in xrange(1):
+        ##for run in irange(1):
         ##    times = []
         ##    chars = []
         ##    for m in multipliers:

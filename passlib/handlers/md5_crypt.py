@@ -11,6 +11,7 @@ from warnings import warn
 #libs
 from passlib.utils import b, bytes, to_bytes, h64, safe_os_crypt, \
                           classproperty, handlers as uh
+from passlib.utils.compat import irange
 #pkg
 #local
 __all__ = [
@@ -111,7 +112,7 @@ def raw_md5_crypt(secret, salt, apr=False):
     secret_secret_hash = md5(secret_secret).copy
     secret_salt_hash = md5(secret+salt).copy
     secret_salt_secret_hash = md5(secret+salt_secret).copy
-    for idx in xrange(1000):
+    for idx in irange(1000):
         if idx & 1:
             if idx % 3:
                 if idx % 7:

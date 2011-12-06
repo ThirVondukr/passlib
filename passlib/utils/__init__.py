@@ -17,6 +17,7 @@ import time
 from warnings import warn
 #site
 #pkg
+from passlib.utils.compat import irange, b
 #local
 __all__ = [
     #decorators
@@ -84,9 +85,9 @@ rounds_cost_values = [ "linear", "log2" ]
 #: special byte string containing all possible byte values, used in a few places.
 #XXX: treated as singleton by some of the code for efficiency.
 # Py2k #
-ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
+ALL_BYTE_VALUES = ''.join(chr(x) for x in irange(256))
 # Py3k #
-#ALL_BYTE_VALUES = bytes(xrange(256))
+#ALL_BYTE_VALUES = bytes(irange(256))
 # end Py3k #
 
 #NOTE: Undef is only used in *one* place now, could just remove it
@@ -142,18 +143,6 @@ native_str = bytes
 #bytes = bytes #just so it *can* be imported from this module
 #native_str = unicode
 # end Py3k #
-
-#NOTE: have to provide b() because we're supporting py25,
-#      and py25 doesn't support the b'' notation.
-#      if py25 compat were sacrificed, this func could be removed.
-def b(source):
-    "convert native str to bytes (noop under py2; uses latin-1 under py3)"
-    #assert isinstance(source, native_str)
-    # Py2k #
-    return source
-    # Py3k #
-    #return source.encode("latin-1")
-    # end Py3k #
 
 #=================================================================================
 #os crypt helpers
@@ -675,7 +664,7 @@ def int_to_bytes(value, count):
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
     return bjoin_ints(
         ((value>>s) & 0xff)
-        for s in xrange(8*count-8,-8,-8)
+        for s in irange(8*count-8,-8,-8)
     )
 
 def xor_bytes(left, right):

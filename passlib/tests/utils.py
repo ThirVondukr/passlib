@@ -37,7 +37,7 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
-from passlib.utils.compat import iteritems
+from passlib.utils.compat import iteritems, irange
 #local
 __all__ = [
     #util funcs
@@ -856,7 +856,7 @@ class HandlerCase(TestCase):
 
         #make sure all listed chars are accepted
         chunk = 32 if mx is None else mx
-        for i in xrange(0,len(cs),chunk):
+        for i in irange(0,len(cs),chunk):
             salt = cs[i:i+chunk]
             if len(salt) < mn:
                 salt = (salt*(mn//len(salt)+1))[:chunk]

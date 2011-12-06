@@ -19,6 +19,7 @@ except ImportError:
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode
+from passlib.utils.compat import irange
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
@@ -637,7 +638,7 @@ class CryptContextTest(TestCase):
         cc3 = CryptContext(policy=cc.policy.replace(
             bsdi_crypt__vary_rounds = 3))
         seen = set()
-        for i in xrange(3*2*50):
+        for i in irange(3*2*50):
             h = cc3.genconfig("bsdi_crypt", salt="nacl")
             r = bc.from_string(h).rounds
             seen.add(r)
@@ -651,7 +652,7 @@ class CryptContextTest(TestCase):
         cc4 = CryptContext(policy=cc.policy.replace(
             all__vary_rounds = "1%"))
         seen = set()
-        for i in xrange(30*50):
+        for i in irange(30*50):
             h = cc4.genconfig(salt="nacl")
             r = sc.from_string(h).rounds
             seen.add(r)
@@ -869,19 +870,19 @@ class CryptContextTest(TestCase):
         "teset verify_and_update / hash_needs_update corrects bcrypt padding"
         # see issue 25.
         bcrypt = hash.bcrypt
-        
+
         PASS1 = "loppux"
         BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
         GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
         ctx = CryptContext(["bcrypt"])
-        
+
         with catch_warnings(record=True) as wlog:
             warnings.simplefilter("always")
 
             self.assertTrue(ctx.hash_needs_update(BAD1))
             self.assertFalse(ctx.hash_needs_update(GOOD1))
-    
-            if bcrypt.has_backend():            
+
+            if bcrypt.has_backend():
                 self.assertEquals(ctx.verify_and_update(PASS1,GOOD1), (True,None))
                 self.assertEquals(ctx.verify_and_update("x",BAD1), (False,None))
                 res = ctx.verify_and_update(PASS1, BAD1)

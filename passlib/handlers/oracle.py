@@ -13,6 +13,7 @@ from warnings import warn
 #pkg
 from passlib.utils import xor_bytes, handlers as uh, bytes, to_unicode, \
     to_hash_str, b
+from passlib.utils.compat import irange
 from passlib.utils.des import des_encrypt_block
 #local
 __all__ = [
@@ -41,7 +42,7 @@ def des_cbc_encrypt(key, value, iv=b('\x00') * 8, pad=b('\x00')):
     """
     value += pad * (-len(value) % 8) #null pad to multiple of 8
     hash = iv #start things off
-    for offset in xrange(0,len(value),8):
+    for offset in irange(0,len(value),8):
         chunk = xor_bytes(hash, value[offset:offset+8])
         hash = des_encrypt_block(key, chunk)
     return hash

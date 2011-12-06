@@ -7,6 +7,7 @@ import logging; log = logging.getLogger(__name__)
 #site
 #pkg
 from passlib.utils import bytes, bjoin, bchrs, bord, belem_join
+from passlib.utils.compat import irange
 #local
 __all__ = [
     "CHARS",
@@ -39,7 +40,7 @@ _encode_6bit = BCHARS.__getitem__
 
 
 #: decode hash64 char -> int as efficiently as possible, w/ minimal checking
-_CHARIDX = dict((_encode_6bit(i),i) for i in xrange(64))
+_CHARIDX = dict((_encode_6bit(i),i) for i in irange(64))
 _decode_6bit = _CHARIDX.__getitem__ # char -> int
 
 #for py3, enhance _CHARIDX to also support int value of bytes
@@ -275,9 +276,9 @@ def encode_int(value, count, big=False):
     if value < 0:
         raise ValueError("value cannot be negative")
     if big:
-        itr = xrange(6*count-6, -6, -6)
+        itr = irange(6*count-6, -6, -6)
     else:
-        itr = xrange(0, 6*count, 6)
+        itr = irange(0, 6*count, 6)
     return bjoin(
         _encode_6bit((value>>off) & 0x3f)
         for off in itr

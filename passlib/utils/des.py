@@ -44,7 +44,7 @@ which has some nice notes on how this all works -
 #=========================================================
 #pkg
 from passlib.utils import bytes_to_int, int_to_bytes, bytes, bord, bjoin_ints
-from passlib.utils.compat import trange
+from passlib.utils.compat import trange, irange
 #local
 __all__ = [
     "expand_des_key",
@@ -586,7 +586,7 @@ def expand_des_key(key):
     def iter_bits(source):
         for c in source:
             v = bord(c)
-            for i in xrange(7,-1,-1):
+            for i in irange(7,-1,-1):
                 yield (v>>i) & 1
 
     out = 0
@@ -600,7 +600,7 @@ def expand_des_key(key):
 
     return bjoin_ints(
         ((out>>s) & 0xFF)
-        for s in xrange(8*7,-8,-8)
+        for s in irange(8*7,-8,-8)
     )
 
 def des_encrypt_block(key, input):

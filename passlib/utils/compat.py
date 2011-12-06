@@ -41,6 +41,7 @@ if PY3:
     def u(s):
         return s
     def b(s):
+        assert isinstance(s, str)
         return s.encode("latin-1")
     unicode = str
 #    string_types = (str,)
@@ -48,6 +49,7 @@ else:
     def u(s):
         return s.decode("unicode_escape")
     def b(s):
+        assert isinstance(s, str)
         return s
     if PY_MAX_25:
         bytes = str
