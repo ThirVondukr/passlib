@@ -20,10 +20,10 @@ except ImportError:
     resource_string = None
 #libs
 from passlib.registry import get_crypt_handler, _unload_handler_name
-from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
+from passlib.utils import to_bytes, to_unicode, Undef, \
                           is_crypt_handler, splitcomma, rng
 from passlib.utils.compat import is_mapping, iteritems, int_types, \
-                                 PY3, PY_MIN_32
+                                 PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
 #pkg
 #local

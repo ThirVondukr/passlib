@@ -12,7 +12,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import handlers as uh, bytes, b, to_hash_str
-from passlib.utils.compat import iteritems
+from passlib.utils.compat import iteritems, unicode
 from passlib.utils.pbkdf2 import pbkdf1
 #pkg
 #local

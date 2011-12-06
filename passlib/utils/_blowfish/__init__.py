@@ -55,7 +55,7 @@ from itertools import chain
 import struct
 #pkg
 from passlib.utils import rng, getrandbytes, bytes, bord
-from passlib.utils.compat import b
+from passlib.utils.compat import b, unicode
 from passlib.utils.compat.aliases import BytesIO
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local

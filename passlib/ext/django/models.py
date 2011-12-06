@@ -16,6 +16,7 @@ from django.conf import settings
 #pkg
 from passlib.context import CryptContext, CryptPolicy
 from passlib.utils import is_crypt_context, bytes
+from passlib.utils.compat import sb_types, unicode
 from passlib.ext.django.utils import DEFAULT_CTX, get_category, \
     set_django_password_context
 
@@ -34,7 +35,7 @@ def patch():
         return
     if ctx == "passlib-default":
         ctx = DEFAULT_CTX
-    if isinstance(ctx, (unicode, bytes)):
+    if isinstance(ctx, sb_types):
         ctx = CryptPolicy.from_string(ctx)
     if isinstance(ctx, CryptPolicy):
         ctx = CryptContext(policy=ctx)

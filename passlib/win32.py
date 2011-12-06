@@ -28,6 +28,7 @@ from binascii import hexlify
 #site
 #pkg
 from passlib.utils import to_native_str, b
+from passlib.utils.compat import unicode
 from passlib.utils.des import des_encrypt_block
 from passlib.hash import nthash
 #local

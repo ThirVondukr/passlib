@@ -31,6 +31,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import handlers as uh, to_hash_str, b, bord, bytes
+from passlib.utils.compat import unicode
 #local
 __all__ = [
     'mysql323',

@@ -13,7 +13,7 @@ from warnings import warn
 #pkg
 from passlib.utils import xor_bytes, handlers as uh, bytes, to_unicode, \
     to_hash_str, b
-from passlib.utils.compat import irange
+from passlib.utils.compat import irange, unicode
 from passlib.utils.des import des_encrypt_block
 #local
 __all__ = [

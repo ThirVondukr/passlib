@@ -17,6 +17,7 @@ from passlib.registry import get_crypt_handler
 from passlib.utils import to_hash_str, bytes, b, consteq, \
         classproperty, h64, getrandstr, getrandbytes, \
         rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
+from passlib.utils.compat import unicode
 #pkg
 #local
 __all__ = [

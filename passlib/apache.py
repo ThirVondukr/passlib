@@ -13,7 +13,7 @@ import sys
 from passlib.context import CryptContext
 from passlib.utils import render_bytes, bjoin, bytes, b, \
                           to_unicode, to_bytes, consteq
-from passlib.utils.compat import lmap
+from passlib.utils.compat import lmap, unicode
 #pkg
 #local
 __all__ = [
@@ -85,7 +85,7 @@ class _CommonFile(object):
             passwords will be loaded directly from this string,
             and any files will be ignored.
         """
-        if isinstance(content, unicode):
+        if instance(content, unicode):
             content = content.encode(self.encoding or 'utf-8')
         self.mtime = 0
         #XXX: replace this with iterator?

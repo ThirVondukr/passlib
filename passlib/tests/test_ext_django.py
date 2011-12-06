@@ -16,7 +16,7 @@ from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_drivers as td
 from passlib.utils import Undef
-from passlib.utils.compat import iteritems, get_method_function
+from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
 #module
 

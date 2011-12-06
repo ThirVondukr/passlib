@@ -12,7 +12,7 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils import b, native_str, bytes
-from passlib.utils.compat import irange
+from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
 #module
 log = getLogger(__name__)

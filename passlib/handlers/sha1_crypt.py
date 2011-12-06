@@ -15,6 +15,7 @@ from warnings import warn
 #libs
 from passlib.utils import h64, handlers as uh, safe_os_crypt, classproperty, \
     to_hash_str, to_unicode, bytes, b
+from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import hmac_sha1
 #pkg
 #local

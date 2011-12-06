@@ -28,6 +28,7 @@ except ImportError: #pragma: no cover - though should run whole suite w/o bcrypt
 #libs
 from passlib.utils import safe_os_crypt, classproperty, handlers as uh, \
     h64, to_hash_str, rng, getrandstr, bytes
+from passlib.utils.compat import unicode
 
 #pkg
 #local

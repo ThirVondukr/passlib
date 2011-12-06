@@ -12,6 +12,7 @@ from warnings import warn
 #libs
 from passlib.utils import adapted_b64_encode, adapted_b64_decode, \
         handlers as uh, to_hash_str, to_unicode, bytes, b
+from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import pbkdf2
 #pkg
 #local

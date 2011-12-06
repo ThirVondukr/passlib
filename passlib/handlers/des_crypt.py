@@ -60,6 +60,7 @@ from warnings import warn
 #libs
 from passlib.utils import h64, classproperty, safe_os_crypt, b, bytes, \
             to_hash_str, handlers as uh, bord
+from passlib.utils.compat import unicode
 from passlib.utils.des import mdes_encrypt_int_block
 #pkg
 #local
@@ -336,7 +337,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def _has_backend_os_crypt(cls):
         h = u'_/...lLDAxARksGCHin.'
         return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
-        
+
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

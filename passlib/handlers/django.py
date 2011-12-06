@@ -10,6 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, b, bytes, to_unicode, to_hash_str
+from passlib.utils.compat import unicode
 #pkg
 #local
 __all__ = [

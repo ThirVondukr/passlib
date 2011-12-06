@@ -15,6 +15,7 @@ from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
     to_hash_str, to_unicode, MissingBackendError, jython_vm
+from passlib.utils.compat import unicode
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
 #module
@@ -234,7 +235,7 @@ class SkeletonTest(TestCase):
         self.assertTrue(d1.has_backend())
         d1.set_backend('a')
         self.assertEqual(obj.calc_checksum('s'), 'a')
-        
+
         #test unknown backend
         self.assertRaises(ValueError, d1.set_backend, 'c')
         self.assertRaises(ValueError, d1.has_backend, 'c')

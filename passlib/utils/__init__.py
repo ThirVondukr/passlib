@@ -16,7 +16,7 @@ import time
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, b, PY3, sys_bits
+from passlib.utils.compat import irange, b, PY3, sys_bits, unicode
 #local
 __all__ = [
     #decorators

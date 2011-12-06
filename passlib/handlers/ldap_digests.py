@@ -12,6 +12,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_hash_str
+from passlib.utils.compat import unicode
 #pkg
 #local
 __all__ = [
