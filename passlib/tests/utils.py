@@ -37,7 +37,7 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
-from passlib.utils.compat import iteritems, irange, callable
+from passlib.utils.compat import iteritems, irange, callable, sb_types
 #local
 __all__ = [
     #util funcs
@@ -298,7 +298,7 @@ class TestCase(unittest.TestCase):
         #added in 2.7/UT2 and 3.1
         def assertRegexpMatches(self, text, expected_regex, msg=None):
             """Fail the test unless the text matches the regular expression."""
-            if isinstance(expected_regex, basestring):
+            if isinstance(expected_regex, sb_types):
                 assert expected_regex, "expected_regex must not be empty."
                 expected_regex = re.compile(expected_regex)
             if not expected_regex.search(text):
