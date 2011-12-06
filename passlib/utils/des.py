@@ -44,6 +44,7 @@ which has some nice notes on how this all works -
 #=========================================================
 #pkg
 from passlib.utils import bytes_to_int, int_to_bytes, bytes, bord, bjoin_ints
+from passlib.utils.compat import trange
 #local
 __all__ = [
     "expand_des_key",
@@ -54,15 +55,15 @@ __all__ = [
 #=========================================================
 #precalculated iteration ranges & constants
 #=========================================================
-R8 = range(8)
-RR8 = range(7, -1, -1)
-RR4 = range(3, -1, -1)
-RR12_1 = range(11, 1, -1)
-RR9_1 = range(9,-1,-1)
+R8 = trange(8)
+RR8 = trange(7, -1, -1)
+RR4 = trange(3, -1, -1)
+RR12_1 = trange(11, 1, -1)
+RR9_1 = trange(9,-1,-1)
 
-RR6_S2 = range(6, -1, -2)
-RR14_S2 = range(14, -1, -2)
-R16_S2 = range(0, 16, 2)
+RR6_S2 = trange(6, -1, -2)
+RR14_S2 = trange(14, -1, -2)
+R16_S2 = trange(0, 16, 2)
 
 INT_24_MAX = 0xffffff
 INT_64_MAX = 0xffffffff

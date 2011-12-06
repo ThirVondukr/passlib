@@ -12,6 +12,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import handlers as uh, bytes, b, to_hash_str
+from passlib.utils.compat import iteritems
 from passlib.utils.pbkdf2 import pbkdf1
 #pkg
 #local
@@ -79,7 +80,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         }
     _variant_aliases = dict(
         [(unicode(k),k) for k in _variant_info] +
-        [(v[0],k) for k,v in _variant_info.items()]
+        [(v[0],k) for k,v in iteritems(_variant_info)]
         )
 
     #=========================================================

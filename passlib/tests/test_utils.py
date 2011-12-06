@@ -200,7 +200,7 @@ class MiscTest(TestCase):
         # NOTE: below code was used to generate stats for analysis
         ##from math import log as logb
         ##import timeit
-        ##multipliers = [ 1<<s for s in range(9)]
+        ##multipliers = [ 1<<s for s in irange(9)]
         ##correct =   u"abcdefgh"*(1<<4)
         ##incorrect = u"abcdxfgh"
         ##print

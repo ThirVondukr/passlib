@@ -29,6 +29,7 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _unload_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
                           is_crypt_handler, splitcomma, rng
+from passlib.utils.compat import is_mapping, iteritems
 #pkg
 #local
 __all__ = [
@@ -103,13 +104,8 @@ def _parse_policy_value(cat, name, opt, value):
 
 def parse_policy_items(source):
     "helper to parse CryptPolicy options"
-    # py2k #
-    if hasattr(source, "iteritems"):
-        source = source.iteritems()
-    # py3k #
-    #if hasattr(source, "items"):
-    #    source = source.items()
-    # end py3k #
+    if is_mapping(source):
+        source = iteritems(source)
     for key, value in source:
         cat, name, opt = _parse_policy_key(key)
         if name == "context":
@@ -405,7 +401,7 @@ class CryptPolicy(object):
         dmap = self._deprecated = {}
         fmap = self._default = {}
         mvmap = self._min_verify_time = {}
-        for cat, config in options.iteritems():
+        for cat, config in iteritems(options):
             kwds = config.pop("context", None)
             if not kwds:
                 continue
@@ -618,16 +614,16 @@ class CryptPolicy(object):
         if value:
             yield format_key(None, None, "schemes"), encode_hlist(value)
 
-        for cat, value in self._deprecated.iteritems():
+        for cat, value in iteritems(self._deprecated):
             yield format_key(cat, None, "deprecated"), encode_nlist(value)
 
-        for cat, value in self._default.iteritems():
+        for cat, value in iteritems(self._default):
             yield format_key(cat, None, "default"), encode_handler(value)
 
-        for cat, value in self._min_verify_time.iteritems():
+        for cat, value in iteritems(self._min_verify_time):
             yield format_key(cat, None, "min_verify_time"), value
 
-        for cat, copts in self._options.iteritems():
+        for cat, copts in iteritems(self._options):
             for name in sorted(copts):
                 config = copts[name]
                 for opt in sorted(config):

@@ -16,6 +16,7 @@ from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_drivers as td
 from passlib.utils import Undef
+from passlib.utils.compat import iteritems
 from passlib.registry import get_crypt_handler
 #module
 
@@ -53,7 +54,7 @@ if has_django:
             settings.configure()
 
 def update_settings(**kwds):
-    for k,v in kwds.iteritems():
+    for k,v in iteritems(kwds):
         if v is Undef:
             if hasattr(settings, k):
                 if has_django0:

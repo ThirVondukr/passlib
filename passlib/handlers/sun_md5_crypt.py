@@ -18,6 +18,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, to_hash_str, to_unicode, bytes, b, bord
+from passlib.utils.compat import trange
 #pkg
 #local
 __all__ = [
@@ -70,7 +71,7 @@ MAGIC_HAMLET = b(
 )
 
 #NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
-xr = range(7)
+xr = trange(7)
 _XY_ROUNDS = [
     tuple((i,i,i+3) for i in xr), #xrounds 0
     tuple((i,i+1,i+4) for i in xr), #xrounds 1

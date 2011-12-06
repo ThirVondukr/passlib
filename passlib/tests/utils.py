@@ -37,6 +37,7 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
+from passlib.utils.compat import iteritems
 #local
 __all__ = [
     #util funcs
@@ -662,7 +663,7 @@ class HandlerCase(TestCase):
 
         #check optional aliases list
         if cls.ident_aliases:
-            for alias, ident in cls.ident_aliases.iteritems():
+            for alias, ident in iteritems(cls.ident_aliases):
                 self.assertIsInstance(alias, unicode,
                                       "cls.ident_aliases keys must be unicode:") #XXX: allow ints?
                 self.assertIsInstance(ident, unicode,
