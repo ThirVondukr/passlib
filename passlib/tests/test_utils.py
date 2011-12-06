@@ -241,13 +241,13 @@ class CodecTest(TestCase):
         else:
             import __builtin__ as builtins
             self.assertIs(bytes, builtins.str)
-            
+
         self.assertIs(native_str, builtins.str)
 
         self.assertIsInstance(b(''), bytes)
         self.assertIsInstance(b('\x00\xff'), bytes)
         if PY3:
-            self.assertEqual(b('\x00\xff').encode("latin-1"), "\x00\xff")
+            self.assertEqual(b('\x00\xff').decode("latin-1"), "\x00\xff")
         else:
             self.assertEqual(b('\x00\xff'), "\x00\xff")
 

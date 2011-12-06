@@ -85,7 +85,7 @@ class _CommonFile(object):
             passwords will be loaded directly from this string,
             and any files will be ignored.
         """
-        if instance(content, unicode):
+        if isinstance(content, unicode):
             content = content.encode(self.encoding or 'utf-8')
         self.mtime = 0
         #XXX: replace this with iterator?

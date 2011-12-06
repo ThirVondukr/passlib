@@ -3,10 +3,18 @@
 # figure out what version we're running
 #=============================================================================
 import sys
-PY3 = sys.version >= (3,0)
-PY_MAX_25 = sys.version < (2,6) # py 2.5 or earlier
-PY27 = sys.version[:2] == (2,7) # supports last 2.x release
-PY_MIN_32 = sys.version >= (3,2) # py 3.2 or later
+PY3 = sys.version_info >= (3,0)
+PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
+PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
+PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
+
+#=============================================================================
+# common imports
+#=============================================================================
+if PY3:
+    import builtins
+else:
+    import __builtin__ as builtins
 
 #=============================================================================
 # the default exported vars
@@ -82,12 +90,14 @@ def is_mapping(obj):
     # non-exhaustive check, enough to distinguish from lists, etc
     return hasattr(obj, "items")
 
-if (3,0) <= sys.version < (3,2):
+if (3,0) <= sys.version_info < (3,2):
     # callable isn't dead, it's just resting
     from collections import Callable
     def callable(obj):
         return isinstance(obj, Callable)
     __all__.append("callable")
+else:
+    callable = builtins.callable
 
 if PY3:
     int_types = (int,)
@@ -104,6 +114,7 @@ if PY3:
         assert isinstance(s, str)
         return s.encode("latin-1")
     unicode = str
+    bytes = builtins.bytes
     __all__.append("unicode")
 #    string_types = (unicode,)
 
@@ -116,6 +127,9 @@ else:
     if PY_MAX_25:
         bytes = str
         __all__.append("bytes")
+    else:
+        bytes = builtins.bytes
+    unicode = builtins.unicode
 #    string_types = (unicode, bytes)
 
 sb_types = (unicode, bytes)
@@ -171,13 +185,12 @@ else:
 
 def _add_doc(obj, doc):
     """add docstring to an object"""
-    object.__doc__ = doc
+    obj.__doc__ = doc
 
 #=============================================================================
 # input/output
 #=============================================================================
 if PY3:
-    import builtins
     print_ = getattr(builtins, "print")
 else:
     def print_(*args, **kwds):

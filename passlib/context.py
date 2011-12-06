@@ -180,7 +180,7 @@ class CryptPolicy(object):
             # so policy object's keys will be native str type (unicode).
             with open(path, "rt", encoding=encoding) as stream:
                 return cls._from_stream(stream, section, path)
-        elif encoding == "utf-8":
+        elif encoding in ["utf-8", "ascii"]:
             # for python 2, provide utf-8 stream,
             # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as stream:
@@ -189,7 +189,7 @@ class CryptPolicy(object):
             # for python 2, transcode to utf-8 stream,
             # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as fh:
-                stream = BytesIO(source.decode(encoding).encode("utf-8"))
+                stream = BytesIO(fh.read().decode(encoding).encode("utf-8"))
                 return cls._from_stream(stream, section, path)
 
     @classmethod
@@ -219,7 +219,7 @@ class CryptPolicy(object):
         "helper for from_string / from_path"
         p = SafeConfigParser()
         if PY_MIN_32:
-            # Py3.2 deprecated readfp
+            # python 3.2 deprecated readfp in favor of read_file
             p.read_file(stream, filename or "<???>")
         else:
             p.readfp(stream, filename or "<???>")

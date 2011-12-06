@@ -42,7 +42,7 @@ _CHARIDX = dict((_encode_6bit(i),i) for i in irange(64))
 _decode_6bit = _CHARIDX.__getitem__ # char -> int
 
 #for py3, enhance _CHARIDX to also support int value of bytes
-if Py3:
+if PY3:
     _CHARIDX.update((v,i) for i,v in enumerate(BCHARS))
 
 #=================================================================================

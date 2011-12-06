@@ -417,7 +417,8 @@ django_hash_tests = [
                     td.DjangoSaltedSha1Test,
                      ]
 
-default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest ]
+default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest \
+                                          or td.OsCrypt_SHA512CryptTest ]
 
 if has_django0:
     django_hash_tests.remove(td.DjangoDesCryptTest)
