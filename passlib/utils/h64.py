@@ -6,7 +6,7 @@
 import logging; log = logging.getLogger(__name__)
 #site
 #pkg
-from passlib.utils import bytes, bjoin, bchrs, bord, belem_join
+from passlib.utils import bytes, bjoin, bord, bjoin_elems, bjoin_ints
 from passlib.utils.compat import irange, u, PY3
 #local
 __all__ = [
@@ -89,17 +89,17 @@ def _decode_bytes_helper(source):
     idx = 0
     while idx < end:
         v = decode_int24(source[idx:idx+4])
-        yield bchrs(v&0xff, (v>>8)&0xff, v>>16)
+        yield bjoin_ints([v&0xff, (v>>8)&0xff, v>>16])
         idx += 4
     if tail:
         if tail == 2:
             #NOTE: 2 msb of int are ignored (should be 0)
             v = decode_int12(source[idx:idx+2])
-            yield bchrs(v&0xff)
+            yield bjoin_ints([v&0xff])
         else:
             #NOTE: 4 msb of int are ignored (should be 0)
             v = decode_int18(source[idx:idx+3])
-            yield bchrs(v&0xff, (v>>8)&0xff)
+            yield bjoin_ints([v&0xff, (v>>8)&0xff])
 
 def decode_bytes(source):
     "decode h64 format into byte string"
@@ -113,7 +113,7 @@ def encode_transposed_bytes(source, offsets):
         raise TypeError("source must be bytes, not %s" % (type(source),))
     #XXX: could make this a dup of encode_bytes(), which directly accesses source[offsets[idx]],
     # but speed isn't *that* critical for this function
-    tmp = belem_join(source[off] for off in offsets)
+    tmp = bjoin_elems(source[off] for off in offsets)
     return encode_bytes(tmp)
 
 def decode_transposed_bytes(source, offsets):
@@ -123,7 +123,7 @@ def decode_transposed_bytes(source, offsets):
     buf = [None] * len(offsets)
     for off, char in zip(offsets, tmp):
         buf[off] = char
-    return belem_join(buf)
+    return bjoin_elems(buf)
 
 #=================================================================================
 # int <-> b64 string, used by des_crypt, bsdi_crypt

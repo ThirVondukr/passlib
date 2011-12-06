@@ -510,7 +510,7 @@ BEMPTY = b('')
 bjoin = BEMPTY.join
 ujoin = u('').join
 
-#def belem_join(elems):
+#def bjoin_elems(elems):
 #    """takes series of bytes elements, returns bytes.
 #
 #    elem should be result of bytes[x].
@@ -529,9 +529,9 @@ ujoin = u('').join
 #
 #for efficiency, don't bother with above wrapper...
 if PY3:
-    belem_join = bytes
+    bjoin_elems = bytes
 else:
-    belem_join = bjoin
+    bjoin_elems = bjoin
 
 #def bord(elem):
 #    """takes bytes element, returns integer.
@@ -557,16 +557,6 @@ if PY3:
         return elem
 else:
     bord = ord
-
-# XXX: should this be removed in favor of bjoin_ints ?
-if PY3:
-    def bchrs(*values):
-        "takes series of ints, returns bytes; like chr() but for bytes, and w/ multi args"
-        return bytes(values)
-else:
-    def bchrs(*values):
-        "takes series of ints, returns bytes; like chr() but for bytes, and w/ multi args"
-        return bjoin(chr(v) for v in values)
 
 if PY3:
     bjoin_ints = bytes
@@ -796,7 +786,7 @@ def getrandstr(rng, charset, count):
     if isinstance(charset, unicode):
         return ujoin(helper())
     else:
-        return belem_join(helper())
+        return bjoin_elems(helper())
 
 def generate_password(size=10, charset='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
     """generate random password using given length & chars
