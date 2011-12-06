@@ -16,7 +16,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, bytes, b, to_unicode, to_hash_str
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -70,9 +70,9 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     _strict_rounds_bounds = True
 
     #--HasManyIdents--
-    default_ident = u"$P$"
-    ident_values = [u"$P$", u"$H$"]
-    ident_aliases = {u"P":u"$P$", u"H":u"$H$"}
+    default_ident = u("$P$")
+    ident_values = [u("$P$"), u("$H$")]
+    ident_aliases = {u("P"):u("$P$"), u("H"):u("$H$")}
 
     #=========================================================
     #formatting
@@ -106,10 +106,10 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self):
-        hash = u"%s%s%s%s" % (self.ident,
+        hash = u("%s%s%s%s") % (self.ident,
                               h64.encode_int6(self.rounds).decode("ascii"),
                               self.salt,
-                              self.checksum or u'')
+                              self.checksum or u(''))
         return to_hash_str(hash)
 
     #=========================================================

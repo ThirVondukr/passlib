@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import handlers as uh, to_unicode, to_hash_str, bytes, b
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #local
 __all__ = [
     "postgres_md5",
@@ -42,7 +42,7 @@ class postgres_md5(uh.StaticHandler):
     #=========================================================
     #formatting
     #=========================================================
-    _pat = re.compile(ur"^md5[0-9a-f]{32}$")
+    _pat = re.compile(u(r"^md5[0-9a-f]{32}$"))
 
     @classmethod
     def identify(cls, hash):
@@ -61,7 +61,7 @@ class postgres_md5(uh.StaticHandler):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        hash = u"md5" + to_unicode(md5(secret + user).hexdigest())
+        hash = u("md5") + to_unicode(md5(secret + user).hexdigest())
         return to_hash_str(hash)
 
     #=========================================================

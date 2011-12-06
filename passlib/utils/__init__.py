@@ -16,7 +16,7 @@ import time
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, b, PY3, sys_bits, unicode
+from passlib.utils.import from passlib.utils.compat import irange, b, PY3, sys_bits, unicode, u
 #local
 __all__ = [
     #decorators
@@ -425,7 +425,7 @@ def is_same_codec(left, right):
         return False
     return _lookup_codec(left).name == _lookup_codec(right).name
 
-_U80 = u'\x80'
+_U80 = u('\x80')
 _B80 = b('\x80')
 
 def is_ascii_safe(source):
@@ -527,7 +527,7 @@ BEMPTY = b('')
 
 #helpers for joining / extracting elements
 bjoin = BEMPTY.join
-ujoin = u''.join
+ujoin = u('').join
 
 def belem_join(elems):
     """takes series of bytes elements, returns bytes.
@@ -740,7 +740,7 @@ def genseed(value=None):
     #if value is rng, extract a bunch of bits from it's state
     if hasattr(value, "getrandbits"):
         value = value.getrandbits(256)
-    text = u"%s %s %s %.15f %s" % (
+    text = u("%s %s %s %.15f %s") % (
         value,
             #if user specified a seed value (eg current rng state), mix it in
 

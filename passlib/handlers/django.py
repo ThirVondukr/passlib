@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, b, bytes, to_unicode, to_hash_str
-from passlib.utils.compat import unicode
+from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -58,15 +58,15 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         ident = cls.ident
-        assert ident.endswith(u"$")
+        assert ident.endswith(u("$"))
         if not hash.startswith(ident):
             raise ValueError("invalid %s hash" % (cls.name,))
-        _, salt, chk = hash.split(u"$")
+        _, salt, chk = hash.split(u("$"))
         return cls(salt=salt, checksum=chk, strict=True)
 
     def to_string(self):
         chk = self.checksum or self._stub_checksum
-        out = u"%s%s$%s" % (self.ident, self.salt, chk)
+        out = u("%s%s$%s") % (self.ident, self.salt, chk)
         return to_hash_str(out)
 
 class django_salted_sha1(DjangoSaltedHash):
@@ -86,9 +86,9 @@ class django_salted_sha1(DjangoSaltedHash):
         Defaults to 5, but can be any non-negative value.
     """
     name = "django_salted_sha1"
-    ident = u"sha1$"
+    ident = u("sha1$")
     checksum_size = 40
-    _stub_checksum = u'0' * 40
+    _stub_checksum = u('0') * 40
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -112,9 +112,9 @@ class django_salted_md5(DjangoSaltedHash):
         Defaults to 5, but can be any non-negative value.
     """
     name = "django_salted_md5"
-    ident = u"md5$"
+    ident = u("md5$")
     checksum_size = 32
-    _stub_checksum = u'0' * 32
+    _stub_checksum = u('0') * 32
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -166,7 +166,7 @@ class django_des_crypt(DjangoSaltedHash):
             raise ValueError("invalid django_des_crypt hash: "
                 "first two digits of salt and checksum must match")
 
-    _base_stub_checksum = u'.' * 13
+    _base_stub_checksum = u('.') * 13
 
     @property
     def _stub_checksum(self):
@@ -205,13 +205,13 @@ class django_disabled(uh.StaticHandler):
         if isinstance(hash, bytes):
             return hash == b("!")
         else:
-            return hash == u"!"
+            return hash == u("!")
 
     @classmethod
     def genhash(cls, secret, config):
         if secret is None:
             raise TypeError("no secret provided")
-        return to_hash_str(u"!")
+        return to_hash_str(u("!"))
 
     @classmethod
     def verify(cls, secret, hash):

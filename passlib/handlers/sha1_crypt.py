@@ -17,6 +17,7 @@ from passlib.utils import h64, handlers as uh, safe_os_crypt, classproperty, \
     to_hash_str, to_unicode, bytes, b
 from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import hmac_sha1
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -58,7 +59,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #--GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
-    ident = u"$sha1$"
+    ident = u("$sha1$")
     checksum_size = 28
     checksum_chars = uh.H64_CHARS
 
@@ -91,9 +92,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         )
 
     def to_string(self, native=True):
-        out = u"$sha1$%d$%s" % (self.rounds, self.salt)
+        out = u("$sha1$%d$%s") % (self.rounds, self.salt)
         if self.checksum:
-            out += u"$" + self.checksum
+            out += u("$") + self.checksum
         return to_hash_str(out) if native else out
 
     #=========================================================
@@ -105,15 +106,15 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u'$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe'
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u('$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe')
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         rounds = self.rounds
             #NOTE: this uses a different format than the hash...
-        result = u"%s$sha1$%s" % (self.salt, rounds)
+        result = u("%s$sha1$%s") % (self.salt, rounds)
         result = result.encode("ascii")
         r = 0
         while r < rounds:

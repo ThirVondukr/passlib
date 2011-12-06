@@ -15,6 +15,7 @@ from passlib.utils import xor_bytes, handlers as uh, bytes, to_unicode, \
     to_hash_str, b
 from passlib.utils.compat import irange, unicode
 from passlib.utils.des import des_encrypt_block
+from passlib.utils.compat import u
 #local
 __all__ = [
     "oracle10g",
@@ -72,7 +73,7 @@ class oracle10(uh.StaticHandler):
     #=========================================================
     #formatting
     #=========================================================
-    _pat = re.compile(ur"^[0-9a-fA-F]{16}$")
+    _pat = re.compile(u(r"^[0-9a-fA-F]{16}$"))
 
     @classmethod
     def identify(cls, hash):
@@ -150,7 +151,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     checksum_size = 40
     checksum_chars = uh.UC_HEX_CHARS
 
-    _stub_checksum = u'0' * 40
+    _stub_checksum = u('0') * 40
 
     #--HasSalt--
     min_salt_size = max_salt_size = 20
@@ -160,7 +161,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #methods
     #=========================================================
-    _pat = re.compile(u"^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
+    _pat = re.compile(u("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$"), re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -180,7 +181,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         chk = (self.checksum or self._stub_checksum)
-        hash = u"S:%s%s" % (chk.upper(), self.salt.upper())
+        hash = u("S:%s%s") % (chk.upper(), self.salt.upper())
         return to_hash_str(hash)
 
     def calc_checksum(self, secret):

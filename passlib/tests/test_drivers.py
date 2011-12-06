@@ -13,6 +13,7 @@ from passlib import hash
 from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b, catch_warnings
+from passlib.utils.compat import u
 #module
 
 
@@ -21,9 +22,9 @@ from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
 #=========================================================
 
 #some common unicode passwords which used as test cases...
-UPASS_WAV = u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'
-UPASS_USD = u"\u20AC\u00A5$"
-UPASS_TABLE = u"t\u00e1\u0411\u2113\u0259"
+UPASS_WAV = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
+UPASS_USD = u("\u20AC\u00A5$")
+UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
 
 #=========================================================
 #apr md5 crypt
@@ -329,7 +330,7 @@ class _DesCryptTest(HandlerCase):
         ('Compl3X AlphaNu3meric', 'um.Wguz3eVCx2'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', 'sNYqfOyauIyic'),
         ('AlOtBsOl', 'cEpWz5IUCShqM'),
-        (u'hell\u00D6', 'saykDgk3BPZ9E'),
+        (u('hell\u00D6'), 'saykDgk3BPZ9E'),
         ]
     known_unidentified_hashes = [
         #bad char in otherwise correctly formatted hash
@@ -397,7 +398,7 @@ class DjangoDesCryptTest(HandlerCase, _DjangoHelper):
         #ensures utf-8 used for unicode
         (UPASS_USD, 'crypt$c2e86$c2hN1Bxd6ZiWs'),
         (UPASS_TABLE, 'crypt$0.aQs$0.wB.TT0Czvlo'),
-        (u"hell\u00D6", "crypt$sa$saykDgk3BPZ9E"),
+        (u("hell\u00D6"), "crypt$sa$saykDgk3BPZ9E"),
 
         #prevent regression of issue 22
         ("foo", 'crypt$MNVY.9ajgdvDQ$MNVY.9ajgdvDQ'),
@@ -651,7 +652,7 @@ class _Md5CryptTest(HandlerCase):
         ]
 
     def test_raw(self):
-        self.assertEqual(raw_md5_crypt(u's',u's'*16), u'YgmLTApYTv12qgTwBoj8i/')
+        self.assertEqual(raw_md5_crypt(u('s'),u('s')*16), u('YgmLTApYTv12qgTwBoj8i/'))
 
 OsCrypt_Md5CryptTest = create_backend_case(_Md5CryptTest, "os_crypt")
 Builtin_Md5CryptTest = create_backend_case(_Md5CryptTest, "builtin")
@@ -730,7 +731,7 @@ class Oracle10Test(HandlerCase):
     known_correct_hashes = [
         # ((secret,user),hash)
         (('tiger',          'scott'),       'F894844C34402B67'),
-        ((u'ttTiGGeR',      u'ScO'),        '7AA1A84E31ED7771'),
+        ((u('ttTiGGeR'),      u('ScO')),        '7AA1A84E31ED7771'),
         (("d_syspw",        "SYSTEM"),      '1B9F1F9A5CB9EB31'),
         (("strat_passwd",   "strat_user"),  'AEBEDBB4EFB5225B'),
         #TODO: get more test vectors (especially ones which properly test unicode / non-ascii)
@@ -798,7 +799,7 @@ class AtlassianPbkdf2Sha1Test(HandlerCase):
     handler = pk2.atlassian_pbkdf2_sha1
     known_correct_hashes = [
         ("admin", '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/p'),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
                   "{PKCS5S2}cE9Yq6Am5tQGdHSHhky2XLeOnURwzaLBG2sur7FHKpvy2u0qDn6GcVGRjlmJoIUy"),
     ]
 
@@ -817,7 +818,7 @@ class Pbkdf2Sha1Test(HandlerCase):
     handler = pk2.pbkdf2_sha1
     known_correct_hashes = [
         ("password", '$pbkdf2$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
             '$pbkdf2$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
     ]
 
@@ -827,7 +828,7 @@ class Pbkdf2Sha256Test(HandlerCase):
         ("password",
             '$pbkdf2-sha256$1212$4vjV83LKPjQzk31VI4E0Vw$hsYF68OiOUPdDZ1Fg.fJPeq1h/gXXY7acBp9/6c.tmQ'
             ),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
             '$pbkdf2-sha256$1212$3SABFJGDtyhrQMVt1uABPw$WyaUoqCLgvz97s523nF4iuOqZNbp5Nt8do/cuaa7AiI'
             ),
     ]
@@ -839,7 +840,7 @@ class Pbkdf2Sha512Test(HandlerCase):
             '$pbkdf2-sha512$1212$RHY0Fr3IDMSVO/RSZyb5ow$eNLfBK.eVozomMr.1gYa1'
             '7k9B7KIK25NOEshvhrSX.esqY3s.FvWZViXz4KoLlQI.BzY/YTNJOiKc5gBYFYGww'
             ),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
             '$pbkdf2-sha512$1212$KkbvoKGsAIcF8IslDR6skQ$8be/PRmd88Ps8fmPowCJt'
             'tH9G3vgxpG.Krjt3KT.NP6cKJ0V4Prarqf.HBwz0dCkJ6xgWnSj2ynXSV7MlvMa8Q'
             ),
@@ -849,11 +850,11 @@ class CtaPbkdf2Sha1Test(HandlerCase):
     handler = pk2.cta_pbkdf2_sha1
     known_correct_hashes = [
         #test vectors from original implementation
-        (u"hashy the \N{SNOWMAN}", '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
+        (u("hashy the \N{SNOWMAN}"), '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
 
         #additional test vectors
         ("password", "$p5k2$1$$h1TDLGSw9ST8UMAPeIE13i0t12c="),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
             "$p5k2$4321$OTg3NjU0MzIx$jINJrSvZ3LXeIbUdrJkRpN62_WQ="),
         ]
 
@@ -865,7 +866,7 @@ class DlitzPbkdf2Sha1Test(HandlerCase):
         ('gnu',     '$p5k2$c$u9HvcT4d$Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g'),
         ('dcl',     '$p5k2$d$tUsch7fU$nqDkaxMDOFBeJsTSfABsyn.PYUXilHwL'),
         ('spam',    '$p5k2$3e8$H0NX9mT/$wk/sE8vv6OMKuMaqazCJYDSUhWY9YB2J'),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
                     '$p5k2$$KosHgqNo$9mjN8gqjt02hDoP0c2J0ABtLIwtot8cQ'),
         ]
 
@@ -875,7 +876,7 @@ class GrubPbkdf2Sha512Test(HandlerCase):
         #test vectors generated from cmd line tool
 
         #salt=32 bytes
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
             'grub.pbkdf2.sha512.10000.BCAC1CEC5E4341C8C511C529'
             '7FA877BE91C2817B32A35A3ECF5CA6B8B257F751.6968526A'
             '2A5B1AEEE0A29A9E057336B48D388FFB3F600233237223C21'
@@ -970,7 +971,7 @@ class PostgresMD5CryptTest(HandlerCase):
 
     def test_user(self):
         "check user kwd is required for encrypt/verify"
-        self.handler.encrypt("mypass", u'user')
+        self.handler.encrypt("mypass", u('user'))
         self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
         self.assertRaises(ValueError, self.handler.encrypt, 'mypass', None)
         self.assertRaises(TypeError, self.handler.verify, 'mypass', 'md55fba2ea04fd36069d2574ea71c8efe9d')
@@ -1082,7 +1083,7 @@ class _SHA256CryptTest(HandlerCase):
         ('test', '$5$rounds=11858$WH1ABM5sKhxbkgCK$aTQsjPkz0rBsH3lQlJxw9HDTDXPKBxC0LlVeV69P.t1'),
         ('Compl3X AlphaNu3meric', '$5$rounds=10350$o.pwkySLCzwTdmQX$nCMVsnF3TXWcBPOympBUUSQi6LGGloZoOsVJMGJ09UB'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$5$rounds=11944$9dhlu07dQMRWvTId$LyUI5VWkGFwASlzntk1RLurxX54LUhgAcJZIt0pYGT7'),
-        (u'with unic\u00D6de', '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
+        (u('with unic\u00D6de'), '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
         ]
 
     known_malformed_hashes = [
@@ -1309,7 +1310,7 @@ class UnixFallbackTest(HandlerCase):
 
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
-        secret = u"\u20AC\u00A5$"
+        secret = u("\u20AC\u00A5$")
         result = self.do_encrypt(secret)
         self.assertEqual(result, "!")
         self.assertTrue(not self.do_verify(secret, result))

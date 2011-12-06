@@ -14,6 +14,7 @@ from warnings import warn
 from passlib.utils import handlers as uh, bytes, b, to_hash_str
 from passlib.utils.compat import iteritems, unicode
 from passlib.utils.pbkdf2 import pbkdf1
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -130,9 +131,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return uh.identify_prefix(hash, u"{FSHP")
+        return uh.identify_prefix(hash, u("{FSHP"))
 
-    _fshp_re = re.compile(ur"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
+    _fshp_re = re.compile(u(r"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$"))
 
     @classmethod
     def from_string(cls, hash):
@@ -162,7 +163,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             chk = b('\x00') * self._info[1]
         salt = self.salt
         data = b64encode(salt+chk).decode("ascii")
-        hash = u"{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
+        hash = u("{FSHP%d|%d|%d}%s") % (self.variant, len(salt), self.rounds, data)
         return to_hash_str(hash)
 
     #=========================================================

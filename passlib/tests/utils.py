@@ -10,6 +10,7 @@ import re
 import os
 import sys
 import tempfile
+from passlib.utils.compat import u
 
 try:
     import unittest2 as unittest
@@ -467,7 +468,7 @@ class HandlerCase(TestCase):
         #NOTE: this is subclassable mainly for some algorithms
         #which accept non-strings in secret
         if isinstance(secret, unicode):
-            return u'x' + secret
+            return u('x') + secret
         else:
             return b('x') + secret
 
@@ -744,7 +745,7 @@ class HandlerCase(TestCase):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
         self.assertEqual(self.do_identify(b('')), self.accepts_empty_hash)
-        self.assertEqual(self.do_identify(u''), self.accepts_empty_hash)
+        self.assertEqual(self.do_identify(u('')), self.accepts_empty_hash)
 
     #=========================================================
     #verify()
@@ -788,10 +789,10 @@ class HandlerCase(TestCase):
         #find valid hash so that doesn't mask error
         self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
         if self.accepts_empty_hash:
-            self.do_verify("stub", u"")
+            self.do_verify("stub", u(""))
             self.do_verify("stub", b(""))
         else:
-            self.assertRaises(ValueError, self.do_verify, 'stub', u'', __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', u(''), __msg__="hash='':")
             self.assertRaises(ValueError, self.do_verify, 'stub', b(''), __msg__="hash='':")
 
     #=========================================================
@@ -865,7 +866,7 @@ class HandlerCase(TestCase):
             self.do_genconfig(salt=salt)
 
         #check some invalid salt chars, make sure they're rejected
-        source = u'\x00\xff'
+        source = u('\x00\xff')
         if raw:
             source = source.encode("latin-1")
         chunk = max(mn, 1)
@@ -923,7 +924,7 @@ class HandlerCase(TestCase):
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
         #check it handles unicode password
-        secret = u"\u20AC\u00A5$"
+        secret = u("\u20AC\u00A5$")
         result = self.do_encrypt(secret)
         self.assertIsInstance(result, native_str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))

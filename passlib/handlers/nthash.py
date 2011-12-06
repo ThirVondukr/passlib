@@ -10,6 +10,7 @@ from warnings import warn
 #libs
 from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes, bytes
 from passlib.utils.md4 import md4
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -41,12 +42,12 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
     setting_kwds = ("ident",)
     checksum_chars = uh.LC_HEX_CHARS
 
-    _stub_checksum = u"0" * 32
+    _stub_checksum = u("0") * 32
 
     #--HasManyIdents--
-    default_ident = u"$3$$"
-    ident_values = (u"$3$$", u"$NT$")
-    ident_aliases = {u"3": u"$3$$", u"NT": u"$NT$"}
+    default_ident = u("$3$$")
+    ident_values = (u("$3$$"), u("$NT$"))
+    ident_aliases = {u("3"): u("$3$$"), u("NT"): u("$NT$")}
 
     #=========================================================
     #formatting

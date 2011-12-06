@@ -7,7 +7,7 @@ import logging; log = logging.getLogger(__name__)
 #site
 #pkg
 from passlib.utils import bytes, bjoin, bchrs, bord, belem_join
-from passlib.utils.compat import irange
+from passlib.utils.import from passlib.utils.compat import irange, u
 #local
 __all__ = [
     "CHARS",
@@ -28,7 +28,7 @@ __all__ = [
 #=================================================================================
 
 #: hash64 char sequence
-CHARS = u"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 BCHARS = CHARS.encode("ascii")
 
 #: encode int -> hash64 char as efficiently as possible, w/ minimal checking

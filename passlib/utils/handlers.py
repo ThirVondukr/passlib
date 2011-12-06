@@ -17,7 +17,7 @@ from passlib.registry import get_crypt_handler
 from passlib.utils import to_hash_str, bytes, b, consteq, \
         classproperty, h64, getrandstr, getrandbytes, \
         rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -40,12 +40,12 @@ __all__ = [
 
 #common salt_chars & checksum_chars values
 H64_CHARS = h64.CHARS
-B64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-PADDED_B64_CHARS = B64_CHARS + u"="
-U64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-HEX_CHARS = u"0123456789abcdefABCDEF"
-UC_HEX_CHARS = u"0123456789ABCDEF"
-LC_HEX_CHARS = u"0123456789abcdef"
+B64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+PADDED_B64_CHARS = B64_CHARS + u("=")
+U64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+HEX_CHARS = u("0123456789abcdefABCDEF")
+UC_HEX_CHARS = u("0123456789ABCDEF")
+LC_HEX_CHARS = u("0123456789abcdef")
 
 #=========================================================
 #identify helpers
@@ -76,7 +76,7 @@ def identify_prefix(hash, prefix):
 #=========================================================
 #parsing helpers
 #=========================================================
-def parse_mc2(hash, prefix, name="<unnamed>", sep=u"$"):
+def parse_mc2(hash, prefix, name="<unnamed>", sep=u("$")):
     "parse hash using 2-part modular crypt format"
     assert isinstance(prefix, unicode)
     assert isinstance(sep, unicode)
@@ -96,7 +96,7 @@ def parse_mc2(hash, prefix, name="<unnamed>", sep=u"$"):
     else:
         raise ValueError("not a valid %s hash (malformed)" % (name,))
 
-def parse_mc3(hash, prefix, name="<unnamed>", sep=u"$"):
+def parse_mc3(hash, prefix, name="<unnamed>", sep=u("$")):
     "parse hash using 3-part modular crypt format"
     assert isinstance(prefix, unicode)
     assert isinstance(sep, unicode)
@@ -120,20 +120,20 @@ def parse_mc3(hash, prefix, name="<unnamed>", sep=u"$"):
 #=====================================================
 #formatting helpers
 #=====================================================
-def render_mc2(ident, salt, checksum, sep=u"$"):
+def render_mc2(ident, salt, checksum, sep=u("$")):
     "format hash using 2-part modular crypt format; inverse of parse_mc2"
     if checksum:
-        hash = u"%s%s%s%s" % (ident, salt, sep, checksum)
+        hash = u("%s%s%s%s") % (ident, salt, sep, checksum)
     else:
-        hash = u"%s%s" % (ident, salt)
+        hash = u("%s%s") % (ident, salt)
     return to_hash_str(hash)
 
-def render_mc3(ident, rounds, salt, checksum, sep=u"$"):
+def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
     "format hash using 3-part modular crypt format; inverse of parse_mc3"
     if checksum:
-        hash = u"%s%s%s%s%s%s" % (ident, rounds, sep, salt, sep, checksum)
+        hash = u("%s%s%s%s%s%s") % (ident, rounds, sep, salt, sep, checksum)
     else:
-        hash = u"%s%s%s%s" % (ident, rounds, sep, salt)
+        hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
     return to_hash_str(hash)
 
 #=====================================================
@@ -1157,7 +1157,7 @@ class PrefixWrapper(object):
     :param lazy: if True and wrapped handler is specified by name, don't look it up until needed.
     """
 
-    def __init__(self, name, wrapped, prefix=u'', orig_prefix=u'', lazy=False, doc=None):
+    def __init__(self, name, wrapped, prefix=u(''), orig_prefix=u(''), lazy=False, doc=None):
         self.name = name
         if isinstance(prefix, bytes):
             prefix = prefix.decode("ascii")

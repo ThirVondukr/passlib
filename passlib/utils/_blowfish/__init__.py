@@ -55,7 +55,7 @@ from itertools import chain
 import struct
 #pkg
 from passlib.utils import rng, getrandbytes, bytes, bord
-from passlib.utils.compat import b, unicode
+from passlib.utils.compat import b, unicode, u
 from passlib.utils.compat.aliases import BytesIO
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local
@@ -204,9 +204,9 @@ def raw_bcrypt(password, ident, salt, log_rounds):
 
     # parse ident
     assert isinstance(ident, unicode)
-    if ident == u'2':
+    if ident == u('2'):
         minor = 0
-    elif ident == u'2a':
+    elif ident == u('2a'):
         minor = 1
     else:
         raise ValueError("unknown ident: %r" % (ident,))

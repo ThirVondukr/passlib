@@ -31,7 +31,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import handlers as uh, to_hash_str, b, bord, bytes
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #local
 __all__ = [
     'mysql323',
@@ -54,7 +54,7 @@ class mysql323(uh.StaticHandler):
     name = "mysql323"
     checksum_chars = uh.HEX_CHARS
 
-    _pat = re.compile(ur"^[0-9a-f]{16}$", re.I)
+    _pat = re.compile(u(r"^[0-9a-f]{16}$"), re.I)
 
     #=========================================================
     #methods
@@ -86,7 +86,7 @@ class mysql323(uh.StaticHandler):
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
-        hash = u"%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
+        hash = u("%08x%08x") % (nr1 & MASK_31, nr2 & MASK_31)
         return to_hash_str(hash)
 
     @classmethod

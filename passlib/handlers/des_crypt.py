@@ -62,6 +62,7 @@ from passlib.utils import h64, classproperty, safe_os_crypt, b, bytes, \
             to_hash_str, handlers as uh, bord
 from passlib.utils.compat import unicode
 from passlib.utils.des import mdes_encrypt_int_block
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -174,11 +175,11 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11})?
-        $""", re.X|re.I)
+        $"""), re.X|re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -194,7 +195,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self, native=True):
-        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     #=========================================================
@@ -206,8 +207,8 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u'abgOeLfPimXQo'
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u('abgOeLfPimXQo')
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         #gotta do something - no official policy since des-crypt predates unicode
@@ -220,7 +221,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     def _calc_checksum_os_crypt(self, secret):
         #os_crypt() would raise less useful error
-        null = u'\x00' if isinstance(secret, unicode) else b('\x00')
+        null = u('\x00') if isinstance(secret, unicode) else b('\x00')
         if null in secret:
             raise ValueError("null char in secret")
 
@@ -292,13 +293,13 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         _
         (?P<rounds>[./a-z0-9]{4})
         (?P<salt>[./a-z0-9]{4})
         (?P<chk>[./a-z0-9]{11})?
-        $""", re.X|re.I)
+        $"""), re.X|re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -322,8 +323,8 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         )
 
     def to_string(self, native=True):
-        hash = u"_%s%s%s" % (h64.encode_int24(self.rounds).decode("ascii"),
-                             self.salt, self.checksum or u'')
+        hash = u("_%s%s%s") % (h64.encode_int24(self.rounds).decode("ascii"),
+                             self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     #=========================================================
@@ -335,8 +336,8 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u'_/...lLDAxARksGCHin.'
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u('_/...lLDAxARksGCHin.')
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -385,11 +386,11 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11,})?
-        $""", re.X|re.I)
+        $"""), re.X|re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -415,7 +416,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self, native=True):
-        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     @classmethod
@@ -477,11 +478,11 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{22})?
-        $""", re.X|re.I)
+        $"""), re.X|re.I)
 
     @classmethod
     def identify(cls, hash):
@@ -500,7 +501,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
     def to_string(self, native=True):
-        hash = u"%s%s" % (self.salt, self.checksum or u'')
+        hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     #=========================================================

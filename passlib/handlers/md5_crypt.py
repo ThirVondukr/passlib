@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 from passlib.utils import b, bytes, to_bytes, h64, safe_os_crypt, \
                           classproperty, handlers as uh
-from passlib.utils.compat import irange, unicode
+from passlib.utils.import from passlib.utils.compat import irange, unicode, u
 #pkg
 #local
 __all__ = [
@@ -216,7 +216,7 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
     #algorithm information
     #=========================================================
     name = "md5_crypt"
-    ident = u"$1$"
+    ident = u("$1$")
 
     #=========================================================
     #primary interface
@@ -230,8 +230,8 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u'$1$test$pi/xDtU5WFVRqYS6BMU8X/'
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u('$1$test$pi/xDtU5WFVRqYS6BMU8X/')
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         return raw_md5_crypt(secret, self.salt)
@@ -266,7 +266,7 @@ class apr_md5_crypt(_Md5Common):
     #algorithm information
     #=========================================================
     name = "apr_md5_crypt"
-    ident = u"$apr1$"
+    ident = u("$apr1$")
 
     #=========================================================
     #primary interface

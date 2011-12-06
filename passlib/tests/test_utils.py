@@ -19,6 +19,7 @@ from passlib.utils import h64, des, Undef, bytes, b, \
 from passlib.utils.compat import unicode
 from passlib.tests.utils import TestCase, Params as ak, \
     enable_option, catch_warnings
+from passlib.utils.compat import u
 
 def hb(source):
     return unhexlify(b(source))
@@ -71,11 +72,11 @@ class MiscTest(TestCase):
         self.assertEqual(f('a',5), 'aaaaa')
 
         #letters
-        x = f(u'abc', 16)
-        y = f(u'abc', 16)
+        x = f(u('abc'), 16)
+        y = f(u('abc'), 16)
         self.assertIsInstance(x, unicode)
         self.assertNotEqual(x,y)
-        self.assertEqual(sorted(set(x)), [u'a',u'b',u'c'])
+        self.assertEqual(sorted(set(x)), [u('a'),u('b'),u('c')])
 
         #bytes
         x = f(b('abc'), 16)
@@ -83,7 +84,7 @@ class MiscTest(TestCase):
         self.assertIsInstance(x, bytes)
         self.assertNotEqual(x,y)
         #NOTE: decoding this due to py3 bytes
-        self.assertEqual(sorted(set(x.decode("ascii"))), [u'a',u'b',u'c'])
+        self.assertEqual(sorted(set(x.decode("ascii"))), [u('a'),u('b'),u('c')])
 
         #generate_password
         self.assertEqual(len(utils.generate_password(15)), 15)
@@ -115,30 +116,30 @@ class MiscTest(TestCase):
         #      if this fails on some platform, this test will need modifying.
 
         #test normal case
-        ok, hash = safe_os_crypt(u'test', u'aa')
+        ok, hash = safe_os_crypt(u('test'), u('aa'))
         self.assertTrue(ok)
         self.assertIsInstance(hash, unicode)
-        self.assertEqual(hash, u'aaqPiZY5xR5l.')
+        self.assertEqual(hash, u('aaqPiZY5xR5l.'))
 
         #test hash-as-bytes
-        self.assertRaises(TypeError, safe_os_crypt, u'test', b('aa'))
+        self.assertRaises(TypeError, safe_os_crypt, u('test'), b('aa'))
 
         #test password as ascii
-        ret = safe_os_crypt(b('test'), u'aa')
-        self.assertEqual(ret, (True, u'aaqPiZY5xR5l.'))
+        ret = safe_os_crypt(b('test'), u('aa'))
+        self.assertEqual(ret, (True, u('aaqPiZY5xR5l.')))
 
         #test unicode password w/ high char
-        ret = safe_os_crypt(u'test\u1234', u'aa')
-        self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
+        ret = safe_os_crypt(u('test\u1234'), u('aa'))
+        self.assertEqual(ret, (True, u('aahWwbrUsKZk.')))
 
         #test utf-8 password w/ high char
-        ret = safe_os_crypt(b('test\xe1\x88\xb4'), u'aa')
-        self.assertEqual(ret, (True, u'aahWwbrUsKZk.'))
+        ret = safe_os_crypt(b('test\xe1\x88\xb4'), u('aa'))
+        self.assertEqual(ret, (True, u('aahWwbrUsKZk.')))
 
         #test latin-1 password
-        ret = safe_os_crypt(b('test\xff'), u'aa')
+        ret = safe_os_crypt(b('test\xff'), u('aa'))
         # Py2k #
-        self.assertEqual(ret, (True, u'aaOx.5nbTU/.M'))
+        self.assertEqual(ret, (True, u('aaOx.5nbTU/.M')))
         # Py3k #
         #self.assertEqual(ret, (False, None))
         # end Py3k #
@@ -150,24 +151,24 @@ class MiscTest(TestCase):
         consteq = utils.consteq
 
         # ensure error raises for wrong types
-        self.assertRaises(TypeError, consteq, u'', b(''))
-        self.assertRaises(TypeError, consteq, u'', 1)
-        self.assertRaises(TypeError, consteq, u'', None)
+        self.assertRaises(TypeError, consteq, u(''), b(''))
+        self.assertRaises(TypeError, consteq, u(''), 1)
+        self.assertRaises(TypeError, consteq, u(''), None)
 
-        self.assertRaises(TypeError, consteq, b(''), u'')
+        self.assertRaises(TypeError, consteq, b(''), u(''))
         self.assertRaises(TypeError, consteq, b(''), 1)
         self.assertRaises(TypeError, consteq, b(''), None)
 
-        self.assertRaises(TypeError, consteq, None, u'')
+        self.assertRaises(TypeError, consteq, None, u(''))
         self.assertRaises(TypeError, consteq, None, b(''))
-        self.assertRaises(TypeError, consteq, 1, u'')
+        self.assertRaises(TypeError, consteq, 1, u(''))
         self.assertRaises(TypeError, consteq, 1, b(''))
 
         # check equal inputs compare correctly
         for value in [
-                u"a",
-                u"abc",
-                u"\xff\xa2\x12\x00"*10,
+                u("a"),
+                u("abc"),
+                u("\xff\xa2\x12\x00")*10,
             ]:
             self.assertTrue(consteq(value, value), "value %r:" % (value,))
             value = value.encode("latin-1")
@@ -176,18 +177,18 @@ class MiscTest(TestCase):
         # check non-equal inputs compare correctly
         for l,r in [
                 # check same-size comparisons with differing contents fail.
-                (u"a",         u"c"),
-                (u"abcabc",    u"zbaabc"),
-                (u"abcabc",    u"abzabc"),
-                (u"abcabc",    u"abcabz"),
-                ((u"\xff\xa2\x12\x00"*10)[:-1] + u"\x01",
-                    u"\xff\xa2\x12\x00"*10),
+                (u("a"),         u("c")),
+                (u("abcabc"),    u("zbaabc")),
+                (u("abcabc"),    u("abzabc")),
+                (u("abcabc"),    u("abcabz")),
+                ((u("\xff\xa2\x12\x00")*10)[:-1] + u("\x01"),
+                    u("\xff\xa2\x12\x00")*10),
 
                 # check different-size comparisons fail.
-                (u"",       u"a"),
-                (u"abc",    u"abcdef"),
-                (u"abc",    u"defabc"),
-                (u"qwertyuiopasdfghjklzxcvbnm", u"abc"),
+                (u(""),       u("a")),
+                (u("abc"),    u("abcdef")),
+                (u("abc"),    u("defabc")),
+                (u("qwertyuiopasdfghjklzxcvbnm"), u("abc")),
             ]:
             self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
             self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
@@ -255,13 +256,13 @@ class CodecTest(TestCase):
         "test to_bytes()"
 
         #check unicode inputs
-        self.assertEqual(to_bytes(u'abc'),                  b('abc'))
-        self.assertEqual(to_bytes(u'\x00\xff'),             b('\x00\xc3\xbf'))
+        self.assertEqual(to_bytes(u('abc')),                  b('abc'))
+        self.assertEqual(to_bytes(u('\x00\xff')),             b('\x00\xc3\xbf'))
 
         #check unicode w/ encodings
-        self.assertEqual(to_bytes(u'\x00\xff', 'latin-1'),  b('\x00\xff'))
-        self.assertRaises(ValueError, to_bytes, u'\x00\xff', 'ascii')
-        self.assertRaises(TypeError, to_bytes, u'abc',      None)
+        self.assertEqual(to_bytes(u('\x00\xff'), 'latin-1'),  b('\x00\xff'))
+        self.assertRaises(ValueError, to_bytes, u('\x00\xff'), 'ascii')
+        self.assertRaises(TypeError, to_bytes, u('abc'),      None)
 
         #check bytes inputs
         self.assertEqual(to_bytes(b('abc')),                b('abc'))
@@ -285,18 +286,18 @@ class CodecTest(TestCase):
         "test to_unicode()"
 
         #check unicode inputs
-        self.assertEqual(to_unicode(u'abc'),                u'abc')
-        self.assertEqual(to_unicode(u'\x00\xff'),           u'\x00\xff')
+        self.assertEqual(to_unicode(u('abc')),                u('abc'))
+        self.assertEqual(to_unicode(u('\x00\xff')),           u('\x00\xff'))
 
         #check unicode input ignores encoding
-        self.assertEqual(to_unicode(u'\x00\xff', None),     u'\x00\xff')
-        self.assertEqual(to_unicode(u'\x00\xff', "ascii"),  u'\x00\xff')
+        self.assertEqual(to_unicode(u('\x00\xff'), None),     u('\x00\xff'))
+        self.assertEqual(to_unicode(u('\x00\xff'), "ascii"),  u('\x00\xff'))
 
         #check bytes input
-        self.assertEqual(to_unicode(b('abc')),              u'abc')
-        self.assertEqual(to_unicode(b('\x00\xc3\xbf')),     u'\x00\xff')
+        self.assertEqual(to_unicode(b('abc')),              u('abc'))
+        self.assertEqual(to_unicode(b('\x00\xc3\xbf')),     u('\x00\xff'))
         self.assertEqual(to_unicode(b('\x00\xff'), 'latin-1'),
-                                                            u'\x00\xff')
+                                                            u('\x00\xff'))
         self.assertRaises(ValueError, to_unicode, b('\x00\xff'))
         self.assertRaises(TypeError, to_unicode, b('\x00\xff'), None)
 
@@ -306,14 +307,14 @@ class CodecTest(TestCase):
     def test_to_native_str(self):
         "test to_native_str()"
 
-        self.assertEqual(to_native_str(u'abc'),             'abc')
+        self.assertEqual(to_native_str(u('abc')),             'abc')
         self.assertEqual(to_native_str(b('abc')),           'abc')
         self.assertRaises(TypeError, to_native_str, None)
 
         # Py2k #
-        self.assertEqual(to_native_str(u'\x00\xff'),        b('\x00\xc3\xbf'))
+        self.assertEqual(to_native_str(u('\x00\xff')),        b('\x00\xc3\xbf'))
         self.assertEqual(to_native_str(b('\x00\xc3\xbf')),  b('\x00\xc3\xbf'))
-        self.assertEqual(to_native_str(u'\x00\xff', 'latin-1'),
+        self.assertEqual(to_native_str(u('\x00\xff'), 'latin-1'),
                                                             b('\x00\xff'))
         self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'),
                                                             b('\x00\xff'))
@@ -333,9 +334,9 @@ class CodecTest(TestCase):
     def test_is_ascii_safe(self):
         "test is_ascii_safe()"
         self.assertTrue(is_ascii_safe(b("\x00abc\x7f")))
-        self.assertTrue(is_ascii_safe(u"\x00abc\x7f"))
+        self.assertTrue(is_ascii_safe(u("\x00abc\x7f")))
         self.assertFalse(is_ascii_safe(b("\x00abc\x80")))
-        self.assertFalse(is_ascii_safe(u"\x00abc\x80"))
+        self.assertFalse(is_ascii_safe(u("\x00abc\x80")))
 
 
     def test_is_same_codec(self):
@@ -480,7 +481,7 @@ class H64_Test(TestCase):
         #wrong size (1 % 4)
         self.assertRaises(ValueError, h64.decode_bytes, b('abcde'))
 
-        self.assertRaises(TypeError, h64.decode_bytes, u'abcd')
+        self.assertRaises(TypeError, h64.decode_bytes, u('abcd'))
 
     def test_encode_int(self):
         self.assertEqual(h64.encode_int(63, 11, True), b('..........z'))
@@ -496,22 +497,22 @@ class H64_Test(TestCase):
         self.assertRaises(ValueError, h64.decode_int64, b('aaa?aaa?aaa'))
         self.assertRaises(ValueError, h64.decode_dc_int64, b('aaa?aaa?aaa'))
 
-        self.assertRaises(TypeError, h64.decode_int12, u'a'*2)
-        self.assertRaises(TypeError, h64.decode_int24, u'a'*4)
-        self.assertRaises(TypeError, h64.decode_int64, u'a'*11)
-        self.assertRaises(TypeError, h64.decode_dc_int64, u'a'*11)
+        self.assertRaises(TypeError, h64.decode_int12, u('a')*2)
+        self.assertRaises(TypeError, h64.decode_int24, u('a')*4)
+        self.assertRaises(TypeError, h64.decode_int64, u('a')*11)
+        self.assertRaises(TypeError, h64.decode_dc_int64, u('a')*11)
 
     def test_decode_bytes_padding(self):
         for source, result in self.decode_padding_bytes:
             out = h64.decode_bytes(source)
             self.assertEqual(out, result)
-        self.assertRaises(TypeError, h64.decode_bytes, u'..')
+        self.assertRaises(TypeError, h64.decode_bytes, u('..'))
 
     def test_decode_int6(self):
         self.assertEqual(h64.decode_int6(b('.')),0)
         self.assertEqual(h64.decode_int6(b('z')),63)
         self.assertRaises(ValueError, h64.decode_int6, b('?'))
-        self.assertRaises(TypeError, h64.decode_int6, u'?')
+        self.assertRaises(TypeError, h64.decode_int6, u('?'))
 
     def test_encode_int6(self):
         self.assertEqual(h64.encode_int6(0),b('.'))

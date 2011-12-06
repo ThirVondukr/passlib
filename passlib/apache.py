@@ -13,7 +13,7 @@ import sys
 from passlib.context import CryptContext
 from passlib.utils import render_bytes, bjoin, bytes, b, \
                           to_unicode, to_bytes, consteq
-from passlib.utils.compat import lmap, unicode
+from passlib.utils.compat import lmap, unicode, u
 #pkg
 #local
 __all__ = [
@@ -59,7 +59,7 @@ class _CommonFile(object):
     def __init__(self, path=None, autoload=True,
                  encoding=DEFAULT_ENCODING,
                  ):
-        if encoding and u":\n".encode(encoding) != b(":\n"):
+        if encoding and u(":\n").encode(encoding) != b(":\n"):
             #rest of file assumes ascii bytes, and uses ":" as separator.
             raise ValueError("encoding must be 7-bit ascii compatible")
         self.encoding = encoding

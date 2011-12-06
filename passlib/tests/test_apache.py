@@ -14,6 +14,7 @@ from passlib import apache
 from passlib.utils import b, native_str, bytes
 from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
+from passlib.utils.compat import u
 #module
 log = getLogger(__name__)
 
@@ -178,12 +179,12 @@ class HtpasswdFileTest(TestCase):
 
         #check sample utf-8
         ht = apache.HtpasswdFile._from_string(self.sample_04_utf8, encoding="utf-8")
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
         #check sample latin-1
         ht = apache.HtpasswdFile._from_string(self.sample_04_latin1,
                                               encoding="latin-1")
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
     def test_08_to_string(self):
         "test to_string"
@@ -359,7 +360,7 @@ class HtdigestFileTest(TestCase):
         #check returns unicode if encoding explicitly set
         ht = apache.HtdigestFile._from_string(self.sample_01, encoding="utf-8")
         self.assertIsInstance(ht.realms()[0], unicode)
-        self.assertIsInstance(ht.users(u"realm")[0], unicode)
+        self.assertIsInstance(ht.users(u("realm"))[0], unicode)
 
         #check returns bytes if encoding explicitly disabled
         ht = apache.HtdigestFile._from_string(self.sample_01, encoding=None)
@@ -368,13 +369,13 @@ class HtdigestFileTest(TestCase):
 
         #check sample utf-8
         ht = apache.HtdigestFile._from_string(self.sample_04_utf8, encoding="utf-8")
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
+        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
 
         #check sample latin-1
         ht = apache.HtdigestFile._from_string(self.sample_04_latin1, encoding="latin-1")
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
+        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
 
 
     def test_10_to_string(self):

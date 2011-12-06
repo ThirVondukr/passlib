@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
     to_hash_str, to_unicode, bytes, b, bord
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -248,7 +248,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #--GenericHandler--
     name = "sha256_crypt"
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
-    ident = u"$5$"
+    ident = u("$5$")
     checksum_chars = uh.H64_CHARS
 
     #--HasSalt--
@@ -277,7 +277,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         \$5
         (\$rounds=(?P<rounds>\d+))?
@@ -290,7 +290,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             (?P<chk>[A-Za-z0-9./]{43})?
         )
         $
-        """, re.X)
+        """), re.X)
 
     @classmethod
     def from_string(cls, hash):
@@ -302,7 +302,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if not m:
             raise ValueError("invalid sha256-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
-        if rounds and rounds.startswith(u"0"):
+        if rounds and rounds.startswith(u("0")):
             raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
         return cls(
             implicit_rounds = not rounds,
@@ -314,9 +314,9 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$5$%s$%s" % (self.salt, self.checksum or u'')
+            hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
         else:
-            hash = u"$5$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
+            hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     #=========================================================
@@ -328,8 +328,8 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u("$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/")
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -348,9 +348,9 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if ok:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u"$5$")
+            assert result.startswith(u("$5$"))
             chk = result[-43:]
-            assert u'$' not in chk
+            assert u('$') not in chk
             return chk
         else:
             return self._calc_checksum_builtin(secret)
@@ -398,7 +398,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #algorithm information
     #=========================================================
     name = "sha512_crypt"
-    ident = u"$6$"
+    ident = u("$6$")
     checksum_chars = uh.H64_CHARS
 
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
@@ -427,7 +427,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         \$6
         (\$rounds=(?P<rounds>\d+))?
@@ -442,7 +442,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             )?
         )
         $
-        """, re.X)
+        """), re.X)
 
     @classmethod
     def from_string(cls, hash):
@@ -466,9 +466,9 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$6$%s$%s" % (self.salt, self.checksum or u'')
+            hash = u("$6$%s$%s") % (self.salt, self.checksum or u(''))
         else:
-            hash = u"$6$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
+            hash = u("$6$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
         return to_hash_str(hash) if native else hash
 
     #=========================================================
@@ -480,8 +480,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u("$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0")
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
 
@@ -502,9 +502,9 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if ok:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u"$6$")
+            assert result.startswith(u("$6$"))
             chk = result[-86:]
-            assert u'$' not in chk
+            assert u('$') not in chk
             return chk
         else:
             return self._calc_checksum_builtin(secret)

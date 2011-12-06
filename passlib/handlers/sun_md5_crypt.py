@@ -18,7 +18,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, to_hash_str, to_unicode, bytes, b, bord
-from passlib.utils.compat import trange, unicode
+from passlib.utils.import from passlib.utils.compat import trange, unicode, u
 #pkg
 #local
 __all__ = [
@@ -231,7 +231,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        return uh.identify_prefix(hash, (u"$md5$", u"$md5,"))
+        return uh.identify_prefix(hash, (u("$md5$"), u("$md5,")))
 
     @classmethod
     def from_string(cls, hash):
@@ -245,11 +245,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         #if so, parse and validate it.
         #by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
-        if hash.startswith(u"$md5$"):
+        if hash.startswith(u("$md5$")):
             rounds = 0
             salt_idx = 5
-        elif hash.startswith(u"$md5,rounds="):
-            idx = hash.find(u"$", 12)
+        elif hash.startswith(u("$md5,rounds=")):
+            idx = hash.find(u("$"), 12)
             if idx == -1:
                 raise ValueError("invalid sun-md5-crypt hash (unexpected end of rounds)")
             rstr = hash[12:idx]
@@ -273,20 +273,20 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         #to deal cleanly with some backward-compatible workarounds
         #implemented by original implementation.
         #
-        chk_idx = hash.rfind(u"$", salt_idx)
+        chk_idx = hash.rfind(u("$"), salt_idx)
         if chk_idx == -1:
             # ''-config for $-hash
             salt = hash[salt_idx:]
             chk = None
             bare_salt = True
         elif chk_idx == len(hash)-1:
-            if chk_idx > salt_idx and hash[-2] == u"$":
+            if chk_idx > salt_idx and hash[-2] == u("$"):
                 raise ValueError("invalid sun-md5-crypt hash (too many $)")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None
             bare_salt = False
-        elif chk_idx > 0 and hash[chk_idx-1] == u"$":
+        elif chk_idx > 0 and hash[chk_idx-1] == u("$"):
             # $$-hash
             salt = hash[salt_idx:chk_idx-1]
             chk = hash[chk_idx+1:]
@@ -306,16 +306,16 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self, withchk=True, native=True):
-        ss = u'' if self.bare_salt else u'$'
+        ss = u('') if self.bare_salt else u('$')
         rounds = self.rounds
         if rounds > 0:
-            out = u"$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
+            out = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
         else:
-            out = u"$md5$%s%s" % (self.salt, ss)
+            out = u("$md5$%s%s") % (self.salt, ss)
         if withchk:
             chk = self.checksum
             if chk:
-                out = u"%s$%s" % (out, chk)
+                out = u("%s$%s") % (out, chk)
         return to_hash_str(out) if native else out
 
     #=========================================================

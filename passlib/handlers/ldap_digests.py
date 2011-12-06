@@ -12,7 +12,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_hash_str
-from passlib.utils.compat import unicode
+from passlib.utils.import from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -113,9 +113,9 @@ class ldap_md5(_Base64DigestHelper):
     name = "ldap_md5"
     setting_kwds = ()
 
-    ident = u"{MD5}"
+    ident = u("{MD5}")
     _hash_func = md5
-    _pat = re.compile(ur"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
+    _pat = re.compile(u(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$"))
 
 class ldap_sha1(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain SHA1 format, and follows the :ref:`password-hash-api`.
@@ -125,9 +125,9 @@ class ldap_sha1(_Base64DigestHelper):
     name = "ldap_sha1"
     setting_kwds = ()
 
-    ident = u"{SHA}"
+    ident = u("{SHA}")
     _hash_func = sha1
-    _pat = re.compile(ur"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
+    _pat = re.compile(u(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$"))
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted MD5 format, and follows the :ref:`password-hash-api`.
@@ -142,9 +142,9 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
         If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
     """
     name = "ldap_salted_md5"
-    ident = u"{SMD5}"
+    ident = u("{SMD5}")
     _hash_func = md5
-    _pat = re.compile(ur"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27}=)$")
+    _pat = re.compile(u(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27}=)$"))
     _stub_checksum = b('\x00') * 16
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
@@ -160,9 +160,9 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
         If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
     """
     name = "ldap_salted_sha1"
-    ident = u"{SSHA}"
+    ident = u("{SSHA}")
     _hash_func = sha1
-    _pat = re.compile(ur"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
+    _pat = re.compile(u(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$"))
     _stub_checksum = b('\x00') * 20
 
 class ldap_plaintext(uh.StaticHandler):
@@ -176,7 +176,7 @@ class ldap_plaintext(uh.StaticHandler):
     """
     name = "ldap_plaintext"
 
-    _2307_pat = re.compile(ur"^\{\w+\}.*$")
+    _2307_pat = re.compile(u(r"^\{\w+\}.*$"))
 
     @classmethod
     def identify(cls, hash):
@@ -223,7 +223,7 @@ def _init_ldap_crypt_handlers():
     g = globals()
     for wname in unix_crypt_schemes:
         name = 'ldap_' + wname
-        g[name] = uh.PrefixWrapper(name, wname, prefix=u"{CRYPT}", lazy=True)
+        g[name] = uh.PrefixWrapper(name, wname, prefix=u("{CRYPT}"), lazy=True)
     del g
 _init_ldap_crypt_handlers()
 
