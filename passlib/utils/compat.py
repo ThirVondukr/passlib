@@ -17,22 +17,19 @@ __all__ = [
     "iteritems",
 ]
 
-if PY_MAX_25:
-    __all__.append("bytes")
-elif PY3:
-    __all__.append("unicode")
-
 #=============================================================================
 # typing
 #=============================================================================
-if PY_MAX_25:
-    def is_mapping(obj):
-        # non-exhaustive check, enough to distinguish from lists, etc
-        return hasattr(obj, "items")
-else:
-    from collections import Mapping
-    def is_mapping(obj):
-        return isinstance(obj, Mapping)
+def is_mapping(obj):
+    # non-exhaustive check, enough to distinguish from lists, etc
+    return hasattr(obj, "items")
+
+if (3,0) <= pyver < (3,2):
+    # callable isn't dead, it's just resting
+    from collections import Callable
+    def callable(obj):
+        return isinstance(obj, Callable)
+    __all__.append("callable")
 
 #=============================================================================
 # unicode / bytes helpers
@@ -44,6 +41,7 @@ if PY3:
         assert isinstance(s, str)
         return s.encode("latin-1")
     unicode = str
+    __all__.append("unicode")
 #    string_types = (str,)
 else:
     def u(s):
@@ -53,6 +51,7 @@ else:
         return s
     if PY_MAX_25:
         bytes = str
+        __all__.append("bytes")
 #    string_types = (unicode,str)
 
 #=============================================================================

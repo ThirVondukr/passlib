@@ -21,7 +21,7 @@ except ImportError:
     _EVP = None
 #pkg
 from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
-from passlib.utils.compat import irange
+from passlib.utils.compat import irange, callable
 #local
 __all__ = [
     "hmac_sha1",

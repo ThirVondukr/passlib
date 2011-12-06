@@ -37,7 +37,7 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
-from passlib.utils.compat import iteritems, irange
+from passlib.utils.compat import iteritems, irange, callable
 #local
 __all__ = [
     #util funcs
