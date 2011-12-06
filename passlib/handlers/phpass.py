@@ -16,7 +16,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, bytes, b, to_unicode, to_hash_str
-from passlib.utils.import from passlib.utils.compat import unicode, u
+from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [

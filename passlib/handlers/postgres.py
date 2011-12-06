@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import handlers as uh, to_unicode, to_hash_str, bytes, b
-from passlib.utils.import from passlib.utils.compat import unicode, u
+from passlib.utils.compat import unicode, u
 #local
 __all__ = [
     "postgres_md5",

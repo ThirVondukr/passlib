@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 from passlib.utils import b, bytes, to_bytes, h64, safe_os_crypt, \
                           classproperty, handlers as uh
-from passlib.utils.import from passlib.utils.compat import irange, unicode, u
+from passlib.utils.compat import irange, unicode, u
 #pkg
 #local
 __all__ = [
