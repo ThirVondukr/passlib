@@ -37,7 +37,7 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
-from passlib.utils.compat import iteritems, irange, callable, sb_types
+from passlib.utils.compat import iteritems, irange, callable, sb_types, exc_err
 #local
 __all__ = [
     #util funcs
@@ -218,7 +218,8 @@ class TestCase(unittest.TestCase):
         msg = kwds.pop("__msg__", None)
         try:
             result = func(*args, **kwds)
-        except Exception, err:
+        except Exception:
+            err = exc_err() # NOTE: done to avoid 2/3 exception-syntax issue
             if isinstance(err, type):
                 return True
             ##import traceback, sys

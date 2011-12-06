@@ -13,7 +13,7 @@ import warnings
 #module
 from passlib.context import CryptContext
 from passlib import utils
-from passlib.utils import h64, des, Undef, sys_bits, bytes, b, \
+from passlib.utils import h64, des, Undef, bytes, b, \
     native_str, to_bytes, to_unicode, to_native_str, to_hash_str, \
     is_same_codec, is_ascii_safe, safe_os_crypt, md4 as md4_mod
 from passlib.tests.utils import TestCase, Params as ak, \

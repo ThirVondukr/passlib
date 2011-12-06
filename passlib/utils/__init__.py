@@ -17,7 +17,7 @@ import time
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, b, PY3
+from passlib.utils.compat import irange, b, PY3, sys_bits
 #local
 __all__ = [
     #decorators
@@ -52,8 +52,6 @@ __all__ = [
 
     #constants
     'pypy_vm', 'jython_vm',
-    'py32_lang', 'py3k_lang',
-    'sys_bits',
     'unix_crypt_schemes',
 ]
 
@@ -64,12 +62,6 @@ __all__ = [
 #: detect what we're running on
 pypy_vm = hasattr(sys, "pypy_version_info")
 jython_vm = sys.platform.startswith('java')
-py3k_lang = sys.version_info >= (3,0)
-py32_lang = sys.version_info >= (3,2)
-
-#: number of bits in system architecture
-sys_bits = int(logb(sys.maxint,2)+1.5)
-assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
 
 #: list of names of hashes found in unix crypt implementations...
 unix_crypt_schemes = [

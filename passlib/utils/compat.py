@@ -2,10 +2,10 @@
 #=============================================================================
 # figure out what version we're running
 #=============================================================================
-from sys import version as pyver
-PY3 = pyver >= (3,0)
-PY_MAX_25 = pyver < (2,6) # py 2.5 or earlier
-PY_MIN_32 = pyver >= (3,2) # py 3.2 or later
+import sys
+PY3 = sys.version >= (3,0)
+PY_MAX_25 = sys.version < (2,6) # py 2.5 or earlier
+PY_MIN_32 = sys.version >= (3,2) # py 3.2 or later
 
 #=============================================================================
 # the default exported vars
@@ -18,13 +18,24 @@ __all__ = [
 ]
 
 #=============================================================================
+# host/vm configuration info
+#=============================================================================
+from math import log as logb
+if PY3:
+    sys_bits = int(logb(sys.maxsize,2)+1.5)
+else:
+    sys_bits = int(logb(sys.maxint,2)+1.5)
+del logb
+assert sys_bits in (32,64), "unexpected system bitsize: %r" % (sys_bits,)
+
+#=============================================================================
 # typing
 #=============================================================================
 def is_mapping(obj):
     # non-exhaustive check, enough to distinguish from lists, etc
     return hasattr(obj, "items")
 
-if (3,0) <= pyver < (3,2):
+if (3,0) <= sys.version < (3,2):
     # callable isn't dead, it's just resting
     from collections import Callable
     def callable(obj):
@@ -102,6 +113,10 @@ else:
 #=============================================================================
 # introspection
 #=============================================================================
+def exc_err():
+    "return current error object (to avoid try/except syntax change)"
+    return sys.exc_info()[1]
+
 if PY3:
     def get_method_function(method):
         return method.__func__

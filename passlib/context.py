@@ -3,10 +3,10 @@
 #imports
 #=========================================================
 from __future__ import with_statement
-from passlib.utils import py32_lang
+from passlib.utils.compat import PY3, PY_MIN_32
 #core
 from cStringIO import StringIO
-if py32_lang:
+if PY_MIN_32:
     #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
     from ConfigParser import ConfigParser as SafeConfigParser
 else:
@@ -223,7 +223,7 @@ class CryptPolicy(object):
     def _from_stream(cls, stream, section, filename=None):
         "helper for from_string / from_path"
         p = SafeConfigParser()
-        if py32_lang:
+        if PY_MIN_32:
             # Py3.2 deprecated readfp
             p.read_file(stream, filename or "<???>")
         else:
