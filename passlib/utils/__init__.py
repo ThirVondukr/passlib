@@ -758,8 +758,8 @@ def genseed(value=None):
         os.urandom(16).decode("latin-1") if has_urandom else 0,
             #if urandom available, might as well mix some bytes in.
         )
-    #hash it all up and return it as int
-    return long(sha256(text.encode("utf-8")).hexdigest(), 16)
+    #hash it all up and return it as int/long
+    return int(sha256(text.encode("utf-8")).hexdigest(), 16)
 
 if has_urandom:
     rng = random.SystemRandom()

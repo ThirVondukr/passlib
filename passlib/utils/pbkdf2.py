@@ -21,7 +21,7 @@ except ImportError:
     _EVP = None
 #pkg
 from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
-from passlib.utils.compat import irange, callable
+from passlib.utils.compat import irange, callable, int_types
 #local
 __all__ = [
     "hmac_sha1",
@@ -186,7 +186,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
         raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
-    if not isinstance(rounds, (int, long)):
+    if not isinstance(rounds, int_types):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -247,7 +247,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
         raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
-    if not isinstance(rounds, (int, long)):
+    if not isinstance(rounds, int_types):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -270,7 +270,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     #figure out how many blocks we'll need
     bcount = (keylen+digest_size-1)//digest_size
     if bcount >= MAX_BLOCKS:
-        raise ValueError("key length to long")
+        raise ValueError("key length too long")
 
     #build up key from blocks
     out = BytesIO()

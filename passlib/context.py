@@ -29,7 +29,7 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _unload_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
                           is_crypt_handler, splitcomma, rng
-from passlib.utils.compat import is_mapping, iteritems
+from passlib.utils.compat import is_mapping, iteritems, int_types
 #pkg
 #local
 __all__ = [
@@ -637,7 +637,7 @@ class CryptPolicy(object):
     def _escape_ini_pair(self, k, v):
         if isinstance(v, str):
             v = v.replace("%", "%%") #escape any percent signs.
-        elif isinstance(v, (int, long)):
+        elif isinstance(v, int_types):
             v = str(v)
         return k,v
 

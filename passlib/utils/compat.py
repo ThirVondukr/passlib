@@ -31,6 +31,11 @@ if (3,0) <= pyver < (3,2):
         return isinstance(obj, Callable)
     __all__.append("callable")
 
+if PY3:
+    int_types = (int,)
+else:
+    int_types = (int,long)
+
 #=============================================================================
 # unicode / bytes helpers
 #=============================================================================
