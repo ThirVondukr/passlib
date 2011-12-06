@@ -51,11 +51,12 @@ released under the BSD license::
 #imports
 #=========================================================
 #core
-from cStringIO import StringIO
 from itertools import chain
 import struct
 #pkg
-from passlib.utils import rng, getrandbytes, bytes, bord, b
+from passlib.utils import rng, getrandbytes, bytes, bord
+from passlib.utils.compat import b
+from passlib.utils.compat.aliases import BytesIO
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local
 __all__ = [
@@ -81,7 +82,7 @@ digest_struct = struct.Struct(">6I")
 #=========================================================
 
 # Table for Base64 encoding
-CHARS = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+CHARS = b("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 CHARSIDX = dict( (c, i) for i, c in enumerate(CHARS))
 
 def encode_base64(d):
@@ -98,7 +99,7 @@ def encode_base64(d):
         d = d.encode("utf-8")
         #ensure ord() returns something w/in 0..255
 
-    rs = StringIO()
+    rs = BytesIO()
     write = rs.write
     dlen = len(d)
     didx = 0
@@ -144,7 +145,7 @@ def decode_base64(s):
     :raises ValueError:
         if invalid values are passed in
     """
-    rs = StringIO()
+    rs = BytesIO()
     write = rs.write
     slen = len(s)
     sidx = 0

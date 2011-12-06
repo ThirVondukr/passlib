@@ -29,6 +29,52 @@ del logb
 assert sys_bits in (32,64), "unexpected system bitsize: %r" % (sys_bits,)
 
 #=============================================================================
+# lazy import aliases
+#=============================================================================
+if PY3:
+    _aliases = dict(
+        BytesIO="io.BytesIO",
+        StringIO="io.StringIO",
+        SafeConfigParser="configparser.SafeConfigParser",
+    )
+    if PY_MIN_32:
+        # py32 renamed this, removing old ConfigParser
+        _aliases["SafeConfigParser"] = "configparser.ConfigParser"
+else:
+    _aliases = dict(
+        BytesIO="cStringIO.StringIO",
+        StringIO="StringIO.StringIO",
+        SafeConfigParser="ConfigParser.SafeConfigParser",
+    )
+
+from types import ModuleType
+class _AliasedModule(ModuleType):
+    "fake module that does lazy importing of attributes"
+
+    def __init__(self, name, **source):
+        ModuleType.__init__(self, name)
+        self._source = source
+
+    def __getattr__(self, attr):
+        source = self._source
+        if attr in source:
+            modname, modattr = source[attr].rsplit(".",1)
+            mod = __import__(modname, fromlist=[modattr], level=0)
+            value = getattr(mod, modattr)
+            setattr(self, attr, value)
+            return value
+        return types.ModuleType.__getattr__(self, attr)
+
+    def __dir__(self):
+        attrs = set(dir(self.__class__))
+        attrs.update(self.__dict__)
+        attrs.update(self._source)
+        return list(attrs)
+
+aliases = _AliasedModule(__name__ + ".aliases", **_aliases)
+sys.modules[aliases.__name__] = aliases
+
+#=============================================================================
 # typing
 #=============================================================================
 def is_mapping(obj):
@@ -59,6 +105,7 @@ if PY3:
     unicode = str
     __all__.append("unicode")
 #    string_types = (str,)
+
 else:
     def u(s):
         return s.decode("unicode_escape")
@@ -72,9 +119,6 @@ else:
 
 sb_types = (unicode, bytes)
 
-#=============================================================================
-# bytes-specific helpers
-#=============================================================================
 # bytes format
 
 #=============================================================================
@@ -125,7 +169,7 @@ else:
         return method.im_func
 
 #=============================================================================
-# output
+# input/output
 #=============================================================================
 if PY3:
     import builtins

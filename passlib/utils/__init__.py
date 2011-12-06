@@ -5,7 +5,6 @@
 #core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
-from cStringIO import StringIO
 ##from functools import update_wrapper
 from hashlib import sha256
 import logging; log = logging.getLogger(__name__)

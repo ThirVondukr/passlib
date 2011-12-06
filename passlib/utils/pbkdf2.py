@@ -22,6 +22,7 @@ except ImportError:
 #pkg
 from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
 from passlib.utils.compat import irange, callable, int_types
+from passlib.utils.compat.aliases import BytesIO
 #local
 __all__ = [
     "hmac_sha1",
@@ -29,12 +30,6 @@ __all__ = [
     "pbkdf1",
     "pbkdf2",
 ]
-
-# Py2k #
-from cStringIO import StringIO as BytesIO
-# Py3k #
-#from io import BytesIO
-# end Py3k #
 
 #=================================================================================
 #quick hmac_sha1 implementation used various places

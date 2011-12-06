@@ -3,14 +3,7 @@
 #imports
 #=========================================================
 from __future__ import with_statement
-from passlib.utils.compat import PY3, PY_MIN_32
 #core
-from cStringIO import StringIO
-if PY_MIN_32:
-    #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
-    from ConfigParser import ConfigParser as SafeConfigParser
-else:
-    from ConfigParser import SafeConfigParser
 import inspect
 import re
 import hashlib
@@ -29,7 +22,9 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _unload_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
                           is_crypt_handler, splitcomma, rng
-from passlib.utils.compat import is_mapping, iteritems, int_types
+from passlib.utils.compat import is_mapping, iteritems, int_types, \
+                                 PY3, PY_MIN_32
+from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
 #pkg
 #local
 __all__ = [
@@ -180,22 +175,22 @@ class CryptPolicy(object):
         #
         #      encoding issues are handled under py2 via to_bytes(),
         #      which ensures everything is utf-8 internally.
-
-        # Py2k #
-        if encoding == "utf-8":
-            #we want utf-8 anyways, so just load file in raw mode.
+        if PY3:
+            # for python 3, provide a unicode stream,
+            # so policy object's keys will be native str type (unicode).
+            with open(path, "rt", encoding=encoding) as stream:
+                return cls._from_stream(stream, section, path)
+        elif encoding == "utf-8":
+            # for python 2, provide utf-8 stream,
+            # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as stream:
                 return cls._from_stream(stream, section, path)
         else:
-            #kinda hacked - load whole file, transcode, and parse.
-            with open(path, "rb") as stream:
-                source = stream.read()
-            source = source.decode(encoding).encode("utf-8")
-            return cls._from_stream(StringIO(source), section, path)
-        # Py3k #
-        #with open(path, "r", encoding=encoding) as stream:
-        #    return cls._from_stream(stream, section, path)
-        # end Py3k #
+            # for python 2, transcode to utf-8 stream,
+            # so policy object's keys will be native str type (utf-8 bytes)
+            with open(path, "rb") as fh:
+                stream = BytesIO(source.decode(encoding).encode("utf-8"))
+                return cls._from_stream(stream, section, path)
 
     @classmethod
     def from_string(cls, source, section="passlib", encoding="utf-8"):
@@ -211,13 +206,13 @@ class CryptPolicy(object):
         #      so we parse as bytes under py2, and unicode under py3.
         #      to handle encoding issues under py2, we use
         #      "to_bytes()" to transcode to utf-8 as needed.
-
-        # Py2k #
-        source = to_bytes(source, "utf-8", source_encoding=encoding, errname="source")
-        # Py3k #
-        #source = to_unicode(source, encoding, errname="source")
-        # end Py3k #
-        return cls._from_stream(StringIO(source), section, "<???>")
+        if PY3:
+            source = to_unicode(source, encoding, errname="source")
+            return cls._from_stream(StringIO(source), section, "<???>")
+        else:
+            source = to_bytes(source, "utf-8", source_encoding=encoding,
+                              errname="source")
+            return cls._from_stream(BytesIO(source), section, "<???>")
 
     @classmethod
     def _from_stream(cls, stream, section, filename=None):
@@ -657,15 +652,15 @@ class CryptPolicy(object):
 
     def to_string(self, section="passlib", encoding=None):
         "render to INI string; inverse of from_string() constructor"
-        buf = StringIO()
+        buf = StringIO() if PY3 else BytesIO()
         self.to_file(buf, section)
         out = buf.getvalue()
-        # Py2k #
-        out = out.decode("utf-8")
-        # end Py2k #
+        if not PY3:
+            out = out.decode("utf-8")
         if encoding:
-            out = out.encode(encoding)
-        return out
+            return out.encode(encoding)
+        else:
+            return out
 
     ##def to_path(self, path, section="passlib", update=False):
     ##    "write to INI file"
