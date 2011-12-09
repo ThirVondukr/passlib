@@ -72,7 +72,7 @@ class _AliasedModule(ModuleType):
             value = getattr(mod, modattr)
             setattr(self, attr, value)
             return value
-        return types.ModuleType.__getattr__(self, attr)
+        return ModuleType.__getattr__(self, attr)
 
     def __dir__(self):
         attrs = set(dir(self.__class__))
