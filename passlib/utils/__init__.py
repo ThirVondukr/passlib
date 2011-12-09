@@ -199,7 +199,11 @@ else:
             raise TypeError("hash must be unicode")
         else:
             hash = hash.encode("utf-8")
-        return True, os_crypt(secret, hash).decode("ascii")
+        result = os_crypt(secret, hash)
+        if result is None:
+            return False, None
+        else:
+            return True, result.decode("ascii")
 
         # Py3k #
         #if isinstance(secret, bytes):
@@ -217,7 +221,8 @@ else:
         #        #not sure if/how this could happen, but being paranoid.
         #        warn("utf-8 password didn't re-encode correctly")
         #        return False, None
-        #return True, os_crypt(secret, hash)
+        #result = os_crypt(secret, hash)
+        #return (result is not None), result
         # end Py3k #
 
 #=================================================================================

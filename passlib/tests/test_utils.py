@@ -142,6 +142,16 @@ class MiscTest(TestCase):
         #self.assertEqual(ret, (False, None))
         # end Py3k #
 
+        # test safe_os_crypt() handles os_crypt() returning None
+        # (Python's Modules/_cryptmodule.c notes some platforms may do this
+        # when algorithm is not supported)
+        orig = utils.os_crypt
+        try:
+            utils.os_crypt = lambda secret, hash: None
+            self.assertEqual(safe_os_crypt(u'test', u'aa'), (False,None))
+        finally:
+            utils.os_crypt = orig
+
     def test_consteq(self):
         "test consteq()"
         # NOTE: this test is kind of over the top, but that's only because
