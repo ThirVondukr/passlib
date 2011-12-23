@@ -1156,7 +1156,8 @@ class PrefixWrapper(object):
     :param lazy: if True and wrapped handler is specified by name, don't look it up until needed.
     """
 
-    def __init__(self, name, wrapped, prefix=u'', orig_prefix=u'', lazy=False, doc=None):
+    def __init__(self, name, wrapped, prefix=u'', orig_prefix=u'', lazy=False,
+                 doc=None, ident=None):
         self.name = name
         if isinstance(prefix, bytes):
             prefix = prefix.decode("ascii")
@@ -1173,6 +1174,13 @@ class PrefixWrapper(object):
             self._wrapped_name = wrapped
             if not lazy:
                 self._get_wrapped()
+
+        if ident is not None:
+            if isinstance(ident, bytes):
+                ident = ident.decode("ascii")
+            if ident[:len(prefix)] != prefix[:len(ident)]:
+                raise ValueError("ident agree with prefix")
+            self._ident = ident
 
     _wrapped_name = None
     _wrapped_handler = None
@@ -1192,9 +1200,42 @@ class PrefixWrapper(object):
 
     wrapped = property(_get_wrapped)
 
-    ##@property
-    ##def ident(self):
-    ##    return self._prefix
+    _ident = False
+
+    @property
+    def ident(self):
+        value = self._ident
+        if value is False:
+            value = None
+            # XXX: how will this interact with orig_prefix ?
+            #      not exposing attrs for now if orig_prefix is set.
+            if not self.orig_prefix:
+                wrapped = self.wrapped
+                ident = getattr(wrapped, "ident", None)
+                if ident is not None:
+                    value = self._wrap_hash(ident)
+            self._ident = value
+        return value
+
+    _ident_values = False
+    @property
+    def ident_values(self):
+        value = self._ident_values
+        if value is False:
+            value = None
+            # XXX: how will this interact with orig_prefix ?
+            #      not exposing attrs for now if orig_prefix is set.
+            if not self.orig_prefix:
+                wrapped = self.wrapped
+                idents = getattr(wrapped, "ident_values", None)
+                if idents:
+                    value = [ self._wrap_hash(ident) for ident in idents ]
+                ##else:
+                ##    ident = self.ident
+                ##    if ident is not None:
+                ##        value = [ident]
+            self._ident_values = value
+        return value
 
     #attrs that should be proxied
     _proxy_attrs = (
@@ -1208,9 +1249,19 @@ class PrefixWrapper(object):
         if self.prefix:
             args.append("prefix=%r" % self.prefix)
         if self.orig_prefix:
-            args.append("orig_prefix=%r", self.orig_prefix)
+            args.append("orig_prefix=%r" % self.orig_prefix)
         args = ", ".join(args)
         return 'PrefixWrapper(%r, %s)' % (self.name, args)
+
+    def __dir__(self):
+        attrs = set(dir(self.__class__))
+        attrs.update(self.__dict__)
+        wrapped = self.wrapped
+        attrs.update(
+            attr for attr in self._proxy_attrs
+            if hasattr(wrapped, attr)
+        )
+        return list(attrs)
 
     def __getattr__(self, attr):
         "proxy most attributes from wrapped class (eg rounds, salt size, etc)"
