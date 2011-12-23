@@ -554,7 +554,7 @@ class CryptPolicy(object):
     # public interface (used by CryptContext)
     #=========================================================
     def has_schemes(self):
-        "check if policy supported *any* schemes; returns True/False"
+        "check if policy supports *any* schemes; returns True/False"
         return len(self._handlers) > 0
 
     def iter_handlers(self):
