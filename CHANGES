@@ -10,6 +10,11 @@ Release History
 
         .. currentmodule:: passlib.context
 
+        * Internals of :class:`CryptPolicy` have been
+          re-written drastically. Should now be stricter (and more informative)
+          about invalid values, and common :class:`CryptContext`
+          operations should all have much shorter code-paths.
+
         * Config parsing now done with :class:`SafeConfigParser`.
 
           :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`

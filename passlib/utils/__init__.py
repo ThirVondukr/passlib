@@ -130,6 +130,20 @@ class MissingBackendError(RuntimeError):
     from :class:`~passlib.utils.handlers.HasManyBackends`.
     """
 
+class PasslibPolicyWarning(UserWarning):
+    """Warning issued when non-fatal issue is found in policy configuration.
+
+    This occurs primarily in one of two cases:
+
+    * the policy contains rounds limits which exceed the hard limits
+      imposed by the underlying algorithm.
+    * an explicit rounds value was provided which exceeds the limits
+      imposed by the policy.
+
+    In both of these cases, the code will perform correctly & securely;
+    but the warning is issued as a sign the configuration may need updating.
+    """
+
 #==========================================================
 #bytes compat aliases - bytes, native_str, b()
 #==========================================================
@@ -536,7 +550,13 @@ def consteq(left, right):
     return result == 0
 
 def splitcomma(source, sep=","):
-    "split comma-separated string into list of elements, stripping whitespace and discarding empty elements"
+    """split comma-separated string into list of elements,
+    stripping whitespace and discarding empty elements.
+
+    .. deprecated:: 1.6, will be removed in 1.7
+    """
+    warn("splitcomma() is deprecated, will be removed in passlib 1.7",
+         DeprecationWarning, stacklevel=2)
     return [
         elem.strip()
         for elem in source.split(sep)

@@ -36,13 +36,11 @@ Constants
 
 .. autoexception:: MissingBackendError
 
+.. autoexception:: PasslibPolicyWarning
+
 Decorators
 ==========
 .. autofunction:: classproperty
-
-..
-    String Manipulation
-    .. autofunction:: splitcomma
 
 Bytes Manipulation
 ==================
