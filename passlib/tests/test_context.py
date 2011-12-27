@@ -201,7 +201,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
         #check key with too many separators is rejected
-        self.assertRaises(KeyError, CryptPolicy,
+        self.assertRaises(TypeError, CryptPolicy,
             schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"],
             bad__key__bsdi_crypt__max_rounds = 30000,
             )
@@ -616,10 +616,11 @@ class CryptContextTest(TestCase):
 
             # set below handler min
             c2 = cc.replace(all__min_rounds=500, all__max_rounds=None,
-                            all__default_rounds=None)
+                            all__default_rounds=500)
+            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
             self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
             self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # below
             self.assertEqual(
@@ -627,31 +628,32 @@ class CryptContextTest(TestCase):
                 '$5$rounds=2000$nacl$',
                 )
             self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # equal
             self.assertEqual(
                 cc.genconfig(rounds=2000, salt="nacl"),
                 '$5$rounds=2000$nacl$',
                 )
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # above
             self.assertEqual(
                 cc.genconfig(rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$'
                 )
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
         # max rounds
         with catch_warnings(record=True) as wlog:
             # set above handler max
-            c2 = cc.replace(all__max_rounds=int(1e9)+500,
-                            all__min_rounds=None, all__default_rounds=None)
+            c2 = cc.replace(all__max_rounds=int(1e9)+500, all__min_rounds=None,
+                            all__default_rounds=int(1e9)+500)
+            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
             self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
             self.assertEqual(c2.genconfig(salt="nacl"),
                              "$5$rounds=999999999$nacl$")
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # above
             self.assertEqual(
@@ -659,38 +661,40 @@ class CryptContextTest(TestCase):
                 '$5$rounds=3000$nacl$'
                 )
             self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # equal
             self.assertEqual(
                 cc.genconfig(rounds=3000, salt="nacl"),
                 '$5$rounds=3000$nacl$'
                 )
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
             # below
             self.assertEqual(
                 cc.genconfig(rounds=2999, salt="nacl"),
                 '$5$rounds=2999$nacl$',
                 )
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
         # explicit default rounds
         self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
 
-        # implicit default rounds - use max
-        c2 = cc.replace(all__default_rounds=None)
+        # fallback default rounds - use handler's
+        c2 = cc.replace(all__default_rounds=None, all__max_rounds=50000)
+        self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=40000$nacl$')
+
+        # fallback default rounds - use handler's, but clipped to max rounds
+        c2 = cc.replace(all__default_rounds=None, all__max_rounds=3000)
         self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=3000$nacl$')
 
-        # implicit default rounds - use min
-        c2 = c2.replace(all__max_rounds=None)
-        self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=2000$nacl$')
+        # TODO: test default falls back to mx / mn if handler has no default.
 
         #default rounds - out of bounds
-        self.assertRaises(ValueError, cc.policy.replace, all__default_rounds=1999)
+        self.assertRaises(ValueError, cc.replace, all__default_rounds=1999)
         cc.policy.replace(all__default_rounds=2000)
         cc.policy.replace(all__default_rounds=3000)
-        self.assertRaises(ValueError, cc.policy.replace, all__default_rounds=3001)
+        self.assertRaises(ValueError, cc.replace, all__default_rounds=3001)
 
         # invalid min/max bounds
         c2 = CryptContext(policy=None, schemes=["sha256_crypt"])
