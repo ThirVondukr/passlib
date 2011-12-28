@@ -1080,7 +1080,7 @@ def _has_other_backends(handler, ignore):
             return name
     return None
 
-def create_backend_case(base, name, module="passlib.tests.test_drivers"):
+def create_backend_case(base, name, module="passlib.tests.test_handlers"):
     "create a test case for specific backend of a multi-backend handler"
     #get handler, figure out if backend should be tested
     handler = base.handler

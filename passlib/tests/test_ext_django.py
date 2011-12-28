@@ -14,7 +14,7 @@ from passlib.apps import django_context
 from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
-import passlib.tests.test_drivers as td
+import passlib.tests.test_handlers as td
 from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
 #module
@@ -412,17 +412,17 @@ PatchTest = skipUnlessDjango(PatchTest)
 #=========================================================
 
 django_hash_tests = [
-                    td.HexMd5Test,
-                    td.DjangoDesCryptTest,
-                    td.DjangoSaltedMd5Test,
-                    td.DjangoSaltedSha1Test,
+                    th.HexMd5Test,
+                    th.DjangoDesCryptTest,
+                    th.DjangoSaltedMd5Test,
+                    th.DjangoSaltedSha1Test,
                      ]
 
-default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest \
-                                          or td.OsCrypt_SHA512CryptTest ]
+default_hash_tests = django_hash_tests + [ th.Builtin_SHA512CryptTest \
+                                          or th.OsCrypt_SHA512CryptTest ]
 
 if has_django0:
-    django_hash_tests.remove(td.DjangoDesCryptTest)
+    django_hash_tests.remove(th.DjangoDesCryptTest)
 
 class PluginTest(TestCase):
     "test django plugin via settings"
