@@ -14,8 +14,8 @@ from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
-    to_native_str, to_unicode, MissingBackendError, jython_vm
-from passlib.utils.compat import unicode
+    to_native_str, to_unicode, MissingBackendError
+from passlib.utils.compat import unicode, JYTHON
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
 from passlib.utils.compat import u
@@ -462,7 +462,7 @@ class UnsaltedHashTest(HandlerCase):
     ]
 
     def test_bad_kwds(self):
-        if not jython_vm:
+        if not JYTHON:
             #FIXME: annoyingly, the object() constructor of Jython (as of 2.5.2)
             #       silently drops any extra kwds (old 2.4 behavior)
             #       instead of raising TypeError (new 2.5 behavior).

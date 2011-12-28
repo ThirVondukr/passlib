@@ -37,6 +37,10 @@ else:
 del logb
 assert sys_bits in (32,64), "unexpected system bitsize: %r" % (sys_bits,)
 
+# VM identification
+PYPY = hasattr(sys, "pypy_version_info")
+JYTHON = sys.platform.startswith('java')
+
 #=============================================================================
 # lazy import aliases
 #=============================================================================

@@ -57,17 +57,12 @@ __all__ = [
     'getrandstr',
 
     #constants
-    'pypy_vm', 'jython_vm',
     'unix_crypt_schemes',
 ]
 
 #=================================================================================
 #constants
 #=================================================================================
-
-#: detect what we're running on
-pypy_vm = hasattr(sys, "pypy_version_info")
-jython_vm = sys.platform.startswith('java')
 
 #: list of names of hashes found in unix crypt implementations...
 unix_crypt_schemes = [

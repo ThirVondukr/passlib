@@ -237,7 +237,7 @@ _builtin_md4 = md4
 #=========================================================================
 #check if hashlib provides accelarated md4
 #=========================================================================
-from passlib.utils import pypy_vm
+from passlib.utils.compat import PYPY
 import hashlib
 
 def _has_native_md4():
@@ -249,7 +249,7 @@ def _has_native_md4():
     result = h.hexdigest()
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
-    if pypy_vm and result == '':
+    if PYPY and result == '':
         #as of 1.5, pypy md4 just returns null!
         #since this is expected, don't bother w/ warning.
         return False
