@@ -367,6 +367,19 @@ class TestCase(unittest.TestCase):
         ##        raise TypeError("can't read lineno from warning object")
         ##    self.assertEqual(wmsg.lineno, lineno, msg)
 
+    def assertNoWarnings(self, wlist, msg=None):
+        "assert that list (e.g. from catch_warnings) contains no warnings"
+        if not wlist:
+            return
+        wout = [self._formatWarning(w.message) for w in wlist]
+        std = "AssertionError: unexpected warnings: " + ", ".join(wout)
+        msg = self._formatMessage(msg, std)
+        raise self.failureException(msg)
+
+    def _formatWarning(self, entry):
+        cls = type(entry)
+        return "<%s.%s %r>" % (cls.__module__,cls.__name__, str(entry))
+
     #============================================================
     #eoc
     #============================================================

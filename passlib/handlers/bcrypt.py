@@ -153,7 +153,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #=========================================================
 
     @classmethod
-    def _hash_needs_update(cls, hash, **opts):
+    def _hash_needs_update(cls, hash):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         if hash.startswith(u("$2a$")) and hash[28] not in BSLAST:

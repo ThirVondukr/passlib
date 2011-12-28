@@ -182,6 +182,30 @@ def register_crypt_handler_path(name, path):
         modname, modattr = path, name
     _handler_locations[name] = (modname, modattr)
 
+def _validate_handler_name(name):
+    """helper to validate handler name
+
+    :raises ValueError:
+        * if empty name
+        * if name not lower case
+        * if name contains double underscores
+        * if name is reserved (e.g. ``context``, ``all``).
+    """
+    if not name:
+        raise ValueError("handler name cannot be empty: %r" % (name,))
+    if name.lower() != name:
+        raise ValueError("name must be lower-case: %r" % (name,))
+    if not _name_re.match(name):
+        raise ValueError("invalid characters in name (must be 3+ characters, "
+                         " begin with a-z, and contain only underscore, a-z, "
+                         "0-9): %r" % (name,))
+    if '__' in name:
+        raise ValueError("name may not contain double-underscores: %r" %
+                         (name,))
+    if name in _forbidden_names:
+        raise ValueError("that name is not allowed: %r" % (name,))
+    return True
+
 def register_crypt_handler(handler, force=False, name=None):
     """register password hash handler.
 
@@ -219,18 +243,7 @@ def register_crypt_handler(handler, force=False, name=None):
             raise ValueError("handlers must be stored only under their own name")
     else:
         name = handler.name
-
-    #validate name
-    if not name:
-        raise ValueError("name is null: %r" % (name,))
-    if name.lower() != name:
-        raise ValueError("name must be lower-case: %r" % (name,))
-    if not _name_re.match(name):
-        raise ValueError("invalid characters in name (must be 3+ characters, begin with a-z, and contain only underscore, a-z, 0-9): %r" % (name,))
-    if '__' in name:
-        raise ValueError("name may not contain double-underscores: %r" % (name,))
-    if name in _forbidden_names:
-        raise ValueError("that name is not allowed: %r" % (name,))
+    _validate_handler_name(name)
 
     #check for existing handler
     other = _handlers.get(name)

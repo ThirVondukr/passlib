@@ -10,7 +10,7 @@ from logging import getLogger
 import warnings
 #site
 #pkg
-from passlib.hash import ldap_md5
+from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
@@ -332,6 +332,11 @@ class PrefixWrapperTest(TestCase):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
         self.assertEqual(d1.name, "d1")
         self.assertIs(d1.setting_kwds, ldap_md5.setting_kwds)
+        self.assertFalse('max_rounds' in dir(d1))
+
+        d2 = uh.PrefixWrapper("d2", "sha256_crypt", "{XXX}")
+        self.assertIs(d2.setting_kwds, sha256_crypt.setting_kwds)
+        self.assertTrue('max_rounds' in dir(d2))
 
     def test_11_wrapped_methods(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
@@ -356,6 +361,34 @@ class PrefixWrapperTest(TestCase):
         #verify
         self.assertRaises(ValueError, d1.verify, "password", lph)
         self.assertTrue(d1.verify("password", dph))
+
+    def test_12_ident(self):
+        # test ident is proxied
+        h = uh.PrefixWrapper("h2", "ldap_md5", "{XXX}")
+        self.assertEqual(h.ident, u"{XXX}{MD5}")
+        self.assertIs(h.ident_values, None)
+
+        # test orig_prefix disabled ident proxy
+        h = uh.PrefixWrapper("h1", "ldap_md5", "{XXX}", "{MD5}")
+        self.assertIs(h.ident, None)
+        self.assertIs(h.ident_values, None)
+
+        # test custom ident overrides default
+        h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{X")
+        self.assertEqual(h.ident, u"{X")
+        self.assertIs(h.ident_values, None)
+
+        # test custom ident must match
+        h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{XXX}A")
+        self.assertRaises(ValueError, uh.PrefixWrapper, "h3", "ldap_md5",
+                          "{XXX}", ident="{XY")
+        self.assertRaises(ValueError, uh.PrefixWrapper, "h3", "ldap_md5",
+                          "{XXX}", ident="{XXXX")
+
+        # test ident_values is proxied
+        h = uh.PrefixWrapper("h4", "bcrypt", "{XXX}")
+        self.assertIs(h.ident, None)
+        self.assertEqual(h.ident_values, [ u"{XXX}$2$", u"{XXX}$2a$" ])
 
 #=========================================================
 #sample algorithms - these serve as known quantities

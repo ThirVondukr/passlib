@@ -7,10 +7,18 @@ from __future__ import with_statement
 import inspect
 import re
 import hashlib
-from math import log as logb
+from math import log as logb, ceil
 import logging; log = logging.getLogger(__name__)
+##import sys
+##if sys.platform == "win32":
+##    # On Windows, the best timer is time.clock()
+##    from time import clock as timer
+##else:
+##    # On most other platforms the best timer is time.time()
+##    from time import time as timer
 import time
 import os
+import re
 from warnings import warn
 #site
 try:
@@ -19,9 +27,10 @@ except ImportError:
     #not available eg: under GAE
     resource_string = None
 #libs
-from passlib.registry import get_crypt_handler, _unload_handler_name
-from passlib.utils import to_bytes, to_unicode, Undef, \
-                          is_crypt_handler, splitcomma, rng
+from passlib.registry import get_crypt_handler, _validate_handler_name
+from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
+                          is_crypt_handler, rng, \
+                          PasslibPolicyWarning
 from passlib.utils.compat import is_mapping, iteritems, int_types, \
                                  PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
@@ -36,81 +45,18 @@ __all__ = [
 #crypt policy
 #=========================================================
 
-#--------------------------------------------------------
-#constants controlling parsing of special kwds
-#--------------------------------------------------------
-
-#: CryptContext kwds which aren't allowed to have category specifiers
-_forbidden_category_context_options = frozenset([ "schemes", ])
-    #NOTE: forbidding 'schemes' because it would really complicate the behavior
-    # of CryptContext.identify & CryptContext.lookup.
-    # most useful behaviors here can be had by overriding deprecated
-    # and default, anyways.
-
+# NOTE: doing this for security purposes, why would you ever want a fixed salt?
 #: hash settings which aren't allowed to be set via policy
 _forbidden_hash_options = frozenset([ "salt" ])
-    #NOTE: doing this for security purposes, why would you ever want a fixed salt?
 
-#: CryptContext kwds which should be parsed into comma separated list of strings
-_context_comma_options = frozenset([ "schemes", "deprecated" ])
-
-#--------------------------------------------------------
-#parsing helpers
-#--------------------------------------------------------
-def _parse_policy_key(key):
-    "helper to normalize & parse policy keys; returns ``(category, name, option)``"
-    orig = key
-    if '.' not in key and '__' in key: #lets user specifiy programmatically (since python doesn't allow '.')
-        key = key.replace("__", ".")
-    parts = key.split(".")
-    if len(parts) == 1:
-        cat = None
-        name = "context"
-        opt, = parts
-    elif len(parts) == 2:
-        cat = None
-        name, opt = parts
-    elif len(parts) == 3:
-        cat, name, opt = parts
-    else:
-        raise KeyError("keys must have 0..2 separators: %r" % (orig,))
-    if cat == "default":
-        cat = None
-    assert name
-    assert opt
-    return cat, name, opt
-
-def _parse_policy_value(cat, name, opt, value):
-    "helper to parse policy values"
-    #FIXME: kinda primitive to parse things this way :|
-    if name == "context":
-        if opt in _context_comma_options:
-            if isinstance(value, str):
-                return splitcomma(value)
-        elif opt == "min_verify_time":
-            return float(value)
-        return value
-    else:
-        #try to coerce everything to int
-        try:
-            return int(value)
-        except ValueError:
-            return value
-
-def parse_policy_items(source):
-    "helper to parse CryptPolicy options"
-    if is_mapping(source):
-        source = iteritems(source)
-    for key, value in source:
-        cat, name, opt = _parse_policy_key(key)
-        if name == "context":
-            if cat and opt in _forbidden_category_context_options:
-                raise KeyError("%r context option is not allowed per-category" % (opt,))
-        else:
-            if opt in _forbidden_hash_options:
-                raise KeyError("%r handler option is not allowed to be set via a policy object" % (opt,))
-        value = _parse_policy_value(cat, name, opt, value)
-        yield cat, name, opt, value
+def _splitcomma(source):
+    "split comma-separated string into list of strings"
+    source = source.strip()
+    if source.endswith(","):
+        source = source[:-1]
+    if not source:
+        return []
+    return [ elem.strip() for elem in source.split(",") ]
 
 #--------------------------------------------------------
 #policy class proper
@@ -223,8 +169,7 @@ class CryptPolicy(object):
             p.read_file(stream, filename or "<???>")
         else:
             p.readfp(stream, filename or "<???>")
-        items = p.items(section)
-        return cls(**dict(items))
+        return cls(dict(p.items(section)))
 
     @classmethod
     def from_source(cls, source):
@@ -239,20 +184,24 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        if isinstance(source, cls):
-            #NOTE: can just return source unchanged,
-            #since we're treating CryptPolicy objects as read-only
+        if isinstance(source, CryptPolicy):
+            # NOTE: can just return source unchanged,
+            # since we're treating CryptPolicy objects as read-only
             return source
 
         elif isinstance(source, dict):
-            return cls(**source)
+            return cls(source)
 
         elif isinstance(source, (bytes,unicode)):
-            #FIXME: this autodetection makes me uncomfortable...
-            if any(c in source for c in "\n\r\t") or not source.strip(" \t./\;:"): #none of these chars should be in filepaths, but should be in config string
+            # FIXME: this autodetection makes me uncomfortable...
+            # it assumes none of these chars should be in filepaths,
+            # but should be in config string, in order to distinguish them.
+            if any(c in source for c in "\n\r\t") or \
+                    not source.strip(" \t./\;:"):
                 return cls.from_string(source)
 
-            else: #other strings should be filepath
+            # other strings should be filepath
+            else:
                 return cls.from_path(source)
         else:
             raise TypeError("source must be CryptPolicy, dict, config string, or file path: %r" % (type(source),))
@@ -270,28 +219,30 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance
         """
-        #check for no sources - should we return blank policy in that case?
+        # check for no sources - should we return blank policy in that case?
         if len(sources) == 0:
-            #XXX: er, would returning an empty policy be the right thing here?
+            # XXX: er, would returning an empty policy be the right thing here?
             raise ValueError("no sources specified")
 
-        #check if only one source
+        # check if only one source
         if len(sources) == 1:
             return cls.from_source(sources[0])
 
-        #else, build up list of kwds by parsing each source
-        kwds = {}
+        # else create policy from first source, update options, and rebuild.
+        result = _UncompiledCryptPolicy()
+        target = result._kwds
         for source in sources:
-            policy = cls.from_source(source)
-            kwds.update(policy.iter_config(resolve=True))
+            policy = _UncompiledCryptPolicy.from_source(source)
+            target.update(policy._kwds)
 
         #build new policy
-        return cls(**kwds)
+        result._force_compile()
+        return result
 
     def replace(self, *args, **kwds):
         """return copy of policy, with specified options replaced by new values.
 
-        this is essentially a convience wrapper around :meth:`from_sources`,
+        this is essentially a convience record around :meth:`from_sources`,
         except that it always inserts the current policy
         as the first element in the list;
         this allows easily making minor changes from an existing policy object.
@@ -311,132 +262,268 @@ class CryptPolicy(object):
     #=========================================================
     #instance attrs
     #=========================================================
-    #NOTE: all category dictionaries below will have a minimum of 'None' as a key
+    #: dict of (category,scheme,key) -> value, representing the original
+    #  raw keywords passed into constructor. the rest of the policy's data
+    #  structures are derived from this attribute via _compile()
+    _kwds = None
 
-    #:list of all handlers, in order they will be checked when identifying (reverse of order specified)
-    _handlers = None #list of password hash handlers instances.
+    #: list of user categories in sorted order; first entry is always `None`
+    _categories = None
 
-    #:dict mapping category -> default handler for that category
-    _default = None
+    #: list of all schemes specified by `context.schemes`
+    _schemes = None
 
-    #:dict mapping category -> set of handler names which are deprecated for that category
-    _deprecated = None
+    #: list of all handlers specified by `context.schemes`
+    _handlers = None
 
-    #:dict mapping category -> min verify time
-    _min_verify_time = None
+    #: double-nested dict mapping key -> category -> normalized value.
+    _context_options = None
 
-    #:dict mapping category -> dict mapping hash name -> dict of options for that hash
-    # if a category is specified, particular hash names will be mapped ONLY if that category
-    # has options which differ from the default options.
-    _options = None
-
-    #:dict mapping (handler name, category) -> dict derived from options.
-    # this is used to cache results of the get_option() method
-    _cache = None
+    #: triply-nested dict mapping scheme -> category -> key -> normalized value.
+    _scheme_options = None
 
     #=========================================================
-    #init
+    # init
     #=========================================================
-    def __init__(self, **kwds):
-        self._from_dict(kwds)
+    def __init__(self, *args, **kwds):
+        if args:
+            if len(args) != 1:
+                raise TypeError("only one positional argument accepted")
+            if kwds:
+                raise TypeError("cannot specify positional arg and kwds")
+            kwds = args[0]
+            # XXX: type check, and accept strings for from_source ?
+        parse = self._parse_option_key
+        self._kwds = dict((parse(key), value) for key, value in
+                          kwds.iteritems())
+        self._compile()
+
+    @staticmethod
+    def _parse_option_key(ckey):
+        "helper to expand policy keys into ``(category, name, option)`` tuple"
+        ##if isinstance(ckey, tuple):
+        ##    assert len(ckey) == 3, "keys must have 3 parts: %r" % (ckey,)
+        ##    return ckey
+        parts = ckey.split("." if "." in ckey else "__")
+        count = len(parts)
+        if count == 1:
+            return None, None, parts[0]
+        elif count == 2:
+            scheme, key = parts
+            if scheme == "context":
+                scheme = None
+            return None, scheme, key
+        elif count == 3:
+            cat, scheme, key = parts
+            if cat == "default":
+                cat = None
+            if scheme == "context":
+                scheme = None
+            return cat, scheme, key
+        else:
+            raise TypeError("keys must have less than 3 separators: %r" %
+                            (ckey,))
 
     #=========================================================
-    #internal init helpers
+    # compile internal data structures
     #=========================================================
-    def _from_dict(self, kwds):
-        "configure policy from constructor keywords"
-        #
-        #init cache & options
-        #
-        context_options = {}
-        options = self._options = {None:{"context":context_options}}
-        self._cache = {}
+    def _compile(self):
+        "compile internal caches from :attr:`_kwds`"
+        source = self._kwds
 
-        #
-        #normalize & sort keywords
-        #
-        for cat, name, opt, value in parse_policy_items(kwds):
-            copts = options.get(cat)
-            if copts is None:
-                copts = options[cat] = {}
-            config = copts.get(name)
-            if config is None:
-                copts[name] = {opt:value}
-            else:
-                config[opt] = value
-
-        #
-        #parse list of schemes, and resolve to handlers.
-        #
-        schemes = context_options.get("schemes") or []
-        handlers = self._handlers = []
-        handler_names = set()
-        for scheme in schemes:
-            #resolve & validate handler
-            if is_crypt_handler(scheme):
-                handler = scheme
-            else:
-                handler = get_crypt_handler(scheme)
-            name = handler.name
-            if not name:
-                raise TypeError("handler lacks name: %r" % (handler,))
-
-            #check name hasn't been re-used
-            if name in handler_names:
-                #XXX: should this just be a warning ?
-                raise KeyError("multiple handlers with same name: %r" % (name,))
-
-            #add to handler list
-            handlers.append(handler)
-            handler_names.add(name)
-
-        #
-        #build _deprecated & _default maps
-        #
-        dmap = self._deprecated = {}
-        fmap = self._default = {}
-        mvmap = self._min_verify_time = {}
-        for cat, config in iteritems(options):
-            kwds = config.pop("context", None)
-            if not kwds:
-                continue
-
-            #list of deprecated schemes
-            deps = kwds.get("deprecated") or []
-            if deps:
-                if handlers:
-                    for scheme in deps:
-                        if scheme not in handler_names:
-                            raise KeyError("known scheme in deprecated list: %r" % (scheme,))
-                dmap[cat] = frozenset(deps)
-
-            #default scheme
-            fb = kwds.get("default")
-            if fb:
-                if handlers:
-                    if hasattr(fb, "name"):
-                        fb = fb.name
-                    if fb not in handler_names:
-                        raise KeyError("unknown scheme set as default: %r" % (fb,))
-                    fmap[cat] = self.get_handler(fb, required=True)
+        # build list of handlers & schemes
+        handlers  = self._handlers = []
+        schemes = self._schemes = []
+        data = source.get((None,None,"schemes"))
+        if isinstance(data, str):
+            data = _splitcomma(data)
+        if data:
+            for elem in data:
+                #resolve & validate handler
+                if hasattr(elem, "name"):
+                    handler = elem
+                    scheme = handler.name
+                    _validate_handler_name(scheme)
                 else:
-                    fmap[cat] = fb
+                    handler = get_crypt_handler(elem)
+                    scheme = handler.name
 
-            #min verify time
-            value = kwds.get("min_verify_time")
-            if value:
-                mvmap[cat] = value
-            #XXX: error or warning if unknown key found in kwds?
-        #NOTE: for dmap/fmap/mvmap -
-        # if no cat=None value is specified, each has it's own defaults,
-        # (handlers[0] for fmap, set() for dmap, 0 for mvmap)
-        # but we don't store those in dict since it would complicate policy merge operation
+                #check scheme hasn't been re-used
+                if scheme in schemes:
+                    raise KeyError("multiple handlers with same name: %r" %
+                                   (scheme,))
+
+                #add to handler list
+                handlers.append(handler)
+                schemes.append(scheme)
+
+        # run through all other values in source, normalize them, and store in
+        # scheme/context option dictionaries.
+        scheme_options = self._scheme_options = {}
+        context_options = self._context_options = {}
+        norm_scheme_option = self._normalize_scheme_option
+        norm_context_option = self._normalize_context_option
+        cats = set([None])
+        add_cat = cats.add
+        for (cat, scheme, key), value in source.iteritems():
+            add_cat(cat)
+            if scheme:
+                value = norm_scheme_option(key, value)
+                if scheme in scheme_options:
+                    config = scheme_options[scheme]
+                    if cat in config:
+                        config[cat][key] = value
+                    else:
+                        config[cat] = {key: value}
+                else:
+                    scheme_options[scheme] = {cat: {key: value}}
+            elif key == "schemes":
+                if cat:
+                    raise KeyError("'schemes' context option is not allowed "
+                                   "per category")
+                continue
+            else:
+                value = norm_context_option(key, value)
+                if key in context_options:
+                    context_options[key][cat] = value
+                else:
+                    context_options[key] = {cat: value}
+
+        # store list of categories
+        self._categories = sorted(cats)
+
+    @staticmethod
+    def _normalize_scheme_option(key, value):
+        # some hash options can't be specified in the policy, e.g. 'salt'
+        if key in _forbidden_hash_options:
+            raise KeyError("Passlib does not permit %r handler option "
+                           "to be set via a policy object" % (key,))
+
+        # for hash options, try to coerce everything to an int,
+        # since most things are (e.g. the `*_rounds` options).
+        elif isinstance(value, str):
+            try:
+                value = int(value)
+            except ValueError:
+                pass
+        return value
+
+    def _normalize_context_option(self, key, value):
+        "validate & normalize option value"
+        if key == "default":
+            if hasattr(value, "name"):
+                value = value.name
+            schemes = self._schemes
+            if schemes and value not in schemes:
+                raise KeyError("default scheme not found in policy")
+
+        elif key == "deprecated":
+            if isinstance(value, str):
+                value = _splitcomma(value)
+            schemes = self._schemes
+            if schemes:
+                # if schemes are defined, do quick validation first.
+                for scheme in value:
+                    if scheme not in schemes:
+                        raise KeyError("deprecated scheme not found "
+                                   "in policy: %r" % (scheme,))
+
+        elif key == "min_verify_time":
+            value = float(value)
+            if value < 0:
+                raise ValueError("'min_verify_time' must be >= 0")
+
+        else:
+            raise KeyError("unknown context keyword: %r" % (key,))
+
+        return value
 
     #=========================================================
-    #public interface (used by CryptContext)
+    # private helpers for reading options
+    #=========================================================
+    def _get_option(self, scheme, category, key, default=None):
+        "get specific option value, without inheritance"
+        try:
+            if scheme:
+                return self._scheme_options[scheme][category][key]
+            else:
+                return self._context_options[key][category]
+        except KeyError:
+            return default
+
+    def _get_handler_options(self, scheme, category):
+        "return composite dict of handler options for given scheme + category"
+        scheme_options = self._scheme_options
+        has_cat_options = False
+
+        # start with options common to all schemes
+        common_kwds = scheme_options.get("all")
+        if common_kwds is None:
+            kwds = {}
+        else:
+            # start with global options
+            tmp = common_kwds.get(None)
+            kwds = tmp.copy() if tmp is not None else {}
+
+            # add category options
+            if category:
+                tmp = common_kwds.get(category)
+                if tmp is not None:
+                    kwds.update(tmp)
+                    has_cat_options = True
+
+        # add scheme-specific options
+        scheme_kwds = scheme_options.get(scheme)
+        if scheme_kwds is not None:
+            # add global options
+            tmp = scheme_kwds.get(None)
+            if tmp is not None:
+                kwds.update(tmp)
+
+            # add category options
+            if category:
+                tmp = scheme_kwds.get(category)
+                if tmp is not None:
+                    kwds.update(tmp)
+                    has_cat_options = True
+
+        # add context options
+        context_options = self._context_options
+        if context_options is not None:
+            # add deprecated flag
+            dep_map = context_options.get("deprecated")
+            if dep_map:
+                deplist = dep_map.get(None)
+                dep = (deplist is not None and scheme in deplist)
+                if category:
+                    deplist = dep_map.get(category)
+                    if deplist is not None:
+                        value = (scheme in deplist)
+                        if value != dep:
+                            dep = value
+                            has_cat_options = True
+                if dep:
+                    kwds['deprecated'] = True
+
+            # add min_verify_time flag
+            mvt_map = context_options.get("min_verify_time")
+            if mvt_map:
+                mvt = mvt_map.get(None)
+                if category:
+                    value = mvt_map.get(category)
+                    if value is not None and value != mvt:
+                        mvt = value
+                        has_cat_options = True
+                if mvt:
+                    kwds['min_verify_time'] = mvt
+
+        return kwds, has_cat_options
+
+    #=========================================================
+    # public interface for examining options
     #=========================================================
     def has_schemes(self):
-        "check if policy supported *any* schemes; returns True/False"
+        "check if policy supports *any* schemes; returns True/False"
         return len(self._handlers) > 0
 
     def iter_handlers(self):
@@ -448,7 +535,7 @@ class CryptPolicy(object):
         if resolve:
             return list(self._handlers)
         else:
-            return [h.name for h in self._handlers]
+            return list(self._schemes)
 
     def get_handler(self, name=None, category=None, required=False):
         """given the name of a scheme, return handler which manages it.
@@ -462,24 +549,24 @@ class CryptPolicy(object):
 
         :returns: handler attached to specified name or None
         """
-        if name:
-            for handler in self._handlers:
-                if handler.name == name:
-                    return handler
-        else:
-            fmap = self._default
-            if category in fmap:
-                return fmap[category]
-            elif category and None in fmap:
-                return fmap[None]
-            else:
-                handlers = self._handlers
-                if handlers:
-                    return handlers[0]
-                raise KeyError("no crypt algorithms supported")
+        if name is None:
+            name = self._get_option(None, category, "default")
+            if not name and category:
+                name = self._get_option(None, None, "default")
+            if not name and self._handlers:
+                return self._handlers[0]
+            if not name:
+                if required:
+                    raise KeyError("no crypt algorithms found in policy")
+                else:
+                    return None
+        for handler in self._handlers:
+            if handler.name == name:
+                return handler
         if required:
-            raise KeyError("no crypt algorithm by that name: %r" % (name,))
-        return None
+            raise KeyError("crypt algorithm not found in policy: %r" % (name,))
+        else:
+            return None
 
     def get_options(self, name, category=None):
         """return dict of options for specified scheme
@@ -489,141 +576,102 @@ class CryptPolicy(object):
 
         :returns: dict of options for CryptContext internals which are relevant to this name/category combination.
         """
+        # XXX: deprecate / enhance this function ?
         if hasattr(name, "name"):
             name = name.name
-
-        cache = self._cache
-        key = (name, category)
-        try:
-            return cache[key]
-        except KeyError:
-            pass
-
-        #TODO: pre-calculate or at least cache some of this.
-        options = self._options
-
-        #start with default values
-        kwds = options[None].get("all")
-        if kwds is None:
-            kwds = {}
-        else:
-            kwds = kwds.copy()
-
-        #mix in category default values
-        if category and category in options:
-            tmp = options[category].get("all")
-            if tmp:
-                kwds.update(tmp)
-
-        #mix in hash-specific options
-        tmp = options[None].get(name)
-        if tmp:
-            kwds.update(tmp)
-
-        #mix in category hash-specific options
-        if category and category in options:
-            tmp = options[category].get(name)
-            if tmp:
-                kwds.update(tmp)
-
-        cache[key] = kwds
-        return kwds
+        return self._get_handler_options(name, category)[0]
 
     def handler_is_deprecated(self, name, category=None):
         "check if scheme is marked as deprecated according to this policy; returns True/False"
+        # XXX: deprecate this function ?
         if hasattr(name, "name"):
             name = name.name
-        dmap = self._deprecated
-        if category in dmap:
-            return name in dmap[category]
-        elif category and None in dmap:
-            return name in dmap[None]
-        else:
-            return False
+        kwds = self._get_handler_options(name, category)[0]
+        return bool(kwds.get("deprecated"))
 
     def get_min_verify_time(self, category=None):
-        "return minimal time that verify() should take, according to this policy"
-        mvmap = self._min_verify_time
-        if category in mvmap:
-            return mvmap[category]
-        elif category and None in mvmap:
-            return mvmap[None]
-        else:
-            return 0
+        # XXX: deprecate this function ?
+        kwds = self._get_handler_options("all", category)[0]
+        return kwds.get("min_verify_time") or 0
 
     #=========================================================
-    #serialization
+    # serialization
     #=========================================================
+
+    ##def __iter__(self):
+    ##    return self.iter_config(resolve=True)
+
     def iter_config(self, ini=False, resolve=False):
         """iterate through key/value pairs of policy configuration
 
         :param ini:
             If ``True``, returns data formatted for insertion
             into INI file. Keys use ``.`` separator instead of ``__``;
-            list of handlers returned as comma-separated strings.
+            lists of handlers are returned as comma-separated strings.
 
         :param resolve:
             If ``True``, returns handler objects instead of handler
             names where appropriate. Ignored if ``ini=True``.
 
         :returns:
-            iterator which yeilds (key,value) pairs.
+            iterator which yields (key,value) pairs.
         """
         #
         #prepare formatting functions
         #
-        if ini:
-            fmt1 = "%s.%s.%s"
-            fmt2 = "%s.%s"
-            def encode_handler(h):
-                return h.name
-            def encode_hlist(hl):
-                return ", ".join(h.name for h in hl)
-            def encode_nlist(hl):
-                return ", ".join(name for name in hl)
-        else:
-            fmt1 = "%s__%s__%s"
-            fmt2 = "%s__%s"
-            encode_nlist = list
-            if resolve:
-                def encode_handler(h):
-                    return h
-                encode_hlist = list
-            else:
-                def encode_handler(h):
-                    return h.name
-                def encode_hlist(hl):
-                    return [ h.name for h in hl ]
+        sep = "." if ini else "__"
 
-        def format_key(cat, name, opt):
+        def format_key(cat, name, key):
             if cat:
-                return fmt1 % (cat, name or "context", opt)
+                return sep.join([cat, name or "context", key])
             if name:
-                return fmt2 % (name, opt)
-            return opt
+                return sep.join([name, key])
+            return key
+
+        def encode_list(hl):
+            if ini:
+                return ", ".join(hl)
+            else:
+                return list(hl)
 
         #
         #run through contents of internal configuration
         #
-        value = self._handlers
-        if value:
-            yield format_key(None, None, "schemes"), encode_hlist(value)
 
-        for cat, value in iteritems(self._deprecated):
-            yield format_key(cat, None, "deprecated"), encode_nlist(value)
+        # write list of handlers at start
+        if (None,None,"schemes") in self._kwds:
+            if resolve and not ini:
+                value = self._handlers
+            else:
+                value = self._schemes
+            yield format_key(None, None, "schemes"), encode_list(value)
 
-        for cat, value in iteritems(self._default):
-            yield format_key(cat, None, "default"), encode_handler(value)
+        # then per-category elements
+        scheme_items = sorted(self._scheme_options.iteritems())
+        get_option = self._get_option
+        for cat in self._categories:
 
-        for cat, value in iteritems(self._min_verify_time):
-            yield format_key(cat, None, "min_verify_time"), value
+            # write deprecated list (if any)
+            value = get_option(None, cat, "deprecated")
+            if value is not None:
+                yield format_key(cat, None, "deprecated"), encode_list(value)
 
-        for cat, copts in iteritems(self._options):
-            for name in sorted(copts):
-                config = copts[name]
-                for opt in sorted(config):
-                    value = config[opt]
-                    yield format_key(cat, name, opt), value
+            # write default declaration (if any)
+            value = get_option(None, cat, "default")
+            if value is not None:
+                yield format_key(cat, None, "default"), value
+
+            # write mvt (if any)
+            value = get_option(None, cat, "min_verify_time")
+            if value is not None:
+                yield format_key(cat, None, "min_verify_time"), value
+
+            # write configs for all schemes
+            for scheme, config in scheme_items:
+                if cat in config:
+                    kwds = config[cat]
+                    for key in sorted(kwds):
+                        yield format_key(cat, scheme, key), kwds[key]
 
     def to_dict(self, resolve=False):
         "return policy as dictionary of keywords"
@@ -632,7 +680,7 @@ class CryptPolicy(object):
     def _escape_ini_pair(self, k, v):
         if isinstance(v, str):
             v = v.replace("%", "%%") #escape any percent signs.
-        elif isinstance(v, int_types):
+        elif isinstance(v, (int, long, float)):
             v = str(v)
         return k,v
 
@@ -678,9 +726,23 @@ class CryptPolicy(object):
     #eoc
     #=========================================================
 
-#=========================================================
+class _UncompiledCryptPolicy(CryptPolicy):
+    """helper class which parses options but doesn't compile them,
+    used by CryptPolicy.from_sources() to efficiently merge policy objects.
+    """
+
+    def _compile(self):
+        "convert to actual policy"
+        pass
+
+    def _force_compile(self):
+        "convert to real policy and compile"
+        self.__class__ = CryptPolicy
+        self._compile()
+
+#---------------------------------------------------------
 #load default policy from default.cfg
-#=========================================================
+#---------------------------------------------------------
 def _load_default_policy():
     "helper to try to load default policy from file"
     #if pkg_resources available, try to read out of egg (common case)
@@ -704,7 +766,336 @@ def _load_default_policy():
 default_policy = _load_default_policy()
 
 #=========================================================
-#
+# helpers for CryptContext
+#=========================================================
+class _CryptRecord(object):
+    """wraps a handler and automatically applies various options.
+
+    this is a helper used internally by CryptContext in order to reduce the
+    amount of work that needs to be done by CryptContext.verify().
+    this class takes in all the options for a particular (scheme, category)
+    combination, and attempts to provide as short a code-path as possible for
+    the particular configuration.
+    """
+
+    #================================================================
+    # instance attrs
+    #================================================================
+
+    # informational attrs
+    handler = None # handler instance this is wrapping
+    category = None # user category this applies to
+
+    # rounds management
+    _has_rounds = False # if handler has variable cost parameter
+    _has_rounds_bounds = False # if min_rounds / max_rounds set
+    _min_rounds = None #: minimum rounds allowed by policy, or None
+    _max_rounds = None #: maximum rounds allowed by policy, or None
+
+    # encrypt()/genconfig() attrs
+    _settings = None # subset of options to be used as encrypt() defaults.
+
+    # verify() attrs
+    _min_verify_time = None
+
+    # hash_needs_update() attrs
+    _has_rounds_introspection = False
+
+    # cloned from handler
+    identify = None
+    genhash = None
+
+    #================================================================
+    # init
+    #================================================================
+    def __init__(self, handler, category=None, deprecated=False,
+                 min_rounds=None, max_rounds=None, default_rounds=None,
+                 vary_rounds=None, min_verify_time=None,
+                 **settings):
+        self.handler = handler
+        self.category = category
+        self._compile_rounds(min_rounds, max_rounds, default_rounds,
+                             vary_rounds)
+        self._compile_encrypt(settings)
+        self._compile_verify(min_verify_time)
+        self._compile_deprecation(deprecated)
+
+        # these aren't modified by the record, so just copy them directly
+        self.identify = handler.identify
+        self.genhash = handler.genhash
+
+    @property
+    def scheme(self):
+        return self.handler.name
+
+    @property
+    def _ident(self):
+        "string used to identify record in error messages"
+        handler = self.handler
+        category = self.category
+        if category:
+            return "%s %s policy" % (handler.name, category)
+        else:
+            return "%s policy" % (handler.name,)
+
+    #================================================================
+    # rounds generation & limits - used by encrypt & deprecation code
+    #================================================================
+    def _compile_rounds(self, mn, mx, df, vr):
+        "parse options and compile efficient generate_rounds function"
+        handler = self.handler
+        if 'rounds' not in handler.setting_kwds:
+            return
+        hmn = getattr(handler, "min_rounds", None)
+        hmx = getattr(handler, "max_rounds", None)
+
+        def hcheck(value, name):
+            "issue warnings if value outside of handler limits"
+            if hmn is not None and value < hmn:
+                warn("%s: %s value is below handler minimum %d: %d" %
+                     (self._ident, name, hmn, value), PasslibPolicyWarning)
+            if hmx is not None and value > hmx:
+                warn("%s: %s value is above handler maximum %d: %d" %
+                     (self._ident, name, hmx, value), PasslibPolicyWarning)
+
+        def clip(value):
+            "clip value to policy & handler limits"
+            if mn is not None and value < mn:
+                value = mn
+            if hmn is not None and value < hmn:
+                value = hmn
+            if mx is not None and value > mx:
+                value = mx
+            if hmx is not None and value > hmx:
+                value = hmx
+            return value
+
+        #----------------------------------------------------
+        # validate inputs
+        #----------------------------------------------------
+        if mn is not None:
+            if mn < 0:
+                raise ValueError("%s: min_rounds must be >= 0" % self._ident)
+            hcheck(mn, "min_rounds")
+
+        if mx is not None:
+            if mn is not None and mx < mn:
+                raise ValueError("%s: max_rounds must be "
+                                 ">= min_rounds" % self._ident)
+            elif mx < 0:
+                raise ValueError("%s: max_rounds must be >= 0" % self._ident)
+            hcheck(mx, "max_rounds")
+
+        if vr is not None:
+            if isinstance(vr, str):
+                assert vr.endswith("%")
+                vr = float(vr.rstrip("%"))
+                if vr < 0:
+                    raise ValueError("%s: vary_rounds must be >= '0%%'" %
+                                     self._ident)
+                elif vr > 100:
+                    raise ValueError("%s: vary_rounds must be <= '100%%'" %
+                                     self._ident)
+                vr_is_pct = True
+            else:
+                assert isinstance(vr, int)
+                if vr < 0:
+                    raise ValueError("%s: vary_rounds must be >= 0" %
+                                     self._ident)
+                vr_is_pct = False
+
+        if df is None:
+            # fallback to handler's default if available
+            if vr or mx or mn:
+                df = getattr(handler, "default_rounds", None) or mx or mn
+        else:
+            if mn is not None and df < mn:
+                    raise ValueError("%s: default_rounds must be "
+                                     ">= min_rounds" % self._ident)
+            if mx is not None and df > mx:
+                    raise ValueError("%s: default_rounds must be "
+                                     "<= max_rounds" % self._ident)
+            hcheck(df, "default_rounds")
+
+        #----------------------------------------------------
+        # set policy limits
+        #----------------------------------------------------
+        self._has_rounds_bounds = (mn is not None) or (mx is not None)
+        self._min_rounds = mn
+        self._max_rounds = mx
+
+        #----------------------------------------------------
+        # setup rounds generation function
+        #----------------------------------------------------
+        if df is None:
+            self._generate_rounds = None
+            self._has_rounds = self._has_rounds_bounds
+        elif vr:
+            scale_value = lambda v,uf: v
+            if vr_is_pct:
+                scale = getattr(handler, "rounds_cost", "linear")
+                assert scale in ["log2", "linear"]
+                if scale == "log2":
+                    df = 1<<df
+                    def scale_value(v, uf):
+                        if v <= 0:
+                            return 0
+                        elif uf:
+                            return int(logb(v,2))
+                        else:
+                            return int(ceil(logb(v,2)))
+                vr = int(df*vr/100)
+            lower = clip(scale_value(df-vr,False))
+            upper = clip(scale_value(df+vr,True))
+            if lower == upper:
+                self._generate_rounds = lambda: upper
+            else:
+                assert lower < upper
+                self._generate_rounds = lambda: rng.randint(lower, upper)
+            self._has_rounds = True
+        else:
+            df = clip(df)
+            self._generate_rounds = lambda: df
+            self._has_rounds = True
+
+    # filled in by _compile_rounds_settings()
+    _generate_rounds = None
+
+    #================================================================
+    # encrypt() / genconfig()
+    #================================================================
+    def _compile_encrypt(self, settings):
+        handler = self.handler
+        skeys = handler.setting_kwds
+        self._settings = dict((k,v) for k,v in settings.iteritems()
+                             if k in skeys)
+
+        if not (self._settings or self._has_rounds):
+            # bypass prepare settings entirely.
+            self.genconfig = handler.genconfig
+            self.encrypt = handler.encrypt
+
+    def genconfig(self, **kwds):
+        self._prepare_settings(kwds)
+        return self.handler.genconfig(**kwds)
+
+    def encrypt(self, secret, **kwds):
+        self._prepare_settings(kwds)
+        return self.handler.encrypt(secret, **kwds)
+
+    def _prepare_settings(self, kwds):
+        "normalize settings for handler according to context configuration"
+        #load in default values for any settings
+        settings = self._settings
+        for k in settings:
+            if k not in kwds:
+                kwds[k] = settings[k]
+
+        #handle rounds
+        if self._has_rounds:
+            rounds = kwds.get("rounds")
+            if rounds is None:
+                gen = self._generate_rounds
+                if gen:
+                    kwds['rounds'] = gen()
+            elif self._has_rounds_bounds:
+                # XXX: should this raise an error instead of warning ?
+                mn = self._min_rounds
+                if mn is not None and rounds < mn:
+                    warn("%s requires rounds >= %d, increasing value from %d" %
+                         (self._ident, mn, rounds), PasslibPolicyWarning)
+                    rounds = mn
+                mx = self._max_rounds
+                if mx and rounds > mx:
+                    warn("%s requires rounds <= %d, decreasing value from %d" %
+                         (self._ident, mx, rounds), PasslibPolicyWarning)
+                    rounds = mx
+                kwds['rounds'] = rounds
+
+    #================================================================
+    # verify()
+    #================================================================
+    def _compile_verify(self, mvt):
+        if mvt:
+            assert mvt > 0, "CryptPolicy should catch this"
+            self._min_verify_time = mvt
+        else:
+            # no mvt wrapper needed, so just use handler.verify directly
+            self.verify = self.handler.verify
+
+    def verify(self, secret, hash, **context):
+        "verify helper - adds min_verify_time delay"
+        mvt = self._min_verify_time
+        assert mvt
+        start = time.time()
+        ok = self.handler.verify(secret, hash, **context)
+        end = time.time()
+        delta = mvt + start - end
+        if delta > 0:
+            time.sleep(delta)
+        elif delta < 0:
+            #warn app they aren't being protected against timing attacks...
+            warn("CryptContext: verify exceeded min_verify_time: "
+                 "scheme=%r min_verify_time=%r elapsed=%r" %
+                 (self.scheme, mvt, end-start))
+        return ok
+
+    #================================================================
+    # hash_needs_update()
+    #================================================================
+    def _compile_deprecation(self, deprecated):
+        if deprecated:
+            self.hash_needs_update = lambda hash: True
+            return
+
+        handler = self.handler
+        self._hash_needs_update = getattr(handler, "_hash_needs_update", None)
+
+        # check if there are rounds, rounds limits, and if we can
+        # parse the rounds from the handler. if that's the case...
+        if self._has_rounds_bounds and hasattr(handler, "from_string"):
+            self._has_rounds_introspection = True
+
+    def hash_needs_update(self, hash):
+        # NOTE: this is replaced by _compile_deprecation() if self.deprecated
+
+        # XXX: could check if handler provides it's own helper, e.g.
+        # getattr(handler, "hash_needs_update", None), possibly instead of
+        # calling the default check below...
+        #
+        # NOTE: hacking this in for the sake of bcrypt & issue 25,
+        # will formalize (and possibly change) interface later.
+        hnu = self._hash_needs_update
+        if hnu and hnu(hash):
+            return True
+
+        # if we can parse rounds parameter, check if it's w/in bounds.
+        if self._has_rounds_introspection:
+            hash_obj = self.handler.from_string(hash)
+            try:
+                rounds = hash_obj.rounds
+            except AttributeError:
+                # XXX: hash_obj should generally have rounds attr
+                # should a warning be raised here?
+                pass
+            else:
+                if rounds < self._min_rounds:
+                    return True
+                mx = self._max_rounds
+                if mx and rounds > mx:
+                    return True
+
+        return False
+
+    # filled in by init from handler._hash_needs_update
+    _hash_needs_update = None
+
+    #================================================================
+    # eoc
+    #================================================================
+
+#=========================================================
+# context classes
 #=========================================================
 class CryptContext(object):
     """Helper for encrypting passwords using different algorithms.
@@ -755,13 +1146,17 @@ class CryptContext(object):
     #===================================================================
     #instance attrs
     #===================================================================
-    policy = None #policy object governing context
+    _policy = None # policy object governing context - access via :attr:`policy`
+    _records = None # map of (category,scheme) -> _CryptRecord instance
+    _record_lists = None # map of category -> records for category, in order
 
     #===================================================================
     #init
     #===================================================================
     def __init__(self, schemes=None, policy=default_policy, **kwds):
-        #XXX: add a name for the contexts, to help out repr?
+        # XXX: add a name for the contexts, to help out repr?
+        # XXX: add ability to make policy readonly for certain instances,
+        #      eg the builtin passlib ones?
         if schemes:
             kwds['schemes'] = schemes
         if not policy:
@@ -771,8 +1166,9 @@ class CryptContext(object):
         self.policy = policy
 
     def __repr__(self):
-        #XXX: *could* have proper repr(), but would have to render policy object options, and it'd be *really* long
-        names = [ handler.name for handler in self.policy.iter_handlers() ]
+        # XXX: *could* have proper repr(), but would have to render policy
+        # object options, and it'd be *really* long
+        names = [ handler.name for handler in self.policy._handlers ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
 
     #XXX: make an update() method that just updates policy?
@@ -790,78 +1186,119 @@ class CryptContext(object):
         """
         return CryptContext(policy=self.policy.replace(**kwds))
 
+    #XXX: make an update() method that just updates policy?
+    ##def update(self, **kwds):
+    ##    self.policy = self.policy.replace(**kwds)
+
     #===================================================================
-    #policy adaptation
+    # policy management
     #===================================================================
-    def _prepare_rounds(self, handler, opts, settings):
-        "helper for prepare_default_settings"
-        mn = opts.get("min_rounds")
-        mx = opts.get("max_rounds")
-        rounds = settings.get("rounds")
-        if rounds is None:
-            df = opts.get("default_rounds") or mx or mn
-            if df is not None:
-                vr = opts.get("vary_rounds")
-                if vr:
-                    if isinstance(vr, str):
-                        rc = getattr(handler, "rounds_cost", "linear")
-                        vr = int(vr.rstrip("%"))
-                            #NOTE: deliberately strip >1 %,
-                            #in case an interpolation-escaped %%
-                            #makes it through to here.
-                        assert 0 <= vr < 100
-                        if rc == "log2":
-                            #let % variance scale the number of actual rounds, not the logarithmic value
-                            df = 2**df
-                            vr = int(df*vr/100)
-                            lower = int(logb(df-vr,2)+.5) #err on the side of strength - round up
-                            upper = int(logb(df+vr,2))
-                        else:
-                            assert rc == "linear"
-                            vr = int(df*vr/100)
-                            lower = df-vr
-                            upper = df+vr
-                    else:
-                        lower = df-vr
-                        upper = df+vr
-                    if lower < 1:
-                        lower = 1
-                    if mn and lower < mn:
-                        lower = mn
-                    if mx and upper > mx:
-                        upper = mx
-                    if lower > upper:
-                        #NOTE: this mainly happens when default_rounds>max_rounds, which shouldn't usually happen
-                        rounds = upper
-                        warn("vary default rounds: lower bound > upper bound, using upper bound (%d > %d)" % (lower, upper))
-                    else:
-                        rounds = rng.randint(lower, upper)
+
+    def _get_policy(self):
+        return self._policy
+
+    def _set_policy(self, value):
+        if not isinstance(value, CryptPolicy):
+            raise TypeError("value must be a CryptPolicy instance")
+        if value is not self._policy:
+            self._policy = value
+            self._compile()
+
+    policy = property(_get_policy, _set_policy)
+
+    #------------------------------------------------------------------
+    # compile policy information into _CryptRecord instances
+    #------------------------------------------------------------------
+    def _compile(self):
+        "update context object internals based on new policy instance"
+        policy = self._policy
+        records = self._records = {}
+        self._record_lists = {}
+        handlers = policy._handlers
+        if not handlers:
+            return
+        get_option = policy._get_option
+        get_handler_options = policy._get_handler_options
+        schemes = policy._schemes
+        default_scheme = get_option(None, None, "default") or schemes[0]
+        for cat in policy._categories:
+            # build record for all schemes, re-using record from default
+            # category if there aren't any category-specific options.
+            for handler in handlers:
+                scheme = handler.name
+                kwds, has_cat_options = get_handler_options(scheme, cat)
+                if cat and not has_cat_options:
+                    records[scheme, cat] = records[scheme, None]
                 else:
-                    rounds = df
-        if rounds is not None:
-            if mx and rounds > mx:
-                rounds = mx
-            if mn and rounds < mn: #give mn predence if mn > mx
-                rounds = mn
-            settings['rounds'] = rounds
+                    records[scheme, cat] = _CryptRecord(handler, cat, **kwds)
+            # clone default scheme's record to None so we can resolve default
+            if cat:
+                scheme = get_option(None, cat, "default") or default_scheme
+            else:
+                scheme = default_scheme
+            records[None, cat] = records[scheme, cat]
 
-    def _prepare_settings(self, handler, category=None, **settings):
-        "normalize settings for handler according to context configuration"
-        opts = self.policy.get_options(handler, category)
-        if not opts:
-            return settings
+    def _get_record(self, scheme, category=None, required=True):
+        "private helper used by CryptContext"
+        try:
+            return self._records[scheme, category]
+        except KeyError:
+            pass
+        if category:
+            # category not referenced in policy file.
+            # so populate cache from default category.
+            cache = self._records
+            try:
+                record = cache[scheme, None]
+            except KeyError:
+                pass
+            else:
+                cache[scheme, category] = record
+                return record
+        if not required:
+            return None
+        elif scheme:
+            raise KeyError("crypt algorithm not found in policy: %r" %
+                           (scheme,))
+        else:
+            assert not self._policy._handlers
+            raise KeyError("no crypt algorithms supported")
 
-        #load in default values for any settings
-        for k in handler.setting_kwds:
-            if k not in settings and k in opts:
-                settings[k] = opts[k]
+    def _get_record_list(self, category=None):
+        "return list of records for category"
+        try:
+            return self._record_lists[category]
+        except KeyError:
+            # XXX: could optimize for categories not in policy.
+            get = self._get_record
+            value = self._record_lists[category] = [
+                get(scheme, category)
+                for scheme in self._policy._schemes
+            ]
+            return value
 
-        #handle rounds
-        if 'rounds' in handler.setting_kwds:
-            self._prepare_rounds(handler, opts, settings)
+    def _identify_record(self, hash, category=None, required=True):
+        "internal helper to identify appropriate _HandlerRecord"
+        records = self._get_record_list(category)
+        for record in records:
+            if record.identify(hash):
+                return record
+        if required:
+            if not records:
+                raise KeyError("no crypt algorithms supported")
+            raise ValueError("hash could not be identified")
+        else:
+            return None
 
-        #done
-        return settings
+    #===================================================================
+    #password hash api proxy methods
+    #===================================================================
+
+    # NOTE: all the following methods do is look up the appropriate
+    #       _CryptRecord for a given (scheme,category) combination,
+    #       and then let the record object take care of the rest,
+    #       since it will have optimized itself for the particular
+    #       settings used within the policy by that (scheme,category).
 
     def hash_needs_update(self, hash, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted.
@@ -879,43 +1316,9 @@ class CryptContext(object):
 
         :returns: True/False
         """
-        handler = self.identify(hash, resolve=True, required=True)
-        policy = self.policy
+        # XXX: add scheme kwd for compatibility w/ other methods?
+        return self._identify_record(hash, category).hash_needs_update(hash)
 
-        #check if handler has been deprecated
-        if policy.handler_is_deprecated(handler, category):
-            return True
-
-        #get options, and call compliance helper (check things such as rounds, etc)
-        opts = policy.get_options(handler, category)
-
-        #XXX: could check if handler provides it's own helper, eg getattr(handler, "hash_needs_update", None),
-        #and call that instead of the following default behavior
-        if hasattr(handler, "_hash_needs_update"):
-            #NOTE: hacking this in for the sake of bcrypt & issue 25,
-            #      will formalize (and possibly change) interface later.
-            if handler._hash_needs_update(hash, **opts):
-                return True
-
-        if opts:
-            #check if we can parse hash to check it's rounds parameter
-            if ('min_rounds' in opts or 'max_rounds' in opts) and \
-               'rounds' in handler.setting_kwds and hasattr(handler, "from_string"):
-                    info = handler.from_string(hash)
-                    rounds = getattr(info, "rounds", None) #should generally work, but just in case
-                    if rounds is not None:
-                        min_rounds = opts.get("min_rounds")
-                        if min_rounds is not None and rounds < min_rounds:
-                            return True
-                        max_rounds = opts.get("max_rounds")
-                        if max_rounds is not None and rounds > max_rounds:
-                            return True
-
-        return False
-
-    #===================================================================
-    #password hash api proxy methods
-    #===================================================================
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler
 
@@ -927,9 +1330,7 @@ class CryptContext(object):
         directly is that this method will add in any policy-specific
         options relevant for the particular hash.
         """
-        handler = self.policy.get_handler(scheme, category, required=True)
-        settings = self._prepare_settings(handler, category, **settings)
-        return handler.genconfig(**settings)
+        return self._get_record(scheme, category).genconfig(**settings)
 
     def genhash(self, secret, config, scheme=None, category=None, **context):
         """Call genhash() for specified handler.
@@ -938,13 +1339,9 @@ class CryptContext(object):
         (using the default if none other is specified).
         See the :ref:`password-hash-api` for details.
         """
-        #NOTE: this doesn't use category in any way, but accepts it for consistency
-        if scheme:
-            handler = self.policy.get_handler(scheme, required=True)
-        else:
-            handler = self.identify(config, resolve=True, required=True)
         #XXX: could insert normalization to preferred unicode encoding here
-        return handler.genhash(secret, config, **context)
+        return self._get_record(scheme, category).genhash(secret, config,
+                                                          **context)
 
     def identify(self, hash, category=None, resolve=False, required=False):
         """Attempt to identify which algorithm hash belongs to w/in this context.
@@ -963,23 +1360,17 @@ class CryptContext(object):
             The handler which first identifies the hash,
             or ``None`` if none of the algorithms identify the hash.
         """
-        #NOTE: this doesn't use category in any way, but accepts it for consistency
         if hash is None:
             if required:
-                raise ValueError("no hash specified")
+                raise ValueError("no hash provided")
             return None
-        handler = None
-        for handler in self.policy.iter_handlers():
-            if handler.identify(hash):
-                if resolve:
-                    return handler
-                else:
-                    return handler.name
-        if required:
-            if handler is None:
-                raise KeyError("no crypt algorithms supported")
-            raise ValueError("hash could not be identified")
-        return None
+        record = self._identify_record(hash, category, required)
+        if record is None:
+            return None
+        elif resolve:
+            return record.handler
+        else:
+            return record.scheme
 
     def encrypt(self, secret, scheme=None, category=None, **kwds):
         """encrypt secret, returning resulting hash.
@@ -1000,10 +1391,8 @@ class CryptContext(object):
         :returns:
             The secret as encoded by the specified algorithm and options.
         """
-        handler = self.policy.get_handler(scheme, category, required=True)
-        kwds = self._prepare_settings(handler, category, **kwds)
         #XXX: could insert normalization to preferred unicode encoding here
-        return handler.encrypt(secret, **kwds)
+        return self._get_record(scheme, category).encrypt(secret, **kwds)
 
     def verify(self, secret, hash, scheme=None, category=None, **context):
         """verify secret against specified hash.
@@ -1032,42 +1421,15 @@ class CryptContext(object):
 
         :returns: True/False
         """
-        #quick checks
         if hash is None:
             return False
-
-        mvt = self.policy.get_min_verify_time(category)
-        if mvt:
-            start = time.time()
-
-        #locate handler
         if scheme:
-            handler = self.policy.get_handler(scheme, required=True)
+            record = self._get_record(scheme, category)
         else:
-            handler = self.identify(hash, resolve=True, required=True)
-
-        #strip context kwds if scheme doesn't use them
-        ##for k in context.keys():
-        ##    if k not in handler.context_kwds:
-        ##        del context[k]
-
-        #XXX: could insert normalization to preferred unicode encoding here
-
-        #use handler to verify secret
-        result = handler.verify(secret, hash, **context)
-
-        if mvt:
-            #delta some amount of time if verify took less than mvt seconds
-            end = time.time()
-            delta = mvt + start - end
-            if delta > 0:
-                time.sleep(delta)
-            elif delta < 0:
-                #warn app they aren't being protected against timing attacks...
-                warn("CryptContext: verify exceeded min_verify_time: scheme=%r min_verify_time=%r elapsed=%r" %
-                     (handler.name, mvt, end-start))
-
-        return result
+            record = self._identify_record(hash, category)
+        # XXX: strip context kwds if scheme doesn't use them?
+        # XXX: could insert normalization to preferred unicode encoding here
+        return record.verify(secret, hash, **context)
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
         """verify secret and check if hash needs upgrading, in a single call.
@@ -1108,11 +1470,18 @@ class CryptContext(object):
 
         .. seealso:: :ref:`context-migrating-passwords` for a usage example.
         """
-        ok = self.verify(secret, hash, scheme=scheme, category=category, **kwds)
-        if not ok:
+        if hash is None:
             return False, None
-        if self.hash_needs_update(hash, category=category):
-            return True, self.encrypt(secret, category=category, **kwds)
+        if scheme:
+            record = self._get_record(scheme, category)
+        else:
+            record = self._identify_record(hash, category)
+        # XXX: strip context kwds if scheme doesn't use them?
+        # XXX: could insert normalization to preferred unicode encoding here
+        if not record.verify(secret, hash, **kwds):
+            return False, None
+        elif record.hash_needs_update(hash):
+            return True, self.encrypt(secret, None, category, **kwds)
         else:
             return True, None
 
@@ -1157,6 +1526,12 @@ class LazyCryptContext(CryptContext):
     """
     _lazy_kwds = None
 
+    # NOTE: the way this class works changed in 1.6.
+    #       previously it just called _lazy_init() when ``.policy`` was
+    #       first accessed. now that is done whenever any of the public
+    #       attributes are accessed, and the class itself is changed
+    #       to a regular CryptContext, to remove the overhead one it's unneeded.
+
     def __init__(self, schemes=None, **kwds):
         if schemes is not None:
             kwds['schemes'] = schemes
@@ -1164,25 +1539,17 @@ class LazyCryptContext(CryptContext):
 
     def _lazy_init(self):
         kwds = self._lazy_kwds
-        del self._lazy_kwds
         if 'create_policy' in kwds:
             create_policy = kwds.pop("create_policy")
             kwds = dict(policy=create_policy(**kwds))
         super(LazyCryptContext, self).__init__(**kwds)
+        del self._lazy_kwds
+        self.__class__ = CryptContext
 
-    #NOTE: 'policy' property calls _lazy_init the first time it's accessed,
-    #      and relies on CryptContext.__init__ to replace it with an actual instance.
-    #      it should then have no more effect from then on.
-    class _PolicyProperty(object):
-
-        def __get__(self, obj, cls):
-            if obj is None:
-                return self
-            obj._lazy_init()
-            assert isinstance(obj.policy, CryptPolicy)
-            return obj.policy
-
-    policy = _PolicyProperty()
+    def __getattribute__(self, attr):
+        if not attr.startswith("_"):
+            self._lazy_init()
+        return object.__getattribute__(self, attr)
 
 #=========================================================
 # eof
