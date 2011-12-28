@@ -21,29 +21,12 @@ try:
 except ImportError:
     from distutils import setup
     has_distribute = False
-    
+
 #=========================================================
 # init setup options
 #=========================================================
 opts = { "cmdclass": { } }
 args = sys.argv[1:]
-
-#=========================================================
-# 2to3 translation
-#=========================================================
-if py3k:
-    # monkeypatch preprocessor into lib2to3
-    from passlib._setup.cond2to3 import patch2to3
-    patch2to3()
-
-    # enable 2to3 translation in build_py
-    if has_distribute:
-        opts['use_2to3'] = True
-    else:
-        # if we can't use distribute's "use_2to3" flag,
-        # have to override build_py command
-        from distutils.command.build_py import build_py_2to3 as build_py
-        opts['cmdclass']['build_py'] = build_py
 
 #=========================================================
 #register docdist command (not required)
@@ -75,7 +58,7 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         elif not v.startswith("-"):
             break
         i += 1
-    
+
     if for_release:
         assert '.dev' not in VERSION and '.post' not in VERSION
     else:
@@ -91,7 +74,7 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         # to have the correct version string
         from passlib._setup.stamp import stamp_distutils_output
         stamp_distutils_output(opts, VERSION)
-    
+
 #=========================================================
 #static text
 #=========================================================

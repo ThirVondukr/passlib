@@ -19,6 +19,7 @@ except ImportError:
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode, PasslibPolicyWarning
+from passlib.utils.compat import irange
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
@@ -782,7 +783,7 @@ class CryptContextTest(TestCase):
         # though there's a faint chance it will randomly fail.
         handler = context.policy.get_handler(scheme)
         seen = set()
-        for i in xrange(300):
+        for i in irange(300):
             h = context.genconfig(scheme, salt=salt)
             r = handler.from_string(h).rounds
             seen.add(r)

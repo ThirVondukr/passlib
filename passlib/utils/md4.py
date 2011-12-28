@@ -16,6 +16,7 @@ import struct
 from warnings import warn
 #site
 from passlib.utils import b, bytes, to_native_str
+from passlib.utils.compat import irange
 #local
 __all__ = [ "md4" ]
 #=========================================================================
@@ -170,7 +171,7 @@ class md4(object):
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
         #add back into original state
-        for i in xrange(4):
+        for i in irange(4):
             orig[i] = (orig[i]+state[i]) & MASK_32
 
     def update(self, content):
@@ -255,7 +256,7 @@ def _has_native_md4():
     warn("native md4 support disabled, incorrect value returned")
     return False
 
-if _has_native_md4():    
+if _has_native_md4():
     #overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         "wrapper for hashlib.new('md4')"

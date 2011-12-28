@@ -13,6 +13,7 @@ import sys
 from passlib.context import CryptContext
 from passlib.utils import render_bytes, bjoin, bytes, b, \
                           to_unicode, to_bytes, consteq
+from passlib.utils.compat import lmap, unicode, u
 #pkg
 #local
 __all__ = [
@@ -58,9 +59,9 @@ class _CommonFile(object):
     def __init__(self, path=None, autoload=True,
                  encoding=DEFAULT_ENCODING,
                  ):
-        if encoding and u":\n".encode(encoding) != b(":\n"):
+        if encoding and u(":\n").encode(encoding) != b(":\n"):
             #rest of file assumes ascii bytes, and uses ":" as separator.
-            raise ValueError, "encoding must be 7-bit ascii compatible"
+            raise ValueError("encoding must be 7-bit ascii compatible")
         self.encoding = encoding
         self.path = path
         ##if autoload == "exists":
@@ -319,7 +320,7 @@ class HtpasswdFile(_CommonFile):
 
     def users(self):
         "return list of all users in file"
-        return map(self._decode_ident, self._entry_order)
+        return lmap(self._decode_ident, self._entry_order)
 
     def update(self, user, password):
         """update password for user; adds user if needed.
@@ -454,13 +455,13 @@ class HtdigestFile(_CommonFile):
 
     def realms(self):
         "return all realms listed in file"
-        return map(self._decode_ident,
+        return lmap(self._decode_ident,
                       set(key[1] for key in self._entry_order))
 
     def users(self, realm):
         "return list of all users within specified realm"
         realm = self._norm_realm(realm)
-        return map(self._decode_ident,
+        return lmap(self._decode_ident,
                       (key[0] for key in self._entry_order if key[1] == realm))
 
     def update(self, user, realm, password):

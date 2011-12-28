@@ -21,6 +21,8 @@ except ImportError:
     _EVP = None
 #pkg
 from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
+from passlib.utils.compat import irange, callable, int_types
+from passlib.utils.compat.aliases import BytesIO
 #local
 __all__ = [
     "hmac_sha1",
@@ -28,12 +30,6 @@ __all__ = [
     "pbkdf1",
     "pbkdf2",
 ]
-
-# Py2k #
-from cStringIO import StringIO as BytesIO
-# Py3k #
-#from io import BytesIO
-# end Py3k #
 
 #=================================================================================
 #quick hmac_sha1 implementation used various places
@@ -185,7 +181,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
         raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
-    if not isinstance(rounds, (int, long)):
+    if not isinstance(rounds, int_types):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -209,7 +205,8 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
     #run pbkdf1
     block = hf(secret + salt).digest()
     if keylen > len(block):
-        raise ValueError, "keylength too large for digest: %r > %r" % (keylen, len(block))
+        raise ValueError("keylength too large for digest: %r > %r" %
+                         (keylen, len(block)))
     r = 1
     while r < rounds:
         block = hf(block).digest()
@@ -245,7 +242,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
         raise TypeError("salt must be bytes, not %s" % (type(salt),))
 
     #prepare rounds
-    if not isinstance(rounds, (int, long)):
+    if not isinstance(rounds, int_types):
         raise TypeError("rounds must be an integer")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -268,12 +265,12 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     #figure out how many blocks we'll need
     bcount = (keylen+digest_size-1)//digest_size
     if bcount >= MAX_BLOCKS:
-        raise ValueError("key length to long")
+        raise ValueError("key length too long")
 
     #build up key from blocks
     out = BytesIO()
     write = out.write
-    for i in xrange(1,bcount+1):
+    for i in irange(1,bcount+1):
         block = tmp = encode_block(secret, salt + pack(">L", i))
         #NOTE: could potentially unroll this loop somewhat for speed,
         # or find some faster way to accumulate & xor tmp values together

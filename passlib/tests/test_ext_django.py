@@ -16,6 +16,7 @@ from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_drivers as td
 from passlib.utils import Undef
+from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
 #module
 
@@ -53,7 +54,7 @@ if has_django:
             settings.configure()
 
 def update_settings(**kwds):
-    for k,v in kwds.iteritems():
+    for k,v in iteritems(kwds):
         if v is Undef:
             if hasattr(settings, k):
                 if has_django0:
@@ -163,8 +164,10 @@ class PatchTest(TestCase):
 
         #make sure methods match
         self.assertIs(dam.check_password, state['models_check_password'])
-        self.assertIs(dam.User.check_password.im_func, state['user_check_password'])
-        self.assertIs(dam.User.set_password.im_func, state['user_set_password'])
+        self.assertIs(get_method_function(dam.User.check_password),
+                      state['user_check_password'])
+        self.assertIs(get_method_function(dam.User.set_password),
+                      state['user_set_password'])
 
         #make sure context matches
         obj = dam.User.password_context
@@ -414,7 +417,8 @@ django_hash_tests = [
                     td.DjangoSaltedSha1Test,
                      ]
 
-default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest ]
+default_hash_tests = django_hash_tests + [ td.Builtin_SHA512CryptTest \
+                                          or td.OsCrypt_SHA512CryptTest ]
 
 if has_django0:
     django_hash_tests.remove(td.DjangoDesCryptTest)

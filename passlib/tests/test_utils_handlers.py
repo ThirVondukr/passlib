@@ -15,8 +15,10 @@ from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
     to_hash_str, to_unicode, MissingBackendError, jython_vm
+from passlib.utils.compat import unicode
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
+from passlib.utils.compat import u
 #module
 log = getLogger(__name__)
 
@@ -40,29 +42,29 @@ class SkeletonTest(TestCase):
             def genhash(cls, secret, hash, flag=False):
                 if isinstance(hash, bytes):
                     hash = hash.decode("ascii")
-                if hash not in (u'a',u'b'):
+                if hash not in (u('a'),u('b')):
                     raise ValueError
-                return to_hash_str(u'b' if flag else u'a')
+                return to_hash_str(u('b') if flag else u('a'))
 
         #check default identify method
-        self.assertTrue(d1.identify(u'a'))
+        self.assertTrue(d1.identify(u('a')))
         self.assertTrue(d1.identify(b('a')))
-        self.assertTrue(d1.identify(u'b'))
-        self.assertFalse(d1.identify(u'c'))
+        self.assertTrue(d1.identify(u('b')))
+        self.assertFalse(d1.identify(u('c')))
         self.assertFalse(d1.identify(b('c')))
-        self.assertFalse(d1.identify(u''))
+        self.assertFalse(d1.identify(u('')))
         self.assertFalse(d1.identify(None))
 
         #check default genconfig method
         self.assertIs(d1.genconfig(), None)
-        d1._stub_config = u'b'
+        d1._stub_config = u('b')
         self.assertEqual(d1.genconfig(), to_hash_str('b'))
 
         #check default verify method
         self.assertTrue(d1.verify('s','a'))
-        self.assertTrue(d1.verify('s',u'a'))
+        self.assertTrue(d1.verify('s',u('a')))
         self.assertFalse(d1.verify('s','b'))
-        self.assertFalse(d1.verify('s',u'b'))
+        self.assertFalse(d1.verify('s',u('b')))
         self.assertTrue(d1.verify('s', 'b', flag=True))
         self.assertRaises(ValueError, d1.verify, 's', 'c')
 
@@ -92,7 +94,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify('b'))
 
         #check ident-based
-        d1.ident = u'!'
+        d1.ident = u('!')
         self.assertFalse(d1.identify(None))
         self.assertFalse(d1.identify(''))
         self.assertTrue(d1.identify('!a'))
@@ -244,33 +246,33 @@ class SkeletonTest(TestCase):
         class d1(uh.HasManyIdents, uh.GenericHandler):
             name = 'd1'
             setting_kwds = ('ident',)
-            ident_values = [ u"!A", u"!B" ]
-            ident_aliases = { u"A": u"!A"}
+            ident_values = [ u("!A"), u("!B") ]
+            ident_aliases = { u("A"): u("!A")}
 
         #check ident=None w/ no default
         self.assertIs(d1.norm_ident(None), None)
         self.assertRaises(ValueError, d1.norm_ident, None, strict=True)
 
         #check ident=None w/ default
-        d1.default_ident = u"!A"
-        self.assertEqual(d1.norm_ident(None), u'!A')
+        d1.default_ident = u("!A")
+        self.assertEqual(d1.norm_ident(None), u('!A'))
         self.assertRaises(ValueError, d1.norm_ident, None, strict=True)
 
         #check explicit
-        self.assertEqual(d1.norm_ident(u'!A'), u'!A')
-        self.assertEqual(d1.norm_ident(u'!B'), u'!B')
-        self.assertRaises(ValueError, d1.norm_ident, u'!C')
+        self.assertEqual(d1.norm_ident(u('!A')), u('!A'))
+        self.assertEqual(d1.norm_ident(u('!B')), u('!B'))
+        self.assertRaises(ValueError, d1.norm_ident, u('!C'))
 
         #check aliases
-        self.assertEqual(d1.norm_ident(u'A'), u'!A')
-        self.assertRaises(ValueError, d1.norm_ident, u'B')
+        self.assertEqual(d1.norm_ident(u('A')), u('!A'))
+        self.assertRaises(ValueError, d1.norm_ident, u('B'))
 
         #check identify
-        self.assertTrue(d1.identify(u"!Axxx"))
-        self.assertTrue(d1.identify(u"!Bxxx"))
-        self.assertFalse(d1.identify(u"!Cxxx"))
-        self.assertFalse(d1.identify(u"A"))
-        self.assertFalse(d1.identify(u""))
+        self.assertTrue(d1.identify(u("!Axxx")))
+        self.assertTrue(d1.identify(u("!Bxxx")))
+        self.assertFalse(d1.identify(u("!Cxxx")))
+        self.assertFalse(d1.identify(u("A")))
+        self.assertFalse(d1.identify(u("")))
         self.assertFalse(d1.identify(None))
 
     #=========================================================
@@ -363,7 +365,7 @@ class PrefixWrapperTest(TestCase):
     def test_12_ident(self):
         # test ident is proxied
         h = uh.PrefixWrapper("h2", "ldap_md5", "{XXX}")
-        self.assertEqual(h.ident, u"{XXX}{MD5}")
+        self.assertEqual(h.ident, u("{XXX}{MD5}"))
         self.assertIs(h.ident_values, None)
 
         # test orig_prefix disabled ident proxy
@@ -373,7 +375,7 @@ class PrefixWrapperTest(TestCase):
 
         # test custom ident overrides default
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{X")
-        self.assertEqual(h.ident, u"{X")
+        self.assertEqual(h.ident, u("{X"))
         self.assertIs(h.ident_values, None)
 
         # test custom ident must match
@@ -386,7 +388,7 @@ class PrefixWrapperTest(TestCase):
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "bcrypt", "{XXX}")
         self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, [ u"{XXX}$2$", u"{XXX}$2a$" ])
+        self.assertEqual(h.ident_values, [ u("{XXX}$2$"), u("{XXX}$2a$") ])
 
 #=========================================================
 #sample algorithms - these serve as known quantities
@@ -400,7 +402,7 @@ class UnsaltedHash(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        return uh.identify_regexp(hash, re.compile(u"^[0-9a-f]{40}$"))
+        return uh.identify_regexp(hash, re.compile(u("^[0-9a-f]{40}$")))
 
     @classmethod
     def genhash(cls, secret, hash):
@@ -423,7 +425,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return uh.identify_regexp(hash, re.compile(u"^@salt[0-9a-f]{42,44}$"))
+        return uh.identify_regexp(hash, re.compile(u("^@salt[0-9a-f]{42,44}$")))
 
     @classmethod
     def from_string(cls, hash):
@@ -436,7 +438,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     _stub_checksum = '0' * 40
 
     def to_string(self):
-        hash = u"@salt%s%s" % (self.salt, self.checksum or self._stub_checksum)
+        hash = u("@salt%s%s") % (self.salt, self.checksum or self._stub_checksum)
         return to_hash_str(hash)
 
     def calc_checksum(self, secret):
@@ -478,7 +480,7 @@ class SaltedHashTest(HandlerCase):
 
     known_correct_hashes = [
         ("password", '@salt77d71f8fe74f314dac946766c1ac4a2a58365482c0'),
-        (u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2',
+        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
                      '@salt9f978a9bfe360d069b0c13f2afecd570447407fa7e48'),
     ]
 

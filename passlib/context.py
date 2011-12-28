@@ -3,14 +3,7 @@
 #imports
 #=========================================================
 from __future__ import with_statement
-from passlib.utils import py32_lang
 #core
-from cStringIO import StringIO
-if py32_lang:
-    #Py3.2 removed old ConfigParser, put SafeConfigParser in it's place
-    from ConfigParser import ConfigParser as SafeConfigParser
-else:
-    from ConfigParser import SafeConfigParser
 import inspect
 import re
 import hashlib
@@ -38,6 +31,9 @@ from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
                           is_crypt_handler, rng, \
                           PasslibPolicyWarning
+from passlib.utils.compat import is_mapping, iteritems, num_types, \
+                                 PY3, PY_MIN_32, unicode, bytes
+from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
 #pkg
 #local
 __all__ = [
@@ -108,6 +104,12 @@ class CryptPolicy(object):
     #=========================================================
     #class methods
     #=========================================================
+
+    # NOTE: CryptPolicy always uses native strings for keys.
+    # thus the from_path/from_string methods always treat files as utf-8
+    # by default, leave the keys alone under py2, but decode to unicode
+    # under py3.
+
     @classmethod
     def from_path(cls, path, section="passlib", encoding="utf-8"):
         """create new policy from specified section of an ini file.
@@ -120,27 +122,22 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        #NOTE: we want config parser object to have native strings as keys.
-        #      so we parse as bytes under py2, and unicode under py3.
-        #
-        #      encoding issues are handled under py2 via to_bytes(),
-        #      which ensures everything is utf-8 internally.
-
-        # Py2k #
-        if encoding == "utf-8":
-            #we want utf-8 anyways, so just load file in raw mode.
+        if PY3:
+            # for python 3, need to provide a unicode stream,
+            # so policy object's keys will be native str type (unicode).
+            with open(path, "rt", encoding=encoding) as stream:
+                return cls._from_stream(stream, section, path)
+        elif encoding in ["utf-8", "ascii"]:
+            # for python 2, need to provide utf-8 stream,
+            # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as stream:
                 return cls._from_stream(stream, section, path)
         else:
-            #kinda hacked - load whole file, transcode, and parse.
-            with open(path, "rb") as stream:
-                source = stream.read()
-            source = source.decode(encoding).encode("utf-8")
-            return cls._from_stream(StringIO(source), section, path)
-        # Py3k #
-        #with open(path, "r", encoding=encoding) as stream:
-        #    return cls._from_stream(stream, section, path)
-        # end Py3k #
+            # for python 2, need to transcode to utf-8 stream,
+            # so policy object's keys will be native str type (utf-8 bytes)
+            with open(path, "rb") as fh:
+                stream = BytesIO(fh.read().decode(encoding).encode("utf-8"))
+                return cls._from_stream(stream, section, path)
 
     @classmethod
     def from_string(cls, source, section="passlib", encoding="utf-8"):
@@ -152,24 +149,20 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        #NOTE: we want config parser object to have native strings as keys.
-        #      so we parse as bytes under py2, and unicode under py3.
-        #      to handle encoding issues under py2, we use
-        #      "to_bytes()" to transcode to utf-8 as needed.
-
-        # Py2k #
-        source = to_bytes(source, "utf-8", source_encoding=encoding, errname="source")
-        # Py3k #
-        #source = to_unicode(source, encoding, errname="source")
-        # end Py3k #
-        return cls._from_stream(StringIO(source), section, "<???>")
+        if PY3:
+            source = to_unicode(source, encoding, errname="source")
+            return cls._from_stream(StringIO(source), section, "<???>")
+        else:
+            source = to_bytes(source, "utf-8", source_encoding=encoding,
+                              errname="source")
+            return cls._from_stream(BytesIO(source), section, "<???>")
 
     @classmethod
     def _from_stream(cls, stream, section, filename=None):
         "helper for from_string / from_path"
         p = SafeConfigParser()
-        if py32_lang:
-            # Py3.2 deprecated readfp
+        if PY_MIN_32:
+            # python 3.2 deprecated readfp in favor of read_file
             p.read_file(stream, filename or "<???>")
         else:
             p.readfp(stream, filename or "<???>")
@@ -299,7 +292,7 @@ class CryptPolicy(object):
             # XXX: type check, and accept strings for from_source ?
         parse = self._parse_option_key
         self._kwds = dict((parse(key), value) for key, value in
-                          kwds.iteritems())
+                          iteritems(kwds))
         self._compile()
 
     @staticmethod
@@ -367,9 +360,9 @@ class CryptPolicy(object):
         context_options = self._context_options = {}
         norm_scheme_option = self._normalize_scheme_option
         norm_context_option = self._normalize_context_option
-        cats = set([None])
+        cats = set()
         add_cat = cats.add
-        for (cat, scheme, key), value in source.iteritems():
+        for (cat, scheme, key), value in iteritems(source):
             add_cat(cat)
             if scheme:
                 value = norm_scheme_option(key, value)
@@ -394,7 +387,8 @@ class CryptPolicy(object):
                     context_options[key] = {cat: value}
 
         # store list of categories
-        self._categories = sorted(cats)
+        cats.discard(None)
+        self._categories = [None] + sorted(cats)
 
     @staticmethod
     def _normalize_scheme_option(key, value):
@@ -651,7 +645,7 @@ class CryptPolicy(object):
             yield format_key(None, None, "schemes"), encode_list(value)
 
         # then per-category elements
-        scheme_items = sorted(self._scheme_options.iteritems())
+        scheme_items = sorted(iteritems(self._scheme_options))
         get_option = self._get_option
         for cat in self._categories:
 
@@ -684,7 +678,7 @@ class CryptPolicy(object):
     def _escape_ini_pair(self, k, v):
         if isinstance(v, str):
             v = v.replace("%", "%%") #escape any percent signs.
-        elif isinstance(v, (int, long, float)):
+        elif isinstance(v, num_types):
             v = str(v)
         return k,v
 
@@ -704,15 +698,15 @@ class CryptPolicy(object):
 
     def to_string(self, section="passlib", encoding=None):
         "render to INI string; inverse of from_string() constructor"
-        buf = StringIO()
+        buf = StringIO() if PY3 else BytesIO()
         self.to_file(buf, section)
         out = buf.getvalue()
-        # Py2k #
-        out = out.decode("utf-8")
-        # end Py2k #
+        if not PY3:
+            out = out.decode("utf-8")
         if encoding:
-            out = out.encode(encoding)
-        return out
+            return out.encode(encoding)
+        else:
+            return out
 
     ##def to_path(self, path, section="passlib", update=False):
     ##    "write to INI file"
@@ -971,7 +965,7 @@ class _CryptRecord(object):
     def _compile_encrypt(self, settings):
         handler = self.handler
         skeys = handler.setting_kwds
-        self._settings = dict((k,v) for k,v in settings.iteritems()
+        self._settings = dict((k,v) for k,v in iteritems(settings)
                              if k in skeys)
 
         if not (self._settings or self._has_rounds):
@@ -1174,6 +1168,8 @@ class CryptContext(object):
         # object options, and it'd be *really* long
         names = [ handler.name for handler in self.policy._handlers ]
         return "<CryptContext %0xd schemes=%r>" % (id(self), names)
+
+    #XXX: make an update() method that just updates policy?
 
     def replace(self, **kwds):
         """return mutated CryptContext instance

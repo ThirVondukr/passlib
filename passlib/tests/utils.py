@@ -10,20 +10,17 @@ import re
 import os
 import sys
 import tempfile
+from passlib.utils.compat import u, PY27, PY_MIN_32, PY3
 
 try:
     import unittest2 as unittest
     ut_version = 2
 except ImportError:
     import unittest
-    # Py2k #
-    if sys.version_info < (2,7):
-    # Py3k #
-    #if sys.version_info < (3,2):
-    # end Py3k #
-        ut_version = 1
-    else:
+    if PY27 or PY_MIN_32:
         ut_version = 2
+    else:
+        ut_version = 1
 
 import warnings
 from warnings import warn
@@ -37,6 +34,8 @@ from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
         rounds_cost_values, b, bytes, native_str, NoneType
+from passlib.utils.compat import iteritems, irange, callable, sb_types, \
+                                 exc_err, unicode
 #local
 __all__ = [
     #util funcs
@@ -217,7 +216,8 @@ class TestCase(unittest.TestCase):
         msg = kwds.pop("__msg__", None)
         try:
             result = func(*args, **kwds)
-        except Exception, err:
+        except Exception:
+            err = exc_err() # NOTE: done to avoid 2/3 exception-syntax issue
             if isinstance(err, type):
                 return True
             ##import traceback, sys
@@ -297,7 +297,7 @@ class TestCase(unittest.TestCase):
         #added in 2.7/UT2 and 3.1
         def assertRegexpMatches(self, text, expected_regex, msg=None):
             """Fail the test unless the text matches the regular expression."""
-            if isinstance(expected_regex, basestring):
+            if isinstance(expected_regex, sb_types):
                 assert expected_regex, "expected_regex must not be empty."
                 expected_regex = re.compile(expected_regex)
             if not expected_regex.search(text):
@@ -477,7 +477,7 @@ class HandlerCase(TestCase):
         #NOTE: this is subclassable mainly for some algorithms
         #which accept non-strings in secret
         if isinstance(secret, unicode):
-            return u'x' + secret
+            return u('x') + secret
         else:
             return b('x') + secret
 
@@ -541,10 +541,8 @@ class HandlerCase(TestCase):
                         hash = h.genhash(secret, hash)
                     finally:
                         h.set_backend(tmp)
-                    # Py2k #
-                    if isinstance(hash, unicode):
+                    if not PY3 and isinstance(hash, unicode):
                         hash = hash.encode("ascii")
-                    # end Py2k #
                     return hash
                 utils.os_crypt = crypt_stub
             h.set_backend(backend)
@@ -675,7 +673,7 @@ class HandlerCase(TestCase):
 
         #check optional aliases list
         if cls.ident_aliases:
-            for alias, ident in cls.ident_aliases.iteritems():
+            for alias, ident in iteritems(cls.ident_aliases):
                 self.assertIsInstance(alias, unicode,
                                       "cls.ident_aliases keys must be unicode:") #XXX: allow ints?
                 self.assertIsInstance(ident, unicode,
@@ -754,7 +752,7 @@ class HandlerCase(TestCase):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
         self.assertEqual(self.do_identify(b('')), self.accepts_empty_hash)
-        self.assertEqual(self.do_identify(u''), self.accepts_empty_hash)
+        self.assertEqual(self.do_identify(u('')), self.accepts_empty_hash)
 
     #=========================================================
     #verify()
@@ -798,10 +796,10 @@ class HandlerCase(TestCase):
         #find valid hash so that doesn't mask error
         self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
         if self.accepts_empty_hash:
-            self.do_verify("stub", u"")
+            self.do_verify("stub", u(""))
             self.do_verify("stub", b(""))
         else:
-            self.assertRaises(ValueError, self.do_verify, 'stub', u'', __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', u(''), __msg__="hash='':")
             self.assertRaises(ValueError, self.do_verify, 'stub', b(''), __msg__="hash='':")
 
     #=========================================================
@@ -868,14 +866,14 @@ class HandlerCase(TestCase):
 
         #make sure all listed chars are accepted
         chunk = 32 if mx is None else mx
-        for i in xrange(0,len(cs),chunk):
+        for i in irange(0,len(cs),chunk):
             salt = cs[i:i+chunk]
             if len(salt) < mn:
                 salt = (salt*(mn//len(salt)+1))[:chunk]
             self.do_genconfig(salt=salt)
 
         #check some invalid salt chars, make sure they're rejected
-        source = u'\x00\xff'
+        source = u('\x00\xff')
         if raw:
             source = source.encode("latin-1")
         chunk = max(mn, 1)
@@ -933,7 +931,7 @@ class HandlerCase(TestCase):
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
         #check it handles unicode password
-        secret = u"\u20AC\u00A5$"
+        secret = u("\u20AC\u00A5$")
         result = self.do_encrypt(secret)
         self.assertIsInstance(result, native_str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))

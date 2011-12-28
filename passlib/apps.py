@@ -9,7 +9,7 @@ from itertools import chain
 #libs
 from passlib import hash
 from passlib.context import LazyCryptContext
-from passlib.utils import sys_bits
+from passlib.utils.compat import sys_bits
 #pkg
 #local
 __all__ = [

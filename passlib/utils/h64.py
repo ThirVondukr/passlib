@@ -6,7 +6,8 @@
 import logging; log = logging.getLogger(__name__)
 #site
 #pkg
-from passlib.utils import bytes, bjoin, bchrs, bord, belem_join
+from passlib.utils import bytes, bjoin, bord, bjoin_elems, bjoin_ints
+from passlib.utils.compat import irange, u, PY3
 #local
 __all__ = [
     "CHARS",
@@ -27,25 +28,22 @@ __all__ = [
 #=================================================================================
 
 #: hash64 char sequence
-CHARS = u"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 BCHARS = CHARS.encode("ascii")
 
 #: encode int -> hash64 char as efficiently as possible, w/ minimal checking
-# Py2k #
-_encode_6bit = BCHARS.__getitem__
-# Py3k #
-#_encode_6bit = lambda v: BCHARS[v:v+1]
-# end Py3k #
-
+if PY3:
+    _encode_6bit = lambda v: BCHARS[v:v+1]
+else:
+    _encode_6bit = BCHARS.__getitem__
 
 #: decode hash64 char -> int as efficiently as possible, w/ minimal checking
-_CHARIDX = dict((_encode_6bit(i),i) for i in xrange(64))
+_CHARIDX = dict((_encode_6bit(i),i) for i in irange(64))
 _decode_6bit = _CHARIDX.__getitem__ # char -> int
 
 #for py3, enhance _CHARIDX to also support int value of bytes
-# Py3k #
-#_CHARIDX.update((v,i) for i,v in enumerate(BCHARS))
-# end Py3k #
+if PY3:
+    _CHARIDX.update((v,i) for i,v in enumerate(BCHARS))
 
 #=================================================================================
 #encode offsets from buffer - used by md5_crypt, sha_crypt, et al
@@ -91,17 +89,17 @@ def _decode_bytes_helper(source):
     idx = 0
     while idx < end:
         v = decode_int24(source[idx:idx+4])
-        yield bchrs(v&0xff, (v>>8)&0xff, v>>16)
+        yield bjoin_ints([v&0xff, (v>>8)&0xff, v>>16])
         idx += 4
     if tail:
         if tail == 2:
             #NOTE: 2 msb of int are ignored (should be 0)
             v = decode_int12(source[idx:idx+2])
-            yield bchrs(v&0xff)
+            yield bjoin_ints([v&0xff])
         else:
             #NOTE: 4 msb of int are ignored (should be 0)
             v = decode_int18(source[idx:idx+3])
-            yield bchrs(v&0xff, (v>>8)&0xff)
+            yield bjoin_ints([v&0xff, (v>>8)&0xff])
 
 def decode_bytes(source):
     "decode h64 format into byte string"
@@ -115,7 +113,7 @@ def encode_transposed_bytes(source, offsets):
         raise TypeError("source must be bytes, not %s" % (type(source),))
     #XXX: could make this a dup of encode_bytes(), which directly accesses source[offsets[idx]],
     # but speed isn't *that* critical for this function
-    tmp = belem_join(source[off] for off in offsets)
+    tmp = bjoin_elems(source[off] for off in offsets)
     return encode_bytes(tmp)
 
 def decode_transposed_bytes(source, offsets):
@@ -125,7 +123,7 @@ def decode_transposed_bytes(source, offsets):
     buf = [None] * len(offsets)
     for off, char in zip(offsets, tmp):
         buf[off] = char
-    return belem_join(buf)
+    return bjoin_elems(buf)
 
 #=================================================================================
 # int <-> b64 string, used by des_crypt, bsdi_crypt
@@ -275,9 +273,9 @@ def encode_int(value, count, big=False):
     if value < 0:
         raise ValueError("value cannot be negative")
     if big:
-        itr = xrange(6*count-6, -6, -6)
+        itr = irange(6*count-6, -6, -6)
     else:
-        itr = xrange(0, 6*count, 6)
+        itr = irange(0, 6*count, 6)
     return bjoin(
         _encode_6bit((value>>off) & 0x3f)
         for off in itr
