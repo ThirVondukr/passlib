@@ -51,6 +51,7 @@ __all__ = [
     "xor_bytes",
 
     #random
+    'timer',
     'rng',
     'getrandbytes',
     'getrandstr',
@@ -398,6 +399,7 @@ _add_doc(to_native_str,
     :returns: :class:`str` instance
     """)
 
+# DEPRECATED
 def to_hash_str(source, encoding="ascii"):
     "deprecated, use to_native_str() instead"
     warn("to_hash_str() is deprecated, and will be removed in passlib 1.7",
@@ -490,6 +492,7 @@ def consteq(left, right):
             result |= ord(l) ^ ord(r)
     return result == 0
 
+# DEPRECATED
 def splitcomma(source, sep=","):
     """split comma-separated string into list of elements,
     stripping whitespace and discarding empty elements.
@@ -804,6 +807,39 @@ def adapted_b64_decode(data, sixthree="."):
 #=================================================================================
 #randomness
 #=================================================================================
+
+# pick best timer function to expose as "timer" - lifted from timeit module.
+if sys.platform == "win32":
+    # On Windows, the best timer is time.clock()
+    from time import clock as timer
+else:
+    # On most other platforms the best timer is time.time()
+    from time import time as timer
+
+# works but not used
+##def _get_timer_resolution(timer=timer, repeat=3):
+##    best = None
+##    i = 0
+##    while i < repeat:
+##        start = end = timer()
+##        while start == end:
+##            end = timer()
+##        delta = end-start
+##        if delta < 0:
+##            # probably NTP adjust or some such.
+##            log.error("timer jumped backwards! (%r => %r)", start, end)
+##            continue
+##        if delta > 1:
+##            # should have at least this resolution,
+##            # so probably NTP adjust or some such.
+##            log.error("timer jumped too far! (%r => %r)", start, end)
+##            continue
+##        if best is None or delta < best:
+##            best = delta
+##        i += 1
+##    return best
+##
+##timer_resolution = _get_timer_resolution()
 
 #-----------------------------------------------------------------------
 # setup rng for generating salts

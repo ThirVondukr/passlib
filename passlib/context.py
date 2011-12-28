@@ -9,16 +9,9 @@ import re
 import hashlib
 from math import log as logb, ceil
 import logging; log = logging.getLogger(__name__)
-##import sys
-##if sys.platform == "win32":
-##    # On Windows, the best timer is time.clock()
-##    from time import clock as timer
-##else:
-##    # On most other platforms the best timer is time.time()
-##    from time import time as timer
-import time
 import os
 import re
+from time import sleep
 from warnings import warn
 #site
 try:
@@ -30,7 +23,7 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, \
                           is_crypt_handler, rng, \
-                          PasslibPolicyWarning
+                          PasslibPolicyWarning, timer
 from passlib.utils.compat import is_mapping, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
@@ -1025,12 +1018,12 @@ class _CryptRecord(object):
         "verify helper - adds min_verify_time delay"
         mvt = self._min_verify_time
         assert mvt
-        start = time.time()
+        start = timer()
         ok = self.handler.verify(secret, hash, **context)
-        end = time.time()
+        end = timer()
         delta = mvt + start - end
         if delta > 0:
-            time.sleep(delta)
+            sleep(delta)
         elif delta < 0:
             #warn app they aren't being protected against timing attacks...
             warn("CryptContext: verify exceeded min_verify_time: "
