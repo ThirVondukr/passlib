@@ -154,11 +154,7 @@ try:
 except ImportError: #pragma: no cover
     safe_os_crypt = os_crypt = None
 else:
-
     # NOTE: see docstring below as to why we're wrapping os_crypt()
-
-    # XXX: source indicates crypt() may return None on some systems
-    # if an error occurrs - could make this return False in that case.
     if PY3:
         def safe_os_crypt(secret, hash):
             if isinstance(secret, bytes):

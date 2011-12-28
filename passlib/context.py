@@ -104,6 +104,12 @@ class CryptPolicy(object):
     #=========================================================
     #class methods
     #=========================================================
+
+    # NOTE: CryptPolicy always uses native strings for keys.
+    # thus the from_path/from_string methods always treat files as utf-8
+    # by default, leave the keys alone under py2, but decode to unicode
+    # under py3.
+
     @classmethod
     def from_path(cls, path, section="passlib", encoding="utf-8"):
         """create new policy from specified section of an ini file.
@@ -116,23 +122,18 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        #NOTE: we want config parser object to have native strings as keys.
-        #      so we parse as bytes under py2, and unicode under py3.
-        #
-        #      encoding issues are handled under py2 via to_bytes(),
-        #      which ensures everything is utf-8 internally.
         if PY3:
-            # for python 3, provide a unicode stream,
+            # for python 3, need to provide a unicode stream,
             # so policy object's keys will be native str type (unicode).
             with open(path, "rt", encoding=encoding) as stream:
                 return cls._from_stream(stream, section, path)
         elif encoding in ["utf-8", "ascii"]:
-            # for python 2, provide utf-8 stream,
+            # for python 2, need to provide utf-8 stream,
             # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as stream:
                 return cls._from_stream(stream, section, path)
         else:
-            # for python 2, transcode to utf-8 stream,
+            # for python 2, need to transcode to utf-8 stream,
             # so policy object's keys will be native str type (utf-8 bytes)
             with open(path, "rb") as fh:
                 stream = BytesIO(fh.read().decode(encoding).encode("utf-8"))
@@ -148,10 +149,6 @@ class CryptPolicy(object):
 
         :returns: new CryptPolicy instance.
         """
-        #NOTE: we want config parser object to have native strings as keys.
-        #      so we parse as bytes under py2, and unicode under py3.
-        #      to handle encoding issues under py2, we use
-        #      "to_bytes()" to transcode to utf-8 as needed.
         if PY3:
             source = to_unicode(source, encoding, errname="source")
             return cls._from_stream(StringIO(source), section, "<???>")
