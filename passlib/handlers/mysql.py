@@ -30,7 +30,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import handlers as uh, to_hash_str, b, bord, bytes
+from passlib.utils import handlers as uh, to_native_str, b, bord, bytes
 from passlib.utils.compat import unicode, u
 #local
 __all__ = [
@@ -87,7 +87,7 @@ class mysql323(uh.StaticHandler):
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
         hash = u("%08x%08x") % (nr1 & MASK_31, nr2 & MASK_31)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     @classmethod
     def _norm_hash(cls, hash):

@@ -33,7 +33,7 @@ if ut_version < 2:
 from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
-        rounds_cost_values, b, bytes, native_str, NoneType
+        rounds_cost_values, b, bytes, NoneType
 from passlib.utils.compat import iteritems, irange, callable, sb_types, \
                                  exc_err, unicode
 #local
@@ -564,7 +564,7 @@ class HandlerCase(TestCase):
 
         name = ga("name")
         self.assertTrue(name, "name not defined:")
-        self.assertIsInstance(name, native_str, "name must be native str")
+        self.assertIsInstance(name, str, "name must be native str")
         self.assertTrue(name.lower() == name, "name not lower-case:")
         self.assertTrue(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
 
@@ -811,8 +811,8 @@ class HandlerCase(TestCase):
             raise self.skipTest("handler doesn't have salt")
         c1 = self.do_genconfig()
         c2 = self.do_genconfig()
-        self.assertIsInstance(c1, native_str, "genconfig() must return native str:")
-        self.assertIsInstance(c2, native_str, "genconfig() must return native str:")
+        self.assertIsInstance(c1, str, "genconfig() must return native str:")
+        self.assertIsInstance(c2, str, "genconfig() must return native str:")
         self.assertNotEqual(c1,c2)
 
     def test_31_genconfig_minsalt(self):
@@ -933,14 +933,14 @@ class HandlerCase(TestCase):
         #check it handles unicode password
         secret = u("\u20AC\u00A5$")
         result = self.do_encrypt(secret)
-        self.assertIsInstance(result, native_str, "encrypt must return native str:")
+        self.assertIsInstance(result, str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))
         self.assertTrue(self.do_verify(secret, result))
 
         #check it handles bytes password as well
         secret = b('\xe2\x82\xac\xc2\xa5$')
         result = self.do_encrypt(secret)
-        self.assertIsInstance(result, native_str, "encrypt must return native str:")
+        self.assertIsInstance(result, str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))
         self.assertTrue(self.do_verify(secret, result))
 

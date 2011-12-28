@@ -592,10 +592,6 @@ and ease of implementation issues:
     backwards compatibility with Passlib 1.4 and earlier
     under Python 2.
 
-    Handlers should use the :func:`passlib.utils.to_hash_str` function
-    to coerce their unicode hashes to whatever is appropriate
-    for the platform before returning them.
-
 .. rubric:: Footnotes
 
 .. [#otypes]    While this specification is written referring to classes and classmethods,

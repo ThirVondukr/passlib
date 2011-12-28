@@ -14,7 +14,7 @@ from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
-    to_hash_str, to_unicode, MissingBackendError, jython_vm
+    to_native_str, to_unicode, MissingBackendError, jython_vm
 from passlib.utils.compat import unicode
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
@@ -44,7 +44,7 @@ class SkeletonTest(TestCase):
                     hash = hash.decode("ascii")
                 if hash not in (u('a'),u('b')):
                     raise ValueError
-                return to_hash_str(u('b') if flag else u('a'))
+                return to_native_str(u('b') if flag else u('a'))
 
         #check default identify method
         self.assertTrue(d1.identify(u('a')))
@@ -58,7 +58,7 @@ class SkeletonTest(TestCase):
         #check default genconfig method
         self.assertIs(d1.genconfig(), None)
         d1._stub_config = u('b')
-        self.assertEqual(d1.genconfig(), to_hash_str('b'))
+        self.assertEqual(d1.genconfig(), to_native_str('b'))
 
         #check default verify method
         self.assertTrue(d1.verify('s','a'))
@@ -69,9 +69,9 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.verify, 's', 'c')
 
         #check default encrypt method
-        self.assertEqual(d1.encrypt('s'), to_hash_str('a'))
-        self.assertEqual(d1.encrypt('s'), to_hash_str('a'))
-        self.assertEqual(d1.encrypt('s', flag=True), to_hash_str('b'))
+        self.assertEqual(d1.encrypt('s'), to_native_str('a'))
+        self.assertEqual(d1.encrypt('s'), to_native_str('a'))
+        self.assertEqual(d1.encrypt('s', flag=True), to_native_str('b'))
 
     #=========================================================
     #GenericHandler & mixins
@@ -411,7 +411,7 @@ class UnsaltedHash(uh.StaticHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         data = b("boblious") + secret
-        return to_hash_str(hashlib.sha1(data).hexdigest())
+        return to_native_str(hashlib.sha1(data).hexdigest())
 
 class SaltedHash(uh.HasSalt, uh.GenericHandler):
     "test algorithm with a salt"
@@ -439,7 +439,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         hash = u("@salt%s%s") % (self.salt, self.checksum or self._stub_checksum)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):

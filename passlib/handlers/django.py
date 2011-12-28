@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, b, bytes, to_unicode, to_hash_str
+from passlib.utils import h64, handlers as uh, b, bytes, to_unicode, to_native_str
 from passlib.utils.compat import unicode, u
 #pkg
 #local
@@ -67,7 +67,7 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         chk = self.checksum or self._stub_checksum
         out = u("%s%s$%s") % (self.ident, self.salt, chk)
-        return to_hash_str(out)
+        return to_native_str(out)
 
 class django_salted_sha1(DjangoSaltedHash):
     """This class implements Django's Salted SHA1 hash, and follows the :ref:`password-hash-api`.
@@ -211,7 +211,7 @@ class django_disabled(uh.StaticHandler):
     def genhash(cls, secret, config):
         if secret is None:
             raise TypeError("no secret provided")
-        return to_hash_str(u("!"))
+        return to_native_str(u("!"))
 
     @classmethod
     def verify(cls, secret, hash):

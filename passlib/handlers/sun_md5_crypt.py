@@ -17,7 +17,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, to_hash_str, to_unicode, bytes, b, bord
+from passlib.utils import h64, handlers as uh, to_native_str, to_unicode, bytes, b, bord
 from passlib.utils.compat import trange, unicode, u
 #pkg
 #local
@@ -316,7 +316,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             chk = self.checksum
             if chk:
                 out = u("%s$%s") % (out, chk)
-        return to_hash_str(out) if native else out
+        return to_native_str(out) if native else out
 
     #=========================================================
     #primary interface

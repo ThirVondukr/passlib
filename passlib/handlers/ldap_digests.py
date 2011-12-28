@@ -11,7 +11,7 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_hash_str
+from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_native_str
 from passlib.utils.compat import unicode, u
 #pkg
 #local
@@ -60,7 +60,7 @@ class _Base64DigestHelper(uh.StaticHandler):
             raise ValueError("not a %s hash" % (cls.name,))
         chk = cls._hash_func(secret).digest()
         hash = cls.ident + b64encode(chk).decode("ascii")
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
 class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
@@ -93,7 +93,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
     def to_string(self):
         data = (self.checksum or self._stub_checksum) + self.salt
         hash = self.ident + b64encode(data).decode("ascii")
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         if secret is None:
@@ -196,7 +196,7 @@ class ldap_plaintext(uh.StaticHandler):
             raise ValueError("not a valid ldap_plaintext hash")
         if secret is None:
             raise TypeError("secret must be string")
-        return to_hash_str(secret, "utf-8")
+        return to_native_str(secret, "utf-8")
 
     @classmethod
     def _norm_hash(cls, hash):

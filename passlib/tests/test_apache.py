@@ -11,7 +11,7 @@ import time
 #site
 #pkg
 from passlib import apache
-from passlib.utils import b, native_str, bytes
+from passlib.utils import b, bytes
 from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
 from passlib.utils.compat import u
@@ -167,7 +167,7 @@ class HtpasswdFileTest(TestCase):
 
         #check users() returns native string by default
         ht = apache.HtpasswdFile._from_string(self.sample_01)
-        self.assertIsInstance(ht.users()[0], native_str)
+        self.assertIsInstance(ht.users()[0], str)
 
         #check returns unicode if encoding explicitly set
         ht = apache.HtpasswdFile._from_string(self.sample_01, encoding="utf-8")
@@ -354,8 +354,8 @@ class HtdigestFileTest(TestCase):
 
         #check users() returns native string by default
         ht = apache.HtdigestFile._from_string(self.sample_01)
-        self.assertIsInstance(ht.realms()[0], native_str)
-        self.assertIsInstance(ht.users("realm")[0], native_str)
+        self.assertIsInstance(ht.realms()[0], str)
+        self.assertIsInstance(ht.users("realm")[0], str)
 
         #check returns unicode if encoding explicitly set
         ht = apache.HtdigestFile._from_string(self.sample_01, encoding="utf-8")

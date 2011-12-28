@@ -59,7 +59,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, classproperty, safe_os_crypt, b, bytes, \
-            to_hash_str, handlers as uh, bord
+            to_native_str, handlers as uh, bord
 from passlib.utils.compat import unicode
 from passlib.utils.des import mdes_encrypt_int_block
 from passlib.utils.compat import u
@@ -196,7 +196,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -325,7 +325,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def to_string(self, native=True):
         hash = u("_%s%s%s") % (h64.encode_int24(self.rounds).decode("ascii"),
                              self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -417,7 +417,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     @classmethod
     def norm_checksum(cls, value, strict=False):
@@ -502,7 +502,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend

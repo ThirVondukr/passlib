@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
-    to_hash_str, to_unicode, bytes, b, bord
+    to_native_str, to_unicode, bytes, b, bord
 from passlib.utils.compat import unicode, u
 #pkg
 #local
@@ -317,7 +317,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -469,7 +469,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             hash = u("$6$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$6$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend

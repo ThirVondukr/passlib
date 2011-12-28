@@ -12,7 +12,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import xor_bytes, handlers as uh, bytes, to_unicode, \
-    to_hash_str, b
+    to_native_str, b
 from passlib.utils.compat import irange, unicode
 from passlib.utils.des import des_encrypt_block
 from passlib.utils.compat import u
@@ -115,7 +115,7 @@ class oracle10(uh.StaticHandler):
         input = encode(user) + encode(secret)
         hash = des_cbc_encrypt(ORACLE10_MAGIC, input)
         hash = des_cbc_encrypt(hash, input)
-        return to_hash_str(hexlify(hash)).upper()
+        return to_native_str(hexlify(hash)).upper()
 
     @classmethod
     def _norm_hash(cls, hash):
@@ -182,7 +182,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         chk = (self.checksum or self._stub_checksum)
         hash = u("S:%s%s") % (chk.upper(), self.salt.upper())
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):

@@ -28,7 +28,7 @@ except ImportError: #pragma: no cover - though should run whole suite w/o bcrypt
     bcryptor_engine = None
 #libs
 from passlib.utils import safe_os_crypt, classproperty, handlers as uh, \
-    h64, to_hash_str, rng, getrandstr, bytes
+    h64, to_native_str, rng, getrandstr, bytes
 from passlib.utils.compat import unicode
 
 #pkg
@@ -146,7 +146,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     def to_string(self, native=True):
         hash = u("%s%02d$%s%s") % (self.ident, self.rounds, self.salt, self.checksum or u(''))
-        return to_hash_str(hash) if native else hash
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     # specialized salt generation - fixes passlib issue 25

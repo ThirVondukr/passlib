@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes, bytes
+from passlib.utils import handlers as uh, to_unicode, to_native_str, to_bytes, bytes
 from passlib.utils.md4 import md4
 from passlib.utils.compat import u
 #pkg
@@ -69,7 +69,7 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
 
     def to_string(self):
         hash = self.ident + (self.checksum or self._stub_checksum)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     #=========================================================
     #primary interface

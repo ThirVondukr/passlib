@@ -20,7 +20,7 @@ try:
 except ImportError:
     _EVP = None
 #pkg
-from passlib.utils import xor_bytes, to_bytes, native_str, b, bytes
+from passlib.utils import xor_bytes, to_bytes, b, bytes
 from passlib.utils.compat import irange, callable, int_types
 from passlib.utils.compat.aliases import BytesIO
 #local
@@ -133,7 +133,7 @@ def get_prf(name):
     global _prf_cache
     if name in _prf_cache:
         return _prf_cache[name]
-    if isinstance(name, native_str):
+    if isinstance(name, str):
         if name.startswith("hmac-") or name.startswith("hmac_"):
             retval = _get_hmac_prf(name[5:])
         else:
@@ -191,7 +191,7 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
         raise ValueError("keylen must be at least 0")
 
     #resolve hash
-    if isinstance(hash, native_str):
+    if isinstance(hash, str):
         #check for builtin hash
         hf = getattr(hashlib, hash, None)
         if hf is None:

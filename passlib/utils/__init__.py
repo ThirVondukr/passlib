@@ -29,7 +29,7 @@ __all__ = [
 ##    "abstractclassmethod",
 
     #byte compat aliases
-    'bytes', 'native_str',
+    'bytes',
 
     #misc
     'os_crypt',
@@ -41,7 +41,6 @@ __all__ = [
     #bytes<->unicode
     'to_bytes',
     'to_unicode',
-    'to_native_str',
     'is_same_codec',
 
     # string manipulation
@@ -135,14 +134,6 @@ class PasslibPolicyWarning(UserWarning):
     In both of these cases, the code will perform correctly & securely;
     but the warning is issued as a sign the configuration may need updating.
     """
-
-#==========================================================
-#bytes compat aliases - bytes, native_str, b()
-#==========================================================
-
-# NOTE: most of this has been moved to compat()
-
-native_str = str
 
 #=================================================================================
 #os crypt helpers
@@ -390,7 +381,6 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
 
 if PY3:
     def to_native_str(source, encoding="utf-8", errname="value"):
-        assert encoding
         if isinstance(source, bytes):
             return source.decode(encoding)
         elif isinstance(source, unicode):
@@ -400,7 +390,6 @@ if PY3:
                             (errname, type(source)))
 else:
     def to_native_str(source, encoding="utf-8", errname="value"):
-        assert encoding
         if isinstance(source, bytes):
             return source
         elif isinstance(source, unicode):
@@ -409,25 +398,32 @@ else:
             raise TypeError("%s must be unicode or bytes, not %s" %
                             (errname, type(source)))
 
-_add_doc(to_native_str, """take in unicode or bytes, return native string
+_add_doc(to_native_str,
+    """take in unicode or bytes, return native string
 
     python 2: encodes unicode using specified encoding, leaves bytes alone.
     python 3: decodes bytes using specified encoding, leaves unicode alone.
 
     :raises TypeError: if source is not unicode or bytes.
 
-    :arg source: source bytes/unicode to process
-    :arg encoding: encoding to use when encoding unicode / decoding bytes
-    :param errname: optional name of variable/noun to reference when raising errors
+    :arg source:
+        source unicode or bytes string.
+
+    :arg encoding:
+        encoding to use when encoding unicode or decoding bytes.
+        this defaults to ``"utf-8"``.
+
+    :param errname:
+        optional name of variable/noun to reference when raising errors.
 
     :returns: :class:`str` instance
     """)
 
-def to_hash_str(hash, encoding="ascii", errname="hash"):
-    "given hash string as bytes or unicode; normalize according to hash policy"
-    #NOTE: for now, policy is ascii-bytes under py2, unicode under py3.
-    #      but plan to make flag allowing apps to enable unicode behavior under py2.
-    return to_native_str(hash, encoding, errname)
+def to_hash_str(source, encoding="ascii"):
+    "deprecated, use to_native_str() instead"
+    warn("to_hash_str() is deprecated, and will be removed in passlib 1.7",
+         DeprecationWarning, stacklevel=2)
+    return to_native_str(source, encoding, 'hash')
 
 #--------------------------------------------------
 #support utils
@@ -521,7 +517,7 @@ def splitcomma(source, sep=","):
 
     .. deprecated:: 1.6, will be removed in 1.7
     """
-    warn("splitcomma() is deprecated, will be removed in passlib 1.7",
+    warn("splitcomma() is deprecated, and will be removed in passlib 1.7",
          DeprecationWarning, stacklevel=2)
     return [
         elem.strip()

@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, to_hash_str, bytes
+from passlib.utils import handlers as uh, to_native_str, bytes
 from passlib.utils.compat import unicode
 from passlib.utils.md4 import md4
 #pkg
@@ -52,7 +52,7 @@ class HexDigestHash(uh.StaticHandler):
             raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return to_hash_str(cls._hash_func(secret).hexdigest())
+        return to_native_str(cls._hash_func(secret).hexdigest())
 
     @classmethod
     def _norm_hash(cls, hash):

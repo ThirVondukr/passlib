@@ -11,7 +11,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import adapted_b64_encode, adapted_b64_decode, \
-        handlers as uh, to_hash_str, to_unicode, bytes, b
+        handlers as uh, to_native_str, to_unicode, bytes, b
 from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import pbkdf2
 from passlib.utils.compat import u
@@ -88,7 +88,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             hash = u('%s%d$%s$%s') % (self.ident, self.rounds, salt, chk)
         else:
             hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -227,7 +227,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
         if withchk and self.checksum:
             out = u("%s$%s") % (out,
                               b64encode(self.checksum, CTA_ALTCHARS).decode("ascii"))
-        return to_hash_str(out)
+        return to_native_str(out)
 
     #=========================================================
     #backend
@@ -321,7 +321,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             out = u('$p5k2$%x$%s') % (self.rounds, self.salt)
         if withchk and self.checksum:
             out = u("%s$%s") % (out,self.checksum)
-        return to_hash_str(out) if native else out
+        return to_native_str(out) if native else out
 
     #=========================================================
     #backend
@@ -379,7 +379,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     def to_string(self):
         data = self.salt + (self.checksum or self._stub_checksum)
         hash = self.ident + b64encode(data).decode("ascii")
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         #TODO: find out what crowd's policy is re: unicode
@@ -453,7 +453,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             hash = u('%s%d.%s.%s') % (self.ident, self.rounds, salt, chk)
         else:
             hash = u('%s%d.%s') % (self.ident, self.rounds, salt)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         #TODO: find out what grub's policy is re: unicode

@@ -635,7 +635,7 @@ class _Md5CryptTest(HandlerCase):
 
     known_correct_hashes = [
         #NOTE: would need to patch HandlerCase to coerce hashes
-        #to_hash_str() for this first one to work under py3.
+        #to_native_str() for this first one to work under py3.
 ##        ('', b('$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.')),
         ('', '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.'),
         (' ', '$1$m/5ee7ol$bZn0kIBFipq39e.KDXX8I0'),

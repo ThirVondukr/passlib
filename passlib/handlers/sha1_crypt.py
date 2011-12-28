@@ -14,7 +14,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, handlers as uh, safe_os_crypt, classproperty, \
-    to_hash_str, to_unicode, bytes, b
+    to_native_str, to_unicode, bytes, b
 from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import hmac_sha1
 from passlib.utils.compat import u
@@ -95,7 +95,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         out = u("$sha1$%d$%s") % (self.rounds, self.salt)
         if self.checksum:
             out += u("$") + self.checksum
-        return to_hash_str(out) if native else out
+        return to_native_str(out) if native else out
 
     #=========================================================
     #backend

@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, bytes, b, to_hash_str
+from passlib.utils import handlers as uh, bytes, b, to_native_str
 from passlib.utils.compat import iteritems, unicode
 from passlib.utils.pbkdf2 import pbkdf1
 from passlib.utils.compat import u
@@ -164,7 +164,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         salt = self.salt
         data = b64encode(salt+chk).decode("ascii")
         hash = u("{FSHP%d|%d|%d}%s") % (self.variant, len(salt), self.rounds, data)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     #=========================================================
     #backend

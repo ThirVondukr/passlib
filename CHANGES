@@ -69,7 +69,6 @@ Release History
           should set the environment variable ``PASSLIB_BUILTIN_BCRYPT=enabled``
           before loading Passlib.
 
-
 **1.5.3** (2011-10-08)
 ======================
 
