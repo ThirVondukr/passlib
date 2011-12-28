@@ -37,6 +37,9 @@ Release History
 
     Other
 
+        * Passlib is now source-compatible with Python 2.5+ and Python 3,
+          and no longer requires the use of :cmd:`2to3` to run under Python 3.
+
         .. _consteq-issue:
 
         * All digest comparisons within Passlib are now done using
