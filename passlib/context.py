@@ -28,7 +28,7 @@ except ImportError:
     resource_string = None
 #libs
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
+from passlib.utils import to_bytes, to_unicode, bytes, \
                           is_crypt_handler, rng, \
                           PasslibPolicyWarning
 from passlib.utils.compat import is_mapping, iteritems, num_types, \

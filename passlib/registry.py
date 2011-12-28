@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import Undef, is_crypt_handler
+from passlib.utils import is_crypt_handler
 #pkg
 #local
 __all__ = [
@@ -259,7 +259,9 @@ def register_crypt_handler(handler, force=False, name=None):
     _handlers[name] = handler
     log.info("registered crypt handler %r: %r", name, handler)
 
-def get_crypt_handler(name, default=Undef):
+_NOTSET = object()
+
+def get_crypt_handler(name, default=_NOTSET):
     """return handler for specified password hash scheme.
 
     this method looks up a handler for the specified scheme.
@@ -314,7 +316,7 @@ def get_crypt_handler(name, default=Undef):
         return handler
 
     #fail!
-    if default is Undef:
+    if default is _NOTSET:
         raise KeyError("no crypt handler found for algorithm: %r" % (name,))
     else:
         return default

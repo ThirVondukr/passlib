@@ -15,7 +15,6 @@ from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_drivers as td
-from passlib.utils import Undef
 from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
 #module
@@ -53,9 +52,11 @@ if has_django:
         if not settings.configured:
             settings.configure()
 
+_NOTSET = object()
+
 def update_settings(**kwds):
     for k,v in iteritems(kwds):
-        if v is Undef:
+        if v is _NOTSET:
             if hasattr(settings, k):
                 if has_django0:
                     delattr(settings._target, k)
@@ -147,7 +148,7 @@ class PatchTest(TestCase):
             self.assertEquals(func.__module__, "django.contrib.auth.models")
         self.assertFalse(hasattr(dam.User, "password_context"))
 
-    def assert_patched(self, context=Undef):
+    def assert_patched(self, context=_NOTSET):
         "helper to ensure django HAS been patched"
         state = utils._django_patch_state
 
@@ -172,7 +173,7 @@ class PatchTest(TestCase):
         #make sure context matches
         obj = dam.User.password_context
         self.assertIs(obj, state['context'])
-        if context is not Undef:
+        if context is not _NOTSET:
             self.assertIs(obj, context)
 
         #make sure old methods were stored
@@ -434,8 +435,8 @@ class PluginTest(TestCase):
 
         #ensure django settings are empty
         update_settings(
-            PASSLIB_CONTEXT=Undef,
-            PASSLIB_GET_CATEGORY=Undef,
+            PASSLIB_CONTEXT=_NOTSET,
+            PASSLIB_GET_CATEGORY=_NOTSET,
         )
 
         #unload module so it's re-run

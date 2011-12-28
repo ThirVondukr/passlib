@@ -13,7 +13,7 @@ import warnings
 #module
 from passlib.context import CryptContext
 from passlib import utils
-from passlib.utils import h64, des, Undef, bytes, b, \
+from passlib.utils import h64, des, bytes, b, \
     to_bytes, to_unicode, to_native_str, \
     is_same_codec, is_ascii_safe, safe_os_crypt, md4 as md4_mod
 from passlib.utils.compat import unicode, PY3
@@ -31,16 +31,6 @@ class MiscTest(TestCase):
     "tests various parts of utils module"
 
     #NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
-
-    def test_undef(self):
-        "test Undef singleton"
-        self.assertEqual(repr(Undef), "<Undef>")
-        self.assertFalse(Undef==None,)
-        self.assertFalse(Undef==Undef,)
-        self.assertFalse(Undef==True,)
-        self.assertTrue(Undef!=None,)
-        self.assertTrue(Undef!=Undef,)
-        self.assertTrue(Undef!=True,)
 
     def test_getrandbytes(self):
         "test getrandbytes()"

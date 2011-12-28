@@ -86,27 +86,6 @@ if PY3:
 else:
     ALL_BYTE_VALUES = ''.join(chr(x) for x in irange(256))
 
-#NOTE: Undef is only used in *one* place now, could just remove it
-class UndefType(object):
-    _undef = None
-
-    def __new__(cls):
-        if cls._undef is None:
-            cls._undef = object.__new__(cls)
-        return cls._undef
-
-    def __repr__(self):
-        return '<Undef>'
-
-    def __eq__(self, other):
-        return False
-
-    def __ne__(self, other):
-        return True
-
-#: singleton used as default kwd value in some functions, indicating "NO VALUE"
-Undef = UndefType()
-
 NoneType = type(None)
 
 class MissingBackendError(RuntimeError):
