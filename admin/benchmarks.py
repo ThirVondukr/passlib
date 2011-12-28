@@ -23,6 +23,7 @@ try:
 except ImportError:
     PasslibPolicyWarning = None
 from passlib.utils import handlers as uh
+from passlib.utils.compat import u, print_, unicode
 # local
 __all__ = [
 ]
@@ -35,11 +36,11 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     setting_kwds = ("rounds", "salt", "salt_size")
     name = "blank"
-    ident = u"$b$"
+    ident = u("$b$")
 
     checksum_size = 1
     min_salt_size = max_salt_size = 1
-    salt_chars = u"a"
+    salt_chars = u("a")
 
     min_rounds = 1000
     max_rounds = 3000
@@ -59,7 +60,7 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
 class AnotherHandler(BlankHandler):
     name = "another"
-    ident = u"$a$"
+    ident = u("$a$")
 
 #=============================================================================
 # crypt context tests
@@ -71,19 +72,21 @@ def setup_policy():
     cpath = os.path.abspath(os.path.join(os.path.dirname(mpath), "default.cfg"))
 
     def test_policy_creation():
-        with file(cpath, "rb") as fh:
+        with open(cpath, "rb") as fh:
             policy1 = CryptPolicy.from_string(fh.read())
     yield test_policy_creation
 
     default = _load_default_policy()
     def test_policy_composition():
-        policy2 = CryptPolicy(
-            policy=default,
+        policy2 = default.replace(
             schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
                         "des_crypt", "unix_fallback" ],
             deprecated = [ "des_crypt" ],
             )
     yield test_policy_composition
+
+secret = u("secret")
+other = u("other")
 
 def setup_context():
     from passlib.context import CryptContext
@@ -99,8 +102,6 @@ def setup_context():
     yield test_context_init
 
     ctx = test_context_init()
-    secret = u"secret"
-    other = u"other"
 #    if PasslibPolicyWarning:
 #        warnings.filterwarnings("ignore", category=PasslibPolicyWarning)
     def test_context_calls():
@@ -109,6 +110,15 @@ def setup_context():
         ctx.verify_and_update(secret, hash)
         ctx.verify_and_update(other, hash)
     yield test_context_calls
+
+def setup_handlers():
+    from passlib.hash import md5_crypt
+    md5_crypt.set_backend("builtin")
+    def test_md5_crypt():
+        hash = md5_crypt.encrypt(secret)
+        md5_crypt.verify(secret, hash)
+        md5_crypt.verify(other, hash)
+    yield test_md5_crypt
 
 #=============================================================================
 # main
@@ -147,7 +157,7 @@ def main(*args):
                 number *= 10
             repeat = 3
             best = min(timer.repeat(repeat, number)) / number
-            print "%30s %s" % (name, pptime(best))
+            print_("%30s %s" % (name, pptime(best)))
 
 if __name__ == "__main__":
     import sys

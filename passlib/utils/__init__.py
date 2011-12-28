@@ -450,8 +450,8 @@ def is_ascii_safe(source):
 #=================================================================================
 #string helpers
 #=================================================================================
-UEMPTY = u""
-USPACE = u" "
+UEMPTY = u("")
+USPACE = u(" ")
 ujoin = UEMPTY.join
 
 def consteq(left, right):

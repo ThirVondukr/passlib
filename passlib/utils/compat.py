@@ -57,7 +57,7 @@ else:
     )
 
 from types import ModuleType
-class _AliasedModule(ModuleType):
+class _AliasesModule(ModuleType):
     "fake module that does lazy importing of attributes"
 
     def __init__(self, name, **source):
@@ -80,7 +80,7 @@ class _AliasedModule(ModuleType):
         attrs.update(self._source)
         return list(attrs)
 
-aliases = _AliasedModule(__name__ + ".aliases", **_aliases)
+aliases = _AliasesModule(__name__ + ".aliases", **_aliases)
 sys.modules[aliases.__name__] = aliases
 
 #=============================================================================
@@ -101,8 +101,10 @@ else:
 
 if PY3:
     int_types = (int,)
+    num_types = (int, float)
 else:
     int_types = (int, long)
+    num_types = (int, long, float)
 
 #=============================================================================
 # unicode / bytes helpers

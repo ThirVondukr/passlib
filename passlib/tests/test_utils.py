@@ -149,7 +149,7 @@ class MiscTest(TestCase):
         orig = utils.os_crypt
         try:
             utils.os_crypt = lambda secret, hash: None
-            self.assertEqual(safe_os_crypt(u'test', u'aa'), (False,None))
+            self.assertEqual(safe_os_crypt(u('test'), u('aa')), (False,None))
         finally:
             utils.os_crypt = orig
 
@@ -247,71 +247,71 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, sp, b(''))
 
         # empty strings
-        self.assertEqual(sp(u''), u'')
-        self.assertEqual(sp(u'\u00AD'), u'')
+        self.assertEqual(sp(u('')), u(''))
+        self.assertEqual(sp(u('\u00AD')), u(''))
 
         # verify B.1 chars are stripped,
-        self.assertEqual(sp(u"$\u00AD$\u200D$"), u"$$$")
+        self.assertEqual(sp(u("$\u00AD$\u200D$")), u("$$$"))
 
         # verify C.1.2 chars are replaced with space
-        self.assertEqual(sp(u"$ $\u00A0$\u3000$"), u"$ $ $ $")
+        self.assertEqual(sp(u("$ $\u00A0$\u3000$")), u("$ $ $ $"))
 
         # verify normalization to KC
-        self.assertEqual(sp(u"a\u0300"), u"\u00E0")
-        self.assertEqual(sp(u"\u00E0"), u"\u00E0")
+        self.assertEqual(sp(u("a\u0300")), u("\u00E0"))
+        self.assertEqual(sp(u("\u00E0")), u("\u00E0"))
 
         # verify various forbidden characters
             # control chars
-        self.assertRaises(ValueError, sp, u"\u0000")
-        self.assertRaises(ValueError, sp, u"\u007F")
-        self.assertRaises(ValueError, sp, u"\u180E")
-        self.assertRaises(ValueError, sp, u"\uFFF9")
+        self.assertRaises(ValueError, sp, u("\u0000"))
+        self.assertRaises(ValueError, sp, u("\u007F"))
+        self.assertRaises(ValueError, sp, u("\u180E"))
+        self.assertRaises(ValueError, sp, u("\uFFF9"))
             # private use
-        self.assertRaises(ValueError, sp, u"\uE000")
+        self.assertRaises(ValueError, sp, u("\uE000"))
             # non-characters
-        self.assertRaises(ValueError, sp, u"\uFDD0")
+        self.assertRaises(ValueError, sp, u("\uFDD0"))
             # surrogates
-        self.assertRaises(ValueError, sp, u"\uD800")
+        self.assertRaises(ValueError, sp, u("\uD800"))
             # non-plaintext chars
-        self.assertRaises(ValueError, sp, u"\uFFFD")
+        self.assertRaises(ValueError, sp, u("\uFFFD"))
             # non-canon
-        self.assertRaises(ValueError, sp, u"\u2FF0")
+        self.assertRaises(ValueError, sp, u("\u2FF0"))
             # change display properties
-        self.assertRaises(ValueError, sp, u"\u200E")
-        self.assertRaises(ValueError, sp, u"\u206F")
+        self.assertRaises(ValueError, sp, u("\u200E"))
+        self.assertRaises(ValueError, sp, u("\u206F"))
             # unassigned code points (as of unicode 3.2)
-        self.assertRaises(ValueError, sp, u"\u0900")
-        self.assertRaises(ValueError, sp, u"\uFFF8")
+        self.assertRaises(ValueError, sp, u("\u0900"))
+        self.assertRaises(ValueError, sp, u("\uFFF8"))
 
         # verify bidi behavior
             # if starts with R/AL -- must end with R/AL
-        self.assertRaises(ValueError, sp, u"\u0627\u0031")
-        self.assertEqual(sp(u"\u0627"), u"\u0627")
-        self.assertEqual(sp(u"\u0627\u0628"), u"\u0627\u0628")
-        self.assertEqual(sp(u"\u0627\u0031\u0628"), u"\u0627\u0031\u0628")
+        self.assertRaises(ValueError, sp, u("\u0627\u0031"))
+        self.assertEqual(sp(u("\u0627")), u("\u0627"))
+        self.assertEqual(sp(u("\u0627\u0628")), u("\u0627\u0628"))
+        self.assertEqual(sp(u("\u0627\u0031\u0628")), u("\u0627\u0031\u0628"))
             # if starts with R/AL --  cannot contain L
-        self.assertRaises(ValueError, sp, u"\u0627\u0041\u0628")
+        self.assertRaises(ValueError, sp, u("\u0627\u0041\u0628"))
             # if doesn't start with R/AL -- can contain R/AL, but L & EN allowed
-        self.assertRaises(ValueError, sp, u"x\u0627z")
-        self.assertEqual(sp(u"x\u0041z"), u"x\u0041z")
+        self.assertRaises(ValueError, sp, u("x\u0627z"))
+        self.assertEqual(sp(u("x\u0041z")), u("x\u0041z"))
 
         #------------------------------------------------------
         # examples pulled from external sources, to be thorough
         #------------------------------------------------------
 
         # rfc 4031 section 3 examples
-        self.assertEqual(sp(u"I\u00ADX"), u"IX") # strip SHY
-        self.assertEqual(sp(u"user"), u"user") # unchanged
-        self.assertEqual(sp(u"USER"), u"USER") # case preserved
-        self.assertEqual(sp(u"\u00AA"), u"a") # normalize to KC form
-        self.assertEqual(sp(u"\u2168"), u"IX") # normalize to KC form
-        self.assertRaises(ValueError, sp, u"\u0007") # forbid control chars
-        self.assertRaises(ValueError, sp, u"\u0627\u0031") # invalid bidi
+        self.assertEqual(sp(u("I\u00ADX")), u("IX")) # strip SHY
+        self.assertEqual(sp(u("user")), u("user")) # unchanged
+        self.assertEqual(sp(u("USER")), u("USER")) # case preserved
+        self.assertEqual(sp(u("\u00AA")), u("a")) # normalize to KC form
+        self.assertEqual(sp(u("\u2168")), u("IX")) # normalize to KC form
+        self.assertRaises(ValueError, sp, u("\u0007")) # forbid control chars
+        self.assertRaises(ValueError, sp, u("\u0627\u0031")) # invalid bidi
 
         # rfc 3454 section 6 examples
             # starts with RAL char, must end with RAL char
-        self.assertRaises(ValueError, sp, u"\u0627\u0031")
-        self.assertEqual(sp(u"\u0627\u0031\u0628"), u"\u0627\u0031\u0628")
+        self.assertRaises(ValueError, sp, u("\u0627\u0031"))
+        self.assertEqual(sp(u("\u0627\u0031\u0628")), u("\u0627\u0031\u0628"))
 
 #=========================================================
 #byte/unicode helpers

@@ -31,7 +31,7 @@ from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, Undef, \
                           is_crypt_handler, rng, \
                           PasslibPolicyWarning
-from passlib.utils.compat import is_mapping, iteritems, int_types, \
+from passlib.utils.compat import is_mapping, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
 #pkg
@@ -292,7 +292,7 @@ class CryptPolicy(object):
             # XXX: type check, and accept strings for from_source ?
         parse = self._parse_option_key
         self._kwds = dict((parse(key), value) for key, value in
-                          kwds.iteritems())
+                          iteritems(kwds))
         self._compile()
 
     @staticmethod
@@ -360,9 +360,9 @@ class CryptPolicy(object):
         context_options = self._context_options = {}
         norm_scheme_option = self._normalize_scheme_option
         norm_context_option = self._normalize_context_option
-        cats = set([None])
+        cats = set()
         add_cat = cats.add
-        for (cat, scheme, key), value in source.iteritems():
+        for (cat, scheme, key), value in iteritems(source):
             add_cat(cat)
             if scheme:
                 value = norm_scheme_option(key, value)
@@ -387,7 +387,8 @@ class CryptPolicy(object):
                     context_options[key] = {cat: value}
 
         # store list of categories
-        self._categories = sorted(cats)
+        cats.discard(None)
+        self._categories = [None] + sorted(cats)
 
     @staticmethod
     def _normalize_scheme_option(key, value):
@@ -644,7 +645,7 @@ class CryptPolicy(object):
             yield format_key(None, None, "schemes"), encode_list(value)
 
         # then per-category elements
-        scheme_items = sorted(self._scheme_options.iteritems())
+        scheme_items = sorted(iteritems(self._scheme_options))
         get_option = self._get_option
         for cat in self._categories:
 
@@ -677,7 +678,7 @@ class CryptPolicy(object):
     def _escape_ini_pair(self, k, v):
         if isinstance(v, str):
             v = v.replace("%", "%%") #escape any percent signs.
-        elif isinstance(v, (int, long, float)):
+        elif isinstance(v, num_types):
             v = str(v)
         return k,v
 
@@ -964,7 +965,7 @@ class _CryptRecord(object):
     def _compile_encrypt(self, settings):
         handler = self.handler
         skeys = handler.setting_kwds
-        self._settings = dict((k,v) for k,v in settings.iteritems()
+        self._settings = dict((k,v) for k,v in iteritems(settings)
                              if k in skeys)
 
         if not (self._settings or self._has_rounds):

@@ -365,7 +365,7 @@ class PrefixWrapperTest(TestCase):
     def test_12_ident(self):
         # test ident is proxied
         h = uh.PrefixWrapper("h2", "ldap_md5", "{XXX}")
-        self.assertEqual(h.ident, u"{XXX}{MD5}")
+        self.assertEqual(h.ident, u("{XXX}{MD5}"))
         self.assertIs(h.ident_values, None)
 
         # test orig_prefix disabled ident proxy
@@ -375,7 +375,7 @@ class PrefixWrapperTest(TestCase):
 
         # test custom ident overrides default
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{X")
-        self.assertEqual(h.ident, u"{X")
+        self.assertEqual(h.ident, u("{X"))
         self.assertIs(h.ident_values, None)
 
         # test custom ident must match
@@ -388,7 +388,7 @@ class PrefixWrapperTest(TestCase):
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "bcrypt", "{XXX}")
         self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, [ u"{XXX}$2$", u"{XXX}$2a$" ])
+        self.assertEqual(h.ident_values, [ u("{XXX}$2$"), u("{XXX}$2a$") ])
 
 #=========================================================
 #sample algorithms - these serve as known quantities
