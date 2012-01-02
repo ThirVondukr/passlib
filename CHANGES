@@ -10,6 +10,11 @@ Release History
 
         .. currentmodule:: passlib.context
 
+        * :class:`~CryptContext` now supports a :ref:`passprep` option,
+          which runs all passwords through :rfc:`SASLPrep <4013>`
+          in order to normalize their unicode representation before hashing
+          [issue 24].
+
         * Internals of :class:`CryptPolicy` have been
           re-written drastically. Should now be stricter (and more informative)
           about invalid values, and common :class:`CryptContext`

@@ -19,7 +19,7 @@ except ImportError:
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode, PasslibPolicyWarning
-from passlib.utils.compat import irange
+from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
@@ -1014,6 +1014,62 @@ class CryptContextTest(TestCase):
                 self.assertEquals(ctx.verify_and_update("x",BAD1), (False,None))
                 res = ctx.verify_and_update(PASS1, BAD1)
                 self.assertTrue(res[0] and res[1] and res[1] != BAD1)
+
+    def test_91_passprep(self):
+        "test passprep option"
+        # saslprep should normalize pu -> pn
+        pu = u("a\u0300") # unnormalized unicode
+        pn = u("\u00E0") # normalized unicode
+
+        # create contexts w/ various options
+        craw = CryptContext(["md5_crypt"])
+        cnorm = CryptContext(["md5_crypt"], all__passprep="saslprep")
+        cback = CryptContext(["md5_crypt"], all__passprep="saslprep,raw")
+        clst = [craw,cnorm,cback]
+
+        # check raw encrypt against verify methods
+        h = craw.encrypt(pu)
+
+        self.assertTrue(craw.verify(pu, h))
+        self.assertFalse(cnorm.verify(pu, h))
+        self.assertTrue(cback.verify(pu, h))
+
+        self.assertFalse(craw.verify(pn, h))
+        self.assertFalse(craw.verify(pn, h))
+        self.assertFalse(craw.verify(pn, h))
+
+        # check normalized encrypt against verify methods
+        for ctx in [cnorm, cback]:
+            h = ctx.encrypt(pu)
+
+            self.assertFalse(craw.verify(pu, h))
+            self.assertTrue(cnorm.verify(pu, h))
+            self.assertTrue(cback.verify(pu, h))
+
+            for ctx2 in clst:
+                self.assertTrue(ctx2.verify(pn, h))
+
+        # check all encrypts leave normalized input alone
+        for ctx in clst:
+            h = ctx.encrypt(pn)
+
+            self.assertFalse(craw.verify(pu, h))
+            self.assertTrue(cnorm.verify(pu, h))
+            self.assertTrue(cback.verify(pu, h))
+
+            for ctx2 in clst:
+                self.assertTrue(ctx2.verify(pn, h))
+
+        # test invalid name
+        self.assertRaises(KeyError, CryptContext, ["md5_crypt"],
+                          all__passprep="xxx")
+
+        # test per-hash passprep
+        ctx = CryptContext(["md5_crypt", "sha256_crypt"],
+            all__passprep="raw", sha256_crypt__passprep="saslprep",
+            )
+        self.assertFalse(ctx.verify(pu, ctx.encrypt(pn, scheme="md5_crypt")))
+        self.assertTrue(ctx.verify(pu, ctx.encrypt(pn, scheme="sha256_crypt")))
 
     #=========================================================
     #eoc

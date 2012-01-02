@@ -4,6 +4,7 @@
 #=========================================================
 from __future__ import with_statement
 #core
+from functools import update_wrapper
 import inspect
 import re
 import hashlib
@@ -23,7 +24,7 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, \
                           is_crypt_handler, rng, \
-                          PasslibPolicyWarning, timer
+                          PasslibPolicyWarning, timer, saslprep
 from passlib.utils.compat import is_mapping, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
@@ -759,6 +760,11 @@ default_policy = _load_default_policy()
 #=========================================================
 # helpers for CryptContext
 #=========================================================
+_passprep_funcs = dict(
+    saslprep=saslprep,
+    raw=lambda s: s,
+)
+
 class _CryptRecord(object):
     """wraps a handler and automatically applies various options.
 
@@ -801,7 +807,7 @@ class _CryptRecord(object):
     #================================================================
     def __init__(self, handler, category=None, deprecated=False,
                  min_rounds=None, max_rounds=None, default_rounds=None,
-                 vary_rounds=None, min_verify_time=None,
+                 vary_rounds=None, min_verify_time=None, passprep=None,
                  **settings):
         self.handler = handler
         self.category = category
@@ -814,6 +820,9 @@ class _CryptRecord(object):
         # these aren't modified by the record, so just copy them directly
         self.identify = handler.identify
         self.genhash = handler.genhash
+
+        # let stringprep code wrap genhash/encrypt if needed
+        self._compile_passprep(passprep)
 
     @property
     def scheme(self):
@@ -1080,6 +1089,55 @@ class _CryptRecord(object):
 
     # filled in by init from handler._hash_needs_update
     _hash_needs_update = None
+
+    #================================================================
+    # password stringprep
+    #================================================================
+    def _compile_passprep(self, value):
+        # NOTE: all of this code assumes secret uses utf-8 encoding if bytes.
+        if not value:
+            return
+        self._stringprep = value
+        names = _splitcomma(value)
+        if names == ["raw"]:
+            return
+        funcs = [_passprep_funcs[name] for name in names]
+
+        first = funcs[0]
+        def wrap(orig):
+            def wrapper(secret, *args, **kwds):
+                if isinstance(secret, bytes):
+                    secret = secret.decode("utf-8")
+                return orig(first(secret), *args, **kwds)
+            update_wrapper(wrapper, orig)
+            wrapper._wrapped = orig
+            return wrapper
+
+        # wrap genhash & encrypt so secret is prep'd
+        self.genhash = wrap(self.genhash)
+        self.encrypt = wrap(self.encrypt)
+
+        # wrap verify so secret is prep'd
+        if len(funcs) == 1:
+            self.verify = wrap(self.verify)
+        else:
+            # if multiple fallback prep functions,
+            # try to verify with each of them.
+            verify = self.verify
+            def wrapper(secret, *args, **kwds):
+                if isinstance(secret, bytes):
+                    secret = secret.decode("utf-8")
+                seen = set()
+                for prep in funcs:
+                    tmp = prep(secret)
+                    if tmp not in seen:
+                        if verify(tmp, *args, **kwds):
+                            return True
+                        seen.add(tmp)
+                return False
+            update_wrapper(wrapper, verify)
+            wrapper._wrapped = verify
+            self.verify = wrapper
 
     #================================================================
     # eoc
