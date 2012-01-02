@@ -50,6 +50,10 @@ custom_app_context = LazyCryptContext(
 #=========================================================
 #django
 #=========================================================
+
+# XXX: should this be integrated with passlib.ext.django,
+# so that it's policy changes to reflect what the extension has set?
+# in that case we might need a default_django_context as well.
 django_context = LazyCryptContext(
     schemes=[
         "django_salted_sha1", "django_salted_md5", "django_des_crypt",

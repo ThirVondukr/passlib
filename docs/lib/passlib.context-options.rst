@@ -98,21 +98,20 @@ Within INI files, this may be specified using the alternate format :samp:`{hash}
 
     Sets the default number of rounds to use when generating new hashes (via :meth:`CryptContext.encrypt`).
 
-    If not set, this will use max rounds hash option (see below),
-    or fall back to the algorithm-specified default.
+    If not set, this will use an algorithm-specific default.
     For hashes which do not support a rounds parameter, this option is ignored.
 
 :samp:`{hash}__vary_rounds`
 
-    if specified along with :samp:`{hash}__default_rounds`,
+    If specified along with :samp:`{hash}__default_rounds`,
     this will cause each new hash created by :meth:`CryptContext.encrypt`
     to have a rounds value random chosen from the range :samp:`{default_rounds} +/- {vary_rounds}`.
 
-    this may be specified as an integer value, or as a string containing an integer
+    This may be specified as an integer value, or as a string containing an integer
     with a percent suffix (eg: ``"10%"``). if specified as a percent,
     the amount varied will be calculated as a percentage of the :samp:`{default_rounds}` value.
 
-    The default passlib policy sets this to ``"10%"``.
+    The default Passlib policy sets this to ``"10%"``.
 
     .. note::
 
