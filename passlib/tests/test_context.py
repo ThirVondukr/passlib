@@ -603,6 +603,9 @@ class CryptContextTest(TestCase):
             '$3$$00000000000000000000000000000000',
             )
 
+        # unsupported hash settings should be rejected
+        self.assertRaises(KeyError, cc.replace, md5_crypt__ident="NT")
+
     def test_10_02_genconfig_rounds_limits(self):
         "test genconfig() policy rounds limits"
         cc = CryptContext(policy=None,

@@ -812,7 +812,7 @@ class _CryptRecord(object):
         self.handler = handler
         self.category = category
         self._compile_rounds(min_rounds, max_rounds, default_rounds,
-                             vary_rounds)
+                             vary_rounds, 'rounds' in settings)
         self._compile_encrypt(settings)
         self._compile_verify(min_verify_time)
         self._compile_deprecation(deprecated)
@@ -841,7 +841,7 @@ class _CryptRecord(object):
     #================================================================
     # rounds generation & limits - used by encrypt & deprecation code
     #================================================================
-    def _compile_rounds(self, mn, mx, df, vr):
+    def _compile_rounds(self, mn, mx, df, vr, fixed):
         "parse options and compile efficient generate_rounds function"
         handler = self.handler
         if 'rounds' not in handler.setting_kwds:
@@ -927,7 +927,7 @@ class _CryptRecord(object):
         #----------------------------------------------------
         # setup rounds generation function
         #----------------------------------------------------
-        if df is None:
+        if df is None or fixed:
             self._generate_rounds = None
             self._has_rounds = self._has_rounds_bounds
         elif vr:
@@ -967,10 +967,13 @@ class _CryptRecord(object):
     def _compile_encrypt(self, settings):
         handler = self.handler
         skeys = handler.setting_kwds
-        self._settings = dict((k,v) for k,v in iteritems(settings)
-                             if k in skeys)
+        for key in settings:
+            if key not in skeys:
+                raise KeyError("keyword not supported by %s handler: %r" %
+                               (handler.name, key))
+        self._settings = settings
 
-        if not (self._settings or self._has_rounds):
+        if not (settings or self._has_rounds):
             # bypass prepare settings entirely.
             self.genconfig = handler.genconfig
             self.encrypt = handler.encrypt
@@ -1000,15 +1003,17 @@ class _CryptRecord(object):
                     kwds['rounds'] = gen()
             elif self._has_rounds_bounds:
                 # XXX: should this raise an error instead of warning ?
+                # NOTE: stackdepth=4 is so that error matches
+                # where ctx.encrypt() was called by application code.
                 mn = self._min_rounds
                 if mn is not None and rounds < mn:
                     warn("%s requires rounds >= %d, increasing value from %d" %
-                         (self._ident, mn, rounds), PasslibPolicyWarning)
+                         (self._ident, mn, rounds), PasslibPolicyWarning, 4)
                     rounds = mn
                 mx = self._max_rounds
                 if mx and rounds > mx:
                     warn("%s requires rounds <= %d, decreasing value from %d" %
-                         (self._ident, mx, rounds), PasslibPolicyWarning)
+                         (self._ident, mx, rounds), PasslibPolicyWarning, 4)
                     rounds = mx
                 kwds['rounds'] = rounds
 
