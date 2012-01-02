@@ -293,17 +293,21 @@ class TestCase(unittest.TestCase):
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
 
-    if not hasattr(unittest.TestCase, "assertRegexpMatches"):
-        #added in 2.7/UT2 and 3.1
-        def assertRegexpMatches(self, text, expected_regex, msg=None):
-            """Fail the test unless the text matches the regular expression."""
-            if isinstance(expected_regex, sb_types):
-                assert expected_regex, "expected_regex must not be empty."
-                expected_regex = re.compile(expected_regex)
-            if not expected_regex.search(text):
-                msg = msg or "Regex didn't match"
-                msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
-                raise self.failureException(msg)
+    if not hasattr(unittest.TestCase, "assertRegex"):
+        # assertRegexpMatches() added in 2.7/UT2 and 3.1, renamed to
+        # assertRegex() in 3.2; this code ensures assertRegex() is defined.
+        if hasattr(unittest.TestCase, "assertRegexpMatches"):
+            assertRegex = unittest.TestCase.assertRegexpMatches
+        else:
+            def assertRegex(self, text, expected_regex, msg=None):
+                """Fail the test unless the text matches the regular expression."""
+                if isinstance(expected_regex, sb_types):
+                    assert expected_regex, "expected_regex must not be empty."
+                    expected_regex = re.compile(expected_regex)
+                if not expected_regex.search(text):
+                    msg = msg or "Regex didn't match"
+                    msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
+                    raise self.failureException(msg)
 
     #============================================================
     #add some custom methods
@@ -344,7 +348,7 @@ class TestCase(unittest.TestCase):
         if message:
             self.assertEqual(str(warning), message, msg)
         if message_re:
-            self.assertRegexpMatches(str(warning), message_re, msg)
+            self.assertRegex(str(warning), message_re, msg)
         if category:
             self.assertIsInstance(warning, category, msg)
 
@@ -361,7 +365,7 @@ class TestCase(unittest.TestCase):
         ##    if filename:
         ##        self.assertEqual(real, filename, msg)
         ##    if filename_re:
-        ##        self.assertRegexpMatches(real, filename_re, msg)
+        ##        self.assertRegex(real, filename_re, msg)
         ##if lineno:
         ##    if not wmsg:
         ##        raise TypeError("can't read lineno from warning object")
@@ -1227,6 +1231,7 @@ except ImportError:
             if self._record:
                 log = []
                 def showwarning(*args, **kwargs):
+#                    self._showwarning(*args, **kwargs)
                     log.append(WarningMessage(*args, **kwargs))
                 self._module.showwarning = showwarning
                 return log
