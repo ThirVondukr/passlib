@@ -51,7 +51,7 @@ __all__ = [
     "xor_bytes",
 
     #random
-    'timer',
+    'tick',
     'rng',
     'getrandbytes',
     'getrandstr',
@@ -803,13 +803,13 @@ def adapted_b64_decode(data, sixthree="."):
 #randomness
 #=================================================================================
 
-# pick best timer function to expose as "timer" - lifted from timeit module.
+# pick best timer function to expose as "tick" - lifted from timeit module.
 if sys.platform == "win32":
     # On Windows, the best timer is time.clock()
-    from time import clock as timer
+    from time import clock as tick
 else:
     # On most other platforms the best timer is time.time()
-    from time import time as timer
+    from time import time as tick
 
 # works but not used
 ##def _get_timer_resolution(timer=timer, repeat=3):

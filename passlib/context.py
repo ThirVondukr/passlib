@@ -24,7 +24,7 @@ except ImportError:
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import to_bytes, to_unicode, bytes, \
                           is_crypt_handler, rng, \
-                          PasslibPolicyWarning, timer, saslprep
+                          PasslibPolicyWarning, tick, saslprep
 from passlib.utils.compat import is_mapping, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, bytes
 from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
@@ -1032,9 +1032,9 @@ class _CryptRecord(object):
         "verify helper - adds min_verify_time delay"
         mvt = self._min_verify_time
         assert mvt
-        start = timer()
+        start = tick()
         ok = self.handler.verify(secret, hash, **context)
-        end = timer()
+        end = tick()
         delta = mvt + start - end
         if delta > 0:
             sleep(delta)

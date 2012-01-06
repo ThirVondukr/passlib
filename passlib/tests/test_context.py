@@ -18,7 +18,7 @@ except ImportError:
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
-from passlib.utils import to_bytes, to_unicode, PasslibPolicyWarning
+from passlib.utils import to_bytes, to_unicode, PasslibPolicyWarning, tick
 from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
@@ -917,8 +917,8 @@ class CryptContextTest(TestCase):
 
     def test_24_min_verify_time(self):
         "test verify() honors min_verify_time"
-        #NOTE: this whole test assumes time.sleep() and time.time()
-        #      have at least 1ms accuracy
+        #NOTE: this whole test assumes time.sleep() and tick()
+        #      have better than 100ms accuracy - set via delta.
         delta = .1
         min_delay = delta
         min_verify_time = min_delay + 2*delta
@@ -941,9 +941,9 @@ class CryptContextTest(TestCase):
         cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
 
         def timecall(func, *args, **kwds):
-            start = time.time()
+            start = tick()
             result = func(*args, **kwds)
-            end = time.time()
+            end = tick()
             return end-start, result
 
         #verify hashing works
