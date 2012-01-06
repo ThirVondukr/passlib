@@ -26,10 +26,24 @@ B_NULL = b("\x00")
 B_MD5_MAGIC = b("$1$")
 B_APR_MAGIC = b("$apr1$")
 
-def raw_md5_crypt(secret, salt, apr=False):
+_OFFSETS = [
+    (0, 3), (3, 2), (3, 3), (2, 1), (3, 2), (3, 3), (2, 3),
+    (1, 2), (3, 3), (2, 3), (3, 0), (3, 3), (2, 3), (3, 2),
+    (1, 3), (2, 3), (3, 2), (3, 1), (2, 3), (3, 2), (3, 3),
+    ]
+
+def extend(source, size_ref):
+    "helper which repeats <source> so it's the same length as <size_ref>"
+    m,d = divmod(len(size_ref), len(source))
+    if d:
+        return source*m + source[:d]
+    else:
+        return source*m
+
+def raw_md5_crypt(password, salt, apr=False):
     """perform raw md5-crypt calculation
 
-    :arg secret:
+    :arg password:
         password, bytes or unicode (encoded to utf-8)
 
     :arg salt:
@@ -48,10 +62,10 @@ def raw_md5_crypt(secret, salt, apr=False):
     # would love to find webpage explaining why just using a portable
     # implementation of $1$ wasn't sufficient. *nothing* else was changed.
 
-    #validate secret
+    #validate password
     #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-    if isinstance(secret, unicode):
-        secret = secret.encode("utf-8")
+    if isinstance(password, unicode):
+        password = password.encode("utf-8")
 
     #validate salt
     if isinstance(salt, unicode):
@@ -59,19 +73,19 @@ def raw_md5_crypt(secret, salt, apr=False):
     if len(salt) > 8:
         salt = salt[:8]
 
-    #primary hash = secret+id+salt+...
-    h = md5(secret)
-    h.update(B_APR_MAGIC if apr else B_MD5_MAGIC)
-    h.update(salt)
+    #primary hash = password+id+salt+...
+    if apr:
+        magic = B_APR_MAGIC
+    else:
+        magic = B_MD5_MAGIC
+    a_hash = md5(password + magic + salt)
 
-    # primary hash - add len(secret) chars of tmp hash,
-    # where temp hash is md5(secret+salt+secret)
-    tmp = md5(secret + salt + secret).digest()
-    assert len(tmp) == 16
-    slen = len(secret)
-    h.update(tmp * (slen//16) + tmp[:slen % 16])
+    # primary hash - add len(password) chars of tmp hash,
+    # where temp hash is md5(password+salt+password)
+    b = md5(password + salt + password).digest()
+    a_hash.update(extend(b, password))
 
-    # primary hash - add null chars & first char of secret !?!
+    # primary hash - add null chars & first char of password !?!
     #
     # this may have historically been a bug,
     # where they meant to use tmp[0] instead of '\x00',
@@ -80,12 +94,12 @@ def raw_md5_crypt(secret, salt, apr=False):
     #
     # sha-crypt replaced this step with
     # something more useful, anyways
-    idx = len(secret)
-    evenchar = secret[:1]
+    idx = len(password)
+    evenchar = password[:1]
     while idx > 0:
-        h.update(B_NULL if idx & 1 else evenchar)
+        a_hash.update(B_NULL if idx & 1 else evenchar)
         idx >>= 1
-    result = h.digest()
+    a = a_hash.digest()
 
     #next:
     # do 1000 rounds of md5 to make things harder.
@@ -96,49 +110,32 @@ def raw_md5_crypt(secret, salt, apr=False):
     #   secret if round % 7
     #   result if round % 2 else secret
     #
-    #NOTE:
-    # instead of doing this directly, this implementation
-    # pre-computes all the combinations of strings & md5 hash objects
-    # that will be needed, in order to perform round operations as fast as possible
-    # (so that each round consists of one hash create/copy + 1 update + 1 digest)
+    # NOTE: instead of doing this directly, this implementation precomputes
+    # most of the data ahead of time. (see sha2_crypt for details, it
+    # uses the same alg & optimization).
     #
-    #TODO: might be able to optimize even further by removing need for tests, since
-    # if/then pattern is easily predicatble -
-    # pattern is 7-0-1-0-3-0 (where 1 bit = mult 2, 2 bit = mult 3, 3 bit = mult 7)
-    secret_secret = secret*2
-    salt_secret = salt+secret
-    salt_secret_secret = salt + secret*2
-    secret_hash = md5(secret).copy
-    secret_secret_hash = md5(secret_secret).copy
-    secret_salt_hash = md5(secret+salt).copy
-    secret_salt_secret_hash = md5(secret+salt_secret).copy
-    for idx in irange(1000):
-        if idx & 1:
-            if idx % 3:
-                if idx % 7:
-                    h = secret_salt_secret_hash()
-                else:
-                    h = secret_salt_hash()
-            elif idx % 7:
-                h = secret_secret_hash()
-            else:
-                h = secret_hash()
-            h.update(result)
-        else:
-            h = md5(result)
-            if idx % 3:
-                if idx % 7:
-                    h.update(salt_secret_secret)
-                else:
-                    h.update(salt_secret)
-            elif idx % 7:
-                h.update(secret_secret)
-            else:
-                h.update(secret)
-        result = h.digest()
+    p = password
+    s = salt
+    p_p = p*2
+    s_p = s+p
+    evens = [p, s_p, p_p, s_p+p]
+    odds =  [p, p+s, p_p, p+s_p]
+    data = [(evens[e], odds[o]) for e,o in _OFFSETS]
+
+    # perform 23 blocks of 42 rounds each
+    c = a
+    i = 0
+    while i < 23:
+        for even, odd in data:
+            c = md5(odd + md5(c + even).digest()).digest()
+        i += 1
+
+    # perform 34 additional rounds, 2 at a time; for a total of 1000 rounds.
+    for even, odd in data[:17]:
+        c = md5(odd + md5(c + even).digest()).digest()
 
     #encode resulting hash
-    return h64.encode_transposed_bytes(result, _chk_offsets).decode("ascii")
+    return h64.encode_transposed_bytes(c, _chk_offsets).decode("ascii")
 
 _chk_offsets = (
     12,6,0,

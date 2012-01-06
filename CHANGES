@@ -65,6 +65,10 @@ Release History
               the legacy hashes supported by Passlib (such as
               :class:`!mysql323`) are already weak enough to be vulnerable.
 
+        * Builtin implementations of :class:`~md5_crypt`,
+          :class:`~sha256_crypt`, and :class:`~sha512_crypt` sped up by
+          about 25% due via additional pre-computation step.
+
         * Restored builtin pure-python BCrypt implementation
           (:mod:`passlib.utils._slow_bcrypt`) that was removed in v1.3.
           This implementation is still *WAY* to slow to be suitable

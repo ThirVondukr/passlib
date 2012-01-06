@@ -1086,6 +1086,22 @@ class _SHA256CryptTest(HandlerCase):
         (u('with unic\u00D6de'), '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
         ]
 
+    if enable_option("cover"):
+        # rounds 1007-1012 ... sanity check for builtin alg added in 1.6,
+        # detects fencepost errors surrounding rounds that are multiples of 42.
+        # in this case, 1008 +/- 4
+        known_correct_hashes.extend([
+        ("secret", '$5$rounds=1004$nacl$oiWPbm.kQ7.jTCZoOtdv7/tO5mWv/vxw5yTqlBagVR7'),
+        ("secret", '$5$rounds=1005$nacl$6Mo/TmGDrXxg.bMK9isRzyWH3a..6HnSVVsJMEX7ud/'),
+        ("secret", '$5$rounds=1006$nacl$I46VwuAiUBwmVkfPFakCtjVxYYaOJscsuIeuZLbfKID'),
+        ("secret", '$5$rounds=1007$nacl$9fY4j1AV3N/dV/YMUn1enRHKH.7nEL4xf1wWB6wfDD4'),
+        ("secret", '$5$rounds=1008$nacl$CiFWCfn8ODmWs0I1xAdXFo09tM8jr075CyP64bu3by9'),
+        ("secret", '$5$rounds=1009$nacl$QtpFX.CJHgVQ9oAjVYStxAeiU38OmFILWm684c6FyED'),
+        ("secret", '$5$rounds=1010$nacl$ktAwXuT5WbjBW/0ZU1eNMpqIWY1Sm4twfRE1zbZyo.B'),
+        ("secret", '$5$rounds=1011$nacl$QJWLBEhO9qQHyMx4IJojSN9sS41P1Yuz9REddxdO721'),
+        ("secret", '$5$rounds=1012$nacl$mmf/k2PkbBF4VCtERgky3bEVavmLZKFwAcvxD1p3kV2'),
+        ])
+
     known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$5$rounds=10428$uy/:jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMeZGsGx2aBvxTvDFI613c3',
