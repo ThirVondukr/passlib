@@ -302,6 +302,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         password = saslprep(password).encode("utf-8")
         if not isinstance(salt, bytes):
             raise TypeError("salt must be bytes")
+        if rounds < 1:
+            raise ValueError("rounds must be >= 1")
         alg = iana_to_hashlib(norm_digest_name(alg))
         return pbkdf2(password, salt, rounds, -1, "hmac-" + alg)
 
@@ -328,7 +330,10 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise ValueError("invalid scram hash")
 
         # decode salt
-        salt = adapted_b64_decode(salt_str.encode("ascii"))
+        try:
+            salt = adapted_b64_decode(salt_str.encode("ascii"))
+        except TypeError:
+            raise ValueError("malformed scram hash")
 
         # decode algs/digest list
         if not chk_str:
@@ -340,7 +345,10 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             chkmap = {}
             for pair in chk_str.split(","):
                 alg, digest = pair.split("=")
-                chkmap[alg] = adapted_b64_decode(digest.encode("ascii"))
+                try:
+                    chkmap[alg] = adapted_b64_decode(digest.encode("ascii"))
+                except TypeError:
+                    raise ValueError("malformed scram hash")
         else:
             # comma-separated list of alg names, no digests
             algs = chk_str
@@ -449,7 +457,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:
-            return False
+            raise ValueError("expected %s hash, got %s config string instead" %
+                             (cls.name, cls.name))
 
         # NOTE: to make the verify method efficient, we just calculate hash
         # of shortest digest by default. apps can pass in "full_verify=True" to

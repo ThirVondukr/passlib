@@ -1051,12 +1051,11 @@ class ScramTest(HandlerCase):
         # non-digit in rounds
         '$scram$409A$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
 
-# FIXME: bad chars raise TypeError
         # bad char in salt
-#        '$scram$4096$QSXCR.Q6sek8bf9-$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
+        '$scram$4096$QSXCR.Q6sek8bf9-$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
 
         # bad char in digest
-#        '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX3-',
+        '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX3-',
 
         # too many chars in alg
         '$scram$4096$QSXCR.Q6sek8bf92$shaxxx-190=HZbuOlKbWl.eR8AfIposuKbhX30',
@@ -1123,10 +1122,28 @@ class ScramTest(HandlerCase):
                        'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ'),
                           ["sha-1","sha-256","sha-512"])
 
-    # TODO.
     def test_103_derive_digest(self):
         "test scram.derive_digest()"
-        pass
+        # NOTE: this just does a light test, since derive_digest
+        # is used by encrypt / verify, and is tested pretty well via those.
+
+        hash = self.handler.derive_digest
+
+        # check various encodings of password work.
+        s1 = b('\x01\x02\x03')
+        d1 = b('\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3')
+        self.assertEqual(hash(u("\u2168"), s1, 1000, 'sha-1'), d1)
+        self.assertEqual(hash(b("\xe2\x85\xa8"), s1, 1000, 'SHA-1'), d1)
+        self.assertEqual(hash(u("IX"), s1, 1000, 'sha1'), d1)
+        self.assertEqual(hash(b("IX"), s1, 1000, 'SHA1'), d1)
+
+        # check algs
+        self.assertEqual(hash("IX", s1, 1000, 'md5'),
+                         b('3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od'))
+        self.assertRaises(ValueError, hash, "IX", s1, 1000, 'sha-666')
+
+        # check rounds
+        self.assertRaises(ValueError, hash, "IX", s1, 0, 'sha-1')
 
     def test_104_saslprep(self):
         "test encrypt/verify use saslprep"
