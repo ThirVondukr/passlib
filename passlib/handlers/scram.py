@@ -34,153 +34,6 @@ __all__ = [
     "scram",
 ]
 
-def test_reference_scram():
-    "quick hack testing scram reference vectors"
-    from passlib.utils import xor_bytes
-    from passlib.utils.pbkdf2 import pbkdf2, get_prf
-    from hashlib import sha1
-
-    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
-
-    digest = "sha1"
-    salt = 'QSXCR+Q6sek8bf92'.decode("base64")
-    rounds = 4096
-    username = "user"
-    password = "pencil"
-    client_nonce = "fyko+d2lbbFgONRv9qkxdawL"
-    server_nonce = "3rfcNHYJY1ZVvWVs7j"
-
-    # hash passwd
-    hk = pbkdf2(password, salt, rounds, -1, prf="hmac-" + digest)
-
-    # auth msg
-    auth_msg = (
-        'n={username},r={client_nonce}'
-            ','
-        'r={client_nonce}{server_nonce},s={salt},i={rounds}'
-            ','
-        'c=biws,r={client_nonce}{server_nonce}'
-        ).format(salt=salt.encode("base64").rstrip(), rounds=rounds,
-                 client_nonce=client_nonce, server_nonce=server_nonce,
-                 username=username)
-    print repr(auth_msg)
-
-    # client proof
-    hmac, hmac_size = get_prf("hmac-" + digest)
-    ck = hmac(hk, "Client Key")
-    cs = hmac(sha1(ck).digest(), auth_msg)
-    cp = xor_bytes(ck, cs).encode("base64").rstrip()
-    assert cp == "v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=", cp
-
-    # server proof
-    sk = hmac(hk, "Server Key")
-    ss = hmac(sk, auth_msg).encode("base64").rstrip()
-    assert ss == "rmF9pqV8S7suAoZWja4dJRkFsKQ=", ss
-
-class scram_record(tuple):
-    #=========================================================
-    # init
-    #=========================================================
-
-    @classmethod
-    def from_string(cls, hash, alg):
-        "create record from scram hash, for given alg"
-        return cls(alg, *scram.extract_digest_info(hash, alg))
-
-    def __new__(cls, *args):
-        return tuple.__new__(cls, args)
-
-    def __init__(self, salt, rounds, alg, digest):
-        self.alg = norm_digest_name(alg)
-        self.salt = salt
-        self.rounds = rounds
-        self.digest = digest
-
-    #=========================================================
-    # frontend methods
-    #=========================================================
-    def get_hash(self, data):
-        "return hash of raw data"
-        return hashlib.new(iana_to_hashlib(self.alg), data).digest()
-
-    def get_client_proof(self, msg):
-        "return client proof of specified auth msg text"
-        return xor_bytes(self.client_key, self.get_client_sig(msg))
-
-    def get_client_sig(self, msg):
-        "return client signature of specified auth msg text"
-        return self.get_hmac(self.stored_key, msg)
-
-    def get_server_sig(self, msg):
-        "return server signature of specified auth msg text"
-        return self.get_hmac(self.server_key, msg)
-
-    def format_server_response(self, client_nonce, server_nonce):
-        return 'r={client_nonce}{server_nonce},s={salt},i={rounds}'.format(
-            client_nonce=client_nonce,
-            server_nonce=server_nonce,
-            rounds=self.rounds,
-            salt=self.encoded_salt,
-            )
-
-    def format_auth_msg(self, username, client_nonce, server_nonce,
-                        header='c=biws'):
-        return (
-            'n={username},r={client_nonce}'
-                ','
-            'r={client_nonce}{server_nonce},s={salt},i={rounds}'
-                ','
-            '{header},r={client_nonce}{server_nonce}'
-            ).format(
-                username=username,
-                client_nonce=client_nonce,
-                server_nonce=server_nonce,
-                salt=self.encoded_salt,
-                rounds=rounds,
-                header=header,
-                )
-
-    #=========================================================
-    # helpers to calculate & cache constant data
-    #=========================================================
-    def _calc_get_hmac(self):
-        return get_prf("hmac-" + iana_to_hashlib(self.alg))[0]
-
-    def _calc_client_key(self):
-        return self.get_hmac(self.digest, b("Client Key"))
-
-    def _calc_stored_key(self):
-        return self.get_hash(self.client_key)
-
-    def _calc_server_key(self):
-        return self.get_hmac(self.digest, b("Server Key"))
-
-    def _calc_encoded_salt(self):
-        return self.salt.encode("base64").rstrip()
-
-    #=========================================================
-    # hacks for calculated attributes
-    #=========================================================
-    def __getattr__(self, attr):
-        if not attr.startswith("_"):
-            f = getattr(self, "_calc_" + attr, None)
-            if f:
-                value = f()
-                setattr(self, attr, value)
-                return value
-        raise AttributeError("attribute not found")
-
-    def __dir__(self):
-        cdir = dir(self.__class__)
-        attrs = set(cdir)
-        attrs.update(self.__dict__)
-        attrs.update(attr[6:] for attr in cdir
-                     if attr.startswith("_calc_"))
-        return sorted(attrs)
-    #=========================================================
-    # eoc
-    #=========================================================
-
 #=========================================================
 # helpers
 #=========================================================
@@ -631,6 +484,160 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     #=========================================================
     #
+    #=========================================================
+
+#=========================================================
+# code used for testing scram against protocol examples
+# during development, not part of public api or used internally.
+#=========================================================
+def _test_reference_scram():
+    "quick hack testing scram reference vectors"
+    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
+
+    engine = _scram_engine(
+        alg="sha-1",
+        salt='QSXCR+Q6sek8bf92'.decode("base64"),
+        rounds=4096,
+        password=u"pencil",
+    )
+    print engine.digest.encode("base64").rstrip()
+
+    msg = engine.format_auth_msg(
+        username="user",
+        client_nonce = "fyko+d2lbbFgONRv9qkxdawL",
+        server_nonce = "3rfcNHYJY1ZVvWVs7j",
+        header='c=biws',
+    )
+
+    cp = engine.get_encoded_client_proof(msg)
+    assert cp == "v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=", cp
+
+    ss = engine.get_encoded_server_sig(msg)
+    assert ss == "rmF9pqV8S7suAoZWja4dJRkFsKQ=", ss
+
+class _scram_engine(object):
+    """helper class for verifying scram hash behavior
+    against SCRAM protocol examples. not officially part of Passlib.
+
+    takes in alg, salt, rounds, and a digest or password.
+
+    can calculate the various keys & messages of the scram protocol.
+
+    """
+    #=========================================================
+    # init
+    #=========================================================
+
+    @classmethod
+    def from_string(cls, hash, alg):
+        "create record from scram hash, for given alg"
+        return cls(alg, *scram.extract_digest_info(hash, alg))
+
+    def __init__(self, alg, salt, rounds, digest=None, password=None):
+        self.alg = norm_digest_name(alg)
+        self.salt = salt
+        self.rounds = rounds
+        self.password = password
+        if password:
+            data = scram.derive_digest(password, salt, rounds, alg)
+            if digest and data != digest:
+                raise ValueError("password doesn't match digest")
+            else:
+                digest = data
+        elif not digest:
+            raise TypeError("must provide password or digest")
+        self.digest = digest
+
+    #=========================================================
+    # frontend methods
+    #=========================================================
+    def get_hash(self, data):
+        "return hash of raw data"
+        return hashlib.new(iana_to_hashlib(self.alg), data).digest()
+
+    def get_client_proof(self, msg):
+        "return client proof of specified auth msg text"
+        return xor_bytes(self.client_key, self.get_client_sig(msg))
+
+    def get_encoded_client_proof(self, msg):
+        return self.get_client_proof(msg).encode("base64").rstrip()
+
+    def get_client_sig(self, msg):
+        "return client signature of specified auth msg text"
+        return self.get_hmac(self.stored_key, msg)
+
+    def get_server_sig(self, msg):
+        "return server signature of specified auth msg text"
+        return self.get_hmac(self.server_key, msg)
+
+    def get_encoded_server_sig(self, msg):
+        return self.get_server_sig(msg).encode("base64").rstrip()
+
+    def format_server_response(self, client_nonce, server_nonce):
+        return 'r={client_nonce}{server_nonce},s={salt},i={rounds}'.format(
+            client_nonce=client_nonce,
+            server_nonce=server_nonce,
+            rounds=self.rounds,
+            salt=self.encoded_salt,
+            )
+
+    def format_auth_msg(self, username, client_nonce, server_nonce,
+                        header='c=biws'):
+        return (
+            'n={username},r={client_nonce}'
+                ','
+            'r={client_nonce}{server_nonce},s={salt},i={rounds}'
+                ','
+            '{header},r={client_nonce}{server_nonce}'
+            ).format(
+                username=username,
+                client_nonce=client_nonce,
+                server_nonce=server_nonce,
+                salt=self.encoded_salt,
+                rounds=self.rounds,
+                header=header,
+                )
+
+    #=========================================================
+    # helpers to calculate & cache constant data
+    #=========================================================
+    def _calc_get_hmac(self):
+        return get_prf("hmac-" + iana_to_hashlib(self.alg))[0]
+
+    def _calc_client_key(self):
+        return self.get_hmac(self.digest, b("Client Key"))
+
+    def _calc_stored_key(self):
+        return self.get_hash(self.client_key)
+
+    def _calc_server_key(self):
+        return self.get_hmac(self.digest, b("Server Key"))
+
+    def _calc_encoded_salt(self):
+        return self.salt.encode("base64").rstrip()
+
+    #=========================================================
+    # hacks for calculated attributes
+    #=========================================================
+
+    def __getattr__(self, attr):
+        if not attr.startswith("_"):
+            f = getattr(self, "_calc_" + attr, None)
+            if f:
+                value = f()
+                setattr(self, attr, value)
+                return value
+        raise AttributeError("attribute not found")
+
+    def __dir__(self):
+        cdir = dir(self.__class__)
+        attrs = set(cdir)
+        attrs.update(self.__dict__)
+        attrs.update(attr[6:] for attr in cdir
+                     if attr.startswith("_calc_"))
+        return sorted(attrs)
+    #=========================================================
+    # eoc
     #=========================================================
 
 #=========================================================
