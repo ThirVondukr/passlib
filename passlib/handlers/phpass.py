@@ -101,7 +101,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             ident=ident,
             rounds=h64.decode_int6(rounds.encode("ascii")),
             salt=salt,
-            checksum=chk,
+            checksum=chk or None,
             strict=bool(chk),
         )
 

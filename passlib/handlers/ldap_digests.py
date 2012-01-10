@@ -62,7 +62,7 @@ class _Base64DigestHelper(uh.StaticHandler):
         hash = cls.ident + b64encode(chk).decode("ascii")
         return to_native_str(hash)
 
-class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class _SaltedBase64DigestHelper(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
     setting_kwds = ("salt",)
     checksum_chars = uh.PADDED_B64_CHARS

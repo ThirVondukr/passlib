@@ -224,6 +224,9 @@ class StaticHandler(object):
         if hash is None:
             raise ValueError("no hash specified")
         hash = cls._norm_hash(hash)
+        if hash == cls._stub_config:
+            raise ValueError("expected %s hash, got %s config string instead" %
+                             (cls.name, cls.name))
         result = cls.genhash(secret, hash, *cargs, **context)
         return consteq(cls._norm_hash(result), hash)
 
@@ -463,7 +466,11 @@ class GenericHandler(object):
         # may wish to either override this, or override norm_checksum
         # to normalize any checksums provided by from_string()
         self = cls.from_string(hash)
-        return consteq(self.calc_checksum(secret), self.checksum)
+        chk = self.checksum
+        if chk is None:
+            raise ValueError("expected %s hash, got %s config string instead" %
+                             (cls.name, cls.name))
+        return consteq(self.calc_checksum(secret), chk)
 
     #=========================================================
     #eoc
@@ -495,6 +502,25 @@ class HasRawChecksum(GenericHandler):
         if cc and len(checksum) != cc:
             raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
         return checksum
+
+class HasStubChecksum(GenericHandler):
+    """modifies class to ignore placeholder checksum used by genconfig().
+
+    this is mainly useful for hash formats which don't have a distinguishable
+    configuration-only format; and genconfig() has to use a placeholder
+    digest (usually all NULLs). this mixin causes that checksum to be
+    treated as if there wasn't a checksum at all; preventing the (remote)
+    chance of a configuration string 1) being stored as a hash, followed by
+    2) an attacker finding and trying a password which correctly maps to that
+    digest.
+    """
+    _stub_checksum = None
+
+    def __init__(self, **kwds):
+        super(HasStubChecksum, self).__init__(**kwds)
+        chk = self.checksum
+        if chk is not None and chk == self._stub_checksum:
+            self.checksum = None
 
 #NOTE: commented out because all use-cases work better with StaticHandler
 ##class HasNoSettings(GenericHandler):

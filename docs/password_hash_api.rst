@@ -259,9 +259,12 @@ which scheme a hash belongs to when multiple schemes are in use.
     :raises TypeError: if :samp:`{secret}` is not a bytes or unicode instance.
 
     :raises ValueError:
-        * if the hash not specified
-        * if the hash does not match this algorithm's hash format
-        * if the provided secret contains forbidden characters (see :meth:`~PasswordHash.encrypt`)
+        * if the hash not specified.
+        * if the hash does not match this algorithm's hash format.
+        * if the provided secret contains forbidden characters (see
+          :meth:`~PasswordHash.encrypt`).
+        * if a configuration string from :meth:`~PasswordHash.genconfig`
+          is passed in as the value for *hash*.
 
     :returns:
         ``True`` if the secret matches, otherwise ``False``.
@@ -326,7 +329,8 @@ and :meth:`~PasswordHash.genhash`.
           normalized in a reasonble manner (eg: salt strings clipped to maximum size).
 
     :returns:
-        the configuration string, or ``None`` if the algorithm does not support any configuration options.
+        the configuration string, or ``None`` if the algorithm does not support
+        any configuration options.
 
 .. classmethod:: PasswordHash.genhash(secret, config, \*\*context_kwds)
 

@@ -34,12 +34,11 @@ def _import_des_crypt():
 #=========================================================
 #salted hashes
 #=========================================================
-class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
+class DjangoSaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
     #must be specified by subclass - along w/ calc_checksum
     setting_kwds = ("salt", "salt_size")
     ident = None #must have "$" suffix
-    _stub_checksum = None
 
     #common to most subclasses
     min_salt_size = 0
@@ -62,7 +61,7 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
         if not hash.startswith(ident):
             raise ValueError("invalid %s hash" % (cls.name,))
         _, salt, chk = hash.split(u("$"))
-        return cls(salt=salt, checksum=chk, strict=True)
+        return cls(salt=salt, checksum=chk or None, strict=True)
 
     def to_string(self):
         chk = self.checksum or self._stub_checksum

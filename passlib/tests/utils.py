@@ -443,6 +443,11 @@ class HandlerCase(TestCase):
     #: flag if scheme accepts empty string as hash (rare)
     accepts_empty_hash = False
 
+    #: flag if verify() doesn't throw error on config strings.
+    #  this is a bug which should be fixed in most handlers,
+    #  with the exception of the unix_fallback handler.
+    genconfig_uses_hash = False
+
     #: if handler uses multiple backends, explicitly set this one when running tests.
     backend = None
 
@@ -774,7 +779,7 @@ class HandlerCase(TestCase):
             self.assertEqual(self.do_verify(secret, hash), True,
                              "known correct hash (secret=%r, hash=%r):" % (secret,hash))
 
-    def test_21_verify_other(self):
+    def test_21_verify_foreign(self):
         "test verify() throws error against other algorithm's hashes"
         for name, hash in self.known_other_hashes:
             if name == self.handler.name:
@@ -795,16 +800,33 @@ class HandlerCase(TestCase):
         for hash in self.known_malformed_hashes:
             self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
 
-    def test_24_verify_none(self):
-        "test verify() throws error against hash=None/empty string"
-        #find valid hash so that doesn't mask error
-        self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
+    def test_24_verify_other(self):
+        "test verify() handles border cases"
+        # ``None`` should always throw an error
+        self.assertRaises(ValueError, self.do_verify, 'stub', None,
+                          __msg__="hash=None:")
+
+        # empty string should throw error except for certain cases
+        # (e.g. the plaintext handler)
         if self.accepts_empty_hash:
             self.do_verify("stub", u(""))
             self.do_verify("stub", b(""))
         else:
-            self.assertRaises(ValueError, self.do_verify, 'stub', u(''), __msg__="hash='':")
-            self.assertRaises(ValueError, self.do_verify, 'stub', b(''), __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', u(''),
+                              __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', b(''),
+                              __msg__="hash='':")
+
+        # config/salt strings should throw an error
+        cs = self.do_genconfig()
+        if self.genconfig_uses_hash:
+            # unix fallback handler returns "!" as cs,
+            # which verify() accepts quite readily. 
+            self.assertFalse(self.do_verify(u(""), cs))
+            self.assertFalse(self.do_verify(u("stub"), cs))
+        else:
+            self.assertRaises(ValueError, self.do_verify, u(""), cs)
+            self.assertRaises(ValueError, self.do_verify, u("stub"), cs)
 
     #=========================================================
     #genconfig()

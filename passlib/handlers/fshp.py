@@ -23,7 +23,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -157,10 +157,12 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return cls(checksum=chk, salt=salt, rounds=rounds,
                    variant=variant, strict=True)
 
+    @property
+    def _stub_checksum(self):
+        return b('\x00') * self._info[1]
+
     def to_string(self):
-        chk = self.checksum
-        if not chk: #fill in stub checksum
-            chk = b('\x00') * self._info[1]
+        chk = self.checksum or self._stub_checksum
         salt = self.salt
         data = b64encode(salt+chk).decode("ascii")
         hash = u("{FSHP%d|%d|%d}%s") % (self.variant, len(salt), self.rounds, data)

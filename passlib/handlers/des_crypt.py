@@ -192,7 +192,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         salt, chk = hash[:2], hash[2:]
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
+        return cls(salt=salt, checksum=chk or None, strict=bool(chk))
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))

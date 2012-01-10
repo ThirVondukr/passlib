@@ -130,7 +130,7 @@ class oracle10(uh.StaticHandler):
 #=========================================================
 #oracle11
 #=========================================================
-class oracle11(uh.HasSalt, uh.GenericHandler):
+class oracle11(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     """This class implements the Oracle11g password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.

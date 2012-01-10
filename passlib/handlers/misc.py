@@ -53,7 +53,10 @@ class unix_fallback(uh.StaticHandler):
     def verify(cls, secret, hash, enable_wildcard=False):
         if hash is None:
             raise ValueError("no hash provided")
-        return enable_wildcard and not hash
+        elif hash:
+            return False
+        else:
+            return enable_wildcard
 
 class plaintext(uh.StaticHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

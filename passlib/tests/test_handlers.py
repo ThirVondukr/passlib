@@ -797,6 +797,7 @@ from passlib.handlers import pbkdf2 as pk2
 
 class AtlassianPbkdf2Sha1Test(HandlerCase):
     handler = pk2.atlassian_pbkdf2_sha1
+
     known_correct_hashes = [
         ("admin", '{PKCS5S2}c4xaeTQM0lUieMS3V5voiexyX9XhqC2dBd5ecVy60IPksHChwoTAVYFrhsgoq8/p'),
         (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
@@ -1318,6 +1319,7 @@ class UnixFallbackTest(HandlerCase):
     known_correct_hashes = [ ("passwordwc",""), ]
     known_other_hashes = []
     accepts_empty_hash = True
+    genconfig_uses_hash = True
 
     #NOTE: to ease testing, this sets enable_wildcard iff the string 'wc' is in the secret
 

@@ -20,7 +20,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class nthash(uh.HasManyIdents, uh.GenericHandler):
+class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
     """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
