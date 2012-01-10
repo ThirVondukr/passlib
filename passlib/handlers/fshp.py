@@ -11,8 +11,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, bytes, b, to_hash_str
+from passlib.utils import handlers as uh, bytes, b, to_native_str
+from passlib.utils.compat import iteritems, unicode
 from passlib.utils.pbkdf2 import pbkdf1
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -21,7 +23,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -79,7 +81,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         }
     _variant_aliases = dict(
         [(unicode(k),k) for k in _variant_info] +
-        [(v[0],k) for k,v in _variant_info.items()]
+        [(v[0],k) for k,v in iteritems(_variant_info)]
         )
 
     #=========================================================
@@ -116,7 +118,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def norm_checksum(self, checksum, strict=False):
         checksum = super(fshp, self).norm_checksum(checksum, strict)
         if checksum is not None and len(checksum) != self._variant_info[self.variant][1]:
-            raise ValueError, "invalid checksum length for FSHP variant"
+            raise ValueError("invalid checksum length for FSHP variant")
         return checksum
 
     @property
@@ -129,9 +131,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def identify(cls, hash):
-        return uh.identify_prefix(hash, u"{FSHP")
+        return uh.identify_prefix(hash, u("{FSHP"))
 
-    _fshp_re = re.compile(ur"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
+    _fshp_re = re.compile(u(r"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$"))
 
     @classmethod
     def from_string(cls, hash):
@@ -155,14 +157,16 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return cls(checksum=chk, salt=salt, rounds=rounds,
                    variant=variant, strict=True)
 
+    @property
+    def _stub_checksum(self):
+        return b('\x00') * self._info[1]
+
     def to_string(self):
-        chk = self.checksum
-        if not chk: #fill in stub checksum
-            chk = b('\x00') * self._info[1]
+        chk = self.checksum or self._stub_checksum
         salt = self.salt
         data = b64encode(salt+chk).decode("ascii")
-        hash = u"{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
-        return to_hash_str(hash)
+        hash = u("{FSHP%d|%d|%d}%s") % (self.variant, len(salt), self.rounds, data)
+        return to_native_str(hash)
 
     #=========================================================
     #backend

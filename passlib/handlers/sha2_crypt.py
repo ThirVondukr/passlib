@@ -10,7 +10,8 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
-    to_hash_str, to_unicode, bytes, b, bord
+    to_native_str, to_unicode, bytes, b, bord
+from passlib.utils.compat import unicode, u, irange
 #pkg
 #local
 __all__ = [
@@ -22,6 +23,23 @@ __all__ = [
 #pure-python backend (shared between sha256-crypt & sha512-crypt)
 #=========================================================
 INVALID_SALT_VALUES = b("\x00$")
+
+##_OFFSETS = [((i       % 3 > 0) + (i       % 7 > 0)*2,
+##             ((i + 1) % 3 > 0) + ((i + 1) % 7 > 0)*2)
+##            for i in irange(0, 42, 2) ]
+_OFFSETS = [
+    (0, 3), (3, 2), (3, 3), (2, 1), (3, 2), (3, 3), (2, 3),
+    (1, 2), (3, 3), (2, 3), (3, 0), (3, 3), (2, 3), (3, 2),
+    (1, 3), (2, 3), (3, 2), (3, 1), (2, 3), (3, 2), (3, 3),
+    ]
+
+def extend(source, size_ref):
+    "helper which repeats <source> so it's the same length as <size_ref>"
+    m,d = divmod(len(size_ref), len(source))
+    if d:
+        return source*m + source[:d]
+    else:
+        return source*m
 
 def raw_sha_crypt(secret, salt, rounds, hash):
     """perform raw sha crypt
@@ -53,101 +71,85 @@ def raw_sha_crypt(secret, salt, rounds, hash):
     if len(salt) > 16:
         salt = salt[:16]
 
-    #init helpers
-    def extend(source, size_ref):
-        "helper which repeats <source> digest string until it's the same length as <size_ref> string"
-        assert len(source) == chunk_size
-        size = len(size_ref)
-        return source * int(size/chunk_size) + source[:size % chunk_size]
-
     #calc digest B
-    b = hash(secret)
-    chunk_size = b.digest_size #grab this once hash is created
-    b.update(salt)
-    a = b.copy() #make a copy to save a little time later
-    b.update(secret)
-    b_result = b.digest()
-    b_extend = extend(b_result, secret)
+    b = hash(secret + salt + secret).digest()
 
     #begin digest A
-    #a = hash(secret) <- performed above
-    #a.update(salt) <- performed above
-    a.update(b_extend)
+    a_hash = hash(secret + salt + extend(b, secret))
 
     #for each bit in slen, add B or SECRET
-    value = len(secret)
-    while value > 0:
-        if value % 2:
-            a.update(b_result)
+    i = len(secret)
+    while i > 0:
+        if i & 1:
+            a_hash.update(b)
         else:
-            a.update(secret)
-        value >>= 1
+            a_hash.update(secret)
+        i >>= 1
 
     #finish A
-    a_result = a.digest()
+    a = a_hash.digest()
 
     #calc DP - hash of password, extended to size of password
-    dp = hash(secret * len(secret))
-    dp_result = extend(dp.digest(), secret)
+    tmp = hash(secret * len(secret))
+    dp = extend(tmp.digest(), secret)
 
     #calc DS - hash of salt, extended to size of salt
-    ds = hash(salt * (16+bord(a_result[0])))
-    ds_result = extend(ds.digest(), salt) #aka 'S'
+    tmp = hash(salt * (16+bord(a[0])))
+    ds = extend(tmp.digest(), salt)
 
     #
-    #calc digest C
-    #NOTE: this has been contorted a little to allow pre-computing
-    #some of the hashes. the original algorithm was that
-    #each round generates digest composed of:
-    #   if round%2>0 => dp else lr
-    #   if round%3>0 => ds
-    #   if round%7>0 => dp
-    #   if round%2>0 => lr else dp
-    #where lr is digest of the last round's hash (initially = a_result)
+    # calc digest C
     #
+    # NOTE: The code below is quite different in appearance from how the
+    # specification performs this step. the original algorithm was that:
+    # C should start out set to A
+    # for i in [0,rounds)... the next value of C is calculated as the digest of:
+    #       if i%2>0 then DP else C
+    #       +
+    #       if i%3>0 then DS else ""
+    #       +
+    #       if i%7>0 then DP else ""
+    #       +
+    #       if i%2>0 then C else DP
+    #
+    # The algorithm can be see as a series of paired even/odd rounds,
+    # with each pair performing 'C = md5(odd_data + md5(C + even_data))',
+    # where even_data & odd_data cycle through a fixed series of
+    # combinations of DP & DS, repeating every 42 rounds (since lcm(2,3,7)==42)
+    #
+    # This code takes advantage of these facts: it precalculates all possible
+    # combinations, and then orders them into 21 pairs of even,odd values.
+    # this allows the brunt of C stage to be performed in 42-round blocks,
+    # with minimal overhead.
 
-    #pre-calculate some digests to speed up odd rounds
-    dp_hash = hash(dp_result).copy
-    dp_ds_hash = hash(dp_result + ds_result).copy
-    dp_dp_hash = hash(dp_result * 2).copy
-    dp_ds_dp_hash = hash(dp_result + ds_result + dp_result).copy
+    # build array containing 42-round pattern as pairs of even & odd data.
+    dp_dp = dp*2
+    ds_dp = ds+dp
+    evens = [dp, ds_dp, dp_dp, ds_dp+dp]
+    odds =  [dp, dp+ds, dp_dp, dp+ds_dp]
+    data = [(evens[e], odds[o]) for e,o in _OFFSETS]
 
-    #pre-calculate some strings to speed up even rounds
-    ds_dp_result = ds_result + dp_result
-    dp_dp_result = dp_result * 2
-    ds_dp_dp_result = ds_result + dp_dp_result
-
-    #run through rounds
-    last_result = a_result
+    # perform as many full 42-round blocks as possible
+    c = a
+    blocks, tail = divmod(rounds, 42)
     i = 0
-    while i < rounds:
-        if i % 2:
-            if i % 3:
-                if i % 7:
-                    c = dp_ds_dp_hash()
-                else:
-                    c = dp_ds_hash()
-            elif i % 7:
-                c = dp_dp_hash()
-            else:
-                c = dp_hash()
-            c.update(last_result)
-        else:
-            c = hash(last_result)
-            if i % 3:
-                if i % 7:
-                    c.update(ds_dp_dp_result)
-                else:
-                    c.update(ds_dp_result)
-            elif i % 7:
-                c.update(dp_dp_result)
-            else:
-                c.update(dp_result)
-        last_result = c.digest()
+    while i < blocks:
+        for even, odd in data:
+            c = hash(odd + hash(c + even).digest()).digest()
         i += 1
 
+    # perform any leftover rounds
+    if tail:
+        # perform any pairs of rounds
+        half = tail>>1
+        for even, odd in data[:half]:
+            c = hash(odd + hash(c + even).digest()).digest()
+        # if rounds was odd, do one last round
+        if tail & 1:
+            c = hash(c + data[half][0]).digest()
+
     #return unencoded result, along w/ normalized config values
-    return last_result, salt, rounds
+    return c, salt, rounds
 
 def raw_sha256_crypt(secret, salt, rounds):
     "perform raw sha256-crypt; returns encoded checksum, normalized salt & rounds"
@@ -247,7 +249,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #--GenericHandler--
     name = "sha256_crypt"
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
-    ident = u"$5$"
+    ident = u("$5$")
     checksum_chars = uh.H64_CHARS
 
     #--HasSalt--
@@ -276,7 +278,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         \$5
         (\$rounds=(?P<rounds>\d+))?
@@ -289,7 +291,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             (?P<chk>[A-Za-z0-9./]{43})?
         )
         $
-        """, re.X)
+        """), re.X)
 
     @classmethod
     def from_string(cls, hash):
@@ -301,7 +303,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if not m:
             raise ValueError("invalid sha256-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
-        if rounds and rounds.startswith(u"0"):
+        if rounds and rounds.startswith(u("0")):
             raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
         return cls(
             implicit_rounds = not rounds,
@@ -313,10 +315,10 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$5$%s$%s" % (self.salt, self.checksum or u'')
+            hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
         else:
-            hash = u"$5$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
-        return to_hash_str(hash) if native else hash
+            hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -327,8 +329,8 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u("$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/")
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -347,9 +349,9 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if ok:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u"$5$")
+            assert result.startswith(u("$5$"))
             chk = result[-43:]
-            assert u'$' not in chk
+            assert u('$') not in chk
             return chk
         else:
             return self._calc_checksum_builtin(secret)
@@ -397,7 +399,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #algorithm information
     #=========================================================
     name = "sha512_crypt"
-    ident = u"$6$"
+    ident = u("$6$")
     checksum_chars = uh.H64_CHARS
 
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
@@ -426,7 +428,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(ur"""
+    _pat = re.compile(u(r"""
         ^
         \$6
         (\$rounds=(?P<rounds>\d+))?
@@ -441,7 +443,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             )?
         )
         $
-        """, re.X)
+        """), re.X)
 
     @classmethod
     def from_string(cls, hash):
@@ -465,10 +467,10 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def to_string(self, native=True):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$6$%s$%s" % (self.salt, self.checksum or u'')
+            hash = u("$6$%s$%s") % (self.salt, self.checksum or u(''))
         else:
-            hash = u"$6$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
-        return to_hash_str(hash) if native else hash
+            hash = u("$6$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
+        return to_native_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -479,8 +481,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        h = u("$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0")
+        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
 
     #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
 
@@ -501,9 +503,9 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if ok:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u"$6$")
+            assert result.startswith(u("$6$"))
             chk = result[-86:]
-            assert u'$' not in chk
+            assert u('$') not in chk
             return chk
         else:
             return self._calc_checksum_builtin(secret)

@@ -13,6 +13,7 @@
 from warnings import warn
 #pkg
 from passlib.utils import is_crypt_context, bytes
+from passlib.utils.compat import get_method_function as um
 #local
 __all__ = [
     "get_category",
@@ -94,10 +95,6 @@ def get_category(user):
     if user.is_staff:
         return "staff"
     return None
-
-def um(func):
-    "unwrap method (eg User.set_password -> orig func)"
-    return func.im_func
 
 #===================================================================
 # monkeypatch framework

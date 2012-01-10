@@ -5,7 +5,6 @@
 #core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
-from cStringIO import StringIO
 ##from functools import update_wrapper
 from hashlib import sha256
 import logging; log = logging.getLogger(__name__)
@@ -13,10 +12,14 @@ from math import log as logb
 import os
 import sys
 import random
+import stringprep
 import time
+import unicodedata
 from warnings import warn
 #site
 #pkg
+from passlib.utils.compat import irange, PY3, sys_bits, unicode, bytes, u, b, \
+                                 _add_doc
 #local
 __all__ = [
     #decorators
@@ -26,7 +29,7 @@ __all__ = [
 ##    "abstractclassmethod",
 
     #byte compat aliases
-    'bytes', 'native_str',
+    'bytes',
 
     #misc
     'os_crypt',
@@ -38,37 +41,28 @@ __all__ = [
     #bytes<->unicode
     'to_bytes',
     'to_unicode',
-    'to_native_str',
     'is_same_codec',
+
+    # string manipulation
+    'consteq',
+    'saslprep',
 
     #byte manipulation
     "xor_bytes",
 
     #random
+    'tick',
     'rng',
     'getrandbytes',
     'getrandstr',
 
     #constants
-    'pypy_vm', 'jython_vm',
-    'py32_lang', 'py3k_lang',
-    'sys_bits',
     'unix_crypt_schemes',
 ]
 
 #=================================================================================
 #constants
 #=================================================================================
-
-#: detect what we're running on
-pypy_vm = hasattr(sys, "pypy_version_info")
-jython_vm = sys.platform.startswith('java')
-py3k_lang = sys.version_info >= (3,0)
-py32_lang = sys.version_info >= (3,2)
-
-#: number of bits in system architecture
-sys_bits = int(logb(sys.maxint,2)+1.5)
-assert sys_bits in (32,64), "unexpected sys_bits value: %r" % (sys_bits,)
 
 #: list of names of hashes found in unix crypt implementations...
 unix_crypt_schemes = [
@@ -83,32 +77,10 @@ rounds_cost_values = [ "linear", "log2" ]
 
 #: special byte string containing all possible byte values, used in a few places.
 #XXX: treated as singleton by some of the code for efficiency.
-# Py2k #
-ALL_BYTE_VALUES = ''.join(chr(x) for x in xrange(256))
-# Py3k #
-#ALL_BYTE_VALUES = bytes(xrange(256))
-# end Py3k #
-
-#NOTE: Undef is only used in *one* place now, could just remove it
-class UndefType(object):
-    _undef = None
-
-    def __new__(cls):
-        if cls._undef is None:
-            cls._undef = object.__new__(cls)
-        return cls._undef
-
-    def __repr__(self):
-        return '<Undef>'
-
-    def __eq__(self, other):
-        return False
-
-    def __ne__(self, other):
-        return True
-
-#: singleton used as default kwd value in some functions, indicating "NO VALUE"
-Undef = UndefType()
+if PY3:
+    ALL_BYTE_VALUES = bytes(irange(256))
+else:
+    ALL_BYTE_VALUES = ''.join(chr(x) for x in irange(256))
 
 NoneType = type(None)
 
@@ -124,36 +96,19 @@ class MissingBackendError(RuntimeError):
     from :class:`~passlib.utils.handlers.HasManyBackends`.
     """
 
-#==========================================================
-#bytes compat aliases - bytes, native_str, b()
-#==========================================================
+class PasslibPolicyWarning(UserWarning):
+    """Warning issued when non-fatal issue is found in policy configuration.
 
-# Py2k #
-if sys.version_info < (2,6):
-    #py25 doesn't define 'bytes', so we have to here -
-    #and then import it everywhere bytes is needed,
-    #just so we retain py25 compat - if that were sacrificed,
-    #the need for this would go away
-    bytes = str
-else:
-    bytes = bytes #just so it *can* be imported from this module
-native_str = bytes
-# Py3k #
-#bytes = bytes #just so it *can* be imported from this module
-#native_str = unicode
-# end Py3k #
+    This occurs primarily in one of two cases:
 
-#NOTE: have to provide b() because we're supporting py25,
-#      and py25 doesn't support the b'' notation.
-#      if py25 compat were sacrificed, this func could be removed.
-def b(source):
-    "convert native str to bytes (noop under py2; uses latin-1 under py3)"
-    #assert isinstance(source, native_str)
-    # Py2k #
-    return source
-    # Py3k #
-    #return source.encode("latin-1")
-    # end Py3k #
+    * the policy contains rounds limits which exceed the hard limits
+      imposed by the underlying algorithm.
+    * an explicit rounds value was provided which exceeds the limits
+      imposed by the policy.
+
+    In both of these cases, the code will perform correctly & securely;
+    but the warning is issued as a sign the configuration may need updating.
+    """
 
 #=================================================================================
 #os crypt helpers
@@ -165,8 +120,43 @@ try:
 except ImportError: #pragma: no cover
     safe_os_crypt = os_crypt = None
 else:
-    def safe_os_crypt(secret, hash):
-        """wrapper around stdlib's crypt.
+    # NOTE: see docstring below as to why we're wrapping os_crypt()
+    if PY3:
+        def safe_os_crypt(secret, hash):
+            if isinstance(secret, bytes):
+                # decode secret using utf-8, and make sure it re-encodes to
+                # match the original - otherwise the call to os_crypt()
+                # will encode the wrong password.
+                orig = secret
+                try:
+                    secret = secret.decode("utf-8")
+                except UnicodeDecodeError:
+                    return False, None
+                if secret.encode("utf-8") != orig:
+                    # just in case original encoding wouldn't be reproduced
+                    # during call to os_crypt. not sure if/how this could
+                    # happen, but being paranoid.
+                    warn("utf-8 password didn't re-encode correctly!")
+                    return False, None
+            result = os_crypt(secret, hash)
+            return (result is not None), result
+    else:
+        def safe_os_crypt(secret, hash):
+            # NOTE: this guard logic is designed purely to match py3 behavior,
+            # with the exception that it accepts secret as bytes.
+            if isinstance(secret, unicode):
+                secret = secret.encode("utf-8")
+            if isinstance(hash, bytes):
+                raise TypeError("hash must be unicode")
+            else:
+                hash = hash.encode("utf-8")
+            result = os_crypt(secret, hash)
+            if result is None:
+                return False, None
+            else:
+                return True, result.decode("ascii")
+
+    _add_doc(safe_os_crypt, """wrapper around stdlib's crypt.
 
         Python 3's crypt behaves slightly differently from Python 2's crypt.
         for one, it takes in and returns unicode.
@@ -186,39 +176,7 @@ else:
         :returns:
             ``(False, None)`` if the password can't be hashed (3.x only),
             or ``(True, result: unicode)`` otherwise.
-        """
-        #XXX: source indicates crypt() may return None on some systems
-        # if an error occurrs - could make this return False in that case.
-
-        # Py2k #
-        #NOTE: this guard logic is designed purely to match py3 behavior,
-        #      with the exception that it accepts secret as bytes
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        if isinstance(hash, bytes):
-            raise TypeError("hash must be unicode")
-        else:
-            hash = hash.encode("utf-8")
-        return True, os_crypt(secret, hash).decode("ascii")
-
-        # Py3k #
-        #if isinstance(secret, bytes):
-        #    #decode to utf-8. if successful, will be reencoded with os_crypt,
-        #    #and we'll get back correct hash.
-        #    #if not, we can't use os_crypt for this.
-        #    orig = secret
-        #    try:
-        #        secret = secret.decode("utf-8")
-        #    except UnicodeDecodeError:
-        #        return False, None
-        #    if secret.encode("utf-8") != orig:
-        #        #just in case original encoding wouldn't be reproduced
-        #        #during call to os_crypt.
-        #        #not sure if/how this could happen, but being paranoid.
-        #        warn("utf-8 password didn't re-encode correctly")
-        #        return False, None
-        #return True, os_crypt(secret, hash)
-        # end Py3k #
+        """)
 
 #=================================================================================
 #decorators and meta helpers
@@ -232,6 +190,11 @@ class classproperty(object):
     def __get__(self, obj, cls):
         return self.im_func(cls)
 
+    @property
+    def __func__(self):
+        "py3 compatible alias"
+        return self.im_func
+
 #works but not used
 ##class memoized_class_property(object):
 ##    """function decorator which calls function as classmethod, and replaces itself with result for current and all future invocations"""
@@ -243,6 +206,10 @@ class classproperty(object):
 ##        value = func(cls)
 ##        setattr(cls, func.__name__, value)
 ##        return value
+##
+##    @property
+##    def __func__(self):
+##        "py3 compatible alias"
 
 #works but not used...
 ##def abstractmethod(func):
@@ -387,7 +354,26 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
         raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
                         (errname, source_encoding, type(source)))
 
-def to_native_str(source, encoding="utf-8", errname="value"):
+if PY3:
+    def to_native_str(source, encoding="utf-8", errname="value"):
+        if isinstance(source, bytes):
+            return source.decode(encoding)
+        elif isinstance(source, unicode):
+            return source
+        else:
+            raise TypeError("%s must be unicode or bytes, not %s" %
+                            (errname, type(source)))
+else:
+    def to_native_str(source, encoding="utf-8", errname="value"):
+        if isinstance(source, bytes):
+            return source
+        elif isinstance(source, unicode):
+            return source.encode(encoding)
+        else:
+            raise TypeError("%s must be unicode or bytes, not %s" %
+                            (errname, type(source)))
+
+_add_doc(to_native_str,
     """take in unicode or bytes, return native string
 
     python 2: encodes unicode using specified encoding, leaves bytes alone.
@@ -395,35 +381,25 @@ def to_native_str(source, encoding="utf-8", errname="value"):
 
     :raises TypeError: if source is not unicode or bytes.
 
-    :arg source: source bytes/unicode to process
-    :arg encoding: encoding to use when encoding unicode / decoding bytes
-    :param errname: optional name of variable/noun to reference when raising errors
+    :arg source:
+        source unicode or bytes string.
+
+    :arg encoding:
+        encoding to use when encoding unicode or decoding bytes.
+        this defaults to ``"utf-8"``.
+
+    :param errname:
+        optional name of variable/noun to reference when raising errors.
 
     :returns: :class:`str` instance
-    """
-    assert encoding
-    if isinstance(source, bytes):
-        # Py2k #
-        return source
-        # Py3k #
-        #return source.decode(encoding)
-        # end Py3k #
+    """)
 
-    elif isinstance(source, unicode):
-        # Py2k #
-        return source.encode(encoding)
-        # Py3k #
-        #return source
-        # end Py3k #
-
-    else:
-        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
-
-def to_hash_str(hash, encoding="ascii", errname="hash"):
-    "given hash string as bytes or unicode; normalize according to hash policy"
-    #NOTE: for now, policy is ascii-bytes under py2, unicode under py3.
-    #      but plan to make flag allowing apps to enable unicode behavior under py2.
-    return to_native_str(hash, encoding, errname)
+# DEPRECATED
+def to_hash_str(source, encoding="ascii"):
+    "deprecated, use to_native_str() instead"
+    warn("to_hash_str() is deprecated, and will be removed in passlib 1.7",
+         DeprecationWarning, stacklevel=2)
+    return to_native_str(source, encoding, 'hash')
 
 #--------------------------------------------------
 #support utils
@@ -436,23 +412,19 @@ def is_same_codec(left, right):
         return False
     return _lookup_codec(left).name == _lookup_codec(right).name
 
-_U80 = u'\x80'
-_B80 = b('\x80')
-
+_B80 = 128 if PY3 else b('\x80')
+_U80 = u('\x80')
 def is_ascii_safe(source):
     "check if source (bytes or unicode) contains only 7-bit ascii"
-    if isinstance(source, bytes):
-        # Py2k #
-        return all(c < _B80 for c in source)
-        # Py3k #
-        #return all(c < 128 for c in source)
-        # end Py3k #
-    else:
-        return all(c < _U80 for c in source)
+    r = _B80 if isinstance(source, bytes) else _U80
+    return all(c < r for c in source)
 
 #=================================================================================
 #string helpers
 #=================================================================================
+UEMPTY = u("")
+USPACE = u(" ")
+ujoin = UEMPTY.join
 
 def consteq(left, right):
     """check two strings/bytes for equality, taking constant time relative
@@ -482,15 +454,11 @@ def consteq(left, right):
     if isinstance(left, unicode):
         if not isinstance(right, unicode):
             raise TypeError("inputs must be both unicode or bytes")
-        # Py3k #
-        #isbytes = False
-        # end Py3k #
+        is_py3_bytes = False
     elif isinstance(left, bytes):
         if not isinstance(right, bytes):
             raise TypeError("inputs must be both unicode or bytes")
-        # Py3k #
-        #isbytes = True
-        # end Py3k #
+        is_py3_bytes = PY3
     else:
         raise TypeError("inputs must be both unicode or bytes")
 
@@ -511,23 +479,140 @@ def consteq(left, right):
         result = 1
 
     # run constant-time string comparision
-    # Py3k #
-    #if isbytes:
-    #    for l,r in zip(tmp, right):
-    #        result |= l ^ r
-    #    return result == 0
-    # end Py3k #
-    for l,r in zip(tmp, right):
-        result |= ord(l) ^ ord(r)
+    if is_py3_bytes:
+        for l,r in zip(tmp, right):
+            result |= l ^ r
+    else:
+        for l,r in zip(tmp, right):
+            result |= ord(l) ^ ord(r)
     return result == 0
 
+# DEPRECATED
 def splitcomma(source, sep=","):
-    "split comma-separated string into list of elements, stripping whitespace and discarding empty elements"
+    """split comma-separated string into list of elements,
+    stripping whitespace and discarding empty elements.
+
+    .. deprecated:: 1.6, will be removed in 1.7
+    """
+    warn("splitcomma() is deprecated, and will be removed in passlib 1.7",
+         DeprecationWarning, stacklevel=2)
     return [
         elem.strip()
         for elem in source.split(sep)
         if elem.strip()
     ]
+
+def saslprep(source, errname="value"):
+    """normalizes unicode string using SASLPrep stringprep profile.
+
+    The SASLPrep profile is defined in :rfc:`4013`.
+    It provides a uniform scheme for normalizing unicode usernames
+    and passwords before performing byte-value sensitive operations
+    such as hashing. Among other things, it normalizes diacritic
+    representations, removes non-printing characters, and forbids
+    invalid characters such as ``\n``.
+
+    :arg source:
+        unicode string to normalize & validate
+
+    :param errname:
+        optionally override noun used to refer to source in error messages,
+        defaults to ``value``; mainly useful to make caller's error
+        messages make more sense.
+
+    :raises ValueError:
+        if any characters forbidden by the SASLPrep profile are encountered.
+
+    :returns:
+        normalized unicode string
+    """
+    # saslprep - http://tools.ietf.org/html/rfc4013
+    # stringprep - http://tools.ietf.org/html/rfc3454
+    #              http://docs.python.org/library/stringprep.html
+
+    # validate type
+    if not isinstance(source, unicode):
+        raise TypeError("input must be unicode string, not %s" %
+                        (type(source),))
+
+    # mapping stage
+    #   - map non-ascii spaces to U+0020 (stringprep C.1.2)
+    #   - strip 'commonly mapped to nothing' chars (stringprep B.1)
+    in_table_c12 = stringprep.in_table_c12
+    in_table_b1 = stringprep.in_table_b1
+    data = ujoin(
+        USPACE if in_table_c12(c) else c
+        for c in source
+        if not in_table_b1(c)
+        )
+
+    # normalize to KC form
+    data = unicodedata.normalize('NFKC', data)
+    if not data:
+        return UEMPTY
+
+    # check for invalid bi-directional strings.
+    # stringprep requires the following:
+    #   - chars in C.8 must be prohibited.
+    #   - if any R/AL chars in string:
+    #       - no L chars allowed in string
+    #       - first and last must be R/AL chars
+    # this checks if start/end are R/AL chars. if so, prohibited loop
+    # will forbid all L chars. if not, prohibited loop will forbid all
+    # R/AL chars instead. in both cases, prohibited loop takes care of C.8.
+    is_ral_char = stringprep.in_table_d1
+    if is_ral_char(data[0]):
+        if not is_ral_char(data[-1]):
+            raise ValueError("malformed bidi sequence in " + errname)
+        # forbid L chars within R/AL sequence.
+        is_forbidden_bidi_char = stringprep.in_table_d2
+    else:
+        # forbid R/AL chars if start not setup correctly; L chars allowed.
+        is_forbidden_bidi_char = is_ral_char
+
+    # check for prohibited output - stringprep tables A.1, B.1, C.1.2, C.2 - C.9
+    in_table_a1 = stringprep.in_table_a1
+    in_table_c21_c22 = stringprep.in_table_c21_c22
+    in_table_c3 = stringprep.in_table_c3
+    in_table_c4 = stringprep.in_table_c4
+    in_table_c5 = stringprep.in_table_c5
+    in_table_c6 = stringprep.in_table_c6
+    in_table_c7 = stringprep.in_table_c7
+    in_table_c8 = stringprep.in_table_c8
+    in_table_c9 = stringprep.in_table_c9
+    for c in data:
+        # check for this mapping stage should have removed
+        assert not in_table_b1(c), "failed to strip B.1 in mapping stage"
+        assert not in_table_c12(c), "failed to replace C.1.2 in mapping stage"
+
+        # check for forbidden chars
+        if in_table_a1(c):
+            raise ValueError("unassigned code points forbidden in " + errname)
+        if in_table_c21_c22(c):
+            raise ValueError("control characters forbidden in " + errname)
+        if in_table_c3(c):
+            raise ValueError("private use characters forbidden in " + errname)
+        if in_table_c4(c):
+            raise ValueError("non-char code points forbidden in " + errname)
+        if in_table_c5(c):
+            raise ValueError("surrogate codes forbidden in " + errname)
+        if in_table_c6(c):
+            raise ValueError("non-plaintext chars forbidden in " + errname)
+        if in_table_c7(c):
+            # XXX: should these have been caught by normalize?
+            # if so, should change this to an assert
+            raise ValueError("non-canonical chars forbidden in " + errname)
+        if in_table_c8(c):
+            raise ValueError("display-modifying / deprecated chars "
+                             "forbidden in" + errname)
+        if in_table_c9(c):
+            raise ValueError("tagged characters forbidden in " + errname)
+
+        # do bidi constraint check chosen by bidi init, above
+        if is_forbidden_bidi_char(c):
+            raise ValueError("forbidden bidi character in " + errname)
+
+    return data
 
 #==========================================================
 #bytes helpers
@@ -538,71 +623,60 @@ BEMPTY = b('')
 
 #helpers for joining / extracting elements
 bjoin = BEMPTY.join
-ujoin = u''.join
 
-def belem_join(elems):
-    """takes series of bytes elements, returns bytes.
-
-    elem should be result of bytes[x].
-    this is another bytes instance under py2,
-    but it int under py3.
-
-    returns bytes.
-
-    this is bytes() constructor under py3,
-    but b"".join() under py2.
-    """
-    # Py2k #
-    return bjoin(elems)
-    # Py3k #
-    #return bytes(elems)
-    # end Py3k #
-
+#def bjoin_elems(elems):
+#    """takes series of bytes elements, returns bytes.
+#
+#    elem should be result of bytes[x].
+#    this is another bytes instance under py2,
+#    but it int under py3.
+#
+#    returns bytes.
+#
+#    this is bytes() constructor under py3,
+#    but b"".join() under py2.
+#    """
+#    if PY3:
+#        return bytes(elems)
+#    else:
+#        return bjoin(elems)
+#
 #for efficiency, don't bother with above wrapper...
-# Py2k #
-belem_join = bjoin
-# Py3k #
-#belem_join = bytes
-# end Py3k #
+if PY3:
+    bjoin_elems = bytes
+else:
+    bjoin_elems = bjoin
 
-def bord(elem):
-    """takes bytes element, returns integer.
+#def bord(elem):
+#    """takes bytes element, returns integer.
+#
+#    elem should be result of bytes[x].
+#    this is another bytes instance under py2,
+#    but it int under py3.
+#
+#    returns int in range(0,256).
+#
+#    this is ord() under py2, and noop under py3.
+#    """
+#    if PY3:
+#        assert isinstance(elem, int)
+#        return elem
+#    else:
+#        assert isinstance(elem, bytes)
+#        return ord(elem)
+#
+#for efficiency, don't bother with above wrapper...
+if PY3:
+    def bord(elem):
+        return elem
+else:
+    bord = ord
 
-    elem should be result of bytes[x].
-    this is another bytes instance under py2,
-    but it int under py3.
-
-    returns int in range(0,256).
-
-    this is ord() under py2, and noop under py3.
-    """
-    # Py2k #
-    assert isinstance(elem, bytes)
-    return ord(elem)
-    # Py3k #
-    ##assert isinstance(elem, int)
-    #return elem
-    # end Py3k #
-
-#for efficiency, don't bother with wrapper
-# Py2k #
-bord = ord
-# end Py2k #
-
-def bchrs(*values):
-    "takes series of ints, returns bytes; like chr() but for bytes, and w/ multi args"
-    # Py2k #
-    return bjoin(chr(v) for v in values)
-    # Py3k #
-    #return bytes(values)
-    # end Py3k #
-
-# Py2k #
-def bjoin_ints(values):
-    return bjoin(chr(v) for v in values)
-# Py3k #
-#bjoin_ints = bytes
-# end Py3k #
+if PY3:
+    bjoin_ints = bytes
+else:
+    def bjoin_ints(values):
+        return bjoin(chr(v) for v in values)
 
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
@@ -675,17 +749,17 @@ def int_to_bytes(value, count):
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
     return bjoin_ints(
         ((value>>s) & 0xff)
-        for s in xrange(8*count-8,-8,-8)
+        for s in irange(8*count-8,-8,-8)
     )
 
-def xor_bytes(left, right):
-    "perform bitwise-xor of two byte-strings"
-    #NOTE: this could use bjoin_ints(), but speed is *really* important here (c.f. PBKDF2)
-    # Py2k #
-    return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
-    # Py3k #
-    #return bytes(l ^ r for l, r in zip(left, right))
-    # end Py3k #
+if PY3:
+    def xor_bytes(left, right):
+        "perform bitwise-xor of two byte-strings"
+        return bytes(l ^ r for l, r in zip(left, right))
+else:
+    def xor_bytes(left, right):
+        "perform bitwise-xor of two byte-strings"
+        return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
 
 #=================================================================================
 #alt base64 encoding
@@ -729,6 +803,39 @@ def adapted_b64_decode(data, sixthree="."):
 #randomness
 #=================================================================================
 
+# pick best timer function to expose as "tick" - lifted from timeit module.
+if sys.platform == "win32":
+    # On Windows, the best timer is time.clock()
+    from time import clock as tick
+else:
+    # On most other platforms the best timer is time.time()
+    from time import time as tick
+
+# works but not used
+##def _get_timer_resolution(timer=timer, repeat=3):
+##    best = None
+##    i = 0
+##    while i < repeat:
+##        start = end = timer()
+##        while start == end:
+##            end = timer()
+##        delta = end-start
+##        if delta < 0:
+##            # probably NTP adjust or some such.
+##            log.error("timer jumped backwards! (%r => %r)", start, end)
+##            continue
+##        if delta > 1:
+##            # should have at least this resolution,
+##            # so probably NTP adjust or some such.
+##            log.error("timer jumped too far! (%r => %r)", start, end)
+##            continue
+##        if best is None or delta < best:
+##            best = delta
+##        i += 1
+##    return best
+##
+##timer_resolution = _get_timer_resolution()
+
 #-----------------------------------------------------------------------
 # setup rng for generating salts
 #-----------------------------------------------------------------------
@@ -751,7 +858,7 @@ def genseed(value=None):
     #if value is rng, extract a bunch of bits from it's state
     if hasattr(value, "getrandbits"):
         value = value.getrandbits(256)
-    text = u"%s %s %s %.15f %s" % (
+    text = u("%s %s %s %.15f %s") % (
         value,
             #if user specified a seed value (eg current rng state), mix it in
 
@@ -769,8 +876,8 @@ def genseed(value=None):
         os.urandom(16).decode("latin-1") if has_urandom else 0,
             #if urandom available, might as well mix some bytes in.
         )
-    #hash it all up and return it as int
-    return long(sha256(text.encode("utf-8")).hexdigest(), 16)
+    #hash it all up and return it as int/long
+    return int(sha256(text.encode("utf-8")).hexdigest(), 16)
 
 if has_urandom:
     rng = random.SystemRandom()
@@ -781,7 +888,6 @@ else: #pragma: no cover
 #-----------------------------------------------------------------------
 # some rng helpers
 #-----------------------------------------------------------------------
-
 def getrandbytes(rng, count):
     """return byte-string containing *count* number of randomly generated bytes, using specified rng"""
     #NOTE: would be nice if this was present in stdlib Random class
@@ -798,18 +904,10 @@ def getrandbytes(rng, count):
         value = rng.getrandbits(count<<3)
         i = 0
         while i < count:
-            # Py2k #
-            yield chr(value & 0xff)
-            # Py3k #
-            #yield value & 0xff
-            # end Py3k #
+            yield value & 0xff
             value >>= 3
             i += 1
-    # Py2k #
-    return bjoin(helper())
-    # Py3k #
-    #return bytes(helper())
-    # end Py3k #
+    return bjoin_ints(helper())
 
 def getrandstr(rng, charset, count):
     """return string containing *count* number of chars/bytes, whose elements are drawn from specified charset, using specified rng"""
@@ -835,11 +933,7 @@ def getrandstr(rng, charset, count):
     if isinstance(charset, unicode):
         return ujoin(helper())
     else:
-        # Py2k #
-        return bjoin(helper())
-        # Py3k #
-        #return bytes(helper())
-        # end Py3k #
+        return bjoin_elems(helper())
 
 def generate_password(size=10, charset='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
     """generate random password using given length & chars

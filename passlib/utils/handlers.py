@@ -14,9 +14,10 @@ from warnings import warn
 #site
 #libs
 from passlib.registry import get_crypt_handler
-from passlib.utils import to_hash_str, bytes, b, consteq, \
+from passlib.utils import to_native_str, bytes, b, consteq, \
         classproperty, h64, getrandstr, getrandbytes, \
         rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
+from passlib.utils.compat import unicode, u
 #pkg
 #local
 __all__ = [
@@ -39,12 +40,12 @@ __all__ = [
 
 #common salt_chars & checksum_chars values
 H64_CHARS = h64.CHARS
-B64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-PADDED_B64_CHARS = B64_CHARS + u"="
-U64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-HEX_CHARS = u"0123456789abcdefABCDEF"
-UC_HEX_CHARS = u"0123456789ABCDEF"
-LC_HEX_CHARS = u"0123456789abcdef"
+B64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+PADDED_B64_CHARS = B64_CHARS + u("=")
+U64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+HEX_CHARS = u("0123456789abcdefABCDEF")
+UC_HEX_CHARS = u("0123456789ABCDEF")
+LC_HEX_CHARS = u("0123456789abcdef")
 
 #=========================================================
 #identify helpers
@@ -75,7 +76,7 @@ def identify_prefix(hash, prefix):
 #=========================================================
 #parsing helpers
 #=========================================================
-def parse_mc2(hash, prefix, name="<unnamed>", sep=u"$"):
+def parse_mc2(hash, prefix, name="<unnamed>", sep=u("$")):
     "parse hash using 2-part modular crypt format"
     assert isinstance(prefix, unicode)
     assert isinstance(sep, unicode)
@@ -95,7 +96,7 @@ def parse_mc2(hash, prefix, name="<unnamed>", sep=u"$"):
     else:
         raise ValueError("not a valid %s hash (malformed)" % (name,))
 
-def parse_mc3(hash, prefix, name="<unnamed>", sep=u"$"):
+def parse_mc3(hash, prefix, name="<unnamed>", sep=u("$")):
     "parse hash using 3-part modular crypt format"
     assert isinstance(prefix, unicode)
     assert isinstance(sep, unicode)
@@ -119,21 +120,21 @@ def parse_mc3(hash, prefix, name="<unnamed>", sep=u"$"):
 #=====================================================
 #formatting helpers
 #=====================================================
-def render_mc2(ident, salt, checksum, sep=u"$"):
+def render_mc2(ident, salt, checksum, sep=u("$")):
     "format hash using 2-part modular crypt format; inverse of parse_mc2"
     if checksum:
-        hash = u"%s%s%s%s" % (ident, salt, sep, checksum)
+        hash = u("%s%s%s%s") % (ident, salt, sep, checksum)
     else:
-        hash = u"%s%s" % (ident, salt)
-    return to_hash_str(hash)
+        hash = u("%s%s") % (ident, salt)
+    return to_native_str(hash)
 
-def render_mc3(ident, rounds, salt, checksum, sep=u"$"):
+def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
     "format hash using 3-part modular crypt format; inverse of parse_mc3"
     if checksum:
-        hash = u"%s%s%s%s%s%s" % (ident, rounds, sep, salt, sep, checksum)
+        hash = u("%s%s%s%s%s%s") % (ident, rounds, sep, salt, sep, checksum)
     else:
-        hash = u"%s%s%s%s" % (ident, rounds, sep, salt)
-    return to_hash_str(hash)
+        hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
+    return to_native_str(hash)
 
 #=====================================================
 #StaticHandler
@@ -223,6 +224,9 @@ class StaticHandler(object):
         if hash is None:
             raise ValueError("no hash specified")
         hash = cls._norm_hash(hash)
+        if hash == cls._stub_config:
+            raise ValueError("expected %s hash, got %s config string instead" %
+                             (cls.name, cls.name))
         result = cls.genhash(secret, hash, *cargs, **context)
         return consteq(cls._norm_hash(result), hash)
 
@@ -462,7 +466,11 @@ class GenericHandler(object):
         # may wish to either override this, or override norm_checksum
         # to normalize any checksums provided by from_string()
         self = cls.from_string(hash)
-        return consteq(self.calc_checksum(secret), self.checksum)
+        chk = self.checksum
+        if chk is None:
+            raise ValueError("expected %s hash, got %s config string instead" %
+                             (cls.name, cls.name))
+        return consteq(self.calc_checksum(secret), chk)
 
     #=========================================================
     #eoc
@@ -494,6 +502,25 @@ class HasRawChecksum(GenericHandler):
         if cc and len(checksum) != cc:
             raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
         return checksum
+
+class HasStubChecksum(GenericHandler):
+    """modifies class to ignore placeholder checksum used by genconfig().
+
+    this is mainly useful for hash formats which don't have a distinguishable
+    configuration-only format; and genconfig() has to use a placeholder
+    digest (usually all NULLs). this mixin causes that checksum to be
+    treated as if there wasn't a checksum at all; preventing the (remote)
+    chance of a configuration string 1) being stored as a hash, followed by
+    2) an attacker finding and trying a password which correctly maps to that
+    digest.
+    """
+    _stub_checksum = None
+
+    def __init__(self, **kwds):
+        super(HasStubChecksum, self).__init__(**kwds)
+        chk = self.checksum
+        if chk is not None and chk == self._stub_checksum:
+            self.checksum = None
 
 #NOTE: commented out because all use-cases work better with StaticHandler
 ##class HasNoSettings(GenericHandler):
@@ -1156,7 +1183,8 @@ class PrefixWrapper(object):
     :param lazy: if True and wrapped handler is specified by name, don't look it up until needed.
     """
 
-    def __init__(self, name, wrapped, prefix=u'', orig_prefix=u'', lazy=False, doc=None):
+    def __init__(self, name, wrapped, prefix=u(''), orig_prefix=u(''), lazy=False,
+                 doc=None, ident=None):
         self.name = name
         if isinstance(prefix, bytes):
             prefix = prefix.decode("ascii")
@@ -1173,6 +1201,13 @@ class PrefixWrapper(object):
             self._wrapped_name = wrapped
             if not lazy:
                 self._get_wrapped()
+
+        if ident is not None:
+            if isinstance(ident, bytes):
+                ident = ident.decode("ascii")
+            if ident[:len(prefix)] != prefix[:len(ident)]:
+                raise ValueError("ident agree with prefix")
+            self._ident = ident
 
     _wrapped_name = None
     _wrapped_handler = None
@@ -1192,9 +1227,42 @@ class PrefixWrapper(object):
 
     wrapped = property(_get_wrapped)
 
-    ##@property
-    ##def ident(self):
-    ##    return self._prefix
+    _ident = False
+
+    @property
+    def ident(self):
+        value = self._ident
+        if value is False:
+            value = None
+            # XXX: how will this interact with orig_prefix ?
+            #      not exposing attrs for now if orig_prefix is set.
+            if not self.orig_prefix:
+                wrapped = self.wrapped
+                ident = getattr(wrapped, "ident", None)
+                if ident is not None:
+                    value = self._wrap_hash(ident)
+            self._ident = value
+        return value
+
+    _ident_values = False
+    @property
+    def ident_values(self):
+        value = self._ident_values
+        if value is False:
+            value = None
+            # XXX: how will this interact with orig_prefix ?
+            #      not exposing attrs for now if orig_prefix is set.
+            if not self.orig_prefix:
+                wrapped = self.wrapped
+                idents = getattr(wrapped, "ident_values", None)
+                if idents:
+                    value = [ self._wrap_hash(ident) for ident in idents ]
+                ##else:
+                ##    ident = self.ident
+                ##    if ident is not None:
+                ##        value = [ident]
+            self._ident_values = value
+        return value
 
     #attrs that should be proxied
     _proxy_attrs = (
@@ -1208,9 +1276,19 @@ class PrefixWrapper(object):
         if self.prefix:
             args.append("prefix=%r" % self.prefix)
         if self.orig_prefix:
-            args.append("orig_prefix=%r", self.orig_prefix)
+            args.append("orig_prefix=%r" % self.orig_prefix)
         args = ", ".join(args)
         return 'PrefixWrapper(%r, %s)' % (self.name, args)
+
+    def __dir__(self):
+        attrs = set(dir(self.__class__))
+        attrs.update(self.__dict__)
+        wrapped = self.wrapped
+        attrs.update(
+            attr for attr in self._proxy_attrs
+            if hasattr(wrapped, attr)
+        )
+        return list(attrs)
 
     def __getattr__(self, attr):
         "proxy most attributes from wrapped class (eg rounds, salt size, etc)"
@@ -1238,7 +1316,7 @@ class PrefixWrapper(object):
         if not hash.startswith(orig_prefix):
             raise ValueError("not a valid %s hash" % (self.wrapped.name,))
         wrapped = self.prefix + hash[len(orig_prefix):]
-        return to_hash_str(wrapped)
+        return to_native_str(wrapped)
 
     def identify(self, hash):
         if not hash:

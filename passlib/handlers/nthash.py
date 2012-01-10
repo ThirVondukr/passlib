@@ -8,8 +8,9 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, to_unicode, to_hash_str, to_bytes, bytes
+from passlib.utils import handlers as uh, to_unicode, to_native_str, to_bytes, bytes
 from passlib.utils.md4 import md4
+from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -19,7 +20,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class nthash(uh.HasManyIdents, uh.GenericHandler):
+class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
     """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -41,12 +42,12 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
     setting_kwds = ("ident",)
     checksum_chars = uh.LC_HEX_CHARS
 
-    _stub_checksum = u"0" * 32
+    _stub_checksum = u("0") * 32
 
     #--HasManyIdents--
-    default_ident = u"$3$$"
-    ident_values = (u"$3$$", u"$NT$")
-    ident_aliases = {u"3": u"$3$$", u"NT": u"$NT$"}
+    default_ident = u("$3$$")
+    ident_values = (u("$3$$"), u("$NT$"))
+    ident_aliases = {u("3"): u("$3$$"), u("NT"): u("$NT$")}
 
     #=========================================================
     #formatting
@@ -68,7 +69,7 @@ class nthash(uh.HasManyIdents, uh.GenericHandler):
 
     def to_string(self):
         hash = self.ident + (self.checksum or self._stub_checksum)
-        return to_hash_str(hash)
+        return to_native_str(hash)
 
     #=========================================================
     #primary interface

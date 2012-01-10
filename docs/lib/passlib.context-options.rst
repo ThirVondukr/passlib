@@ -98,21 +98,20 @@ Within INI files, this may be specified using the alternate format :samp:`{hash}
 
     Sets the default number of rounds to use when generating new hashes (via :meth:`CryptContext.encrypt`).
 
-    If not set, this will use max rounds hash option (see below),
-    or fall back to the algorithm-specified default.
+    If not set, this will use an algorithm-specific default.
     For hashes which do not support a rounds parameter, this option is ignored.
 
 :samp:`{hash}__vary_rounds`
 
-    if specified along with :samp:`{hash}__default_rounds`,
+    If specified along with :samp:`{hash}__default_rounds`,
     this will cause each new hash created by :meth:`CryptContext.encrypt`
     to have a rounds value random chosen from the range :samp:`{default_rounds} +/- {vary_rounds}`.
 
-    this may be specified as an integer value, or as a string containing an integer
+    This may be specified as an integer value, or as a string containing an integer
     with a percent suffix (eg: ``"10%"``). if specified as a percent,
     the amount varied will be calculated as a percentage of the :samp:`{default_rounds}` value.
 
-    The default passlib policy sets this to ``"10%"``.
+    The default Passlib policy sets this to ``"10%"``.
 
     .. note::
 
@@ -138,6 +137,37 @@ Within INI files, this may be specified using the alternate format :samp:`{hash}
 
         These are configurable per-context limits,
         they will be clipped by any hard limits set in the hash algorithm itself.
+
+.. _passprep:
+
+:samp:`{hash}__passprep`
+
+    Normalize unicode passwords before passing them to the underlying
+    hash algorithm. This is primarily useful if users are likely
+    to use non-ascii characters in their password (e.g. vowels characters
+    with accent marks), which unicode offers multiple representations for.
+
+    This may be one of the following values:
+
+    * ``"raw"`` - use all unicode inputs as-is (the default).
+      unnormalized unicode input may not verify against a hash
+      generated from normalized unicode input (or vice versa).
+
+    * ``"saslprep"`` - run all passwords through the SASLPrep
+      unicode normalization algorithm (:rfc:`4013`) before hashing.
+      this is recommended for new deployments, particularly
+      in non-ascii environments.
+
+    * ``"saslprep,raw"`` - compatibility mode: encryption of new passwords
+      will be run through SASLPrep; but verification will be done
+      against the SASLPrep *and* raw versions of the password. This allows
+      existing hashes that were generated from unnormalized input
+      to continue to work.
+
+    .. note::
+
+        It is recommended to set this for all hashes via ``all__passprep``,
+        instead of settings it per algorithm.
 
 :samp:`{hash}__{setting}`
 

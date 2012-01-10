@@ -10,6 +10,16 @@ Release History
 
         .. currentmodule:: passlib.context
 
+        * :class:`~CryptContext` now supports a :ref:`passprep` option,
+          which runs all passwords through :rfc:`SASLPrep <4013>`
+          in order to normalize their unicode representation before hashing
+          [issue 24].
+
+        * Internals of :class:`CryptPolicy` have been
+          re-written drastically. Should now be stricter (and more informative)
+          about invalid values, and common :class:`CryptContext`
+          operations should all have much shorter code-paths.
+
         * Config parsing now done with :class:`SafeConfigParser`.
 
           :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
@@ -32,6 +42,9 @@ Release History
 
     Other
 
+        * Passlib is now source-compatible with Python 2.5+ and Python 3,
+          and no longer requires the use of :cmd:`2to3` to run under Python 3.
+
         .. _consteq-issue:
 
         * All digest comparisons within Passlib are now done using
@@ -52,6 +65,10 @@ Release History
               the legacy hashes supported by Passlib (such as
               :class:`!mysql323`) are already weak enough to be vulnerable.
 
+        * Builtin implementations of :class:`~md5_crypt`,
+          :class:`~sha256_crypt`, and :class:`~sha512_crypt` sped up by
+          about 25% due via additional pre-computation step.
+
         * Restored builtin pure-python BCrypt implementation
           (:mod:`passlib.utils._slow_bcrypt`) that was removed in v1.3.
           This implementation is still *WAY* to slow to be suitable
@@ -60,7 +77,6 @@ Release History
           by default, developers who really want to use it
           should set the environment variable ``PASSLIB_BUILTIN_BCRYPT=enabled``
           before loading Passlib.
-
 
 **1.5.3** (2011-10-08)
 ======================

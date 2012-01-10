@@ -11,8 +11,10 @@ import time
 #site
 #pkg
 from passlib import apache
-from passlib.utils import b, native_str, bytes
+from passlib.utils import b, bytes
+from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
+from passlib.utils.compat import u
 #module
 log = getLogger(__name__)
 
@@ -93,7 +95,7 @@ class HtpasswdFileTest(TestCase):
         "test verify()"
         ht = apache.HtpasswdFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5","pass5") is None)
-        for i in xrange(1,5):
+        for i in irange(1,5):
             i = str(i)
             self.assertTrue(ht.verify("user"+i, "pass"+i))
             self.assertTrue(ht.verify("user"+i, "pass5") is False)
@@ -165,7 +167,7 @@ class HtpasswdFileTest(TestCase):
 
         #check users() returns native string by default
         ht = apache.HtpasswdFile._from_string(self.sample_01)
-        self.assertIsInstance(ht.users()[0], native_str)
+        self.assertIsInstance(ht.users()[0], str)
 
         #check returns unicode if encoding explicitly set
         ht = apache.HtpasswdFile._from_string(self.sample_01, encoding="utf-8")
@@ -177,12 +179,12 @@ class HtpasswdFileTest(TestCase):
 
         #check sample utf-8
         ht = apache.HtpasswdFile._from_string(self.sample_04_utf8, encoding="utf-8")
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
         #check sample latin-1
         ht = apache.HtpasswdFile._from_string(self.sample_04_latin1,
                                               encoding="latin-1")
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
     def test_08_to_string(self):
         "test to_string"
@@ -267,7 +269,7 @@ class HtdigestFileTest(TestCase):
         "test verify()"
         ht = apache.HtdigestFile._from_string(self.sample_01)
         self.assertTrue(ht.verify("user5", "realm","pass5") is None)
-        for i in xrange(1,5):
+        for i in irange(1,5):
             i = str(i)
             self.assertTrue(ht.verify("user"+i, "realm", "pass"+i))
             self.assertTrue(ht.verify("user"+i, "realm", "pass5") is False)
@@ -352,13 +354,13 @@ class HtdigestFileTest(TestCase):
 
         #check users() returns native string by default
         ht = apache.HtdigestFile._from_string(self.sample_01)
-        self.assertIsInstance(ht.realms()[0], native_str)
-        self.assertIsInstance(ht.users("realm")[0], native_str)
+        self.assertIsInstance(ht.realms()[0], str)
+        self.assertIsInstance(ht.users("realm")[0], str)
 
         #check returns unicode if encoding explicitly set
         ht = apache.HtdigestFile._from_string(self.sample_01, encoding="utf-8")
         self.assertIsInstance(ht.realms()[0], unicode)
-        self.assertIsInstance(ht.users(u"realm")[0], unicode)
+        self.assertIsInstance(ht.users(u("realm"))[0], unicode)
 
         #check returns bytes if encoding explicitly disabled
         ht = apache.HtdigestFile._from_string(self.sample_01, encoding=None)
@@ -367,13 +369,13 @@ class HtdigestFileTest(TestCase):
 
         #check sample utf-8
         ht = apache.HtdigestFile._from_string(self.sample_04_utf8, encoding="utf-8")
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
+        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
 
         #check sample latin-1
         ht = apache.HtdigestFile._from_string(self.sample_04_latin1, encoding="latin-1")
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
+        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
 
 
     def test_10_to_string(self):

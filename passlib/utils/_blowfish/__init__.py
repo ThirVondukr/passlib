@@ -51,11 +51,12 @@ released under the BSD license::
 #imports
 #=========================================================
 #core
-from cStringIO import StringIO
 from itertools import chain
 import struct
 #pkg
-from passlib.utils import rng, getrandbytes, bytes, bord, b
+from passlib.utils import rng, getrandbytes, bytes, bord
+from passlib.utils.compat import b, unicode, u
+from passlib.utils.compat.aliases import BytesIO
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local
 __all__ = [
@@ -81,7 +82,7 @@ digest_struct = struct.Struct(">6I")
 #=========================================================
 
 # Table for Base64 encoding
-CHARS = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+CHARS = b("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 CHARSIDX = dict( (c, i) for i, c in enumerate(CHARS))
 
 def encode_base64(d):
@@ -98,7 +99,7 @@ def encode_base64(d):
         d = d.encode("utf-8")
         #ensure ord() returns something w/in 0..255
 
-    rs = StringIO()
+    rs = BytesIO()
     write = rs.write
     dlen = len(d)
     didx = 0
@@ -144,7 +145,7 @@ def decode_base64(s):
     :raises ValueError:
         if invalid values are passed in
     """
-    rs = StringIO()
+    rs = BytesIO()
     write = rs.write
     slen = len(s)
     sidx = 0
@@ -154,7 +155,7 @@ def decode_base64(s):
         try:
             return CHARSIDX[c]
         except KeyError:
-            raise ValueError, "invalid chars in base64 string"
+            raise ValueError("invalid chars in base64 string")
 
     while True:
 
@@ -203,18 +204,18 @@ def raw_bcrypt(password, ident, salt, log_rounds):
 
     # parse ident
     assert isinstance(ident, unicode)
-    if ident == u'2':
+    if ident == u('2'):
         minor = 0
-    elif ident == u'2a':
+    elif ident == u('2a'):
         minor = 1
     else:
-        raise ValueError, "unknown ident: %r" % (ident,)
+        raise ValueError("unknown ident: %r" % (ident,))
 
     # decode & validate salt
     assert isinstance(salt, bytes)
     salt = decode_base64(salt)
     if len(salt) < 16:
-        raise ValueError, "Missing salt bytes"
+        raise ValueError("Missing salt bytes")
     elif len(salt) > 16:
         salt = salt[:16]
 

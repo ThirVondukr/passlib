@@ -9,7 +9,7 @@ from itertools import chain
 #libs
 from passlib import hash
 from passlib.context import LazyCryptContext
-from passlib.utils import sys_bits
+from passlib.utils.compat import sys_bits
 #pkg
 #local
 __all__ = [
@@ -29,6 +29,11 @@ custom_app_context = LazyCryptContext(
     #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
 
+    # TODO: enable passprep for default policy? would definitely be a good
+    # idea for most applications; but want passprep to get a release or
+    # two worth of deployment & feedback before turning it on here.
+    ## all__passprep = "saslprep,raw",
+
     #set some useful global options
     all__vary_rounds = "10%",
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
@@ -45,6 +50,10 @@ custom_app_context = LazyCryptContext(
 #=========================================================
 #django
 #=========================================================
+
+# XXX: should this be integrated with passlib.ext.django,
+# so that it's policy changes to reflect what the extension has set?
+# in that case we might need a default_django_context as well.
 django_context = LazyCryptContext(
     schemes=[
         "django_salted_sha1", "django_salted_md5", "django_des_crypt",

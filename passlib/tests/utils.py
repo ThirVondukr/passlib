@@ -10,20 +10,17 @@ import re
 import os
 import sys
 import tempfile
+from passlib.utils.compat import u, PY27, PY_MIN_32, PY3
 
 try:
     import unittest2 as unittest
     ut_version = 2
 except ImportError:
     import unittest
-    # Py2k #
-    if sys.version_info < (2,7):
-    # Py3k #
-    #if sys.version_info < (3,2):
-    # end Py3k #
-        ut_version = 1
-    else:
+    if PY27 or PY_MIN_32:
         ut_version = 2
+    else:
+        ut_version = 1
 
 import warnings
 from warnings import warn
@@ -36,7 +33,9 @@ if ut_version < 2:
 from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
-        rounds_cost_values, b, bytes, native_str, NoneType
+        rounds_cost_values, b, bytes, NoneType
+from passlib.utils.compat import iteritems, irange, callable, sb_types, \
+                                 exc_err, unicode
 #local
 __all__ = [
     #util funcs
@@ -217,7 +216,8 @@ class TestCase(unittest.TestCase):
         msg = kwds.pop("__msg__", None)
         try:
             result = func(*args, **kwds)
-        except Exception, err:
+        except Exception:
+            err = exc_err() # NOTE: done to avoid 2/3 exception-syntax issue
             if isinstance(err, type):
                 return True
             ##import traceback, sys
@@ -293,17 +293,21 @@ class TestCase(unittest.TestCase):
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
 
-    if not hasattr(unittest.TestCase, "assertRegexpMatches"):
-        #added in 2.7/UT2 and 3.1
-        def assertRegexpMatches(self, text, expected_regex, msg=None):
-            """Fail the test unless the text matches the regular expression."""
-            if isinstance(expected_regex, basestring):
-                assert expected_regex, "expected_regex must not be empty."
-                expected_regex = re.compile(expected_regex)
-            if not expected_regex.search(text):
-                msg = msg or "Regex didn't match"
-                msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
-                raise self.failureException(msg)
+    if not hasattr(unittest.TestCase, "assertRegex"):
+        # assertRegexpMatches() added in 2.7/UT2 and 3.1, renamed to
+        # assertRegex() in 3.2; this code ensures assertRegex() is defined.
+        if hasattr(unittest.TestCase, "assertRegexpMatches"):
+            assertRegex = unittest.TestCase.assertRegexpMatches
+        else:
+            def assertRegex(self, text, expected_regex, msg=None):
+                """Fail the test unless the text matches the regular expression."""
+                if isinstance(expected_regex, sb_types):
+                    assert expected_regex, "expected_regex must not be empty."
+                    expected_regex = re.compile(expected_regex)
+                if not expected_regex.search(text):
+                    msg = msg or "Regex didn't match"
+                    msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
+                    raise self.failureException(msg)
 
     #============================================================
     #add some custom methods
@@ -344,7 +348,7 @@ class TestCase(unittest.TestCase):
         if message:
             self.assertEqual(str(warning), message, msg)
         if message_re:
-            self.assertRegexpMatches(str(warning), message_re, msg)
+            self.assertRegex(str(warning), message_re, msg)
         if category:
             self.assertIsInstance(warning, category, msg)
 
@@ -361,11 +365,24 @@ class TestCase(unittest.TestCase):
         ##    if filename:
         ##        self.assertEqual(real, filename, msg)
         ##    if filename_re:
-        ##        self.assertRegexpMatches(real, filename_re, msg)
+        ##        self.assertRegex(real, filename_re, msg)
         ##if lineno:
         ##    if not wmsg:
         ##        raise TypeError("can't read lineno from warning object")
         ##    self.assertEqual(wmsg.lineno, lineno, msg)
+
+    def assertNoWarnings(self, wlist, msg=None):
+        "assert that list (e.g. from catch_warnings) contains no warnings"
+        if not wlist:
+            return
+        wout = [self._formatWarning(w.message) for w in wlist]
+        std = "AssertionError: unexpected warnings: " + ", ".join(wout)
+        msg = self._formatMessage(msg, std)
+        raise self.failureException(msg)
+
+    def _formatWarning(self, entry):
+        cls = type(entry)
+        return "<%s.%s %r>" % (cls.__module__,cls.__name__, str(entry))
 
     #============================================================
     #eoc
@@ -426,6 +443,11 @@ class HandlerCase(TestCase):
     #: flag if scheme accepts empty string as hash (rare)
     accepts_empty_hash = False
 
+    #: flag if verify() doesn't throw error on config strings.
+    #  this is a bug which should be fixed in most handlers,
+    #  with the exception of the unix_fallback handler.
+    genconfig_uses_hash = False
+
     #: if handler uses multiple backends, explicitly set this one when running tests.
     backend = None
 
@@ -464,7 +486,7 @@ class HandlerCase(TestCase):
         #NOTE: this is subclassable mainly for some algorithms
         #which accept non-strings in secret
         if isinstance(secret, unicode):
-            return u'x' + secret
+            return u('x') + secret
         else:
             return b('x') + secret
 
@@ -528,10 +550,8 @@ class HandlerCase(TestCase):
                         hash = h.genhash(secret, hash)
                     finally:
                         h.set_backend(tmp)
-                    # Py2k #
-                    if isinstance(hash, unicode):
+                    if not PY3 and isinstance(hash, unicode):
                         hash = hash.encode("ascii")
-                    # end Py2k #
                     return hash
                 utils.os_crypt = crypt_stub
             h.set_backend(backend)
@@ -553,7 +573,7 @@ class HandlerCase(TestCase):
 
         name = ga("name")
         self.assertTrue(name, "name not defined:")
-        self.assertIsInstance(name, native_str, "name must be native str")
+        self.assertIsInstance(name, str, "name must be native str")
         self.assertTrue(name.lower() == name, "name not lower-case:")
         self.assertTrue(re.match("^[a-z0-9_]+$", name), "name must be alphanum + underscore: %r" % (name,))
 
@@ -662,7 +682,7 @@ class HandlerCase(TestCase):
 
         #check optional aliases list
         if cls.ident_aliases:
-            for alias, ident in cls.ident_aliases.iteritems():
+            for alias, ident in iteritems(cls.ident_aliases):
                 self.assertIsInstance(alias, unicode,
                                       "cls.ident_aliases keys must be unicode:") #XXX: allow ints?
                 self.assertIsInstance(ident, unicode,
@@ -741,7 +761,7 @@ class HandlerCase(TestCase):
         "test identify() against None / empty string"
         self.assertEqual(self.do_identify(None), False)
         self.assertEqual(self.do_identify(b('')), self.accepts_empty_hash)
-        self.assertEqual(self.do_identify(u''), self.accepts_empty_hash)
+        self.assertEqual(self.do_identify(u('')), self.accepts_empty_hash)
 
     #=========================================================
     #verify()
@@ -759,7 +779,7 @@ class HandlerCase(TestCase):
             self.assertEqual(self.do_verify(secret, hash), True,
                              "known correct hash (secret=%r, hash=%r):" % (secret,hash))
 
-    def test_21_verify_other(self):
+    def test_21_verify_foreign(self):
         "test verify() throws error against other algorithm's hashes"
         for name, hash in self.known_other_hashes:
             if name == self.handler.name:
@@ -780,16 +800,33 @@ class HandlerCase(TestCase):
         for hash in self.known_malformed_hashes:
             self.assertRaises(ValueError, self.do_verify, 'stub', hash, __msg__="hash=%r:" % (hash,))
 
-    def test_24_verify_none(self):
-        "test verify() throws error against hash=None/empty string"
-        #find valid hash so that doesn't mask error
-        self.assertRaises(ValueError, self.do_verify, 'stub', None, __msg__="hash=None:")
+    def test_24_verify_other(self):
+        "test verify() handles border cases"
+        # ``None`` should always throw an error
+        self.assertRaises(ValueError, self.do_verify, 'stub', None,
+                          __msg__="hash=None:")
+
+        # empty string should throw error except for certain cases
+        # (e.g. the plaintext handler)
         if self.accepts_empty_hash:
-            self.do_verify("stub", u"")
+            self.do_verify("stub", u(""))
             self.do_verify("stub", b(""))
         else:
-            self.assertRaises(ValueError, self.do_verify, 'stub', u'', __msg__="hash='':")
-            self.assertRaises(ValueError, self.do_verify, 'stub', b(''), __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', u(''),
+                              __msg__="hash='':")
+            self.assertRaises(ValueError, self.do_verify, 'stub', b(''),
+                              __msg__="hash='':")
+
+        # config/salt strings should throw an error
+        cs = self.do_genconfig()
+        if self.genconfig_uses_hash:
+            # unix fallback handler returns "!" as cs,
+            # which verify() accepts quite readily. 
+            self.assertFalse(self.do_verify(u(""), cs))
+            self.assertFalse(self.do_verify(u("stub"), cs))
+        else:
+            self.assertRaises(ValueError, self.do_verify, u(""), cs)
+            self.assertRaises(ValueError, self.do_verify, u("stub"), cs)
 
     #=========================================================
     #genconfig()
@@ -800,8 +837,8 @@ class HandlerCase(TestCase):
             raise self.skipTest("handler doesn't have salt")
         c1 = self.do_genconfig()
         c2 = self.do_genconfig()
-        self.assertIsInstance(c1, native_str, "genconfig() must return native str:")
-        self.assertIsInstance(c2, native_str, "genconfig() must return native str:")
+        self.assertIsInstance(c1, str, "genconfig() must return native str:")
+        self.assertIsInstance(c2, str, "genconfig() must return native str:")
         self.assertNotEqual(c1,c2)
 
     def test_31_genconfig_minsalt(self):
@@ -855,14 +892,14 @@ class HandlerCase(TestCase):
 
         #make sure all listed chars are accepted
         chunk = 32 if mx is None else mx
-        for i in xrange(0,len(cs),chunk):
+        for i in irange(0,len(cs),chunk):
             salt = cs[i:i+chunk]
             if len(salt) < mn:
                 salt = (salt*(mn//len(salt)+1))[:chunk]
             self.do_genconfig(salt=salt)
 
         #check some invalid salt chars, make sure they're rejected
-        source = u'\x00\xff'
+        source = u('\x00\xff')
         if raw:
             source = source.encode("latin-1")
         chunk = max(mn, 1)
@@ -920,16 +957,16 @@ class HandlerCase(TestCase):
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
         #check it handles unicode password
-        secret = u"\u20AC\u00A5$"
+        secret = u("\u20AC\u00A5$")
         result = self.do_encrypt(secret)
-        self.assertIsInstance(result, native_str, "encrypt must return native str:")
+        self.assertIsInstance(result, str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))
         self.assertTrue(self.do_verify(secret, result))
 
         #check it handles bytes password as well
         secret = b('\xe2\x82\xac\xc2\xa5$')
         result = self.do_encrypt(secret)
-        self.assertIsInstance(result, native_str, "encrypt must return native str:")
+        self.assertIsInstance(result, str, "encrypt must return native str:")
         self.assertTrue(self.do_identify(result))
         self.assertTrue(self.do_verify(secret, result))
 
@@ -1069,7 +1106,7 @@ def _has_other_backends(handler, ignore):
             return name
     return None
 
-def create_backend_case(base, name, module="passlib.tests.test_drivers"):
+def create_backend_case(base, name, module="passlib.tests.test_handlers"):
     "create a test case for specific backend of a multi-backend handler"
     #get handler, figure out if backend should be tested
     handler = base.handler
@@ -1216,6 +1253,7 @@ except ImportError:
             if self._record:
                 log = []
                 def showwarning(*args, **kwargs):
+#                    self._showwarning(*args, **kwargs)
                     log.append(WarningMessage(*args, **kwargs))
                 self._module.showwarning = showwarning
                 return log
