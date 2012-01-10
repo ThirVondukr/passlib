@@ -3,6 +3,7 @@
 # figure out what version we're running
 #=============================================================================
 import sys
+PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
 PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
 PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
@@ -171,9 +172,13 @@ else:
 if PY3:
     def iteritems(d):
         return d.items()
+    def itervalues(d):
+        return d.values()
 else:
     def iteritems(d):
         return d.iteritems()
+    def itervalues(d):
+        return d.itervalues()
 
 #=============================================================================
 # introspection

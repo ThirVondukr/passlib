@@ -849,7 +849,8 @@ class _Pbkdf2BackendTest(TestCase):
         self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 'x', 16)
 
         #invalid keylen
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 20*(2**32-1)+1)
+        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'),
+                                                     1, 20*(2**32-1)+1)
 
         #invalid salt type
         self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), 5, 1, 10)
@@ -861,6 +862,14 @@ class _Pbkdf2BackendTest(TestCase):
         self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'hmac-foo')
         self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'foo')
         self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 5)
+
+    def test_default_keylen(self):
+        "test keylen==-1"
+        self.assertEqual(len(pbkdf2.pbkdf2(b('password'), b('salt'), 1, -1,
+                                           prf='hmac-sha1')), 20)
+
+        self.assertEqual(len(pbkdf2.pbkdf2(b('password'), b('salt'), 1, -1,
+                                           prf='hmac-sha256')), 32)
 
     def test_hmac_sha1(self):
         "test independant hmac_sha1() method"

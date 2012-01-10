@@ -1008,6 +1008,224 @@ class PostgresMD5CryptTest(HandlerCase):
         return self.handler.genhash(secret, config, user=user)
 
 #=========================================================
+# scram hash
+#=========================================================
+class ScramTest(HandlerCase):
+    handler = hash.scram
+
+    known_correct_hashes = [
+        # taken from example in SCRAM specification.
+        ('pencil', '$scram$4096$QSXCR.Q6sek8bf92$'
+                   'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30'),
+
+        # previous example, with sha-256 & sha-512 added.
+        ('pencil', '$scram$4096$QSXCR.Q6sek8bf92$'
+                   'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+                   'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,'
+                   'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                       'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ'),
+
+        #############
+        # TODO: need a bunch more reference vectors from some real
+        # SCRAM transactions.
+        #############
+
+        #############
+        # TODO: verify the following against some other SCRAM implementation.
+        #############
+
+        # the following hash should verify against both normalized
+        # and unnormalized versions of the password.
+        (u('\u2168\u3000a\u0300'), '$scram$6400$0BojBCBE6P2/N4bQ$'
+                                   'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
+        (u('IX \xE0'),             '$scram$6400$0BojBCBE6P2/N4bQ$'
+                                   'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
+        (u('\u00ADIX \xE0'),       '$scram$6400$0BojBCBE6P2/N4bQ$'
+                                   'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
+    ]
+
+    known_malformed_hashes = [
+        # zero-padding in rounds
+        '$scram$04096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
+
+        # non-digit in rounds
+        '$scram$409A$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
+
+# FIXME: bad chars raise TypeError
+        # bad char in salt
+#        '$scram$4096$QSXCR.Q6sek8bf9-$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30',
+
+        # bad char in digest
+#        '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX3-',
+
+        # too many chars in alg
+        '$scram$4096$QSXCR.Q6sek8bf92$shaxxx-190=HZbuOlKbWl.eR8AfIposuKbhX30',
+
+        # missing sha-1 alg
+        '$scram$4096$QSXCR.Q6sek8bf92$sha-256=HZbuOlKbWl.eR8AfIposuKbhX30',
+
+    ]
+
+    def test_100_algs(self):
+        "test parsing of 'algs' setting"
+        def parse(source):
+            return self.handler(algs=source).algs
+
+        # None -> default list
+        self.assertEquals(parse(None), ["sha-1","sha-256","sha-512"])
+
+        # strings should be parsed
+        self.assertEquals(parse("sha1"), ["sha-1"])
+        self.assertEquals(parse("sha1, sha256, md5"), ["md5","sha-1","sha-256"])
+
+        # lists should be normalized
+        self.assertEquals(parse(["sha-1","sha256"]), ["sha-1","sha-256"])
+
+        # sha-1 required
+        self.assertRaises(ValueError, parse, ["sha-256"])
+
+        # alg names < 10 chars
+        self.assertRaises(ValueError, parse, ["sha-1","shaxxx-890"])
+
+        # alg & checksum mutually exclusive.
+        self.assertRaises(RuntimeError, self.handler, algs=['sha-1'],
+                          checksum={"sha-1": b("\x00"*20)})
+
+    def test_101_extract_digest_info(self):
+        "test scram.extract_digest_info()"
+        edi = self.handler.extract_digest_info
+
+        # return appropriate value or throw KeyError
+        h = "$scram$10$AAAAAA$sha-1=AQ,bbb=Ag,ccc=Aw"
+        s = b('\x00')*4
+        self.assertEqual(edi(h,"SHA1"), (s,10,'\x01'))
+        self.assertEqual(edi(h,"bbb"), (s,10,'\x02'))
+        self.assertEqual(edi(h,"ccc"), (s,10,'\x03'))
+        self.assertRaises(KeyError, edi, h, "ddd")
+
+        # config strings should cause value error.
+        c = "$scram$10$....$sha-1,bbb,ccc"
+        self.assertRaises(ValueError, edi, c, "sha-1")
+        self.assertRaises(ValueError, edi, c, "bbb")
+        self.assertRaises(ValueError, edi, c, "ddd")
+
+    def test_102_extract_digest_algs(self):
+        "test scram.extract_digest_algs()"
+        eda = self.handler.extract_digest_algs
+
+        self.assertEquals(eda('$scram$4096$QSXCR.Q6sek8bf92$'
+                   'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30'), ["sha-1"])
+
+        self.assertEquals(eda('$scram$4096$QSXCR.Q6sek8bf92$'
+                   'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+                   'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,'
+                   'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                       'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ'),
+                          ["sha-1","sha-256","sha-512"])
+
+    # TODO.
+    def test_103_derive_digest(self):
+        "test scram.derive_digest()"
+        pass
+
+    def test_104_saslprep(self):
+        "test encrypt/verify use saslprep"
+        # NOTE: this just does a light test that saslprep() is being
+        # called in various places, relying in saslpreps()'s tests
+        # to verify full normalization behavior.
+
+        # encrypt unnormalized
+        h = self.do_encrypt(u("I\u00ADX"))
+        self.assertTrue(self.do_verify(u("IX"), h))
+        self.assertTrue(self.do_verify(u("\u2168"), h))
+
+        # encrypt normalized
+        h = self.do_encrypt(u("\xF3"))
+        self.assertTrue(self.do_verify(u("o\u0301"), h))
+        self.assertTrue(self.do_verify(u("\u200Do\u0301"), h))
+
+        # throws error if forbidden char provided
+        self.assertRaises(ValueError, self.do_encrypt, u("\uFDD0"))
+        self.assertRaises(ValueError, self.do_verify, u("\uFDD0"), h)
+
+    def test_105_context_algs(self):
+        "test handling of 'algs' in context object"
+        handler = self.handler
+        from passlib.context import CryptContext
+        c1 = CryptContext(["scram"], scram__algs="sha1,md5")
+
+        h = c1.encrypt("dummy")
+        self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
+        self.assertFalse(c1.hash_needs_update(h))
+
+        c2 = c1.replace(scram__algs="sha1")
+        self.assertFalse(c2.hash_needs_update(h))
+
+        c2 = c1.replace(scram__algs="sha1,sha256")
+        self.assertTrue(c2.hash_needs_update(h))
+
+    def test_106_full_verify(self):
+        "test full_verify flag"
+        def vfull(s, h):
+            return self.handler.verify(s, h, full_verify=True)
+
+        # reference
+        h = ('$scram$4096$QSXCR.Q6sek8bf92$'
+             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,'
+             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
+        self.assertTrue(vfull('pencil', h))
+        self.assertFalse(vfull('tape', h))
+
+        # catch truncated digests.
+        h = ('$scram$4096$QSXCR.Q6sek8bf92$'
+             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY' # -1 char
+             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
+        self.assertRaises(ValueError, vfull, 'pencil', h)
+
+        # catch padded digests.
+        h = ('$scram$4096$QSXCR.Q6sek8bf92$'
+             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,a' # +1 char
+             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
+        self.assertRaises(ValueError, vfull, 'pencil', h)
+
+        # catch digests belonging to diff passwords.
+        h = ('$scram$4096$QSXCR.Q6sek8bf92$'
+             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
+             'sha-256=R7RJDWIbeKRTFwhE9oxh04kab0CllrQ3kCcpZUcligc' # 'tape'
+             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+                'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
+        self.assertRaises(ValueError, vfull, 'pencil', h)
+        self.assertRaises(ValueError, vfull, 'tape', h)
+
+    ndn_values = [
+        # normalized name, unnormalized names
+
+        # IANA assigned names
+        ("md5", "MD-5"),
+        ("sha-1", "SHA1"),
+        ("sha-256", "SHA_256", "sha2-256"),
+
+        # heuristic for unassigned names
+        ("abc6", "aBc-6"),
+        ("ripemd", "RIPEMD"),
+        ("ripemd-160", "RIPEmd160"),
+    ]
+
+    def test_107_norm_digest_name(self):
+        "test norm_digest_name helper"
+        from passlib.handlers.scram import norm_digest_name
+        for row in self.ndn_values:
+            result = row[0]
+            for value in row:
+                self.assertEqual(norm_digest_name(value), result)
+
+#=========================================================
 # (netbsd's) sha1 crypt
 #=========================================================
 class _SHA1CryptTest(HandlerCase):

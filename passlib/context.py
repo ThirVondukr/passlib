@@ -1053,8 +1053,20 @@ class _CryptRecord(object):
             self.hash_needs_update = lambda hash: True
             return
 
+        # let handler detect hashes with configurations that don't match
+        # current settings. currently do this by calling
+        # ``handler._deprecation_detector(**settings)``, which if defined
+        # should return None or a callable ``is_deprecated(hash)->bool``.
+        #
+        # NOTE: this interface is still private, because it was hacked in
+        # for the sake of bcrypt & scram, and is subject to change.
+        #
         handler = self.handler
-        self._hash_needs_update = getattr(handler, "_hash_needs_update", None)
+        const = getattr(handler, "_deprecation_detector", None)
+        if const:
+            self._hash_needs_update = const(**self._settings)
+
+        # XXX: what about a "min_salt_size" deprecator?
 
         # check if there are rounds, rounds limits, and if we can
         # parse the rounds from the handler. if that's the case...
@@ -1064,12 +1076,7 @@ class _CryptRecord(object):
     def hash_needs_update(self, hash):
         # NOTE: this is replaced by _compile_deprecation() if self.deprecated
 
-        # XXX: could check if handler provides it's own helper, e.g.
-        # getattr(handler, "hash_needs_update", None), possibly instead of
-        # calling the default check below...
-        #
-        # NOTE: hacking this in for the sake of bcrypt & issue 25,
-        # will formalize (and possibly change) interface later.
+        # check handler's detector if it provided one.
         hnu = self._hash_needs_update
         if hnu and hnu(hash):
             return True
@@ -1354,6 +1361,7 @@ class CryptContext(object):
     #       since it will have optimized itself for the particular
     #       settings used within the policy by that (scheme,category).
 
+    # XXX: would a better name be is_deprecated(hash)?
     def hash_needs_update(self, hash, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted.
 
