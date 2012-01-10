@@ -163,14 +163,15 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         Specify list of digest algorithms to use.
 
         By default each scram hash will contain digests for SHA-1,
-        SHA-256, and SHA-512. This may either be a list such as
-        ``["sha-1", "sha-256"]``, or a comma-separated string such as
-        ``"sha-1,sha-256"``. Names are case insensitive, and may
-        use hashlib or IANA compatible hash names.
+        SHA-256, and SHA-512. This can be overridden by specify either be a
+        list such as ``["sha-1", "sha-256"]``, or a comma-separated string
+        such as ``"sha-1, sha-256"``. Names are case insensitive, and may
+        use :mod:`!hashlib` or `IANA <http://www.iana.org/assignments/hash-function-text-names>`_
+        hash names.
 
-    This class also provides the following additional class methods
-    for manipulating Passlib scram hashes in ways useful for pluging
-    into a SCRAM protocol stack:
+    In addition to the standard :ref:`password-hash-api` methods,
+    this class also provides the following methods for manipulating Passlib
+    scram hashes in ways useful for pluging into a SCRAM protocol stack:
 
     .. automethod:: extract_digest_info
     .. automethod:: extract_digest_algs
@@ -291,10 +292,10 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :arg password: password as unicode or utf-8 encoded bytes.
         :arg salt: raw salt as bytes.
         :arg rounds: number of iterations.
-        :arg alg: SCRAM-compatible name of digest (e.g. ``"SHA-1"``).
+        :arg alg: name of digest to use (e.g. ``"SHA-1"``).
 
         :returns:
-            raw bytes of SaltedPassword
+            raw bytes of ``SaltedPassword``
         """
         if isinstance(password, bytes):
             password = password.decode("utf-8")

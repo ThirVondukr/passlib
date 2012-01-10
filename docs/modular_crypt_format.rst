@@ -149,20 +149,20 @@ Scheme                                      Prefix              Primary Use (if 
 =========================================== =================== ===========================
 :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
 :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
-:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``
-:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
-:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
+:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific
+:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$`` Passlib-specific
+:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$`` Passlib-specific
+:class:`~passlib.hash.scram`                ``$scram$``         Passlib-specific
 :class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
 :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
 =========================================== =================== ===========================
 
 .. rubric:: Footnotes
 
-.. [#gae] As of 2011-08-19, Google App Engine's :mod:`crypt` implementation 
+.. [#gae] As of 2011-08-19, Google App Engine's :mod:`crypt` implementation
           appears to provide hash support matching that of a typical Linux system.
 
 .. [#cta] :class:`!cta_pbkdf2_sha1` and :class:`!dlitz_pbkdf2_sha1` both use
           the same identifier. They can be distinguished
           by the fact that cta hashes will always end in ``=``, while dlitz
           hashes contain no ``=`` at all.
-
