@@ -23,7 +23,8 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import adapted_b64_encode, adapted_b64_decode, \
-        handlers as uh, to_hash_str, to_unicode, bytes, b, consteq
+        handlers as uh, to_native_str, to_unicode, bytes, b, consteq
+from passlib.utils.compat import unicode, bytes, u, b
 from passlib.utils.pbkdf2 import pbkdf2, get_prf
 #pkg
 #local
@@ -116,7 +117,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     name = "scram"
     setting_kwds = ("salt", "salt_size", "rounds", "digest_names")
     checksum_chars = uh.H64_CHARS
-    ident = u"$scram$"
+    ident = u("$scram$")
 
     #--HasSalt--
     default_salt_size = 12
@@ -207,8 +208,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         raw_salt = adapted_b64_decode(salt.encode("ascii"))
         if chk:
             chkmap = {}
-            for part in chk.rstrip(",").split(","):
-                name, digest = part.split("=")
+            for part in chk.rstrip(u(",")).split(u(",")):
+                name, digest = part.split(u("="))
                 name = normalize_digest_name(name)
                 chkmap[name] = adapted_b64_decode(digest)
         else:
@@ -224,14 +225,14 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         salt = adapted_b64_encode(self.salt).decode("ascii")
         if withchk and self.checksum:
             chkmap = self.checksum
-            chk = u','.join(
-                u"%s=%s" % (name.lower(), adapted_b64_encode(chkmap[name]))
+            chk = u(',').join(
+                u("%s=%s") % (name.lower(), adapted_b64_encode(chkmap[name]))
                 for name in sorted(chkmap)
             )
-            hash = u'%s%d$%s$%s' % (self.ident, self.rounds, salt, chk)
+            hash = u('%s%d$%s$%s') % (self.ident, self.rounds, salt, chk)
         else:
-            hash = u'%s%d$%s' % (self.ident, self.rounds, salt)
-        return to_hash_str(hash)
+            hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
+        return to_native_str(hash)
 
     def calc_checksum(self, secret):
         rounds = self.rounds
