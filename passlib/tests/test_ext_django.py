@@ -14,7 +14,7 @@ from passlib.apps import django_context
 from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
 from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
-import passlib.tests.test_handlers as td
+import passlib.tests.test_handlers as th
 from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
 #module

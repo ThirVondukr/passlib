@@ -391,8 +391,9 @@ class CodecTest(TestCase):
         if PY3:
             self.assertEqual(to_native_str(u('\x00\xff')), '\x00\xff')
         else:
-            self.assertRaises(UnicodeEncodeError, to_native_str, u('\x00\xff'))
-            self.assertEqual(to_native_str(u('\x00\xff'), 'utf-8'), '\x00\xc3\xbf')
+            self.assertEqual(to_native_str(u('\x00\xff')), '\x00\xc3\xbf')
+            self.assertRaises(UnicodeEncodeError, to_native_str, u('\x00\xff'),
+                              'ascii')
 
         # non-ascii bytes should throw error under py3, unless codec specified
         if PY3:
