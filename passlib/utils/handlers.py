@@ -337,11 +337,13 @@ class GenericHandler(object):
     #instance attrs
     #=====================================================
     checksum = None
+    strict = False #: whether norm_xxx() functions should use strict checking.
 
     #=====================================================
     #init
     #=====================================================
     def __init__(self, checksum=None, strict=False, **kwds):
+        self.strict = strict
         self.checksum = self.norm_checksum(checksum, strict=strict)
         super(GenericHandler, self).__init__(**kwds)
 

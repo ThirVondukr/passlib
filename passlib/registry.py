@@ -133,6 +133,7 @@ _handler_locations = {
     "plaintext":        ("passlib.handlers.misc",        "plaintext"),
     "postgres_md5":     ("passlib.handlers.postgres",    "postgres_md5"),
     "roundup_plaintext":("passlib.handlers.roundup",     "roundup_plaintext"),
+    "scram":            ("passlib.handlers.scram",       "scram"),
     "sha1_crypt":       ("passlib.handlers.sha1_crypt",  "sha1_crypt"),
     "sha256_crypt":     ("passlib.handlers.sha2_crypt",  "sha256_crypt"),
     "sha512_crypt":     ("passlib.handlers.sha2_crypt",  "sha512_crypt"),

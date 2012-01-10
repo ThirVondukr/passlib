@@ -153,6 +153,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #=========================================================
 
     @classmethod
+    def _deprecation_detector(cls, **settings):
+        return cls._hash_needs_update
+
+    @classmethod
     def _hash_needs_update(cls, hash):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")

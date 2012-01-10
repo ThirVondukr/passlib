@@ -94,6 +94,7 @@ they can be used compatibly along side other modular crypt format hashes.
     passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
     passlib.hash.dlitz_pbkdf2_sha1
+    passlib.hash.scram
 
 Special note should be made of the fallback helper,
 which is not an actual hash scheme, but provides "disabled account"
