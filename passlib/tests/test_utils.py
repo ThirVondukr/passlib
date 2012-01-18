@@ -11,15 +11,9 @@ import warnings
 #site
 #pkg
 #module
-from passlib.context import CryptContext
-from passlib import utils
-from passlib.utils import h64, des, bytes, b, \
-    to_bytes, to_unicode, to_native_str, \
-    is_same_codec, is_ascii_safe, safe_os_crypt, md4 as md4_mod
-from passlib.utils.compat import unicode, PY3
-from passlib.tests.utils import TestCase, Params as ak, \
-    enable_option, catch_warnings
-from passlib.utils.compat import u
+from passlib.utils import bytes, b, to_native_str
+from passlib.utils.compat import unicode, PY3, u
+from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
 def hb(source):
     return unhexlify(b(source))
@@ -34,8 +28,9 @@ class MiscTest(TestCase):
 
     def test_getrandbytes(self):
         "test getrandbytes()"
+        from passlib.utils import getrandbytes, rng
         def f(*a,**k):
-            return utils.getrandbytes(utils.rng, *a, **k)
+            return getrandbytes(rng, *a, **k)
         self.assertEqual(len(f(0)), 0)
         a = f(10)
         b = f(10)
@@ -46,8 +41,9 @@ class MiscTest(TestCase):
 
     def test_getrandstr(self):
         "test getrandstr()"
+        from passlib.utils import getrandstr, rng
         def f(*a,**k):
-            return utils.getrandstr(utils.rng, *a, **k)
+            return getrandstr(rng, *a, **k)
 
         #count 0
         self.assertEqual(f('abc',0), '')
@@ -77,28 +73,35 @@ class MiscTest(TestCase):
         self.assertEqual(sorted(set(x.decode("ascii"))), [u('a'),u('b'),u('c')])
 
         #generate_password
-        self.assertEqual(len(utils.generate_password(15)), 15)
+        from passlib.utils import generate_password
+        self.assertEqual(len(generate_password(15)), 15)
 
     def test_is_crypt_context(self):
         "test is_crypt_context()"
+        from passlib.utils import is_crypt_context
+        from passlib.context import CryptContext
         cc = CryptContext(["des_crypt"])
-        self.assertTrue(utils.is_crypt_context(cc))
-        self.assertFalse(not utils.is_crypt_context(cc))
+        self.assertTrue(is_crypt_context(cc))
+        self.assertFalse(not is_crypt_context(cc))
 
     def test_genseed(self):
         "test genseed()"
-        rng = utils.random.Random(utils.genseed())
+        import random
+        from passlib.utils import genseed
+        rng = random.Random(genseed())
         a = rng.randint(0, 100000)
 
-        rng = utils.random.Random(utils.genseed())
+        rng = random.Random(genseed())
         b = rng.randint(0, 100000)
 
         self.assertNotEqual(a,b)
 
-        rng.seed(utils.genseed(rng))
+        rng.seed(genseed(rng))
 
     def test_safe_os_crypt(self):
         "test safe_os_crypt() wrapper"
+        from passlib.utils import safe_os_crypt
+
         if not safe_os_crypt:
             raise self.skipTest("stdlib crypt module not available")
 
@@ -136,18 +139,19 @@ class MiscTest(TestCase):
         # test safe_os_crypt() handles os_crypt() returning None
         # (Python's Modules/_cryptmodule.c notes some platforms may do this
         # when algorithm is not supported)
-        orig = utils.os_crypt
+        import passlib.utils as mod
+        orig = mod.os_crypt
         try:
-            utils.os_crypt = lambda secret, hash: None
+            mod.os_crypt = lambda secret, hash: None
             self.assertEqual(safe_os_crypt(u('test'), u('aa')), (False,None))
         finally:
-            utils.os_crypt = orig
+            mod.os_crypt = orig
 
     def test_consteq(self):
         "test consteq()"
         # NOTE: this test is kind of over the top, but that's only because
         # this is used for the critical task of comparing hashes for equality.
-        consteq = utils.consteq
+        from passlib.utils import consteq
 
         # ensure error raises for wrong types
         self.assertRaises(TypeError, consteq, u(''), b(''))
@@ -327,6 +331,7 @@ class CodecTest(TestCase):
 
     def test_to_bytes(self):
         "test to_bytes()"
+        from passlib.utils import to_bytes
 
         #check unicode inputs
         self.assertEqual(to_bytes(u('abc')),                  b('abc'))
@@ -357,6 +362,7 @@ class CodecTest(TestCase):
 
     def test_to_unicode(self):
         "test to_unicode()"
+        from passlib.utils import to_unicode
 
         #check unicode inputs
         self.assertEqual(to_unicode(u('abc')),                u('abc'))
@@ -379,6 +385,7 @@ class CodecTest(TestCase):
 
     def test_to_native_str(self):
         "test to_native_str()"
+        from passlib.utils import to_native_str
 
         # ascii goes to native string w/o problems
         self.assertEqual(to_native_str(u('abc')), 'abc')
@@ -407,14 +414,16 @@ class CodecTest(TestCase):
 
     def test_is_ascii_safe(self):
         "test is_ascii_safe()"
+        from passlib.utils import is_ascii_safe
         self.assertTrue(is_ascii_safe(b("\x00abc\x7f")))
         self.assertTrue(is_ascii_safe(u("\x00abc\x7f")))
         self.assertFalse(is_ascii_safe(b("\x00abc\x80")))
         self.assertFalse(is_ascii_safe(u("\x00abc\x80")))
 
-
     def test_is_same_codec(self):
         "test is_same_codec()"
+        from passlib.utils import is_same_codec
+
         self.assertTrue(is_same_codec(None, None))
         self.assertFalse(is_same_codec(None, 'ascii'))
 
@@ -430,6 +439,8 @@ class CodecTest(TestCase):
 #=========================================================
 #test des module
 #=========================================================
+import passlib.utils.des as des
+
 class DesTest(TestCase):
 
     #test vectors taken from http://www.skepticfiles.org/faq/testdes.htm
@@ -901,6 +912,7 @@ class _MD4_Test(TestCase):
 #
 #now do a bunch of things to test multiple possible backends.
 #
+import passlib.utils.md4 as md4_mod
 
 has_ssl_md4 = (md4_mod.md4 is not md4_mod._builtin_md4)
 

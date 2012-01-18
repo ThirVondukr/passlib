@@ -11,10 +11,9 @@ import time
 #site
 #pkg
 from passlib import apache
-from passlib.utils import b, bytes
 from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
-from passlib.utils.compat import u
+from passlib.utils.compat import b, bytes, u
 #module
 log = getLogger(__name__)
 
