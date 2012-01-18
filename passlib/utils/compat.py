@@ -28,21 +28,6 @@ __all__ = [
 ]
 
 #=============================================================================
-# host/vm configuration info
-#=============================================================================
-from math import log as logb
-if PY3:
-    sys_bits = int(logb(sys.maxsize,2)+1.5)
-else:
-    sys_bits = int(logb(sys.maxint,2)+1.5)
-del logb
-assert sys_bits in (32,64), "unexpected system bitsize: %r" % (sys_bits,)
-
-# VM identification
-PYPY = hasattr(sys, "pypy_version_info")
-JYTHON = sys.platform.startswith('java')
-
-#=============================================================================
 # lazy import aliases
 #=============================================================================
 if PY3:

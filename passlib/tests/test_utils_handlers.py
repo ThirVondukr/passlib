@@ -14,8 +14,8 @@ from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import rng, getrandstr, handlers as uh, bytes, b, \
-    to_native_str, to_unicode, MissingBackendError
-from passlib.utils.compat import unicode, JYTHON
+    to_native_str, to_unicode, MissingBackendError, JYTHON
+from passlib.utils.compat import unicode
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
 from passlib.utils.compat import u

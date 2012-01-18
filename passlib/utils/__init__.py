@@ -1,13 +1,13 @@
-"""passlib utility functions"""
-#=================================================================================
+"""passlib.utils -- helpers for writing password hashes"""
+#=============================================================================
 #imports
-#=================================================================================
+#=============================================================================
 #core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
 import logging; log = logging.getLogger(__name__)
-from math import log as logb
+import math
 import os
 import sys
 import random
@@ -17,16 +17,17 @@ import unicodedata
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, PY3, sys_bits, unicode, bytes, u, b, \
-                                 _add_doc
+from passlib.utils.compat import irange, PY3, unicode, bytes, u, b, _add_doc
 #local
 __all__ = [
     # constants
+    'PYPY',
+    'JYTHON',
     'sys_bits',
     'unix_crypt_schemes',
     'rounds_cost_values',
 
-    #decorators
+    # decorators
     "classproperty",
 ##    "deprecated_function",
 ##    "relocated_function",
@@ -35,17 +36,20 @@ __all__ = [
     #byte compat aliases
     'bytes',
 
-    # string manipulation
+    # unicode helpers
     'consteq',
     'saslprep',
 
-    #byte manipulation
+    # bytes helpers
     "xor_bytes",
+    "render_bytes",
 
-    #bytes<->unicode    
+    # encoding helpers
+    'is_same_codec',
+    'is_ascii_safe',
     'to_bytes',
     'to_unicode',
-    'is_same_codec',
+    'to_native_str',
 
     # base64 helpers
     "BASE64_CHARS", "HASH64_CHARS", "BCRYPT_CHARS", "AB64_CHARS",
@@ -72,6 +76,13 @@ __all__ = [
 #=================================================================================
 # constants
 #=================================================================================
+
+# Python VM identification
+PYPY = hasattr(sys, "pypy_version_info")
+JYTHON = sys.platform.startswith('java')
+
+# bitsize of system architecture (32 or 64)
+sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
 
 # list of hashes supported by os.crypt() on at least one OS.
 unix_crypt_schemes = [
@@ -231,9 +242,9 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 ##    def __func__(self):
 ##        "py3 compatible alias"
 
-#=================================================================================
-#string helpers
-#=================================================================================
+#=============================================================================
+# unicode helpers
+#=============================================================================
 ujoin = _UEMPTY.join
 
 def consteq(left, right):
@@ -421,7 +432,7 @@ def saslprep(source, errname="value"):
     return data
 
 #==========================================================
-#bytes helpers
+# bytes helpers
 #==========================================================
 
 #helpers for joining / extracting elements
@@ -483,12 +494,11 @@ else:
 
 if PY3:
     def xor_bytes(left, right):
-        "perform bitwise-xor of two byte-strings"
         return bytes(l ^ r for l, r in zip(left, right))
 else:
     def xor_bytes(left, right):
-        "perform bitwise-xor of two byte-strings"
         return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+_add_doc(xor_bytes, "perform bitwise-xor of two byte strings")
 
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
@@ -498,21 +508,17 @@ def render_bytes(source, *args):
     this function is an attempt to provide a replacement
     that will work uniformly under python 2 & 3.
 
-    it converts everything to unicode (including bytes arguments),
-    then encodes the result to latin-1.
+    it converts everything to unicode (decode bytes instances as latin-1),
+    performs the required formatting, then encodes the result to latin-1.
+
+    calling ``render_bytes(source, *args)`` should function the same as
+    ``source % args`` under python 2.
     """
     if isinstance(source, bytes):
         source = source.decode("latin-1")
-    def adapt(arg):
-        if isinstance(arg, bytes):
-            return arg.decode("latin-1")
-        return arg
-    result = source % tuple(adapt(arg) for arg in args)
+    result = source % tuple(arg.decode("latin-1") if isinstance(arg, bytes)
+                            else arg for arg in args)
     return result.encode("latin-1")
-
-#=================================================================================
-#numeric helpers
-#=================================================================================
 
 # NOTE: deprecating bytes<->int in favor of just using struct module.
 
@@ -533,19 +539,18 @@ def int_to_bytes(value, count):
         for s in irange(8*count-8,-8,-8)
     )
 
-#==========================================================
-# bytes <-> unicode conversion helpers
-#==========================================================
-
+#=============================================================================
+# encoding helpers
+#=============================================================================
 def is_same_codec(left, right):
-    "check if two codecs names are aliases for same codec"
+    "check if two codec names are aliases for same codec"
     if left == right:
         return True
     if not (left and right):
         return False
     return _lookup_codec(left).name == _lookup_codec(right).name
 
-_B80 = 128 if PY3 else b('\x80')
+_B80 = b('\x80')[0]
 _U80 = u('\x80')
 def is_ascii_safe(source):
     "check if source (bytes or unicode) contains only 7-bit ascii"
@@ -553,70 +558,65 @@ def is_ascii_safe(source):
     return all(c < r for c in source)
 
 def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
-    """helper to encoding unicode -> bytes
+    """helper to normalize input to bytes.
 
-    this function takes in a ``source`` string.
-    if unicode, encodes it using the specified ``encoding``.
-    if bytes, returns unchanged - unless ``source_encoding``
-    is specified, in which case the bytes are transcoded
-    if and only if the source encoding doesn't match
-    the desired encoding.
-    all other types result in a :exc:`TypeError`.
+    :arg source:
+        Source bytes/unicode to process.
 
-    :arg source: source bytes/unicode to process
-    :arg encoding: target character encoding or ``None``.
-    :param source_encoding: optional source encoding
-    :param errname: optional name of variable/noun to reference when raising errors
+    :arg encoding:
+        Target encoding (defaults to ``"utf-8"``).
 
-    :raises TypeError: if unicode encountered but ``encoding=None`` specified;
-                       or if source is not unicode or bytes.
+    :param source_encoding:
+        Source encoding (if known), used for transcoding.
 
-    :returns: bytes object
-
-    .. note::
-
-        if ``encoding`` is set to ``None``, then unicode strings
-        will be rejected, and only byte strings will be allowed through.
-    """
-    if isinstance(source, bytes):
-        if source_encoding and encoding and \
-                not is_same_codec(source_encoding, encoding):
-            return source.decode(source_encoding).encode(encoding)
-        else:
-            return source
-    elif not encoding:
-        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))
-    elif isinstance(source, unicode):
-        return source.encode(encoding)
-    elif source_encoding:
-        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
-                        (errname, source_encoding, type(source)))
-    else:
-        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
-
-def to_unicode(source, source_encoding="utf-8", errname="value"):
-    """take in unicode or bytes, return unicode
-
-    if bytes provided, decodes using specified encoding.
-    leaves unicode alone.
+    :param errname:
+        Optional name of variable/noun to reference when raising errors
 
     :raises TypeError: if source is not unicode or bytes.
 
-    :arg source: source bytes/unicode to process
-    :arg source_encoding: encoding to use when decoding bytes instances
-    :param errname: optional name of variable/noun to reference when raising errors
+    :returns:
+        * unicode strings will be encoded using *encoding*, and returned.
+        * if *source_encoding* is not specified, byte strings will be
+          returned unchanged.
+        * if *source_encoding* is specified, byte strings will be transcoded
+          to *encoding*.
+    """
+    if isinstance(source, bytes):
+        if source_encoding and not is_same_codec(source_encoding, encoding):
+            return source.decode(source_encoding).encode(encoding)
+        else:
+            return source
+    elif isinstance(source, unicode):
+        return source.encode(encoding)
+    else:
+        raise TypeError("%s must be unicode or bytes, not %s" % (errname,
+                                                                 type(source)))
 
-    :returns: unicode object
+def to_unicode(source, source_encoding="utf-8", errname="value"):
+    """helper to normalize input to unicode.
+
+    :arg source:
+        source bytes/unicode to process.
+
+    :arg source_encoding:
+        encoding to use when decoding bytes instances.
+
+    :param errname:
+        optional name of variable/noun to reference when raising errors.
+
+    :raises TypeError: if source is not unicode or bytes.
+
+    :returns:
+        * returns unicode strings unchanged.
+        * returns bytes strings decoded using *source_encoding*
     """
     if isinstance(source, unicode):
         return source
-    elif not source_encoding:
-        raise TypeError("%s must be unicode, not %s" % (errname, type(source)))
     elif isinstance(source, bytes):
         return source.decode(source_encoding)
     else:
-        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
-                        (errname, source_encoding, type(source)))
+        raise TypeError("%s must be unicode or bytes, not %s" % (errname,
+                                                                 type(source)))
 
 if PY3:
     def to_native_str(source, encoding="utf-8", errname="value"):
@@ -638,10 +638,10 @@ else:
                             (errname, type(source)))
 
 _add_doc(to_native_str,
-    """take in unicode or bytes, return native string
+    """take in unicode or bytes, return native string.
 
     python 2: encodes unicode using specified encoding, leaves bytes alone.
-    python 3: decodes bytes using specified encoding, leaves unicode alone.
+    python 3: leaves unicode alone, decodes bytes using specified encoding.
 
     :raises TypeError: if source is not unicode or bytes.
 
@@ -1208,8 +1208,10 @@ try:
     from crypt import crypt as os_crypt
 except ImportError: #pragma: no cover
     safe_os_crypt = os_crypt = None
+    has_os_crypt = False
 else:
     # NOTE: see docstring below as to why we're wrapping os_crypt()
+    has_os_crypt = True
     if PY3:
         def safe_os_crypt(secret, hash):
             if isinstance(secret, bytes):

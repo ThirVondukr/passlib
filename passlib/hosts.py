@@ -8,7 +8,7 @@ from warnings import warn
 #pkg
 from passlib.context import LazyCryptContext
 from passlib.registry import get_crypt_handler
-from passlib.utils import os_crypt, unix_crypt_schemes
+from passlib.utils import has_os_crypt, unix_crypt_schemes
 #local
 __all__ = [
     "linux_context", "linux2_context",
@@ -56,7 +56,7 @@ netbsd_context = LazyCryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_c
 #=========================================================
 #current host
 #=========================================================
-if os_crypt:
+if has_os_crypt:
     #NOTE: this is basically mimicing the output of os crypt(),
     #except that it uses passlib's (usually stronger) defaults settings,
     #and can be introspected and used much more flexibly.

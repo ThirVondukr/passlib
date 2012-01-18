@@ -237,8 +237,8 @@ _builtin_md4 = md4
 #=========================================================================
 #check if hashlib provides accelarated md4
 #=========================================================================
-from passlib.utils.compat import PYPY
 import hashlib
+from passlib.utils import PYPY
 
 def _has_native_md4():
     try:
@@ -262,8 +262,6 @@ if _has_native_md4():
     def md4(content=None):
         "wrapper for hashlib.new('md4')"
         return hashlib.new('md4', content or b(''))
-else:
-    del hashlib
 
 #=========================================================================
 #eof
