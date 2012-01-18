@@ -198,6 +198,8 @@ class StaticHandler(object):
     setting_kwds = ()
     context_kwds = ()
 
+    # reserved value to be returned by default genconfig()
+    # may be ``None`` if no such value; otherwise should be native ascii str.
     _stub_config = None
 
     #=====================================================
@@ -238,15 +240,15 @@ class StaticHandler(object):
             raise ValueError("expected %s hash, got %s config string instead" %
                              (cls.name, cls.name))
         result = cls.genhash(secret, hash, *cargs, **context)
-        return consteq(cls._norm_hash(result), hash)
+        return consteq(result, hash)
 
     @classmethod
     def _norm_hash(cls, hash):
-        """[helper for verify] normalize hash for comparsion purposes"""
-        #NOTE: this is mainly provided for case-insenstive subclasses to override.
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        return hash
+        """[helper for verify] normalize hash for comparsion purposes.
+
+        should return a native :class:`str` instance or raise a TypeError.
+        """
+        return to_native_str(hash, "ascii", errname="hash")
 
     #=====================================================
     #eoc

@@ -119,9 +119,7 @@ class oracle10(uh.StaticHandler):
 
     @classmethod
     def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        return hash.upper()
+        return to_native_str(hash, "ascii", errname="hash").upper()
 
     #=========================================================
     #eoc

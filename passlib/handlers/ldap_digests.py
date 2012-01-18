@@ -195,19 +195,11 @@ class ldap_plaintext(uh.StaticHandler):
     def genhash(cls, secret, hash):
         if hash is not None and not cls.identify(hash):
             raise ValueError("not a valid ldap_plaintext hash")
-        if secret is None:
-            raise TypeError("secret must be string")
-        return to_native_str(secret, "utf-8")
+        return to_native_str(secret, "utf-8", errname="secret")
 
     @classmethod
     def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            #XXX: current code uses utf-8
-            #     if existing hashes use something else,
-            #     probably have to modify this code to allow hash_encoding
-            #     to be specified as an option.
-            hash = hash.decode("utf-8")
-        return hash
+        return to_native_str(hash, "utf-8", errname="hash")
 
 #=========================================================
 #{CRYPT} wrappers

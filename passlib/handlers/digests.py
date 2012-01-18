@@ -57,9 +57,7 @@ class HexDigestHash(uh.StaticHandler):
 
     @classmethod
     def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        return hash.lower()
+        return to_native_str(hash, "ascii", errname="hash").lower()
 
 def create_hex_hash(hash, digest_name):
     #NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.
