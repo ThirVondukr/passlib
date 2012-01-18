@@ -16,7 +16,8 @@ from warnings import warn
 from passlib.registry import get_crypt_handler
 from passlib.utils import to_native_str, bytes, b, consteq, \
         classproperty, h64, getrandstr, getrandbytes, bjoin_ints, \
-        rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
+        rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError, \
+        BASE64_CHARS, HASH64_CHARS
 from passlib.utils.compat import unicode, u, irange
 #pkg
 #local
@@ -1007,6 +1008,13 @@ class HasRounds(GenericHandler):
     #=========================================================
     #eoc
     #=========================================================
+
+def _clear_backend(cls):
+    "restore HasManyBackend subclass to unloaded state - used by unittests"
+    assert isinstance(cls, HasManyBackends)
+    if cls._backend:
+        del cls._backend
+        del cls.calc_checksum
 
 class HasManyBackends(GenericHandler):
     """GenericHandler mixin which provides selecting from multiple backends.

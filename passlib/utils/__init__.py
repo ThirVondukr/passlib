@@ -6,7 +6,6 @@
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
-from hashlib import sha256
 import logging; log = logging.getLogger(__name__)
 from math import log as logb
 import os
@@ -22,11 +21,16 @@ from passlib.utils.compat import irange, PY3, sys_bits, unicode, bytes, u, b, \
                                  _add_doc
 #local
 __all__ = [
+    # constants
+    'sys_bits',
+    'unix_crypt_schemes',
+    'rounds_cost_values',
+
     #decorators
     "classproperty",
+##    "deprecated_function",
+##    "relocated_function",
 ##    "memoized_class_property",
-##    "abstractmethod",
-##    "abstractclassmethod",
 
     #byte compat aliases
     'bytes',
@@ -34,9 +38,11 @@ __all__ = [
     #misc
     'os_crypt',
 
-    #tests
+    # object type / interface tests
     'is_crypt_handler',
     'is_crypt_context',
+    'has_rounds_info',
+    'has_salt_info',
 
     #bytes<->unicode
     'to_bytes',
@@ -55,21 +61,21 @@ __all__ = [
     "Base64Engine", "h64", "h64big",
     "ab64_encode", "ab64_decode",
 
-    #random
+    # host OS
     'tick',
+
+    # randomness
     'rng',
     'getrandbytes',
     'getrandstr',
-
-    #constants
-    'unix_crypt_schemes',
+    'generate_password',
 ]
 
 #=================================================================================
 #constants
 #=================================================================================
 
-#: list of names of hashes found in unix crypt implementations...
+# list of hashes supported by os.crypt() on at least one OS.
 unix_crypt_schemes = [
     "sha512_crypt", "sha256_crypt",
     "sha1_crypt", "bcrypt",
@@ -77,7 +83,7 @@ unix_crypt_schemes = [
     "bsdi_crypt", "des_crypt"
     ]
 
-#: list of rounds_cost constants
+# list of rounds_cost constants
 rounds_cost_values = [ "linear", "log2" ]
 
 class MissingBackendError(RuntimeError):
@@ -105,6 +111,11 @@ class PasslibPolicyWarning(UserWarning):
     In both of these cases, the code will perform correctly & securely;
     but the warning is issued as a sign the configuration may need updating.
     """
+
+# internal helpers
+_BEMPTY = b('')
+_UEMPTY = u("")
+_USPACE = u(" ")
 
 #=================================================================================
 #os crypt helpers
@@ -274,7 +285,9 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 
 #works but not used
 ##class memoized_class_property(object):
-##    """function decorator which calls function as classmethod, and replaces itself with result for current and all future invocations"""
+##    """function decorator which calls function as classmethod,
+##    and replaces itself with result for current and all future invocations.
+##    """
 ##    def __init__(self, func):
 ##        self.im_func = func
 ##
@@ -288,53 +301,29 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 ##    def __func__(self):
 ##        "py3 compatible alias"
 
-#works but not used...
-##def abstractmethod(func):
-##    """Method decorator which indicates this is a placeholder method which
-##    should be overridden by subclass.
-##
-##    If called directly, this method will raise an :exc:`NotImplementedError`.
-##    """
-##    msg = "object %(self)r method %(name)r is abstract, and must be subclassed"
-##    def wrapper(self, *args, **kwds):
-##        text = msg % dict(self=self, name=wrapper.__name__)
-##        raise NotImplementedError(text)
-##    update_wrapper(wrapper, func)
-##    return wrapper
-
-#works but not used...
-##def abstractclassmethod(func):
-##    """Class Method decorator which indicates this is a placeholder method which
-##    should be overridden by subclass, and must be a classmethod.
-##
-##    If called directly, this method will raise an :exc:`NotImplementedError`.
-##    """
-##    msg = "class %(cls)r method %(name)r is abstract, and must be subclassed"
-##    def wrapper(cls, *args, **kwds):
-##        text = msg % dict(cls=cls, name=wrapper.__name__)
-##        raise NotImplementedError(text)
-##    update_wrapper(wrapper, func)
-##    return classmethod(wrapper)
-
 #==========================================================
 #protocol helpers
 #==========================================================
-def is_crypt_handler(obj):
-    "check if object follows the :ref:`password-hash-api`"
-    return all(hasattr(obj, name) for name in (
+_handler_attrs = (
         "name",
         "setting_kwds", "context_kwds",
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
-        ))
+        )
 
-def is_crypt_context(obj):
-    "check if object appears to be a :class:`~passlib.context.CryptContext` instance"
-    return all(hasattr(obj, name) for name in (
+def is_crypt_handler(obj):
+    "check if object follows the :ref:`password-hash-api`"
+    return all(hasattr(obj, name) for name in _handler_attrs)
+
+_context_attrs = (
         "hash_needs_update",
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
-        ))
+        )
+
+def is_crypt_context(obj):
+    "check if object appears to be a :class:`~passlib.context.CryptContext` instance"
+    return all(hasattr(obj, name) for name in _context_attrs)
 
 ##def has_many_backends(handler):
 ##    "check if handler provides multiple baceknds"
@@ -471,11 +460,9 @@ _add_doc(to_native_str,
     :returns: :class:`str` instance
     """)
 
-# DEPRECATED
+@deprecated_function(deprecated="1.6", removed="1.7")
 def to_hash_str(source, encoding="ascii"):
     "deprecated, use to_native_str() instead"
-    warn("to_hash_str() is deprecated, and will be removed in passlib 1.7",
-         DeprecationWarning, stacklevel=2)
     return to_native_str(source, encoding, 'hash')
 
 #--------------------------------------------------
@@ -499,9 +486,7 @@ def is_ascii_safe(source):
 #=================================================================================
 #string helpers
 #=================================================================================
-UEMPTY = u("")
-USPACE = u(" ")
-ujoin = UEMPTY.join
+ujoin = _UEMPTY.join
 
 def consteq(left, right):
     """check two strings/bytes for equality, taking constant time relative
@@ -614,7 +599,7 @@ def saslprep(source, errname="value"):
     in_table_c12 = stringprep.in_table_c12
     in_table_b1 = stringprep.in_table_b1
     data = ujoin(
-        USPACE if in_table_c12(c) else c
+        _USPACE if in_table_c12(c) else c
         for c in source
         if not in_table_b1(c)
         )
@@ -622,7 +607,7 @@ def saslprep(source, errname="value"):
     # normalize to KC form
     data = unicodedata.normalize('NFKC', data)
     if not data:
-        return UEMPTY
+        return _UEMPTY
 
     # check for invalid bi-directional strings.
     # stringprep requires the following:
@@ -691,11 +676,8 @@ def saslprep(source, errname="value"):
 #bytes helpers
 #==========================================================
 
-#some common constants / aliases
-BEMPTY = b('')
-
 #helpers for joining / extracting elements
-bjoin = BEMPTY.join
+bjoin = _BEMPTY.join
 
 #def bjoin_elems(elems):
 #    """takes series of bytes elements, returns bytes.
@@ -1371,7 +1353,7 @@ def ab64_decode(data):
         raise ValueError("invalid base64 input")
 
 #=================================================================================
-#randomness
+# host OS helpers
 #=================================================================================
 
 # pick best timer function to expose as "tick" - lifted from timeit module.
@@ -1407,6 +1389,10 @@ else:
 ##
 ##timer_resolution = _get_timer_resolution()
 
+#=================================================================================
+# randomness
+#=================================================================================
+
 #-----------------------------------------------------------------------
 # setup rng for generating salts
 #-----------------------------------------------------------------------
@@ -1427,6 +1413,7 @@ except NotImplementedError: #pragma: no cover
 def genseed(value=None):
     "generate prng seed value from system resources"
     #if value is rng, extract a bunch of bits from it's state
+    from hashlib import sha256
     if hasattr(value, "getrandbits"):
         value = value.getrandbits(256)
     text = u("%s %s %s %.15f %s") % (
@@ -1469,7 +1456,7 @@ def getrandbytes(rng, count):
     ##    return meth(count)
 
     if not count:
-        return BEMPTY
+        return _BEMPTY
     def helper():
         #XXX: break into chunks for large number of bits?
         value = rng.getrandbits(count<<3)
@@ -1506,7 +1493,9 @@ def getrandstr(rng, charset, count):
     else:
         return bjoin_elems(helper())
 
-def generate_password(size=10, charset='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'):
+_52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
+
+def generate_password(size=10, charset=_52charset):
     """generate random password using given length & chars
 
     :param size:
@@ -1524,5 +1513,5 @@ def generate_password(size=10, charset='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkm
     return getrandstr(rng, charset, size)
 
 #=================================================================================
-#eof
+# eof
 #=================================================================================
