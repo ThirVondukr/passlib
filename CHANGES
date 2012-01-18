@@ -56,6 +56,9 @@ Release History
           imported under the same name, and has (mostly) the same interface;
           but should be faster, more flexible, and better unit-tested.
 
+        * deprecated some unused functions in :mod:`!passlib.utils`,
+          they will be removed in release 1.7.
+
     Other
 
         * Passlib is now source-compatible with Python 2.5+ and Python 3,

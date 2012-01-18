@@ -757,41 +757,9 @@ def render_bytes(source, *args):
 #numeric helpers
 #=================================================================================
 
-##def int_to_bytes(value, count=None, order="big"):
-##    """encode a integer into a string of bytes
-##
-##    :arg value: the integer
-##    :arg count: optional number of bytes to expose, uses minimum needed if count not specified
-##    :param order: the byte ordering; "big" (the default), "little", or "native"
-##
-##    :raises ValueError:
-##        * if count specified and integer too large to fit.
-##        * if integer is negative
-##
-##    :returns:
-##        bytes encoding integer
-##    """
-##
-##
-##def bytes_to_int(value, order="big"):
-##    """decode a byte string into an integer representation of it's binary value.
-##
-##    :arg value: the string to decode.
-##    :param order: the byte ordering; "big" (the default), "little", or "native"
-##
-##    :returns: the decoded positive integer.
-##    """
-##    if not value:
-##        return 0
-##    if order == "native":
-##        order = sys.byteorder
-##    if order == "little":
-##        value = reversed(value)
-##    out = 0
-##    for v in value:
-##        out = (out<<8) | ord(v)
-##    return out
+# NOTE: deprecating bytes<->int in favor of just using struct module.
 
+@deprecated_function(deprecated="1.6", removed="1.8")
 def bytes_to_int(value):
     "decode string of bytes as single big-endian integer"
     out = 0
@@ -799,6 +767,7 @@ def bytes_to_int(value):
         out = (out<<8) | bord(v)
     return out
 
+@deprecated_function(deprecated="1.6", removed="1.8")
 def int_to_bytes(value, count):
     "encodes integer into single big-endian byte string"
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)

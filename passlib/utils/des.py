@@ -42,10 +42,12 @@ which has some nice notes on how this all works -
 #=========================================================
 #imports
 #=========================================================
-#pkg
-from passlib.utils import bytes_to_int, int_to_bytes, bytes, bord, bjoin_ints
+# core
+import struct
+# pkg
+from passlib.utils import bytes, bord, bjoin_ints
 from passlib.utils.compat import trange, irange
-#local
+# local
 __all__ = [
     "expand_des_key",
     "des_encrypt_block",
@@ -68,6 +70,8 @@ R16_S2 = trange(0, 16, 2)
 INT_24_MAX = 0xffffff
 INT_64_MAX = 0xffffffff
 INT_64_MAX = 0xffffffffffffffff
+
+uint64_struct = struct.Struct(">Q")
 
 #=========================================================
 # static tables for des
@@ -616,14 +620,12 @@ def des_encrypt_block(key, input):
         raise TypeError("key must be bytes, not %s" % (type(key),))
     if len(key) == 7:
         key = expand_des_key(key)
-    assert len(key) == 8
     if not isinstance(input, bytes):
         raise TypeError("input must be bytes, not %s" % (type(input),))
-    assert len(input) == 8
-    input = bytes_to_int(input)
-    key = bytes_to_int(key)
+    input = uint64_struct.unpack(input)[0]
+    key = uint64_struct.unpack(key)[0]
     out = mdes_encrypt_int_block(key, input, 0, 1)
-    return int_to_bytes(out, 8)
+    return uint64_struct.pack(out)
 
 def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
     """do modified multi-round DES encryption of single DES block.
