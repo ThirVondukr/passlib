@@ -44,7 +44,7 @@ class DjangoSaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     min_salt_size = 0
     default_salt_size = 5
     max_salt_size = None
-    salt_chars = checksum_chars = uh.LC_HEX_CHARS
+    salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
 
     @classmethod
     def identify(cls, hash):
@@ -144,7 +144,7 @@ class django_des_crypt(DjangoSaltedHash):
 
     name = "django_des_crypt"
     ident = "crypt$"
-    checksum_chars = salt_chars = uh.H64_CHARS
+    checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 13
     min_salt_size = 2
 

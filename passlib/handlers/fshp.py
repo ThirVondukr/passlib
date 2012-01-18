@@ -57,7 +57,7 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
     #--GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
-    checksum_chars = uh.PADDED_B64_CHARS
+    checksum_chars = uh.PADDED_BASE64_CHARS
 
     #--HasRawSalt--
     default_salt_size = 16 #current passlib default, FSHP uses 8

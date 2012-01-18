@@ -15,9 +15,9 @@ from warnings import warn
 #libs
 from passlib.registry import get_crypt_handler
 from passlib.utils import to_native_str, bytes, b, consteq, \
-        classproperty, h64, getrandstr, getrandbytes, \
+        classproperty, h64, getrandstr, getrandbytes, bjoin_ints, \
         rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError
-from passlib.utils.compat import unicode, u
+from passlib.utils.compat import unicode, u, irange
 #pkg
 #local
 __all__ = [
@@ -38,14 +38,23 @@ __all__ = [
 #constants
 #=========================================================
 
-#common salt_chars & checksum_chars values
-H64_CHARS = h64.CHARS
-B64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
-PADDED_B64_CHARS = B64_CHARS + u("=")
-U64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+# common salt_chars & checksum_chars values
+# (BASE64_CHARS, HASH64_CHARS imported above)
+PADDED_BASE64_CHARS = BASE64_CHARS + u("=")
 HEX_CHARS = u("0123456789abcdefABCDEF")
-UC_HEX_CHARS = u("0123456789ABCDEF")
-LC_HEX_CHARS = u("0123456789abcdef")
+UPPER_HEX_CHARS = u("0123456789ABCDEF")
+LOWER_HEX_CHARS = u("0123456789abcdef")
+
+#: special byte string containing all possible byte values
+# XXX: treated as singleton by some of the code for efficiency.
+ALL_BYTE_VALUES = bjoin_ints(irange(256))
+
+# deprecated aliases - will be removed after passlib 1.8
+H64_CHARS = HASH64_CHARS
+B64_CHARS = BASE64_CHARS
+PADDED_B64_CHARS = PADDED_BASE64_CHARS
+UC_HEX_CHARS = UPPER_HEX_CHARS
+LC_HEX_CHARS = LOWER_HEX_CHARS
 
 #=========================================================
 #identify helpers

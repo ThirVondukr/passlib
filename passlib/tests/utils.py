@@ -33,7 +33,7 @@ if ut_version < 2:
 from passlib import registry, utils
 from passlib.utils import classproperty, handlers as uh, \
         has_rounds_info, has_salt_info, MissingBackendError, \
-        rounds_cost_values, b, bytes, NoneType
+        rounds_cost_values, b, bytes
 from passlib.utils.compat import iteritems, irange, callable, sb_types, \
                                  exc_err, unicode
 #local
@@ -821,7 +821,7 @@ class HandlerCase(TestCase):
         cs = self.do_genconfig()
         if self.genconfig_uses_hash:
             # unix fallback handler returns "!" as cs,
-            # which verify() accepts quite readily. 
+            # which verify() accepts quite readily.
             self.assertFalse(self.do_verify(u(""), cs))
             self.assertFalse(self.do_verify(u("stub"), cs))
         else:

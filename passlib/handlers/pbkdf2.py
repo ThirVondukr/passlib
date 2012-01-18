@@ -37,7 +37,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
 
     #--GenericHandler--
     setting_kwds = ("salt", "salt_size", "rounds")
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     default_salt_size = 16
@@ -280,7 +280,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     default_salt_size = 16
     min_salt_size = 0
     max_salt_size = 1024
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #--HasROunds--
     default_rounds = 10000

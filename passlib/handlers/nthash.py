@@ -40,7 +40,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
     #--GenericHandler--
     name = "nthash"
     setting_kwds = ("ident",)
-    checksum_chars = uh.LC_HEX_CHARS
+    checksum_chars = uh.LOWER_HEX_CHARS
 
     _stub_checksum = u("0") * 32
 

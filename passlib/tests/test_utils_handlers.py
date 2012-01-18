@@ -421,7 +421,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     min_salt_size = 2
     max_salt_size = 4
     checksum_size = 40
-    salt_chars = checksum_chars = uh.LC_HEX_CHARS
+    salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
 
     @classmethod
     def identify(cls, hash):

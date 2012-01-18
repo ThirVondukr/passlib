@@ -159,12 +159,12 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
     setting_kwds = ("salt", "salt_size")
     #ident in subclass
     checksum_size = 22
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     min_salt_size = 0
     max_salt_size = 8
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #=========================================================
     #internal helpers

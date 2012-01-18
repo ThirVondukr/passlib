@@ -61,13 +61,13 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = u("$sha1$")
     checksum_size = 28
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     default_salt_size = 8
     min_salt_size = 0
     max_salt_size = 64
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
     default_rounds = 40000 #current passlib default

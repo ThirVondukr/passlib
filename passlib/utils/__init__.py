@@ -80,15 +80,6 @@ unix_crypt_schemes = [
 #: list of rounds_cost constants
 rounds_cost_values = [ "linear", "log2" ]
 
-#: special byte string containing all possible byte values, used in a few places.
-#XXX: treated as singleton by some of the code for efficiency.
-if PY3:
-    ALL_BYTE_VALUES = bytes(irange(256))
-else:
-    ALL_BYTE_VALUES = ''.join(chr(x) for x in irange(256))
-
-NoneType = type(None)
-
 class MissingBackendError(RuntimeError):
     """Error raised if multi-backend handler has no available backends;
     or if specifically requested backend is not available.

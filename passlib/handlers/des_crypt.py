@@ -164,11 +164,11 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #--GenericHandler--
     name = "des_crypt"
     setting_kwds = ("salt",)
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #=========================================================
     #formatting
@@ -275,11 +275,11 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
     checksum_size = 11
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     min_salt_size = max_salt_size = 4
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
     default_rounds = 5001
@@ -376,12 +376,12 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #--GenericHandler--
     name = "bigcrypt"
     setting_kwds = ("salt",)
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
     #NOTE: checksum chars must be multiple of 11
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #=========================================================
     #internal helpers
@@ -469,11 +469,11 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     name = "crypt16"
     setting_kwds = ("salt",)
     checksum_size = 22
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #=========================================================
     #internal helpers

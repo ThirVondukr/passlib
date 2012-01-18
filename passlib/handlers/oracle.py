@@ -149,13 +149,13 @@ class oracle11(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     name = "oracle11"
     setting_kwds = ("salt",)
     checksum_size = 40
-    checksum_chars = uh.UC_HEX_CHARS
+    checksum_chars = uh.UPPER_HEX_CHARS
 
     _stub_checksum = u('0') * 40
 
     #--HasSalt--
     min_salt_size = max_salt_size = 20
-    salt_chars = uh.UC_HEX_CHARS
+    salt_chars = uh.UPPER_HEX_CHARS
 
 
     #=========================================================
