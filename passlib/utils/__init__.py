@@ -5,7 +5,7 @@
 #core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
-##from functools import update_wrapper
+from functools import update_wrapper
 from hashlib import sha256
 import logging; log = logging.getLogger(__name__)
 from math import log as logb
@@ -194,6 +194,87 @@ class classproperty(object):
     def __func__(self):
         "py3 compatible alias"
         return self.im_func
+
+def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True):
+    """decorator to deprecate a function.
+
+    :arg msg: optional msg, default chosen if omitted
+    :kwd deprecated: release where function was first deprecated
+    :kwd removed: release where function will be removed
+    :kwd updoc: add notice to docstring (default ``True``)
+    """
+    if msg is None:
+        msg = "the function %(mod)s.%(name)s() is deprecated"
+        if deprecated:
+            msg += " as of Passlib %(deprecated)s"
+        if removed:
+            msg += ", and will be removed in Passlib %(removed)s"
+        msg += "."
+    def build(func):
+        final = msg % dict(
+            mod=func.__module__,
+            name=func.__name__,
+            deprecated=deprecated,
+            removed=removed,
+        )
+        def wrapper(*args, **kwds):
+            warn(final, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwds)
+        update_wrapper(wrapper, func)
+        if updoc and (deprecated or removed) and wrapper.__doc__:
+            txt = "as of Passlib %s" % (deprecated,) if deprecated else ""
+            if removed:
+                if txt:
+                    txt += ", and "
+                txt += "will be removed in Passlib %s" % (removed,)
+            wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
+        return wrapper
+    return build
+
+def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
+                       removed=None, updoc=True):
+    """constructor to create alias for relocated function.
+
+    :arg target: import path to target
+    :arg msg: optional msg, default chosen if omitted
+    :kwd deprecated: release where function was first deprecated
+    :kwd removed: release where function will be removed
+    :kwd updoc: add notice to docstring (default ``True``)
+    """
+    target_mod, target_name = target.rsplit(".",1)
+    if mod is None:
+        import inspect
+        mod = inspect.currentframe(1).f_globals["__name__"]
+    if not name:
+        name = target_name
+    if msg is None:
+        msg = ("the function %(mod)s.%(name)s() has been moved to "
+               "%(target_mod)s.%(target_name)s(), the old location is deprecated")
+        if deprecated:
+            msg += " as of Passlib %(deprecated)s"
+        if removed:
+            msg += ", and will be removed in Passlib %(removed)s"
+        msg += "."
+    msg %= dict(
+        mod=mod,
+        name=name,
+        target_mod=target_mod,
+        target_name=target_name,
+        deprecated=deprecated,
+        removed=removed,
+    )
+    state = [None]
+    def wrapper(*args, **kwds):
+        warn(msg, DeprecationWarning, stacklevel=2)
+        func = state[0]
+        if func is None:
+            module = __import__(target_mod, fromlist=[target_name], level=0)
+            func = state[0] = getattr(module, target_name)
+        return func(*args, **kwds)
+    wrapper.__module__ = mod
+    wrapper.__name__ = name
+    wrapper.__doc__ = msg
+    return wrapper
 
 #works but not used
 ##class memoized_class_property(object):
@@ -487,15 +568,11 @@ def consteq(left, right):
             result |= ord(l) ^ ord(r)
     return result == 0
 
-# DEPRECATED
+@deprecated_function(deprecated="1.6", removed="1.8")
 def splitcomma(source, sep=","):
     """split comma-separated string into list of elements,
     stripping whitespace and discarding empty elements.
-
-    .. deprecated:: 1.6, will be removed in 1.7
     """
-    warn("splitcomma() is deprecated, and will be removed in passlib 1.7",
-         DeprecationWarning, stacklevel=2)
     return [
         elem.strip()
         for elem in source.split(sep)
