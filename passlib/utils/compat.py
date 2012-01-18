@@ -12,19 +12,46 @@ PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 #=============================================================================
 # common imports
 #=============================================================================
+import logging; log = logging.getLogger(__name__)
 if PY3:
     import builtins
 else:
     import __builtin__ as builtins
 
+
+def _add_doc(obj, doc):
+    """add docstring to an object"""
+    obj.__doc__ = doc
+
 #=============================================================================
 # the default exported vars
 #=============================================================================
 __all__ = [
-    "u", "b",
-    "irange", "srange", ##"lrange",
-    "lmap",
-    "iteritems",
+    # python versions
+    'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
+
+    # io
+    'print_',
+
+    # type detection
+    'is_mapping',
+    'callable',
+    'int_types',
+    'num_types',
+
+    # unicode/bytes types & helpers
+    'u', 'b',
+    'unicode', 'bytes', 'sb_types',
+    'uascii_to_str', 'bascii_to_str',
+    'ujoin', 'bjoin', 'bjoin_ints', 'bjoin_elems', 'belem_ord',
+
+    # iteration helpers
+    'irange', 'trange', #'lrange',
+    'imap', 'lmap',
+    'iteritems', 'itervalues',
+
+    # introspection
+    'exc_err', 'get_method_function', '_add_doc',
 ]
 
 #=============================================================================
@@ -85,7 +112,6 @@ if (3,0) <= sys.version_info < (3,2):
     from collections import Callable
     def callable(obj):
         return isinstance(obj, Callable)
-    __all__.append("callable")
 else:
     callable = builtins.callable
 
@@ -97,36 +123,81 @@ else:
     num_types = (int, long, float)
 
 #=============================================================================
-# unicode / bytes helpers
+# unicode & bytes types
 #=============================================================================
 if PY3:
+    unicode = str
+    bytes = builtins.bytes
+#    string_types = (unicode,)
+
     def u(s):
+        assert isinstance(s, str)
         return s
+
     def b(s):
         assert isinstance(s, str)
         return s.encode("latin-1")
-    unicode = str
-    bytes = builtins.bytes
-    __all__.append("unicode")
-#    string_types = (unicode,)
 
 else:
     def u(s):
+        assert isinstance(s, str)
         return s.decode("unicode_escape")
+
     def b(s):
         assert isinstance(s, str)
         return s
-    if PY_MAX_25:
-        bytes = str
-        __all__.append("bytes")
-    else:
-        bytes = builtins.bytes
-    unicode = builtins.unicode
-#    string_types = (unicode, bytes)
 
 sb_types = (unicode, bytes)
 
-# bytes format
+#=============================================================================
+# unicode & bytes helpers
+#=============================================================================
+# function to join list of unicode strings
+ujoin = u('').join
+
+# function to join list of byte strings
+bjoin = b('').join
+
+if PY3:
+    def uascii_to_str(s):
+        assert isinstance(s, unicode)
+        return s
+
+    def bascii_to_str(s):
+        assert isinstance(s, bytes)
+        return s.decode("ascii")
+
+    bjoin_ints = bjoin_elems = bytes
+
+    def belem_ord(elem):
+        return elem
+
+else:
+    def uascii_to_str(s):
+        assert isinstance(s, unicode)
+        return s.encode("ascii")
+
+    def bascii_to_str(s):
+        assert isinstance(s, bytes)
+        return s
+
+    def bjoin_ints(values):
+        return bjoin(chr(v) for v in values)
+
+    bjoin_elems = bjoin
+
+    belem_ord = ord
+
+_add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
+_add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
+
+# bjoin_ints -- function to convert list of ordinal integers to byte string.
+
+# bjoin_elems --  function to convert list of byte elements to byte string;
+#                 i.e. what's returned by ``b('a')[0]``...
+#                 this is b('a') under PY2, but 97 under PY3.
+
+# belem_ord -- function to convert byte element to integer -- a noop under PY3
 
 #=============================================================================
 # iteration helpers
@@ -144,7 +215,7 @@ if PY3:
 
     def lmap(*a, **k):
         return list(map(*a,**k))
-    # imap = map
+    imap = map
 
 else:
     irange = xrange
@@ -152,7 +223,7 @@ else:
     ##lrange = range
 
     lmap = map
-    # from itertools import imap
+    from itertools import imap
 
 if PY3:
     def iteritems(d):
@@ -178,10 +249,6 @@ if PY3:
 else:
     def get_method_function(method):
         return method.im_func
-
-def _add_doc(obj, doc):
-    """add docstring to an object"""
-    obj.__doc__ = doc
 
 #=============================================================================
 # input/output

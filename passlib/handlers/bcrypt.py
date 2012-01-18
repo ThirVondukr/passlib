@@ -16,7 +16,6 @@ import os
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-from passlib.utils.compat import u
 #site
 try:
     from bcrypt import hashpw as pybcrypt_hashpw
@@ -27,9 +26,9 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
     bcryptor_engine = None
 #libs
-from passlib.utils import safe_os_crypt, classproperty, handlers as uh, \
-    h64, to_native_str, rng, getrandstr, bytes, BCRYPT_CHARS as BCHARS
-from passlib.utils.compat import unicode
+from passlib.utils import safe_os_crypt, classproperty, rng, getrandstr
+from passlib.utils.compat import bytes, u, uascii_to_str, unicode
+import passlib.utils.handlers as uh
 
 #pkg
 #local
@@ -145,7 +144,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     def to_string(self, native=True):
         hash = u("%s%02d$%s%s") % (self.ident, self.rounds, self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     # specialized salt generation - fixes passlib issue 25

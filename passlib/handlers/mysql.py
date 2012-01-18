@@ -30,8 +30,9 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import handlers as uh, to_native_str, b, bord, bytes
-from passlib.utils.compat import unicode, u
+from passlib.utils import to_native_str
+from passlib.utils.compat import b, bytes, unicode, u, belem_ord
+import passlib.utils.handlers as uh
 #local
 __all__ = [
     'mysql323',
@@ -82,12 +83,11 @@ class mysql323(uh.StaticHandler):
         for c in secret:
             if c in b(' \t'):
                 continue
-            tmp = bord(c)
+            tmp = belem_ord(c)
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
-        hash = u("%08x%08x") % (nr1 & MASK_31, nr2 & MASK_31)
-        return to_native_str(hash)
+        return "%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
 
     @classmethod
     def _norm_hash(cls, hash):
@@ -127,10 +127,11 @@ class mysql41(uh.StaticHandler):
     def genhash(cls, secret, config):
         if config is not None and not cls.identify(config):
             raise ValueError("not a mysql-4.1 hash")
-        #FIXME: no idea if mysql has a policy about handling unicode passwords
+        # FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
+        chk = bascii_to_str(sha1(sha1(secret).digest()).hexdigest())
+        return '*' + chk.upper()
 
     @classmethod
     def _norm_hash(cls, hash):

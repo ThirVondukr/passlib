@@ -11,8 +11,9 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_native_str
-from passlib.utils.compat import unicode, u
+from passlib.utils import to_native_str, unix_crypt_schemes
+from passlib.utils.compat import b, bytes, uascii_to_str, unicode, u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -60,7 +61,7 @@ class _Base64DigestHelper(uh.StaticHandler):
             raise ValueError("not a %s hash" % (cls.name,))
         chk = cls._hash_func(secret).digest()
         hash = cls.ident + b64encode(chk).decode("ascii")
-        return to_native_str(hash)
+        return uascii_to_str(hash)
 
 class _SaltedBase64DigestHelper(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
@@ -93,7 +94,7 @@ class _SaltedBase64DigestHelper(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChec
     def to_string(self):
         data = (self.checksum or self._stub_checksum) + self.salt
         hash = self.ident + b64encode(data).decode("ascii")
-        return to_native_str(hash)
+        return uascii_to_str(hash)
 
     def calc_checksum(self, secret):
         if secret is None:

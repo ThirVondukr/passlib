@@ -9,9 +9,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
-    to_native_str, to_unicode, bytes, b, bord
-from passlib.utils.compat import unicode, u, irange
+from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils.compat import b, bytes, belem_ord, irange, u, \
+                                 uascii_to_str, unicode
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -94,7 +95,7 @@ def raw_sha_crypt(secret, salt, rounds, hash):
     dp = extend(tmp.digest(), secret)
 
     #calc DS - hash of salt, extended to size of salt
-    tmp = hash(salt * (16+bord(a[0])))
+    tmp = hash(salt * (16+belem_ord(a[0])))
     ds = extend(tmp.digest(), salt)
 
     #
@@ -318,7 +319,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -470,7 +471,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             hash = u("$6$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$6$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend

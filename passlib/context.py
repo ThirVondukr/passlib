@@ -22,12 +22,11 @@ except ImportError:
     resource_string = None
 #libs
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import to_bytes, to_unicode, bytes, \
-                          is_crypt_handler, rng, \
-                          PasslibPolicyWarning, tick, saslprep
-from passlib.utils.compat import is_mapping, iteritems, num_types, \
-                                 PY3, PY_MIN_32, unicode, bytes
-from passlib.utils.compat.aliases import SafeConfigParser, StringIO, BytesIO
+from passlib.utils import is_crypt_handler, rng, saslprep, tick, to_bytes, \
+                          to_unicode, PasslibPolicyWarning
+from passlib.utils.compat import bytes, is_mapping, iteritems, num_types, \
+                                 PY3, PY_MIN_32, unicode, SafeConfigParser, \
+                                 StringIO, BytesIO
 #pkg
 #local
 __all__ = [

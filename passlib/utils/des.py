@@ -45,8 +45,7 @@ which has some nice notes on how this all works -
 # core
 import struct
 # pkg
-from passlib.utils import bytes, bord, bjoin_ints
-from passlib.utils.compat import trange, irange
+from passlib.utils.compat import bytes, bjoin_ints, belem_ord, irange, trange
 # local
 __all__ = [
     "expand_des_key",
@@ -589,7 +588,7 @@ def expand_des_key(key):
 
     def iter_bits(source):
         for c in source:
-            v = bord(c)
+            v = belem_ord(c)
             for i in irange(7,-1,-1):
                 yield (v>>i) & 1
 

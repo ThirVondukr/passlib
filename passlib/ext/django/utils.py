@@ -12,8 +12,8 @@
 #site
 from warnings import warn
 #pkg
-from passlib.utils import is_crypt_context, bytes
-from passlib.utils.compat import get_method_function as um
+from passlib.utils import is_crypt_context
+from passlib.utils.compat import bytes, get_method_function as um
 #local
 __all__ = [
     "get_category",

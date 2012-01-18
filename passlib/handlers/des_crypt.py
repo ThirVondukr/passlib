@@ -58,11 +58,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, classproperty, safe_os_crypt, b, bytes, \
-            to_native_str, handlers as uh, bord
-from passlib.utils.compat import unicode
+from passlib.utils import classproperty, h64, h64big, safe_os_crypt
+from passlib.utils.compat import b, bytes, belem_ord, u, uascii_to_str, unicode
 from passlib.utils.des import mdes_encrypt_int_block
-from passlib.utils.compat import u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -78,7 +77,7 @@ __all__ = [
 def _crypt_secret_to_key(secret):
     "crypt helper which converts lower 7 bits of first 8 chars of secret -> 56-bit des key, padded to 64 bits"
     return sum(
-        (bord(c) & 0x7f) << (57-8*i)
+        (belem_ord(c) & 0x7f) << (57-8*i)
         for i, c in enumerate(secret[:8])
     )
 
@@ -196,7 +195,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -325,7 +324,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def to_string(self, native=True):
         hash = u("_%s%s%s") % (h64.encode_int24(self.rounds).decode("ascii"),
                              self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -417,7 +416,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     @classmethod
     def norm_checksum(cls, value, strict=False):
@@ -502,7 +501,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, native=True):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return to_native_str(hash) if native else hash
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend

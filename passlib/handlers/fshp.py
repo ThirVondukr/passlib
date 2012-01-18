@@ -11,10 +11,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, bytes, b, to_native_str
-from passlib.utils.compat import iteritems, unicode
+import passlib.utils.handlers as uh
+from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, u,\
+                                 unicode
 from passlib.utils.pbkdf2 import pbkdf1
-from passlib.utils.compat import u
 #pkg
 #local
 __all__ = [
@@ -164,9 +164,8 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
     def to_string(self):
         chk = self.checksum or self._stub_checksum
         salt = self.salt
-        data = b64encode(salt+chk).decode("ascii")
-        hash = u("{FSHP%d|%d|%d}%s") % (self.variant, len(salt), self.rounds, data)
-        return to_native_str(hash)
+        data = bascii_to_str(b64encode(salt+chk))
+        return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
 
     #=========================================================
     #backend

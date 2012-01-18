@@ -27,8 +27,7 @@ See also :mod:`passlib.hash.nthash`.
 from binascii import hexlify
 #site
 #pkg
-from passlib.utils import b
-from passlib.utils.compat import unicode
+from passlib.utils.compat import b, unicode
 from passlib.utils.des import des_encrypt_block
 from passlib.hash import nthash
 #local

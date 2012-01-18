@@ -14,11 +14,11 @@ from warnings import warn
 #site
 #libs
 from passlib.registry import get_crypt_handler
-from passlib.utils import to_native_str, bytes, b, consteq, \
-        classproperty, h64, getrandstr, getrandbytes, bjoin_ints, \
-        rng, is_crypt_handler, ALL_BYTE_VALUES, MissingBackendError, \
-        BASE64_CHARS, HASH64_CHARS
-from passlib.utils.compat import unicode, u, irange
+from passlib.utils import is_crypt_handler
+from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
+                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str, MissingBackendError
+from passlib.utils.compat import b, bjoin_ints, bytes, irange, u, \
+                                 uascii_to_str, unicode
 #pkg
 #local
 __all__ = [
@@ -136,7 +136,7 @@ def render_mc2(ident, salt, checksum, sep=u("$")):
         hash = u("%s%s%s%s") % (ident, salt, sep, checksum)
     else:
         hash = u("%s%s") % (ident, salt)
-    return to_native_str(hash)
+    return uascii_to_str(hash)
 
 def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
     "format hash using 3-part modular crypt format; inverse of parse_mc3"
@@ -144,7 +144,7 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
         hash = u("%s%s%s%s%s%s") % (ident, rounds, sep, salt, sep, checksum)
     else:
         hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
-    return to_native_str(hash)
+    return uascii_to_str(hash)
 
 #=====================================================
 #StaticHandler
@@ -1335,7 +1335,7 @@ class PrefixWrapper(object):
         if not hash.startswith(orig_prefix):
             raise ValueError("not a valid %s hash" % (self.wrapped.name,))
         wrapped = self.prefix + hash[len(orig_prefix):]
-        return to_native_str(wrapped)
+        return uascii_to_str(wrapped)
 
     def identify(self, hash):
         if not hash:

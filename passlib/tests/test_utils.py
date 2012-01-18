@@ -11,8 +11,8 @@ import warnings
 #site
 #pkg
 #module
-from passlib.utils import bytes, b, to_native_str
-from passlib.utils.compat import unicode, PY3, u
+from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
+                                 unicode
 from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
 def hb(source):
@@ -387,30 +387,32 @@ class CodecTest(TestCase):
         "test to_native_str()"
         from passlib.utils import to_native_str
 
-        # ascii goes to native string w/o problems
-        self.assertEqual(to_native_str(u('abc')), 'abc')
-        self.assertEqual(to_native_str(b('abc')), 'abc')
+        # test plain ascii
+        self.assertEqual(to_native_str(u('abc', 'ascii')), 'abc')
+        self.assertEqual(to_native_str(b('abc', 'ascii')), 'abc')
+
+        # test invalid ascii
+        if PY3:
+            self.assertEqual(to_native_str(u('\xE0'), 'ascii'), '\xE0')
+            self.assertRaises(UnicodeDecodeError, to_native_str, b('\xC3\xA0'),
+                              'ascii')
+        else:
+            self.assertRaises(UnicodeEncodeError, to_native_str, u('\xE0'),
+                              'ascii')
+            self.assertEqual(to_native_str(b('\xC3\xA0'), 'ascii'), '\xC3\xA0')
+
+        # test latin-1
+        self.assertEqual(to_native_str(u('\xE0'), 'latin-1'), '\xE0')
+        self.assertEqual(to_native_str(b('\xE0'), 'latin-1'), '\xE0')
+
+        # test utf-8
+        self.assertEqual(to_native_str(u('\xE0'), 'utf-8'),
+                         '\xE0' if PY3 else '\xC3\xA0')
+        self.assertEqual(to_native_str(b('\xC3\xA0'), 'utf-8'),
+                         '\xE0' if PY3 else '\xC3\xA0')
 
         # other types rejected
-        self.assertRaises(TypeError, to_native_str, None)
-
-        # non-ascii unicode should throw error under py2, unless codec specified
-        if PY3:
-            self.assertEqual(to_native_str(u('\x00\xff')), '\x00\xff')
-        else:
-            self.assertEqual(to_native_str(u('\x00\xff')), '\x00\xc3\xbf')
-            self.assertRaises(UnicodeEncodeError, to_native_str, u('\x00\xff'),
-                              'ascii')
-
-        # non-ascii bytes should throw error under py3, unless codec specified
-        if PY3:
-            self.assertRaises(UnicodeDecodeError, to_native_str, b('\x00\xff'))
-        else:
-            self.assertEqual(to_native_str(b('\x00\xff')), '\x00\xff')
-
-        # latin-1 should work if explicitly chosen
-        self.assertEqual(to_native_str(u('\x00\xff'), 'latin-1'), '\x00\xff')
-        self.assertEqual(to_native_str(b('\x00\xff'), 'latin-1'), '\x00\xff')
+        self.assertRaises(TypeError, to_native_str, None, 'ascii')
 
     def test_is_ascii_safe(self):
         "test is_ascii_safe()"
@@ -894,7 +896,7 @@ class _MD4_Test(TestCase):
         "test md4 digest()"
         md4 = self.hash
         for input, hex in self.vectors:
-            out = to_native_str(hexlify(md4(input).digest()))
+            out = bascii_to_str(hexlify(md4(input).digest()))
             self.assertEqual(out, hex)
 
     def test_md4_copy(self):

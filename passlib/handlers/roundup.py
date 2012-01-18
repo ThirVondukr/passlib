@@ -6,7 +6,7 @@
 import logging; log = logging.getLogger(__name__)
 #site
 #libs
-from passlib.utils import handlers as uh
+import passlib.utils.handlers as uh
 from passlib.utils.compat import u
 #pkg
 #local

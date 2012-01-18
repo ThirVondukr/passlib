@@ -17,8 +17,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, to_native_str, to_unicode, bytes, b, bord
-from passlib.utils.compat import trange, unicode, u
+from passlib.utils import h64
+from passlib.utils.compat import b, bytes, belem_ord, trange, u, \
+                                 uascii_to_str, unicode
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -114,7 +116,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     round = 0
     while round < real_rounds:
         #convert last result byte string to list of byte-ints for easy access
-        rval = [ bord(c) for c in result ].__getitem__
+        rval = [ belem_ord(c) for c in result ].__getitem__
 
         #build up X bit by bit
         x = 0
@@ -309,14 +311,14 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         ss = u('') if self.bare_salt else u('$')
         rounds = self.rounds
         if rounds > 0:
-            out = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
+            hash = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
         else:
-            out = u("$md5$%s%s") % (self.salt, ss)
+            hash = u("$md5$%s%s") % (self.salt, ss)
         if withchk:
             chk = self.checksum
             if chk:
-                out = u("%s$%s") % (out, chk)
-        return to_native_str(out) if native else out
+                hash = u("%s$%s") % (hash, chk)
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #primary interface

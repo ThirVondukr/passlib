@@ -17,7 +17,9 @@ import unicodedata
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import irange, PY3, unicode, bytes, u, b, _add_doc
+from passlib.utils.compat import _add_doc, b, bytes, bjoin, bjoin_ints, \
+                                 bjoin_elems, exc_err, irange, imap, PY3, u, \
+                                 ujoin, unicode
 #local
 __all__ = [
     # constants
@@ -32,9 +34,6 @@ __all__ = [
 ##    "deprecated_function",
 ##    "relocated_function",
 ##    "memoized_class_property",
-
-    #byte compat aliases
-    'bytes',
 
     # unicode helpers
     'consteq',
@@ -245,7 +244,6 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 #=============================================================================
 # unicode helpers
 #=============================================================================
-ujoin = _UEMPTY.join
 
 def consteq(left, right):
     """check two strings/bytes for equality, taking constant time relative
@@ -431,67 +429,9 @@ def saslprep(source, errname="value"):
 
     return data
 
-#==========================================================
+#=============================================================================
 # bytes helpers
-#==========================================================
-
-#helpers for joining / extracting elements
-bjoin = _BEMPTY.join
-
-#def bjoin_elems(elems):
-#    """takes series of bytes elements, returns bytes.
-#
-#    elem should be result of bytes[x].
-#    this is another bytes instance under py2,
-#    but it int under py3.
-#
-#    returns bytes.
-#
-#    this is bytes() constructor under py3,
-#    but b"".join() under py2.
-#    """
-#    if PY3:
-#        return bytes(elems)
-#    else:
-#        return bjoin(elems)
-#
-#for efficiency, don't bother with above wrapper...
-if PY3:
-    bjoin_elems = bytes
-else:
-    bjoin_elems = bjoin
-
-#def bord(elem):
-#    """takes bytes element, returns integer.
-#
-#    elem should be result of bytes[x].
-#    this is another bytes instance under py2,
-#    but it int under py3.
-#
-#    returns int in range(0,256).
-#
-#    this is ord() under py2, and noop under py3.
-#    """
-#    if PY3:
-#        assert isinstance(elem, int)
-#        return elem
-#    else:
-#        assert isinstance(elem, bytes)
-#        return ord(elem)
-#
-#for efficiency, don't bother with above wrapper...
-if PY3:
-    def bord(elem):
-        return elem
-else:
-    bord = ord
-
-if PY3:
-    bjoin_ints = bytes
-else:
-    def bjoin_ints(values):
-        return bjoin(chr(v) for v in values)
-
+#=============================================================================
 if PY3:
     def xor_bytes(left, right):
         return bytes(l ^ r for l, r in zip(left, right))
@@ -525,9 +465,10 @@ def render_bytes(source, *args):
 @deprecated_function(deprecated="1.6", removed="1.8")
 def bytes_to_int(value):
     "decode string of bytes as single big-endian integer"
+    from passlib.utils.compat import belem_ord
     out = 0
     for v in value:
-        out = (out<<8) | bord(v)
+        out = (out<<8) | belem_ord(v)
     return out
 
 @deprecated_function(deprecated="1.6", removed="1.8")

@@ -23,11 +23,12 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import ab64_encode, ab64_decode, xor_bytes, \
-        handlers as uh, to_native_str, to_unicode, consteq, saslprep
-from passlib.utils.compat import unicode, bytes, u, b, iteritems, itervalues, \
-                                 PY2, PY3
+from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
+                          to_native_str, xor_bytes
+from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
+                                 itervalues, PY3, u, unicode
 from passlib.utils.pbkdf2 import pbkdf2, get_prf
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -317,7 +318,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # parse hash
         if not hash:
             raise ValueError("no hash specified")
-        hash = to_native_str(hash, "ascii")
+        hash = to_native_str(hash, "ascii", errname="hash")
         if not hash.startswith("$scram$"):
             raise ValueError("invalid scram hash")
         parts = hash[7:].split("$")
@@ -365,13 +366,11 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         )
 
     def to_string(self, withchk=True):
-        salt = ab64_encode(self.salt)
-        if PY3:
-            salt = salt.decode("ascii")
+        salt = bascii_to_str(ab64_encode(self.salt))
         chkmap = self.checksum
         if withchk and chkmap:
             chk_str = ",".join(
-                "%s=%s" % (alg, to_native_str(ab64_encode(chkmap[alg])))
+                "%s=%s" % (alg, bascii_to_str(ab64_encode(chkmap[alg])))
                 for alg in self.algs
             )
         else:

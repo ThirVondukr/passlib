@@ -22,7 +22,7 @@ try:
     from passlib.utils import PasslibPolicyWarning
 except ImportError:
     PasslibPolicyWarning = None
-from passlib.utils import handlers as uh
+import passlib.utils.handlers as uh
 from passlib.utils.compat import u, print_, unicode
 # local
 __all__ = [

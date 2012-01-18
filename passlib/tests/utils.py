@@ -10,7 +10,7 @@ import re
 import os
 import sys
 import tempfile
-from passlib.utils.compat import u, PY27, PY_MIN_32, PY3
+from passlib.utils.compat import PY27, PY_MIN_32, PY3
 
 try:
     import unittest2 as unittest
@@ -30,12 +30,12 @@ if ut_version < 2:
     #used to provide replacement skipTest() method
     from nose.plugins.skip import SkipTest
 #pkg
-from passlib import registry, utils
-from passlib.utils import classproperty, handlers as uh, \
-        has_rounds_info, has_salt_info, MissingBackendError, \
-        rounds_cost_values, b, bytes
-from passlib.utils.compat import iteritems, irange, callable, sb_types, \
-                                 exc_err, unicode
+import passlib.registry as registry
+from passlib.utils import has_rounds_info, has_salt_info, MissingBackendError,\
+                          rounds_cost_values, classproperty
+from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
+                                 sb_types, exc_err, u, unicode
+import passlib.utils.handlers as uh
 #local
 __all__ = [
     #util funcs
@@ -542,7 +542,8 @@ class HandlerCase(TestCase):
                 #this allows use to test as much of the hash's code path
                 #as possible, even if current OS doesn't provide crypt() support
                 #for the hash.
-                self._orig_os_crypt = utils.os_crypt
+                import passlib.utils as mod
+                self._orig_os_crypt = mod.os_crypt
                 def crypt_stub(secret, hash):
                     tmp = h.get_backend()
                     try:
@@ -553,12 +554,13 @@ class HandlerCase(TestCase):
                     if not PY3 and isinstance(hash, unicode):
                         hash = hash.encode("ascii")
                     return hash
-                utils.os_crypt = crypt_stub
+                mod.os_crypt = crypt_stub
             h.set_backend(backend)
 
     def tearDown(self):
         if self._orig_os_crypt:
-            utils.os_crypt = self._orig_os_crypt
+            import passlib.utils as mod
+            mod.os_crypt = self._orig_os_crypt
         if self._orig_backend:
             self.handler.set_backend(self._orig_backend)
 
@@ -1006,7 +1008,8 @@ class HandlerCase(TestCase):
             possible = True
             if handler.has_backend("os_crypt"):
                 def check_crypt(secret, hash):
-                    self.assertEqual(utils.os_crypt(secret, hash), hash,
+                    from passlib.utils import os_crypt
+                    self.assertEqual(os_crypt(secret, hash), hash,
                                      "os_crypt(%r,%r):" % (secret, hash))
                 helpers.append(check_crypt)
 
@@ -1076,7 +1079,8 @@ def _enable_backend_case(handler, backend):
     if enable_option("all-backends") or _is_default_backend(handler, backend):
         if handler.has_backend(backend):
             return True, None
-        if backend == "os_crypt" and utils.safe_os_crypt:
+        from passlib.utils import has_os_crypt
+        if backend == "os_crypt" and has_os_crypt:
             if enable_option("cover") and _has_other_backends(handler, "os_crypt"):
                 #in this case, HandlerCase will monkeypatch os_crypt
                 #to use another backend, just so we can test os_crypt fully.

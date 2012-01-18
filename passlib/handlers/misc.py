@@ -8,7 +8,9 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_native_str, handlers as uh, bytes
+from passlib.utils import to_native_str
+from passlib.utils.compat import bytes, unicode
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -47,7 +49,8 @@ class unix_fallback(uh.StaticHandler):
             raise TypeError("secret must be string")
         if hash is None:
             raise ValueError("no hash provided")
-        return to_native_str(hash)
+        # NOTE: hash will generally be "!"
+        return to_native_str(hash, "ascii", errname="hash")
 
     @classmethod
     def verify(cls, secret, hash, enable_wildcard=False):

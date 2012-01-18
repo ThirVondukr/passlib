@@ -11,9 +11,8 @@ import sys
 #site
 #libs
 from passlib.context import CryptContext
-from passlib.utils import render_bytes, bjoin, bytes, b, \
-                          to_unicode, to_bytes, consteq
-from passlib.utils.compat import lmap, unicode, u
+from passlib.utils import consteq, render_bytes
+from passlib.utils.compat import b, bytes, bjoin, lmap, u, unicode
 #pkg
 #local
 __all__ = [

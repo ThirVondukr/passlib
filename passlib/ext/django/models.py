@@ -15,8 +15,8 @@ see the Passlib documentation for details on how to use this app
 from django.conf import settings
 #pkg
 from passlib.context import CryptContext, CryptPolicy
-from passlib.utils import is_crypt_context, bytes
-from passlib.utils.compat import sb_types, unicode
+from passlib.utils import is_crypt_context
+from passlib.utils.compat import bytes, sb_types, unicode
 from passlib.ext.django.utils import DEFAULT_CTX, get_category, \
     set_django_password_context
 

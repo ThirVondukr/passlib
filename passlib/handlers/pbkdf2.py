@@ -10,11 +10,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import ab64_encode, ab64_decode, \
-        handlers as uh, to_native_str, to_unicode, bytes, b
-from passlib.utils.compat import unicode
+from passlib.utils import ab64_decode, ab64_encode
+from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
-from passlib.utils.compat import u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -88,7 +87,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             hash = u('%s%d$%s$%s') % (self.ident, self.rounds, salt, chk)
         else:
             hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
-        return to_native_str(hash)
+        return uascii_to_str(hash)
 
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -222,12 +221,12 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
         )
 
     def to_string(self, withchk=True):
-        out = u('$p5k2$%x$%s') % (self.rounds,
+        hash = u('$p5k2$%x$%s') % (self.rounds,
                                 b64encode(self.salt, CTA_ALTCHARS).decode("ascii"))
         if withchk and self.checksum:
-            out = u("%s$%s") % (out,
+            hash = u("%s$%s") % (hash,
                               b64encode(self.checksum, CTA_ALTCHARS).decode("ascii"))
-        return to_native_str(out)
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -316,12 +315,12 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     def to_string(self, withchk=True, native=True):
         if self.rounds == 400:
-            out = u('$p5k2$$%s') % (self.salt,)
+            hash = u('$p5k2$$%s') % (self.salt,)
         else:
-            out = u('$p5k2$%x$%s') % (self.rounds, self.salt)
+            hash = u('$p5k2$%x$%s') % (self.rounds, self.salt)
         if withchk and self.checksum:
-            out = u("%s$%s") % (out,self.checksum)
-        return to_native_str(out) if native else out
+            hash = u("%s$%s") % (hash,self.checksum)
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend
@@ -379,7 +378,7 @@ class atlassian_pbkdf2_sha1(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum
     def to_string(self):
         data = self.salt + (self.checksum or self._stub_checksum)
         hash = self.ident + b64encode(data).decode("ascii")
-        return to_native_str(hash)
+        return uascii_to_str(hash)
 
     def calc_checksum(self, secret):
         #TODO: find out what crowd's policy is re: unicode
@@ -453,7 +452,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             hash = u('%s%d.%s.%s') % (self.ident, self.rounds, salt, chk)
         else:
             hash = u('%s%d.%s') % (self.ident, self.rounds, salt)
-        return to_native_str(hash)
+        return uascii_to_str(hash)
 
     def calc_checksum(self, secret):
         #TODO: find out what grub's policy is re: unicode

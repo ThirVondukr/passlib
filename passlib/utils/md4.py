@@ -15,8 +15,7 @@ from binascii import hexlify
 import struct
 from warnings import warn
 #site
-from passlib.utils import b, bytes, to_native_str
-from passlib.utils.compat import irange, PY3
+from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY3
 #local
 __all__ = [ "md4" ]
 #=========================================================================
@@ -224,8 +223,7 @@ class md4(object):
         return out
 
     def hexdigest(self):
-        # PY3: hexlify returns bytes, but hexdigest should return str.
-        return to_native_str(hexlify(self.digest()))
+        return bascii_to_str(hexlify(self.digest()))
 
     #=========================================================================
     #eoc

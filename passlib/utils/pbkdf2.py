@@ -20,9 +20,8 @@ try:
 except ImportError:
     _EVP = None
 #pkg
-from passlib.utils import xor_bytes, to_bytes, b, bytes
-from passlib.utils.compat import irange, callable, int_types
-from passlib.utils.compat.aliases import BytesIO
+from passlib.utils import to_bytes, xor_bytes
+from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
 #local
 __all__ = [
     "hmac_sha1",

@@ -13,11 +13,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, safe_os_crypt, classproperty, \
-    to_native_str, to_unicode, bytes, b
-from passlib.utils.compat import unicode
+from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import hmac_sha1
-from passlib.utils.compat import u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -92,10 +91,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         )
 
     def to_string(self, native=True):
-        out = u("$sha1$%d$%s") % (self.rounds, self.salt)
+        hash = u("$sha1$%d$%s") % (self.rounds, self.salt)
         if self.checksum:
-            out += u("$") + self.checksum
-        return to_native_str(out) if native else out
+            hash += u("$") + self.checksum
+        return uascii_to_str(hash) if native else hash
 
     #=========================================================
     #backend

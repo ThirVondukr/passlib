@@ -10,8 +10,9 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import handlers as uh, to_unicode, to_native_str, bytes, b
-from passlib.utils.compat import unicode, u
+from passlib.utils import to_unicode
+from passlib.utils.compat import b, bytes, bascii_to_str, unicode, u
+import passlib.utils.handlers as uh
 #local
 __all__ = [
     "postgres_md5",
@@ -61,8 +62,7 @@ class postgres_md5(uh.StaticHandler):
             secret = secret.encode("utf-8")
         if isinstance(user, unicode):
             user = user.encode("utf-8")
-        hash = u("md5") + to_unicode(md5(secret + user).hexdigest())
-        return to_native_str(hash)
+        return "md5" + bascii_to_str(md5(secret + user).hexdigest())
 
     #=========================================================
     #eoc

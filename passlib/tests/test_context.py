@@ -18,7 +18,7 @@ except ImportError:
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
-from passlib.utils import to_bytes, to_unicode, PasslibPolicyWarning, tick
+from passlib.utils import tick, to_bytes, to_unicode, PasslibPolicyWarning
 from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \

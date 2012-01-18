@@ -9,9 +9,9 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import b, bytes, to_bytes, h64, safe_os_crypt, \
-                          classproperty, handlers as uh
-from passlib.utils.compat import irange, unicode, u
+from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils.compat import b, bytes, irange, unicode, u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
