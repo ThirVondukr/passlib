@@ -35,20 +35,6 @@ __all__ = [
     #byte compat aliases
     'bytes',
 
-    #misc
-    'os_crypt',
-
-    # object type / interface tests
-    'is_crypt_handler',
-    'is_crypt_context',
-    'has_rounds_info',
-    'has_salt_info',
-
-    #bytes<->unicode
-    'to_bytes',
-    'to_unicode',
-    'is_same_codec',
-
     # string manipulation
     'consteq',
     'saslprep',
@@ -56,12 +42,18 @@ __all__ = [
     #byte manipulation
     "xor_bytes",
 
+    #bytes<->unicode    
+    'to_bytes',
+    'to_unicode',
+    'is_same_codec',
+
     # base64 helpers
     "BASE64_CHARS", "HASH64_CHARS", "BCRYPT_CHARS", "AB64_CHARS",
     "Base64Engine", "h64", "h64big",
     "ab64_encode", "ab64_decode",
 
     # host OS
+    'os_crypt',
     'tick',
 
     # randomness
@@ -69,10 +61,16 @@ __all__ = [
     'getrandbytes',
     'getrandstr',
     'generate_password',
+
+    # object type / interface tests
+    'is_crypt_handler',
+    'is_crypt_context',
+    'has_rounds_info',
+    'has_salt_info',
 ]
 
 #=================================================================================
-#constants
+# constants
 #=================================================================================
 
 # list of hashes supported by os.crypt() on at least one OS.
@@ -116,74 +114,6 @@ class PasslibPolicyWarning(UserWarning):
 _BEMPTY = b('')
 _UEMPTY = u("")
 _USPACE = u(" ")
-
-#=================================================================================
-#os crypt helpers
-#=================================================================================
-
-#expose crypt function as 'os_crypt', set to None if not available.
-try:
-    from crypt import crypt as os_crypt
-except ImportError: #pragma: no cover
-    safe_os_crypt = os_crypt = None
-else:
-    # NOTE: see docstring below as to why we're wrapping os_crypt()
-    if PY3:
-        def safe_os_crypt(secret, hash):
-            if isinstance(secret, bytes):
-                # decode secret using utf-8, and make sure it re-encodes to
-                # match the original - otherwise the call to os_crypt()
-                # will encode the wrong password.
-                orig = secret
-                try:
-                    secret = secret.decode("utf-8")
-                except UnicodeDecodeError:
-                    return False, None
-                if secret.encode("utf-8") != orig:
-                    # just in case original encoding wouldn't be reproduced
-                    # during call to os_crypt. not sure if/how this could
-                    # happen, but being paranoid.
-                    warn("utf-8 password didn't re-encode correctly!")
-                    return False, None
-            result = os_crypt(secret, hash)
-            return (result is not None), result
-    else:
-        def safe_os_crypt(secret, hash):
-            # NOTE: this guard logic is designed purely to match py3 behavior,
-            # with the exception that it accepts secret as bytes.
-            if isinstance(secret, unicode):
-                secret = secret.encode("utf-8")
-            if isinstance(hash, bytes):
-                raise TypeError("hash must be unicode")
-            else:
-                hash = hash.encode("utf-8")
-            result = os_crypt(secret, hash)
-            if result is None:
-                return False, None
-            else:
-                return True, result.decode("ascii")
-
-    _add_doc(safe_os_crypt, """wrapper around stdlib's crypt.
-
-        Python 3's crypt behaves slightly differently from Python 2's crypt.
-        for one, it takes in and returns unicode.
-        internally, it converts to utf-8 before hashing.
-        Annoyingly, *there is no way to call it using bytes*.
-        thus, it can't be used to hash non-ascii passwords
-        using any encoding but utf-8 (eg, using latin-1).
-
-        This wrapper attempts to gloss over all those issues:
-        Under Python 2, it accept passwords as unicode or bytes,
-        accepts hashes only as unicode, and always returns unicode.
-        Under Python 3, it will signal that it cannot hash a password
-        if provided as non-utf-8 bytes, but otherwise behave the same as crypt.
-
-        :arg secret: password as bytes or unicode
-        :arg hash: hash/salt as unicode
-        :returns:
-            ``(False, None)`` if the password can't be hashed (3.x only),
-            or ``(True, result: unicode)`` otherwise.
-        """)
 
 #=================================================================================
 #decorators and meta helpers
@@ -300,188 +230,6 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 ##    @property
 ##    def __func__(self):
 ##        "py3 compatible alias"
-
-#==========================================================
-#protocol helpers
-#==========================================================
-_handler_attrs = (
-        "name",
-        "setting_kwds", "context_kwds",
-        "genconfig", "genhash",
-        "verify", "encrypt", "identify",
-        )
-
-def is_crypt_handler(obj):
-    "check if object follows the :ref:`password-hash-api`"
-    return all(hasattr(obj, name) for name in _handler_attrs)
-
-_context_attrs = (
-        "hash_needs_update",
-        "genconfig", "genhash",
-        "verify", "encrypt", "identify",
-        )
-
-def is_crypt_context(obj):
-    "check if object appears to be a :class:`~passlib.context.CryptContext` instance"
-    return all(hasattr(obj, name) for name in _context_attrs)
-
-##def has_many_backends(handler):
-##    "check if handler provides multiple baceknds"
-##    #NOTE: should also provide get_backend(), .has_backend(), and .backends attr
-##    return hasattr(handler, "set_backend")
-
-def has_rounds_info(handler):
-    "check if handler provides the optional :ref:`rounds information <optional-rounds-attributes>` attributes"
-    return 'rounds' in handler.setting_kwds and getattr(handler, "min_rounds", None) is not None
-
-def has_salt_info(handler):
-    "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
-    return 'salt' in handler.setting_kwds and getattr(handler, "min_salt_size", None) is not None
-
-##def has_raw_salt(handler):
-##    "check if handler takes in encoded salt as unicode (False), or decoded salt as bytes (True)"
-##    sc = getattr(handler, "salt_chars", None)
-##    if sc is None:
-##        return None
-##    elif isinstance(sc, unicode):
-##        return False
-##    elif isinstance(sc, bytes):
-##        return True
-##    else:
-##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
-
-#==========================================================
-#bytes <-> unicode conversion helpers
-#==========================================================
-
-def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
-    """helper to encoding unicode -> bytes
-
-    this function takes in a ``source`` string.
-    if unicode, encodes it using the specified ``encoding``.
-    if bytes, returns unchanged - unless ``source_encoding``
-    is specified, in which case the bytes are transcoded
-    if and only if the source encoding doesn't match
-    the desired encoding.
-    all other types result in a :exc:`TypeError`.
-
-    :arg source: source bytes/unicode to process
-    :arg encoding: target character encoding or ``None``.
-    :param source_encoding: optional source encoding
-    :param errname: optional name of variable/noun to reference when raising errors
-
-    :raises TypeError: if unicode encountered but ``encoding=None`` specified;
-                       or if source is not unicode or bytes.
-
-    :returns: bytes object
-
-    .. note::
-
-        if ``encoding`` is set to ``None``, then unicode strings
-        will be rejected, and only byte strings will be allowed through.
-    """
-    if isinstance(source, bytes):
-        if source_encoding and encoding and \
-                not is_same_codec(source_encoding, encoding):
-            return source.decode(source_encoding).encode(encoding)
-        else:
-            return source
-    elif not encoding:
-        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))
-    elif isinstance(source, unicode):
-        return source.encode(encoding)
-    elif source_encoding:
-        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
-                        (errname, source_encoding, type(source)))
-    else:
-        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
-
-def to_unicode(source, source_encoding="utf-8", errname="value"):
-    """take in unicode or bytes, return unicode
-
-    if bytes provided, decodes using specified encoding.
-    leaves unicode alone.
-
-    :raises TypeError: if source is not unicode or bytes.
-
-    :arg source: source bytes/unicode to process
-    :arg source_encoding: encoding to use when decoding bytes instances
-    :param errname: optional name of variable/noun to reference when raising errors
-
-    :returns: unicode object
-    """
-    if isinstance(source, unicode):
-        return source
-    elif not source_encoding:
-        raise TypeError("%s must be unicode, not %s" % (errname, type(source)))
-    elif isinstance(source, bytes):
-        return source.decode(source_encoding)
-    else:
-        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
-                        (errname, source_encoding, type(source)))
-
-if PY3:
-    def to_native_str(source, encoding="utf-8", errname="value"):
-        if isinstance(source, bytes):
-            return source.decode(encoding)
-        elif isinstance(source, unicode):
-            return source
-        else:
-            raise TypeError("%s must be unicode or bytes, not %s" %
-                            (errname, type(source)))
-else:
-    def to_native_str(source, encoding="utf-8", errname="value"):
-        if isinstance(source, bytes):
-            return source
-        elif isinstance(source, unicode):
-            return source.encode(encoding)
-        else:
-            raise TypeError("%s must be unicode or bytes, not %s" %
-                            (errname, type(source)))
-
-_add_doc(to_native_str,
-    """take in unicode or bytes, return native string
-
-    python 2: encodes unicode using specified encoding, leaves bytes alone.
-    python 3: decodes bytes using specified encoding, leaves unicode alone.
-
-    :raises TypeError: if source is not unicode or bytes.
-
-    :arg source:
-        source unicode or bytes string.
-
-    :arg encoding:
-        encoding to use when encoding unicode or decoding bytes.
-        this defaults to ``"utf-8"``.
-
-    :param errname:
-        optional name of variable/noun to reference when raising errors.
-
-    :returns: :class:`str` instance
-    """)
-
-@deprecated_function(deprecated="1.6", removed="1.7")
-def to_hash_str(source, encoding="ascii"):
-    "deprecated, use to_native_str() instead"
-    return to_native_str(source, encoding, 'hash')
-
-#--------------------------------------------------
-#support utils
-#--------------------------------------------------
-def is_same_codec(left, right):
-    "check if two codecs names are aliases for same codec"
-    if left == right:
-        return True
-    if not (left and right):
-        return False
-    return _lookup_codec(left).name == _lookup_codec(right).name
-
-_B80 = 128 if PY3 else b('\x80')
-_U80 = u('\x80')
-def is_ascii_safe(source):
-    "check if source (bytes or unicode) contains only 7-bit ascii"
-    r = _B80 if isinstance(source, bytes) else _U80
-    return all(c < r for c in source)
 
 #=================================================================================
 #string helpers
@@ -733,6 +481,15 @@ else:
     def bjoin_ints(values):
         return bjoin(chr(v) for v in values)
 
+if PY3:
+    def xor_bytes(left, right):
+        "perform bitwise-xor of two byte-strings"
+        return bytes(l ^ r for l, r in zip(left, right))
+else:
+    def xor_bytes(left, right):
+        "perform bitwise-xor of two byte-strings"
+        return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
 
@@ -776,14 +533,135 @@ def int_to_bytes(value, count):
         for s in irange(8*count-8,-8,-8)
     )
 
+#==========================================================
+# bytes <-> unicode conversion helpers
+#==========================================================
+
+def is_same_codec(left, right):
+    "check if two codecs names are aliases for same codec"
+    if left == right:
+        return True
+    if not (left and right):
+        return False
+    return _lookup_codec(left).name == _lookup_codec(right).name
+
+_B80 = 128 if PY3 else b('\x80')
+_U80 = u('\x80')
+def is_ascii_safe(source):
+    "check if source (bytes or unicode) contains only 7-bit ascii"
+    r = _B80 if isinstance(source, bytes) else _U80
+    return all(c < r for c in source)
+
+def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
+    """helper to encoding unicode -> bytes
+
+    this function takes in a ``source`` string.
+    if unicode, encodes it using the specified ``encoding``.
+    if bytes, returns unchanged - unless ``source_encoding``
+    is specified, in which case the bytes are transcoded
+    if and only if the source encoding doesn't match
+    the desired encoding.
+    all other types result in a :exc:`TypeError`.
+
+    :arg source: source bytes/unicode to process
+    :arg encoding: target character encoding or ``None``.
+    :param source_encoding: optional source encoding
+    :param errname: optional name of variable/noun to reference when raising errors
+
+    :raises TypeError: if unicode encountered but ``encoding=None`` specified;
+                       or if source is not unicode or bytes.
+
+    :returns: bytes object
+
+    .. note::
+
+        if ``encoding`` is set to ``None``, then unicode strings
+        will be rejected, and only byte strings will be allowed through.
+    """
+    if isinstance(source, bytes):
+        if source_encoding and encoding and \
+                not is_same_codec(source_encoding, encoding):
+            return source.decode(source_encoding).encode(encoding)
+        else:
+            return source
+    elif not encoding:
+        raise TypeError("%s must be bytes, not %s" % (errname, type(source)))
+    elif isinstance(source, unicode):
+        return source.encode(encoding)
+    elif source_encoding:
+        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
+                        (errname, source_encoding, type(source)))
+    else:
+        raise TypeError("%s must be unicode or bytes, not %s" % (errname, type(source)))
+
+def to_unicode(source, source_encoding="utf-8", errname="value"):
+    """take in unicode or bytes, return unicode
+
+    if bytes provided, decodes using specified encoding.
+    leaves unicode alone.
+
+    :raises TypeError: if source is not unicode or bytes.
+
+    :arg source: source bytes/unicode to process
+    :arg source_encoding: encoding to use when decoding bytes instances
+    :param errname: optional name of variable/noun to reference when raising errors
+
+    :returns: unicode object
+    """
+    if isinstance(source, unicode):
+        return source
+    elif not source_encoding:
+        raise TypeError("%s must be unicode, not %s" % (errname, type(source)))
+    elif isinstance(source, bytes):
+        return source.decode(source_encoding)
+    else:
+        raise TypeError("%s must be unicode or %s-encoded bytes, not %s" %
+                        (errname, source_encoding, type(source)))
+
 if PY3:
-    def xor_bytes(left, right):
-        "perform bitwise-xor of two byte-strings"
-        return bytes(l ^ r for l, r in zip(left, right))
+    def to_native_str(source, encoding="utf-8", errname="value"):
+        if isinstance(source, bytes):
+            return source.decode(encoding)
+        elif isinstance(source, unicode):
+            return source
+        else:
+            raise TypeError("%s must be unicode or bytes, not %s" %
+                            (errname, type(source)))
 else:
-    def xor_bytes(left, right):
-        "perform bitwise-xor of two byte-strings"
-        return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+    def to_native_str(source, encoding="utf-8", errname="value"):
+        if isinstance(source, bytes):
+            return source
+        elif isinstance(source, unicode):
+            return source.encode(encoding)
+        else:
+            raise TypeError("%s must be unicode or bytes, not %s" %
+                            (errname, type(source)))
+
+_add_doc(to_native_str,
+    """take in unicode or bytes, return native string
+
+    python 2: encodes unicode using specified encoding, leaves bytes alone.
+    python 3: decodes bytes using specified encoding, leaves unicode alone.
+
+    :raises TypeError: if source is not unicode or bytes.
+
+    :arg source:
+        source unicode or bytes string.
+
+    :arg encoding:
+        encoding to use when encoding unicode or decoding bytes.
+        this defaults to ``"utf-8"``.
+
+    :param errname:
+        optional name of variable/noun to reference when raising errors.
+
+    :returns: :class:`str` instance
+    """)
+
+@deprecated_function(deprecated="1.6", removed="1.7")
+def to_hash_str(source, encoding="ascii"):
+    "deprecated, use to_native_str() instead"
+    return to_native_str(source, encoding, errname="hash")
 
 #=================================================================================
 # base64-variant encoding
@@ -1325,6 +1203,70 @@ def ab64_decode(data):
 # host OS helpers
 #=================================================================================
 
+#expose crypt function as 'os_crypt', set to None if not available.
+try:
+    from crypt import crypt as os_crypt
+except ImportError: #pragma: no cover
+    safe_os_crypt = os_crypt = None
+else:
+    # NOTE: see docstring below as to why we're wrapping os_crypt()
+    if PY3:
+        def safe_os_crypt(secret, hash):
+            if isinstance(secret, bytes):
+                # decode secret using utf-8, and make sure it re-encodes to
+                # match the original - otherwise the call to os_crypt()
+                # will encode the wrong password.
+                orig = secret
+                try:
+                    secret = secret.decode("utf-8")
+                except UnicodeDecodeError:
+                    return False, None
+                if secret.encode("utf-8") != orig:
+                    # just in case original encoding wouldn't be reproduced
+                    # during call to os_crypt. not sure if/how this could
+                    # happen, but being paranoid.
+                    warn("utf-8 password didn't re-encode correctly!")
+                    return False, None
+            result = os_crypt(secret, hash)
+            return (result is not None), result
+    else:
+        def safe_os_crypt(secret, hash):
+            # NOTE: this guard logic is designed purely to match py3 behavior,
+            # with the exception that it accepts secret as bytes.
+            if isinstance(secret, unicode):
+                secret = secret.encode("utf-8")
+            if isinstance(hash, bytes):
+                raise TypeError("hash must be unicode")
+            else:
+                hash = hash.encode("utf-8")
+            result = os_crypt(secret, hash)
+            if result is None:
+                return False, None
+            else:
+                return True, result.decode("ascii")
+
+    _add_doc(safe_os_crypt, """wrapper around stdlib's crypt.
+
+        Python 3's crypt behaves slightly differently from Python 2's crypt.
+        for one, it takes in and returns unicode.
+        internally, it converts to utf-8 before hashing.
+        Annoyingly, *there is no way to call it using bytes*.
+        thus, it can't be used to hash non-ascii passwords
+        using any encoding but utf-8 (eg, using latin-1).
+
+        This wrapper attempts to gloss over all those issues:
+        Under Python 2, it accept passwords as unicode or bytes,
+        accepts hashes only as unicode, and always returns unicode.
+        Under Python 3, it will signal that it cannot hash a password
+        if provided as non-utf-8 bytes, but otherwise behave the same as crypt.
+
+        :arg secret: password as bytes or unicode
+        :arg hash: hash/salt as unicode
+        :returns:
+            ``(False, None)`` if the password can't be hashed (3.x only),
+            or ``(True, result: unicode)`` otherwise.
+        """)
+
 # pick best timer function to expose as "tick" - lifted from timeit module.
 if sys.platform == "win32":
     # On Windows, the best timer is time.clock()
@@ -1480,6 +1422,57 @@ def generate_password(size=10, charset=_52charset):
     :returns: randomly generated password.
     """
     return getrandstr(rng, charset, size)
+
+#==========================================================
+# object type / interface tests
+#==========================================================
+_handler_attrs = (
+        "name",
+        "setting_kwds", "context_kwds",
+        "genconfig", "genhash",
+        "verify", "encrypt", "identify",
+        )
+
+def is_crypt_handler(obj):
+    "check if object follows the :ref:`password-hash-api`"
+    return all(hasattr(obj, name) for name in _handler_attrs)
+
+_context_attrs = (
+        "hash_needs_update",
+        "genconfig", "genhash",
+        "verify", "encrypt", "identify",
+        )
+
+def is_crypt_context(obj):
+    "check if object appears to be a :class:`~passlib.context.CryptContext` instance"
+    return all(hasattr(obj, name) for name in _context_attrs)
+
+##def has_many_backends(handler):
+##    "check if handler provides multiple baceknds"
+##    #NOTE: should also provide get_backend(), .has_backend(), and .backends attr
+##    return hasattr(handler, "set_backend")
+
+def has_rounds_info(handler):
+    "check if handler provides the optional :ref:`rounds information <optional-rounds-attributes>` attributes"
+    return ('rounds' in handler.setting_kwds and
+            getattr(handler, "min_rounds", None) is not None)
+
+def has_salt_info(handler):
+    "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
+    return ('salt' in handler.setting_kwds and
+            getattr(handler, "min_salt_size", None) is not None)
+
+##def has_raw_salt(handler):
+##    "check if handler takes in encoded salt as unicode (False), or decoded salt as bytes (True)"
+##    sc = getattr(handler, "salt_chars", None)
+##    if sc is None:
+##        return None
+##    elif isinstance(sc, unicode):
+##        return False
+##    elif isinstance(sc, bytes):
+##        return True
+##    else:
+##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
 
 #=================================================================================
 # eof
