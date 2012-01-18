@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import adapted_b64_encode, adapted_b64_decode, \
+from passlib.utils import ab64_encode, ab64_decode, \
         handlers as uh, to_native_str, to_unicode, bytes, b
 from passlib.utils.compat import unicode
 from passlib.utils.pbkdf2 import pbkdf2
@@ -72,8 +72,8 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         int_rounds = int(rounds)
         if rounds != unicode(int_rounds): #forbid zero padding, etc.
             raise ValueError("invalid %s hash" % (cls.name,))
-        raw_salt = adapted_b64_decode(salt.encode("ascii"))
-        raw_chk = adapted_b64_decode(chk.encode("ascii")) if chk else None
+        raw_salt = ab64_decode(salt.encode("ascii"))
+        raw_chk = ab64_decode(chk.encode("ascii")) if chk else None
         return cls(
             rounds=int_rounds,
             salt=raw_salt,
@@ -82,9 +82,9 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         )
 
     def to_string(self, withchk=True):
-        salt = adapted_b64_encode(self.salt).decode("ascii")
+        salt = ab64_encode(self.salt).decode("ascii")
         if withchk and self.checksum:
-            chk = adapted_b64_encode(self.checksum).decode("ascii")
+            chk = ab64_encode(self.checksum).decode("ascii")
             hash = u('%s%d$%s$%s') % (self.ident, self.rounds, salt, chk)
         else:
             hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
@@ -331,7 +331,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             secret = secret.encode("utf-8")
         salt = self.to_string(withchk=False, native=False).encode("ascii")
         result = pbkdf2(secret, salt, self.rounds, 24, "hmac-sha1")
-        return adapted_b64_encode(result).decode("ascii")
+        return ab64_encode(result).decode("ascii")
 
     #=========================================================
     #eoc

@@ -81,7 +81,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 9. Add the password to digest A.
 
-10. Add the constant string ``$1$`` to digest A. 
+10. Add the constant string ``$1$`` to digest A.
     (The Apache variant of MD5-Crypt uses ``$apr1$`` instead,
     this is the only change made by this variant).
 
@@ -122,7 +122,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
     following order: ``12,6,0,13,7,1,14,8,2,15,9,3,5,10,4,11``.
 
 18. Encode the resulting 16 byte string into a 22 character
-    :mod:`hash 64 <passlib.utils.h64.encode_bytes>`-encoded string
+    :data:`hash64 <passlib.utils.h64>`-encoded string
     (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
     This results in the portion of the md5 crypt hash string referred to as :samp:`{checksum}` in the format section.
 
@@ -151,7 +151,7 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, PassLib strictly limits salts to the
-  :mod:`hash 64 <passlib.utils.h64>` character set,
+  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,
   but may have unexpected behaviors for other character values.

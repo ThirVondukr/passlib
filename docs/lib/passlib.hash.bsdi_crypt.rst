@@ -44,7 +44,7 @@ A bsdi_crypt hash string consists of a 21 character string of the form :samp:`_{
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
-* :samp:`{rounds}` is the number of rounds, stored as a 4 character :mod:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
+* :samp:`{rounds}` is the number of rounds, stored as a 4 character :data:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
 * :samp:`{salt}` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
 * :samp:`{checksum}` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
 
@@ -60,12 +60,12 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
 1. Given a password string, a salt string, and rounds string.
 
 2. The 4 character rounds string is decoded to a 24-bit integer rounds value;
-   The rounds string uses little-endian
-   :func:`hash64 <passlib.utils.h64.decode_int24>` encoding.
+   The rounds string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   encoding.
 
 3. The 4 character salt string is decoded to a 24-bit integer salt value;
-   The salt string uses little-endian
-   :func:`hash64 <passlib.utils.h64.decode_int24>` encoding.
+   The salt string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   encoding.
 
 4. The password is NULL-padded on the end to the smallest non-zero multiple of 8 bytes.
 
@@ -95,7 +95,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    lsb-padded with 2 zero bits.
 
 9. The resulting 66-bit integer is encoded in big-endian order
-   using the :func:`hash 64 <passlib.utils.h64.encode_int>` format.
+   using the :data:`hash64-big <passlib.utils.h64big>` format.
 
 Security Issues
 ===============

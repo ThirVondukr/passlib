@@ -84,7 +84,7 @@ by the modular crypt format hashes found in passlib:
    use ascii letters, numbers, ``.``, and ``/``
    to provide base64 encoding of their raw data,
    though the exact character value assignments vary between hashes
-   (see :mod:`passlib.utils.h64`).
+   (see :data:`passlib.utils.h64`).
 
 4. Hash schemes should put their "checksum" portion
    at the end of the hash, preferrably separated

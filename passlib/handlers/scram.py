@@ -23,7 +23,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import adapted_b64_encode, adapted_b64_decode, xor_bytes, \
+from passlib.utils import ab64_encode, ab64_decode, xor_bytes, \
         handlers as uh, to_native_str, to_unicode, consteq, saslprep
 from passlib.utils.compat import unicode, bytes, u, b, iteritems, itervalues, \
                                  PY2, PY3
@@ -331,7 +331,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         # decode salt
         try:
-            salt = adapted_b64_decode(salt_str.encode("ascii"))
+            salt = ab64_decode(salt_str.encode("ascii"))
         except TypeError:
             raise ValueError("malformed scram hash")
 
@@ -346,7 +346,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             for pair in chk_str.split(","):
                 alg, digest = pair.split("=")
                 try:
-                    chkmap[alg] = adapted_b64_decode(digest.encode("ascii"))
+                    chkmap[alg] = ab64_decode(digest.encode("ascii"))
                 except TypeError:
                     raise ValueError("malformed scram hash")
         else:
@@ -364,13 +364,13 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         )
 
     def to_string(self, withchk=True):
-        salt = adapted_b64_encode(self.salt)
+        salt = ab64_encode(self.salt)
         if PY3:
             salt = salt.decode("ascii")
         chkmap = self.checksum
         if withchk and chkmap:
             chk_str = ",".join(
-                "%s=%s" % (alg, to_native_str(adapted_b64_encode(chkmap[alg])))
+                "%s=%s" % (alg, to_native_str(ab64_encode(chkmap[alg])))
                 for alg in self.algs
             )
         else:

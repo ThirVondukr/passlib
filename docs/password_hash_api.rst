@@ -455,7 +455,7 @@ the following attributes are usually exposed.
     string containing list of all characters which are allowed
     to be specified in salt parameter.
     for most :ref:`MCF <modular-crypt-format>` hashes,
-    this is equal to :data:`passlib.utils.h64.CHARS`.
+    this is equal to :data:`passlib.utils.HASH64_CHARS`.
 
     this must be a :class:`!unicode` string if the salt is encoded,
     or (rarely) :class:`!bytes` if the salt is manipulating as unencoded raw bytes.

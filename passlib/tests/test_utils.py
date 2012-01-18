@@ -504,16 +504,294 @@ b("""    0000000000000000 0000000000000000 8CA64DE9C1B123A7
     # though des-crypt builtin backend test should thump it well enough
 
 #=========================================================
-#hash64
+# base64engine
 #=========================================================
-class H64_Test(TestCase):
-    "test H64 codec functions"
-    case_prefix = "H64 codec"
+class _Base64Test(TestCase):
+    "common tests for all Base64Engine instances"
+    #=========================================================
+    # class attrs
+    #=========================================================
+
+    # Base64Engine instance to test
+    engine = None
+
+    # pairs of (raw, encoded) bytes to test - should encode/decode correctly
+    encoded_data = None
+
+    # tuples of (encoded, value, bits) for known integer encodings
+    encoded_ints = None
+
+    # invalid encoded byte
+    bad_byte = b("?")
+
+    # helper to generate bytemap-specific strings
+    def m(self, *offsets):
+        "generate byte string from offsets"
+        return b("").join(self.engine.bytemap[o:o+1] for o in offsets)
 
     #=========================================================
-    #test basic encode/decode
+    # test encode_bytes
     #=========================================================
-    encoded_bytes = [
+    def test_encode_bytes(self):
+        "test encode_bytes() against reference inputs"
+        engine = self.engine
+        encode = engine.encode_bytes
+        for raw, encoded in self.encoded_data:
+            result = encode(raw)
+            self.assertEqual(result, encoded, "encode %r:" % (raw,))
+
+    def test_encode_bytes_bad(self):
+        "test encode_bytes() with bad input"
+        engine = self.engine
+        encode = engine.encode_bytes
+        self.assertRaises(TypeError, encode, u('\x00'))
+        self.assertRaises(TypeError, encode, None)
+
+    #=========================================================
+    # test decode_bytes
+    #=========================================================
+    def test_decode_bytes(self):
+        "test decode_bytes() against reference inputs"
+        engine = self.engine
+        decode = engine.decode_bytes
+        for raw, encoded in self.encoded_data:
+            result = decode(encoded)
+            self.assertEqual(result, raw, "decode %r:" % (encoded,))
+
+    def test_decode_bytes_padding(self):
+        "test decode_bytes() ignores padding bits"
+        bchr = (lambda v: bytes([v])) if PY3 else chr
+        engine = self.engine
+        m = self.m
+        decode = engine.decode_bytes
+        BNULL = b("\x00")
+
+        # length == 2 mod 4: 4 bits of padding
+        self.assertEqual(decode(m(0,0)), BNULL)
+        for i in range(0,6):
+            if engine.big: # 4 lsb padding
+                correct = BNULL if i < 4 else bchr(1<<(i-4))
+            else: # 4 msb padding
+                correct = bchr(1<<(i+6)) if i < 2 else BNULL
+            self.assertEqual(decode(m(0,1<<i)), correct, "%d/4 bits:" % i)
+
+        # length == 3 mod 4: 2 bits of padding
+        self.assertEqual(decode(m(0,0,0)), BNULL*2)
+        for i in range(0,6):
+            if engine.big: # 2 lsb are padding
+                correct = BNULL if i < 2 else bchr(1<<(i-2))
+            else: # 2 msg are padding
+                correct = bchr(1<<(i+4)) if i < 4 else BNULL
+            self.assertEqual(decode(m(0,0,1<<i)), BNULL + correct,
+                             "%d/2 bits:" % i)
+
+    def test_decode_bytes_bad(self):
+        "test decode_bytes() with bad input"
+        engine = self.engine
+        decode = engine.decode_bytes
+
+        # wrong size (1 % 4)
+        self.assertRaises(ValueError, decode, engine.bytemap[:5])
+
+        # wrong char
+        self.assertTrue(self.bad_byte not in engine.bytemap)
+        self.assertRaises(ValueError, decode, self.bad_byte*4)
+
+        # wrong type
+        self.assertRaises(TypeError, decode, engine.charmap[:4])
+        self.assertRaises(TypeError, decode, None)
+
+    #=========================================================
+    # encode_bytes+decode_bytes
+    #=========================================================
+    def test_codec(self):
+        "test encode_bytes/decode_bytes against random data"
+        engine = self.engine
+        from passlib.utils import getrandbytes, getrandstr
+        saw_zero = False
+        for i in irange(500):
+            #
+            # test raw -> encode() -> decode() -> raw
+            #
+
+            # generate some random bytes
+            size = random.randint(1 if saw_zero else 0, 12)
+            if not size:
+                saw_zero = True
+            enc_size = (4*size+2)//3
+            raw = getrandbytes(random, size)
+
+            # encode them, check invariants
+            encoded = engine.encode_bytes(raw)
+            self.assertEqual(len(encoded), enc_size)
+
+            # make sure decode returns original
+            result = engine.decode_bytes(encoded)
+            self.assertEqual(result, raw)
+
+            #
+            # test encoded -> decode() -> encode() -> encoded
+            #
+
+            # generate some random encoded data
+            if size % 4 == 1:
+                size += random.choice([-1,1,2])
+            raw_size = 3*size//4
+            encoded = getrandstr(random, engine.bytemap, size)
+
+            # decode them, check invariants
+            raw = engine.decode_bytes(encoded)
+            self.assertEqual(len(raw), raw_size, "encoded %d:" % size)
+
+            # make sure encode returns original (barring padding bits)
+            result = engine.encode_bytes(raw)
+            if size % 4:
+                self.assertEqual(result[:-1], encoded[:-1])
+            else:
+                self.assertEqual(result, encoded)
+
+    #=========================================================
+    # test transposed encode/decode - encoding independant
+    #=========================================================
+    # NOTE: these tests assume normal encode/decode has been tested elsewhere.
+
+    transposed = [
+        # orig, result, transpose map
+        (b("\x33\x22\x11"), b("\x11\x22\x33"),[2,1,0]),
+        (b("\x22\x33\x11"), b("\x11\x22\x33"),[1,2,0]),
+    ]
+
+    transposed_dups = [
+        # orig, result, transpose projection
+        (b("\x11\x11\x22"), b("\x11\x22\x33"),[0,0,1]),
+    ]
+
+    def test_encode_transposed_bytes(self):
+        "test encode_transposed_bytes()"
+        engine = self.engine
+        for result, input, offsets in self.transposed + self.transposed_dups:
+            tmp = engine.encode_transposed_bytes(input, offsets)
+            out = engine.decode_bytes(tmp)
+            self.assertEqual(out, result)
+
+    def test_decode_transposed_bytes(self):
+        "test decode_transposed_bytes()"
+        engine = self.engine
+        for input, result, offsets in self.transposed:
+            tmp = engine.encode_bytes(input)
+            out = engine.decode_transposed_bytes(tmp, offsets)
+            self.assertEqual(out, result)
+
+    def test_decode_transposed_bytes_bad(self):
+        "test decode_transposed_bytes() fails if map is a one-way"
+        engine = self.engine
+        for input, _, offsets in self.transposed_dups:
+            tmp = engine.encode_bytes(input)
+            self.assertRaises(TypeError, engine.decode_transposed_bytes, tmp,
+                              offsets)
+
+    #=========================================================
+    # test 6bit handling
+    #=========================================================
+    def check_int_pair(self, bits, encoded_pairs):
+        "helper to check encode_intXX & decode_intXX functions"
+        engine = self.engine
+        encode = getattr(engine, "encode_int%s" % bits)
+        decode = getattr(engine, "decode_int%s" % bits)
+        pad = -bits % 6
+        chars = (bits+pad)/6
+        upper = 1<<bits
+
+        # test encode func
+        for value, encoded in encoded_pairs:
+            self.assertEqual(encode(value), encoded)
+        self.assertRaises(ValueError, encode, -1)
+        self.assertRaises(ValueError, encode, upper)
+
+        # test decode func
+        for value, encoded in encoded_pairs:
+            self.assertEqual(decode(encoded), value, "encoded %r:" % (encoded,))
+        m = self.m
+        self.assertRaises(ValueError, decode, m(0)*(chars+1))
+        self.assertRaises(ValueError, decode, m(0)*(chars-1))
+        self.assertRaises(ValueError, decode, self.bad_byte*chars)
+        self.assertRaises(TypeError, decode, engine.charmap[0])
+        self.assertRaises(TypeError, decode, None)
+
+        # do random testing.
+        from passlib.utils import getrandbytes, getrandstr
+        for i in irange(100):
+            # generate random value, encode, and then decode
+            value = random.randint(0, upper-1)
+            encoded = encode(value)
+            self.assertEqual(len(encoded), chars)
+            self.assertEqual(decode(encoded), value)
+
+            # generate some random encoded data, decode, then encode.
+            encoded = getrandstr(random, engine.bytemap, chars)
+            value = decode(encoded)
+            self.assertGreaterEqual(value, 0, "decode %r out of bounds:" % encoded)
+            self.assertLess(value, upper, "decode %r out of bounds:" % encoded)
+            result = encode(value)
+            if pad:
+                self.assertEqual(result[:-2], encoded[:-2])
+            else:
+                self.assertEqual(result, encoded)
+
+    def test_int6(self):
+        engine = self.engine
+        m = self.m
+        self.check_int_pair(6, [(0, m(0)), (63, m(63))])
+
+    def test_int12(self):
+        engine = self.engine
+        m = self.m
+        self.check_int_pair(12,[(0, m(0,0)),
+            (63, m(0,63) if engine.big else m(63,0)), (0xFFF, m(63,63))])
+
+    def test_int24(self):
+        engine = self.engine
+        m = self.m
+        self.check_int_pair(24,[(0, m(0,0,0,0)),
+            (63, m(0,0,0,63) if engine.big else m(63,0,0,0)),
+            (0xFFFFFF, m(63,63,63,63))])
+
+    def test_int64(self):
+        # NOTE: this isn't multiple of 6, it has 2 padding bits appended
+        # before encoding.
+        engine = self.engine
+        m = self.m
+        self.check_int_pair(64, [(0, m(0,0,0,0, 0,0,0,0, 0,0,0)),
+                (63, m(0,0,0,0, 0,0,0,0, 0,3,60) if engine.big else
+                     m(63,0,0,0, 0,0,0,0, 0,0,0)),
+                ((1<<64)-1, m(63,63,63,63, 63,63,63,63, 63,63,60) if engine.big
+                    else m(63,63,63,63, 63,63,63,63, 63,63,15))])
+
+    def test_encoded_ints(self):
+        "test against reference integer encodings"
+        if not self.encoded_ints:
+            raise self.skipTests("none defined for class")
+        engine = self.engine
+        for encoded, value, bits in self.encoded_ints:
+            encode = getattr(engine, "encode_int%d" % bits)
+            decode = getattr(engine, "decode_int%d" % bits)
+            self.assertEqual(encode(value), encoded)
+            self.assertEqual(decode(encoded), value)
+
+    #=========================================================
+    # eoc
+    #=========================================================
+
+# NOTE: testing H64 & H64Big should be sufficient to verify
+# that Base64Engine() works in general.
+from passlib.utils import h64, h64big
+
+class H64_Test(_Base64Test):
+    "test H64 codec functions"
+    engine = h64
+    case_prefix = "h64 codec"
+
+    encoded_data = [
         #test lengths 0..6 to ensure tail is encoded properly
         (b(""),b("")),
         (b("\x55"),b("J/")),
@@ -528,104 +806,35 @@ class H64_Test(TestCase):
         (b("\x55\xaa\x55\xaa\x5f"),b("JdOJey3")), # len = 2 mod 3
     ]
 
-    decode_padding_bytes = [
-        #len = 2 mod 4 -> 2 msb of last digit is padding
-        (b(".."), b("\x00")), # . = h64.CHARS[0b000000]
-        (b(".0"), b("\x80")), # 0 = h64.CHARS[0b000010]
-        (b(".2"), b("\x00")), # 2 = h64.CHARS[0b000100]
-        (b(".U"), b("\x00")), # U = h64.CHARS[0b100000]
-
-        #len = 3 mod 4 -> 4 msb of last digit is padding
-        (b("..."), b("\x00\x00")),
-        (b("..6"), b("\x00\x80")), # 6 = h64.CHARS[0b001000]
-        (b("..E"), b("\x00\x00")), # E = h64.CHARS[0b010000]
-        (b("..U"), b("\x00\x00")),
+    encoded_ints = [
+        ("z.", 63, 12),
+        (".z", 4032, 12),
     ]
 
-    def test_encode_bytes(self):
-        for source, result in self.encoded_bytes:
-            out = h64.encode_bytes(source)
-            self.assertEqual(out, result)
+class H64Big_Test(_Base64Test):
+    "test H64Big codec functions"
+    engine = h64big
+    case_prefix = "h64big codec"
 
-    def test_decode_bytes(self):
-        for result, source in self.encoded_bytes:
-            out = h64.decode_bytes(source)
-            self.assertEqual(out, result)
+    encoded_data = [
+        #test lengths 0..6 to ensure tail is encoded properly
+        (b(""),b("")),
+        (b("\x55"),b("JE")),
+        (b("\x55\xaa"),b("JOc")),
+        (b("\x55\xaa\x55"),b("JOdJ")),
+        (b("\x55\xaa\x55\xaa"),b("JOdJeU")),
+        (b("\x55\xaa\x55\xaa\x55"),b("JOdJeZI")),
+        (b("\x55\xaa\x55\xaa\x55\xaa"),b("JOdJeZKe")),
 
-        #wrong size (1 % 4)
-        self.assertRaises(ValueError, h64.decode_bytes, b('abcde'))
-
-        self.assertRaises(TypeError, h64.decode_bytes, u('abcd'))
-
-    def test_encode_int(self):
-        self.assertEqual(h64.encode_int(63, 11, True), b('..........z'))
-        self.assertEqual(h64.encode_int(63, 11), b('z..........'))
-
-        self.assertRaises(ValueError, h64.encode_int64, -1)
-
-    def test_decode_int(self):
-        self.assertEqual(h64.decode_int64(b('...........')), 0)
-
-        self.assertRaises(ValueError, h64.decode_int12, b('a?'))
-        self.assertRaises(ValueError, h64.decode_int24, b('aaa?'))
-        self.assertRaises(ValueError, h64.decode_int64, b('aaa?aaa?aaa'))
-        self.assertRaises(ValueError, h64.decode_dc_int64, b('aaa?aaa?aaa'))
-
-        self.assertRaises(TypeError, h64.decode_int12, u('a')*2)
-        self.assertRaises(TypeError, h64.decode_int24, u('a')*4)
-        self.assertRaises(TypeError, h64.decode_int64, u('a')*11)
-        self.assertRaises(TypeError, h64.decode_dc_int64, u('a')*11)
-
-    def test_decode_bytes_padding(self):
-        for source, result in self.decode_padding_bytes:
-            out = h64.decode_bytes(source)
-            self.assertEqual(out, result)
-        self.assertRaises(TypeError, h64.decode_bytes, u('..'))
-
-    def test_decode_int6(self):
-        self.assertEqual(h64.decode_int6(b('.')),0)
-        self.assertEqual(h64.decode_int6(b('z')),63)
-        self.assertRaises(ValueError, h64.decode_int6, b('?'))
-        self.assertRaises(TypeError, h64.decode_int6, u('?'))
-
-    def test_encode_int6(self):
-        self.assertEqual(h64.encode_int6(0),b('.'))
-        self.assertEqual(h64.encode_int6(63),b('z'))
-        self.assertRaises(ValueError, h64.encode_int6, -1)
-        self.assertRaises(ValueError, h64.encode_int6, 64)
-
-    #=========================================================
-    #test transposed encode/decode
-    #=========================================================
-    encode_transposed = [
-        (b("\x33\x22\x11"), b("\x11\x22\x33"),[2,1,0]),
-        (b("\x22\x33\x11"), b("\x11\x22\x33"),[1,2,0]),
+        #test padding bits are null
+        (b("\x55\xaa\x55\xaf"),b("JOdJfk")), # len = 1 mod 3
+        (b("\x55\xaa\x55\xaa\x5f"),b("JOdJeZw")), # len = 2 mod 3
     ]
 
-    encode_transposed_dups = [
-        (b("\x11\x11\x22"), b("\x11\x22\x33"),[0,0,1]),
+    encoded_ints = [
+        (".z", 63, 12),
+        ("z.", 4032, 12),
     ]
-
-    def test_encode_transposed_bytes(self):
-        for result, input, offsets in self.encode_transposed + self.encode_transposed_dups:
-            tmp = h64.encode_transposed_bytes(input, offsets)
-            out = h64.decode_bytes(tmp)
-            self.assertEqual(out, result)
-
-    def test_decode_transposed_bytes(self):
-        for input, result, offsets in self.encode_transposed:
-            tmp = h64.encode_bytes(input)
-            out = h64.decode_transposed_bytes(tmp, offsets)
-            self.assertEqual(out, result)
-
-    def test_decode_transposed_bytes_bad(self):
-        for input, _, offsets in self.encode_transposed_dups:
-            tmp = h64.encode_bytes(input)
-            self.assertRaises(TypeError, h64.decode_transposed_bytes, tmp, offsets)
-
-    #=========================================================
-    #TODO: test other h64 methods
-    #=========================================================
 
 #=========================================================
 #test md4

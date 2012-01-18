@@ -50,6 +50,11 @@ __all__ = [
     #byte manipulation
     "xor_bytes",
 
+    # base64 helpers
+    "BASE64_CHARS", "HASH64_CHARS", "BCRYPT_CHARS", "AB64_CHARS",
+    "Base64Engine", "h64", "h64big",
+    "ab64_encode", "ab64_decode",
+
     #random
     'tick',
     'rng',
@@ -839,42 +844,540 @@ else:
         return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
 
 #=================================================================================
-#alt base64 encoding
+# base64-variant encoding
 #=================================================================================
+
+class Base64Engine(object):
+    """provides routines for encoding/decoding base64 data using
+    arbitrary character mappings, selectable endianness, etc.
+
+    Raw Bytes <-> Encoded Bytes
+    ===========================
+    .. automethod:: encode_bytes
+    .. automethod:: decode_bytes
+    .. automethod:: encode_transposed_bytes
+    .. automethod:: decode_transposed_bytes
+
+    Integers <-> Encoded Bytes
+    ==========================
+    .. automethod:: encode_int6
+    .. automethod:: decode_int6
+
+    .. automethod:: encode_int12
+    .. automethod:: decode_int12
+
+    .. automethod:: encode_int24
+    .. automethod:: decode_int24
+
+    .. automethod:: encode_int64
+    .. automethod:: decode_int64
+
+    Informational Attributes
+    ========================
+    .. attribute:: charmap
+        unicode string containing list of characters used in encoding;
+        position in string matches 6bit value of character.
+
+    .. attribute:: bytemap
+        bytes version of :attr:`charmap`
+
+    .. attribute:: big
+        boolean flag indicating this using big-endian encoding.
+    """
+
+    #=============================================================
+    # instance attrs
+    #=============================================================
+    # public config
+    bytemap = None # charmap as bytes
+    big = None # little or big endian
+
+    # filled in by init based on charmap.
+    # encode: maps 6bit value -> byte_elem, decode: the reverse.
+    # byte_elem is 1-byte under py2, and 0-255 int under py3.
+    _encode64 = None
+    _decode64 = None
+
+    # helpers filled in by init based on endianness
+    _encode_bytes = None # throws IndexError if bad value (shouldn't happen)
+    _decode_bytes = None # throws KeyError if bad char.
+
+    #=============================================================
+    # init
+    #=============================================================
+    def __init__(self, charmap, big=False):
+        # validate charmap, generate encode64/decode64 helper functions.
+        if isinstance(charmap, unicode):
+            charmap = charmap.encode("latin-1")
+        elif not isinstance(charmap, bytes):
+            raise TypeError("charmap must be unicode/bytes string")
+        if len(charmap) != 64:
+            raise ValueError("charmap must be 64 characters in length")
+        if len(set(charmap)) != 64:
+            raise ValueError("charmap must not contain duplicate characters")
+        self.bytemap = charmap
+        self._encode64 = charmap.__getitem__
+        lookup = dict((value, idx) for idx, value in enumerate(charmap))
+        self._decode64 = lookup.__getitem__
+
+        # validate big, set appropriate helper functions.
+        self.big = big
+        if big:
+            self._encode_bytes = self._encode_bytes_big
+            self._decode_bytes = self._decode_bytes_big
+        else:
+            self._encode_bytes = self._encode_bytes_little
+            self._decode_bytes = self._decode_bytes_little
+
+        # TODO: support padding character
+        ##if padding is not None:
+        ##    if isinstance(padding, unicode):
+        ##        padding = padding.encode("latin-1")
+        ##    elif not isinstance(padding, bytes):
+        ##        raise TypeError("padding char must be unicode or bytes")
+        ##    if len(padding) != 1:
+        ##        raise ValueError("padding must be single character")
+        ##self.padding = padding
+
+    @property
+    def charmap(self):
+        "charmap as unicode"
+        return self.bytemap.decode("latin-1")
+
+    #=============================================================
+    # encoding byte strings
+    #=============================================================
+    def encode_bytes(self, source):
+        """encode bytes to engine's specific base64 variant.
+        :arg source: byte string to encode.
+        :returns: byte string containing encoded data.
+        """
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        chunks, tail = divmod(len(source), 3)
+        if PY3:
+            next_value = iter(source).__next__
+        else:
+            next_value = (ord(elem) for elem in source).next
+        gen = self._encode_bytes(next_value, chunks, tail)
+        out = bjoin_elems(imap(self._encode64, gen))
+        ##if tail:
+        ##    padding = self.padding
+        ##    if padding:
+        ##        out += padding * (3-tail)
+        return out
+
+    def _encode_bytes_little(self, next_value, chunks, tail):
+        "helper used by encode_bytes() to handle little-endian encoding"
+        #
+        # output bit layout:
+        #
+        # first byte:   v1 543210
+        #
+        # second byte:  v1 ....76
+        #              +v2 3210..
+        #
+        # third byte:   v2 ..7654
+        #              +v3 10....
+        #
+        # fourth byte:  v3 765432
+        #
+        idx = 0
+        while idx < chunks:
+            v1 = next_value()
+            v2 = next_value()
+            v3 = next_value()
+            yield v1 & 0x3f
+            yield ((v2 & 0x0f)<<2)|(v1>>6)
+            yield ((v3 & 0x03)<<4)|(v2>>4)
+            yield v3>>2
+            idx += 1
+        if tail:
+            v1 = next_value()
+            if tail == 1:
+                # note: 4 msb of last byte are padding
+                yield v1 & 0x3f
+                yield v1>>6
+            else:
+                assert tail == 2
+                # note: 2 msb of last byte are padding
+                v2 = next_value()
+                yield v1 & 0x3f
+                yield ((v2 & 0x0f)<<2)|(v1>>6)
+                yield v2>>4
+
+    def _encode_bytes_big(self, next_value, chunks, tail):
+        "helper used by encode_bytes() to handle big-endian encoding"
+        #
+        # output bit layout:
+        #
+        # first byte:   v1 765432
+        #
+        # second byte:  v1 10....
+        #              +v2 ..7654
+        #
+        # third byte:   v2 3210..
+        #              +v3 ....76
+        #
+        # fourth byte:  v3 543210
+        #
+        idx = 0
+        while idx < chunks:
+            v1 = next_value()
+            v2 = next_value()
+            v3 = next_value()
+            yield v1>>2
+            yield ((v1&0x03)<<4)|(v2>>4)
+            yield ((v2&0x0f)<<2)|(v3>>6)
+            yield v3 & 0x3f
+            idx += 1
+        if tail:
+            v1 = next_value()
+            if tail == 1:
+                # note: 4 lsb of last byte are padding
+                yield v1>>2
+                yield (v1&0x03)<<4
+            else:
+                assert tail == 2
+                # note: 2 lsb of last byte are padding
+                v2 = next_value()
+                yield v1>>2
+                yield ((v1&0x03)<<4)|(v2>>4)
+                yield ((v2&0x0f)<<2)
+
+    #=============================================================
+    # decoding byte strings
+    #=============================================================
+
+    def decode_bytes(self, source):
+        """decode bytes from engine's specific base64 variant.
+        :arg source: byte string to decode.
+        :returns: byte string containing decoded data.
+        """
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        ##padding = self.padding
+        ##if padding:
+        ##    # TODO: add padding size check?
+        ##    source = source.rstrip(padding)
+        chunks, tail = divmod(len(source), 4)
+        if tail == 1:
+            #only 6 bits left, can't encode a whole byte!
+            raise ValueError("input string length cannot be == 1 mod 4")
+        if PY3:
+            next_value = imap(self._decode64, source).__next__
+        else:
+            next_value = imap(self._decode64, source).next
+        try:
+            return bjoin_ints(self._decode_bytes(next_value, chunks, tail))
+        except KeyError:
+            err = exc_err()
+            raise ValueError("invalid character: %r" % (err.args[0],))
+
+    def _decode_bytes_little(self, next_value, chunks, tail):
+        "helper used by decode_bytes() to handle little-endian encoding"
+        #
+        # input bit layout:
+        #
+        # first byte:   v1 ..543210
+        #              +v2 10......
+        #
+        # second byte:  v2 ....5432
+        #              +v3 3210....
+        #
+        # third byte:   v3 ......54
+        #              +v4 543210..
+        #
+        idx = 0
+        while idx < chunks:
+            v1 = next_value()
+            v2 = next_value()
+            v3 = next_value()
+            v4 = next_value()
+            yield v1 | ((v2 & 0x3) << 6)
+            yield (v2>>2) | ((v3 & 0xF) << 4)
+            yield (v3>>4) | (v4<<2)
+            idx += 1
+        if tail:
+            # tail is 2 or 3
+            v1 = next_value()
+            v2 = next_value()
+            yield v1 | ((v2 & 0x3) << 6)
+            #NOTE: if tail == 2, 4 msb of v2 are ignored (should be 0)
+            if tail == 3:
+                #NOTE: 2 msb of v3 are ignored (should be 0)
+                v3 = next_value()
+                yield (v2>>2) | ((v3 & 0xF) << 4)
+
+    def _decode_bytes_big(self, next_value, chunks, tail):
+        "helper used by decode_bytes() to handle big-endian encoding"
+        #
+        # input bit layout:
+        #
+        # first byte:   v1 543210..
+        #              +v2 ......54
+        #
+        # second byte:  v2 3210....
+        #              +v3 ....5432
+        #
+        # third byte:   v3 10......
+        #              +v4 ..543210
+        #
+        idx = 0
+        while idx < chunks:
+            v1 = next_value()
+            v2 = next_value()
+            v3 = next_value()
+            v4 = next_value()
+            yield (v1<<2) | (v2>>4)
+            yield ((v2&0xF)<<4) | (v3>>2)
+            yield ((v3&0x3)<<6) | v4
+            idx += 1
+        if tail:
+            # tail is 2 or 3
+            v1 = next_value()
+            v2 = next_value()
+            yield (v1<<2) | (v2>>4)
+            #NOTE: if tail == 2, 4 lsb of v2 are ignored (should be 0)
+            if tail == 3:
+                #NOTE: 2 lsb of v3 are ignored (should be 0)
+                v3 = next_value()
+                yield ((v2&0xF)<<4) | (v3>>2)
+
+    #=============================================================
+    # transposed encoding/decoding
+    #=============================================================
+    def encode_transposed_bytes(self, source, offsets):
+        "encode byte string, first transposing source using offset list"
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        tmp = bjoin_elems(source[off] for off in offsets)
+        return self.encode_bytes(tmp)
+
+    def decode_transposed_bytes(self, source, offsets):
+        "decode byte string, then reverse transposition described by offset list"
+        # NOTE: if transposition does not use all bytes of source,
+        # the original can't be recovered... and bjoin_elems() will throw
+        # an error because 1+ values in <buf> will be None.
+        tmp = self.decode_bytes(source)
+        buf = [None] * len(offsets)
+        for off, char in zip(offsets, tmp):
+            buf[off] = char
+        return bjoin_elems(buf)
+
+    #=============================================================
+    # integer decoding helpers - mainly used by des_crypt family
+    #=============================================================
+    def _decode_int(self, source, bits):
+        """decode hash64 string -> integer
+
+        :arg source: base64 string to decode.
+        :arg bits: number of bits in resulting integer.
+
+        :raises ValueError:
+            * if the string contains invalid base64 characters.
+            * if the string is not long enough - it must be at least
+              ``int(ceil(bits/6))`` in length.
+
+        :returns:
+            a integer in the range ``0 <= n < 2**bits``
+        """
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        big = self.big
+        pad = -bits % 6
+        chars = (bits+pad)/6
+        if len(source) != chars:
+            raise ValueError("source must be %d chars" % (chars,))
+        decode = self._decode64
+        out = 0
+        try:
+            for c in source if big else reversed(source):
+                out = (out<<6) + decode(c)
+        except KeyError:
+            raise ValueError("invalid character in string: %r" % (c,))
+        if pad:
+            # strip padding bits
+            if big:
+                out >>= pad
+            else:
+                out &= (1<<bits)-1
+        return out
+
+    #---------------------------------------------
+    # optimized versions for common integer sizes
+    #---------------------------------------------
+
+    def decode_int6(self, source):
+        "decode single character -> 6 bit integer"
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        if len(source) != 1:
+            raise ValueError("source must be exactly 1 byte")
+        try:
+            return self._decode64(source)
+        except KeyError:
+            raise ValueError("invalid character")
+
+    def decode_int12(self, source):
+        "decodes 2 char string -> 12-bit integer (little-endian order)"
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        if len(source) != 2:
+            raise ValueError("source must be exactly 2 bytes")
+        decode = self._decode64
+        try:
+            if self.big:
+                return decode(source[1]) + (decode(source[0])<<6)
+            else:
+                return decode(source[0]) + (decode(source[1])<<6)
+        except KeyError:
+            raise ValueError("invalid character")
+
+    def decode_int24(self, source):
+        "decodes 4 char string -> 24-bit integer (little-endian order)"
+        if not isinstance(source, bytes):
+            raise TypeError("source must be bytes, not %s" % (type(source),))
+        if len(source) != 4:
+            raise ValueError("source must be exactly 4 bytes")
+        decode = self._decode64
+        try:
+            if self.big:
+                return decode(source[3]) + (decode(source[2])<<6)+ \
+                       (decode(source[1])<<12) + (decode(source[0])<<18)
+            else:
+                return decode(source[0]) + (decode(source[1])<<6)+ \
+                       (decode(source[2])<<12) + (decode(source[3])<<18)
+        except KeyError:
+            raise ValueError("invalid character")
+
+    def decode_int64(self, source):
+        """decode 11 char base64 string -> 64-bit integer
+
+        this format is used primarily by des-crypt & variants to encode
+        the DES output value used as a checksum.
+        """
+        return self._decode_int(source, 64)
+
+    #=============================================================
+    # integer encoding helpers - mainly used by des_crypt family
+    #=============================================================
+    def _encode_int(self, value, bits):
+        """encode integer into base64 format
+
+        :arg value: non-negative integer to encode
+        :arg bits: number of bits to encode
+
+        :returns:
+            a string of length ``int(ceil(bits/6.0))``.
+        """
+        if value < 0:
+            raise ValueError("value cannot be negative")
+        pad = -bits % 6
+        bits += pad
+        if self.big:
+            itr = irange(bits-6, -6, -6)
+            # shift to add lsb padding.
+            value <<= pad
+        else:
+            itr = irange(0, bits, 6)
+            # padding is msb, so no change needed.
+        return bjoin_elems(imap(self._encode64,
+                                ((value>>off) & 0x3f for off in itr)))
+
+    #---------------------------------------------
+    # optimized versions for common integer sizes
+    #---------------------------------------------
+
+    def encode_int6(self, value):
+        "encodes 6-bit integer -> single hash64 character"
+        if value < 0 or value > 63:
+            raise ValueError("value out of range")
+        if PY3:
+            return self.bytemap[value:value+1]
+        else:
+            return self._encode64(value)
+
+    def encode_int12(self, value):
+        "encodes 12-bit integer -> 2 char string"
+        if value < 0 or value > 0xFFF:
+            raise ValueError("value out of range")
+        raw = [value & 0x3f, (value>>6) & 0x3f]
+        if self.big:
+            raw = reversed(raw)
+        return bjoin_elems(imap(self._encode64, raw))
+
+    def encode_int24(self, value):
+        "encodes 24-bit integer -> 4 char string"
+        if value < 0 or value > 0xFFFFFF:
+            raise ValueError("value out of range")
+        raw = [value & 0x3f, (value>>6) & 0x3f,
+               (value>>12) & 0x3f, (value>>18) & 0x3f]
+        if self.big:
+            raw = reversed(raw)
+        return bjoin_elems(imap(self._encode64, raw))
+
+    def encode_int64(self, value):
+        """encode 64-bit integer -> 11 char hash64 string
+
+        this format is used primarily by des-crypt & variants to encode
+        the DES output value used as a checksum.
+        """
+        if value < 0 or value > 0xffffffffffffffff:
+            raise ValueError("value out of range")
+        return self._encode_int(value, 64)
+
+    #=============================================================
+    # eof
+    #=============================================================
+
+# common charmaps
+BASE64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+AB64_CHARS =   u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./")
+HASH64_CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+BCRYPT_CHARS = u("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+
+# common variants
+h64 = Base64Engine(HASH64_CHARS)
+h64big = Base64Engine(HASH64_CHARS, big=True)
+
+#=============================================================================
+# adapted-base64 encoding
+#=============================================================================
 _A64_ALTCHARS = b("./")
 _A64_STRIP = b("=\n")
 _A64_PAD1 = b("=")
 _A64_PAD2 = b("==")
 
-def adapted_b64_encode(data):
+def ab64_encode(data):
     """encode using variant of base64
 
     the output of this function is identical to b64_encode,
     except that it uses ``.`` instead of ``+``,
     and omits trailing padding ``=`` and whitepsace.
 
-    it is primarily used for by passlib's custom pbkdf2 hashes.
+    it is primarily used by Passlib's custom pbkdf2 hashes.
     """
     return b64encode(data, _A64_ALTCHARS).strip(_A64_STRIP)
 
-def adapted_b64_decode(data, sixthree="."):
+def ab64_decode(data):
     """decode using variant of base64
 
     the input of this function is identical to b64_decode,
     except that it uses ``.`` instead of ``+``,
     and should not include trailing padding ``=`` or whitespace.
 
-    it is primarily used for by passlib's custom pbkdf2 hashes.
+    it is primarily used by Passlib's custom pbkdf2 hashes.
     """
-    off = len(data) % 4
+    off = len(data) & 3
     if off == 0:
         return b64decode(data, _A64_ALTCHARS)
-    elif off == 1:
-        raise ValueError("invalid bas64 input")
     elif off == 2:
         return b64decode(data + _A64_PAD2, _A64_ALTCHARS)
-    else:
+    elif off == 3:
         return b64decode(data + _A64_PAD1, _A64_ALTCHARS)
+    else: # off == 1
+        raise ValueError("invalid base64 input")
 
 #=================================================================================
 #randomness

@@ -28,7 +28,7 @@ except ImportError: #pragma: no cover - though should run whole suite w/o bcrypt
     bcryptor_engine = None
 #libs
 from passlib.utils import safe_os_crypt, classproperty, handlers as uh, \
-    h64, to_native_str, rng, getrandstr, bytes
+    h64, to_native_str, rng, getrandstr, bytes, BCRYPT_CHARS as BCHARS
 from passlib.utils.compat import unicode
 
 #pkg
@@ -44,9 +44,8 @@ def _load_builtin():
     if _builtin_bcrypt is None:
         from passlib.utils._blowfish import raw_bcrypt as _builtin_bcrypt
 
-# base64 character->value mapping used by bcrypt.
-# this is same as as H64_CHARS, but the positions are different.
-BCHARS = u("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+# BCHARS imported from passlib.utils
+# BCHARS = u("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
 # last bcrypt salt char should have 4 padding bits set to 0.
 # thus, only the following chars are allowed:

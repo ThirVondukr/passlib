@@ -13,7 +13,7 @@ Release History
           a user against the SCRAM protocol (:rfc:`5802`). It can also
           be used to verify users in the same way as any other password
           hash in Passlib, though it offers no particular advantages
-          outside of this special case. 
+          outside of this special case.
 
     CryptContext
 
@@ -48,6 +48,13 @@ Release History
           ``None`` was deprecated in release 1.5, and is no longer supported.
           This affects all schemes in :mod:`passlib.hash` which support
           multiple backends.
+
+        .. currentmodule:: passlib.utils
+
+        * :mod:`!passlib.utils.h64` has been replaced by an instance of the
+          new :class:`~passlib.utils.Base64Engine` class. This  instance is
+          imported under the same name, and has (mostly) the same interface;
+          but should be faster, more flexible, and better unit-tested.
 
     Other
 
@@ -144,7 +151,7 @@ Release History
         .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
-          :mod:`Hash64 <passlib.utils.h64>` characters in it's salts;
+          :data:`hash64 <passlib.utils.h64>` characters in it's salts;
           previously it accepted only lower-case hexidecimal characters [issue 22].
 
         * Additional unittests added for all
