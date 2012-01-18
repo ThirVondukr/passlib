@@ -1226,10 +1226,11 @@ class ScramTest(HandlerCase):
         # IANA assigned names
         ("md5", "MD-5"),
         ("sha-1", "SHA1"),
-        ("sha-256", "SHA_256", "sha2-256"),
+        ("sha-256", "SHA_256", "sha2-256", "sha-2-256"),
 
         # heuristic for unassigned names
         ("abc6", "aBc-6"),
+        ("abc6-256", "aBc-6-256"),
         ("ripemd", "RIPEMD"),
         ("ripemd-160", "RIPEmd160"),
     ]

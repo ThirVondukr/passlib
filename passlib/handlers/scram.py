@@ -80,7 +80,7 @@ def norm_digest_name(name):
         if name == "sha1":
             name = "sha-1"
         else:
-            m = re.match("^sha2-(\d{3})$", name)
+            m = re.match("^sha-?2-(\d{3})$", name)
             if m:
                 name = "sha-" + m.group(1)
 
@@ -93,11 +93,12 @@ def norm_digest_name(name):
         if m:
             name = m.group(1) + "-" + m.group(2)
 
-        # remove hyphen between hash name & version (e.g. MD-5 -> MD5)
-        # note that SHA-1 is an exception to this, but taken care of above.
-        m = re.match("^([a-z]+)-(\d)$", name)
+        # remove hyphen between hash name & version (e.g. MD-5 -> MD5,
+        # FOO-2-256 -> FOO2-256). note that SHA-1 is an exception to this,
+        # but that's taken care of above.
+        m = re.match("^([a-z]+)-(\d)(-\d{3,4})?$", name)
         if m:
-            name = m.group(1) + m.group(2)
+            name = m.group(1) + m.group(2) + (m.group(3) or '')
 
         # check for invalid chars
         if re.search("[^a-z0-9-]", name):
