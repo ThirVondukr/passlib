@@ -1014,8 +1014,8 @@ class CryptContextTest(TestCase):
             self.assertFalse(ctx.hash_needs_update(GOOD1))
 
             if bcrypt.has_backend():
-                self.assertEquals(ctx.verify_and_update(PASS1,GOOD1), (True,None))
-                self.assertEquals(ctx.verify_and_update("x",BAD1), (False,None))
+                self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
+                self.assertEqual(ctx.verify_and_update("x",BAD1), (False,None))
                 res = ctx.verify_and_update(PASS1, BAD1)
                 self.assertTrue(res[0] and res[1] and res[1] != BAD1)
 

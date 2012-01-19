@@ -1071,14 +1071,14 @@ class ScramTest(HandlerCase):
             return self.handler(algs=source).algs
 
         # None -> default list
-        self.assertEquals(parse(None), ["sha-1","sha-256","sha-512"])
+        self.assertEqual(parse(None), ["sha-1","sha-256","sha-512"])
 
         # strings should be parsed
-        self.assertEquals(parse("sha1"), ["sha-1"])
-        self.assertEquals(parse("sha1, sha256, md5"), ["md5","sha-1","sha-256"])
+        self.assertEqual(parse("sha1"), ["sha-1"])
+        self.assertEqual(parse("sha1, sha256, md5"), ["md5","sha-1","sha-256"])
 
         # lists should be normalized
-        self.assertEquals(parse(["sha-1","sha256"]), ["sha-1","sha-256"])
+        self.assertEqual(parse(["sha-1","sha256"]), ["sha-1","sha-256"])
 
         # sha-1 required
         self.assertRaises(ValueError, parse, ["sha-256"])
@@ -1112,10 +1112,10 @@ class ScramTest(HandlerCase):
         "test scram.extract_digest_algs()"
         eda = self.handler.extract_digest_algs
 
-        self.assertEquals(eda('$scram$4096$QSXCR.Q6sek8bf92$'
+        self.assertEqual(eda('$scram$4096$QSXCR.Q6sek8bf92$'
                    'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30'), ["sha-1"])
 
-        self.assertEquals(eda('$scram$4096$QSXCR.Q6sek8bf92$'
+        self.assertEqual(eda('$scram$4096$QSXCR.Q6sek8bf92$'
                    'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
                    'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,'
                    'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'

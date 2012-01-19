@@ -145,7 +145,7 @@ class PatchTest(TestCase):
             dam.User.check_password,
             dam.User.set_password,
             ]:
-            self.assertEquals(func.__module__, "django.contrib.auth.models")
+            self.assertEqual(func.__module__, "django.contrib.auth.models")
         self.assertFalse(hasattr(dam.User, "password_context"))
 
     def assert_patched(self, context=_NOTSET):
@@ -161,7 +161,7 @@ class PatchTest(TestCase):
             dam.User.check_password,
             dam.User.set_password,
             ]:
-            self.assertEquals(func.__module__, "passlib.ext.django.utils")
+            self.assertEqual(func.__module__, "passlib.ext.django.utils")
 
         #make sure methods match
         self.assertIs(dam.check_password, state['models_check_password'])
@@ -183,7 +183,7 @@ class PatchTest(TestCase):
                 "orig_user_set_password",
             ]:
             value = state[key]
-            self.assertEquals(value.__module__, "django.contrib.auth.models")
+            self.assertEqual(value.__module__, "django.contrib.auth.models")
 
     def setUp(self):
         #reset to baseline, and verify
@@ -229,13 +229,13 @@ class PatchTest(TestCase):
             #patch to use stock django context
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEquals(len(wlog), 0)
+            self.assertEqual(len(wlog), 0)
 
             #mess with User.set_password, make sure it's detected
             dam.User.set_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEquals(len(wlog), 1)
+            self.assertEqual(len(wlog), 1)
             self.assertWarningMatches(wlog.pop(),
                 message_re="^another library has patched.*User\.set_password$")
 
@@ -243,7 +243,7 @@ class PatchTest(TestCase):
             dam.User.check_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEquals(len(wlog), 1)
+            self.assertEqual(len(wlog), 1)
             self.assertWarningMatches(wlog.pop(),
                 message_re="^another library has patched.*User\.check_password$")
 
@@ -251,7 +251,7 @@ class PatchTest(TestCase):
             dam.check_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEquals(len(wlog), 1)
+            self.assertEqual(len(wlog), 1)
             self.assertWarningMatches(wlog.pop(),
                 message_re="^another library has patched.*models:check_password$")
 
@@ -363,7 +363,7 @@ class PatchTest(TestCase):
         # set password
         user.set_password(sample1)
         self.assertTrue(user.check_password(sample1))
-        self.assertEquals(simple_context.identify(user.password), "md5_crypt")
+        self.assertEqual(simple_context.identify(user.password), "md5_crypt")
         self.assertIs(user.saved_password, None)
 
         #check unusable password
@@ -376,34 +376,34 @@ class PatchTest(TestCase):
         "test default get_category function"
         func = utils.get_category
         self.assertIs(func(FakeUser()), None)
-        self.assertEquals(func(FakeUser(is_staff=True)), "staff")
-        self.assertEquals(func(FakeUser(is_superuser=True)), "superuser")
-        self.assertEquals(func(FakeUser(is_staff=True,
+        self.assertEqual(func(FakeUser(is_staff=True)), "staff")
+        self.assertEqual(func(FakeUser(is_superuser=True)), "superuser")
+        self.assertEqual(func(FakeUser(is_staff=True,
                                         is_superuser=True)), "superuser")
 
     def test_07_get_category(self):
         "test set_django_password_context's get_category parameter"
         # test patch uses default get_category
         utils.set_django_password_context(category_context)
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(is_staff=True), 2000)
-        self.assertEquals(get_cc_rounds(is_superuser=True), 3000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(is_staff=True), 2000)
+        self.assertEqual(get_cc_rounds(is_superuser=True), 3000)
 
         # test patch uses explicit get_category
         def get_category(user):
             return user.first_name or None
         utils.set_django_password_context(category_context, get_category)
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(first_name='other'), 1000)
-        self.assertEquals(get_cc_rounds(first_name='staff'), 2000)
-        self.assertEquals(get_cc_rounds(first_name='superuser'), 3000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
+        self.assertEqual(get_cc_rounds(first_name='staff'), 2000)
+        self.assertEqual(get_cc_rounds(first_name='superuser'), 3000)
 
         # test patch can disable get_category
         utils.set_django_password_context(category_context, None)
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(first_name='other'), 1000)
-        self.assertEquals(get_cc_rounds(first_name='staff', is_staff=True), 1000)
-        self.assertEquals(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
+        self.assertEqual(get_cc_rounds(first_name='staff', is_staff=True), 1000)
+        self.assertEqual(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
 
 PatchTest = skipUnlessDjango(PatchTest)
 
@@ -474,7 +474,7 @@ class PluginTest(TestCase):
                 self.assertFalse(u.check_password('x'+secret))
                 if new_hash and deprecated and test.handler.name in deprecated:
                     self.assertFalse(handler.identify(hash))
-                    self.assertEquals(u.password, hash)
+                    self.assertEqual(u.password, hash)
 
         # check disabled handling
         if has_django1:
@@ -537,9 +537,9 @@ class PluginTest(TestCase):
         )
         import passlib.ext.django.models
 
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(is_staff=True), 2000)
-        self.assertEquals(get_cc_rounds(is_superuser=True), 3000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(is_staff=True), 2000)
+        self.assertEqual(get_cc_rounds(is_superuser=True), 3000)
 
     def test_07_categories_explicit(self):
         "test PASSLIB_GET_CATEGORY = function"
@@ -551,10 +551,10 @@ class PluginTest(TestCase):
         )
         import passlib.ext.django.models
 
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(first_name='other'), 1000)
-        self.assertEquals(get_cc_rounds(first_name='staff'), 2000)
-        self.assertEquals(get_cc_rounds(first_name='superuser'), 3000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
+        self.assertEqual(get_cc_rounds(first_name='staff'), 2000)
+        self.assertEqual(get_cc_rounds(first_name='superuser'), 3000)
 
     def test_08_categories_disabled(self):
         "test PASSLIB_GET_CATEGORY = None"
@@ -564,10 +564,10 @@ class PluginTest(TestCase):
         )
         import passlib.ext.django.models
 
-        self.assertEquals(get_cc_rounds(), 1000)
-        self.assertEquals(get_cc_rounds(first_name='other'), 1000)
-        self.assertEquals(get_cc_rounds(first_name='staff', is_staff=True), 1000)
-        self.assertEquals(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
+        self.assertEqual(get_cc_rounds(), 1000)
+        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
+        self.assertEqual(get_cc_rounds(first_name='staff', is_staff=True), 1000)
+        self.assertEqual(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
 
 PluginTest = skipUnlessDjango(PluginTest)
 
