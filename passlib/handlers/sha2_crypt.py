@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, belem_ord, irange, u, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
@@ -314,12 +314,12 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             strict=bool(chk),
         )
 
-    def to_string(self, native=True):
+    def to_string(self):
         if self.rounds == 5000 and self.implicit_rounds:
             hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -330,8 +330,8 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u("$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/")
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", "$5$rounds=1000$test$QmQADEXMG8POI5W"
+                                          "Dsaeho0P36yK3Tcrgboabng6bkb/")
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -346,12 +346,12 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         return checksum.decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, result = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
+        hash = safe_crypt(secret, self.to_string())
+        if hash:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u("$5$"))
-            chk = result[-43:]
+            assert hash.startswith(u("$5$"))
+            chk = hash[-43:]
             assert u('$') not in chk
             return chk
         else:
@@ -466,12 +466,12 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             strict=bool(chk),
         )
 
-    def to_string(self, native=True):
+    def to_string(self):
         if self.rounds == 5000 and self.implicit_rounds:
             hash = u("$6$%s$%s") % (self.salt, self.checksum or u(''))
         else:
             hash = u("$6$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -482,8 +482,10 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u("$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0")
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", "$6$rounds=1000$test$2M/Lx6Mtobqj"
+                                          "Ljobw0Wmo4Q5OFx5nVLJvmgseatA6oMn"
+                                          "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
+                                          "I5c7TZauS0")
 
     #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
 
@@ -500,12 +502,12 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         return checksum.decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, result = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
+        hash = safe_crypt(secret, self.to_string())
+        if hash:
             #NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
-            assert result.startswith(u("$6$"))
-            chk = result[-86:]
+            assert hash.startswith(u("$6$"))
+            chk = hash[-86:]
             assert u('$') not in chk
             return chk
         else:

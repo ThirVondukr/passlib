@@ -19,7 +19,7 @@ from warnings import warn
 #libs
 from passlib.utils import h64
 from passlib.utils.compat import b, bytes, belem_ord, trange, u, \
-                                 uascii_to_str, unicode
+                                 uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -307,7 +307,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             strict=bool(chk),
         )
 
-    def to_string(self, withchk=True, native=True):
+    def to_string(self, withchk=True):
         ss = u('') if self.bare_salt else u('$')
         rounds = self.rounds
         if rounds > 0:
@@ -318,7 +318,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             chk = self.checksum
             if chk:
                 hash = u("%s$%s") % (hash, chk)
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #primary interface
@@ -334,7 +334,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             raise TypeError("no secret specified")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        config = self.to_string(withchk=False,native=False).encode("ascii")
+        config = str_to_bascii(self.to_string(withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
     #=========================================================

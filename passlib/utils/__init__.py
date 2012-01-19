@@ -56,7 +56,9 @@ __all__ = [
     "ab64_encode", "ab64_decode",
 
     # host OS
-    'os_crypt',
+    'has_crypt',
+    'test_crypt',
+    'safe_crypt',
     'tick',
 
     # randomness
@@ -83,7 +85,7 @@ JYTHON = sys.platform.startswith('java')
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
 
-# list of hashes supported by os.crypt() on at least one OS.
+# list of hashes algs supported by crypt() on at least one OS.
 unix_crypt_schemes = [
     "sha512_crypt", "sha256_crypt",
     "sha1_crypt", "bcrypt",
@@ -1126,26 +1128,28 @@ def ab64_decode(data):
 # host OS helpers
 #=================================================================================
 
-#expose crypt function as 'os_crypt', set to None if not available.
 try:
-    from crypt import crypt as os_crypt
+    from crypt import crypt as _crypt
 except ImportError: #pragma: no cover
-    safe_os_crypt = os_crypt = None
-    has_os_crypt = False
+    has_crypt = False
+    def safe_crypt(secret, hash):
+        return None
 else:
-    # NOTE: see docstring below as to why we're wrapping os_crypt()
-    has_os_crypt = True
+    has_crypt = True
+    _NULL = '\x00'
     if PY3:
-        def safe_os_crypt(secret, hash):
+        def safe_crypt(secret, hash):
             if isinstance(secret, bytes):
-                # decode secret using utf-8, and make sure it re-encodes to
-                # match the original - otherwise the call to os_crypt()
-                # will encode the wrong password.
+                # Python 3's crypt() only accepts unicode, which is then
+                # encoding using utf-8 before passing to the C-level crypt().
+                # so we have to decode the secret, but also check that it
+                # re-encodes to the original sequence of bytes... otherwise
+                # the call to crypt() will digest the wrong value.
                 orig = secret
                 try:
                     secret = secret.decode("utf-8")
                 except UnicodeDecodeError:
-                    return False, None
+                    return None
                 if secret.encode("utf-8") != orig:
                     # just in case original encoding wouldn't be reproduced
                     # during call to os_crypt. not sure if/how this could
@@ -1153,46 +1157,62 @@ else:
                     from passlib.exc import PasslibRuntimeWarning
                     warn("utf-8 password didn't re-encode correctly!",
                          PasslibRuntimeWarning)
-                    return False, None
-            result = os_crypt(secret, hash)
-            return (result is not None), result
+                    return None
+            if _NULL in secret:
+                raise ValueError("null character in secret")
+            if isinstance(hash, bytes):
+                hash = hash.decode("ascii")
+            # NOTE: may return None on some OSes, if hash not supported.
+            return _crypt(secret, hash)
     else:
-        def safe_os_crypt(secret, hash):
-            # NOTE: this guard logic is designed purely to match py3 behavior,
-            # with the exception that it accepts secret as bytes.
+        def safe_crypt(secret, hash):
             if isinstance(secret, unicode):
                 secret = secret.encode("utf-8")
-            if isinstance(hash, bytes):
-                raise TypeError("hash must be unicode")
-            else:
-                hash = hash.encode("utf-8")
-            result = os_crypt(secret, hash)
+            if _NULL in secret:
+                raise ValueError("null character in secret")
+            if isinstance(hash, unicode):
+                hash = hash.encode("ascii")
+            # NOTE: may return None on some OSes, if hash not supported.
+            result = _crypt(secret, hash)
             if result is None:
-                return False, None
+                return None
             else:
-                return True, result.decode("ascii")
+                return result.decode("ascii")
 
-    _add_doc(safe_os_crypt, """wrapper around stdlib's crypt.
+_add_doc(safe_crypt, """wrapper around stdlib's crypt.
 
-        Python 3's crypt behaves slightly differently from Python 2's crypt.
-        for one, it takes in and returns unicode.
-        internally, it converts to utf-8 before hashing.
-        Annoyingly, *there is no way to call it using bytes*.
-        thus, it can't be used to hash non-ascii passwords
-        using any encoding but utf-8 (eg, using latin-1).
+    This is a wrapper around stdlib's :func:`!crypt.crypt`, which attempts
+    to provide uniform behavior across Python 2 and 3.
 
-        This wrapper attempts to gloss over all those issues:
-        Under Python 2, it accept passwords as unicode or bytes,
-        accepts hashes only as unicode, and always returns unicode.
-        Under Python 3, it will signal that it cannot hash a password
-        if provided as non-utf-8 bytes, but otherwise behave the same as crypt.
+    :arg secret:
+        password, as bytes or unicode (unicode will be encoded as ``utf-8``).
 
-        :arg secret: password as bytes or unicode
-        :arg hash: hash/salt as unicode
-        :returns:
-            ``(False, None)`` if the password can't be hashed (3.x only),
-            or ``(True, result: unicode)`` otherwise.
-        """)
+    :arg hash:
+        hash or config string, as ascii bytes or unicode.
+
+    :returns:
+        resulting hash as ascii unicode; or ``None`` if the password
+        couldn't be hashed due to one of the issues:
+
+        * :func:`crypt()` not available on platform.
+
+        * Under Python 3, if *secret* is specified as bytes,
+          it must be use ``utf-8`` or it can't be passed
+          to :func:`crypt()`.
+
+        * Some OSes will return ``None`` if they don't recognize
+          the algorithm being used (though most will simply fall
+          back to des-crypt).
+    """)
+
+def test_crypt(secret, hash):
+    """check if :func:`crypt.crypt` supports specific hash
+    :arg secret: password to test
+    :arg hash: known hash of password to use as reference
+    :returns: True or False
+    """
+    assert secret and hash
+    return safe_crypt(secret, hash) == hash
 
 # pick best timer function to expose as "tick" - lifted from timeit module.
 if sys.platform == "win32":

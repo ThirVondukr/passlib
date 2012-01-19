@@ -344,7 +344,10 @@ class PrefixWrapperTest(TestCase):
 
         d2 = uh.PrefixWrapper("d2", "sha256_crypt", "{XXX}")
         self.assertIs(d2.setting_kwds, sha256_crypt.setting_kwds)
-        self.assertTrue('max_rounds' in dir(d2))
+        if PY_25_MAX: # lacks __dir__() support
+            self.assertFalse('max_rounds' in dir(d2))
+        else:
+            self.assertTrue('max_rounds' in dir(d2))
 
     def test_11_wrapped_methods(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")

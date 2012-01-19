@@ -133,7 +133,7 @@ Predefined Instances
 ..
     Host OS
     =======
-    .. autofunction:: safe_os_crypt
+    .. autofunction:: safe_crypt
     .. autofunction:: tick
 
 Randomness

@@ -13,7 +13,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import hmac_sha1
 import passlib.utils.handlers as uh
@@ -90,11 +90,11 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             strict=bool(chk),
         )
 
-    def to_string(self, native=True):
+    def to_string(self):
         hash = u("$sha1$%d$%s") % (self.rounds, self.salt)
         if self.checksum:
             hash += u("$") + self.checksum
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -105,8 +105,8 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u('$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe')
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U''25GvfHS8qGHim'
+                                          'ExLaiSFlGkAe')
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -132,8 +132,8 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     ]
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, hash = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
+        hash = safe_crypt(secret, self.to_string())
+        if hash:
             return hash[hash.rindex("$")+1:]
         else:
             return self._calc_checksum_builtin(secret)

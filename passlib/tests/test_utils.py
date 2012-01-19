@@ -98,54 +98,58 @@ class MiscTest(TestCase):
 
         rng.seed(genseed(rng))
 
-    def test_safe_os_crypt(self):
-        "test safe_os_crypt() wrapper"
-        from passlib.utils import safe_os_crypt
+    def test_crypt(self):
+        "test crypt.crypt() wrappers"
+        from passlib.utils import has_crypt, safe_crypt, test_crypt
 
-        if not safe_os_crypt:
-            raise self.skipTest("stdlib crypt module not available")
+        # test everything is disabled
+        if not has_crypt:
+            self.assertEqual(safe_crypt("test", "aa"), None)
+            self.assertFalse(test_crypt("test", "aaqPiZY5xR5l."))
+            raise self.skipTest("crypt.crypt() not available")
 
-        #NOTE: this is assuming EVERY crypt will support des_crypt.
-        #      if this fails on some platform, this test will need modifying.
+        # XXX: this assumes *every* crypt() implementation supports des_crypt.
+        #      if this fails for some platform, this test will need modifying.
 
-        #test normal case
-        ok, hash = safe_os_crypt(u('test'), u('aa'))
-        self.assertTrue(ok)
-        self.assertIsInstance(hash, unicode)
-        self.assertEqual(hash, u('aaqPiZY5xR5l.'))
+        # test return type
+        self.assertIsInstance(safe_crypt(u("test"), u("aa")), unicode)
 
-        #test hash-as-bytes
-        self.assertRaises(TypeError, safe_os_crypt, u('test'), b('aa'))
+        # test ascii password
+        h1 = u('aaqPiZY5xR5l.')
+        self.assertEqual(safe_crypt(u('test'), u('aa')), h1)
+        self.assertEqual(safe_crypt(b('test'), b('aa')), h1)
 
-        #test password as ascii
-        ret = safe_os_crypt(b('test'), u('aa'))
-        self.assertEqual(ret, (True, u('aaqPiZY5xR5l.')))
+        # test utf-8 / unicode password
+        h2 = u('aahWwbrUsKZk.')
+        self.assertEqual(safe_crypt(u('test\u1234'), 'aa'), h2)
+        self.assertEqual(safe_crypt(b('test\xe1\x88\xb4'), 'aa'), h2)
 
-        #test unicode password w/ high char
-        ret = safe_os_crypt(u('test\u1234'), u('aa'))
-        self.assertEqual(ret, (True, u('aahWwbrUsKZk.')))
+        # test latin-1 password
+        hash = safe_crypt(b('test\xff'), 'aa')
+        if PY3: # py3 supports utf-8 bytes only.
+            self.assertEqual(hash, None)
+        else: # but py2 is fine.
+            self.assertEqual(hash, u('aaOx.5nbTU/.M'))
 
-        #test utf-8 password w/ high char
-        ret = safe_os_crypt(b('test\xe1\x88\xb4'), u('aa'))
-        self.assertEqual(ret, (True, u('aahWwbrUsKZk.')))
+        # test rejects null chars in password
+        self.assertRaises(ValueError, safe_crypt, '\x00', 'aa')
 
-        #test latin-1 password
-        ret = safe_os_crypt(b('test\xff'), u('aa'))
-        if PY3:
-            self.assertEqual(ret, (False, None))
-        else:
-            self.assertEqual(ret, (True, u('aaOx.5nbTU/.M')))
+        # check test_crypt()
+        h1x = h1[:-1] + 'x'
+        self.assertTrue(test_crypt("test", h1))
+        self.assertFalse(test_crypt("test", h1x))
 
-        # test safe_os_crypt() handles os_crypt() returning None
+        # test crypt.crypt() returning None is supported.
         # (Python's Modules/_cryptmodule.c notes some platforms may do this
-        # when algorithm is not supported)
+        # when algorithm is not supported - but don't say which platforms)
         import passlib.utils as mod
-        orig = mod.os_crypt
+        orig = mod._crypt
         try:
-            mod.os_crypt = lambda secret, hash: None
-            self.assertEqual(safe_os_crypt(u('test'), u('aa')), (False,None))
+            mod._crypt = lambda secret, hash: None
+            self.assertEqual(safe_crypt("test", "aa"), None)
+            self.assertFalse(test_crypt("test", h1))
         finally:
-            mod.os_crypt = orig
+            mod._crypt = orig
 
     def test_consteq(self):
         "test consteq()"

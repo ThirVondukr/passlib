@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_os_crypt
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, irange, unicode, u
 import passlib.utils.handlers as uh
 #pkg
@@ -227,15 +227,14 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u('$1$test$pi/xDtU5WFVRqYS6BMU8X/')
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/')
 
     def _calc_checksum_builtin(self, secret):
         return raw_md5_crypt(secret, self.salt)
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, hash = safe_os_crypt(secret, self.ident + self.salt)
-        if ok:
+        hash = safe_crypt(secret, self.ident + self.salt)
+        if hash:
             return hash[-22:]
         else:
             return self._calc_checksum_builtin(secret)

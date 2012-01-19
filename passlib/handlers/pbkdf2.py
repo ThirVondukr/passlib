@@ -11,7 +11,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import ab64_decode, ab64_encode
-from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
+from passlib.utils.compat import b, bytes, str_to_bascii, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 #pkg
@@ -313,14 +313,14 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             strict=bool(chk),
         )
 
-    def to_string(self, withchk=True, native=True):
+    def to_string(self, withchk=True):
         if self.rounds == 400:
             hash = u('$p5k2$$%s') % (self.salt,)
         else:
             hash = u('$p5k2$%x$%s') % (self.rounds, self.salt)
         if withchk and self.checksum:
             hash = u("%s$%s") % (hash,self.checksum)
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -328,7 +328,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        salt = self.to_string(withchk=False, native=False).encode("ascii")
+        salt = str_to_bascii(self.to_string(withchk=False))
         result = pbkdf2(secret, salt, self.rounds, 24, "hmac-sha1")
         return ab64_encode(result).decode("ascii")
 

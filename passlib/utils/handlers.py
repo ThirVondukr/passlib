@@ -435,7 +435,6 @@ class GenericHandler(object):
         #NOTE: documenting some non-standardized but common kwd flags
         #      that passlib to_string() method may have
         #
-        #      native=True -- if false, return unicode under py2 -- ignored under py3
         #      withchk=True -- if false, omit checksum portion of hash
         #
         raise NotImplementedError("%s must implement from_string()" % (type(self),))

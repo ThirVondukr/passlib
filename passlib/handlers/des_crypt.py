@@ -58,7 +58,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, h64big, safe_os_crypt
+from passlib.utils import classproperty, h64, h64big, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, belem_ord, u, uascii_to_str, unicode
 from passlib.utils.des import mdes_encrypt_int_block
 import passlib.utils.handlers as uh
@@ -193,9 +193,9 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         salt, chk = hash[:2], hash[2:]
         return cls(salt=salt, checksum=chk or None, strict=bool(chk))
 
-    def to_string(self, native=True):
+    def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -206,28 +206,23 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u('abgOeLfPimXQo')
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", 'abgOeLfPimXQo')
 
     def _calc_checksum_builtin(self, secret):
-        #gotta do something - no official policy since des-crypt predates unicode
+        # gotta do something - no official policy since des-crypt predates unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        #forbidding nul chars because linux crypt (and most C implementations) won't accept it either.
+        # forbidding nul chars because linux crypt (and most C implementations)
+        # won't accept it either.
         if b('\x00') in secret:
             raise ValueError("null char in secret")
         return raw_crypt(secret, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        #os_crypt() would raise less useful error
-        null = u('\x00') if isinstance(secret, unicode) else b('\x00')
-        if null in secret:
-            raise ValueError("null char in secret")
-
-        #NOTE: safe_os_crypt encodes unicode secret -> utf8
-        #no official policy since des-crypt predates unicode
-        ok, hash = safe_os_crypt(secret, self.salt)
-        if ok:
+        # NOTE: safe_crypt encodes unicode secret -> utf8
+        # no official policy since des-crypt predates unicode
+        hash = safe_crypt(secret, self.salt)
+        if hash:
             return hash[2:]
         else:
             return self._calc_checksum_builtin(secret)
@@ -321,10 +316,10 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             strict=bool(chk),
         )
 
-    def to_string(self, native=True):
+    def to_string(self):
         hash = u("_%s%s%s") % (h64.encode_int24(self.rounds).decode("ascii"),
                              self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
@@ -335,8 +330,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u('_/...lLDAxARksGCHin.')
-        return bool(safe_os_crypt and safe_os_crypt(u("test"),h)[1]==h)
+        return test_crypt("test", '_/...lLDAxARksGCHin.')
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -344,8 +338,8 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return raw_ext_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, hash = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
+        hash = safe_crypt(secret, self.to_string())
+        if hash:
             return hash[9:]
         else:
             return self._calc_checksum_builtin(secret)
@@ -414,9 +408,9 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
-    def to_string(self, native=True):
+    def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     @classmethod
     def norm_checksum(cls, value, strict=False):
@@ -499,9 +493,9 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk, strict=bool(chk))
 
-    def to_string(self, native=True):
+    def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
-        return uascii_to_str(hash) if native else hash
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
