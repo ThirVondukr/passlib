@@ -301,12 +301,12 @@ def get_crypt_handler(name, default=_NOTSET):
     if route:
         modname, modattr = route
 
-        #try to load the module - any import errors indicate runtime config,
-        # either missing packages, or bad path provided to register_crypt_handler_path()
-        mod = __import__(modname, None, None, ['dummy'], 0)
+        #try to load the module - any import errors indicate runtime config, usually
+        # either missing package, or bad path provided to register_crypt_handler_path()
+        mod = __import__(modname, None, None, [modattr], 0)
 
         #first check if importing module triggered register_crypt_handler(),
-        #(though this is discouraged due to it's magical implicitness)
+        #(this is discouraged due to it's magical implicitness)
         handler = _handlers.get(name)
         if handler:
             #XXX: issue deprecation warning here?
