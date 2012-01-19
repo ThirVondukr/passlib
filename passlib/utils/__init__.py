@@ -325,7 +325,7 @@ def saslprep(source, errname="value"):
     and passwords before performing byte-value sensitive operations
     such as hashing. Among other things, it normalizes diacritic
     representations, removes non-printing characters, and forbids
-    invalid characters such as ``\n``.
+    invalid characters such as ``\\n``.
 
     :arg source:
         unicode string to normalize & validate
@@ -451,7 +451,7 @@ def render_bytes(source, *args):
     it converts everything to unicode (decode bytes instances as latin-1),
     performs the required formatting, then encodes the result to latin-1.
 
-    calling ``render_bytes(source, *args)`` should function the same as
+    calling ``render_bytes(source, *args)`` should function roughly the same as
     ``source % args`` under python 2.
     """
     if isinstance(source, bytes):
@@ -636,13 +636,16 @@ class Base64Engine(object):
     Informational Attributes
     ========================
     .. attribute:: charmap
+
         unicode string containing list of characters used in encoding;
         position in string matches 6bit value of character.
 
     .. attribute:: bytemap
+
         bytes version of :attr:`charmap`
 
     .. attribute:: big
+
         boolean flag indicating this using big-endian encoding.
     """
 
@@ -654,10 +657,9 @@ class Base64Engine(object):
     big = None # little or big endian
 
     # filled in by init based on charmap.
-    # encode: maps 6bit value -> byte_elem, decode: the reverse.
-    # byte_elem is 1-byte under py2, and 0-255 int under py3.
-    _encode64 = None
-    _decode64 = None
+    # (byte elem: single byte under py2, 8bit int under py3)
+    _encode64 = None # maps 6bit value -> byte elem
+    _decode64 = None # maps byte elem -> 6bit value
 
     # helpers filled in by init based on endianness
     _encode_bytes = None # throws IndexError if bad value (shouldn't happen)
@@ -975,6 +977,9 @@ class Base64Engine(object):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         if len(source) != 1:
             raise ValueError("source must be exactly 1 byte")
+        if PY3:
+            # convert to 8bit int before doing lookup
+            source = source[0]
         try:
             return self._decode64(source)
         except KeyError:

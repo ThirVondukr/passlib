@@ -26,7 +26,8 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
     bcryptor_engine = None
 #libs
-from passlib.utils import safe_os_crypt, classproperty, rng, getrandstr
+from passlib.utils import BCRYPT_CHARS as BCHARS, safe_os_crypt, \
+                          classproperty, rng, getrandstr
 from passlib.utils.compat import bytes, u, uascii_to_str, unicode
 import passlib.utils.handlers as uh
 

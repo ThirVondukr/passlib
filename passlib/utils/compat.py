@@ -31,6 +31,7 @@ __all__ = [
     'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
 
     # io
+    'BytesIO', 'StringIO', 'SafeConfigParser',
     'print_',
 
     # type detection
@@ -43,6 +44,7 @@ __all__ = [
     'u', 'b',
     'unicode', 'bytes', 'sb_types',
     'uascii_to_str', 'bascii_to_str',
+    'str_to_uascii', 'str_to_bascii',
     'ujoin', 'bjoin', 'bjoin_ints', 'bjoin_elems', 'belem_ord',
 
     # iteration helpers
@@ -55,50 +57,23 @@ __all__ = [
 ]
 
 #=============================================================================
-# lazy import aliases
+# lazy-loaded aliases (see LazyOverlayModule at bottom)
 #=============================================================================
 if PY3:
-    _aliases = dict(
+    _lazy_attrs = dict(
         BytesIO="io.BytesIO",
         StringIO="io.StringIO",
         SafeConfigParser="configparser.SafeConfigParser",
     )
     if PY_MIN_32:
         # py32 renamed this, removing old ConfigParser
-        _aliases["SafeConfigParser"] = "configparser.ConfigParser"
+        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
 else:
-    _aliases = dict(
+    _lazy_attrs = dict(
         BytesIO="cStringIO.StringIO",
         StringIO="StringIO.StringIO",
         SafeConfigParser="ConfigParser.SafeConfigParser",
     )
-
-from types import ModuleType
-class _AliasesModule(ModuleType):
-    "fake module that does lazy importing of attributes"
-
-    def __init__(self, name, **source):
-        ModuleType.__init__(self, name)
-        self._source = source
-
-    def __getattr__(self, attr):
-        source = self._source
-        if attr in source:
-            modname, modattr = source[attr].rsplit(".",1)
-            mod = __import__(modname, fromlist=[modattr], level=0)
-            value = getattr(mod, modattr)
-            setattr(self, attr, value)
-            return value
-        return ModuleType.__getattr__(self, attr)
-
-    def __dir__(self):
-        attrs = set(dir(self.__class__))
-        attrs.update(self.__dict__)
-        attrs.update(self._source)
-        return list(attrs)
-
-aliases = _AliasesModule(__name__ + ".aliases", **_aliases)
-sys.modules[aliases.__name__] = aliases
 
 #=============================================================================
 # typing
@@ -139,6 +114,10 @@ if PY3:
         return s.encode("latin-1")
 
 else:
+    unicode = builtins.unicode
+    bytes = str if PY_MAX_25 else builtins.bytes
+#    string_types = (unicode, bytes)
+
     def u(s):
         assert isinstance(s, str)
         return s.decode("unicode_escape")
@@ -167,6 +146,14 @@ if PY3:
         assert isinstance(s, bytes)
         return s.decode("ascii")
 
+    def str_to_uascii(s):
+        assert isinstance(s, str)
+        return s
+
+    def str_to_bascii(s):
+        assert isinstance(s, str)
+        return s.encode("ascii")
+
     bjoin_ints = bjoin_elems = bytes
 
     def belem_ord(elem):
@@ -181,6 +168,14 @@ else:
         assert isinstance(s, bytes)
         return s
 
+    def str_to_uascii(s):
+        assert isinstance(s, str)
+        return s.decode("ascii")
+
+    def str_to_bascii(s):
+        assert isinstance(s, str)
+        return s
+
     def bjoin_ints(values):
         return bjoin(chr(v) for v in values)
 
@@ -190,6 +185,8 @@ else:
 
 _add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 _add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
+_add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
+_add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # bjoin_ints -- function to convert list of ordinal integers to byte string.
 
@@ -297,6 +294,77 @@ else:
                 arg = str(arg)
             write(arg)
         write(end)
+
+#=============================================================================
+# lazy overlay module
+#=============================================================================
+from types import ModuleType
+
+def import_object(source):
+    "helper to import object from module; accept format `path.to.object`"
+    modname, modattr = source.rsplit(".",1)
+    mod = __import__(modname, fromlist=[modattr], level=0)
+    return getattr(mod, modattr)
+
+class LazyOverlayModule(ModuleType):
+    """proxy module which overlays original module,
+    and lazily imports specified attributes.
+
+    this is mainly used to prevent importing of resources
+    that are only needed by certain password hashes,
+    yet allow them to be imported from a single location.
+
+    used by :mod:`passlib.utils`, :mod:`passlib.utils.crypto`,
+    and :mod:`passlib.utils.compat`.
+    """
+
+    @classmethod
+    def replace_module(cls, name, attrmap):
+        orig = sys.modules[name]
+        self = cls(name, attrmap, orig)
+        sys.modules[name] = self
+        return self
+
+    def __init__(self, name, attrmap, proxy=None):
+        ModuleType.__init__(self, name)
+        self.__attrmap = attrmap
+        self.__proxy = proxy
+        self.__log = logging.getLogger(name)
+
+    def __getattr__(self, attr):
+        proxy = self.__proxy
+        if proxy and hasattr(proxy, attr):
+            return getattr(proxy, attr)
+        attrmap = self.__attrmap
+        if attr in attrmap:
+            source = attrmap[attr]
+            if callable(source):
+                value = source()
+            else:
+                value = import_object(source)
+            setattr(self, attr, value)
+            self.__log.debug("loaded lazy attr %r: %r", attr, value)
+            return value
+        raise AttributeError("'module' object has no attribute '%s'" % (attr,))
+
+    def __repr__(self):
+        proxy = self.__proxy
+        if proxy:
+            return repr(proxy)
+        else:
+            return ModuleType.__repr__(self)
+
+    def __dir__(self):
+        attrs = set(dir(self.__class__))
+        attrs.update(self.__dict__)
+        attrs.update(self.__attrmap)
+        proxy = self.__proxy
+        if proxy:
+            attrs.update(dir(proxy))
+        return list(attrs)
+
+# replace this module with overlay that will lazily import attributes.
+LazyOverlayModule.replace_module(__name__, _lazy_attrs)
 
 #=============================================================================
 # eof

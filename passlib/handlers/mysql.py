@@ -31,7 +31,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import to_native_str
-from passlib.utils.compat import b, bytes, unicode, u, belem_ord
+from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, belem_ord
 import passlib.utils.handlers as uh
 #local
 __all__ = [
@@ -128,8 +128,7 @@ class mysql41(uh.StaticHandler):
         # FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        chk = bascii_to_str(sha1(sha1(secret).digest()).hexdigest())
-        return '*' + chk.upper()
+        return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
 
     @classmethod
     def _norm_hash(cls, hash):

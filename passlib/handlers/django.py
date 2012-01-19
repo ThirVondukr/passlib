@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import to_unicode
-from passlib.utils.compat import b, bytes, uascii_to_str, unicode, u
+from passlib.utils.compat import b, bytes, str_to_uascii, uascii_to_str, unicode, u
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -93,7 +93,7 @@ class django_salted_sha1(DjangoSaltedHash):
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return to_unicode(sha1(self.salt.encode("ascii") + secret).hexdigest(), "ascii")
+        return str_to_uascii(sha1(self.salt.encode("ascii") + secret).hexdigest())
 
 class django_salted_md5(DjangoSaltedHash):
     """This class implements Django's Salted MD5 hash, and follows the :ref:`password-hash-api`.
@@ -119,7 +119,7 @@ class django_salted_md5(DjangoSaltedHash):
     def calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return to_unicode(md5(self.salt.encode("ascii") + secret).hexdigest(), "ascii")
+        return str_to_uascii(md5(self.salt.encode("ascii") + secret).hexdigest())
 
 #=========================================================
 #other

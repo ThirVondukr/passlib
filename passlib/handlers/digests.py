@@ -53,7 +53,7 @@ class HexDigestHash(uh.StaticHandler):
             raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return bascii_to_str(cls._hash_func(secret).hexdigest())
+        return cls._hash_func(secret).hexdigest()
 
     @classmethod
     def _norm_hash(cls, hash):

@@ -210,6 +210,8 @@ class StaticHandler(object):
         #NOTE: this relys on genhash() throwing error for invalid hashes.
         # this approach is bad because genhash may take a long time on valid hashes,
         # so subclasses *really* should override this.
+        if hash is None:
+            return False
         try:
             cls.genhash('fakesecret', hash)
             return True

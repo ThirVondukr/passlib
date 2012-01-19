@@ -101,7 +101,7 @@ def raw_crypt(secret, salt):
     result = mdes_encrypt_int_block(key_value, 0, salt_value, 25)
 
     #run h64 encode on result
-    return h64.encode_dc_int64(result)
+    return h64big.encode_int64(result)
 
 def raw_ext_crypt(secret, rounds, salt):
     "ext_crypt() helper which returns checksum only"
@@ -132,7 +132,7 @@ def raw_ext_crypt(secret, rounds, salt):
     result = mdes_encrypt_int_block(key_value, 0, salt_value, rounds)
 
     #run h64 encode on result
-    return h64.encode_dc_int64(result)
+    return h64big.encode_int64(result)
 
 #=========================================================
 #handler
@@ -531,7 +531,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         result2 = mdes_encrypt_int_block(key2, 0, salt_value, 5)
 
         #done
-        chk = h64.encode_dc_int64(result1) + h64.encode_dc_int64(result2)
+        chk = h64big.encode_int64(result1) + h64big.encode_int64(result2)
         return chk.decode("ascii")
 
     #=========================================================

@@ -14,7 +14,8 @@ from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
 from passlib.utils import getrandstr, JYTHON, rng, to_unicode, MissingBackendError
-from passlib.utils.compat import b, bytes, bascii_to_str, uascii_to_str, unicode
+from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
+                                 uascii_to_str, unicode
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
     dummy_handler_in_registry
@@ -42,11 +43,11 @@ class SkeletonTest(TestCase):
             def genhash(cls, secret, hash, flag=False):
                 if isinstance(hash, bytes):
                     hash = hash.decode("ascii")
-                if hash not in (u('a'),u('b')):
-                    raise ValueError
+                if hash not in (u('a'), u('b'), None):
+                    raise ValueError("unknown hash %r" % (hash,))
                 return 'b' if flag else 'a'
 
-        #check default identify method
+        # check default identify method
         self.assertTrue(d1.identify(u('a')))
         self.assertTrue(d1.identify(b('a')))
         self.assertTrue(d1.identify(u('b')))
@@ -55,20 +56,26 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify(u('')))
         self.assertFalse(d1.identify(None))
 
-        #check default genconfig method
+        # check default genconfig method
         self.assertIs(d1.genconfig(), None)
         d1._stub_config = u('b')
         self.assertEqual(d1.genconfig(), 'b')
 
-        #check default verify method
-        self.assertTrue(d1.verify('s','a'))
-        self.assertTrue(d1.verify('s',u('a')))
-        self.assertFalse(d1.verify('s','b'))
-        self.assertFalse(d1.verify('s',u('b')))
-        self.assertTrue(d1.verify('s', 'b', flag=True))
-        self.assertRaises(ValueError, d1.verify, 's', 'c')
+        # check config string is rejected
+        self.assertRaises(ValueError, d1.verify, 's', b('b'))
+        self.assertRaises(ValueError, d1.verify, 's', u('b'))
+        del d1._stub_config
 
-        #check default encrypt method
+        # check default verify method
+        self.assertTrue(d1.verify('s', b('a')))
+        self.assertTrue(d1.verify('s',u('a')))
+        self.assertFalse(d1.verify('s', b('b')))
+        self.assertFalse(d1.verify('s',u('b')))
+        self.assertTrue(d1.verify('s', b('b'), flag=True))
+        self.assertRaises(ValueError, d1.verify, 's', b('c'))
+        self.assertRaises(ValueError, d1.verify, 's', u('c'))
+
+        # check default encrypt method
         self.assertEqual(d1.encrypt('s'), 'a')
         self.assertEqual(d1.encrypt('s'), 'a')
         self.assertEqual(d1.encrypt('s', flag=True), 'b')
@@ -411,9 +418,9 @@ class UnsaltedHash(uh.StaticHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         data = b("boblious") + secret
-        return bascii_to_str(hashlib.sha1(data).hexdigest())
+        return hashlib.sha1(data).hexdigest()
 
-class SaltedHash(uh.HasSalt, uh.GenericHandler):
+class SaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     "test algorithm with a salt"
     name = "salted_test_hash"
     setting_kwds = ("salt",)
@@ -435,7 +442,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
             hash = hash.decode("ascii")
         return cls(salt=hash[5:-40], checksum=hash[-40:], strict=True)
 
-    _stub_checksum = '0' * 40
+    _stub_checksum = u('0') * 40
 
     def to_string(self):
         hash = u("@salt%s%s") % (self.salt, self.checksum or self._stub_checksum)
@@ -445,7 +452,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         data = self.salt.encode("ascii") + secret + self.salt.encode("ascii")
-        return hashlib.sha1(data).hexdigest().decode("ascii")
+        return str_to_uascii(hashlib.sha1(data).hexdigest())
 
 #=========================================================
 #test sample algorithms - really a self-test of HandlerCase

@@ -12,7 +12,7 @@ import warnings
 #pkg
 #module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode
+                                 unicode, bjoin
 from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
 def hb(source):
@@ -350,8 +350,6 @@ class CodecTest(TestCase):
         #check byte inputs ignores enocding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1"),
                                                             b('\x00\xc3\xbf'))
-        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), None, "utf-8"),
-                                                            b('\x00\xc3\xbf'))
 
         #check bytes transcoding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "utf-8"),
@@ -388,8 +386,8 @@ class CodecTest(TestCase):
         from passlib.utils import to_native_str
 
         # test plain ascii
-        self.assertEqual(to_native_str(u('abc', 'ascii')), 'abc')
-        self.assertEqual(to_native_str(b('abc', 'ascii')), 'abc')
+        self.assertEqual(to_native_str(u('abc'), 'ascii'), 'abc')
+        self.assertEqual(to_native_str(b('abc'), 'ascii'), 'abc')
 
         # test invalid ascii
         if PY3:
@@ -540,7 +538,7 @@ class _Base64Test(TestCase):
     # helper to generate bytemap-specific strings
     def m(self, *offsets):
         "generate byte string from offsets"
-        return b("").join(self.engine.bytemap[o:o+1] for o in offsets)
+        return bjoin(self.engine.bytemap[o:o+1] for o in offsets)
 
     #=========================================================
     # test encode_bytes
@@ -712,12 +710,14 @@ class _Base64Test(TestCase):
         encode = getattr(engine, "encode_int%s" % bits)
         decode = getattr(engine, "decode_int%s" % bits)
         pad = -bits % 6
-        chars = (bits+pad)/6
+        chars = (bits+pad)//6
         upper = 1<<bits
 
         # test encode func
         for value, encoded in encoded_pairs:
-            self.assertEqual(encode(value), encoded)
+            result = encode(value)
+            self.assertIsInstance(result, bytes)
+            self.assertEqual(result, encoded)
         self.assertRaises(ValueError, encode, -1)
         self.assertRaises(ValueError, encode, upper)
 
@@ -785,11 +785,11 @@ class _Base64Test(TestCase):
         if not self.encoded_ints:
             raise self.skipTests("none defined for class")
         engine = self.engine
-        for encoded, value, bits in self.encoded_ints:
+        for data, value, bits in self.encoded_ints:
             encode = getattr(engine, "encode_int%d" % bits)
             decode = getattr(engine, "decode_int%d" % bits)
-            self.assertEqual(encode(value), encoded)
-            self.assertEqual(decode(encoded), value)
+            self.assertEqual(encode(value), data)
+            self.assertEqual(decode(data), value)
 
     #=========================================================
     # eoc
@@ -820,8 +820,8 @@ class H64_Test(_Base64Test):
     ]
 
     encoded_ints = [
-        ("z.", 63, 12),
-        (".z", 4032, 12),
+        (b("z."), 63, 12),
+        (b(".z"), 4032, 12),
     ]
 
 class H64Big_Test(_Base64Test):
@@ -845,8 +845,8 @@ class H64Big_Test(_Base64Test):
     ]
 
     encoded_ints = [
-        (".z", 63, 12),
-        ("z.", 4032, 12),
+        (b(".z"), 63, 12),
+        (b("z."), 4032, 12),
     ]
 
 #=========================================================

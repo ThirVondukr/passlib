@@ -1097,9 +1097,9 @@ class ScramTest(HandlerCase):
         # return appropriate value or throw KeyError
         h = "$scram$10$AAAAAA$sha-1=AQ,bbb=Ag,ccc=Aw"
         s = b('\x00')*4
-        self.assertEqual(edi(h,"SHA1"), (s,10,'\x01'))
-        self.assertEqual(edi(h,"bbb"), (s,10,'\x02'))
-        self.assertEqual(edi(h,"ccc"), (s,10,'\x03'))
+        self.assertEqual(edi(h,"SHA1"), (s,10, b('\x01')))
+        self.assertEqual(edi(h,"bbb"), (s,10, b('\x02')))
+        self.assertEqual(edi(h,"ccc"), (s,10, b('\x03')))
         self.assertRaises(KeyError, edi, h, "ddd")
 
         # config strings should cause value error.

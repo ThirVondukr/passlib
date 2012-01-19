@@ -12,8 +12,8 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import to_unicode, to_native_str, xor_bytes
-from passlib.utils.compat import bytes, bascii_to_str, irange, u, \
-                                 uascii_to_str, unicode
+from passlib.utils.compat import b, bytes, bascii_to_str, irange, u, \
+                                 uascii_to_str, unicode, str_to_uascii
 from passlib.utils.des import des_encrypt_block
 import passlib.utils.handlers as uh
 #local
@@ -186,7 +186,7 @@ class oracle11(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()
-        return to_unicode(chk, 'ascii').upper()
+        return str_to_uascii(chk).upper()
 
     #=========================================================
     #eoc

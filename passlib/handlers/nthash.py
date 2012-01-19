@@ -9,7 +9,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import to_unicode
-from passlib.utils.compat import bytes, u, uascii_to_str
+from passlib.utils.compat import bytes, str_to_uascii, u, uascii_to_str
 from passlib.utils.md4 import md4
 import passlib.utils.handlers as uh
 #pkg
@@ -90,7 +90,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
         secret = to_unicode(secret, "utf-8", errname="secret")
         hash = md4(secret.encode("utf-16le"))
         if hex:
-            return to_unicode(hash.hexdigest(), 'ascii')
+            return str_to_uascii(hash.hexdigest())
         else:
             return hash.digest()
 
