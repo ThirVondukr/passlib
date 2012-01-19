@@ -9,6 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
+from passlib.exc import PasslibWarning
 from passlib.utils import is_crypt_handler
 #pkg
 #local
@@ -286,7 +287,8 @@ def get_crypt_handler(name, default=_NOTSET):
     #normalize name (and if changed, check dict again)
     alt = name.replace("-","_").lower()
     if alt != name:
-        warn("handler names should be lower-case, and use underscores instead of hyphens: %r => %r" % (name, alt))
+        warn("handler names should be lower-case, and use underscores instead "
+             "of hyphens: %r => %r" % (name, alt), PasslibWarning)
         name = alt
 
         #check if handler loaded

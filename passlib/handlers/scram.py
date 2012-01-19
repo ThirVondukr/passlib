@@ -23,6 +23,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
+from passlib.exc import PasslibHandlerWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
@@ -110,7 +111,8 @@ def norm_digest_name(name):
         # (and digest probably won't be found)
         m = re.match("^([a-z]{2,}\d?)(-\d{3,4})?$", name)
         if not m:
-            warn("encountered oddly named digest: %r" % (name,))
+            warn("encountered oddly named digest: %r" % (name,),
+                 PasslibWarning)
 
     # store in cache
     _ndn_cache[key] = name

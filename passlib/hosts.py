@@ -7,6 +7,7 @@ import sys
 from warnings import warn
 #pkg
 from passlib.context import LazyCryptContext
+from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler
 from passlib.utils import has_os_crypt, unix_crypt_schemes
 #local
@@ -75,7 +76,8 @@ if has_os_crypt:
             yield "unix_fallback"
         else:
             #no idea what OS this could happen on, but just in case...
-            warn("crypt.crypt() function is present, but doesn't support any formats known to passlib!")
+            warn("crypt.crypt() function is present, but doesn't support any "
+                 "formats known to passlib!", PasslibRuntimeWarning)
 
     host_context = LazyCryptContext(_iter_os_crypt_schemes())
 

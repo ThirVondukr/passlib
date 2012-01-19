@@ -13,7 +13,8 @@ import warnings
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
-from passlib.utils import getrandstr, JYTHON, rng, to_unicode, MissingBackendError
+from passlib.exc import MissingBackendError
+from passlib.utils import getrandstr, JYTHON, rng, to_unicode
 from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh

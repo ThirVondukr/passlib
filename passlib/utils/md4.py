@@ -252,7 +252,9 @@ def _has_native_md4():
         #since this is expected, don't bother w/ warning.
         return False
     #anything else should alert user
-    warn("native md4 support disabled, incorrect value returned")
+    from passlib.exc import PasslibRuntimeWarning
+    warn("native md4 support disabled, incorrect value returned!",
+         PasslibRuntimeWarning)
     return False
 
 if _has_native_md4():

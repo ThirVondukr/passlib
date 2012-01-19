@@ -30,9 +30,10 @@ if ut_version < 2:
     #used to provide replacement skipTest() method
     from nose.plugins.skip import SkipTest
 #pkg
+from passlib.exc import MissingBackendError
 import passlib.registry as registry
-from passlib.utils import has_rounds_info, has_salt_info, MissingBackendError,\
-                          rounds_cost_values, classproperty
+from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
+                          classproperty
 from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
                                  sb_types, exc_err, u, unicode
 import passlib.utils.handlers as uh
@@ -617,7 +618,8 @@ class HandlerCase(TestCase):
                 (not mx_set or cls.min_salt_size < cls.max_salt_size):
             #NOTE: for now, only bothering to issue warning if default_salt_size isn't maxed out
             if (not mx_set or cls.default_salt_size < cls.max_salt_size):
-                warn("%s: hash handler supports range of salt sizes, but doesn't offer 'salt_size' setting" % (cls.name,))
+                warn("%s: hash handler supports range of salt sizes, "
+                     "but doesn't offer 'salt_size' setting" % (cls.name,))
 
         #check salt_chars & default_salt_chars
         if cls.salt_chars:

@@ -94,31 +94,8 @@ unix_crypt_schemes = [
 # list of rounds_cost constants
 rounds_cost_values = [ "linear", "log2" ]
 
-class MissingBackendError(RuntimeError):
-    """Error raised if multi-backend handler has no available backends;
-    or if specifically requested backend is not available.
-
-    :exc:`!MissingBackendError` derives
-    from :exc:`RuntimeError`, since this usually indicates
-    lack of an external library or OS feature.
-
-    This is primarily used by handlers which derive
-    from :class:`~passlib.utils.handlers.HasManyBackends`.
-    """
-
-class PasslibPolicyWarning(UserWarning):
-    """Warning issued when non-fatal issue is found in policy configuration.
-
-    This occurs primarily in one of two cases:
-
-    * the policy contains rounds limits which exceed the hard limits
-      imposed by the underlying algorithm.
-    * an explicit rounds value was provided which exceeds the limits
-      imposed by the policy.
-
-    In both of these cases, the code will perform correctly & securely;
-    but the warning is issued as a sign the configuration may need updating.
-    """
+# legacy import, will be removed in 1.8
+from passlib.exc import MissingBackendError
 
 # internal helpers
 _BEMPTY = b('')
@@ -1173,7 +1150,9 @@ else:
                     # just in case original encoding wouldn't be reproduced
                     # during call to os_crypt. not sure if/how this could
                     # happen, but being paranoid.
-                    warn("utf-8 password didn't re-encode correctly!")
+                    from passlib.exc import PasslibRuntimeWarning
+                    warn("utf-8 password didn't re-encode correctly!",
+                         PasslibRuntimeWarning)
                     return False, None
             result = os_crypt(secret, hash)
             return (result is not None), result

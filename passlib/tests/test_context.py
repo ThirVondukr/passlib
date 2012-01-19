@@ -18,7 +18,8 @@ except ImportError:
 #pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
-from passlib.utils import tick, to_bytes, to_unicode, PasslibPolicyWarning
+from passlib.exc import PasslibContextWarning
+from passlib.utils import tick, to_bytes, to_unicode
 from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
@@ -621,8 +622,8 @@ class CryptContextTest(TestCase):
             # set below handler min
             c2 = cc.replace(all__min_rounds=500, all__max_rounds=None,
                             all__default_rounds=500)
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
             self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
             self.assertNoWarnings(wlog)
 
@@ -631,7 +632,7 @@ class CryptContextTest(TestCase):
                 cc.genconfig(rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$',
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
             self.assertNoWarnings(wlog)
 
             # equal
@@ -653,8 +654,8 @@ class CryptContextTest(TestCase):
             # set above handler max
             c2 = cc.replace(all__max_rounds=int(1e9)+500, all__min_rounds=None,
                             all__default_rounds=int(1e9)+500)
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
             self.assertEqual(c2.genconfig(salt="nacl"),
                              "$5$rounds=999999999$nacl$")
             self.assertNoWarnings(wlog)
@@ -664,7 +665,7 @@ class CryptContextTest(TestCase):
                 cc.genconfig(rounds=3001, salt="nacl"),
                 '$5$rounds=3000$nacl$'
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
             self.assertNoWarnings(wlog)
 
             # equal
@@ -816,7 +817,7 @@ class CryptContextTest(TestCase):
                 cc.encrypt("password", rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibPolicyWarning)
+            self.assertWarningMatches(wlog.pop(), category=PasslibContextWarning)
             self.assertFalse(wlog)
 
             self.assertEqual(

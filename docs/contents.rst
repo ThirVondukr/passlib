@@ -19,6 +19,7 @@ Table Of Contents
     lib/passlib.apache
     lib/passlib.hosts
 
+    lib/passlib.exc
     lib/passlib.registry
     lib/passlib.utils
 

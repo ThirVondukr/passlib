@@ -43,7 +43,9 @@ if _EVP:
         result = _EVP.hmac(b('x'),b('y'))
     except ValueError: #pragma: no cover
         #this is probably not a good sign if it happens.
-        warn("PassLib: M2Crypt.EVP.hmac() unexpected threw value error during passlib startup test")
+        from passlib.exc import PasslibRuntimeWarning
+        warn("PassLib: M2Crypt.EVP.hmac() unexpected threw value error during "
+             "passlib startup test", PasslibRuntimeWarning)
     else:
         if result == b(',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i'):
             hmac_sha1 = _EVP.hmac

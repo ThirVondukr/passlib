@@ -34,10 +34,6 @@ Constants
     See :ref:`mcf-identifiers` for a table of which OSes
     are known to support which hashes.
 
-.. autoexception:: MissingBackendError
-
-.. autoexception:: PasslibPolicyWarning
-
 ..
 
     PYPY

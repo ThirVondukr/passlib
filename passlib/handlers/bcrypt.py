@@ -26,6 +26,7 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
     bcryptor_engine = None
 #libs
+from passlib.exc import PasslibHandlerWarning
 from passlib.utils import BCRYPT_CHARS as BCHARS, safe_os_crypt, \
                           classproperty, rng, getrandstr
 from passlib.utils.compat import bytes, u, uascii_to_str, unicode
@@ -84,7 +85,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt (eg: BSD).
 
     If no backends are available at runtime,
-    :exc:`~passlib.utils.MissingBackendError` will be raised
+    :exc:`~passlib.exc.MissingBackendError` will be raised
     whenever :meth:`encrypt` or :meth:`verify` are called.
     You can see which backend is in use by calling the
     :meth:`~passlib.utils.handlers.HasManyBackends.get_backend()` method.
@@ -187,8 +188,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             warn(
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
-                "to fix this; see Passlib 1.5.3 changelog."
-                )
+                "to fix this; see Passlib 1.5.3 changelog.",
+                PasslibHandlerWarning)
         return salt
 
     @classmethod
@@ -200,8 +201,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             warn(
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
-                "to fix this; see Passlib 1.5.3 changelog."
-                )
+                "to fix this; see Passlib 1.5.3 changelog.",
+                PasslibHandlerWarning)
         return checksum
 
     #=========================================================

@@ -1,0 +1,20 @@
+===============================================================
+:mod:`passlib.exc` - exceptions and warnings raised by Passlib
+===============================================================
+
+.. module:: passlib.exc
+    :synopsis: exceptions & warnings raised by Passlib
+
+This module contains all the custom exceptions & warnings that
+may be raised by Passlib.
+
+Exceptions
+==========
+.. autoexception:: MissingBackendError
+
+Warnings
+========
+.. autoexception:: PasslibWarning
+.. autoexception:: PasslibContextWarning
+.. autoexception:: PasslibHandlerWarning
+.. autoexception:: PasslibRuntimeWarning

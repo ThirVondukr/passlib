@@ -13,10 +13,12 @@ import os
 from warnings import warn
 #site
 #libs
+from passlib.exc import MissingBackendError, PasslibHandlerWarning, \
+                        PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler
 from passlib.utils import is_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
-                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str, MissingBackendError
+                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str
 from passlib.utils.compat import b, bjoin_ints, bytes, irange, u, \
                                  uascii_to_str, unicode
 #pkg
@@ -998,14 +1000,16 @@ class HasRounds(GenericHandler):
         if rounds < mn:
             if strict:
                 raise ValueError("%s rounds must be >= %d" % (cls.name, mn))
-            warn("%s does not allow less than %d rounds: %d" % (cls.name, mn, rounds))
+            warn("%s does not allow less than %d rounds: %d" %
+                 (cls.name, mn, rounds), PasslibHandlerWarning)
             rounds = mn
 
         mx = cls.max_rounds
         if mx and rounds > mx:
             if strict:
                 raise ValueError("%s rounds must be <= %d" % (cls.name, mx))
-            warn("%s does not allow more than %d rounds: %d" % (cls.name, mx, rounds))
+            warn("%s does not allow more than %d rounds: %d" %
+                 (cls.name, mx, rounds), PasslibHandlerWarning)
             rounds = mx
 
         return rounds
@@ -1082,7 +1086,7 @@ class HasManyBackends(GenericHandler):
         if no backend has been loaded,
         loads and returns name of default backend.
 
-        :raises passlib.utils.MissingBackendError: if no backends are available.
+        :raises passlib.exc.MissingBackendError: if no backends are available.
 
         :returns: name of active backend
         """
@@ -1145,7 +1149,7 @@ class HasManyBackends(GenericHandler):
               the current backend if one has been loaded,
               else acts like ``"default"``.
 
-        :raises passlib.utils.MissingBackendError:
+        :raises passlib.exc.MissingBackendError:
             * ... if a specific backend was requested,
               but is not currently available.
 
@@ -1238,7 +1242,9 @@ class PrefixWrapper(object):
     def _check_handler(self, handler):
         if 'ident' in handler.setting_kwds and self.orig_prefix:
             #TODO: look into way to fix the issues.
-            warn("PrefixWrapper: 'orig_prefix' option may not work correctly for handlers which have multiple identifiers: %r" % (handler.name,))
+            warn("PrefixWrapper: 'orig_prefix' option may not work correctly "
+                 "for handlers which have multiple identifiers: %r" %
+                 (handler.name,), PasslibRuntimeWarning)
 
     def _get_wrapped(self):
         handler = self._wrapped_handler

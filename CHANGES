@@ -256,7 +256,7 @@ Release History
         * Various minor changes to
           :class:`passlib.utils.handlers.HasManyBackends`;
           main change is that multi-backend handlers now raise
-          :exc:`~passlib.utils.MissingBackendError`
+          :exc:`~passlib.exc.MissingBackendError`
           if no backends are available.
 
     Other
