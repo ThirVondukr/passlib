@@ -47,7 +47,7 @@ where:
   stored as lowercase hexidecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
 
 * :samp:`{salt}` is the salt string, which can be any number of characters,
-  drawn from the :ref:`hash64 charset <h64charset>`
+  drawn from the :data:`hash64 charset <passlib.utils.HASH64_CHARS>`
   (``.pPqsEwHD7MiECU0`` in the example).
 
 * :samp:`{checksum}` is 32 characters, which encode

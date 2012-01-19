@@ -38,15 +38,33 @@ Constants
 
 .. autoexception:: PasslibPolicyWarning
 
+..
+
+    PYPY
+    JYTHON
+    rounds_cost_values
+
 Decorators
 ==========
 .. autofunction:: classproperty
 
-Bytes Manipulation
-==================
-
-.. autofunction:: xor_bytes
+Unicode Helpers
+===============
 .. autofunction:: consteq
+.. autofunction:: saslprep
+
+Bytes Helpers
+=============
+.. autofunction:: xor_bytes
+.. autofunction:: render_bytes
+
+Encoding Helpers
+================
+.. autofunction:: is_same_codec
+.. autofunction:: is_ascii_safe
+.. autofunction:: to_bytes
+.. autofunction:: to_unicode
+.. autofunction:: to_native_str
 
 Base64 Encoding
 ===============
@@ -72,7 +90,12 @@ Common Character Maps
 
     Base64 character map used by a number of hash formats;
     the ordering is wildly different from the standard base64 character map.
-    (see :data:`h64` for details).
+
+    This encoding system appears to have originated with
+    :class:`~passlib.hash.des_crypt`, but is used by
+    :class:`~passlib.hash.md5_crypt`, :class:`~passlib.hash.sha256_crypt`,
+    and others. Within Passlib, this encoding is referred as ``hash64`` encoding
+    to distinguish it from normal base64 and other encodings.
 
 .. data:: BCRYPT_CHARS
 
@@ -83,27 +106,24 @@ Common Character Maps
 Predefined Instances
 --------------------
 .. data:: h64
-    Predefined instance of :class:`Base64Engine` which uses
-    the :data:`HASH64_CHARS` character map and little-endian encoding.
 
-    This encoding system appears to have originated with
-    :class:`~passlib.hash.des_crypt`, but is used by
-    :class:`~passlib.hash.md5-crypt`, `~passlib.hash.sha256_crypt`,
-    and others. Within Passlib, this encoding is referred as ``hash64`` encoding
-    to distinguish it from normal base64 and other encodings.
+    Predefined instance of :class:`Base64Engine` which uses
+    the :data:`!HASH64_CHARS` character map and little-endian encoding.
+    (see :data:`!HASH64_CHARS` for more details).
 
 .. data:: h64big
+
     Predefined variant of :data:`h64` which uses big-endian encoding.
     This is mainly used by :class:`~passlib.hash.des_crypt`.
 
 .. note::
 
-   *changed in Passlib 1.6:* the :mod:`passlib.utils.h64` module used by
-   Passlib <= 1.5 has been replaced by the the ``h64`` and ``h64big``
-   instances; but the interface remains mostly unchanged.
+   *changed in Passlib 1.6:* Previous versions of Passlib contained
+   a module named :mod:`!passlib.utils.h64`; As of Passlib 1.6 this
+   was replaced by the the ``h64`` and ``h64big`` instances;
+   the interface remains mostly unchanged.
 
 ..
-
     .. data:: AB64_CHARS
 
         Variant of standard Base64 character map used by some
@@ -113,6 +133,12 @@ Predefined Instances
     -----
     .. autofunction:: ab64_encode
     .. autofunction:: ab64_decode
+
+..
+    Host OS
+    =======
+    .. autofunction:: safe_os_crypt
+    .. autofunction:: tick
 
 Randomness
 ==========
@@ -129,11 +155,10 @@ Randomness
 
 .. autofunction:: getrandbytes
 .. autofunction:: getrandstr
-
 .. autofunction:: generate_password(size=10, charset=<default>)
 
-Object Tests
-============
+Interface Tests
+===============
 .. autofunction:: is_crypt_handler
 .. autofunction:: is_crypt_context
 .. autofunction:: has_rounds_info
@@ -146,7 +171,11 @@ There are also a few sub modules which provide additional utility functions:
 .. toctree::
     :maxdepth: 1
 
+    passlib.utils.handlers
     passlib.utils.des
     passlib.utils.md4
     passlib.utils.pbkdf2
-    passlib.utils.handlers
+
+..
+
+    passlib.utils.compat

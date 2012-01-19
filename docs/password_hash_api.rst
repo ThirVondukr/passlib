@@ -582,10 +582,10 @@ and ease of implementation issues:
     use ``utf-8`` to encode unicode passwords,
     and reproduce existing passwords as opaque bytes.
 
-*   Internally, it is recommended that handlers
-    operate on :class:`unicode` for parsing / formatting
-    purposes, and using :class:`bytes` only on decoded
-    data to be passed directly into their digest routine.
+*   Internally, it is recommended that handlers use 
+    :class:`unicode` for parsing / formatting
+    purposes, and only use :class:`bytes` for decoded
+    binary data ready to be passed into their digest routines.
 
 *   Handlers should return hashes as native python strings.
     This means :class:`unicode` under Python 3,

@@ -21,7 +21,7 @@ Table Of Contents
 
     lib/passlib.registry
     lib/passlib.utils
-    
+
     modular_crypt_format
 
     history
@@ -32,5 +32,5 @@ Table Of Contents
 
 ..
     unlisted:
-    
+
     lib/passlib.ext.django

@@ -31,8 +31,8 @@ sys.path.insert(0, source_root)
 import cloud_sptheme as csp
 
 #hack to make autodoc generate documentation from the correct class...
-from passlib.utils import md4
-md4.md4 = md4._builtin_md4
+import passlib.utils.md4 as md4_mod
+md4_mod.md4 = md4_mod._builtin_md4
 
 # -- General configuration -----------------------------------------------------
 

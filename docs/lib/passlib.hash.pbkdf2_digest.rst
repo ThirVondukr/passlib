@@ -36,7 +36,7 @@ All of the following classes can be used directly as follows::
     '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'
 
     >>> #same, but with explicit number of rounds and salt length
-    >>> engine.encrypt("password", rounds=8000, salt_size=10) 
+    >>> engine.encrypt("password", rounds=8000, salt_size=10)
     '$pbkdf2-sha256$8000$XAuBMIYQQogxRg$tRRlz8hYn63B9LYiCd6PRo6FMiunY9ozmMMI3srxeRE'
 
     >>> #check if hash is a pbkdf2-sha256 hash
