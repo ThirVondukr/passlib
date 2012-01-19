@@ -421,6 +421,8 @@ class CryptPolicy(object):
                                    "in policy: %r" % (scheme,))
 
         elif key == "min_verify_time":
+            warn("'min_verify_time' is deprecated as of Passlib 1.6, will be "
+                 "ignored in 1.7, and removed in 1.8.", DeprecationWarning)
             value = float(value)
             if value < 0:
                 raise ValueError("'min_verify_time' must be >= 0")
@@ -582,7 +584,8 @@ class CryptPolicy(object):
         return bool(kwds.get("deprecated"))
 
     def get_min_verify_time(self, category=None):
-        # XXX: deprecate this function ?
+        warn("get_min_verify_time is deprecated, and will be removed in "
+             "Passlib 1.8", DeprecationWarning)
         kwds = self._get_handler_options("all", category)[0]
         return kwds.get("min_verify_time") or 0
 
@@ -1031,19 +1034,22 @@ class _CryptRecord(object):
     def verify(self, secret, hash, **context):
         "verify helper - adds min_verify_time delay"
         mvt = self._min_verify_time
-        assert mvt
+        assert mvt > 0
         start = tick()
         ok = self.handler.verify(secret, hash, **context)
+        if ok:
+            return True
         end = tick()
         delta = mvt + start - end
         if delta > 0:
             sleep(delta)
         elif delta < 0:
-            #warn app they aren't being protected against timing attacks...
+            #warn app they exceeded bounds (this might reveal
+            #relative costs of different hashes if under migration)
             warn("CryptContext: verify exceeded min_verify_time: "
                  "scheme=%r min_verify_time=%r elapsed=%r" %
                  (self.scheme, mvt, end-start), PasslibContextWarning)
-        return ok
+        return False
 
     #================================================================
     # hash_needs_update()

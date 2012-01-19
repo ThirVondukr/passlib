@@ -47,8 +47,9 @@ of the :class:`!CryptContext` instance itself:
     For use in INI files, this may also be specified as a single comma-separated string
     of handler names.
 
-    This is primarily used by :meth:`CryptContext.hash_needs_update` and :meth:`CryptPolicy.handler_is_deprecated`.
-    If the application does not use these methods, this option can be ignored.
+    This is primarily used by :meth:`CryptContext.hash_needs_update` and
+    :meth:`CryptPolicy.handler_is_deprecated`. If the application does not use
+    these methods, this option can be ignored.
 
     Example: ``deprecated=["des_crypt"]``.
 
@@ -60,15 +61,17 @@ of the :class:`!CryptContext` instance itself:
 
     Example: ``default="sha256_crypt"``.
 
+.. _min-verify-time:
+
 ``min_verify_time``
 
-    If specified, all :meth:`CryptContext.verify` calls will take at least this many seconds.
-    If set to an amount larger than the time used by the strongest hash in the system,
-    this prevents an attacker from guessing the strength of particular hashes through timing measurements.
-
-    Specified in integer or fractional seconds.
+    If specified, unsuccessful :meth:`CryptContext.verify` calls will take at
+    least this many seconds. Specified in integer or fractional seconds.
 
     Example: ``min_verify_time=0.1``.
+
+    .. deprecated:: 1.6 this option is not very useful, and will be removed
+                    in version 1.8.
 
 .. note::
 
@@ -233,7 +236,6 @@ A sample policy file:
     schemes = md5_crypt, sha512_crypt, bcrypt
     deprecated = md5_crypt
     default = sha512_crypt
-    min_verify_time = 0.1
 
     #set some common options for all schemes
     all.vary_rounds = 10%%
@@ -255,7 +257,6 @@ And the equivalent as a set of python keyword options::
         schemes = ["md5_crypt", "sha512_crypt", "bcrypt" ],
         deprecated = ["md5_crypt"],
         default = "sha512_crypt",
-        min_verify_time = 0.1,
 
         #set some common options for all schemes
         all__vary_rounds = "10%",

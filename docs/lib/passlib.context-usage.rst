@@ -130,9 +130,6 @@ applications with advanced policy requirements may want to create a hash policy 
     ;   (existing md5_crypt hashes will be flagged as needs-updating)
     deprecated = md5_crypt
 
-    ;set verify to always take at least 1/10th of a second
-    min_verify_time = 0.1
-
     ;set boundaries for pbkdf2 rounds parameter
     ;   (pbkdf2 hashes outside this range will be flagged as needs-updating)
     pbkdf2_sha1.min_rounds = 10000

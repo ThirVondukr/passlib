@@ -466,6 +466,13 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 
     def test_15_min_verify_time(self):
         "test get_min_verify_time() method"
+        # silence deprecation warnings for min verify time
+        with catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._test_15()
+
+    def _test_15(self):
+
         pa = CryptPolicy()
         self.assertEqual(pa.get_min_verify_time(), 0)
         self.assertEqual(pa.get_min_verify_time('admin'), 0)
@@ -920,10 +927,10 @@ class CryptContextTest(TestCase):
         "test verify() honors min_verify_time"
         #NOTE: this whole test assumes time.sleep() and tick()
         #      have better than 100ms accuracy - set via delta.
-        delta = .1
-        min_delay = delta
-        min_verify_time = min_delay + 2*delta
-        max_delay = min_verify_time + 2*delta
+        delta = .05
+        min_delay = 2*delta
+        min_verify_time = 5*delta
+        max_delay = 8*delta
 
         class TimedHash(uh.StaticHandler):
             "psuedo hash that takes specified amount of time"
@@ -937,9 +944,14 @@ class CryptContextTest(TestCase):
             @classmethod
             def genhash(cls, secret, hash):
                 time.sleep(cls.delay)
-                return hash or 'x'
+                return secret + 'x'
 
-        cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
+        # silence deprecation warnings for min verify time
+        with catch_warnings(record=True) as wlog:
+            warnings.filterwarnings("always", category=DeprecationWarning)
+            cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
+        self.assertWarningMatches(wlog.pop(0), category=DeprecationWarning)
+        self.assertFalse(wlog)
 
         def timecall(func, *args, **kwds):
             start = tick()
@@ -947,24 +959,31 @@ class CryptContextTest(TestCase):
             end = tick()
             return end-start, result
 
-        #verify hashing works
+        #verify genhash delay works
         TimedHash.delay = min_delay
-        elapsed, _ = timecall(TimedHash.genhash, 'stub', 'stub')
+        elapsed, result = timecall(TimedHash.genhash, 'stub', None)
+        self.assertEqual(result, 'stubx')
         self.assertAlmostEqual(elapsed, min_delay, delta=delta)
 
         #ensure min verify time is honored
-        elapsed, _ = timecall(cc.verify, "stub", "stub")
+        elapsed, result = timecall(cc.verify, "stub", "stubx")
+        self.assertTrue(result)
+        self.assertAlmostEqual(elapsed, min_delay, delta=delta)
+
+        elapsed, result = timecall(cc.verify, "blob", "stubx")
+        self.assertFalse(result)
         self.assertAlmostEqual(elapsed, min_verify_time, delta=delta)
 
         #ensure taking longer emits a warning.
         TimedHash.delay = max_delay
         with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
-            elapsed, _ = timecall(cc.verify, "stub", "stub")
+            warnings.filterwarnings("always")
+            elapsed, result = timecall(cc.verify, "blob", "stubx")
+        self.assertFalse(result)
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
-        self.assertEqual(len(wlog), 1)
-        self.assertWarningMatches(wlog[0],
+        self.assertWarningMatches(wlog.pop(0),
             message_re="CryptContext: verify exceeded min_verify_time")
+        self.assertFalse(wlog)
 
     def test_25_verify_and_update(self):
         "test verify_and_update()"
