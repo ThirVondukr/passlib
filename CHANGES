@@ -15,6 +15,10 @@ Release History
           hash in Passlib, though it offers no particular advantages
           outside of this special case.
 
+        * Fixed rare ``'NoneType' object has no attribute 'decode'`` error
+          that sometimes occurred on platforms with a deviant implementation
+          of :func:`!os_crypt`. 
+
     CryptContext
 
         .. currentmodule:: passlib.context

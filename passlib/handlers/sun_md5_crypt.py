@@ -262,7 +262,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             if rstr != unicode(rounds):
                 raise ValueError("invalid sun-md5-crypt hash (zero-padded rounds)")
             if rounds == 0:
-                #NOTE: not sure if this is *forbidden* precisely,
+                #NOTE: not sure if this is forbidden by spec or not;
                 #      but allowing it would complicate things,
                 #      and it should never occur anyways.
                 raise ValueError("invalid sun-md5-crypt hash (explicit zero rounds)")
