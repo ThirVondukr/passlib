@@ -77,7 +77,6 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             rounds=int_rounds,
             salt=raw_salt,
             checksum=raw_chk,
-            strict=bool(raw_chk),
         )
 
     def to_string(self, withchk=True):
@@ -89,7 +88,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
@@ -217,7 +216,6 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
             rounds=rounds,
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self, withchk=True):
@@ -231,7 +229,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, 20, "hmac-sha1")
@@ -310,7 +308,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             rounds=rounds,
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self, withchk=True):
@@ -325,7 +322,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         salt = str_to_bascii(self.to_string(withchk=False))
@@ -373,14 +370,14 @@ class atlassian_pbkdf2_sha1(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum
             raise ValueError("invalid %s hash" % (cls.name,))
         data = b64decode(hash[len(ident):].encode("ascii"))
         salt, chk = data[:16], data[16:]
-        return cls(salt=salt, checksum=chk, strict=True)
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
         data = self.salt + (self.checksum or self._stub_checksum)
         hash = self.ident + b64encode(data).decode("ascii")
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #TODO: find out what crowd's policy is re: unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -442,7 +439,6 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             rounds=int_rounds,
             salt=raw_salt,
             checksum=raw_chk,
-            strict=bool(raw_chk),
         )
 
     def to_string(self, withchk=True):
@@ -454,7 +450,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             hash = u('%s%d.%s') % (self.ident, self.rounds, salt)
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #TODO: find out what grub's policy is re: unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

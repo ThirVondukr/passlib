@@ -34,7 +34,6 @@ Release History
           operations should all have much shorter code-paths.
 
         * Config parsing now done with :class:`SafeConfigParser`.
-
           :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
           previously used :class:`!ConfigParser` interpolation.
           Release 1.5 switched to :class:`SafeConfigParser`,
@@ -46,6 +45,20 @@ Release History
     Utils
 
         .. currentmodule:: passlib.utils.handlers
+
+        * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
+          changed in backward-incompatible way: the ``strict`` keyword
+          was removed. :class:`!GenericHandler` now defaults to a behavior
+          which matches ``strict=True``: the constructor strictly requires
+          all values be specified, and that all values be within correct bounds.
+          The new keywords ``use_defaults`` and ``relaxed`` can be used
+          to disable these two requirements, respectively.
+
+        * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
+          changed in backward-incompatible way: the :samp:`norm_{xxx}`
+          classmethods have been renamed to :samp:`_norm_{xxx}`, and turned
+          into instance methods. Similar renames were done for
+          ``calc_calchecksum`` and ``generate_salt``.
 
         * Calls to :meth:`HasManyBackends.set_backend`
           should now use the string ``"any"`` instead of the value ``None``.

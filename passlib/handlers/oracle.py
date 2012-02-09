@@ -175,14 +175,14 @@ class oracle11(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
         if not m:
             raise ValueError("invalid oracle-11g hash")
         salt, chk = m.group("salt", "chk")
-        return cls(salt=salt, checksum=chk.upper(), strict=True)
+        return cls(salt=salt, checksum=chk.upper())
 
     def to_string(self):
         chk = (self.checksum or self._stub_checksum)
         hash = u("S:%s%s") % (chk.upper(), self.salt.upper())
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()

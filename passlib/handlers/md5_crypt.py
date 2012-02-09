@@ -173,7 +173,7 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
         return uh.render_mc2(self.ident, self.salt, self.checksum)
@@ -181,7 +181,7 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #primary interface
     #=========================================================
-    #calc_checksum in subclass
+    # calc_checksum defined in subclass
 
     #=========================================================
     #eoc
@@ -267,7 +267,7 @@ class apr_md5_crypt(_Md5Common):
     #=========================================================
     #primary interface
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         return raw_md5_crypt(secret, self.salt, apr=True)
 
     #=========================================================

@@ -259,7 +259,7 @@ def register_crypt_handler(handler, force=False, name=None):
 
     #register handler in dict
     _handlers[name] = handler
-    log.info("registered crypt handler %r: %r", name, handler)
+    log.debug("registered crypt handler %r: %r", name, handler)
 
 _NOTSET = object()
 

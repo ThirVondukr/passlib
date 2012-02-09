@@ -35,7 +35,7 @@ This class can be used directly as follows::
 
 Interface
 =========
-.. autoclass:: bsdi_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: bsdi_crypt()
 
 Format
 ======

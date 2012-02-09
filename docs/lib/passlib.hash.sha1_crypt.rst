@@ -15,7 +15,7 @@ this scheme is used in exactly the same way as :doc:`sha512_crypt <passlib.hash.
 
 Functions
 =========
-.. autoclass:: sha1_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: sha1_crypt()
 
 Format
 ======

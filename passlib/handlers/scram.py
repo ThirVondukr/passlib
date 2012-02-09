@@ -23,7 +23,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.exc import PasslibHandlerWarning
+from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
@@ -364,7 +364,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             salt=salt,
             checksum=chkmap,
             algs=algs,
-            strict=chkmap is not None,
         )
 
     def to_string(self, withchk=True):
@@ -384,10 +383,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #=========================================================
     def __init__(self, algs=None, **kwds):
         super(scram, self).__init__(**kwds)
-        self.algs = self.norm_algs(algs)
+        self.algs = self._norm_algs(algs)
 
-    @classmethod
-    def norm_checksum(cls, checksum, strict=False):
+    def _norm_checksum(self, checksum):
         if checksum is None:
             return None
         for alg, digest in iteritems(checksum):
@@ -404,17 +402,21 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return checksum
 
-    def norm_algs(self, algs):
+    def _norm_algs(self, algs):
         "normalize algs parameter"
         # determine default algs value
         if algs is None:
+            # derive algs list from checksum (if present).
             chk = self.checksum
-            if chk is None:
+            if chk is not None:
+                return sorted(chk)
+            elif self.use_defaults:
                 return list(self.default_algs)
             else:
-                return sorted(chk)
+                raise TypeError("no algs list specified")
         elif self.checksum is not None:
             raise RuntimeError("checksum & algs kwds are mutually exclusive")
+
         # parse args value
         if isinstance(algs, str):
             algs = algs.split(",")
@@ -435,12 +437,12 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         "generate a deprecation detector for CryptContext to use"
         # generate deprecation hook which marks hashes as deprecated
         # if they don't support a superset of current algs.
-        algs = frozenset(cls(**settings).algs)
+        algs = frozenset(cls(use_defaults=True, **settings).algs)
         def detector(hash):
             return not algs.issubset(cls.from_string(hash).algs)
         return detector
 
-    def calc_checksum(self, secret, alg=None):
+    def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt
         hash = self.derive_digest
@@ -468,7 +470,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if full_verify:
             correct = failed = False
             for alg, digest in iteritems(chkmap):
-                other = self.calc_checksum(secret, alg)
+                other = self._calc_checksum(secret, alg)
                 # NOTE: could do this length check in norm_algs(),
                 # but don't need to be that strict, and want to be able
                 # to parse hashes containing algs not supported by platform.
@@ -489,7 +491,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # otherwise only verify against one hash, pick one w/ best security.
             for alg in self._verify_algs:
                 if alg in chkmap:
-                    other = self.calc_checksum(secret, alg)
+                    other = self._calc_checksum(secret, alg)
                     return consteq(other, chkmap[alg])
             # there should *always* be at least sha-1.
             raise AssertionError("sha-1 digest not found!")

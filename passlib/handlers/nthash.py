@@ -66,7 +66,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
         else:
             raise ValueError("invalid nthash")
         chk = hash[len(ident):]
-        return cls(ident=ident, checksum=chk, strict=True)
+        return cls(ident=ident, checksum=chk)
 
     def to_string(self):
         hash = self.ident + (self.checksum or self._stub_checksum)
@@ -76,7 +76,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
     #primary interface
     #=========================================================
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         return self.raw_nthash(secret, hex=True)
 
     @staticmethod

@@ -110,16 +110,14 @@ class _BCryptTest(HandlerCase):
 
         kwds = dict(checksum='8CIhhFCj15KqqFvo/n.Jatx8dJ92f82',
                     salt='VlsfIX9.apXuQBr6tego0.',
-                    rounds=12, ident="2a", strict=True)
+                    rounds=12, ident="2a")
 
         handler(**kwds)
 
-        kwds['ident'] = None
-        self.assertRaises(ValueError, handler, **kwds)
+        kwds.update(ident=None)
+        self.assertRaises(TypeError, handler, **kwds)
 
-        del kwds['strict']
-
-        kwds['ident'] = 'Q'
+        kwds.update(use_defaults=True, ident='Q')
         self.assertRaises(ValueError, handler, **kwds)
 
     #===============================================================
@@ -149,7 +147,7 @@ class _BCryptTest(HandlerCase):
             self.assertWarningMatches(wlog.pop(0),
                 message_re="^encountered a bcrypt hash with incorrectly set padding bits.*",
             )
-            self.assertFalse(wlog)
+            self.assertNoWarnings(wlog)
 
         def check_padding(hash):
             "check bcrypt hash doesn't have salt padding bits set"
@@ -174,12 +172,14 @@ class _BCryptTest(HandlerCase):
         with catch_warnings(record=True) as wlog:
             warnings.simplefilter("always")
 
-            hash = bcrypt.genconfig(salt="."*21 + "A.")
+            hash = bcrypt.genconfig(salt="."*21 + "A.", relaxed=True)
+            self.assertWarningMatches(wlog.pop(0), message_re="salt too large")
             check_warning(wlog)
             self.assertEqual(hash, "$2a$12$" + "." * 22)
 
-            hash = bcrypt.genconfig(salt="."*23)
-            self.assertFalse(wlog)
+            hash = bcrypt.genconfig(salt="."*23, relaxed=True)
+            self.assertWarningMatches(wlog.pop(0), message_re="salt too large")
+            self.assertNoWarnings(wlog)
             self.assertEqual(hash, "$2a$12$" + "." * 22)
 
         #===============================================================
@@ -710,14 +710,13 @@ class NTHashTest(HandlerCase):
     def test_idents(self):
         handler = self.handler
 
-        kwds = dict(checksum='7f8fe03093cc84b267b109625f6bbf4b', ident="3", strict=True)
+        kwds = dict(checksum='7f8fe03093cc84b267b109625f6bbf4b', ident="3")
         handler(**kwds)
 
-        kwds['ident'] = None
-        self.assertRaises(ValueError, handler, **kwds)
+        kwds.update(ident=None)
+        self.assertRaises(TypeError, handler, **kwds)
 
-        del kwds['strict']
-        kwds['ident'] = 'Q'
+        kwds.update(use_defaults=True, ident='Q')
         self.assertRaises(ValueError, handler, **kwds)
 
 #=========================================================
@@ -917,14 +916,14 @@ class PHPassTest(HandlerCase):
     def test_idents(self):
         handler = self.handler
 
-        kwds = dict(checksum='eRo7ud9Fh4E2PdI0S3r.L0', salt='IQRaTwmf', rounds=9, ident="P", strict=True)
+        kwds = dict(checksum='eRo7ud9Fh4E2PdI0S3r.L0', salt='IQRaTwmf',
+                    rounds=9, ident="P")
         handler(**kwds)
 
-        kwds['ident'] = None
-        self.assertRaises(ValueError, handler, **kwds)
+        kwds.update(ident=None)
+        self.assertRaises(TypeError, handler, **kwds)
 
-        del kwds['strict']
-        kwds['ident'] = 'Q'
+        kwds.update(use_defaults=True, ident='Q')
         self.assertRaises(ValueError, handler, **kwds)
 
 #=========================================================
@@ -1067,8 +1066,8 @@ class ScramTest(HandlerCase):
 
     def test_100_algs(self):
         "test parsing of 'algs' setting"
-        def parse(source):
-            return self.handler(algs=source).algs
+        def parse(algs, **kwds):
+            return self.handler(algs=algs, use_defaults=True, **kwds).algs
 
         # None -> default list
         self.assertEqual(parse(None), ["sha-1","sha-256","sha-512"])
@@ -1087,7 +1086,7 @@ class ScramTest(HandlerCase):
         self.assertRaises(ValueError, parse, ["sha-1","shaxxx-890"])
 
         # alg & checksum mutually exclusive.
-        self.assertRaises(RuntimeError, self.handler, algs=['sha-1'],
+        self.assertRaises(RuntimeError, parse, ['sha-1'],
                           checksum={"sha-1": b("\x00"*20)})
 
     def test_101_extract_digest_info(self):
@@ -1374,8 +1373,7 @@ class _SHA256CryptTest(HandlerCase):
           "2bIC" ),
     ]
 
-    def filter_known_config_warnings(self):
-        warnings.filterwarnings("ignore", "sha256_crypt does not allow less than 1000 rounds: 10", UserWarning)
+    filter_config_warnings = True # rounds too low, salt too small
 
     def test_raw(self):
         #run some tests on raw backend func to ensure it works right
@@ -1448,8 +1446,7 @@ class _SHA512CryptTest(HandlerCase):
         "hLsPuWGsUSklZt58jaTfF4ZEQpyUNGc0dqbpBYYBaHHrsX." ),
     ]
 
-    def filter_known_config_warnings(self):
-        warnings.filterwarnings("ignore", "sha512_crypt does not allow less than 1000 rounds: 10", UserWarning)
+    filter_config_warnings = True # rounds too low, salt too small
 
 OsCrypt_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "os_crypt")
 Builtin_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "builtin")

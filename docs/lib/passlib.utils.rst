@@ -35,7 +35,6 @@ Constants
     are known to support which hashes.
 
 ..
-
     PYPY
     JYTHON
     rounds_cost_values
@@ -105,16 +104,15 @@ Predefined Instances
 
     Predefined instance of :class:`Base64Engine` which uses
     the :data:`!HASH64_CHARS` character map and little-endian encoding.
-    (see :data:`!HASH64_CHARS` for more details).
+    (see :data:`HASH64_CHARS` for more details).
 
 .. data:: h64big
 
     Predefined variant of :data:`h64` which uses big-endian encoding.
     This is mainly used by :class:`~passlib.hash.des_crypt`.
 
-.. note::
-
-   *changed in Passlib 1.6:* Previous versions of Passlib contained
+.. versionchanged:: 1.6
+   Previous versions of Passlib contained
    a module named :mod:`!passlib.utils.h64`; As of Passlib 1.6 this
    was replaced by the the ``h64`` and ``h64big`` instances;
    the interface remains mostly unchanged.
@@ -173,5 +171,4 @@ There are also a few sub modules which provide additional utility functions:
     passlib.utils.pbkdf2
 
 ..
-
     passlib.utils.compat

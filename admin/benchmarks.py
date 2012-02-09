@@ -19,9 +19,9 @@ import warnings
 # site
 # pkg
 try:
-    from passlib.exc import PasslibContextWarning
+    from passlib.exc import PasslibConfigWarning
 except ImportError:
-    PasslibContextWarning = None
+    PasslibConfigWarning = None
 import passlib.utils.handlers as uh
 from passlib.utils.compat import u, print_, unicode
 # local
@@ -49,13 +49,12 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         r,s,c = uh.parse_mc3(hash, cls.ident, cls.name)
-        r = int(r)
-        return cls(rounds=r, salt=s, checksum=c, strict=bool(c))
+        return cls(rounds=int(r), salt=s, checksum=c)
 
     def to_string(self):
         return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
-    def calc_checksum(self, password):
+    def _calc_checksum(self, password):
         return unicode(password[0:1])
 
 class AnotherHandler(BlankHandler):
@@ -102,8 +101,8 @@ def setup_context():
     yield test_context_init
 
     ctx = test_context_init()
-#    if PasslibContextWarning:
-#        warnings.filterwarnings("ignore", category=PasslibContextWarning)
+#    if PasslibConfigWarning:
+#        warnings.filterwarnings("ignore", category=PasslibConfigWarning)
     def test_context_calls():
         hash = ctx.encrypt(secret, rounds=2001)
         ctx.verify(secret, hash)

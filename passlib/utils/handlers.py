@@ -13,22 +13,23 @@ import os
 from warnings import warn
 #site
 #libs
-from passlib.exc import MissingBackendError, PasslibHandlerWarning, \
+from passlib.exc import MissingBackendError, PasslibHashWarning, \
                         PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler
 from passlib.utils import is_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str
 from passlib.utils.compat import b, bjoin_ints, bytes, irange, u, \
-                                 uascii_to_str, unicode
+                                 uascii_to_str, ujoin, unicode
 #pkg
 #local
 __all__ = [
-
     #framework for implementing handlers
     'StaticHandler',
     'GenericHandler',
-        'HasRawChecksum',
+        # checksum mixins
+            'HasRawChecksum',
+            'HasStubChecksum',
         'HasManyIdents',
         'HasSalt',
             'HasRawSalt',
@@ -181,16 +182,17 @@ class StaticHandler(object):
     The :meth:`genhash` method you implement must accept
     all valid hashes, *as well as* whatever value :meth:`genconfig` returns.
     This defaults to ``None``, but you may set the :attr:`_stub_config` attr
-    to a random hash string, and :meth:`genconfig` will return this instead.
+    to a specific hash string, and :meth:`genconfig` will return this instead.
 
     The default :meth:`verify` method uses simple equality to compare hash strings.
-    If your hash may have multiple encoding (eg case-insensitive), this
-    method (or the private :meth:`_norm_hash` method)
-    should be overridden on a per-handler basis.
+    If your hash has multiple encodings (e.g. is case-insensitive), the
+    :meth:`_norm_hash` method should be overridden to normalize to a single
+    representation.
 
     If your hash has options, such as multiple identifiers, salts,
     or variable rounds, this is not the right class to start with.
-    You should use the :class:`GenericHandler` class, or implement the handler yourself.
+    You should use the :class:`GenericHandler` class, or implement the handler
+    yourself.
     """
 
     #=====================================================
@@ -222,6 +224,7 @@ class StaticHandler(object):
 
     @classmethod
     def genconfig(cls):
+        "default genconfig() implementation for unsalted hash algorithms"
         return cls._stub_config
 
     @classmethod
@@ -230,13 +233,15 @@ class StaticHandler(object):
 
     @classmethod
     def encrypt(cls, secret, *cargs, **context):
-        #NOTE: subclasses generally won't need to override this.
+        "default encrypt() implementation for unsalted hash algorithms"
+        # NOTE: subclasses generally won't need to override this
         config = cls.genconfig()
         return cls.genhash(secret, config, *cargs, **context)
 
     @classmethod
     def verify(cls, secret, hash, *cargs, **context):
-        #NOTE: subclasses generally won't need to override this.
+        "default verify() implementation for unsalted hash algorithms"
+        # NOTE: subclasses generally won't need to override this.
         if hash is None:
             raise ValueError("no hash specified")
         hash = cls._norm_hash(hash)
@@ -264,26 +269,40 @@ class StaticHandler(object):
 class GenericHandler(object):
     """helper class for implementing hash handlers.
 
+    GenericHandler-derived classes will have (at least) the following
+    constructor options, though others may be added by mixins
+    and by the class itself:
+
     :param checksum:
         this should contain the digest portion of a
         parsed hash (mainly provided when the constructor is called
         by :meth:`from_string()`).
         defaults to ``None``.
 
-    :param strict:
-        If ``True``, this flag signals that :meth:`norm_checksum`
-        (as well as the other :samp:`norm_{xxx}` methods provided by the mixins)
-        should throw a :exc:`ValueError` if any errors are found
-        in any of the provided parameters.
+    :param use_defaults:
+        If ``False`` (the default), a :exc:`TypeError` should be thrown
+        if any settings required by the handler were not explicitly provided.
 
-        If ``False`` (the default), the :exc:`ValueError` should only
-        be throw if the error is not recoverable (eg: clipping salt string to max size).
+        If ``True``, the handler should attempt to provide a default for any
+        missing values. This means generate missing salts, fill in default
+        cost parameters, etc.
 
         This is typically only set to ``True`` when the constructor
-        is called by :meth:`from_string`, in order to perform validation
-        on the hash string it's parsing; whereas :meth:`encrypt`
-        does not set this flag, allowing user-provided values
+        is called by :meth:`encrypt`, allowing user-provided values
         to be handled in a more permissive manner.
+
+    :param relaxed:
+        If ``False`` (the default), a :exc:`ValueError` should be thrown
+        if any settings are out of bounds or otherwise invalid.
+
+        If ``True``, they should be corrected if possible, and a warning
+        issue. If not possible, only then should an error be raised.
+        (e.g. under ``relaxed=True``, rounds values will be clamped
+        to min/max rounds).
+
+        This is mainly used when parsing the config strings of certain
+        hashes, whose specifications implementations to be tolerant
+        of incorrect values in salt strings.
 
     Class Attributes
     ================
@@ -315,22 +334,23 @@ class GenericHandler(object):
     ===================
     .. attribute:: checksum
 
-        The checksum string as provided by the constructor (after passing through :meth:`norm_checksum`).
+        The checksum string as provided by the constructor (after passing it
+        through :meth:`_norm_checksum`).
 
-    Required Class Methods
-    ======================
+    Required Subclass Methods
+    =========================
     The following methods must be provided by handler subclass:
 
     .. automethod:: from_string
     .. automethod:: to_string
-    .. automethod:: calc_checksum
+    .. automethod:: _calc_checksum
 
-    Default Class Methods
-    =====================
+    Default Methods
+    ===============
     The following methods provide generally useful default behaviors,
     though they may be overridden if the hash subclass needs to:
 
-    .. automethod:: norm_checksum
+    .. automethod:: _norm_checksum
 
     .. automethod:: genconfig
     .. automethod:: genhash
@@ -346,42 +366,55 @@ class GenericHandler(object):
 
     ident = None #identifier prefix if known
 
-    checksum_size = None #if specified, norm_checksum will require this length
-    checksum_chars = None #if specified, norm_checksum() will validate this
+    checksum_size = None #if specified, _norm_checksum will require this length
+    checksum_chars = None #if specified, _norm_checksum() will validate this
 
     #=====================================================
     #instance attrs
     #=====================================================
-    checksum = None
-    strict = False #: whether norm_xxx() functions should use strict checking.
+    checksum = None # stores checksum
+#    relaxed = False # when norm_xxx() funcs should be strict about inputs
+#    use_defaults = False # whether norm_xxx() funcs should fill in defaults.
 
     #=====================================================
     #init
     #=====================================================
-    def __init__(self, checksum=None, strict=False, **kwds):
-        self.strict = strict
-        self.checksum = self.norm_checksum(checksum, strict=strict)
+    def __init__(self, checksum=None, use_defaults=False, relaxed=False,
+                 **kwds):
+        self.use_defaults = use_defaults
+        self.relaxed = relaxed
         super(GenericHandler, self).__init__(**kwds)
+        self.checksum = self._norm_checksum(checksum)
 
-    #XXX: support a subclass-specified _norm_checksum method
-    #     to normalize for the purposes of verify()?
-    #     currently the code cost seems smaller to just have classes override verify.
-
-    @classmethod
-    def norm_checksum(cls, checksum, strict=False):
-        "validates checksum keyword against class requirements, returns normalized version of checksum"
+    def _norm_checksum(self, checksum):
+        """validates checksum keyword against class requirements,
+        returns normalized version of checksum.
+        """
+        # NOTE: this code assumes checksum should be a unicode string.
+        # For classes where the checksum is raw bytes, the HasRawChecksum
+        # mixin overrides this method with a more appropriate one.
         if checksum is None:
-            if strict:
-                raise ValueError("checksum not specified")
             return None
+
+        # normalize to unicode
         if isinstance(checksum, bytes):
             checksum = checksum.decode('ascii')
-        cc = cls.checksum_size
+
+        # check size
+        cc = self.checksum_size
         if cc and len(checksum) != cc:
-            raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
-        cs = cls.checksum_chars
-        if cs and any(c not in cs for c in checksum):
-            raise ValueError("invalid characters in %s checksum" % (cls.name,))
+            raise ValueError("checksum wrong size (%s checksum must be "
+                             "exactly %d characters" % (self.name, cc))
+
+        # check charset
+        cs = self.checksum_chars
+        if cs:
+            bad = set(checksum)
+            bad.difference_update(cs)
+            if bad:
+                raise ValueError("invalid characters in %s checksum: %r" %
+                                 (self.name, ujoin(sorted(bad))))
+
         return checksum
 
     #=====================================================
@@ -389,8 +422,9 @@ class GenericHandler(object):
     #=====================================================
     @classmethod
     def identify(cls, hash):
-        #NOTE: subclasses may wish to use faster / simpler identify,
-        # and raise value errors only when an invalid (but identifiable) string is parsed
+        # NOTE: subclasses may wish to use faster / simpler identify,
+        # and raise value errors only when an invalid (but identifiable)
+        # string is parsed
         if not hash:
             return False
         ident = cls.ident
@@ -401,8 +435,9 @@ class GenericHandler(object):
                 ident = ident.encode('ascii')
             return hash.startswith(ident)
         else:
-            #don't have that, so fall back to trying to parse hash
-            #(inefficient for these purposes)
+            # don't have known ident prefix; so as fallback, try to parse hash
+            # to trying to parse hash and see if we succeed.
+            # (inefficient, but works for most cases)
             try:
                 cls.from_string(hash)
                 return True
@@ -437,7 +472,8 @@ class GenericHandler(object):
         #
         #      withchk=True -- if false, omit checksum portion of hash
         #
-        raise NotImplementedError("%s must implement from_string()" % (type(self),))
+        raise NotImplementedError("%s must implement from_string()" %
+                                  (self.__class__,))
 
     ##def to_config_string(self):
     ##    "helper for generating configuration string (ignoring hash)"
@@ -456,38 +492,41 @@ class GenericHandler(object):
     #=========================================================
     @classmethod
     def genconfig(cls, **settings):
-        return cls(**settings).to_string()
+        return cls(use_defaults=True, **settings).to_string()
 
     @classmethod
     def genhash(cls, secret, config):
         self = cls.from_string(config)
-        self.checksum = self.calc_checksum(secret)
+        self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
-    def calc_checksum(self, secret): #pragma: no cover
-        "given secret; calcuate and return encoded checksum portion of hash string, taking config from object state"
-        raise NotImplementedError("%s must implement calc_checksum()" % (self.__class__,))
+    def _calc_checksum(self, secret): #pragma: no cover
+        """given secret; calcuate and return encoded checksum portion of hash
+        string, taking config from object state
+        """
+        raise NotImplementedError("%s must implement _calc_checksum()" %
+                                  (self.__class__,))
 
     #=========================================================
     #'application' interface (default implementation)
     #=========================================================
     @classmethod
     def encrypt(cls, secret, **settings):
-        self = cls(**settings)
-        self.checksum = self.calc_checksum(secret)
+        self = cls(use_defaults=True, **settings)
+        self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
     @classmethod
     def verify(cls, secret, hash):
         #NOTE: classes with multiple checksum encodings (rare)
-        # may wish to either override this, or override norm_checksum
+        # may wish to either override this, or override _norm_checksum
         # to normalize any checksums provided by from_string()
         self = cls.from_string(hash)
         chk = self.checksum
         if chk is None:
             raise ValueError("expected %s hash, got %s config string instead" %
                              (cls.name, cls.name))
-        return consteq(self.calc_checksum(secret), chk)
+        return consteq(self._calc_checksum(secret), chk)
 
     #=========================================================
     #eoc
@@ -506,18 +545,17 @@ class HasRawChecksum(GenericHandler):
 
         document this class's usage
     """
+    # NOTE: GenericHandler.checksum_chars is ignored by this implementation.
 
-    checksum_chars = None
-
-    @classmethod
-    def norm_checksum(cls, checksum, strict=False):
+    def _norm_checksum(self, checksum):
         if checksum is None:
             return None
         if isinstance(checksum, unicode):
             raise TypeError("checksum must be specified as bytes")
-        cc = cls.checksum_size
+        cc = self.checksum_size
         if cc and len(checksum) != cc:
-            raise ValueError("%s checksum must be %d characters" % (cls.name, cc))
+            raise ValueError("checksum wrong size (%s checksum must be "
+                             "exactly %d characters" % (self.name, cc))
         return checksum
 
 class HasStubChecksum(GenericHandler):
@@ -560,13 +598,13 @@ class HasStubChecksum(GenericHandler):
 ##            self = cls()
 ##        else:
 ##            self = cls.from_string(config) #just to validate the input
-##        self.checksum = self.calc_checksum(secret)
+##        self.checksum = self._calc_checksum(secret)
 ##        return self.to_string()
 ##
 ##    @classmethod
 ##    def encrypt(cls, secret):
 ##        self = cls()
-##        self.checksum = self.calc_checksum(secret)
+##        self.checksum = self._calc_checksum(secret)
 ##        return self.to_string()
 
 class HasManyIdents(GenericHandler):
@@ -605,29 +643,29 @@ class HasManyIdents(GenericHandler):
     #=========================================================
     #init
     #=========================================================
-    def __init__(self, ident=None, strict=False, **kwds):
-        self.ident = self.norm_ident(ident, strict=strict)
-        super(HasManyIdents, self).__init__(strict=strict, **kwds)
+    def __init__(self, ident=None, **kwds):
+        super(HasManyIdents, self).__init__(**kwds)
+        self.ident = self._norm_ident(ident)
 
-    @classmethod
-    def norm_ident(cls, ident, strict=False):
-        #fill in default identifier
-        if not ident:
-            if strict:
-                raise ValueError("no ident specified")
-            return cls.default_ident
+    def _norm_ident(self, ident):
+        # fill in default identifier
+        if ident is None:
+            if not self.use_defaults:
+                raise TypeError("no ident specified")
+            ident = self.default_ident
+            assert ident is not None, "class must define default_ident"
 
-        #handle unicode
+        # handle unicode
         if isinstance(ident, bytes):
             ident = ident.decode('ascii')
 
-        #check if identifier is valid
-        iv = cls.ident_values
+        # check if identifier is valid
+        iv = self.ident_values
         if ident in iv:
             return ident
 
-        #check if it's an alias
-        ia = cls.ident_aliases
+        # resolve aliases, and recheck against ident_values
+        ia = self.ident_aliases
         if ia:
             try:
                 value = ia[ident]
@@ -637,7 +675,7 @@ class HasManyIdents(GenericHandler):
                 if value in iv:
                     return value
 
-        #failure!
+        # failure!
         raise ValueError("invalid ident: %r" % (ident,))
 
     #=========================================================
@@ -662,102 +700,95 @@ class HasSalt(GenericHandler):
     """mixin for validating salts.
 
     This :class:`GenericHandler` mixin adds a ``salt`` keyword to the class constuctor;
-    any value provided is passed through the :meth:`norm_salt` method,
+    any value provided is passed through the :meth:`_norm_salt` method,
     which takes care of validating salt length and content,
     as well as generating new salts if one it not provided.
 
-    :param salt: optional salt string
-    :param salt_size: optional size of salt (only used if no salt provided); defaults to :attr:`default_salt_size`.
-    :param strict: if ``True``, requires a valid salt be provided; otherwise is tolerant of correctable errors (the default).
+    :param salt:
+        optional salt string
+
+    :param salt_size:
+        optional size of salt (only used if no salt provided);
+        defaults to :attr:`default_salt_size`.
 
     Class Attributes
     ================
-    In order for :meth:`!norm_salt` to do it's job, the following
-    attributes must be provided by the handler subclass:
+    In order for :meth:`!_norm_salt` to do it's job, the following
+    attributes should be provided by the handler subclass:
 
     .. attribute:: min_salt_size
 
-        [required]
         The minimum number of characters allowed in a salt string.
-        An :exc:`ValueError` will be throw if the salt is too small.
+        An :exc:`ValueError` will be throw if the provided salt is too small.
+        Defaults to ``None``, for no minimum.
 
     .. attribute:: max_salt_size
 
-        [required]
         The maximum number of characters allowed in a salt string.
-        When ``strict=True`` (such as when parsing a hash),
-        an :exc:`ValueError` will be throw if the salt is too large.
-        WHen ``strict=False`` (such as when parsing user-provided values),
-        the salt will be silently trimmed to this length if it's too long.
+        By default an :exc:`ValueError` will be throw if the provided salt is
+        too large; but if ``relaxed=True``, it will be clipped and a warning
+        issued instead. Defaults to ``None``, for no maximum.
 
     .. attribute:: default_salt_size
 
-        [optional]
+        [required]
         If no salt is provided, this should specify the size of the salt
-        that will be generated by :meth:`generate_salt`.
-        If this is not specified, it will default to :attr:`max_salt_size`.
+        that will be generated by :meth:`_generate_salt`. By default
+        this will fall back to :attr:`max_salt_size`.
 
     .. attribute:: salt_chars
 
-        [required]
-        A string containing all the characters which are allowed in the salt string.
-        An :exc:`ValueError` will be throw if any other characters are encountered.
-        May be set to ``None`` to skip this check (but see in :attr:`default_salt_chars`).
+        A string containing all the characters which are allowed in the salt
+        string. An :exc:`ValueError` will be throw if any other characters
+        are encountered. May be set to ``None`` to skip this check (but see
+        in :attr:`default_salt_chars`).
 
     .. attribute:: default_salt_chars
 
-        [optional]
+        [required]
         This attribute controls the set of characters use to generate
         *new* salt strings. By default, it mirrors :attr:`salt_chars`.
         If :attr:`!salt_chars` is ``None``, this attribute must be specified
         in order to generate new salts. Aside from that purpose,
         the main use of this attribute is for hashes which wish to generate
-        salts from a restricted subset of :attr:`!salt_chars`; such as accepting all characters,
-        but only using a-z.
+        salts from a restricted subset of :attr:`!salt_chars`; such as
+        accepting all characters, but only using a-z.
 
     Instance Attributes
     ===================
     .. attribute:: salt
 
         This instance attribute will be filled in with the salt provided
-        to the constructor (as adapted by :meth:`norm_salt`)
+        to the constructor (as adapted by :meth:`_norm_salt`)
 
-    Class Methods
-    =============
-    .. automethod:: norm_salt
-    .. automethod:: generate_salt
+    Subclassable Methods
+    ====================
+    .. automethod:: _norm_salt
+    .. automethod:: _generate_salt
     """
-    #TODO: split out "HasRawSalt" mixin for classes where salt should be provided as raw bytes.
-    #       also might need a "HasRawChecksum" to accompany it.
     #XXX: allow providing raw salt to this class, and encoding it?
 
     #=========================================================
     #class attrs
     #=========================================================
-    #NOTE: min/max/default_salt_chars is deprecated, use min/max/default_salt_size instead
 
-    #: required - minimum size of salt (error if too small)
     min_salt_size = None
-
-    #: required - maximum size of salt (truncated if too large)
     max_salt_size = None
-
-    @classproperty
-    def default_salt_size(cls):
-        "default salt chars (defaults to max_salt_size if not specified by subclass)"
-        return cls.max_salt_size
-
-    #: optional - set of characters allowed in salt string.
     salt_chars = None
 
     @classproperty
+    def default_salt_size(cls):
+        "default salt size (defaults to *max_salt_size*)"
+        return cls.max_salt_size
+
+    @classproperty
     def default_salt_chars(cls):
-        "required - set of characters used to generate *new* salt strings (defaults to salt_chars)"
+        "charset used to generate new salt strings (defaults to *salt_chars*)"
         return cls.salt_chars
 
-    #: helper for HasRawSalt, shouldn't be used publically
+    # private helpers for HasRawSalt, shouldn't be used by subclasses
     _salt_is_bytes = False
-    _salt_unit = "char"
+    _salt_unit = "chars"
 
     #=========================================================
     #instance attrs
@@ -767,90 +798,96 @@ class HasSalt(GenericHandler):
     #=========================================================
     #init
     #=========================================================
-    def __init__(self, salt=None, salt_size=None, strict=False, **kwds):
-        self.salt = self.norm_salt(salt, salt_size=salt_size, strict=strict)
-        super(HasSalt, self).__init__(strict=strict, **kwds)
+    def __init__(self, salt=None, salt_size=None, **kwds):
+        super(HasSalt, self).__init__(**kwds)
+        self.salt = self._norm_salt(salt, salt_size=salt_size)
 
-    @classmethod
-    def generate_salt(cls, salt_size=None, strict=False):
-        """helper method for norm_salt(); generates a new random salt string.
-
-        :param salt_size: optional salt size, falls back to :attr:`default_salt_size`.
-        :param strict: if too-large salt should throw error, or merely be trimmed.
-        """
-        if salt_size is None:
-            salt_size = cls.default_salt_size
-        else:
-            mn = cls.min_salt_size
-            if mn and salt_size < mn:
-                raise ValueError("%s salt string must be at least %d characters" % (cls.name, mn))
-            mx = cls.max_salt_size
-            if mx and salt_size > mx:
-                if strict:
-                    raise ValueError("%s salt string must be at most %d characters" % (cls.name, mx))
-                salt_size = mx
-        if cls._salt_is_bytes:
-            if cls.salt_chars != ALL_BYTE_VALUES:
-                raise NotImplementedError("raw salts w/ only certain bytes not supported")
-            return getrandbytes(rng, salt_size)
-        else:
-            return getrandstr(rng, cls.default_salt_chars, salt_size)
-
-    @classmethod
-    def norm_salt(cls, salt, salt_size=None, strict=False):
+    def _norm_salt(self, salt, salt_size=None):
         """helper to normalize & validate user-provided salt string
 
+        If no salt provided, a random salt is generated
+        using :attr:`default_salt_size` and :attr:`default_salt_chars`.
+
         :arg salt: salt string or ``None``
-        :param strict: enable strict checking (see below); disabled by default
+        :param salt_size: optionally specified size of autogenerated salt
+
+        :raises TypeError:
+            If salt not provided and ``use_defaults=False``.
 
         :raises ValueError:
 
-            * if ``strict=True`` and no salt is provided
-            * if ``strict=True`` and salt contains greater than :attr:`max_salt_size` characters
             * if salt contains chars that aren't in :attr:`salt_chars`.
             * if salt contains less than :attr:`min_salt_size` characters.
-
-        if no salt provided and ``strict=False``, a random salt is generated
-        using :attr:`default_salt_size` and :attr:`default_salt_chars`.
-        if the salt is longer than :attr:`max_salt_size` and ``strict=False``,
-        the salt string is clipped to :attr:`max_salt_size`.
+            * if ``relaxed=False`` and salt has more than :attr:`max_salt_size`
+              characters (if ``relaxed=True``, the salt is truncated
+              and a warning is issued instead).
 
         :returns:
             normalized or generated salt
         """
-        #generate new salt if none provided
+        # generate new salt if none provided
         if salt is None:
-            if strict:
-                raise ValueError("no salt specified")
-            #XXX: should we run generated salts through norm_salt? probably.
-            return cls.generate_salt(salt_size=salt_size, strict=strict)
+            if not self.use_defaults:
+                raise TypeError("no salt specified")
+            if salt_size is None:
+                salt_size = self.default_salt_size
+            salt = self._generate_salt(salt_size)
 
-        #validate input charset
-        if cls._salt_is_bytes:
-            if isinstance(salt, unicode):
+        # check type
+        if self._salt_is_bytes:
+            if not isinstance(salt, bytes):
                 raise TypeError("salt must be specified as bytes")
         else:
-            if isinstance(salt, bytes):
-                salt = salt.decode("ascii")
-            sc = cls.salt_chars
+            if not isinstance(salt, unicode):
+                if isinstance(salt, bytes):
+                    salt = salt.decode("ascii")
+                else:
+                    raise TypeError("salt must be specified as unicode")
+
+            # check charset
+            sc = self.salt_chars
             if sc is not None:
-                for c in salt:
-                    if c not in sc:
-                        raise ValueError("invalid character in %s salt: %r"  % (cls.name, c))
+                bad = set(salt)
+                bad.difference_update(sc)
+                if bad:
+                    raise ValueError("invalid characters in %s salt: %r" %
+                                     (self.name, ujoin(sorted(bad))))
 
-        #check min size
-        mn = cls.min_salt_size
+        # check min size
+        mn = self.min_salt_size
         if mn and len(salt) < mn:
-            raise ValueError("%s salt string must be at least %d %ss" % (cls.name, mn, cls._salt_unit))
+            msg = "salt too small (%s requires %s %d %s)" % (self.name,
+                        "exactly" if mn == self.max_salt_size else ">=", mn,
+                        self._salt_unit)
+            raise ValueError(msg)
 
-        #check max size
-        mx = cls.max_salt_size
-        if mx is not None and len(salt) > mx:
-            if strict:
-                raise ValueError("%s salt string must be at most %d %ss" % (cls.name, mx, cls._salt_unit))
-            salt = salt[:mx]
+        # check max size
+        mx = self.max_salt_size
+        if mx and len(salt) > mx:
+            msg = "salt too large (%s requires %s %d %s)" % (self.name,
+                        "exactly" if mx == mn else "<=", mx, self._salt_unit)
+            if self.relaxed:
+                warn(msg, PasslibHashWarning)
+                salt = self._truncate_salt(salt, mx)
+            else:
+                raise ValueError(msg)
 
         return salt
+
+    @staticmethod
+    def _truncate_salt(salt, mx):
+        # NOTE: some hashes (e.g. bcrypt) has structure within their
+        # salt string. this provides a method to overide to perform
+        # the truncation properly
+        return salt[:mx]
+
+    def _generate_salt(self, salt_size):
+        """helper method for _norm_salt(); generates a new random salt string.
+
+        :arg salt_size: salt size to generate
+        """
+        return getrandstr(rng, self.default_salt_chars, salt_size)
+
     #=========================================================
     #eoc
     #=========================================================
@@ -871,47 +908,42 @@ class HasRawSalt(HasSalt):
     #      using private _salt_is_bytes flag.
     #      this arrangement may be changed in the future.
     _salt_is_bytes = True
-    _salt_unit = "byte"
+    _salt_unit = "bytes"
+
+    def _generate_salt(self, salt_size):
+        assert self.salt_chars in [None, ALL_BYTE_VALUES]
+        return getrandbytes(rng, salt_size)
 
 class HasRounds(GenericHandler):
     """mixin for validating rounds parameter
 
-    This :class:`GenericHandler` mixin adds a ``rounds`` keyword to the class constuctor;
-    any value provided is passed through the :meth:`norm_rounds` method,
-    which takes care of validating the number of rounds.
+    This :class:`GenericHandler` mixin adds a ``rounds`` keyword to the class
+    constuctor; any value provided is passed through the :meth:`_norm_rounds`
+    method, which takes care of validating the number of rounds.
 
     :param rounds: optional number of rounds hash should use
-    :param strict: if ``True``, requires a valid rounds vlaue be provided; otherwise is tolerant of correctable errors (the default).
 
     Class Attributes
     ================
-    In order for :meth:`!norm_rounds` to do it's job, the following
+    In order for :meth:`!_norm_rounds` to do it's job, the following
     attributes must be provided by the handler subclass:
 
     .. attribute:: min_rounds
 
-        [optional]
-        The minimum number of rounds allowed.
-        An :exc:`ValueError` will be thrown if the rounds value is too small.
-        When ``strict=True`` (such as when parsing a hash),
-        an :exc:`ValueError` will be throw if the rounds value is too small.
-        WHen ``strict=False`` (such as when parsing user-provided values),
-        the rounds value will be silently clipped if it's too small.
-        Defaults to ``0``.
+        The minimum number of rounds allowed. A :exc:`ValueError` will be
+        thrown if the rounds value is too small. Defaults to ``0``.
 
     .. attribute:: max_rounds
 
-        [required]
-        The maximum number of rounds allowed.
-        When ``strict=True`` (such as when parsing a hash),
-        an :exc:`ValueError` will be throw if the rounds value is too large.
-        WHen ``strict=False`` (such as when parsing user-provided values),
-        the rounds value will be silently clipped if it's too large.
+        The maximum number of rounds allowed. A :exc:`ValueError` will be
+        thrown if the rounds value is larger than this. Defaults to ``None``
+        which indicates no limit to the rounds value.
 
     .. attribute:: default_rounds
 
-        [required]
         If no rounds value is provided to constructor, this value will be used.
+        If this is not specified, a rounds value *must* be specified by the
+        application.
 
     .. attribute:: rounds_cost
 
@@ -921,35 +953,24 @@ class HasRounds(GenericHandler):
         (the default) or ``"log2"``, depending on how the rounds value relates
         to the actual amount of time that will be required.
 
-    .. attribute:: _strict_rounds_bounds
-
-        [optional]
-        If the handler subclass wishes to *always* throw an error if a rounds
-        value is provided that's out of bounds (such as when it's provided by the user),
-        set this private attribute to ``True``.
-        The default policy in such cases is to silently clip the rounds value
-        to within :attr:`min_rounds` and :attr:`max_rounds`;
-        while issuing a :exc:`UserWarning`.
-
     Instance Attributes
     ===================
     .. attribute:: rounds
 
         This instance attribute will be filled in with the rounds value provided
-        to the constructor (as adapted by :meth:`norm_rounds`)
+        to the constructor (as adapted by :meth:`_norm_rounds`)
 
-    Class Methods
-    =============
-    .. automethod:: norm_rounds
+    Subclassable Methods
+    ====================
+    .. automethod:: _norm_rounds
     """
     #=========================================================
     #class attrs
     #=========================================================
     min_rounds = 0
-    max_rounds = None #required by ExtendedHandler.norm_rounds()
-    default_rounds = None #if not specified, ExtendedHandler.norm_rounds() will require explicit rounds value every time
-    rounds_cost = "linear" #common case
-    _strict_rounds_bounds = False #if true, always raises error if specified rounds values out of range - required by spec for some hashes
+    max_rounds = None
+    defaults_rounds = None
+    rounds_cost = "linear" # default to the common case
 
     #=========================================================
     #instance attrs
@@ -959,69 +980,75 @@ class HasRounds(GenericHandler):
     #=========================================================
     #init
     #=========================================================
-    def __init__(self, rounds=None, strict=False, **kwds):
-        self.rounds = self.norm_rounds(rounds, strict=strict)
-        super(HasRounds, self).__init__(strict=strict, **kwds)
+    def __init__(self, rounds=None, **kwds):
+        super(HasRounds, self).__init__(**kwds)
+        self.rounds = self._norm_rounds(rounds)
 
-    @classmethod
-    def norm_rounds(cls, rounds, strict=False):
+    def _norm_rounds(self, rounds):
         """helper routine for normalizing rounds
 
-        :arg rounds: rounds integer or ``None``
-        :param strict: enable strict checking (see below); disabled by default
+        :arg rounds: ``None``, or integer cost parameter.
+
+
+        :raises TypeError:
+            * if ``use_defaults=False`` and no rounds is specified
+            * if rounds is not an integer.
 
         :raises ValueError:
 
-            * if rounds is ``None`` and ``strict=True``
-            * if rounds is ``None`` and no :attr:`default_rounds` are specified by class.
-            * if rounds is outside bounds of :attr:`min_rounds` and :attr:`max_rounds`, and ``strict=True``.
-
-        if rounds are not specified and ``strict=False``, uses :attr:`default_rounds`.
-        if rounds are outside bounds and ``strict=False``, rounds are clipped as appropriate,
-        but a warning is issued.
+            * if rounds is ``None`` and class does not specify a value for
+              :attr:`default_rounds`.
+            * if ``relaxed=False`` and rounds is outside bounds of
+              :attr:`min_rounds` and :attr:`max_rounds` (if ``relaxed=True``,
+              the rounds value will be clamped, and a warning issued).
 
         :returns:
             normalized rounds value
         """
-        #provide default if rounds not explicitly set
+        # fill in default
         if rounds is None:
-            if strict:
-                raise ValueError("no rounds specified")
-            rounds = cls.default_rounds
+            if not self.use_defaults:
+                raise TypeError("no rounds specified")
+            rounds = self.default_rounds
             if rounds is None:
-                raise ValueError("%s rounds value must be specified explicitly" % (cls.name,))
+                raise TypeError("%s rounds value must be specified explicitly"
+                                 % (self.name,))
 
-        #if class requests, always throw error instead of clipping
-        if cls._strict_rounds_bounds:
-            strict = True
+        # check type
+        if not isinstance(rounds, int):
+            raise TypeError("rounds must be an integer")
 
-        mn = cls.min_rounds
+        # check bounds
+        mn = self.min_rounds
         if rounds < mn:
-            if strict:
-                raise ValueError("%s rounds must be >= %d" % (cls.name, mn))
-            warn("%s does not allow less than %d rounds: %d" %
-                 (cls.name, mn, rounds), PasslibHandlerWarning)
-            rounds = mn
+            msg = "rounds too low (%s requires >= %d rounds)"  % (self.name, mn)
+            if self.relaxed:
+                warn(msg, PasslibHashWarning)
+                rounds = mn
+            else:
+                raise ValueError(msg)
 
-        mx = cls.max_rounds
+        mx = self.max_rounds
         if mx and rounds > mx:
-            if strict:
-                raise ValueError("%s rounds must be <= %d" % (cls.name, mx))
-            warn("%s does not allow more than %d rounds: %d" %
-                 (cls.name, mx, rounds), PasslibHandlerWarning)
-            rounds = mx
+            msg = "rounds too high (%s requires <= %d rounds)"  % (self.name, mx)
+            if self.relaxed:
+                warn(msg, PasslibHashWarning)
+                rounds = mx
+            else:
+                raise ValueError(msg)
 
         return rounds
+
     #=========================================================
     #eoc
     #=========================================================
 
 def _clear_backend(cls):
     "restore HasManyBackend subclass to unloaded state - used by unittests"
-    assert isinstance(cls, HasManyBackends)
+    assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
     if cls._backend:
         del cls._backend
-        del cls.calc_checksum
+        del cls._calc_checksum
 
 class HasManyBackends(GenericHandler):
     """GenericHandler mixin which provides selecting from multiple backends.
@@ -1032,7 +1059,7 @@ class HasManyBackends(GenericHandler):
 
     For hashes which need to select from multiple backends,
     depending on the host environment, this class
-    offers a way to specify alternate :meth:`calc_checksum` methods,
+    offers a way to specify alternate :meth:`_calc_checksum` methods,
     and will dynamically chose the best one at runtime.
 
     Backend Methods
@@ -1063,7 +1090,7 @@ class HasManyBackends(GenericHandler):
 
     .. classmethod:: _calc_checksum_{name}
 
-        private class method that should implement :meth:`calc_checksum`
+        private class method that should implement :meth:`_calc_checksum`
         for a given backend. it will only be called if the backend has
         been selected by :meth:`set_backend`. One of these should be provided
         by the subclass for each backend listed in :attr:`backends`.
@@ -1127,9 +1154,9 @@ class HasManyBackends(GenericHandler):
 
     @classmethod
     def set_backend(cls, name="any"):
-        """load specified backend to be used for future calc_checksum() calls
+        """load specified backend to be used for future _calc_checksum() calls
 
-        this method replaces :meth:`calc_checksum` with a method
+        this method replaces :meth:`_calc_checksum` with a method
         which uses the specified backend.
 
         :arg name:
@@ -1172,18 +1199,19 @@ class HasManyBackends(GenericHandler):
                 raise MissingBackendError(cls._no_backends_msg())
         elif not cls.has_backend(name):
             raise MissingBackendError("%s backend not available: %r" % (cls.name, name))
-        cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
+        cls._calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
         return name
 
-    def calc_checksum(self, secret):
-        "stub for calc_checksum(), default backend will be selected first time stub is called"
-        #backend not loaded - run detection and call replacement
+    def _calc_checksum(self, secret):
+        "stub for _calc_checksum(), default backend will be selected first time stub is called"
+        # if we got here, no backend has been loaded; so load default backend
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
         assert self._backend, "set_backend() failed to load a default backend"
-        #set_backend() should have replaced this method, so call it again.
-        return self.calc_checksum(secret)
+
+        # this should now invoke the backend-specific version, so call it again.
+        return self._calc_checksum(secret)
 
 #=========================================================
 #wrappers
@@ -1273,6 +1301,7 @@ class PrefixWrapper(object):
         return value
 
     _ident_values = False
+
     @property
     def ident_values(self):
         value = self._ident_values

@@ -307,18 +307,22 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         if rounds and rounds.startswith(u("0")):
             raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
         return cls(
-            implicit_rounds = not rounds,
+            implicit_rounds=not rounds,
             rounds=int(rounds) if rounds else 5000,
             salt=salt1 or salt2,
             checksum=chk,
-            strict=bool(chk),
+            relaxed=not chk, # NOTE: relaxing parsing for config strings,
+                             # since SHA2-Crypt specification treats them this
+                             # way (at least for the rounds value)
         )
 
     def to_string(self):
-        if self.rounds == 5000 and self.implicit_rounds:
-            hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
+        chk = self.checksum or u('')
+        rounds = self.rounds
+        if rounds == 5000 and self.implicit_rounds:
+            hash = u("$5$%s$%s") % (self.salt, chk)
         else:
-            hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
+            hash = u("$5$rounds=%d$%s$%s") % (rounds, self.salt, chk)
         return uascii_to_str(hash)
 
     #=========================================================
@@ -463,7 +467,9 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             rounds=int(rounds) if rounds else 5000,
             salt=salt1 or salt2,
             checksum=chk,
-            strict=bool(chk),
+            relaxed=not chk, # NOTE: relaxing parsing for config strings,
+                             # since SHA2-Crypt specification treats them this
+                             # way (at least for the rounds value)
         )
 
     def to_string(self):

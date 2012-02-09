@@ -10,6 +10,7 @@ import re
 import os
 import sys
 import tempfile
+from passlib.exc import PasslibHashWarning
 from passlib.utils.compat import PY2, PY27, PY_MIN_32, PY3
 
 try:
@@ -870,8 +871,11 @@ class HandlerCase(TestCase):
             #make sure salt is truncated exactly where it should be.
             salt = cc * mx
             c1 = self.do_genconfig(salt=salt)
-            c2 = self.do_genconfig(salt=salt + cc)
-            self.assertEqual(c1,c2)
+            self.assertRaises(ValueError, self.do_genconfig, salt=salt + cc)
+            if _has_relaxed_setting(handler):
+                with catch_warnings(record=True): # issues passlibhandlerwarning
+                    c2 = self.do_genconfig(salt=salt + cc, relaxed=True)
+                self.assertEqual(c1,c2)
 
             #if min_salt supports it, check smaller than mx is NOT truncated
             if handler.min_salt_size < mx:
@@ -908,17 +912,17 @@ class HandlerCase(TestCase):
     #=========================================================
     #genhash()
     #=========================================================
-    filter_known_config_warnings = None
+    filter_config_warnings = False
 
     def test_40_genhash_config(self):
         "test genhash() against known config strings"
         if not self.known_correct_configs:
             raise self.skipTest("no config strings provided")
-        fk = self.filter_known_config_warnings
+        fk = self.filter_config_warnings
         if fk:
             ctx = catch_warnings()
             ctx.__enter__()
-            fk()
+            warnings.filterwarnings("ignore", category=PasslibHashWarning)
         for config, secret, hash in self.known_correct_configs:
             result = self.do_genhash(secret, config)
             self.assertEqual(result, hash, "config=%r,secret=%r:" % (config,secret))
@@ -1000,8 +1004,9 @@ class HandlerCase(TestCase):
         # use crypt.crypt() to check handlers that have an 'os_crypt' backend.
         if _has_possible_crypt_support(handler):
             possible = True
-            # NOTE: disabling when self._orig_crypt set, means has_backend
-            # will return a false positive.
+            # NOTE: disabling this when self._orig_crypt is set, since that flag
+            # indicates the current testcase has temporarily hacked os_crypt so
+            # that has_backend() will return a false positive.
             if not self._orig_crypt and handler.has_backend("os_crypt"):
                 def check_crypt(secret, hash):
                     from crypt import crypt
@@ -1018,6 +1023,8 @@ class HandlerCase(TestCase):
         # generate a single hash, and verify it using all helpers.
         secret = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99').decode("utf-8")
         hash = self.do_encrypt(secret)
+        if PY2 and isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         for helper in helpers:
             helper(secret, hash)
 
@@ -1111,6 +1118,12 @@ def _has_possible_crypt_support(handler):
     return hasattr(handler, "backends") and \
         'os_crypt' in handler.backends and \
         not hasattr(handler, "orig_prefix") # ignore wrapper classes
+
+def _has_relaxed_setting(handler):
+    # FIXME: I've been lazy, should probably just add 'relaxed' kwd
+    # to all handlers that derive from GenericHandler
+    return 'relaxed' in handler.setting_kwds or issubclass(handler,
+                                                           uh.GenericHandler)
 
 def create_backend_case(base, name, module="passlib.tests.test_handlers"):
     "create a test case for specific backend of a multi-backend handler"

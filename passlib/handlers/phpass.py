@@ -68,7 +68,6 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     min_rounds = 7
     max_rounds = 30
     rounds_cost = "log2"
-    _strict_rounds_bounds = True
 
     #--HasManyIdents--
     default_ident = u("$P$")
@@ -103,7 +102,6 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             rounds=h64.decode_int6(rounds.encode("ascii")),
             salt=salt,
             checksum=chk or None,
-            strict=bool(chk),
         )
 
     def to_string(self):
@@ -116,7 +114,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

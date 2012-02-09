@@ -42,7 +42,7 @@ This class can be used directly as follows::
 
 Interface
 =========
-.. autoclass:: sha512_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: sha512_crypt()
 
 Format & Algorithm
 ==================

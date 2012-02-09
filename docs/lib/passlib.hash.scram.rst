@@ -94,7 +94,7 @@ for SCRAM-specific actions::
 
 Interface
 =========
-.. autoclass:: scram(algs=None, salt=None, rounds=None, strict=False)
+.. autoclass:: scram()
 
 .. rst-class:: html-toggle
 

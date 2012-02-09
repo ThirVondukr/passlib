@@ -87,7 +87,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             rounds=int(rounds),
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self):

@@ -100,7 +100,8 @@ version = csp.get_version(release)
 # directories to ignore when looking for source files.
 exclude_patterns = [
     #disabling documentation of this until module is more mature.
-    "lib/passlib.ext.django.rst"
+    "lib/passlib.ext.django.rst",
+    "lib/passlib.utils.compat.rst",
 ]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
