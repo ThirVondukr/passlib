@@ -317,10 +317,12 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
         )
 
     def to_string(self):
-        if self.rounds == 5000 and self.implicit_rounds:
-            hash = u("$5$%s$%s") % (self.salt, self.checksum or u(''))
+        chk = self.checksum or u('')
+        rounds = self.rounds
+        if rounds == 5000 and self.implicit_rounds:
+            hash = u("$5$%s$%s") % (self.salt, chk)
         else:
-            hash = u("$5$rounds=%d$%s$%s") % (self.rounds, self.salt, self.checksum or u(''))
+            hash = u("$5$rounds=%d$%s$%s") % (rounds, self.salt, chk)
         return uascii_to_str(hash)
 
     #=========================================================

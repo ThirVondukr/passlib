@@ -1043,7 +1043,7 @@ class HasRounds(GenericHandler):
 
 def _clear_backend(cls):
     "restore HasManyBackend subclass to unloaded state - used by unittests"
-    assert isinstance(cls, HasManyBackends)
+    assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
     if cls._backend:
         del cls._backend
         del cls.calc_checksum

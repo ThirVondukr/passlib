@@ -912,17 +912,17 @@ class HandlerCase(TestCase):
     #=========================================================
     #genhash()
     #=========================================================
-    filter_known_config_warnings = None
+    filter_config_warnings = False
 
     def test_40_genhash_config(self):
         "test genhash() against known config strings"
         if not self.known_correct_configs:
             raise self.skipTest("no config strings provided")
-        fk = self.filter_known_config_warnings
+        fk = self.filter_config_warnings
         if fk:
             ctx = catch_warnings()
             ctx.__enter__()
-            fk()
+            warnings.filterwarnings("ignore", category=PasslibHandlerWarning)
         for config, secret, hash in self.known_correct_configs:
             result = self.do_genhash(secret, config)
             self.assertEqual(result, hash, "config=%r,secret=%r:" % (config,secret))
@@ -1022,6 +1022,8 @@ class HandlerCase(TestCase):
         # generate a single hash, and verify it using all helpers.
         secret = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99').decode("utf-8")
         hash = self.do_encrypt(secret)
+        if PY2 and isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         for helper in helpers:
             helper(secret, hash)
 

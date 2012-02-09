@@ -1373,8 +1373,7 @@ class _SHA256CryptTest(HandlerCase):
           "2bIC" ),
     ]
 
-    def filter_known_config_warnings(self):
-        warnings.filterwarnings("ignore", "sha256_crypt does not allow less than 1000 rounds: 10", UserWarning)
+    filter_config_warnings = True # rounds too low, salt too small
 
     def test_raw(self):
         #run some tests on raw backend func to ensure it works right
@@ -1447,8 +1446,7 @@ class _SHA512CryptTest(HandlerCase):
         "hLsPuWGsUSklZt58jaTfF4ZEQpyUNGc0dqbpBYYBaHHrsX." ),
     ]
 
-    def filter_known_config_warnings(self):
-        warnings.filterwarnings("ignore", "sha512_crypt does not allow less than 1000 rounds: 10", UserWarning)
+    filter_config_warnings = True # rounds too low, salt too small
 
 OsCrypt_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "os_crypt")
 Builtin_SHA512CryptTest = create_backend_case(_SHA512CryptTest, "builtin")
