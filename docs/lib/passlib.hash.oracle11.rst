@@ -38,7 +38,7 @@ PassLib provides an oracle11 class, which can be can be used directly as follows
 
 Interface
 =========
-.. autoclass:: oracle11(checksum=None, salt=None, strict=False)
+.. autoclass:: oracle11()
 
 Format & Algorithm
 ==================

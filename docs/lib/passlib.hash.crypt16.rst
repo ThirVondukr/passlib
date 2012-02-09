@@ -25,7 +25,7 @@ This class can be used in exactly the same manner as :class:`~passlib.hash.des_c
 
 Interface
 =========
-.. autoclass:: crypt16(checksum=None, salt=None, strict=False)
+.. autoclass:: crypt16()
 
 Format
 ======

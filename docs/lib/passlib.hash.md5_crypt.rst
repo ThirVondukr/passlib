@@ -33,7 +33,7 @@ PassLib provides an md5_crypt class, which can be can be used directly as follow
 
 Interface
 =========
-.. autoclass:: md5_crypt(checksum=None, salt=None, strict=False)
+.. autoclass:: md5_crypt()
 
 Format
 ======

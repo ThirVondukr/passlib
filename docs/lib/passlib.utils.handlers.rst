@@ -14,6 +14,11 @@
     definitely need to be rewritten for clarity. They are not yet
     organized, and may leave out some important details.
 
+.. note::
+
+    Since this module is primarily a support module used internally
+    by Passlib, it's interface may change slightly between major releases.
+
 Implementing Custom Handlers
 ============================
 All that is required in order to write a custom handler that will work with
@@ -45,7 +50,7 @@ workflow for hashes is some combination of the following:
 
 1. parse hash into constituent parts - performed by :meth:`~GenericHandler.from_string`.
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
-   and the normalization functions such as :meth:`~GenericHandler.norm_checksum` and :meth:`~HasSalt.norm_salt`
+   and the normalization functions such as :meth:`~GenericHandler._norm_checksum` and :meth:`~HasSalt._norm_salt`
    which are provided by it's related mixin classes.
 3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler.calc_checksum`.
 4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
@@ -157,7 +162,7 @@ checking if a handler adheres to the :ref:`password-hash-api`.
 Usage
 -----
 As an example of how to use :class:`!HandlerCase`,
-the following is an annoted version
+the following is an annotated version
 of the unittest for :class:`passlib.hash.des_crypt`::
 
     from passlib.hash import des_crypt

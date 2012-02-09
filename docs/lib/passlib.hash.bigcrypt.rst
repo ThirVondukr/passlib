@@ -20,7 +20,7 @@ This class can be used in exactly the same manner as :class:`~passlib.hash.des_c
 
 Interface
 =========
-.. autoclass:: bigcrypt(checksum=None, salt=None, strict=False)
+.. autoclass:: bigcrypt()
 
 Format
 ======

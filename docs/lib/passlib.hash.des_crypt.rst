@@ -34,7 +34,7 @@ This class can be used directly as follows::
 
 Interface
 =========
-.. autoclass:: des_crypt(checksum=None, salt=None, strict=False)
+.. autoclass:: des_crypt()
 
 Format
 ======

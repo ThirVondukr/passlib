@@ -1004,8 +1004,9 @@ class HandlerCase(TestCase):
         # use crypt.crypt() to check handlers that have an 'os_crypt' backend.
         if _has_possible_crypt_support(handler):
             possible = True
-            # NOTE: disabling when self._orig_crypt set, means has_backend
-            # will return a false positive.
+            # NOTE: disabling this when self._orig_crypt is set, since that flag
+            # indicates the current testcase has temporarily hacked os_crypt so
+            # that has_backend() will return a false positive.
             if not self._orig_crypt and handler.has_backend("os_crypt"):
                 def check_crypt(secret, hash):
                     from crypt import crypt

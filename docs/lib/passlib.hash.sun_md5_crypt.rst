@@ -25,7 +25,7 @@ as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
 
 Interface
 =========
-.. autoclass:: sun_md5_crypt(checksum=None, salt=None, rounds=None, bare_salt=False, strict=False)
+.. autoclass:: sun_md5_crypt()
 
 Format
 ======
