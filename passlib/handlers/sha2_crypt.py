@@ -42,7 +42,7 @@ def extend(source, size_ref):
     else:
         return source*m
 
-def raw_sha_crypt(secret, salt, rounds, hash):
+def _raw_sha_crypt(secret, salt, rounds, hash):
     """perform raw sha crypt
 
     :arg secret: password to encode (if unicode, encoded to utf-8)
@@ -59,6 +59,8 @@ def raw_sha_crypt(secret, salt, rounds, hash):
         raise TypeError("secret must be encoded as bytes")
 
     #validate rounds
+    # XXX: this should be taken care of by handler,
+    # change this to an assertion?
     if rounds < 1000:
         rounds = 1000
     if rounds > 999999999: #pragma: no cover
@@ -152,10 +154,10 @@ def raw_sha_crypt(secret, salt, rounds, hash):
     #return unencoded result, along w/ normalized config values
     return c, salt, rounds
 
-def raw_sha256_crypt(secret, salt, rounds):
+def _raw_sha256_crypt(secret, salt, rounds):
     "perform raw sha256-crypt; returns encoded checksum, normalized salt & rounds"
     #run common crypt routine
-    result, salt, rounds = raw_sha_crypt(secret, salt, rounds, sha256)
+    result, salt, rounds = _raw_sha_crypt(secret, salt, rounds, sha256)
     out = h64.encode_transposed_bytes(result, _256_offsets)
     assert len(out) == 43, "wrong length: %r" % (out,)
     return out, salt, rounds
@@ -174,10 +176,10 @@ _256_offsets = (
     30, 31,
 )
 
-def raw_sha512_crypt(secret, salt, rounds):
+def _raw_sha512_crypt(secret, salt, rounds):
     "perform raw sha512-crypt; returns encoded checksum, normalized salt & rounds"
     #run common crypt routine
-    result, salt, rounds = raw_sha_crypt(secret, salt, rounds, sha512)
+    result, salt, rounds = _raw_sha_crypt(secret, salt, rounds, sha512)
 
     ###encode result
     out = h64.encode_transposed_bytes(result, _512_offsets)
@@ -340,7 +342,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        checksum, salt, rounds = raw_sha256_crypt(secret,
+        checksum, salt, rounds = _raw_sha256_crypt(secret,
                                                   self.salt.encode("ascii"),
                                                   self.rounds)
         assert salt == self.salt.encode("ascii"), \
@@ -498,7 +500,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        checksum, salt, rounds = raw_sha512_crypt(secret,
+        checksum, salt, rounds = _raw_sha512_crypt(secret,
                                                   self.salt.encode("ascii"),
                                                   self.rounds)
         assert salt == self.salt.encode("ascii"), \

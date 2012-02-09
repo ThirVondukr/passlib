@@ -12,7 +12,7 @@ import warnings
 from passlib import hash
 from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
-        enable_option, b, catch_warnings
+        enable_option, b, catch_warnings, UserHandlerMixin
 from passlib.utils.compat import u
 #module
 
@@ -103,22 +103,6 @@ class _BCryptTest(HandlerCase):
                 self.assertEqual(result, hash,
                                  "bcryptor: hash_key(%r,%r):" % (secret, hash))
             yield check_bcryptor
-
-    def test_90_idents(self):
-        "test identifier validation"
-        handler = self.handler
-
-        kwds = dict(checksum='8CIhhFCj15KqqFvo/n.Jatx8dJ92f82',
-                    salt='VlsfIX9.apXuQBr6tego0.',
-                    rounds=12, ident="2a")
-
-        handler(**kwds)
-
-        kwds.update(ident=None)
-        self.assertRaises(TypeError, handler, **kwds)
-
-        kwds.update(use_defaults=True, ident='Q')
-        self.assertRaises(ValueError, handler, **kwds)
 
     #===============================================================
     # see issue 25 - https://code.google.com/p/passlib/issues/detail?id=25
@@ -268,7 +252,8 @@ class BigCryptTest(HandlerCase):
     ]
 
     #omit des_crypt from known other, it looks like bigcrypt
-    known_other_hashes = [row for row in HandlerCase.known_other_hashes if row[0] != "des_crypt"]
+    known_other_hashes = [row for row in HandlerCase.known_other_hashes
+                          if row[0] != "des_crypt"]
 
 #=========================================================
 #bsdi crypt
@@ -312,6 +297,7 @@ class Crypt16Test(HandlerCase):
         ("LOLOAQIC",    "/.FcK3mad6JwYelhbtlysKy6"),
         ("L",           "/.CIu/PzYCkl6elhbtlysKy6"),
         ]
+
 #=========================================================
 #des crypt
 #=========================================================
@@ -644,15 +630,13 @@ class _Md5CryptTest(HandlerCase):
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
         (b('test'), '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
+        (u('s'), '$1$ssssssss$YgmLTApYTv12qgTwBoj8i/'),
         ]
 
     known_malformed_hashes = [
         #bad char in otherwise correct hash
         '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
-
-    def test_raw(self):
-        self.assertEqual(raw_md5_crypt(u('s'),u('s')*16), u('YgmLTApYTv12qgTwBoj8i/'))
 
 OsCrypt_Md5CryptTest = create_backend_case(_Md5CryptTest, "os_crypt")
 Builtin_Md5CryptTest = create_backend_case(_Md5CryptTest, "builtin")
@@ -707,24 +691,12 @@ class NTHashTest(HandlerCase):
         '$3$$7f8fe03093cc84b267b109625f6bbfxb',
     ]
 
-    def test_idents(self):
-        handler = self.handler
-
-        kwds = dict(checksum='7f8fe03093cc84b267b109625f6bbf4b', ident="3")
-        handler(**kwds)
-
-        kwds.update(ident=None)
-        self.assertRaises(TypeError, handler, **kwds)
-
-        kwds.update(use_defaults=True, ident='Q')
-        self.assertRaises(ValueError, handler, **kwds)
-
 #=========================================================
 #oracle 10 & 11
 #=========================================================
 from passlib.handlers.oracle import oracle10, oracle11
 
-class Oracle10Test(HandlerCase):
+class Oracle10Test(UserHandlerMixin, HandlerCase):
     handler = oracle10
 
     known_correct_hashes = [
@@ -741,46 +713,6 @@ class Oracle10Test(HandlerCase):
         #bad 'z' char in otherwise correct hash
         'F894844C34402B6Z',
     ]
-
-    def test_user(self):
-        "check user kwd is required for encrypt/verify"
-        self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
-        self.assertRaises(ValueError, self.handler.encrypt, 'mypass', None)
-        self.assertRaises(TypeError, self.handler.verify, 'mypass', 'CC60FA650C497E52')
-
-    #NOTE: all of the methods below are merely to override
-    # the default test harness in order to insert a default username
-    # when encrypt/verify/etc are called.
-
-    def create_mismatch(self, secret):
-        if isinstance(secret, tuple):
-            secret, user = secret
-            return 'x' + secret, user
-        else:
-            return 'x' + secret
-
-    def do_encrypt(self, secret, **kwds):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        assert 'user' not in kwds
-        kwds['user'] = user
-        return self.handler.encrypt(secret, **kwds)
-
-    def do_verify(self, secret, hash):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        return self.handler.verify(secret, hash, user=user)
-
-    def do_genhash(self, secret, config):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        return self.handler.genhash(secret, config, user=user)
 
 class Oracle11Test(HandlerCase):
     handler = oracle11
@@ -913,19 +845,6 @@ class PHPassTest(HandlerCase):
         '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r!L0',
         ]
 
-    def test_idents(self):
-        handler = self.handler
-
-        kwds = dict(checksum='eRo7ud9Fh4E2PdI0S3r.L0', salt='IQRaTwmf',
-                    rounds=9, ident="P")
-        handler(**kwds)
-
-        kwds.update(ident=None)
-        self.assertRaises(TypeError, handler, **kwds)
-
-        kwds.update(use_defaults=True, ident='Q')
-        self.assertRaises(ValueError, handler, **kwds)
-
 #=========================================================
 #plaintext
 #=========================================================
@@ -948,7 +867,7 @@ class PlaintextTest(HandlerCase):
 #=========================================================
 from passlib.handlers.postgres import postgres_md5
 
-class PostgresMD5CryptTest(HandlerCase):
+class PostgresMD5CryptTest(UserHandlerMixin, HandlerCase):
     handler = postgres_md5
     known_correct_hashes = [
         # ((secret,user),hash)
@@ -960,51 +879,6 @@ class PostgresMD5CryptTest(HandlerCase):
         #bad 'z' char in otherwise correct hash
         'md54zc31989b20437833f697e485811254b',
     ]
-
-    #NOTE: used to support secret=(password, user) format, but removed it for now.
-    ##def test_tuple_mode(self):
-    ##    "check tuple mode works for encrypt/verify"
-    ##    self.assertEqual(self.handler.encrypt(('mypass', 'postgres')),
-    ##        'md55fba2ea04fd36069d2574ea71c8efe9d')
-    ##    self.assertEqual(self.handler.verify(('mypass', 'postgres'),
-    ##        'md55fba2ea04fd36069d2574ea71c8efe9d'), True)
-
-    def test_user(self):
-        "check user kwd is required for encrypt/verify"
-        self.handler.encrypt("mypass", u('user'))
-        self.assertRaises(TypeError, self.handler.encrypt, 'mypass')
-        self.assertRaises(ValueError, self.handler.encrypt, 'mypass', None)
-        self.assertRaises(TypeError, self.handler.verify, 'mypass', 'md55fba2ea04fd36069d2574ea71c8efe9d')
-
-    def create_mismatch(self, secret):
-        if isinstance(secret, tuple):
-            secret, user = secret
-            return 'x' + secret, user
-        else:
-            return 'x' + secret
-
-    def do_encrypt(self, secret, **kwds):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        assert 'user' not in kwds
-        kwds['user'] = user
-        return self.handler.encrypt(secret, **kwds)
-
-    def do_verify(self, secret, hash):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        return self.handler.verify(secret, hash, user=user)
-
-    def do_genhash(self, secret, config):
-        if isinstance(secret, tuple):
-            secret, user = secret
-        else:
-            user = 'default'
-        return self.handler.genhash(secret, config, user=user)
 
 #=========================================================
 # scram hash
@@ -1374,16 +1248,6 @@ class _SHA256CryptTest(HandlerCase):
     ]
 
     filter_config_warnings = True # rounds too low, salt too small
-
-    def test_raw(self):
-        #run some tests on raw backend func to ensure it works right
-        self.assertEqual(
-             raw_sha_crypt(b('secret'), b('salt')*10, 1, hashlib.md5),
-             (b('\x1f\x96\x1cO\x11\xa9h\x12\xc4\xf3\x9c\xee\xf5\x93\xf3\xdd'),
-            b('saltsaltsaltsalt'),
-            1000)
-            )
-        self.assertRaises(ValueError, raw_sha_crypt, b('secret'), b('$'), 1, hashlib.md5)
 
 OsCrypt_SHA256CryptTest = create_backend_case(_SHA256CryptTest, "os_crypt")
 Builtin_SHA256CryptTest = create_backend_case(_SHA256CryptTest, "builtin")

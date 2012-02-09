@@ -40,7 +40,7 @@ def extend(source, size_ref):
     else:
         return source*m
 
-def raw_md5_crypt(password, salt, apr=False):
+def _raw_md5_crypt(password, salt, apr=False):
     """perform raw md5-crypt calculation
 
     :arg password:
@@ -230,7 +230,7 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
         return test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/')
 
     def _calc_checksum_builtin(self, secret):
-        return raw_md5_crypt(secret, self.salt)
+        return _raw_md5_crypt(secret, self.salt)
 
     def _calc_checksum_os_crypt(self, secret):
         hash = safe_crypt(secret, self.ident + self.salt)
@@ -268,7 +268,7 @@ class apr_md5_crypt(_Md5Common):
     #primary interface
     #=========================================================
     def _calc_checksum(self, secret):
-        return raw_md5_crypt(secret, self.salt, apr=True)
+        return _raw_md5_crypt(secret, self.salt, apr=True)
 
     #=========================================================
     #eoc

@@ -170,12 +170,22 @@ class TestCase(unittest.TestCase):
 
         @classproperty
         def __unittest_skip__(cls):
+            # make this mirror nose's '__test__' attr
             return not getattr(cls, "__test__", True)
 
     @classproperty
     def __test__(cls):
-        #so nose won't auto run *this* cls, but it will for subclasses
-        return cls is not TestCase and not cls.__name__.startswith("_")
+        # nose uses to this to skip tests. overridding this to
+        # skip classes with '__<cls>_unittest_skip' set - that way
+        # we can omit specific classes without affecting subclasses.
+        name = cls.__name__
+        if name.startswith("_"):
+            return False
+        if getattr(cls, "_%s__unittest_skip" % name, False):
+            return False
+        return True
+
+    __unittest_skip = True
 
     #============================================================
     # tweak msg formatting for some assert methods
@@ -663,23 +673,23 @@ class HandlerCase(TestCase):
         if not isinstance(cls, type) or not issubclass(cls, uh.HasManyIdents):
             raise self.skipTest("handler doesn't derive from HasManyIdents")
 
-        #check settings
+        # check settings
         self.assertTrue('ident' in cls.setting_kwds)
 
-        #check ident_values list
+        # check ident_values list
         for value in cls.ident_values:
             self.assertIsInstance(value, unicode,
                                   "cls.ident_values must be unicode:")
         self.assertTrue(len(cls.ident_values)>1,
                         "cls.ident_values must have 2+ elements:")
 
-        #check default_ident value
+        # check default_ident value
         self.assertIsInstance(cls.default_ident, unicode,
                               "cls.default_ident must be unicode:")
         self.assertTrue(cls.default_ident in cls.ident_values,
                         "cls.default_ident must specify member of cls.ident_values")
 
-        #check optional aliases list
+        # check optional aliases list
         if cls.ident_aliases:
             for alias, ident in iteritems(cls.ident_aliases):
                 self.assertIsInstance(alias, unicode,
@@ -688,6 +698,27 @@ class HandlerCase(TestCase):
                                       "cls.ident_aliases values must be unicode:")
                 self.assertTrue(ident in cls.ident_values,
                                 "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
+
+        # check constructor validates ident correctly.
+        handler = cls
+        if self.known_correct_hashes:
+            hash = self.known_correct_hashes[0][1]
+        else:
+            hash = self.do_encrypt("stub")
+        kwds = _hobj_to_dict(handler.from_string(hash))
+        del kwds['ident']
+
+        # ... accepts good ident
+        handler(ident=cls.default_ident, **kwds)
+
+        # ... requires ident w/o defaults
+        self.assertRaises(TypeError, handler, **kwds)
+
+        # ... supplies default ident
+        handler(use_defaults=True, **kwds)
+
+        # ... rejects bad ident
+        self.assertRaises(ValueError, handler, ident='xXx', **kwds)
 
     RESERVED_BACKEND_NAMES = [ "any", "default", None ]
 
@@ -954,7 +985,7 @@ class HandlerCase(TestCase):
         self.assertRaises(ValueError, handler.genhash, 'secret', None)
 
     #=========================================================
-    #encrypt()
+    # encrypt()
     #=========================================================
     def test_50_encrypt_plain(self):
         "test encrypt() basic behavior"
@@ -1029,7 +1060,7 @@ class HandlerCase(TestCase):
             helper(secret, hash)
 
     #=========================================================
-    #test max password size
+    # misc tests
     #=========================================================
     def test_60_secret_chars(self):
         "test secret_chars limit"
@@ -1072,6 +1103,63 @@ class HandlerCase(TestCase):
     #=========================================================
     #eoc
     #=========================================================
+
+class UserHandlerMixin(HandlerCase):
+    """helper for handlers w/ 'user' context kwd; mixin for HandlerCase
+
+    this overrides the HandlerCase test harness methods
+    so that a username is automatically inserted to encrypt/verify
+    calls. as well, passing in a pair of strings as the password
+    will be interpreted as (secret,user)
+    """
+    __unittest_skip = True
+
+    def test_70_user(self):
+        "test user context keyword is required"
+        handler = self.handler
+        password = 'stub'
+        hash = self.known_correct_hashes[0][1]
+
+        handler.encrypt(password, u('user'))
+
+        self.assertRaises(TypeError, handler.encrypt, password)
+        self.assertRaises(TypeError, handler.encrypt, password, None)
+
+        self.assertRaises(TypeError, handler.genhash, password, hash)
+        self.assertRaises(TypeError, handler.genhash, password, hash, None)
+
+        self.assertRaises(TypeError, handler.verify, password, hash)
+        self.assertRaises(TypeError, handler.verify, password, hash, None)
+
+    def create_mismatch(self, secret):
+        if isinstance(secret, tuple):
+            secret, user = secret
+            return 'x' + secret, user
+        else:
+            return 'x' + secret
+
+    def do_encrypt(self, secret, **kwds):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        assert 'user' not in kwds
+        kwds['user'] = user
+        return self.handler.encrypt(secret, **kwds)
+
+    def do_verify(self, secret, hash):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        return self.handler.verify(secret, hash, user=user)
+
+    def do_genhash(self, secret, config):
+        if isinstance(secret, tuple):
+            secret, user = secret
+        else:
+            user = 'default'
+        return self.handler.genhash(secret, config, user=user)
 
 #=========================================================
 #backend test helpers
@@ -1124,6 +1212,17 @@ def _has_relaxed_setting(handler):
     # to all handlers that derive from GenericHandler
     return 'relaxed' in handler.setting_kwds or issubclass(handler,
                                                            uh.GenericHandler)
+
+def _hobj_to_dict(hobj):
+    "hack to convert handler instance to dict"
+    # FIXME: would be good to distinguish config-string keywords
+    # from generation options (e.g. salt size) in programmatic manner.
+    exclude_keys = ["salt_size", "relaxed"]
+    return dict(
+        (key, getattr(hobj, key))
+        for key in hobj.setting_kwds
+        if key not in exclude_keys
+    )
 
 def create_backend_case(base, name, module="passlib.tests.test_handlers"):
     "create a test case for specific backend of a multi-backend handler"
