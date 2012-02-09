@@ -13,7 +13,7 @@ import os
 from warnings import warn
 #site
 #libs
-from passlib.exc import MissingBackendError, PasslibHandlerWarning, \
+from passlib.exc import MissingBackendError, PasslibHashWarning, \
                         PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler
 from passlib.utils import is_crypt_handler
@@ -867,7 +867,7 @@ class HasSalt(GenericHandler):
             msg = "salt too large (%s requires %s %d %s)" % (self.name,
                         "exactly" if mx == mn else "<=", mx, self._salt_unit)
             if self.relaxed:
-                warn(msg, PasslibHandlerWarning)
+                warn(msg, PasslibHashWarning)
                 salt = self._truncate_salt(salt, mx)
             else:
                 raise ValueError(msg)
@@ -1023,7 +1023,7 @@ class HasRounds(GenericHandler):
         if rounds < mn:
             msg = "rounds too low (%s requires >= %d rounds)"  % (self.name, mn)
             if self.relaxed:
-                warn(msg, PasslibHandlerWarning)
+                warn(msg, PasslibHashWarning)
                 rounds = mn
             else:
                 raise ValueError(msg)
@@ -1032,7 +1032,7 @@ class HasRounds(GenericHandler):
         if mx and rounds > mx:
             msg = "rounds too high (%s requires <= %d rounds)"  % (self.name, mx)
             if self.relaxed:
-                warn(msg, PasslibHandlerWarning)
+                warn(msg, PasslibHashWarning)
                 rounds = mx
             else:
                 raise ValueError(msg)

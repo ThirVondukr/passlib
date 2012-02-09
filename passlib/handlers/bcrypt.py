@@ -26,7 +26,7 @@ try:
 except ImportError: #pragma: no cover - though should run whole suite w/o bcryptor installed
     bcryptor_engine = None
 #libs
-from passlib.exc import PasslibHandlerWarning
+from passlib.exc import PasslibHashWarning
 from passlib.utils import BCRYPT_CHARS as BCHARS, safe_crypt, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, u, uascii_to_str, unicode
@@ -188,7 +188,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
                 "to fix this; see Passlib 1.5.3 changelog.",
-                PasslibHandlerWarning)
+                PasslibHashWarning)
         return salt
 
     def _norm_checksum(self, checksum):
@@ -200,7 +200,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
                 "to fix this; see Passlib 1.5.3 changelog.",
-                PasslibHandlerWarning)
+                PasslibHashWarning)
         return checksum
 
     #=========================================================

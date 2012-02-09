@@ -13,7 +13,7 @@ import warnings
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.registry import _unload_handler_name as unload_handler_name, \
     register_crypt_handler, get_crypt_handler
-from passlib.exc import MissingBackendError, PasslibHandlerWarning
+from passlib.exc import MissingBackendError, PasslibHashWarning
 from passlib.utils import getrandstr, JYTHON, rng, to_unicode
 from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
                                  uascii_to_str, unicode, PY_MAX_25
@@ -191,7 +191,7 @@ class SkeletonTest(TestCase):
             self.assertNoWarnings(wlog)
 
             self.assertEqual(norm_salt(salt='aaaabb', relaxed=True), 'aaaa')
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHandlerWarning)
+            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
             self.assertNoWarnings(wlog)
 
         #check generated salts
@@ -213,7 +213,7 @@ class SkeletonTest(TestCase):
             self.assertNoWarnings(wlog)
 
             self.assertIn(gen_salt(5, relaxed=True), salts4)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHandlerWarning)
+            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
             self.assertNoWarnings(wlog)
 
         # test with max_salt_size=None
@@ -248,7 +248,7 @@ class SkeletonTest(TestCase):
             self.assertNoWarnings(wlog)
 
             self.assertEqual(norm_rounds(rounds=0, relaxed=True), 1)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHandlerWarning)
+            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
             self.assertNoWarnings(wlog)
 
             # just right
@@ -262,7 +262,7 @@ class SkeletonTest(TestCase):
             self.assertNoWarnings(wlog)
 
             self.assertEqual(norm_rounds(rounds=4, relaxed=True), 3)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHandlerWarning)
+            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
             self.assertNoWarnings(wlog)
 
         # check no default rounds

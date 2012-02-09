@@ -10,7 +10,7 @@ import re
 import os
 import sys
 import tempfile
-from passlib.exc import PasslibHandlerWarning
+from passlib.exc import PasslibHashWarning
 from passlib.utils.compat import PY2, PY27, PY_MIN_32, PY3
 
 try:
@@ -922,7 +922,7 @@ class HandlerCase(TestCase):
         if fk:
             ctx = catch_warnings()
             ctx.__enter__()
-            warnings.filterwarnings("ignore", category=PasslibHandlerWarning)
+            warnings.filterwarnings("ignore", category=PasslibHashWarning)
         for config, secret, hash in self.known_correct_configs:
             result = self.do_genhash(secret, config)
             self.assertEqual(result, hash, "config=%r,secret=%r:" % (config,secret))

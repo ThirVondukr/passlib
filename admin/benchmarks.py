@@ -19,9 +19,9 @@ import warnings
 # site
 # pkg
 try:
-    from passlib.exc import PasslibContextWarning
+    from passlib.exc import PasslibConfigWarning
 except ImportError:
-    PasslibContextWarning = None
+    PasslibConfigWarning = None
 import passlib.utils.handlers as uh
 from passlib.utils.compat import u, print_, unicode
 # local
@@ -101,8 +101,8 @@ def setup_context():
     yield test_context_init
 
     ctx = test_context_init()
-#    if PasslibContextWarning:
-#        warnings.filterwarnings("ignore", category=PasslibContextWarning)
+#    if PasslibConfigWarning:
+#        warnings.filterwarnings("ignore", category=PasslibConfigWarning)
     def test_context_calls():
         hash = ctx.encrypt(secret, rounds=2001)
         ctx.verify(secret, hash)

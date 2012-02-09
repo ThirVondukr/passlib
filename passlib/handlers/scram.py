@@ -23,7 +23,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.exc import PasslibHandlerWarning
+from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \

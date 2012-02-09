@@ -21,7 +21,7 @@ except ImportError:
     #not available eg: under GAE
     resource_string = None
 #libs
-from passlib.exc import PasslibContextWarning
+from passlib.exc import PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import is_crypt_handler, rng, saslprep, tick, to_bytes, \
                           to_unicode
@@ -853,10 +853,10 @@ class _CryptRecord(object):
             "issue warnings if value outside of handler limits"
             if hmn is not None and value < hmn:
                 warn("%s: %s value is below handler minimum %d: %d" %
-                     (self._ident, name, hmn, value), PasslibContextWarning)
+                     (self._ident, name, hmn, value), PasslibConfigWarning)
             if hmx is not None and value > hmx:
                 warn("%s: %s value is above handler maximum %d: %d" %
-                     (self._ident, name, hmx, value), PasslibContextWarning)
+                     (self._ident, name, hmx, value), PasslibConfigWarning)
 
         def clip(value):
             "clip value to policy & handler limits"
@@ -1008,12 +1008,12 @@ class _CryptRecord(object):
                 mn = self._min_rounds
                 if mn is not None and rounds < mn:
                     warn("%s requires rounds >= %d, increasing value from %d" %
-                         (self._ident, mn, rounds), PasslibContextWarning, 4)
+                         (self._ident, mn, rounds), PasslibConfigWarning, 4)
                     rounds = mn
                 mx = self._max_rounds
                 if mx and rounds > mx:
                     warn("%s requires rounds <= %d, decreasing value from %d" %
-                         (self._ident, mx, rounds), PasslibContextWarning, 4)
+                         (self._ident, mx, rounds), PasslibConfigWarning, 4)
                     rounds = mx
                 kwds['rounds'] = rounds
 
@@ -1042,7 +1042,7 @@ class _CryptRecord(object):
             #warn app they aren't being protected against timing attacks...
             warn("CryptContext: verify exceeded min_verify_time: "
                  "scheme=%r min_verify_time=%r elapsed=%r" %
-                 (self.scheme, mvt, end-start), PasslibContextWarning)
+                 (self.scheme, mvt, end-start), PasslibConfigWarning)
         return ok
 
     #================================================================

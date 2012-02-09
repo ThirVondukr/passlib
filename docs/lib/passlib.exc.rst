@@ -15,6 +15,6 @@ Exceptions
 Warnings
 ========
 .. autoexception:: PasslibWarning
-.. autoexception:: PasslibContextWarning
-.. autoexception:: PasslibHandlerWarning
+.. autoexception:: PasslibConfigWarning
+.. autoexception:: PasslibHashWarning
 .. autoexception:: PasslibRuntimeWarning

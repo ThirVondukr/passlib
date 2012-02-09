@@ -147,7 +147,7 @@ Required Attributes
         If supported, ``relaxed=True`` will cause the handler to
         be more forgiving about invalid input. Instead of immediately throwing
         a :exc:`ValueError`, it will first attempt to correct the input,
-        and issue a :exc:`~passlib.exc.PasslibHandlerWarning` if successful.
+        and issue a :exc:`~passlib.exc.PasslibHashWarning` if successful.
         This includes actions like clamping out-of-range rounds values,
         and truncating salts that are too long.
 

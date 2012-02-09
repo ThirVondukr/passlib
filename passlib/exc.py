@@ -20,7 +20,7 @@ class MissingBackendError(RuntimeError):
 class PasslibWarning(UserWarning):
     """base class for Passlib's user warnings"""
 
-class PasslibContextWarning(PasslibWarning):
+class PasslibConfigWarning(PasslibWarning):
     """Warning issued when non-fatal issue is found related to the configuration
     of a :class:`~passlib.context.CryptContext` instance.
 
@@ -35,7 +35,7 @@ class PasslibContextWarning(PasslibWarning):
     but the warning is issued as a sign the configuration may need updating.
     """
 
-class PasslibHandlerWarning(PasslibWarning):
+class PasslibHashWarning(PasslibWarning):
     """Warning issued when non-fatal issue is found with parameters
     or hash string passed to a passlib hash class.
 
