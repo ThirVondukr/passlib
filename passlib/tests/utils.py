@@ -10,6 +10,7 @@ import re
 import os
 import sys
 import tempfile
+from passlib.exc import PasslibHandlerWarning
 from passlib.utils.compat import PY2, PY27, PY_MIN_32, PY3
 
 try:
@@ -870,8 +871,11 @@ class HandlerCase(TestCase):
             #make sure salt is truncated exactly where it should be.
             salt = cc * mx
             c1 = self.do_genconfig(salt=salt)
-            c2 = self.do_genconfig(salt=salt + cc)
-            self.assertEqual(c1,c2)
+            self.assertRaises(ValueError, self.do_genconfig, salt=salt + cc)
+            if _has_relaxed_setting(handler):
+                with catch_warnings(record=True): # issues passlibhandlerwarning
+                    c2 = self.do_genconfig(salt=salt + cc, relaxed=True)
+                self.assertEqual(c1,c2)
 
             #if min_salt supports it, check smaller than mx is NOT truncated
             if handler.min_salt_size < mx:
@@ -1111,6 +1115,12 @@ def _has_possible_crypt_support(handler):
     return hasattr(handler, "backends") and \
         'os_crypt' in handler.backends and \
         not hasattr(handler, "orig_prefix") # ignore wrapper classes
+
+def _has_relaxed_setting(handler):
+    # FIXME: I've been lazy, should probably just add 'relaxed' kwd
+    # to all handlers that derive from GenericHandler
+    return 'relaxed' in handler.setting_kwds or issubclass(handler,
+                                                           uh.GenericHandler)
 
 def create_backend_case(base, name, module="passlib.tests.test_handlers"):
     "create a test case for specific backend of a multi-backend handler"

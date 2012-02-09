@@ -175,7 +175,7 @@ class oracle11(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
         if not m:
             raise ValueError("invalid oracle-11g hash")
         salt, chk = m.group("salt", "chk")
-        return cls(salt=salt, checksum=chk.upper(), strict=True)
+        return cls(salt=salt, checksum=chk.upper())
 
     def to_string(self):
         chk = (self.checksum or self._stub_checksum)

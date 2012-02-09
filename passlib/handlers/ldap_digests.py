@@ -89,7 +89,7 @@ class _SaltedBase64DigestHelper(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChec
             raise ValueError("not a %s hash" % (cls.name,))
         data = b64decode(m.group("tmp").encode("ascii"))
         chk, salt = data[:-4], data[-4:]
-        return cls(checksum=chk, salt=salt, strict=True)
+        return cls(checksum=chk, salt=salt)
 
     def to_string(self):
         data = (self.checksum or self._stub_checksum) + self.salt

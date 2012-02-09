@@ -191,7 +191,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         salt, chk = hash[:2], hash[2:]
-        return cls(salt=salt, checksum=chk or None, strict=bool(chk))
+        return cls(salt=salt, checksum=chk or None)
 
     def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
@@ -313,7 +313,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             rounds=h64.decode_int24(rounds.encode("ascii")),
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self):
@@ -406,15 +405,14 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         if not m:
             raise ValueError("invalid bigcrypt hash")
         salt, chk = m.group("salt", "chk")
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return uascii_to_str(hash)
 
-    @classmethod
-    def norm_checksum(cls, value, strict=False):
-        value = super(bigcrypt, cls).norm_checksum(value, strict=strict)
+    def _norm_checksum(self, value):
+        value = super(bigcrypt, self)._norm_checksum(value)
         if value and len(value) % 11:
             raise ValueError("invalid bigcrypt hash")
         return value
@@ -491,7 +489,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         if not m:
             raise ValueError("invalid crypt16 hash")
         salt, chk = m.group("salt", "chk")
-        return cls(salt=salt, checksum=chk, strict=bool(chk))
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))

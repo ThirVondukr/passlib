@@ -77,7 +77,6 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             rounds=int_rounds,
             salt=raw_salt,
             checksum=raw_chk,
-            strict=bool(raw_chk),
         )
 
     def to_string(self, withchk=True):
@@ -217,7 +216,6 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
             rounds=rounds,
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self, withchk=True):
@@ -310,7 +308,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             rounds=rounds,
             salt=salt,
             checksum=chk,
-            strict=bool(chk),
         )
 
     def to_string(self, withchk=True):
@@ -373,7 +370,7 @@ class atlassian_pbkdf2_sha1(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum
             raise ValueError("invalid %s hash" % (cls.name,))
         data = b64decode(hash[len(ident):].encode("ascii"))
         salt, chk = data[:16], data[16:]
-        return cls(salt=salt, checksum=chk, strict=True)
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
         data = self.salt + (self.checksum or self._stub_checksum)
@@ -442,7 +439,6 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             rounds=int_rounds,
             salt=raw_salt,
             checksum=raw_chk,
-            strict=bool(raw_chk),
         )
 
     def to_string(self, withchk=True):

@@ -781,11 +781,12 @@ class CryptContextTest(TestCase):
         c2 = cc.replace(all__vary_rounds="100%")
         self.assert_rounds_range(c2, "bcrypt", 15, 21)
 
-    def assert_rounds_range(self, context, scheme, lower, upper, salt="."*22):
+    def assert_rounds_range(self, context, scheme, lower, upper):
         "helper to check vary_rounds covers specified range"
         # NOTE: this runs enough times the min and max *should* be hit,
         # though there's a faint chance it will randomly fail.
         handler = context.policy.get_handler(scheme)
+        salt = handler.default_salt_chars[0:1] * handler.max_salt_size
         seen = set()
         for i in irange(300):
             h = context.genconfig(scheme, salt=salt)

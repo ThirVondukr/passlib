@@ -49,8 +49,7 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         r,s,c = uh.parse_mc3(hash, cls.ident, cls.name)
-        r = int(r)
-        return cls(rounds=r, salt=s, checksum=c, strict=bool(c))
+        return cls(rounds=int(r), salt=s, checksum=c)
 
     def to_string(self):
         return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)

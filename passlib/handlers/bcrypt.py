@@ -121,7 +121,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #=========================================================
 
     @classmethod
-    def from_string(cls, hash, strict=True):
+    def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
@@ -133,15 +133,14 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             raise ValueError("invalid bcrypt hash")
         rounds, data = hash[len(ident):].split(u("$"))
         rval = int(rounds)
-        if strict and rounds != u('%02d') % (rval,):
-            raise ValueError("invalid bcrypt hash (no rounds padding)")
+        if rounds != u('%02d') % (rval,):
+            raise ValueError("invalid bcrypt hash (rounds not zero-padded)")
         salt, chk = data[:22], data[22:]
         return cls(
             rounds=rval,
             salt=salt,
             checksum=chk or None,
             ident=ident,
-            strict=strict and bool(chk),
         )
 
     def to_string(self):
@@ -169,20 +168,19 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     def normhash(cls, hash):
         "helper to normalize hash, correcting any bcrypt padding bits"
         if cls.identify(hash):
-            return cls.from_string(hash, strict=False).to_string()
+            return cls.from_string(hash).to_string()
         else:
             return hash
 
-    @classmethod
-    def generate_salt(cls, salt_size=None, strict=False):
-        assert cls.min_salt_size == cls.max_salt_size == cls.default_salt_size == 22
-        if salt_size is not None and salt_size != 22:
-            raise ValueError("bcrypt salts must be 22 characters in length")
+    # TODO: extract some of this code out into Base64Engine.repair_padding()
+    # or some such method, so we can re-use it other places.
+
+    def _generate_salt(self, salt_size):
+        assert salt_size == 22
         return getrandstr(rng, BCHARS, 21) + getrandstr(rng, BSLAST, 1)
 
-    @classmethod
-    def norm_salt(cls, *args, **kwds):
-        salt = super(bcrypt, cls).norm_salt(*args, **kwds)
+    def _norm_salt(self, salt, **kwds):
+        salt = super(bcrypt, self)._norm_salt(salt, **kwds)
         if salt and salt[-1] not in BSLAST:
             salt = salt[:-1] + BCHARS[BCHARS.index(salt[-1]) & ~15]
             assert salt[-1] in BSLAST
@@ -193,9 +191,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 PasslibHandlerWarning)
         return salt
 
-    @classmethod
-    def norm_checksum(cls, *args, **kwds):
-        checksum = super(bcrypt, cls).norm_checksum(*args, **kwds)
+    def _norm_checksum(self, checksum):
+        checksum = super(bcrypt, self)._norm_checksum(checksum)
         if checksum and checksum[-1] not in BHLAST:
             checksum = checksum[:-1] + BCHARS[BCHARS.index(checksum[-1]) & ~3]
             assert checksum[-1] in BHLAST

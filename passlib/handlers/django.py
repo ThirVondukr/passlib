@@ -62,7 +62,7 @@ class DjangoSaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
         if not hash.startswith(ident):
             raise ValueError("invalid %s hash" % (cls.name,))
         _, salt, chk = hash.split(u("$"))
-        return cls(salt=salt, checksum=chk or None, strict=True)
+        return cls(salt=salt, checksum=chk or None)
 
     def to_string(self):
         chk = self.checksum or self._stub_checksum

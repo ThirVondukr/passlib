@@ -214,7 +214,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     max_rounds = 4294963199 ##2**32-1-4096
         #XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
-    _strict_rounds_bounds = True
 
     #=========================================================
     #instance attrs
@@ -304,7 +303,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             salt=salt,
             checksum=chk,
             bare_salt=bare_salt,
-            strict=bool(chk),
         )
 
     def to_string(self, withchk=True):
