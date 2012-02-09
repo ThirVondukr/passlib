@@ -442,7 +442,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             return not algs.issubset(cls.from_string(hash).algs)
         return detector
 
-    def calc_checksum(self, secret, alg=None):
+    def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt
         hash = self.derive_digest
@@ -470,7 +470,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if full_verify:
             correct = failed = False
             for alg, digest in iteritems(chkmap):
-                other = self.calc_checksum(secret, alg)
+                other = self._calc_checksum(secret, alg)
                 # NOTE: could do this length check in norm_algs(),
                 # but don't need to be that strict, and want to be able
                 # to parse hashes containing algs not supported by platform.
@@ -491,7 +491,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # otherwise only verify against one hash, pick one w/ best security.
             for alg in self._verify_algs:
                 if alg in chkmap:
-                    other = self.calc_checksum(secret, alg)
+                    other = self._calc_checksum(secret, alg)
                     return consteq(other, chkmap[alg])
             # there should *always* be at least sha-1.
             raise AssertionError("sha-1 digest not found!")

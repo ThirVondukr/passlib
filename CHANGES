@@ -57,7 +57,8 @@ Release History
         * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
           changed in backward-incompatible way: the :samp:`norm_{xxx}`
           classmethods have been renamed to :samp:`_norm_{xxx}`, and turned
-          into instance methods.
+          into instance methods. Similar renames were done for
+          ``calc_calchecksum`` and ``generate_salt``.
 
         * Calls to :meth:`HasManyBackends.set_backend`
           should now use the string ``"any"`` instead of the value ``None``.

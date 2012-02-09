@@ -326,7 +326,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # actually behaves correctly.
     # especially, when using ''-config, make sure to append '$x' to string.
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #NOTE: no reference for how sun_md5_crypt handles unicode
         if secret is None:
             raise TypeError("no secret specified")

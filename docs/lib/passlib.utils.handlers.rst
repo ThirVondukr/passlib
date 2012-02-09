@@ -52,7 +52,7 @@ workflow for hashes is some combination of the following:
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
    and the normalization functions such as :meth:`~GenericHandler._norm_checksum` and :meth:`~HasSalt._norm_salt`
    which are provided by it's related mixin classes.
-3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler.calc_checksum`.
+3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler._calc_checksum`.
 4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
 
 With this in mind, :class:`!GenericHandler` provides implementations
@@ -85,7 +85,7 @@ In order to use :class:`!GenericHandler`, just subclass it, and then do the foll
       (such as returned by :meth:`from_string`), returning
       a hash string.
 
-    * provide an implementation of the :meth:`calc_checksum` instance method.
+    * provide an implementation of the :meth:`_calc_checksum` instance method.
 
       this is the heart of the hash; this method should take in the password
       as the first argument, then generate and return the digest portion

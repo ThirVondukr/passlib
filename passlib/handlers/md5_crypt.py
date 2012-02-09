@@ -181,7 +181,7 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #primary interface
     #=========================================================
-    #calc_checksum in subclass
+    # calc_checksum defined in subclass
 
     #=========================================================
     #eoc
@@ -267,7 +267,7 @@ class apr_md5_crypt(_Md5Common):
     #=========================================================
     #primary interface
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         return raw_md5_crypt(secret, self.salt, apr=True)
 
     #=========================================================

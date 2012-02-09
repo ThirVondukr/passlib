@@ -298,12 +298,12 @@ class SkeletonTest(TestCase):
 
         #test lazy load
         obj = d1()
-        self.assertEqual(obj.calc_checksum('s'), 'b')
+        self.assertEqual(obj._calc_checksum('s'), 'b')
 
         #test repeat load
         d1.set_backend('b')
         d1.set_backend('any')
-        self.assertEqual(obj.calc_checksum('s'), 'b')
+        self.assertEqual(obj._calc_checksum('s'), 'b')
 
         #test unavailable
         self.assertRaises(MissingBackendError, d1.set_backend, 'a')
@@ -316,7 +316,7 @@ class SkeletonTest(TestCase):
         #test explicit
         self.assertTrue(d1.has_backend())
         d1.set_backend('a')
-        self.assertEqual(obj.calc_checksum('s'), 'a')
+        self.assertEqual(obj._calc_checksum('s'), 'a')
 
         #test unknown backend
         self.assertRaises(ValueError, d1.set_backend, 'c')
@@ -532,7 +532,7 @@ class SaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
         hash = u("@salt%s%s") % (self.salt, self.checksum or self._stub_checksum)
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         data = self.salt.encode("ascii") + secret + self.salt.encode("ascii")

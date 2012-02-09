@@ -170,7 +170,7 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
     #backend
     #=========================================================
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         #NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.

@@ -96,7 +96,7 @@ class _SaltedBase64DigestHelper(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChec
         hash = self.ident + b64encode(data).decode("ascii")
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if secret is None:
             raise TypeError("no secret provided")
         if isinstance(secret, unicode):

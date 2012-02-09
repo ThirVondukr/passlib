@@ -90,7 +90,7 @@ class django_salted_sha1(DjangoSaltedHash):
     checksum_size = 40
     _stub_checksum = u('0') * 40
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return str_to_uascii(sha1(self.salt.encode("ascii") + secret).hexdigest())
@@ -116,7 +116,7 @@ class django_salted_md5(DjangoSaltedHash):
     checksum_size = 32
     _stub_checksum = u('0') * 32
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return str_to_uascii(md5(self.salt.encode("ascii") + secret).hexdigest())
@@ -177,14 +177,14 @@ class django_des_crypt(DjangoSaltedHash):
         else:
             return stub
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,
         #       since most django deploys won't use django_des_crypt
         global des_crypt
         if des_crypt is None:
             _import_des_crypt()
         salt = self.salt[:2]
-        return salt + des_crypt(salt=salt).calc_checksum(secret)
+        return salt + des_crypt(salt=salt)._calc_checksum(secret)
 
 class django_disabled(uh.StaticHandler):
     """This class provides disabled password behavior for Django, and follows the :ref:`password-hash-api`.

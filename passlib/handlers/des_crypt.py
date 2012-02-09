@@ -422,7 +422,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #TODO: check if os_crypt supports ext-des-crypt.
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         chk = raw_crypt(secret, self.salt.encode("ascii"))
@@ -500,7 +500,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #TODO: check if os_crypt supports ext-des-crypt.
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
 

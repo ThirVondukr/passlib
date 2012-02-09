@@ -54,7 +54,7 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
-    def calc_checksum(self, password):
+    def _calc_checksum(self, password):
         return unicode(password[0:1])
 
 class AnotherHandler(BlankHandler):

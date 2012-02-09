@@ -88,7 +88,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             hash = u('%s%d$%s') % (self.ident, self.rounds, salt)
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
@@ -229,7 +229,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, 20, "hmac-sha1")
@@ -322,7 +322,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         salt = str_to_bascii(self.to_string(withchk=False))
@@ -377,7 +377,7 @@ class atlassian_pbkdf2_sha1(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum
         hash = self.ident + b64encode(data).decode("ascii")
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #TODO: find out what crowd's policy is re: unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -450,7 +450,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             hash = u('%s%d.%s') % (self.ident, self.rounds, salt)
         return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #TODO: find out what grub's policy is re: unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

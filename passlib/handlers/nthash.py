@@ -76,7 +76,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
     #primary interface
     #=========================================================
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         return self.raw_nthash(secret, hex=True)
 
     @staticmethod

@@ -114,7 +114,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

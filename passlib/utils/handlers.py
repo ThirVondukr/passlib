@@ -343,7 +343,7 @@ class GenericHandler(object):
 
     .. automethod:: from_string
     .. automethod:: to_string
-    .. automethod:: calc_checksum
+    .. automethod:: _calc_checksum
 
     Default Methods
     ===============
@@ -497,14 +497,14 @@ class GenericHandler(object):
     @classmethod
     def genhash(cls, secret, config):
         self = cls.from_string(config)
-        self.checksum = self.calc_checksum(secret)
+        self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
-    def calc_checksum(self, secret): #pragma: no cover
+    def _calc_checksum(self, secret): #pragma: no cover
         """given secret; calcuate and return encoded checksum portion of hash
         string, taking config from object state
         """
-        raise NotImplementedError("%s must implement calc_checksum()" %
+        raise NotImplementedError("%s must implement _calc_checksum()" %
                                   (self.__class__,))
 
     #=========================================================
@@ -513,7 +513,7 @@ class GenericHandler(object):
     @classmethod
     def encrypt(cls, secret, **settings):
         self = cls(use_defaults=True, **settings)
-        self.checksum = self.calc_checksum(secret)
+        self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
     @classmethod
@@ -526,7 +526,7 @@ class GenericHandler(object):
         if chk is None:
             raise ValueError("expected %s hash, got %s config string instead" %
                              (cls.name, cls.name))
-        return consteq(self.calc_checksum(secret), chk)
+        return consteq(self._calc_checksum(secret), chk)
 
     #=========================================================
     #eoc
@@ -598,13 +598,13 @@ class HasStubChecksum(GenericHandler):
 ##            self = cls()
 ##        else:
 ##            self = cls.from_string(config) #just to validate the input
-##        self.checksum = self.calc_checksum(secret)
+##        self.checksum = self._calc_checksum(secret)
 ##        return self.to_string()
 ##
 ##    @classmethod
 ##    def encrypt(cls, secret):
 ##        self = cls()
-##        self.checksum = self.calc_checksum(secret)
+##        self.checksum = self._calc_checksum(secret)
 ##        return self.to_string()
 
 class HasManyIdents(GenericHandler):
@@ -1048,7 +1048,7 @@ def _clear_backend(cls):
     assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
     if cls._backend:
         del cls._backend
-        del cls.calc_checksum
+        del cls._calc_checksum
 
 class HasManyBackends(GenericHandler):
     """GenericHandler mixin which provides selecting from multiple backends.
@@ -1059,7 +1059,7 @@ class HasManyBackends(GenericHandler):
 
     For hashes which need to select from multiple backends,
     depending on the host environment, this class
-    offers a way to specify alternate :meth:`calc_checksum` methods,
+    offers a way to specify alternate :meth:`_calc_checksum` methods,
     and will dynamically chose the best one at runtime.
 
     Backend Methods
@@ -1090,7 +1090,7 @@ class HasManyBackends(GenericHandler):
 
     .. classmethod:: _calc_checksum_{name}
 
-        private class method that should implement :meth:`calc_checksum`
+        private class method that should implement :meth:`_calc_checksum`
         for a given backend. it will only be called if the backend has
         been selected by :meth:`set_backend`. One of these should be provided
         by the subclass for each backend listed in :attr:`backends`.
@@ -1154,9 +1154,9 @@ class HasManyBackends(GenericHandler):
 
     @classmethod
     def set_backend(cls, name="any"):
-        """load specified backend to be used for future calc_checksum() calls
+        """load specified backend to be used for future _calc_checksum() calls
 
-        this method replaces :meth:`calc_checksum` with a method
+        this method replaces :meth:`_calc_checksum` with a method
         which uses the specified backend.
 
         :arg name:
@@ -1199,19 +1199,19 @@ class HasManyBackends(GenericHandler):
                 raise MissingBackendError(cls._no_backends_msg())
         elif not cls.has_backend(name):
             raise MissingBackendError("%s backend not available: %r" % (cls.name, name))
-        cls.calc_checksum = getattr(cls, "_calc_checksum_" + name)
+        cls._calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
         return name
 
-    def calc_checksum(self, secret):
-        "stub for calc_checksum(), default backend will be selected first time stub is called"
+    def _calc_checksum(self, secret):
+        "stub for _calc_checksum(), default backend will be selected first time stub is called"
         # if we got here, no backend has been loaded; so load default backend
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
         assert self._backend, "set_backend() failed to load a default backend"
 
         # this should now invoke the backend-specific version, so call it again.
-        return self.calc_checksum(secret)
+        return self._calc_checksum(secret)
 
 #=========================================================
 #wrappers
