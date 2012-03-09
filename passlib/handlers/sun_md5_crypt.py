@@ -198,6 +198,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
     checksum_chars = uh.HASH64_CHARS
+    checksum_size = 22
 
     #NOTE: docs say max password length is 255.
     #release 9u2

@@ -629,65 +629,61 @@ class CryptContextTest(TestCase):
             # set below handler min
             c2 = cc.replace(all__min_rounds=500, all__max_rounds=None,
                             all__default_rounds=500)
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
+            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
             self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # below
             self.assertEqual(
                 cc.genconfig(rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$',
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibConfigWarning)
 
             # equal
             self.assertEqual(
                 cc.genconfig(rounds=2000, salt="nacl"),
                 '$5$rounds=2000$nacl$',
                 )
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # above
             self.assertEqual(
                 cc.genconfig(rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$'
                 )
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
         # max rounds
         with catch_warnings(record=True) as wlog:
             # set above handler max
             c2 = cc.replace(all__max_rounds=int(1e9)+500, all__min_rounds=None,
                             all__default_rounds=int(1e9)+500)
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
+            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
             self.assertEqual(c2.genconfig(salt="nacl"),
                              "$5$rounds=999999999$nacl$")
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # above
             self.assertEqual(
                 cc.genconfig(rounds=3001, salt="nacl"),
                 '$5$rounds=3000$nacl$'
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibConfigWarning)
 
             # equal
             self.assertEqual(
                 cc.genconfig(rounds=3000, salt="nacl"),
                 '$5$rounds=3000$nacl$'
                 )
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # below
             self.assertEqual(
                 cc.genconfig(rounds=2999, salt="nacl"),
                 '$5$rounds=2999$nacl$',
                 )
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
         # explicit default rounds
         self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
@@ -825,14 +821,13 @@ class CryptContextTest(TestCase):
                 cc.encrypt("password", rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
                 )
-            self.assertWarningMatches(wlog.pop(), category=PasslibConfigWarning)
-            self.assertFalse(wlog)
+            self.consumeWarningList(wlog, PasslibConfigWarning)
 
             self.assertEqual(
                 cc.encrypt("password", rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
                 )
-            self.assertFalse(wlog)
+            self.consumeWarningList()
 
         # max rounds, etc tested in genconfig()
 
@@ -949,10 +944,8 @@ class CryptContextTest(TestCase):
 
         # silence deprecation warnings for min verify time
         with catch_warnings(record=True) as wlog:
-            warnings.filterwarnings("always", category=DeprecationWarning)
             cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
-        self.assertWarningMatches(wlog.pop(0), category=DeprecationWarning)
-        self.assertFalse(wlog)
+        self.consumeWarningList(wlog, DeprecationWarning)
 
         def timecall(func, *args, **kwds):
             start = tick()
@@ -978,13 +971,10 @@ class CryptContextTest(TestCase):
         #ensure taking longer emits a warning.
         TimedHash.delay = max_delay
         with catch_warnings(record=True) as wlog:
-            warnings.filterwarnings("always")
             elapsed, result = timecall(cc.verify, "blob", "stubx")
         self.assertFalse(result)
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
-        self.assertWarningMatches(wlog.pop(0),
-            message_re="CryptContext: verify exceeded min_verify_time")
-        self.assertFalse(wlog)
+        self.consumeWarningList(wlog, ".*verify exceeded min_verify_time")
 
     def test_25_verify_and_update(self):
         "test verify_and_update()"

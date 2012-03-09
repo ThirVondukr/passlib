@@ -229,31 +229,28 @@ class PatchTest(TestCase):
             #patch to use stock django context
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEqual(len(wlog), 0)
+            self.consumeWarningList(wlog)
 
             #mess with User.set_password, make sure it's detected
             dam.User.set_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEqual(len(wlog), 1)
-            self.assertWarningMatches(wlog.pop(),
-                message_re="^another library has patched.*User\.set_password$")
+            self.consumeWarningList(wlog,
+                        "^another library has patched.*User\.set_password$")
 
             #mess with user.check_password, make sure it's detected
             dam.User.check_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEqual(len(wlog), 1)
-            self.assertWarningMatches(wlog.pop(),
-                message_re="^another library has patched.*User\.check_password$")
+            self.consumeWarningList(wlog,
+                        "^another library has patched.*User\.check_password$")
 
             #mess with user.check_password, make sure it's detected
             dam.check_password = dummy
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
-            self.assertEqual(len(wlog), 1)
-            self.assertWarningMatches(wlog.pop(),
-                message_re="^another library has patched.*models:check_password$")
+            self.consumeWarningList(wlog,
+                        "^another library has patched.*models:check_password$")
 
     def test_01_patch_bad_types(self):
         "test set_django_password_context bad inputs"
@@ -458,7 +455,7 @@ class PluginTest(TestCase):
 
         # run against hashes from tests...
         for test in tests:
-            for secret, hash in test.all_correct_hashes:
+            for secret, hash in test.iter_known_hashes():
 
                 # check against valid password
                 u.password = hash

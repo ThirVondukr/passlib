@@ -50,7 +50,7 @@ class _BCryptTest(HandlerCase):
     "base for BCrypt test cases"
 
     handler = hash.bcrypt
-    secret_chars = 72
+    secret_size = 72
 
     known_correct_hashes = [
         #selected bcrypt test vectors
@@ -80,29 +80,47 @@ class _BCryptTest(HandlerCase):
         ]
 
     #===============================================================
-    # extra tests
+    # fuzz testing
     #===============================================================
-    def iter_external_verifiers(self):
+    def get_fuzz_verifiers(self):
+        verifiers = super(_BcryptTest, self).get_fuzz_verifiers()
+
+        # test other backends against pybcrypt if available
+        from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw
         except ImportError:
             pass
         else:
             def check_pybcrypt(secret, hash):
-                self.assertEqual(hashpw(secret, hash), hash,
-                                 "pybcrypt: bcrypt.hashpw(%r,%r):" % (secret, hash))
-            yield check_pybcrypt
+                "pybcrypt"
+                secret = to_native_str(secret, self.fuzz_password_encoding)
+                try:
+                    return hashpw(secret, hash) == hash
+                except ValueError:
+                    raise ValueError("pybcrypt rejected hash: %r" % (hash,))
+            verifiers.append(check_pybcrypt)
 
+        # test other backends against bcryptor if available
         try:
             from bcryptor.engine import Engine
         except ImportError:
             pass
         else:
             def check_bcryptor(secret, hash):
-                result = Engine(False).hash_key(secret, hash)
-                self.assertEqual(result, hash,
-                                 "bcryptor: hash_key(%r,%r):" % (secret, hash))
-            yield check_bcryptor
+                "bcryptor"
+                secret = to_native_str(secret, self.fuzz_password_encoding)
+                return Engine(False).hash_key(secret, hash) == hash
+            verifiers.append(check_bcryptor)
+
+        return verifiers
+
+    def get_fuzz_ident(self):
+        ident = super(_BCryptTest,self).get_fuzz_ident()
+        if ident == u("$2$") and self.handler.has_backend("bcryptor"):
+            # FIXME: skipping this since bcryptor doesn't support v0 hashes
+            return None
+        return ident
 
     #===============================================================
     # see issue 25 - https://code.google.com/p/passlib/issues/detail?id=25
@@ -126,12 +144,7 @@ class _BCryptTest(HandlerCase):
     def test_91_bcrypt_padding(self):
         "test passlib correctly handles bcrypt padding bits"
         bcrypt = self.handler
-
-        def check_warning(wlog):
-            self.assertWarningMatches(wlog.pop(0),
-                message_re="^encountered a bcrypt hash with incorrectly set padding bits.*",
-            )
-            self.assertNoWarnings(wlog)
+        corr_desc = ".*incorrectly set padding bits"
 
         def check_padding(hash):
             "check bcrypt hash doesn't have salt padding bits set"
@@ -154,16 +167,12 @@ class _BCryptTest(HandlerCase):
 
         # check passing salt to genconfig causes it to be normalized.
         with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
-
             hash = bcrypt.genconfig(salt="."*21 + "A.", relaxed=True)
-            self.assertWarningMatches(wlog.pop(0), message_re="salt too large")
-            check_warning(wlog)
+            self.consumeWarningList(wlog, ["salt too large", corr_desc])
             self.assertEqual(hash, "$2a$12$" + "." * 22)
 
             hash = bcrypt.genconfig(salt="."*23, relaxed=True)
-            self.assertWarningMatches(wlog.pop(0), message_re="salt too large")
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, ["salt too large"])
             self.assertEqual(hash, "$2a$12$" + "." * 22)
 
         #===============================================================
@@ -187,36 +196,30 @@ class _BCryptTest(HandlerCase):
 
         # make sure genhash() corrects input
         with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
-
             self.assertEqual(bcrypt.genhash(PASS1, BAD1), GOOD1)
-            check_warning(wlog)
+            self.consumeWarningList(wlog, [corr_desc])
 
             self.assertEqual(bcrypt.genhash(PASS2, BAD2), GOOD2)
-            check_warning(wlog)
+            self.consumeWarningList(wlog, [corr_desc])
 
             self.assertEqual(bcrypt.genhash(PASS2, GOOD2), GOOD2)
-            self.assertFalse(wlog)
+            self.consumeWarningList(wlog)
 
             self.assertEqual(bcrypt.genhash(PASS3, BAD3), GOOD3)
-            check_warning(wlog)
-            self.assertFalse(wlog)
+            self.consumeWarningList(wlog, [corr_desc])
 
         # make sure verify works on both bad and good hashes
         with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
-
             self.assertTrue(bcrypt.verify(PASS1, BAD1))
-            check_warning(wlog)
+            self.consumeWarningList(wlog, [corr_desc])
 
             self.assertTrue(bcrypt.verify(PASS1, GOOD1))
-            self.assertFalse(wlog)
+            self.consumeWarningList(wlog)
 
         #===============================================================
         # test normhash cleans things up correctly
         #===============================================================
         with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
             self.assertEqual(bcrypt.normhash(BAD1), GOOD1)
             self.assertEqual(bcrypt.normhash(BAD2), GOOD2)
             self.assertEqual(bcrypt.normhash(GOOD1), GOOD1)
@@ -283,7 +286,7 @@ from passlib.handlers.des_crypt import crypt16
 
 class Crypt16Test(HandlerCase):
     handler = crypt16
-    secret_chars = 16
+    secret_size = 16
 
     #TODO: find an authortative source of test vectors
     #instead of just msgs around the web
@@ -306,7 +309,7 @@ from passlib.handlers.des_crypt import des_crypt
 class _DesCryptTest(HandlerCase):
     "test des-crypt algorithm"
     handler = des_crypt
-    secret_chars = 8
+    secret_size = 8
 
     known_correct_hashes = [
         #secret, example hash which matches secret
@@ -323,7 +326,7 @@ class _DesCryptTest(HandlerCase):
         '!gAwTx2l6NADI',
         ]
 
-    def test_invalid_secret_chars(self):
+    def test_90_invalid_secret_chars(self):
         self.assertRaises(ValueError, self.do_encrypt, 'sec\x00t')
 
 OsCrypt_DesCryptTest = create_backend_case(_DesCryptTest, "os_crypt")
@@ -334,7 +337,20 @@ Builtin_DesCryptTest = create_backend_case(_DesCryptTest, "builtin")
 #=========================================================
 class _DjangoHelper(object):
 
-    def test_django_reference(self):
+    def get_fuzz_verifiers(self):
+        verifiers = super(_DjangoHelper, self).get_fuzz_verifiers()
+
+        from passlib.tests.test_ext_django import has_django1
+        if has_django1:
+            from django.contrib.auth.models import check_password
+            def verify_django(secret, hash):
+                "django check_password()"
+                return check_password(secret, hash)
+            verifiers.append(verify_django)
+
+        return verifiers
+
+    def test_90_django_reference(self):
         "run known correct hashes through Django's check_password()"
         if not self.known_correct_hashes:
             return self.skipTest("no known correct hashes specified")
@@ -342,38 +358,26 @@ class _DjangoHelper(object):
         if not has_django1:
             return self.skipTest("Django not installed")
         from django.contrib.auth.models import check_password
-        for secret, hash in self.all_correct_hashes:
+        for secret, hash in self.iter_known_hashes():
             self.assertTrue(check_password(secret, hash))
             self.assertFalse(check_password('x' + secret, hash))
 
 class DjangoDisabledTest(HandlerCase):
     "test django_disabled"
-
-    #NOTE: this class behaves VERY differently from a normal password hash,
-    #so we subclass & disable a number of the default tests.
-    #TODO: combine these features w/ unix_fallback and other disabled handlers.
-
     handler = hash.django_disabled
-    handler_type = "disabled"
+    is_disabled_handler = True
 
-    def test_20_verify_positive(self):
-        for secret, result in [
-            ("password", "!"),
-            ("", "!"),
-        ]:
-            self.assertFalse(self.do_verify(secret, result))
-
-    def test_50_encrypt_plain(self):
-        "test encrypt() basic behavior"
-        secret = UPASS_USD
-        result = self.do_encrypt(secret)
-        self.assertEqual(result, "!")
-        self.assertTrue(not self.do_verify(secret, result))
+    known_correct_hashes = [
+        # *everything* should hash to "!", and nothing should verify
+        ("password", "!"),
+        ("", "!"),
+        (UPASS_TABLE, "!"),
+    ]
 
 class DjangoDesCryptTest(HandlerCase, _DjangoHelper):
     "test django_des_crypt"
     handler = hash.django_des_crypt
-    secret_chars = 8
+    secret_size = 8
 
     known_correct_hashes = [
         #ensures only first two digits of salt count.
@@ -698,6 +702,8 @@ from passlib.handlers.oracle import oracle10, oracle11
 
 class Oracle10Test(UserHandlerMixin, HandlerCase):
     handler = oracle10
+    secret_case_insensitive = True
+    user_case_insensitive = True
 
     known_correct_hashes = [
         # ((secret,user),hash)
@@ -852,6 +858,7 @@ from passlib.handlers.misc import plaintext
 
 class PlaintextTest(HandlerCase):
     handler = plaintext
+    accepts_all_hashes = True
 
     known_correct_hashes = [
         ('',''),
@@ -1362,29 +1369,29 @@ class SunMD5CryptTest(HandlerCase):
         #(config, secret, hash)
 
         #---------------------------
-        #test salt string handling
+        # test salt string handling
         #
-        #these tests attempt to verify that passlib is handling
-        #the "bare salt" issue (see sun md5 crypt docs)
-        #in a sane manner
+        # these tests attempt to verify that passlib is handling
+        # the "bare salt" issue (see sun md5 crypt docs)
+        # in a sane manner
         #---------------------------
 
-        #config with "$" suffix, hash strings with "$$" suffix,
+        # config with "$" suffix, hash strings with "$$" suffix,
         # should all be treated the same, with one "$" added to salt digest.
         ("$md5$3UqYqndY$",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
-        ("$md5$3UqYqndY$$x",
+        ("$md5$3UqYqndY$$......................",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
 
-        #config with no suffix, hash strings with "$" suffix,
+        # config with no suffix, hash strings with "$" suffix,
         # should all be treated the same, and no suffix added to salt digest.
-        #NOTE: this is just a guess re: config w/ no suffix,
-        #      but otherwise there's no sane way to encode bare_salt=False
-        #      within config string.
-        ("$md5$RPgLF6IJ",
-            "passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
-        ("$md5$RPgLF6IJ$x",
-            "passwd", "$md5$RPgLF6IJ$WTvAlUJ7MqH5xak2FMEwS/"),
+        # NOTE: this is just a guess re: config w/ no suffix,
+        #       but otherwise there's no sane way to encode bare_salt=False
+        #       within config string.
+        ("$md5$3UqYqndY",
+            "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
+        ("$md5$3UqYqndY$......................",
+            "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
     ]
 
     known_malformed_hashes = [
@@ -1401,36 +1408,33 @@ class SunMD5CryptTest(HandlerCase):
 
         ]
 
+    def do_verify(self, secret, hash):
+        # override to fake error for "$..." hash strings listed in known_config.
+        # these have to be hash strings, in order to test bare salt issue.
+        if hash and hash.endswith("$......................"):
+            raise ValueError("pretending '$.' hash is config string")
+        return self.handler.verify(secret, hash)
+
 #=========================================================
 #unix fallback
 #=========================================================
 from passlib.handlers.misc import unix_fallback
 
 class UnixFallbackTest(HandlerCase):
-    #NOTE: this class behaves VERY differently from a normal password hash,
-    #so we subclass & disable a number of the default tests.
-    #TODO: combine some of these features w/ django_disabled and other fallback handlers.
-
     handler = unix_fallback
+    accepts_all_hashes = True
+    is_disabled_handler = True
 
-    known_correct_hashes = [ ("passwordwc",""), ]
-    known_other_hashes = []
-    accepts_empty_hash = True
-    genconfig_uses_hash = True
-
-    #NOTE: to ease testing, this sets enable_wildcard iff the string 'wc' is in the secret
+    known_correct_hashes = [
+        # *everything* should hash to "!", and nothing should verify
+        ("password", "!"),
+        (UPASS_TABLE, "!"),
+    ]
 
     def do_verify(self, secret, hash):
         return self.handler.verify(secret, hash, enable_wildcard='wc' in secret)
 
-    def test_50_encrypt_plain(self):
-        "test encrypt() basic behavior"
-        secret = u("\u20AC\u00A5$")
-        result = self.do_encrypt(secret)
-        self.assertEqual(result, "!")
-        self.assertTrue(not self.do_verify(secret, result))
-
-    def test_wildcard(self):
+    def test_90_wildcard(self):
         "test enable_wildcard flag"
         h = self.handler
         self.assertTrue(h.verify('password','', enable_wildcard=True))

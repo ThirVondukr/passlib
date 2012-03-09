@@ -177,7 +177,7 @@ of the unittest for :class:`passlib.hash.des_crypt`::
 
         #: [optional] - if your hash only uses the first X characters of the password,
         #:              set that value here. otherwise leave the default (-1).
-        secret_chars = 8
+        secret_size = 8
 
         #: [required] - this should be a list of (password, hash) pairs,
         #               which should all verify correctly using your handler.

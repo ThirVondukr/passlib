@@ -18,8 +18,7 @@ from passlib.utils import getrandstr, JYTHON, rng, to_unicode
 from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
                                  uascii_to_str, unicode, PY_MAX_25
 import passlib.utils.handlers as uh
-from passlib.tests.utils import HandlerCase, TestCase, catch_warnings, \
-    dummy_handler_in_registry
+from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
 from passlib.utils.compat import u
 #module
 log = getLogger(__name__)
@@ -178,21 +177,20 @@ class SkeletonTest(TestCase):
             # check too-small salts
             self.assertRaises(ValueError, norm_salt, salt='')
             self.assertRaises(ValueError, norm_salt, salt='a')
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # check correct salts
             self.assertEqual(norm_salt(salt='ab'), 'ab')
             self.assertEqual(norm_salt(salt='aba'), 'aba')
             self.assertEqual(norm_salt(salt='abba'), 'abba')
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # check too-large salts
             self.assertRaises(ValueError, norm_salt, salt='aaaabb')
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             self.assertEqual(norm_salt(salt='aaaabb', relaxed=True), 'aaaa')
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibHashWarning)
 
         #check generated salts
         with catch_warnings(record=True) as wlog:
@@ -200,28 +198,27 @@ class SkeletonTest(TestCase):
             # check too-small salt size
             self.assertRaises(ValueError, gen_salt, 0)
             self.assertRaises(ValueError, gen_salt, 1)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # check correct salt size
             self.assertIn(gen_salt(2), salts2)
             self.assertIn(gen_salt(3), salts3)
             self.assertIn(gen_salt(4), salts4)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # check too-large salt size
             self.assertRaises(ValueError, gen_salt, 5)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             self.assertIn(gen_salt(5, relaxed=True), salts4)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibHashWarning)
 
         # test with max_salt_size=None
         del d1.max_salt_size
         with catch_warnings(record=True) as wlog:
             self.assertEqual(len(gen_salt(None)), 3)
             self.assertEqual(len(gen_salt(5)), 5)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
     def test_30_norm_rounds(self):
         "test GenericHandler + HasRounds mixin"
@@ -245,25 +242,23 @@ class SkeletonTest(TestCase):
         with catch_warnings(record=True) as wlog:
             # too small
             self.assertRaises(ValueError, norm_rounds, rounds=0)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             self.assertEqual(norm_rounds(rounds=0, relaxed=True), 1)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibHashWarning)
 
             # just right
             self.assertEqual(norm_rounds(rounds=1), 1)
             self.assertEqual(norm_rounds(rounds=2), 2)
             self.assertEqual(norm_rounds(rounds=3), 3)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             # too large
             self.assertRaises(ValueError, norm_rounds, rounds=4)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog)
 
             self.assertEqual(norm_rounds(rounds=4, relaxed=True), 3)
-            self.assertWarningMatches(wlog.pop(0), category=PasslibHashWarning)
-            self.assertNoWarnings(wlog)
+            self.consumeWarningList(wlog, PasslibHashWarning)
 
         # check no default rounds
         d1.default_rounds = None
@@ -370,6 +365,26 @@ class SkeletonTest(TestCase):
 #=========================================================
 #PrefixWrapper
 #=========================================================
+class dummy_handler_in_registry(object):
+    "context manager that inserts dummy handler in registry"
+    def __init__(self, name):
+        self.name = name
+        self.dummy = type('dummy_' + name, (uh.GenericHandler,), dict(
+            name=name,
+            setting_kwds=(),
+        ))
+
+    def __enter__(self):
+        from passlib import registry
+        registry._unload_handler_name(self.name, locations=False)
+        registry.register_crypt_handler(self.dummy)
+        assert registry.get_crypt_handler(self.name) is self.dummy
+        return self.dummy
+
+    def __exit__(self, *exc_info):
+        from passlib import registry
+        registry._unload_handler_name(self.name, locations=False)
+
 class PrefixWrapperTest(TestCase):
     "test PrefixWrapper class"
 
