@@ -216,6 +216,8 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         #XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
 
+    ident_values = (u("$md5$"), u("$md5,"))
+
     #=========================================================
     #instance attrs
     #=========================================================
@@ -233,7 +235,14 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        return uh.identify_prefix(hash, (u("$md5$"), u("$md5,")))
+        if not hash:
+            return False
+        if isinstance(hash, bytes):
+            try:
+                hash = hash.decode("ascii")
+            except UnicodeDecodeError:
+                return False
+        return hash.startswith(cls.ident_values)
 
     @classmethod
     def from_string(cls, hash):

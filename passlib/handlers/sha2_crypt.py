@@ -115,7 +115,7 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     #       +
     #       if i%2>0 then C else DP
     #
-    # The algorithm can be see as a series of paired even/odd rounds,
+    # The algorithm can be seen as a series of paired even/odd rounds,
     # with each pair performing 'C = md5(odd_data + md5(C + even_data))',
     # where even_data & odd_data cycle through a fixed series of
     # combinations of DP & DS, repeating every 42 rounds (since lcm(2,3,7)==42)
@@ -123,7 +123,7 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     # This code takes advantage of these facts: it precalculates all possible
     # combinations, and then orders them into 21 pairs of even,odd values.
     # this allows the brunt of C stage to be performed in 42-round blocks,
-    # with minimal overhead.
+    # with minimal branching/concatenation overhead.
 
     # build array containing 42-round pattern as pairs of even & odd data.
     dp_dp = dp*2
@@ -281,7 +281,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         \$5
         (\$rounds=(?P<rounds>\d+))?
@@ -302,7 +302,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("invalid sha256-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
@@ -435,7 +435,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     #=========================================================
 
     #: regexp used to parse hashes
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         \$6
         (\$rounds=(?P<rounds>\d+))?
@@ -458,7 +458,7 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("invalid sha512-crypt hash")
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")

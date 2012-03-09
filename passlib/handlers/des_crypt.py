@@ -174,15 +174,11 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11})?
         $"""), re.X|re.I)
-
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):
@@ -235,10 +231,6 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 #handler
 #=========================================================
 
-#FIXME: phpass code notes that even rounds values should be avoided for BSDI-Crypt,
-# so as not to reveal weak des keys. given the random salt, this shouldn't be
-# a very likely issue anyways, but should do something about default rounds generation anyways.
-
 class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -287,7 +279,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         _
         (?P<rounds>[./a-z0-9]{4})
@@ -296,16 +288,12 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         $"""), re.X|re.I)
 
     @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
-
-    @classmethod
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("invalid ext-des-crypt hash")
         rounds, salt, chk = m.group("rounds", "salt", "chk")
@@ -378,22 +366,11 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
-        (?P<chk>[./a-z0-9]{11,})?
+        (?P<chk>([./a-z0-9]{11})+)?
         $"""), re.X|re.I)
-
-    @classmethod
-    def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("ascii")
-            except UnicodeDecodeError:
-                return False
-        return bool(cls._pat.match(hash)) and (len(hash)-2) % 11 == 0
 
     @classmethod
     def from_string(cls, hash):
@@ -401,7 +378,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("invalid bigcrypt hash")
         salt, chk = m.group("salt", "chk")
@@ -469,15 +446,11 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     #=========================================================
     #internal helpers
     #=========================================================
-    _pat = re.compile(u(r"""
+    _hash_regex = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{22})?
         $"""), re.X|re.I)
-
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
 
     @classmethod
     def from_string(cls, hash):
@@ -485,7 +458,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("invalid crypt16 hash")
         salt, chk = m.group("salt", "chk")

@@ -8,16 +8,17 @@
 .. module:: passlib.utils.handlers
     :synopsis: helper classes for writing password hash handlers
 
+.. warning::
+
+    This module is primarily used as an internal support module.
+    It's interface has not been finalized yet, and may change between major
+    releases of Passlib.
+
 .. todo::
 
     This module, and the instructions on how to write a custom handler,
     definitely need to be rewritten for clarity. They are not yet
     organized, and may leave out some important details.
-
-.. note::
-
-    Since this module is primarily a support module used internally
-    by Passlib, it's interface may change slightly between major releases.
 
 Implementing Custom Handlers
 ============================

@@ -10,8 +10,8 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import to_unicode
-from passlib.utils.compat import b, bytes, bascii_to_str, unicode, u
+from passlib.utils import to_bytes
+from passlib.utils.compat import b, bytes, str_to_uascii, unicode, u
 import passlib.utils.handlers as uh
 #local
 __all__ = [
@@ -21,7 +21,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class postgres_md5(uh.StaticHandler):
+class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     """This class implements the Postgres MD5 Password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -34,35 +34,20 @@ class postgres_md5(uh.StaticHandler):
     :param user: string containing name of postgres user account this password is associated with.
     """
     #=========================================================
-    #algorithm information
+    # algorithm information
     #=========================================================
     name = "postgres_md5"
-    setting_kwds = ()
-    context_kwds = ("user",)
+    _hash_prefix = u("md5")
+    checksum_chars = uh.HEX_CHARS
+    checksum_size = 32
 
     #=========================================================
-    #formatting
+    # primary interface
     #=========================================================
-    _pat = re.compile(u(r"^md5[0-9a-f]{32}$"))
-
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
-
-    #=========================================================
-    #primary interface
-    #=========================================================
-    @classmethod
-    def genhash(cls, secret, config, user):
-        if config is not None and not cls.identify(config):
-            raise ValueError("not a postgres-md5 hash")
-        if not user:
-            raise ValueError("user keyword must be specified for this algorithm")
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        if isinstance(user, unicode):
-            user = user.encode("utf-8")
-        return "md5" + md5(secret + user).hexdigest()
+    def _calc_checksum(self, secret):
+        secret = to_bytes(secret, "utf-8", errname="secret")
+        user = to_bytes(self.user, "utf-8", errname="user")
+        return str_to_uascii(md5(secret + user).hexdigest())
 
     #=========================================================
     #eoc

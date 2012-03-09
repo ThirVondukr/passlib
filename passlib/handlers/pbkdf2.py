@@ -184,7 +184,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
 
     #--HasROunds--
     default_rounds = 10000
-    min_rounds = 0
+    min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
 
@@ -281,7 +281,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     #--HasROunds--
     default_rounds = 10000
-    min_rounds = 0
+    min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
 
@@ -336,7 +336,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 #=========================================================
 #crowd
 #=========================================================
-class atlassian_pbkdf2_sha1(uh.HasStubChecksum, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the PBKDF2 hash used by Atlassian.
 
     It supports a fixed-length salt, and a fixed number of rounds.

@@ -937,10 +937,9 @@ class CryptContextTest(TestCase):
             def identify(cls, hash):
                 return True
 
-            @classmethod
-            def genhash(cls, secret, hash):
+            def _calc_checksum(self, secret):
                 time.sleep(cls.delay)
-                return secret + 'x'
+                return to_unicode(secret + 'x')
 
         # silence deprecation warnings for min verify time
         with catch_warnings(record=True) as wlog:

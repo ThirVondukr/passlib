@@ -9,8 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_native_str
-from passlib.utils.compat import bascii_to_str, bytes, unicode
+from passlib.utils import to_native_str, to_bytes
+from passlib.utils.compat import bascii_to_str, bytes, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.utils.md4 import md4
 #pkg
@@ -29,35 +29,27 @@ __all__ = [
 #=========================================================
 class HexDigestHash(uh.StaticHandler):
     "this provides a template for supporting passwords stored as plain hexidecimal hashes"
-    _hash_func = None #required - hash function
-    checksum_size = None #required - size of encoded digest
+    #=========================================================
+    # class attrs
+    #=========================================================
+    _hash_func = None # hash function to use - filled in by create_hex_hash()
+    checksum_size = None # filled in by create_hex_hash()
     checksum_chars = uh.HEX_CHARS
 
-    @classmethod
-    def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("ascii")
-            except UnicodeDecodeError:
-                return False
-        cc = cls.checksum_chars
-        return len(hash) == cls.checksum_size and all(c in cc for c in hash)
-
-    @classmethod
-    def genhash(cls, secret, hash):
-        if hash is not None and not cls.identify(hash):
-            raise ValueError("not a %s hash" % (cls.name,))
-        if secret is None:
-            raise TypeError("no secret provided")
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return cls._hash_func(secret).hexdigest()
-
+    #=========================================================
+    # methods
+    #=========================================================
     @classmethod
     def _norm_hash(cls, hash):
-        return to_native_str(hash, "ascii", errname="hash").lower()
+        return hash.lower()
+
+    def _calc_checksum(self, secret):
+        secret = to_bytes(secret, "utf-8", errname="secret")
+        return str_to_uascii(self._hash_func(secret).hexdigest())
+
+    #=========================================================
+    # eoc
+    #=========================================================
 
 def create_hex_hash(hash, digest_name):
     #NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.

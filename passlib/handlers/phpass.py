@@ -86,16 +86,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode('ascii')
-        for ident in cls.ident_values:
-            if hash.startswith(ident):
-                break
-        else:
-            raise ValueError("invalid phpass portable hash")
-        data = hash[len(ident):]
+        ident, data = cls._parse_ident(hash)
         rounds, salt, chk = data[0], data[1:9], data[9:]
         return cls(
             ident=ident,

@@ -23,7 +23,7 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
-class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
+class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -58,6 +58,7 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
     checksum_chars = uh.PADDED_BASE64_CHARS
+    ident = u("{FSHP")
     # checksum_size is property() that depends on variant
 
     #--HasRawSalt--
@@ -129,11 +130,14 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
     #formatting
     #=========================================================
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_prefix(hash, u("{FSHP"))
-
-    _fshp_re = re.compile(u(r"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$"))
+    _hash_regex = re.compile(u(r"""
+            ^
+            \{FSHP
+            (\d+)\| # variant
+            (\d+)\| # salt size
+            (\d+)\} # rounds
+            ([a-zA-Z0-9+/]+={0,3}) # digest
+            $"""), re.X)
 
     @classmethod
     def from_string(cls, hash):
@@ -141,7 +145,7 @@ class fshp(uh.HasStubChecksum, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, u
             raise ValueError("no hash specified")
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        m = cls._fshp_re.match(hash)
+        m = cls._hash_regex.match(hash)
         if not m:
             raise ValueError("not a valid FSHP hash")
         variant, salt_size, rounds, data = m.group(1,2,3,4)

@@ -1,9 +1,9 @@
 """passlib.handler - code for implementing handlers, and global registry for handlers"""
 #=========================================================
-#imports
+# imports
 #=========================================================
 from __future__ import with_statement
-#core
+# core
 import inspect
 import re
 import hashlib
@@ -11,30 +11,36 @@ import logging; log = logging.getLogger(__name__)
 import time
 import os
 from warnings import warn
-#site
-#libs
-from passlib.exc import MissingBackendError, PasslibHashWarning, \
-                        PasslibRuntimeWarning
+# site
+# pkg
+from passlib.exc import MissingBackendError, PasslibConfigWarning, \
+                        PasslibHashWarning
 from passlib.registry import get_crypt_handler
-from passlib.utils import is_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
-                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str
+                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
+                          is_crypt_handler, deprecated_function, to_unicode
 from passlib.utils.compat import b, bjoin_ints, bytes, irange, u, \
-                                 uascii_to_str, ujoin, unicode
-#pkg
-#local
+                                 uascii_to_str, ujoin, unicode, str_to_uascii
+# local
 __all__ = [
-    #framework for implementing handlers
-    'StaticHandler',
+    # helpers for implementing MCF handlers
+    'parse_mc2',
+    'parse_mc3',
+    'render_mc2',
+    'render_mc3',
+
+    # framework for implementing handlers
     'GenericHandler',
-        # checksum mixins
-            'HasRawChecksum',
-            'HasStubChecksum',
+        'StaticHandler',
+        'HasUserContext',
+        'HasRawChecksum',
         'HasManyIdents',
         'HasSalt',
-            'HasRawSalt',
+        'HasRawSalt',
         'HasRounds',
         'HasManyBackends',
+
+    # other helpers
     'PrefixWrapper',
 ]
 
@@ -59,32 +65,6 @@ B64_CHARS = BASE64_CHARS
 PADDED_B64_CHARS = PADDED_BASE64_CHARS
 UC_HEX_CHARS = UPPER_HEX_CHARS
 LC_HEX_CHARS = LOWER_HEX_CHARS
-
-#=========================================================
-#identify helpers
-#=========================================================
-def identify_regexp(hash, pat):
-    "identify() helper for matching regexp"
-    if not hash:
-        return False
-    if isinstance(hash, bytes):
-        try:
-            hash = hash.decode("ascii")
-        except UnicodeDecodeError:
-            return False
-    return pat.match(hash) is not None
-
-def identify_prefix(hash, prefix):
-    "identify() helper for matching against prefixes"
-    #NOTE: prefix may be a tuple of strings (since startswith supports that)
-    if not hash:
-        return False
-    if isinstance(hash, bytes):
-        try:
-            hash = hash.decode("ascii")
-        except UnicodeDecodeError:
-            return False
-    return hash.startswith(prefix)
 
 #=========================================================
 #parsing helpers
@@ -149,119 +129,21 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
         hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
     return uascii_to_str(hash)
 
-#=====================================================
-#StaticHandler
-#=====================================================
-class StaticHandler(object):
-    """helper class for implementing hashes which have no settings.
+#==========================================================================
+# not proper exceptions, just predefined error message constructors
+# used by various handlers.
+#==========================================================================
+def ChecksumSizeError(handler, size, raw=False):
+    name = handler.name
+    unit = "bytes" if raw else "chars"
+    return ValueError("checksum wrong size (%s checksum must be "
+                     "exactly %d %s" % (name, size, unit))
 
-    This class is designed to help in writing hash handlers
-    which have no settings whatsoever; that is to say: no salt, no rounds, etc.
-    These hashes can typically be recognized by the fact that they
-    will always hash a password to *exactly* the same hash string.
-
-    Usage
-    =====
-
-    In order to use this class, just subclass it, and then do the following:
-
-        * fill out the :attr:`name` attribute with the name of your hash.
-        * provide an implementation of the :meth:`~PasswordHash.genhash` method.
-        * provide an implementation of the :meth:`~PasswordHash.identify` method.
-          (a default is provided, but it's inefficient).
-
-    Based on the methods above, this class provides:
-
-        * a :meth:`genconfig` method that returns ``None``.
-        * a :meth:`encrypt` method that wraps :meth:`genhash`.
-        * a :meth:`verify` method that wraps :meth:`genhash`.
-
-    Implementation Details
-    ======================
-
-    The :meth:`genhash` method you implement must accept
-    all valid hashes, *as well as* whatever value :meth:`genconfig` returns.
-    This defaults to ``None``, but you may set the :attr:`_stub_config` attr
-    to a specific hash string, and :meth:`genconfig` will return this instead.
-
-    The default :meth:`verify` method uses simple equality to compare hash strings.
-    If your hash has multiple encodings (e.g. is case-insensitive), the
-    :meth:`_norm_hash` method should be overridden to normalize to a single
-    representation.
-
-    If your hash has options, such as multiple identifiers, salts,
-    or variable rounds, this is not the right class to start with.
-    You should use the :class:`GenericHandler` class, or implement the handler
-    yourself.
-    """
-
-    #=====================================================
-    #class attrs
-    #=====================================================
-    name = None #required - handler name
-    setting_kwds = ()
-    context_kwds = ()
-
-    # reserved value to be returned by default genconfig()
-    # may be ``None`` if no such value; otherwise should be native ascii str.
-    _stub_config = None
-
-    #=====================================================
-    #methods
-    #=====================================================
-    @classmethod
-    def identify(cls, hash):
-        #NOTE: this relys on genhash() throwing error for invalid hashes.
-        # this approach is bad because genhash may take a long time on valid hashes,
-        # so subclasses *really* should override this.
-        if hash is None:
-            return False
-        try:
-            cls.genhash('fakesecret', hash)
-            return True
-        except ValueError:
-            return False
-
-    @classmethod
-    def genconfig(cls):
-        "default genconfig() implementation for unsalted hash algorithms"
-        return cls._stub_config
-
-    @classmethod
-    def genhash(cls, secret, config, **context):
-        raise NotImplementedError("%s subclass must implement genhash()" % (cls,))
-
-    @classmethod
-    def encrypt(cls, secret, *cargs, **context):
-        "default encrypt() implementation for unsalted hash algorithms"
-        # NOTE: subclasses generally won't need to override this
-        config = cls.genconfig()
-        return cls.genhash(secret, config, *cargs, **context)
-
-    @classmethod
-    def verify(cls, secret, hash, *cargs, **context):
-        "default verify() implementation for unsalted hash algorithms"
-        # NOTE: subclasses generally won't need to override this.
-        if hash is None:
-            raise ValueError("no hash specified")
-        hash = cls._norm_hash(hash)
-        if hash == cls._stub_config:
-            raise ValueError("expected %s hash, got %s config string instead" %
-                             (cls.name, cls.name))
-        result = cls.genhash(secret, hash, *cargs, **context)
-        return consteq(result, hash)
-
-    @classmethod
-    def _norm_hash(cls, hash):
-        """[helper for verify] normalize hash for comparsion purposes.
-
-        should return a native :class:`str` instance or raise a TypeError.
-        """
-        return to_native_str(hash, "ascii", errname="hash")
-
-    #=====================================================
-    #eoc
-    #=====================================================
+def MissingDigestError(handler):
+    "raised when verify() method gets passed config string instead of hash"
+    name = handler.name
+    return ValueError("expected %s hash, got %s config string instead" %
+                     (name, name))
 
 #=====================================================
 #GenericHandler
@@ -316,6 +198,15 @@ class GenericHandler(object):
 
         This should be a unicode str.
 
+    .. attribute:: _hash_regex
+
+        [optional]
+        If this attribute is filled in, the default :meth:`identify` method
+        will use it to recognize instances of the hash. If :attr:`ident`
+        is specified, this will be ignored.
+
+        This should be a unique regex object.
+
     .. attribute:: checksum_size
 
         [optional]
@@ -330,11 +221,23 @@ class GenericHandler(object):
 
         This should be a unicode str.
 
+    .. attribute:: _stub_checksum
+
+        [optional]
+        If specified, hashes with this checksum will have their checksum
+        normalized to ``None``, treating it like a config string.
+        This is mainly used by hash formats which don't have a concept
+        of a config string, so a unlikely-to-occur checksum (e.g. all zeros)
+        is used by some implementations.
+
+        This should be a string of the same datatype as :attr:`checksum`,
+        or ``None``.
+
     Instance Attributes
     ===================
     .. attribute:: checksum
 
-        The checksum string as provided by the constructor (after passing it
+        The checksum string provided to the constructor (after passing it
         through :meth:`_norm_checksum`).
 
     Required Subclass Methods
@@ -347,8 +250,8 @@ class GenericHandler(object):
 
     Default Methods
     ===============
-    The following methods provide generally useful default behaviors,
-    though they may be overridden if the hash subclass needs to:
+    The following methods have default implementations that should work for
+    most cases, though they may be overridden if the hash subclass needs to:
 
     .. automethod:: _norm_checksum
 
@@ -362,19 +265,38 @@ class GenericHandler(object):
     #=====================================================
     #class attr
     #=====================================================
+    # this must be provided by the actual class.
+    setting_kwds = None
+
+    # providing default since most classes don't use this at all.
     context_kwds = ()
 
-    ident = None #identifier prefix if known
+    # optional prefix that uniquely identifies hash
+    ident = None
 
-    checksum_size = None #if specified, _norm_checksum will require this length
-    checksum_chars = None #if specified, _norm_checksum() will validate this
+    # optional regexp for recognizing hashes,
+    # used by default identify() if .ident isn't specified.
+    _hash_regex = None
+
+    # if specified, _norm_checksum will require this length
+    checksum_size = None
+
+    # if specified, _norm_checksum() will validate this
+    checksum_chars = None
+
+    # if specified, hashes with this checksum will be treated
+    # as if no checksum was specified.
+    _stub_checksum = None
+
+    # private flag used by HasRawChecksum
+    _checksum_is_bytes = False
 
     #=====================================================
     #instance attrs
     #=====================================================
     checksum = None # stores checksum
-#    relaxed = False # when norm_xxx() funcs should be strict about inputs
-#    use_defaults = False # whether norm_xxx() funcs should fill in defaults.
+#    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
+#    relaxed = False # when _norm_xxx() funcs should be strict about inputs
 
     #=====================================================
     #init
@@ -390,30 +312,43 @@ class GenericHandler(object):
         """validates checksum keyword against class requirements,
         returns normalized version of checksum.
         """
-        # NOTE: this code assumes checksum should be a unicode string.
-        # For classes where the checksum is raw bytes, the HasRawChecksum
-        # mixin overrides this method with a more appropriate one.
+        # NOTE: by default this code assumes checksum should be unicode.
+        # For classes where the checksum is raw bytes, the HasRawChecksum sets
+        # the _checksum_is_bytes flag which alters various code paths below.
         if checksum is None:
             return None
 
-        # normalize to unicode
-        if isinstance(checksum, bytes):
-            checksum = checksum.decode('ascii')
+        # normalize to bytes / unicode
+        raw = self._checksum_is_bytes
+        if raw:
+            # NOTE: no clear route to reasonbly convert unicode -> raw bytes,
+            # so relaxed does nothing here
+            if not isinstance(checksum, bytes):
+                raise TypeError("checksum must be byte string")
+
+        elif not isinstance(checksum, unicode):
+            if self.relaxed:
+                warn("checksum should be unicode, not bytes",
+                     PasslibHashWarning)
+                checksum = checksum.decode("ascii")
+            else:
+                raise TypeError("checksum must be unicode string")
+
+        # handle stub
+        if checksum == self._stub_checksum:
+            return None
 
         # check size
         cc = self.checksum_size
         if cc and len(checksum) != cc:
-            raise ValueError("checksum wrong size (%s checksum must be "
-                             "exactly %d characters" % (self.name, cc))
+            raise ChecksumSizeError(self, cc, raw=raw)
 
         # check charset
-        cs = self.checksum_chars
-        if cs:
-            bad = set(checksum)
-            bad.difference_update(cs)
-            if bad:
-                raise ValueError("invalid characters in %s checksum: %r" %
-                                 (self.name, ujoin(sorted(bad))))
+        if not raw:
+            cs = self.checksum_chars
+            if cs and any(c not in cs for c in checksum):
+                raise ValueError("invalid characters in %s checksum" %
+                                 (self.name,))
 
         return checksum
 
@@ -425,28 +360,42 @@ class GenericHandler(object):
         # NOTE: subclasses may wish to use faster / simpler identify,
         # and raise value errors only when an invalid (but identifiable)
         # string is parsed
+
         if not hash:
             return False
+
+        # does class specify a known unique prefix to look for?
         ident = cls.ident
-        if ident:
-            #class specified a known prefix to look for
+        if ident is not None:
             assert isinstance(ident, unicode)
             if isinstance(hash, bytes):
                 ident = ident.encode('ascii')
             return hash.startswith(ident)
-        else:
-            # don't have known ident prefix; so as fallback, try to parse hash
-            # to trying to parse hash and see if we succeed.
-            # (inefficient, but works for most cases)
-            try:
-                cls.from_string(hash)
-                return True
-            except ValueError:
-                return False
+
+        # does class provide a regexp to use?
+        pat = cls._hash_regex
+        if pat is not None:
+            if isinstance(hash, bytes):
+                try:
+                    hash = hash.decode("ascii")
+                except UnicodeDecodeError:
+                    return False
+            return pat.match(hash) is not None
+
+        # as fallback, try to parse hash, and see if we succeed.
+        # inefficient, but works for most cases.
+        try:
+            cls.from_string(hash)
+            return True
+        except ValueError:
+            return False
 
     @classmethod
-    def from_string(cls, hash): #pragma: no cover
+    def from_string(cls, hash, **context): #pragma: no cover
         """return parsed instance from hash/configuration string
+
+        :param \*\*context:
+            context keywords to pass to constructor (if applicable).
 
         :raises ValueError: if hash is incorrectly formatted
 
@@ -477,15 +426,12 @@ class GenericHandler(object):
 
     ##def to_config_string(self):
     ##    "helper for generating configuration string (ignoring hash)"
-    ##    chk = self.checksum
-    ##    if chk:
-    ##        try:
-    ##            self.checksum = None
-    ##            return self.to_string()
-    ##        finally:
-    ##            self.checksum = chk
-    ##    else:
+    ##    orig = self.checksum
+    ##    try:
+    ##        self.checksum = None
     ##        return self.to_string()
+    ##    finally:
+    ##            self.checksum = orig
 
     #=========================================================
     #'crypt-style' interface (default implementation)
@@ -495,8 +441,8 @@ class GenericHandler(object):
         return cls(use_defaults=True, **settings).to_string()
 
     @classmethod
-    def genhash(cls, secret, config):
-        self = cls.from_string(config)
+    def genhash(cls, secret, config, **context):
+        self = cls.from_string(config, **context)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
@@ -511,33 +457,171 @@ class GenericHandler(object):
     #'application' interface (default implementation)
     #=========================================================
     @classmethod
-    def encrypt(cls, secret, **settings):
-        self = cls(use_defaults=True, **settings)
+    def encrypt(cls, secret, **kwds):
+        self = cls(use_defaults=True, **kwds)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
     @classmethod
-    def verify(cls, secret, hash):
-        #NOTE: classes with multiple checksum encodings (rare)
-        # may wish to either override this, or override _norm_checksum
-        # to normalize any checksums provided by from_string()
-        self = cls.from_string(hash)
+    def verify(cls, secret, hash, **context):
+        # NOTE: classes with multiple checksum encodings should either
+        # override this method, or ensure that from_string() / _norm_checksum()
+        # ensures .checksum always uses a single canonical representation.
+        self = cls.from_string(hash, **context)
         chk = self.checksum
         if chk is None:
-            raise ValueError("expected %s hash, got %s config string instead" %
-                             (cls.name, cls.name))
+            raise MissingDigestError(cls)
         return consteq(self._calc_checksum(secret), chk)
+
+    #=========================================================
+    # undocumented entry points
+    #=========================================================
+
+    ##@classmethod
+    ##def _deprecation_detector(cls, **settings):
+    ##    """return helper to detect deprecated hashes.
+    ##
+    ##    if this method is defined, the CryptContext constructor
+    ##    will invoke it with the settings specified for the context.
+    ##    this method should return None or a callable
+    ##    with the signature ``func(hash)->bool``.
+    ##
+    ##    this function should return true if the hash
+    ##    should be re-encrypted, whether due to internal
+    ##    issues or the specified settings.
+    ##
+    ##    CryptContext will automatically take care of rounds-deprecation
+    ##    for GenericHandler-derived classes
+    ##    """
+
+    ##@classmethod
+    ##def normhash(cls, hash):
+    ##    """helper to clean up non-canonic instances of hash.
+    ##    currently only provided by bcrypt() to fix an historical passlib issue.
+    ##    """
 
     #=========================================================
     #eoc
     #=========================================================
 
+class StaticHandler(GenericHandler):
+    """GenericHandler mixin for classes which have no settings.
+
+    This mixin assumes the entirety of the hash ise stored in the
+    :attr:`checksum` attribute; that the hash has no rounds, salt,
+    etc. This class provides the following:
+
+    * a default :meth:`genconfig` that always returns None.
+    * a default :meth:`from_string` and :meth:`to_string`
+      that store the entire hash within :attr:`checksum`,
+      after optionally stripping a constant prefix.
+
+    All that is required by subclasses is an implementation of
+    the :meth:`_calc_checksum` method.
+    """
+    # TODO: document _norm_hash()
+
+    setting_kwds = ()
+
+    # optional constant prefix subclasses can specify
+    _hash_prefix = u("")
+
+    @classmethod
+    def from_string(cls, hash, **context):
+        # default from_string() which strips optional prefix,
+        # and passes rest unchanged as checksum value.
+        hash = to_unicode(hash, "ascii", errname="hash")
+        hash = cls._norm_hash(hash)
+        # could enable this for extra strictness
+        ##pat = cls._hash_regex
+        ##if pat and pat.match(hash) is None:
+        ##    raise ValueError("not a valid %s hash" % (cls.name,))
+        prefix = cls._hash_prefix
+        if prefix:
+            if hash.startswith(prefix):
+                hash = hash[len(prefix):]
+            else:
+                raise ValueError("not a valid %s hash" % (cls.name,))
+        return cls(checksum=hash, **context)
+
+    @classmethod
+    def _norm_hash(cls, hash):
+        "helper for subclasses to normalize case if needed"
+        return hash
+
+    def to_string(self):
+        assert self.checksum is not None
+        return uascii_to_str(self._hash_prefix + self.checksum)
+
+    @classmethod
+    def genconfig(cls):
+        # since it has no settings, there's no need for a config string.
+        return None
+
+    @classmethod
+    def genhash(cls, secret, config, **context):
+        # since it has no settings, just verify config, and call encrypt()
+        if config is not None and not cls.identify(config):
+            raise ValueError("not a %s hash" % (cls.name,))
+        return cls.encrypt(secret, **context)
+
+    __cc_compat_hack = False
+
+    def _calc_checksum(self, secret): #pragma: no cover
+        """given secret; calcuate and return encoded checksum portion of hash
+        string, taking config from object state
+        """
+        # NOTE: prior to 1.6, StaticHandler required classes implement genhash
+        # instead of this method. so if we reach here, we try calling genhash.
+        # if that succeeds, we issue deprecation warning; if it fails, we'll
+        # recurse back to here, and error will be thrown instead.
+        if not self.__cc_compat_hack:
+            context = dict((k,getattr(self,k)) for k in self.context_kwds)
+            self.__cc_compat_hack = True
+            hash = self.genhash(secret, None, **context)
+            self.__cc_compat_hack = False
+            warn("%r should be updated to implement StaticHandler._calc_checksum() "
+                 "instead of StaticHandler.genhash(), support for the latter "
+                 "style will be removed in Passlib 1.8" % (self.__class__),
+                 DeprecationWarning)
+            return str_to_uascii(hash)
+        else:
+            # else just require subclass to implement this method.
+            raise NotImplementedError("%s must implement _calc_checksum()" %
+                                      (self.__class__,))
+
 #=====================================================
 #GenericHandler mixin classes
 #=====================================================
+class HasUserContext(GenericHandler):
+    """helper for classes which require a user context keyword"""
+    context_kwds = ("user",)
 
-#XXX: add a HasContext helper to override GenericHandler's methods?
+    def __init__(self, user=None, **kwds):
+        super(HasUserContext, self).__init__(**kwds)
+        self.user = user
 
+    # XXX: would like to validate user input here, but calls to from_string()
+    # which lack context keywords would then fail; so leaving code per-handler.
+
+    # wrap funcs to accept 'user' as positional arg for ease of use.
+    @classmethod
+    def encrypt(cls, secret, user=None, **context):
+        return super(HasUserContext, cls).encrypt(secret, user=user, **context)
+
+    @classmethod
+    def verify(cls, secret, hash, user=None, **context):
+        return super(HasUserContext, cls).verify(secret, hash, user=user,
+                                               **context)
+
+    @classmethod
+    def genhash(cls, secret, config, user=None, **context):
+        return super(HasUserContext, cls).genhash(secret, config, user=user,
+                                               **context)
+
+#-----------------------------------------------------
+# checksum mixins
+#-----------------------------------------------------
 class HasRawChecksum(GenericHandler):
     """mixin for classes which work with decoded checksum bytes
 
@@ -547,66 +631,14 @@ class HasRawChecksum(GenericHandler):
     """
     # NOTE: GenericHandler.checksum_chars is ignored by this implementation.
 
-    def _norm_checksum(self, checksum):
-        if checksum is None:
-            return None
-        if isinstance(checksum, unicode):
-            raise TypeError("checksum must be specified as bytes")
-        cc = self.checksum_size
-        if cc and len(checksum) != cc:
-            raise ValueError("checksum wrong size (%s checksum must be "
-                             "exactly %d characters" % (self.name, cc))
-        return checksum
+    # NOTE: all HasRawChecksum code is currently part of GenericHandler,
+    # using private '_checksum_is_bytes' flag.
+    # this arrangement may be changed in the future.
+    _checksum_is_bytes = True
 
-class HasStubChecksum(GenericHandler):
-    """modifies class to ignore placeholder checksum used by genconfig().
-
-    this is mainly useful for hash formats which don't have a distinguishable
-    configuration-only format; and genconfig() has to use a placeholder
-    digest (usually all NULLs). this mixin causes that checksum to be
-    treated as if there wasn't a checksum at all; preventing the (remote)
-    chance of a configuration string 1) being stored as a hash, followed by
-    2) an attacker finding and trying a password which correctly maps to that
-    digest.
-    """
-    _stub_checksum = None
-
-    def __init__(self, **kwds):
-        super(HasStubChecksum, self).__init__(**kwds)
-        chk = self.checksum
-        if chk is not None and chk == self._stub_checksum:
-            self.checksum = None
-
-#NOTE: commented out because all use-cases work better with StaticHandler
-##class HasNoSettings(GenericHandler):
-##    """overrides some GenericHandler methods w/ versions more appropriate for hash w/no settings"""
-##
-##    setting_kwds = ()
-##
-##    _stub_checksum = None
-##
-##    @classmethod
-##    def genconfig(cls):
-##        if cls._stub_checksum:
-##            return cls().to_string()
-##        else:
-##            return None
-##
-##    @classmethod
-##    def genhash(cls, secret, config):
-##        if config is None and not cls._stub_checksum:
-##            self = cls()
-##        else:
-##            self = cls.from_string(config) #just to validate the input
-##        self.checksum = self._calc_checksum(secret)
-##        return self.to_string()
-##
-##    @classmethod
-##    def encrypt(cls, secret):
-##        self = cls()
-##        self.checksum = self._calc_checksum(secret)
-##        return self.to_string()
-
+#-----------------------------------------------------
+# ident mixins
+#-----------------------------------------------------
 class HasManyIdents(GenericHandler):
     """mixin for hashes which use multiple prefix identifiers
 
@@ -692,10 +724,25 @@ class HasManyIdents(GenericHandler):
                 return False
         return any(hash.startswith(ident) for ident in cls.ident_values)
 
+    @classmethod
+    def _parse_ident(cls, hash):
+        """extract ident prefix from hash, helper for subclasses' from_string()"""
+        if not hash:
+            raise ValueError("no hash specified")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        for ident in cls.ident_values:
+            if hash.startswith(ident):
+                return ident, hash[len(ident):]
+        raise ValueError("invalid %s hash" % (cls.name,))
+
     #=========================================================
     #eoc
     #=========================================================
 
+#-----------------------------------------------------
+# salt mixins
+#-----------------------------------------------------
 class HasSalt(GenericHandler):
     """mixin for validating salts.
 
@@ -766,7 +813,8 @@ class HasSalt(GenericHandler):
     .. automethod:: _norm_salt
     .. automethod:: _generate_salt
     """
-    #XXX: allow providing raw salt to this class, and encoding it?
+    # TODO: document _truncate_salt()
+    # XXX: allow providing raw salt to this class, and encoding it?
 
     #=========================================================
     #class attrs
@@ -839,6 +887,7 @@ class HasSalt(GenericHandler):
                 raise TypeError("salt must be specified as bytes")
         else:
             if not isinstance(salt, unicode):
+                # XXX: should we disallow bytes here?
                 if isinstance(salt, bytes):
                     salt = salt.decode("ascii")
                 else:
@@ -846,12 +895,8 @@ class HasSalt(GenericHandler):
 
             # check charset
             sc = self.salt_chars
-            if sc is not None:
-                bad = set(salt)
-                bad.difference_update(sc)
-                if bad:
-                    raise ValueError("invalid characters in %s salt: %r" %
-                                     (self.name, ujoin(sorted(bad))))
+            if sc is not None and any(c not in sc for c in salt):
+                raise ValueError("invalid characters in %s salt" % self.name)
 
         # check min size
         mn = self.min_salt_size
@@ -904,9 +949,8 @@ class HasRawSalt(HasSalt):
 
     salt_chars = ALL_BYTE_VALUES
 
-    #NOTE: all HasRawSalt code is currently part of HasSalt,
-    #      using private _salt_is_bytes flag.
-    #      this arrangement may be changed in the future.
+    # NOTE: all HasRawSalt code is currently part of HasSalt, using private
+    # '_salt_is_bytes' flag. this arrangement may be changed in the future.
     _salt_is_bytes = True
     _salt_unit = "bytes"
 
@@ -914,6 +958,9 @@ class HasRawSalt(HasSalt):
         assert self.salt_chars in [None, ALL_BYTE_VALUES]
         return getrandbytes(rng, salt_size)
 
+#-----------------------------------------------------
+# rounds mixin
+#-----------------------------------------------------
 class HasRounds(GenericHandler):
     """mixin for validating rounds parameter
 
@@ -1043,6 +1090,9 @@ class HasRounds(GenericHandler):
     #eoc
     #=========================================================
 
+#-----------------------------------------------------
+# backend mixin & helpers
+#-----------------------------------------------------
 def _clear_backend(cls):
     "restore HasManyBackend subclass to unloaded state - used by unittests"
     assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
@@ -1138,11 +1188,10 @@ class HasManyBackends(GenericHandler):
             ``True`` if backend is currently supported, else ``False``.
         """
         if name in ("any", "default"):
-            try:
-                cls.set_backend()
+            if name == "any" and cls._backend:
                 return True
-            except MissingBackendError:
-                return False
+            return any(getattr(cls, "_has_backend_" + name)
+                       for name in cls.backends)
         elif name in cls.backends:
             return getattr(cls, "_has_backend_" + name)
         else:
@@ -1198,7 +1247,8 @@ class HasManyBackends(GenericHandler):
             else:
                 raise MissingBackendError(cls._no_backends_msg())
         elif not cls.has_backend(name):
-            raise MissingBackendError("%s backend not available: %r" % (cls.name, name))
+            raise MissingBackendError("%s backend not available: %r" %
+                                          (cls.name, name))
         cls._calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
         return name
@@ -1325,6 +1375,8 @@ class PrefixWrapper(object):
     _proxy_attrs = (
                     "setting_kwds", "context_kwds",
                     "default_rounds", "min_rounds", "max_rounds", "rounds_cost",
+                    "default_salt_size", "min_salt_size", "max_salt_size",
+                    "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
                     )
 

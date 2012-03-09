@@ -122,16 +122,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        for ident in cls.ident_values:
-            if hash.startswith(ident):
-                break
-        else:
-            raise ValueError("invalid bcrypt hash")
-        rounds, data = hash[len(ident):].split(u("$"))
+        ident, tail = cls._parse_ident(hash)
+        rounds, data = tail.split(u("$"))
         rval = int(rounds)
         if rounds != u('%02d') % (rval,):
             raise ValueError("invalid bcrypt hash (rounds not zero-padded)")
@@ -259,6 +251,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         #   py2: unicode secret/hash encoded as ascii bytes before use,
         #        bytes takes as-is; returns ascii bytes.
         #   py3: can't get to install
+
+        # FIXME: bcryptor doesn't support v0 hashes ("$2$"),
+        # will throw bcryptor.engine.SaltError at this point.
+
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         hash = bcryptor_engine(False).hash_key(secret, self.to_string())

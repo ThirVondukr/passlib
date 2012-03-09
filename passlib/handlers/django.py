@@ -35,7 +35,7 @@ def _import_des_crypt():
 #=========================================================
 #salted hashes
 #=========================================================
-class DjangoSaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
+class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
     #must be specified by subclass - along w/ calc_checksum
     setting_kwds = ("salt", "salt_size")
@@ -46,10 +46,6 @@ class DjangoSaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     default_salt_size = 5
     max_salt_size = None
     salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
-
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_prefix(hash, cls.ident)
 
     @classmethod
     def from_string(cls, hash):
@@ -144,7 +140,7 @@ class django_des_crypt(DjangoSaltedHash):
     """
 
     name = "django_des_crypt"
-    ident = "crypt$"
+    ident = u("crypt$")
     checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 13
     min_salt_size = 2
@@ -162,9 +158,14 @@ class django_des_crypt(DjangoSaltedHash):
         # else hash can *never* validate
         salt = self.salt
         chk = self.checksum
-        if salt and chk and salt[:2] != chk[:2]:
-            raise ValueError("invalid django_des_crypt hash: "
-                "first two digits of salt and checksum must match")
+        if salt and chk:
+            if salt[:2] != chk[:2]:
+                raise ValueError("invalid django_des_crypt hash: "
+                    "first two digits of salt and checksum must match")
+            # repeat stub checksum detection since salt isn't set
+            # when _norm_checksum() is called.
+            if chk == self._stub_checksum:
+                self.checksum = None
 
     _base_stub_checksum = u('.') * 13
 
@@ -207,14 +208,15 @@ class django_disabled(uh.StaticHandler):
         else:
             return hash == u("!")
 
-    @classmethod
-    def genhash(cls, secret, config):
+    def _calc_checksum(self, secret):
         if secret is None:
             raise TypeError("no secret provided")
-        return "!"
+        return u("!")
 
     @classmethod
     def verify(cls, secret, hash):
+        if secret is None:
+            raise TypeError("no secret provided")
         if not cls.identify(hash):
             raise ValueError("invalid django-disabled hash")
         return False

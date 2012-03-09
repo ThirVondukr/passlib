@@ -46,6 +46,10 @@ Release History
 
         .. currentmodule:: passlib.utils.handlers
 
+        * Internal handler framework (:mod:`passlib.utils.handlers`) rewritten
+          drastically. Provides stricter input checking, reduction in
+          boilerplate code.
+
         * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
           changed in backward-incompatible way: the ``strict`` keyword
           was removed. :class:`!GenericHandler` now defaults to a behavior
@@ -53,6 +57,10 @@ Release History
           all values be specified, and that all values be within correct bounds.
           The new keywords ``use_defaults`` and ``relaxed`` can be used
           to disable these two requirements, respectively.
+
+        * :class:`~passlib.utils.handlers.StaticHandler` now derived from
+        :class:`!GenericHandler`, and required ``_calc_checksum()`` be
+        implemented instead of ``encrypt()``.
 
         * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
           changed in backward-incompatible way: the :samp:`norm_{xxx}`
@@ -84,6 +92,9 @@ Release History
 
         * Passlib is now source-compatible with Python 2.5+ and Python 3,
           and no longer requires the use of :command:`2to3` to run under Python 3.
+
+        * Hash unittest framework rewritten. More border cases handled,
+          some simple fuzz testing added.
 
         .. currentmodule:: passlib.hash
 

@@ -21,7 +21,7 @@ __all__ = [
 #=========================================================
 #handler
 #=========================================================
-class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
+class nthash(uh.HasManyIdents, uh.GenericHandler):
     """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -56,16 +56,7 @@ class nthash(uh.HasStubChecksum, uh.HasManyIdents, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        for ident in cls.ident_values:
-            if hash.startswith(ident):
-                break
-        else:
-            raise ValueError("invalid nthash")
-        chk = hash[len(ident):]
+        ident, chk = cls._parse_ident(hash)
         return cls(ident=ident, checksum=chk)
 
     def to_string(self):

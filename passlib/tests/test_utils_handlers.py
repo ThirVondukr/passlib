@@ -39,61 +39,58 @@ def _makelang(alphabet, size):
     return set(helper(size))
 
 #=========================================================
-#test support classes - StaticHandler, GenericHandler, etc
+#test GenericHandler & associates mixin classes
 #=========================================================
 class SkeletonTest(TestCase):
     "test hash support classes"
 
     #=========================================================
-    #StaticHandler
+    # StaticHandler
     #=========================================================
     def test_00_static_handler(self):
-        "test StaticHandler helper class"
+        "test StaticHandler class"
 
         class d1(uh.StaticHandler):
             name = "d1"
             context_kwds = ("flag",)
+            _hash_prefix = u("_")
+            checksum_chars = u("ab")
+            checksum_size = 1
 
-            @classmethod
-            def genhash(cls, secret, hash, flag=False):
-                if isinstance(hash, bytes):
-                    hash = hash.decode("ascii")
-                if hash not in (u('a'), u('b'), None):
-                    raise ValueError("unknown hash %r" % (hash,))
-                return 'b' if flag else 'a'
+            def __init__(self, flag=False, **kwds):
+                super(d1, self).__init__(**kwds)
+                self.flag = flag
+
+            def _calc_checksum(self, secret):
+                return u('b') if self.flag else u('a')
 
         # check default identify method
-        self.assertTrue(d1.identify(u('a')))
-        self.assertTrue(d1.identify(b('a')))
-        self.assertTrue(d1.identify(u('b')))
+        self.assertTrue(d1.identify(u('_a')))
+        self.assertTrue(d1.identify(b('_a')))
+        self.assertTrue(d1.identify(u('_b')))
+
+        self.assertFalse(d1.identify(u('_c')))
+        self.assertFalse(d1.identify(b('_c')))
+        self.assertFalse(d1.identify(u('a')))
+        self.assertFalse(d1.identify(u('b')))
         self.assertFalse(d1.identify(u('c')))
-        self.assertFalse(d1.identify(b('c')))
-        self.assertFalse(d1.identify(u('')))
         self.assertFalse(d1.identify(None))
 
         # check default genconfig method
         self.assertIs(d1.genconfig(), None)
-        d1._stub_config = u('b')
-        self.assertEqual(d1.genconfig(), 'b')
-
-        # check config string is rejected
-        self.assertRaises(ValueError, d1.verify, 's', b('b'))
-        self.assertRaises(ValueError, d1.verify, 's', u('b'))
-        del d1._stub_config
 
         # check default verify method
-        self.assertTrue(d1.verify('s', b('a')))
-        self.assertTrue(d1.verify('s',u('a')))
-        self.assertFalse(d1.verify('s', b('b')))
-        self.assertFalse(d1.verify('s',u('b')))
-        self.assertTrue(d1.verify('s', b('b'), flag=True))
-        self.assertRaises(ValueError, d1.verify, 's', b('c'))
-        self.assertRaises(ValueError, d1.verify, 's', u('c'))
+        self.assertTrue(d1.verify('s', b('_a')))
+        self.assertTrue(d1.verify('s',u('_a')))
+        self.assertFalse(d1.verify('s', b('_b')))
+        self.assertFalse(d1.verify('s',u('_b')))
+        self.assertTrue(d1.verify('s', b('_b'), flag=True))
+        self.assertRaises(ValueError, d1.verify, 's', b('_c'))
+        self.assertRaises(ValueError, d1.verify, 's', u('_c'))
 
         # check default encrypt method
-        self.assertEqual(d1.encrypt('s'), 'a')
-        self.assertEqual(d1.encrypt('s'), 'a')
-        self.assertEqual(d1.encrypt('s', flag=True), 'b')
+        self.assertEqual(d1.encrypt('s'), '_a')
+        self.assertEqual(d1.encrypt('s', flag=True), '_b')
 
     #=========================================================
     #GenericHandler & mixins
@@ -104,8 +101,10 @@ class SkeletonTest(TestCase):
 
             @classmethod
             def from_string(cls, hash):
-                if hash == 'a':
-                    return cls(checksum='a')
+                if isinstance(hash, bytes):
+                    hash = hash.decode("ascii")
+                if hash == u('a'):
+                    return cls(checksum=hash)
                 else:
                     raise ValueError
 
@@ -115,12 +114,21 @@ class SkeletonTest(TestCase):
         self.assertTrue(d1.identify('a'))
         self.assertFalse(d1.identify('b'))
 
+        # check regexp
+        d1._hash_regex = re.compile(u('@.'))
+        self.assertFalse(d1.identify(None))
+        self.assertFalse(d1.identify(''))
+        self.assertTrue(d1.identify('@a'))
+        self.assertFalse(d1.identify('a'))
+        del d1._hash_regex
+
         # check ident-based
         d1.ident = u('!')
         self.assertFalse(d1.identify(None))
         self.assertFalse(d1.identify(''))
         self.assertTrue(d1.identify('!a'))
         self.assertFalse(d1.identify('a'))
+        del d1.ident
 
     def test_11_norm_checksum(self):
         "test GenericHandler checksum handling"
@@ -128,22 +136,32 @@ class SkeletonTest(TestCase):
         class d1(uh.GenericHandler):
             name = 'd1'
             checksum_size = 4
-            checksum_chars = 'x'
+            checksum_chars = u('xz')
+            _stub_checksum = u('z')*4
 
         def norm_checksum(*a, **k):
             return d1(*a, **k).checksum
 
         # too small
-        self.assertRaises(ValueError, norm_checksum, 'xxx')
+        self.assertRaises(ValueError, norm_checksum, u('xxx'))
 
         # right size
-        self.assertEqual(norm_checksum('xxxx'), 'xxxx')
+        self.assertEqual(norm_checksum(u('xxxx')), u('xxxx'))
+        self.assertEqual(norm_checksum(u('xzxz')), u('xzxz'))
 
         # too large
-        self.assertRaises(ValueError, norm_checksum, 'xxxxx')
+        self.assertRaises(ValueError, norm_checksum, u('xxxxx'))
 
         # wrong chars
-        self.assertRaises(ValueError, norm_checksum, 'xxyx')
+        self.assertRaises(ValueError, norm_checksum, u('xxyx'))
+
+        # wrong type
+        self.assertRaises(TypeError, norm_checksum, b('xxyx'))
+
+        # test _stub_checksum behavior
+        self.assertIs(norm_checksum(u('zzzz')), None)
+
+    # TODO: test HasRawChecksum mixin
 
     def test_20_norm_salt(self):
         "test GenericHandler + HasSalt mixin"
@@ -219,6 +237,8 @@ class SkeletonTest(TestCase):
             self.assertEqual(len(gen_salt(None)), 3)
             self.assertEqual(len(gen_salt(5)), 5)
             self.consumeWarningList(wlog)
+
+    # TODO: test HasRawSalt mixin
 
     def test_30_norm_rounds(self):
         "test GenericHandler + HasRounds mixin"
@@ -504,22 +524,16 @@ class PrefixWrapperTest(TestCase):
 class UnsaltedHash(uh.StaticHandler):
     "test algorithm which lacks a salt"
     name = "unsalted_test_hash"
-    _stub_config = "0" * 40
+    checksum_chars = uh.LOWER_HEX_CHARS
+    checksum_size = 40
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, re.compile(u("^[0-9a-f]{40}$")))
-
-    @classmethod
-    def genhash(cls, secret, hash):
-        if not cls.identify(hash):
-            raise ValueError("not a unsalted-example hash")
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         data = b("boblious") + secret
-        return hashlib.sha1(data).hexdigest()
+        return str_to_uascii(hashlib.sha1(data).hexdigest())
 
-class SaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
+class SaltedHash(uh.HasSalt, uh.GenericHandler):
     "test algorithm with a salt"
     name = "salted_test_hash"
     setting_kwds = ("salt",)
@@ -529,9 +543,7 @@ class SaltedHash(uh.HasStubChecksum, uh.HasSalt, uh.GenericHandler):
     checksum_size = 40
     salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, re.compile(u("^@salt[0-9a-f]{42,44}$")))
+    _hash_regex = re.compile(u("^@salt[0-9a-f]{42,44}$"))
 
     @classmethod
     def from_string(cls, hash):
