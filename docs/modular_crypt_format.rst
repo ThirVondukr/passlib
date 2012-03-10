@@ -135,7 +135,7 @@ Scheme                               Prefix               Linux       FreeBSD   
 :class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
 :class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                            y
 :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``                y           y           y           y
-:class:`~passlib.hash.nthash`        ``$3$``                          y
+:class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
 :class:`~passlib.hash.sha256_crypt`  ``$5$``              y                                               y
 :class:`~passlib.hash.sha512_crypt`  ``$6$``              y                                               y
 :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y

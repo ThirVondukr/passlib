@@ -90,11 +90,12 @@ they can be used compatibly along side other modular crypt format hashes.
 
     passlib.hash.apr_md5_crypt
     passlib.hash.phpass
-    passlib.hash.nthash
     passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
     passlib.hash.dlitz_pbkdf2_sha1
     passlib.hash.scram
+
+* :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible :doc:`nthash <passlib.hash.nthash>` encoding
 
 Special note should be made of the fallback helper,
 which is not an actual hash scheme, but provides "disabled account"
@@ -192,6 +193,7 @@ in one of the above categories:
     :maxdepth: 1
 
     passlib.hash.lmhash
+    passlib.hash.nthash
     passlib.hash.cisco_pix
 
 * *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`

@@ -8,6 +8,11 @@ Release History
 
     Hashes
 
+        * The rarely-used hash previously known as ``nthash`` has been renamed to
+          :class:`~passlib.hash.bsd_nthash`, to better indicate it's lineage;
+          a new :class:`~passlib.hash.nthash` class now directly implements
+          the plain hexidecimal Windows NT password hash.
+
         * added support for Windows' :doc:`lmhash <lib/passlib.hash.lmhash>`
           (aka Lan Manager password hash).
 

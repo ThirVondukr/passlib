@@ -561,8 +561,8 @@ the following issues:
    that applications should never need to use a specific
    encoding with these hashes, as they are natively unicode.
 
-   (The only hashes in Passlib like this are
-   :class:`~passlib.hash.oracle10` and :class:`~passlib.hash.nthash`)
+   (Hashes like this include :class:`~passlib.hash.oracle10` and
+   :class:`~passlib.hash.nthash`)
 
 Hashes
 ------

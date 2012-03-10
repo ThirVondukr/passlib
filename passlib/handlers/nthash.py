@@ -18,6 +18,7 @@ import passlib.utils.handlers as uh
 __all__ = [
     "lmhash",
     "nthash",
+    "bsd_nthash",
 ]
 
 #=========================================================
@@ -113,73 +114,110 @@ class lmhash(_HasEncodingContext, uh.StaticHandler):
 #=========================================================
 # ntlm hash
 #=========================================================
-class nthash(uh.HasManyIdents, uh.GenericHandler):
-    """This class implements the NT Password hash in a manner compatible with the :ref:`modular-crypt-format`, and follows the :ref:`password-hash-api`.
+class nthash(uh.StaticHandler):
+    """This class implements the NT Password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+
+    Note that while this class outputs lower-case hexidecimal digests,
+    it will accept upper-case digests as well.
     """
-
-    #TODO: verify where $NT$ is being used.
-    ##:param ident:
-    ##This handler supports two different :ref:`modular-crypt-format` identifiers.
-    ##It defaults to ``3``, but users may specify the alternate ``NT`` identifier
-    ##which is used in some contexts.
-
     #=========================================================
-    #class attrs
+    # class attrs
     #=========================================================
-    #--GenericHandler--
     name = "nthash"
-    setting_kwds = ("ident",)
-    checksum_chars = uh.LOWER_HEX_CHARS
-
-    _stub_checksum = u("0") * 32
-
-    #--HasManyIdents--
-    default_ident = u("$3$$")
-    ident_values = (u("$3$$"), u("$NT$"))
-    ident_aliases = {u("3"): u("$3$$"), u("NT"): u("$NT$")}
+    checksum_chars = uh.HEX_CHARS
+    checksum_size = 32
 
     #=========================================================
-    #formatting
+    # methods
     #=========================================================
-
     @classmethod
-    def from_string(cls, hash):
-        ident, chk = cls._parse_ident(hash)
-        return cls(ident=ident, checksum=chk)
-
-    def to_string(self):
-        hash = self.ident + (self.checksum or self._stub_checksum)
-        return uascii_to_str(hash)
-
-    #=========================================================
-    #primary interface
-    #=========================================================
+    def _norm_hash(cls, hash):
+        return hash.lower()
 
     def _calc_checksum(self, secret):
-        return self.raw_nthash(secret, hex=True)
+        return hexlify(self.raw(secret)).decode("ascii")
 
-    @staticmethod
-    def raw_nthash(secret, hex=False):
-        """encode password using md4-based NTHASH algorithm
+    @classmethod
+    def raw(cls, secret):
+        """encode password using MD4-based NTHASH algorithm
 
-        :returns:
-            returns string of raw bytes if ``hex=False``,
-            returns digest as hexidecimal unicode if ``hex=True``.
+        :arg secret: secret as unicode or utf-8 encoded bytes
+
+        :returns: returns string of raw bytes
         """
         secret = to_unicode(secret, "utf-8", errname="secret")
-        hash = md4(secret.encode("utf-16le"))
-        if hex:
-            return str_to_uascii(hash.hexdigest())
-        else:
-            return hash.digest()
+        # XXX: found refs that say only first 128 chars are used.
+        return md4(secret.encode("utf-16-le")).digest()
+
+    @classmethod
+    def raw_nthash(cls, secret):
+        warn("nthash.raw_nthash() is deprecated, and will be removed "
+             "in Passlib 1.8, please use nthash.raw() instead",
+             DeprecationWarning)
+        return nthash_hex.raw(secret)
 
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
+
+bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
+    doc="""The class support FreeBSD's representation of NTHASH
+    (which is compatible with the :ref:`modular-crypt-format`),
+    and follows the :ref:`password-hash-api`.
+
+    It has no salt and a single fixed round.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    """)
+
+##class ntlm_pair(object):
+##    "combined lmhash & nthash"
+##    name = "ntlm_pair"
+##    setting_kwds = ()
+##    _hash_regex = re.compile(u"^(?P<lm>[0-9a-f]{32}):(?P<nt>[0-9][a-f]{32})$",
+##                             re.I)
+##
+##    @classmethod
+##    def identify(cls, hash):
+##        if not hash:
+##            return False
+##        if isinstance(hash, bytes):
+##            hash = hash.decode("latin-1")
+##        if len(hash) != 65:
+##            return False
+##        return cls._hash_regex.match(hash) is not None
+##
+##    @classmethod
+##    def genconfig(cls):
+##        return None
+##
+##    @classmethod
+##    def genhash(cls, secret, config):
+##        if config is not None and not cls.identify(config):
+##            raise ValueError("not a valid %s hash" % (cls.name,))
+##        return cls.encrypt(secret)
+##
+##    @classmethod
+##    def encrypt(cls, secret):
+##        return lmhash.encrypt(secret) + ":" + nthash.encrypt(secret)
+##
+##    @classmethod
+##    def verify(cls, secret, hash):
+##        if hash is None:
+##            raise TypeError("no hash specified")
+##        if isinstance(hash, bytes):
+##            hash = hash.decode("latin-1")
+##        m = cls._hash_regex.match(hash)
+##        if not m:
+##            raise ValueError("not a valid %s hash" % (cls.name,))
+##        lm, nt = m.group("lm", "nt")
+##        # NOTE: verify against both in case encoding issue
+##        # causes one not to match.
+##        return lmhash.verify(secret, lm) or nthash.verify(secret, nt)
 
 #=========================================================
 #eof

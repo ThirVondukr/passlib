@@ -84,6 +84,7 @@ _handler_locations = {
                         ("passlib.handlers.pbkdf2",      "atlassian_pbkdf2_sha1"),
     "bcrypt":           ("passlib.handlers.bcrypt",      "bcrypt"),
     "bigcrypt":         ("passlib.handlers.des_crypt",   "bigcrypt"),
+    "bsd_nthash":       ("passlib.handlers.nthash",      "bsd_nthash"),
     "bsdi_crypt":       ("passlib.handlers.des_crypt",   "bsdi_crypt"),
     "cisco_pix":        ("passlib.handlers.cisco",       "cisco_pix"),
     "cisco_type7":      ("passlib.handlers.cisco",       "cisco_type7"),

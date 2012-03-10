@@ -1187,19 +1187,48 @@ class mysql41_test(HandlerCase):
     ]
 
 #=========================================================
-# NTHASH for unix
+# NTHASH
 #=========================================================
 class nthash_test(HandlerCase):
     handler = hash.nthash
 
     known_correct_hashes = [
-        ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
-        ('passphrase', '$NT$7f8fe03093cc84b267b109625f6bbf4b'),
+        #
+        # from JTR 1.7.9
+        #
+
+        # ascii
+        ('', '31d6cfe0d16ae931b73c59d7e0c089c0'),
+        ('tigger', 'b7e0ea9fbffcf6dd83086e905089effd'),
+
+        # utf-8
+        (b('\xC3\xBC'), '8bd6e4fb88e01009818749c5443ea712'),
+        (b('\xC3\xBC\xC3\xBC'), 'cc1260adb6985ca749f150c7e0b22063'),
+        (b('\xE2\x82\xAC'), '030926b781938db4365d46adc7cfbcb8'),
+        (b('\xE2\x82\xAC\xE2\x82\xAC'),'682467b963bb4e61943e170a04f7db46'),
+
+        #
+        # custom
+        #
+        ('passphrase', '7f8fe03093cc84b267b109625f6bbf4b'),
     ]
 
-    known_malformed_hashes = [
+    known_unidentified_hashes = [
         #bad char in otherwise correct hash
-        '$3$$7f8fe03093cc84b267b109625f6bbfxb',
+        '7f8fe03093cc84b267b109625f6bbfxb',
+    ]
+
+class bsd_nthash_test(HandlerCase):
+    handler = hash.bsd_nthash
+
+    known_correct_hashes = [
+        ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
+        (b('\xC3\xBC'), '$3$$8bd6e4fb88e01009818749c5443ea712'),
+    ]
+
+    known_unidentified_hashes = [
+        #bad char in otherwise correct hash --\/
+            '$3$$7f8fe03093cc84b267b109625f6bbfxb',
     ]
 
 #=========================================================
