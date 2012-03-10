@@ -1676,36 +1676,32 @@ def _hobj_to_dict(hobj):
         if key not in exclude_keys
     )
 
-def create_backend_case(base, name, module="passlib.tests.test_handlers"):
+def create_backend_case(base_class, backend, module=None):
     "create a test case for specific backend of a multi-backend handler"
     #get handler, figure out if backend should be tested
-    handler = base.handler
+    handler = base_class.handler
     assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
-    enable, reason = _enable_backend_case(handler, name)
+    enable, skip_reason = _enable_backend_case(handler, backend)
 
-    #UT1 doesn't support skipping whole test cases,
-    #so we just return None.
+    #UT1 doesn't support skipping whole test cases, so we just return None.
     if not enable and ut_version < 2:
         return None
 
-    #make classname match what it's stored under, to be tidy
-    cname = name.title().replace("_","") + "_" + base.__name__.lstrip("_")
-
     #create subclass of 'base' which uses correct backend
-    subcase = type(
-        cname,
-        (base,),
+    backend_class = type(
+        "%s_%s" % (backend, handler.name),
+        (base_class,),
         dict(
-            case_prefix = "%s (%s backend)" % (handler.name, name),
-            backend = name,
-            __module__=module,
+            case_prefix = "%s (%s backend)" % (handler.name, backend),
+            backend = backend,
+            __module__= module or base_class.__module__,
         )
     )
 
     if not enable:
-        subcase = unittest.skip(reason)(subcase)
+        backend_class = unittest.skip(skip_reason)(backend_class)
 
-    return subcase
+    return backend_class
 
 #=========================================================
 #misc helpers

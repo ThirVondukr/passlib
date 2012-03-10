@@ -409,17 +409,17 @@ PatchTest = skipUnlessDjango(PatchTest)
 #=========================================================
 
 django_hash_tests = [
-                    th.HexMd5Test,
-                    th.DjangoDesCryptTest,
-                    th.DjangoSaltedMd5Test,
-                    th.DjangoSaltedSha1Test,
+                    th.hex_md5_test,
+                    th.django_des_crypt_test,
+                    th.django_salted_md5_test,
+                    th.django_salted_sha1_test,
                      ]
 
-default_hash_tests = django_hash_tests + [ th.Builtin_SHA512CryptTest \
-                                          or th.OsCrypt_SHA512CryptTest ]
+default_hash_tests = django_hash_tests + [ th.builtin_sha512_crypt_test \
+                                          or th.os_crypt_sha512_crypt_test ]
 
 if has_django0:
-    django_hash_tests.remove(th.DjangoDesCryptTest)
+    django_hash_tests.remove(th.django_des_crypt_test)
 
 class PluginTest(TestCase):
     "test django plugin via settings"
