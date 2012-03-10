@@ -147,7 +147,8 @@ _handler_locations = {
     "sha256_crypt":     ("passlib.handlers.sha2_crypt",  "sha256_crypt"),
     "sha512_crypt":     ("passlib.handlers.sha2_crypt",  "sha512_crypt"),
     "sun_md5_crypt":    ("passlib.handlers.sun_md5_crypt","sun_md5_crypt"),
-    "unix_fallback":    ("passlib.handlers.misc",        "unix_fallback"),
+    "unix_disabled":    ("passlib.handlers.misc",         "unix_disabled"),
+    "unix_fallback":    ("passlib.handlers.misc",         "unix_fallback"),
 }
 
 #: master regexp for detecting valid handler names

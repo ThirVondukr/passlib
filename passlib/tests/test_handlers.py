@@ -2164,8 +2164,23 @@ class sun_md5_crypt_test(HandlerCase):
         return self.handler.verify(secret, hash)
 
 #=========================================================
-#unix fallback
+#unix disabled / fallback
 #=========================================================
+class unix_disabled_test(HandlerCase):
+    handler = hash.unix_disabled
+    accepts_all_hashes = True
+    is_disabled_handler = True
+
+    known_correct_hashes = [
+        # everything should hash to "!" (or "*" on BSD),
+        # and nothing should verify against either string
+        ("password", "!"),
+        (UPASS_TABLE, "*"),
+    ]
+
+    # TODO: test custom marker support
+    # TODO: test default marker selection
+
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback
     accepts_all_hashes = True
@@ -2176,6 +2191,11 @@ class unix_fallback_test(HandlerCase):
         ("password", "!"),
         (UPASS_TABLE, "!"),
     ]
+
+    # silence annoying deprecation warning
+    def setUp(self):
+        super(unix_fallback_test, self).setUp()
+        warnings.filterwarnings("ignore", "'unix_fallback' is deprecated")
 
     def test_90_wildcard(self):
         "test enable_wildcard flag"

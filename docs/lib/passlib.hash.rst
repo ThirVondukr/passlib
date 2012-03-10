@@ -104,7 +104,7 @@ behavior found in many Linux & BSD password files:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.unix_fallback
+    passlib.hash.unix_disabled
 
 .. _ldap-hashes:
 

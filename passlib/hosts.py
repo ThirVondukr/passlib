@@ -27,7 +27,7 @@ __all__ = [
 
 linux_context = linux2_context = LazyCryptContext(
     schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
-               "des_crypt", "unix_fallback" ],
+               "des_crypt", "unix_disabled" ],
     deprecated = [ "des_crypt" ],
     )
 
@@ -50,9 +50,14 @@ linux_context = linux2_context = LazyCryptContext(
 # netbsd - des, ext, md5, bcrypt, sha1
 # openbsd - des, ext, md5, bcrypt
 
-freebsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "bsd_nthash", "des_crypt", "unix_fallback" ])
-openbsd_context = LazyCryptContext([ "bcrypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
-netbsd_context = LazyCryptContext([ "bcrypt", "sha1_crypt", "md5_crypt", "bsdi_crypt", "des_crypt", "unix_fallback" ])
+freebsd_context = LazyCryptContext(["bcrypt", "md5_crypt", "bsd_nthash",
+                                    "des_crypt", "unix_disabled"])
+
+openbsd_context = LazyCryptContext(["bcrypt", "md5_crypt", "bsdi_crypt",
+                                    "des_crypt", "unix_disabled"])
+
+netbsd_context = LazyCryptContext(["bcrypt", "sha1_crypt", "md5_crypt",
+                                   "bsdi_crypt", "des_crypt", "unix_disabled"])
 
 #=========================================================
 #current host
@@ -73,7 +78,7 @@ if has_crypt:
         if found:
             #only offer fallback if there's another scheme in front,
             #as this can't actually hash any passwords
-            yield "unix_fallback"
+            yield "unix_disabled"
         else:
             #no idea what OS this could happen on, but just in case...
             warn("crypt.crypt() function is present, but doesn't support any "

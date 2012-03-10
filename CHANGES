@@ -8,6 +8,11 @@ Release History
 
     Hashes
 
+        * The *unix_fallback* handler has been deprecated, and will be removed
+          in Passlib 1.8. Please use the improved replacement,
+          :doc:`unix_disabled <lib/passlib.hash.unix_disabled>`,
+          instead.
+
         * Added support for Window's Domain Cached Credentials (aka
           "dcc", "mscache", "mscash"), versions 1 and 2:
           :doc:`msdcc <lib/passlib.hash.msdcc>` and

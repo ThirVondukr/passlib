@@ -49,12 +49,10 @@ for the following Unix variants:
 
 .. note::
 
-    All of the above contexts include the :class:`~passlib.hash.unix_fallback` handler
+    All of the above contexts include the :class:`~passlib.hash.unix_disabled` handler
     as a final fallback. This special handler treats all strings as invalid passwords,
     particularly the common strings ``!`` and ``*`` which are used to indicate
-    that an account has been disabled [#shadow]_. It can also be configured
-    to treat empty strings as a wildcard allowing in all passwords,
-    though this behavior is disabled by default for security reasons.
+    that an account has been disabled [#shadow]_. 
 
 A quick usage example, using the :data:`!linux_context` instance::
 
