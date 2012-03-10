@@ -19,7 +19,7 @@ try:
     from setuptools import setup
     has_distribute = True
 except ImportError:
-    from distutils import setup
+    from distutils.core import setup
     has_distribute = False
 
 #=========================================================
