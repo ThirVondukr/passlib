@@ -54,7 +54,7 @@ released under the BSD license::
 from itertools import chain
 import struct
 #pkg
-from passlib.utils import Base64Engine, BCRYPT_CHARS, getrandbytes, rng
+from passlib.utils import bcrypt64, getrandbytes, rng
 from passlib.utils.compat import b, bytes, BytesIO, unicode, u
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local
@@ -75,9 +75,6 @@ BCRYPT_CDATA = [
 
 # struct used to encode ciphertext as digest (last output byte discarded)
 digest_struct = struct.Struct(">6I")
-
-# base64 variant used by bcrypt
-bcrypt64 = Base64Engine(BCRYPT_CHARS, big=True)
 
 #=========================================================
 #base bcrypt helper
@@ -105,6 +102,14 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     if ident == u('2'):
         minor = 0
     elif ident == u('2a'):
+        minor = 1
+        # XXX: how to indicate caller wants to use crypt_blowfish's
+        # workaround variant of 2a?
+    elif ident == u('2x'):
+        raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
+                         "currently supported")
+    elif ident == u('2y'):
+        # crypt_blowfish compatibility ident which guarantees compat w/ 2a
         minor = 1
     else:
         raise ValueError("unknown ident: %r" % (ident,))

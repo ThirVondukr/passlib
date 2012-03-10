@@ -665,6 +665,38 @@ class _Base64Test(TestCase):
             else:
                 self.assertEqual(result, encoded)
 
+    def test_repair_unused(self):
+        "test repair_unused()"
+        # NOTE: this test relies on encode_bytes() always returning clear
+        # padding bits - which should be ensured by test vectors.
+        from passlib.utils import rng, getrandstr
+        engine = self.engine
+        check_repair_unused = self.engine.check_repair_unused
+        i = 0
+        while i < 300:
+            size = rng.randint(0,23)
+            cdata = getrandstr(rng, engine.charmap, size).encode("ascii")
+            if size & 3 == 1:
+                # should throw error
+                self.assertRaises(ValueError, check_repair_unused, cdata)
+                continue
+            rdata = engine.encode_bytes(engine.decode_bytes(cdata))
+            if rng.random() < .5:
+                cdata = cdata.decode("ascii")
+                rdata = rdata.decode("ascii")
+            if cdata == rdata:
+                # should leave unchanged
+                ok, result = check_repair_unused(cdata)
+                self.assertFalse(ok)
+                self.assertEqual(result, rdata)
+            else:
+                # should repair bits
+                self.assertNotEqual(size % 4, 0)
+                ok, result = check_repair_unused(cdata)
+                self.assertTrue(ok)
+                self.assertEqual(result, rdata)
+            i += 1
+
     #=========================================================
     # test transposed encode/decode - encoding independant
     #=========================================================

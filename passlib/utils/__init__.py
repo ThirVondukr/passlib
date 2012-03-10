@@ -19,7 +19,7 @@ from warnings import warn
 #pkg
 from passlib.utils.compat import _add_doc, b, bytes, bjoin, bjoin_ints, \
                                  bjoin_elems, exc_err, irange, imap, PY3, u, \
-                                 ujoin, unicode
+                                 ujoin, unicode, belem_ord
 #local
 __all__ = [
     # constants
@@ -201,6 +201,24 @@ def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
     wrapper.__name__ = name
     wrapper.__doc__ = msg
     return wrapper
+
+class memoized_property(object):
+    """decorator which invokes method once, then replaces attr with result"""
+    def __init__(self, func):
+        self.im_func = func
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        func = self.im_func
+        value = func(obj)
+        setattr(obj, func.__name__, value)
+        return value
+
+    @property
+    def __func__(self):
+        "py3 alias"
+        return self.im_func
 
 #works but not used
 ##class memoized_class_property(object):
@@ -597,6 +615,7 @@ class Base64Engine(object):
     .. automethod:: decode_bytes
     .. automethod:: encode_transposed_bytes
     .. automethod:: decode_transposed_bytes
+    .. automethod:: check_repair_unused
 
     Integers <-> Encoded Bytes
     ==========================
@@ -887,6 +906,86 @@ class Base64Engine(object):
                 yield ((v2&0xF)<<4) | (v3>>2)
 
     #=============================================================
+    # encode/decode helpers
+    #=============================================================
+
+    # padmap2/3 - dict mapping last char of string ->
+    # equivalent char with no padding bits set.
+
+    def __make_padset(self, bits):
+        "helper to generate set of valid last chars & bytes"
+        pset = set(c for i,c in enumerate(self.bytemap) if not i & bits)
+        pset.update(c for i,c in enumerate(self.charmap) if not i & bits)
+        return frozenset(pset)
+
+    @memoized_property
+    def _padinfo2(self):
+        "mask to clear padding bits, and valid last bytes (for strings 2 % 4)"
+        # 4 bits of last char unused (lsb for big, msb for little)
+        bits = 15 if self.big else (15<<2)
+        return ~bits, self.__make_padset(bits)
+
+    @memoized_property
+    def _padinfo3(self):
+        "mask to clear padding bits, and valid last bytes (for strings 3 % 4)"
+        # 2 bits of last char unused (lsb for big, msb for little)
+        bits = 3 if self.big else (3<<4)
+        return ~bits, self.__make_padset(bits)
+
+    def check_repair_unused(self, source):
+        """helper to detect & clear invalid unused bits in last character.
+
+        :arg source:
+            encoded data (as ascii bytes or unicode).
+
+        :returns:
+            `(True, result)` if the string was repaired,
+            `(False, source)` if the string was ok as-is.
+        """
+        # figure out how many padding bits there are in last char.
+        tail = len(source) & 3
+        if tail == 2:
+            mask, padset = self._padinfo2
+        elif tail == 3:
+            mask, padset = self._padinfo3
+        elif not tail:
+            return False, source
+        else:
+            raise ValueError("source length must != 1 mod 4")
+
+        # check if last char is ok (padset contains bytes & unicode versions)
+        last = source[-1]
+        if last in padset:
+            return False, source
+
+        # we have dirty bits - repair the string by decoding last char,
+        # clearing the padding bits via <mask>, and encoding new char.
+        if isinstance(source, unicode):
+            cm = self.charmap
+            last = cm[cm.index(last) & mask]
+        else:
+            # NOTE: this assumes ascii-compat encoding, and that
+            # all chars used by encoding are 7-bit ascii.
+            last = self._encode64(self._decode64(last) & mask)
+        assert last in padset, "failed to generate valid padding char"
+        return True, source[:-1] + last
+
+    def repair_unused(self, source):
+        return self.check_repair_unused(source)[1]
+
+    ##def transcode(self, source, other):
+    ##    return ''.join(
+    ##        other.charmap[self.charmap.index(char)]
+    ##        for char in source
+    ##    )
+
+    ##def random_encoded_bytes(self, size, random=None, unicode=False):
+    ##    "return random encoded string of given size"
+    ##    data = getrandstr(random or rng,
+    ##                      self.charmap if unicode else self.bytemap, size)
+    ##    return self.repair_unused(data)
+
+    #=============================================================
     # transposed encoding/decoding
     #=============================================================
     def encode_transposed_bytes(self, source, offsets):
@@ -1076,6 +1175,24 @@ class Base64Engine(object):
     # eof
     #=============================================================
 
+class LazyBase64Engine(Base64Engine):
+    "Base64Engine which delays initialization until it's accessed"
+    _lazy_opts = None
+
+    def __init__(self, *args, **kwds):
+        self._lazy_opts = (args, kwds)
+
+    def _lazy_init(self):
+        args, kwds = self._lazy_opts
+        super(LazyBase64Engine, self).__init__(*args, **kwds)
+        del self._lazy_opts
+        self.__class__ = Base64Engine
+
+    def __getattribute__(self, attr):
+        if not attr.startswith("_"):
+            self._lazy_init()
+        return object.__getattribute__(self, attr)
+
 # common charmaps
 BASE64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
 AB64_CHARS =   u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./")
@@ -1083,8 +1200,9 @@ HASH64_CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx
 BCRYPT_CHARS = u("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
 # common variants
-h64 = Base64Engine(HASH64_CHARS)
-h64big = Base64Engine(HASH64_CHARS, big=True)
+h64 = LazyBase64Engine(HASH64_CHARS)
+h64big = LazyBase64Engine(HASH64_CHARS, big=True)
+bcrypt64 = LazyBase64Engine(BCRYPT_CHARS, big=True)
 
 #=============================================================================
 # adapted-base64 encoding

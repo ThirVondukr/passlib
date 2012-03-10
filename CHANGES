@@ -8,6 +8,10 @@ Release History
 
     Hashes
 
+        * The :doc:`bcrypt <lib/passlib.hash.bcrypt>` class now supports
+          crypt_blowfish's ``$2y$`` hash prefix (though it will not generate
+          them by default).
+
         * The *unix_fallback* handler has been deprecated, and will be removed
           in Passlib 1.8. Please use the improved replacement,
           :doc:`unix_disabled <lib/passlib.hash.unix_disabled>`,
