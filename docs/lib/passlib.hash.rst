@@ -191,6 +191,7 @@ in one of the above categories:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.lmhash
     passlib.hash.cisco_pix
 
 * *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`

@@ -869,6 +869,44 @@ class ldap_pbkdf2_test(TestCase):
         )
 
 #=========================================================
+# lanman
+#=========================================================
+class lmhash_test(HandlerCase):
+    handler = hash.lmhash
+    secret_size = 14
+    secret_case_insensitive = True
+
+    known_correct_hashes = [
+        #
+        # custom
+        #
+        ('', 'aad3b435b51404eeaad3b435b51404ee'),
+        ('zzZZZzz', 'a5e6066de61c3e35aad3b435b51404ee'),
+        ('passphrase', '855c3697d9979e78ac404c4ba2c66533'),
+        ('Yokohama', '5ecd9236d21095ce7584248b8d2c9f9e'),
+
+        # ensures cp437 used for unicode
+        (u('ENCYCLOP\xC6DIA'), 'fed6416bffc9750d48462b9d7aaac065'),
+        (u('encyclop\xE6dia'), 'fed6416bffc9750d48462b9d7aaac065'),
+    ]
+
+    # TODO: test encoding keyword. 
+
+    known_unidentified_hashes = [
+        # bad char in otherwise correct hash
+        '855c3697d9979e78ac404c4ba2c6653X',
+    ]
+
+    # override default list since lmhash uses cp437 as default encoding
+    stock_passwords = [
+        u("test"),
+        b("test"),
+        u("\u00AC\u00BA"),
+    ]
+
+    fuzz_password_alphabet = u('qwerty1234<>.@*#! \u00AC')
+
+#=========================================================
 #md5 crypt
 #=========================================================
 class _md5_crypt_test(HandlerCase):

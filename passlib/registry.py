@@ -123,6 +123,7 @@ _handler_locations = {
                         ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha256"),
     "ldap_pbkdf2_sha512":
                         ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha512"),
+    "lmhash":           ("passlib.handlers.nthash",      "lmhash"),
     "md5_crypt":        ("passlib.handlers.md5_crypt",   "md5_crypt"),
     "mssql2000":        ("passlib.handlers.mssql",       "mssql2000"),
     "mssql2005":        ("passlib.handlers.mssql",       "mssql2005"),

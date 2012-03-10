@@ -8,6 +8,9 @@ Release History
 
     Hashes
 
+        * added support for Windows' :doc:`lmhash <lib/passlib.hash.lmhash>`
+          (aka Lan Manager password hash).
+
         * added support for Cisco :doc:`PIX <lib/passlib.hash.cisco_pix>` and
           :doc:`Type 7 <lib/passlib.hash.cisco_type7>` password hashes.
           (Cisco Type 5 passwords seem to be the same as
