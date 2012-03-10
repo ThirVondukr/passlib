@@ -90,7 +90,8 @@ unix_crypt_schemes = [
     "sha512_crypt", "sha256_crypt",
     "sha1_crypt", "bcrypt",
     "md5_crypt",
-    "bsdi_crypt", "des_crypt"
+    # "bsd_nthash",
+    "bsdi_crypt", "des_crypt",
     ]
 
 # list of rounds_cost constants
@@ -1445,6 +1446,9 @@ def getrandbytes(rng, count):
 
 def getrandstr(rng, charset, count):
     """return string containing *count* number of chars/bytes, whose elements are drawn from specified charset, using specified rng"""
+    # NOTE: tests determined this is 4x faster than rng.sample(),
+    # which is why that's not being used here.
+
     #check alphabet & count
     if count < 0:
         raise ValueError("count must be >= 0")

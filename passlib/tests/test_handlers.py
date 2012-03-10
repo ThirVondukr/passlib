@@ -1074,6 +1074,7 @@ class msdcc2_test(UserHandlerMixin, HandlerCase):
 class mssql2000_test(HandlerCase):
     handler = hash.mssql2000
     secret_case_insensitive = "verify-only"
+    # FIXME: fix UT framework - this hash is sensitive to password case, but verify() is not
 
     known_correct_hashes = [
         #

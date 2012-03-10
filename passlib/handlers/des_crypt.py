@@ -231,6 +231,12 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 #handler
 #=========================================================
 
+#FIXME: phpass code notes that even rounds values should be avoided for BSDI-Crypt,
+# so as not to reveal weak des keys. given the random salt, this shouldn't be
+# a very likely issue anyways, but should do something about default rounds generation anyways.
+# http://wiki.call-cc.org/eggref/4/crypt sez even rounds of DES may reveal weak keys.
+# list of semi-weak keys - http://dolphinburger.com/cgi-bin/bsdi-man?proto=1.1&query=bdes&msection=1&apropos=0
+
 class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
