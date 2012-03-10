@@ -191,6 +191,14 @@ in one of the above categories:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.cisco_pix
+
+* *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.cisco_type7
     passlib.hash.django_std
     passlib.hash.grub_pbkdf2_sha512
     passlib.hash.hex_digests

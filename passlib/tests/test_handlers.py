@@ -359,6 +359,114 @@ os_crypt_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "os_crypt")
 builtin_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "builtin")
 
 #=========================================================
+# cisco pix
+#=========================================================
+class cisco_pix_test(UserHandlerMixin, HandlerCase):
+    handler = hash.cisco_pix
+    secret_size = 16
+    requires_user = False
+
+    known_correct_hashes = [
+        #
+        # http://www.perlmonks.org/index.pl?node_id=797623
+        #
+        ("cisco", "2KFQnbNIdI.2KYOU"),
+
+        #
+        # http://www.hsc.fr/ressources/breves/pix_crack.html.en
+        #
+        ("hsc", "YtT8/k6Np8F1yz2c"),
+
+        #
+        # www.freerainbowtables.com/phpBB3/viewtopic.php?f=2&t=1441
+        #
+        ("", "8Ry2YjIyt7RRXU24"),
+        (("cisco", "john"), "hN7LzeyYjw12FSIU"),
+        (("cisco", "jack"), "7DrfeZ7cyOj/PslD"),
+
+        #
+        # http://comments.gmane.org/gmane.comp.security.openwall.john.user/2529
+        #
+        (("ripper", "alex"), "h3mJrcH0901pqX/m"),
+        (("cisco", "cisco"), "3USUcOPFUiMCO4Jk"),
+        (("cisco", "cisco1"), "3USUcOPFUiMCO4Jk"),
+        (("CscFw-ITC!", "admcom"), "lZt7HSIXw3.QP7.R"),
+        ("cangetin", "TynyB./ftknE77QP"),
+        (("cangetin", "rramsey"), "jgBZqYtsWfGcUKDi"),
+
+        #
+        # http://openwall.info/wiki/john/sample-hashes
+        #
+        (("phonehome", "rharris"), "zyIIMSYjiPm0L7a6"),
+
+        #
+        # from JTR 1.7.9
+        #
+        ("test1", "TRPEas6f/aa6JSPL"),
+        ("test2", "OMT6mXmAvGyzrCtp"),
+        ("test3", "gTC7RIy1XJzagmLm"),
+        ("test4", "oWC1WRwqlBlbpf/O"),
+        ("password", "NuLKvvWGg.x9HEKO"),
+        ("0123456789abcdef", ".7nfVBEIEu4KbF/1"),
+
+        #
+        # custom
+        #
+        (("cisco1", "cisco1"), "jmINXNH6p1BxUppp"),
+
+        # ensures utf-8 used for unicode
+        (UPASS_TABLE, 'CaiIvkLMu2TOHXGT'),
+        ]
+
+#=========================================================
+# cisco type 7
+#=========================================================
+class cisco_type7_test(HandlerCase):
+    handler = hash.cisco_type7
+    salt_bits = 4
+
+    known_correct_hashes = [
+        #
+        # http://mccltd.net/blog/?p=1034
+        #
+        ("secure ", "04480E051A33490E"),
+
+        #
+        # http://insecure.org/sploits/cisco.passwords.html
+        #
+        ("Its time to go to lunch!",
+         "153B1F1F443E22292D73212D5300194315591954465A0D0B59"),
+
+        #
+        # http://blog.ioshints.info/2007/11/type-7-decryption-in-cisco-ios.html
+        #
+        ("t35t:pa55w0rd", "08351F1B1D431516475E1B54382F"),
+
+        #
+        # http://www.m00nie.com/2011/09/cisco-type-7-password-decryption-and-encryption-with-perl/
+        #
+        ("hiImTesting:)", "020E0D7206320A325847071E5F5E"),
+
+        #
+        # http://packetlife.net/forums/thread/54/
+        #
+        ("cisco123", "060506324F41584B56"),
+        ("cisco123", "1511021F07257A767B"),
+
+        #
+        # source ?
+        #
+        ('Supe&8ZUbeRp4SS', "06351A3149085123301517391C501918"),
+
+        #
+        # custom
+        #
+
+        # ensures utf-8 used for unicode
+        (UPASS_TABLE, '0958EDC8A9F495F6F8A5FD'),
+    ]
+
+#=========================================================
 # crypt16
 #=========================================================
 class crypt16_test(HandlerCase):

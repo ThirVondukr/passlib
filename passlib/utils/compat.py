@@ -159,6 +159,10 @@ if PY3:
     def belem_ord(elem):
         return elem
 
+    def biter_ints(s):
+        assert isinstance(s, bytes)
+        return s
+
 else:
     def uascii_to_str(s):
         assert isinstance(s, unicode)
@@ -183,6 +187,10 @@ else:
 
     belem_ord = ord
 
+    def biter_ints(s):
+        assert isinstance(s, bytes)
+        return (ord(c) for c in s)
+
 _add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 _add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 _add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
@@ -195,6 +203,8 @@ _add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 #                 this is b('a') under PY2, but 97 under PY3.
 
 # belem_ord -- function to convert byte element to integer -- a noop under PY3
+
+_add_doc(biter_ints, "helper to iterate over byte values in byte string")
 
 #=============================================================================
 # iteration helpers
@@ -232,6 +242,14 @@ else:
         return d.iteritems()
     def itervalues(d):
         return d.itervalues()
+
+if PY_MAX_25:
+    def next(itr):
+        "compat wrapper for next()"
+        # NOTE: omits support for 'default' arg
+        return itr.next()
+else:
+    next = builtins.next
 
 #=============================================================================
 # introspection

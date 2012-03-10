@@ -848,14 +848,36 @@ class HandlerCase(TestCase):
             if not cls.default_salt_chars:
                 raise AssertionError("default_salt_chars MUST be specified if salt_chars is empty")
 
+    @property
+    def salt_bits(self):
+        "calculate number of salt bits in hash"
+        handler = self.handler
+        assert has_salt_info(handler), "need explicit bit-size for " + handler.name
+        from math import log
+        # FIXME: this may be off for case-insensitive hashes, but that accounts
+        # for ~1 bit difference, which is good enough for test_11()
+        return int(handler.default_salt_size *
+                   log(len(handler.default_salt_chars), 2))
+
     def test_11_unique_salt(self):
         "test encrypt() / genconfig() creates new salt each time"
         self.require_salt()
-        c1 = self.do_genconfig()
-        c2 = self.do_genconfig()
-        self.assertIsInstance(c1, str, "genconfig() must return native str:")
-        self.assertIsInstance(c2, str, "genconfig() must return native str:")
-        self.assertNotEqual(c1,c2)
+        # odds of picking 'n' identical salts at random is '(.5**salt_bits)**n'.
+        # we want to pick the smallest N needed s.t. odds are <1/1000, just
+        # to eliminate false-positives. which works out to n>7-salt_bits.
+        # n=1 is sufficient for most hashes, but a few border cases (e.g.
+        # cisco_type7) have < 7 bits of salt, requiring more.
+        samples = max(1,7-self.salt_bits)
+        def sampler(func):
+            value1 = func()
+            for i in irange(samples):
+                value2 = func()
+                if value1 != value2:
+                    return
+            raise self.failureException("failed to find different salt after "
+                                        "%d samples" % (samples,))
+        sampler(self.do_genconfig)
+        sampler(lambda : self.do_encrypt("stub"))
 
     def test_12_min_salt_size(self):
         "test encrypt() / genconfig() honors min_salt_size"
@@ -1559,25 +1581,28 @@ class UserHandlerMixin(HandlerCase):
     """
     __unittest_skip = True
     default_user = "user"
+    requires_user = True
     user_case_insensitive = False
 
     def test_80_user(self):
         "test user context keyword"
         handler = self.handler
         password = 'stub'
-        hash = self.get_sample_hash()[1]
+        hash = handler.encrypt(password, user=self.default_user)
 
-        handler.encrypt(password, u('user'))
-
-        self.assertRaises(TypeError, handler.encrypt, password)
-        self.assertRaises(TypeError, handler.genhash, password, hash)
-        self.assertRaises(TypeError, handler.verify, password, hash)
-
-    # TODO: user size? kinda dicey, depends on algorithm.
+        if self.requires_user:
+            self.assertRaises(TypeError, handler.encrypt, password)
+            self.assertRaises(TypeError, handler.genhash, password, hash)
+            self.assertRaises(TypeError, handler.verify, password, hash)
+        else:
+            # e.g. cisco_pix works with or without one.
+            handler.encrypt(password)
+            handler.genhash(password, hash)
+            handler.verify(password, hash)
 
     def test_81_user_case(self):
         "test user case sensitivity"
-        lower = (self.default_user or 'user').lower()
+        lower = self.default_user.lower()
         upper = lower.upper()
         hash = self.do_encrypt('stub', user=lower)
         if self.user_case_insensitive:
@@ -1587,6 +1612,17 @@ class UserHandlerMixin(HandlerCase):
             self.assertFalse(self.do_verify('stub', hash, user=upper),
                              "user should be case sensitive")
 
+    def test_82_user_salt(self):
+        "test user used as salt"
+        config = self.do_genconfig()
+        h1 = self.do_genhash('stub', config, user='admin')
+        h2 = self.do_genhash('stub', config, user='admin')
+        self.assertEqual(h2, h1)
+        h3 = self.do_genhash('stub', config, user='root')
+        self.assertNotEqual(h3, h1)
+
+    # TODO: user size? kinda dicey, depends on algorithm.
+
     def is_secret_8bit(self, secret):
         secret = self._insert_user({}, secret)
         return not is_ascii_safe(secret)
@@ -1595,6 +1631,8 @@ class UserHandlerMixin(HandlerCase):
         "insert username into kwds"
         if isinstance(secret, tuple):
             secret, user = secret
+        elif not self.requires_user:
+            return secret
         else:
             user = self.default_user
         if 'user' not in kwds:
@@ -1616,6 +1654,8 @@ class UserHandlerMixin(HandlerCase):
     fuzz_user_alphabet = u("asdQWE123")
     fuzz_settings = HandlerCase.fuzz_settings + ["user"]
     def get_fuzz_user(self):
+        if not self.requires_user and rng.random() < .1:
+            return None
         return getrandstr(rng, self.fuzz_user_alphabet, rng.randint(2,10))
 
 #=========================================================
