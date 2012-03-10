@@ -1,16 +1,4 @@
-"""passlib.handlers.scram - SCRAM hash
-
-Notes
-=====
-Working on hash to format to support storing SCRAM protocol information
-server-side.
-
-passlib issue - https://code.google.com/p/passlib/issues/detail?id=23
-
-scram protocol - http://tools.ietf.org/html/rfc5802
-                 http://tools.ietf.org/html/rfc5803
-
-"""
+"""passlib.handlers.scram - hash for SCRAM credential storage"""
 #=========================================================
 #imports
 #=========================================================
@@ -28,7 +16,7 @@ from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
                                  itervalues, PY3, u, unicode
-from passlib.utils.pbkdf2 import pbkdf2, get_prf
+from passlib.utils.pbkdf2 import pbkdf2, get_prf, norm_hash_name
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -37,109 +25,7 @@ __all__ = [
 ]
 
 #=========================================================
-# helpers
-#=========================================================
-# set of known iana names --
-# http://www.iana.org/assignments/hash-function-text-names
-iana_digests = frozenset(["md2", "md5", "sha-1", "sha-224", "sha-256",
-                          "sha-384", "sha-512"])
-
-# cache for norm_digest_name()
-_ndn_cache = {}
-
-def norm_digest_name(name):
-    """normalize digest names to IANA hash function name.
-
-    :arg name:
-        name can be a Python :mod:`~hashlib` digest name,
-        a SCRAM mechanism name, etc; case insensitive.
-
-        input can be either unicode or bytes.
-
-    :returns:
-        native string containing lower-case IANA hash function name.
-        if IANA has not assigned one, this will make a guess as to
-        what the IANA-style representation should be.
-    """
-    # check cache
-    try:
-        return _ndn_cache[name]
-    except KeyError:
-        pass
-    key = name
-
-    # normalize case
-    name = name.strip().lower().replace("_","-")
-
-    # extract digest from scram mechanism name
-    if name.startswith("scram-"):
-        name = name[6:]
-        if name.endswith("-plus"):
-            name = name[:-5]
-
-    # handle some known aliases
-    if name not in iana_digests:
-        if name == "sha1":
-            name = "sha-1"
-        else:
-            m = re.match("^sha-?2-(\d{3})$", name)
-            if m:
-                name = "sha-" + m.group(1)
-
-    # run heuristics if not an official name
-    if name not in iana_digests:
-
-        # add hyphen between hash name and digest size;
-        # e.g. "ripemd160" -> "ripemd-160"
-        m = re.match("^([a-z]+)(\d{3,4})$", name)
-        if m:
-            name = m.group(1) + "-" + m.group(2)
-
-        # remove hyphen between hash name & version (e.g. MD-5 -> MD5,
-        # FOO-2-256 -> FOO2-256). note that SHA-1 is an exception to this,
-        # but that's taken care of above.
-        m = re.match("^([a-z]+)-(\d)(-\d{3,4})?$", name)
-        if m:
-            name = m.group(1) + m.group(2) + (m.group(3) or '')
-
-        # check for invalid chars
-        if re.search("[^a-z0-9-]", name):
-            raise ValueError("invalid characters in digest name: %r" % (name,))
-
-        # issue warning if not in the expected format,
-        # this might be a sign of some strange input
-        # (and digest probably won't be found)
-        m = re.match("^([a-z]{2,}\d?)(-\d{3,4})?$", name)
-        if not m:
-            warn("encountered oddly named digest: %r" % (name,),
-                 PasslibWarning)
-
-    # store in cache
-    _ndn_cache[key] = name
-    return name
-
-def iana_to_hashlib(name):
-    "adapt iana hash name -> hashlib hash name"
-    # NOTE: assumes this has been run through norm_digest_name()
-    # XXX: this works for all known cases for now, might change in future.
-    return name.replace("-","")
-
-_gds_cache = {}
-
-def _get_digest_size(name):
-    "get size of digest"
-    try:
-        return _gds_cache[name]
-    except KeyError:
-        pass
-    key = name
-    name = iana_to_hashlib(norm_digest_name(name))
-    value = hashlib.new(name).digest_size
-    _gds_cache[key] = value
-    return value
-
-#=========================================================
-#
+# scram credentials hash
 #=========================================================
 class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class provides a format for storing SCRAM passwords, and follows
@@ -214,7 +100,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     default_algs = ["sha-1", "sha-256", "sha-512"]
 
     # list of algs verify prefers to use, in order.
-    _verify_algs = ["sha-256", "sha-512", "sha-384", "sha-224", "sha-1"]
+    _verify_algs = ["sha-256", "sha-512", "sha-224", "sha-384", "sha-1"]
 
     #=========================================================
     # instance attrs
@@ -232,15 +118,15 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #=========================================================
     @classmethod
     def extract_digest_info(cls, hash, alg):
-        """given scram hash & hash alg, extracts salt, rounds and digest.
+        """return (salt, rounds, digest) for specific hash algorithm.
 
         :arg hash:
-            Scram hash stored for desired user
+            :class:`!scram` hash stored for desired user
 
         :arg alg:
             Name of digest algorithm (e.g. ``"sha-1"``) requested by client.
 
-            This value is run through :func:`norm_digest_name`,
+            This value is run through :func:`~passlib.utils.pbkdf2.norm_hash_name`,
             so it is case-insensitive, and can be the raw SCRAM
             mechanism name (e.g. ``"SCRAM-SHA-1"``), the IANA name,
             or the hashlib name.
@@ -251,12 +137,15 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         :returns:
             A tuple containing ``(salt, rounds, digest)``,
-            where *digest* matches the raw bytes return by
+            where *digest* matches the raw bytes returned by
             SCRAM's :func:`Hi` function for the stored password,
             the provided *salt*, and the iteration count (*rounds*).
             *salt* and *digest* are both raw (unencoded) bytes.
         """
-        alg = norm_digest_name(alg)
+        # XXX: this could be sped up by writing custom parsing routine
+        # that just picks out relevant digest, and doesn't bother
+        # with full structure validation each time it's called.
+        alg = norm_hash_name(alg, 'iana')
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:
@@ -264,26 +153,29 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return self.salt, self.rounds, chkmap[alg]
 
     @classmethod
-    def extract_digest_algs(cls, hash, hashlib=False):
+    def extract_digest_algs(cls, hash, format="iana"):
         """Return names of all algorithms stored in a given hash.
 
         :arg hash:
-            The scram hash to parse
+            The :class:`!scram` hash to parse
 
-        :param hashlib:
-            By default this returns a list of IANA compatible names.
-            if this is set to `True`, hashlib-compatible names will
-            be returned instead.
+        :param format:
+            This changes the naming convention used by the
+            returned algorithm names. By default the names
+            are IANA-compatible; see :func:`~passlib.utils.pbkdf2.norm_hash_name`
+            for possible values.
 
         :returns:
-            Returns a list of digest algorithms; e.g. ``["sha-1"]``,
-            or ``["sha1"]`` if ``hashlib=True``.
+            Returns a list of digest algorithms; e.g. ``["sha-1"]``
         """
+        # XXX: this could be sped up by writing custom parsing routine
+        # that just picks out relevant names, and doesn't bother
+        # with full structure validation each time it's called.
         algs = cls.from_string(hash).algs
-        if hashlib:
-            return [iana_to_hashlib(alg) for alg in algs]
-        else:
+        if format == "iana":
             return algs
+        else:
+            return [norm_hash_name(alg, format) for alg in algs]
 
     @classmethod
     def derive_digest(cls, password, salt, rounds, alg):
@@ -296,7 +188,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :arg password: password as unicode or utf-8 encoded bytes.
         :arg salt: raw salt as bytes.
         :arg rounds: number of iterations.
-        :arg alg: name of digest to use (e.g. ``"SHA-1"``).
+        :arg alg: name of digest to use (e.g. ``"sha-1"``).
 
         :returns:
             raw bytes of ``SaltedPassword``
@@ -308,7 +200,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise TypeError("salt must be bytes")
         if rounds < 1:
             raise ValueError("rounds must be >= 1")
-        alg = iana_to_hashlib(norm_digest_name(alg))
+        alg = norm_hash_name(alg, "hashlib")
         return pbkdf2(password, salt, rounds, -1, "hmac-" + alg)
 
     #=========================================================
@@ -389,7 +281,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if checksum is None:
             return None
         for alg, digest in iteritems(checksum):
-            if alg != norm_digest_name(alg):
+            if alg != norm_hash_name(alg, 'iana'):
                 raise ValueError("malformed algorithm name in scram hash: %r" %
                                  (alg,))
             if len(alg) > 9:
@@ -397,6 +289,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                                  "9 characters: %r" % (alg,))
             if not isinstance(digest, bytes):
                 raise TypeError("digests must be raw bytes")
+            # TODO: verify digest size (if digest is known)
         if 'sha-1' not in checksum:
             # NOTE: required because of SCRAM spec.
             raise ValueError("sha-1 must be in algorithm list of scram hash")
@@ -420,11 +313,11 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # parse args value
         if isinstance(algs, str):
             algs = algs.split(",")
-        algs = sorted(norm_digest_name(alg) for alg in algs)
+        algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):
             raise ValueError("SCRAM limits alg names to max of 9 characters")
         if 'sha-1' not in algs:
-            # NOTE: required because of SCRAM spec.
+            # NOTE: required because of SCRAM spec (rfc 5802)
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return algs
 
@@ -457,7 +350,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             )
 
     @classmethod
-    def verify(cls, secret, hash, full_verify=False):
+    def verify(cls, secret, hash, full=False):
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:
@@ -465,9 +358,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                              (cls.name, cls.name))
 
         # NOTE: to make the verify method efficient, we just calculate hash
-        # of shortest digest by default. apps can pass in "full_verify=True" to
+        # of shortest digest by default. apps can pass in "full=True" to
         # check entire hash for consistency.
-        if full_verify:
+        if full:
             correct = failed = False
             for alg, digest in iteritems(chkmap):
                 other = self._calc_checksum(secret, alg)
@@ -483,7 +376,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 else:
                     failed = True
             if correct and failed:
-                warning("scram hash verified inconsistently, may be corrupted")
+                warning("scram hash verified inconsistently, may be corrupted",
+                        PasslibHashWarning)
                 return False
             else:
                 return correct
@@ -501,159 +395,158 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #=========================================================
 
 #=========================================================
-# code used for testing scram against protocol examples
-# during development, not part of public api or used internally.
+# code used for testing scram against protocol examples during development.
 #=========================================================
-def _test_reference_scram():
-    "quick hack testing scram reference vectors"
-    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
-    from passlib.utils.compat import print_
-
-    engine = _scram_engine(
-        alg="sha-1",
-        salt='QSXCR+Q6sek8bf92'.decode("base64"),
-        rounds=4096,
-        password=u("pencil"),
-    )
-    print_(engine.digest.encode("base64").rstrip())
-
-    msg = engine.format_auth_msg(
-        username="user",
-        client_nonce = "fyko+d2lbbFgONRv9qkxdawL",
-        server_nonce = "3rfcNHYJY1ZVvWVs7j",
-        header='c=biws',
-    )
-
-    cp = engine.get_encoded_client_proof(msg)
-    assert cp == "v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=", cp
-
-    ss = engine.get_encoded_server_sig(msg)
-    assert ss == "rmF9pqV8S7suAoZWja4dJRkFsKQ=", ss
-
-class _scram_engine(object):
-    """helper class for verifying scram hash behavior
-    against SCRAM protocol examples. not officially part of Passlib.
-
-    takes in alg, salt, rounds, and a digest or password.
-
-    can calculate the various keys & messages of the scram protocol.
-
-    """
-    #=========================================================
-    # init
-    #=========================================================
-
-    @classmethod
-    def from_string(cls, hash, alg):
-        "create record from scram hash, for given alg"
-        return cls(alg, *scram.extract_digest_info(hash, alg))
-
-    def __init__(self, alg, salt, rounds, digest=None, password=None):
-        self.alg = norm_digest_name(alg)
-        self.salt = salt
-        self.rounds = rounds
-        self.password = password
-        if password:
-            data = scram.derive_digest(password, salt, rounds, alg)
-            if digest and data != digest:
-                raise ValueError("password doesn't match digest")
-            else:
-                digest = data
-        elif not digest:
-            raise TypeError("must provide password or digest")
-        self.digest = digest
-
-    #=========================================================
-    # frontend methods
-    #=========================================================
-    def get_hash(self, data):
-        "return hash of raw data"
-        return hashlib.new(iana_to_hashlib(self.alg), data).digest()
-
-    def get_client_proof(self, msg):
-        "return client proof of specified auth msg text"
-        return xor_bytes(self.client_key, self.get_client_sig(msg))
-
-    def get_encoded_client_proof(self, msg):
-        return self.get_client_proof(msg).encode("base64").rstrip()
-
-    def get_client_sig(self, msg):
-        "return client signature of specified auth msg text"
-        return self.get_hmac(self.stored_key, msg)
-
-    def get_server_sig(self, msg):
-        "return server signature of specified auth msg text"
-        return self.get_hmac(self.server_key, msg)
-
-    def get_encoded_server_sig(self, msg):
-        return self.get_server_sig(msg).encode("base64").rstrip()
-
-    def format_server_response(self, client_nonce, server_nonce):
-        return 'r={client_nonce}{server_nonce},s={salt},i={rounds}'.format(
-            client_nonce=client_nonce,
-            server_nonce=server_nonce,
-            rounds=self.rounds,
-            salt=self.encoded_salt,
-            )
-
-    def format_auth_msg(self, username, client_nonce, server_nonce,
-                        header='c=biws'):
-        return (
-            'n={username},r={client_nonce}'
-                ','
-            'r={client_nonce}{server_nonce},s={salt},i={rounds}'
-                ','
-            '{header},r={client_nonce}{server_nonce}'
-            ).format(
-                username=username,
-                client_nonce=client_nonce,
-                server_nonce=server_nonce,
-                salt=self.encoded_salt,
-                rounds=self.rounds,
-                header=header,
-                )
-
-    #=========================================================
-    # helpers to calculate & cache constant data
-    #=========================================================
-    def _calc_get_hmac(self):
-        return get_prf("hmac-" + iana_to_hashlib(self.alg))[0]
-
-    def _calc_client_key(self):
-        return self.get_hmac(self.digest, b("Client Key"))
-
-    def _calc_stored_key(self):
-        return self.get_hash(self.client_key)
-
-    def _calc_server_key(self):
-        return self.get_hmac(self.digest, b("Server Key"))
-
-    def _calc_encoded_salt(self):
-        return self.salt.encode("base64").rstrip()
-
-    #=========================================================
-    # hacks for calculated attributes
-    #=========================================================
-
-    def __getattr__(self, attr):
-        if not attr.startswith("_"):
-            f = getattr(self, "_calc_" + attr, None)
-            if f:
-                value = f()
-                setattr(self, attr, value)
-                return value
-        raise AttributeError("attribute not found")
-
-    def __dir__(self):
-        cdir = dir(self.__class__)
-        attrs = set(cdir)
-        attrs.update(self.__dict__)
-        attrs.update(attr[6:] for attr in cdir
-                     if attr.startswith("_calc_"))
-        return sorted(attrs)
-    #=========================================================
-    # eoc
-    #=========================================================
+#def _test_reference_scram():
+#    "quick hack testing scram reference vectors"
+#    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
+#    from passlib.utils.compat import print_
+#
+#    engine = _scram_engine(
+#        alg="sha-1",
+#        salt='QSXCR+Q6sek8bf92'.decode("base64"),
+#        rounds=4096,
+#        password=u("pencil"),
+#    )
+#    print_(engine.digest.encode("base64").rstrip())
+#
+#    msg = engine.format_auth_msg(
+#        username="user",
+#        client_nonce = "fyko+d2lbbFgONRv9qkxdawL",
+#        server_nonce = "3rfcNHYJY1ZVvWVs7j",
+#        header='c=biws',
+#    )
+#
+#    cp = engine.get_encoded_client_proof(msg)
+#    assert cp == "v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=", cp
+#
+#    ss = engine.get_encoded_server_sig(msg)
+#    assert ss == "rmF9pqV8S7suAoZWja4dJRkFsKQ=", ss
+#
+#class _scram_engine(object):
+#    """helper class for verifying scram hash behavior
+#    against SCRAM protocol examples. not officially part of Passlib.
+#
+#    takes in alg, salt, rounds, and a digest or password.
+#
+#    can calculate the various keys & messages of the scram protocol.
+#
+#    """
+#    #=========================================================
+#    # init
+#    #=========================================================
+#
+#    @classmethod
+#    def from_string(cls, hash, alg):
+#        "create record from scram hash, for given alg"
+#        return cls(alg, *scram.extract_digest_info(hash, alg))
+#
+#    def __init__(self, alg, salt, rounds, digest=None, password=None):
+#        self.alg = norm_hash_name(alg)
+#        self.salt = salt
+#        self.rounds = rounds
+#        self.password = password
+#        if password:
+#            data = scram.derive_digest(password, salt, rounds, alg)
+#            if digest and data != digest:
+#                raise ValueError("password doesn't match digest")
+#            else:
+#                digest = data
+#        elif not digest:
+#            raise TypeError("must provide password or digest")
+#        self.digest = digest
+#
+#    #=========================================================
+#    # frontend methods
+#    #=========================================================
+#    def get_hash(self, data):
+#        "return hash of raw data"
+#        return hashlib.new(iana_to_hashlib(self.alg), data).digest()
+#
+#    def get_client_proof(self, msg):
+#        "return client proof of specified auth msg text"
+#        return xor_bytes(self.client_key, self.get_client_sig(msg))
+#
+#    def get_encoded_client_proof(self, msg):
+#        return self.get_client_proof(msg).encode("base64").rstrip()
+#
+#    def get_client_sig(self, msg):
+#        "return client signature of specified auth msg text"
+#        return self.get_hmac(self.stored_key, msg)
+#
+#    def get_server_sig(self, msg):
+#        "return server signature of specified auth msg text"
+#        return self.get_hmac(self.server_key, msg)
+#
+#    def get_encoded_server_sig(self, msg):
+#        return self.get_server_sig(msg).encode("base64").rstrip()
+#
+#    def format_server_response(self, client_nonce, server_nonce):
+#        return 'r={client_nonce}{server_nonce},s={salt},i={rounds}'.format(
+#            client_nonce=client_nonce,
+#            server_nonce=server_nonce,
+#            rounds=self.rounds,
+#            salt=self.encoded_salt,
+#            )
+#
+#    def format_auth_msg(self, username, client_nonce, server_nonce,
+#                        header='c=biws'):
+#        return (
+#            'n={username},r={client_nonce}'
+#                ','
+#            'r={client_nonce}{server_nonce},s={salt},i={rounds}'
+#                ','
+#            '{header},r={client_nonce}{server_nonce}'
+#            ).format(
+#                username=username,
+#                client_nonce=client_nonce,
+#                server_nonce=server_nonce,
+#                salt=self.encoded_salt,
+#                rounds=self.rounds,
+#                header=header,
+#                )
+#
+#    #=========================================================
+#    # helpers to calculate & cache constant data
+#    #=========================================================
+#    def _calc_get_hmac(self):
+#        return get_prf("hmac-" + iana_to_hashlib(self.alg))[0]
+#
+#    def _calc_client_key(self):
+#        return self.get_hmac(self.digest, b("Client Key"))
+#
+#    def _calc_stored_key(self):
+#        return self.get_hash(self.client_key)
+#
+#    def _calc_server_key(self):
+#        return self.get_hmac(self.digest, b("Server Key"))
+#
+#    def _calc_encoded_salt(self):
+#        return self.salt.encode("base64").rstrip()
+#
+#    #=========================================================
+#    # hacks for calculated attributes
+#    #=========================================================
+#
+#    def __getattr__(self, attr):
+#        if not attr.startswith("_"):
+#            f = getattr(self, "_calc_" + attr, None)
+#            if f:
+#                value = f()
+#                setattr(self, attr, value)
+#                return value
+#        raise AttributeError("attribute not found")
+#
+#    def __dir__(self):
+#        cdir = dir(self.__class__)
+#        attrs = set(cdir)
+#        attrs.update(self.__dict__)
+#        attrs.update(attr[6:] for attr in cdir
+#                     if attr.startswith("_calc_"))
+#        return sorted(attrs)
+#    #=========================================================
+#    # eoc
+#    #=========================================================
 
 #=========================================================
 #eof

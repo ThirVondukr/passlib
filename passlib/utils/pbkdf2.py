@@ -20,7 +20,8 @@ try:
 except ImportError:
     _EVP = None
 #pkg
-from passlib.utils import to_bytes, xor_bytes
+from passlib.exc import PasslibRuntimeWarning
+from passlib.utils import to_bytes, xor_bytes, to_native_str
 from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
 #local
 __all__ = [
@@ -29,6 +30,108 @@ __all__ = [
     "pbkdf1",
     "pbkdf2",
 ]
+
+#=============================================================================
+# hash helpers
+#=============================================================================
+
+# known hash names
+_nhn_formats = dict(hashlib=0, iana=1)
+_nhn_hash_names = [
+    # (hashlib/ssl name, iana name or standin, ... other known aliases)
+
+    # hashes with official IANA-assigned names
+    # (as of 2012-03 - http://www.iana.org/assignments/hash-function-text-names)
+    ("md2", "md2"),
+    ("md5", "md5"),
+    ("sha1", "sha-1"),
+    ("sha224", "sha-224", "sha2-224"),
+    ("sha256", "sha-256", "sha2-256"),
+    ("sha384", "sha-384", "sha2-384"),
+    ("sha512", "sha-512", "sha2-512"),
+
+    # hashlib/ssl-supported hashes without official IANA names,
+    # hopefully compatible stand-ins have been chosen.
+    ("md4", "md4"),
+    ("sha", "sha-0", "sha0"),
+    ("ripemd", "ripemd"),
+    ("ripemd160", "ripemd-160"),
+]
+
+# cache for norm_hash_name()
+_nhn_cache = {}
+
+def norm_hash_name(name, format="hashlib"):
+    """normalize hash function name
+
+    :arg name:
+        un-normalized hash function name.
+
+        this name can be a Python :mod:`~hashlib` digest name,
+        a SCRAM mechanism name, IANA assigned hash name, etc;
+        case is ignored, underscores converted to hyphens.
+
+    :param format:
+        naming convention to normalize hash names to.
+        possible values are:
+
+        * ``"hashlib"`` (the default) - normalizes name to be compatible
+          with Python's :mod:`!hashlib`.
+
+        * ``"iana"`` - normalizes name to IANA-assigned hash function name.
+          for hashes which IANA hasn't assigned a name for, issues a warning,
+          and then uses a heuristic to give a "best guess".
+
+    :returns:
+        hash name, returned as native string.
+    """
+    # check cache
+    try:
+        idx = _nhn_formats[format]
+    except KeyError:
+        raise ValueError("unknown format: %r" % (format,))
+    try:
+        return _nhn_cache[name][idx]
+    except KeyError:
+        pass
+    orig = name
+
+    # normalize input
+    if not isinstance(name, str):
+        name = to_native_str(name, 'utf-8', 'hash name')
+    name = re.sub("[_ /]", "-", name.strip().lower())
+    if name.startswith("scram-"):
+        name = name[6:]
+        if name.endswith("-plus"):
+            name = name[:-5]
+
+    # look through standard names and known aliases
+    def check_table(name):
+        for row in _nhn_hash_names:
+            if name in row:
+                _nhn_cache[orig] = row
+                return row[idx]
+    result = check_table(name)
+    if result:
+        return result
+
+    # try to clean name up, and recheck table
+    m = re.match("^(?P<name>[a-z]+)-?(?P<rev>\d)?-?(?P<size>\d{3,4})?$", name)
+    if m:
+        name, rev, size = m.group("name", "rev", "size")
+        if rev:
+            name += rev
+        if size:
+            name += "-" + size
+        result = check_table(name)
+        if result:
+            return result
+
+    # else we've done what we can
+    warn("norm_hash_name(): unknown hash: %r" % (orig,), PasslibRuntimeWarning)
+    name2 = name.replace("-", "")
+    row = _nhn_cache[orig] = (name2, name)
+    return row[idx]
 
 #=================================================================================
 #quick hmac_sha1 implementation used various places

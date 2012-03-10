@@ -940,6 +940,50 @@ import hmac
 from passlib.utils import pbkdf2
 
 #TODO: should we bother testing hmac_sha1() function? it's verified via sha1_crypt testing.
+class CryptoTest(TestCase):
+    "test various crypto functions"
+
+    ndn_formats = ["hashlib", "iana"]
+    ndn_values = [
+        # (iana name, hashlib name, ... other unnormalized names)
+        ("md5", "md5",          "SCRAM-MD5-PLUS", "MD-5"),
+        ("sha1", "sha-1",       "SCRAM-SHA-1", "SHA1"),
+        ("sha256", "sha-256",   "SHA_256", "sha2-256"),
+        ("ripemd", "ripemd",    "SCRAM-RIPEMD", "RIPEMD"),
+        ("ripemd160", "ripemd-160",
+                                "SCRAM-RIPEMD-160", "RIPEmd160"),
+        ("test128", "test-128", "TEST128"),
+        ("test2", "test2", "TEST-2"),
+        ("test3128", "test3-128", "TEST-3-128"),
+    ]
+
+    def test_norm_hash_name(self):
+        "test norm_hash_name()"
+        from itertools import chain
+        from passlib.utils.pbkdf2 import norm_hash_name, _nhn_hash_names
+
+        # test formats
+        for format in self.ndn_formats:
+            norm_hash_name("md4", format)
+        self.assertRaises(ValueError, norm_hash_name, "md4", None)
+        self.assertRaises(ValueError, norm_hash_name, "md4", "fake")
+
+        # test types
+        self.assertEqual(norm_hash_name(u("MD4")), "md4")
+        self.assertEqual(norm_hash_name(b("MD4")), "md4")
+        self.assertRaises(TypeError, norm_hash_name, None)
+
+        # test selected results
+        with catch_warnings():
+            warnings.filterwarnings("ignore", 'encountered unknown hash')
+            for row in chain(_nhn_hash_names, self.ndn_values):
+                for idx, format in enumerate(self.ndn_formats):
+                    correct = row[idx]
+                    for value in row:
+                        result = norm_hash_name(value, format)
+                        self.assertEqual(result, correct,
+                                         "name=%r, format=%r:" % (value,
+                                                                  format))
 
 class KdfTest(TestCase):
     "test kdf helpers"

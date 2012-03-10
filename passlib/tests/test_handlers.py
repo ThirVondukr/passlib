@@ -1647,6 +1647,11 @@ class scram_test(HandlerCase):
 
     ]
 
+    # silence norm_hash_name() warning
+    def setUp(self):
+        super(scram_test, self).setUp()
+        warnings.filterwarnings("ignore", r"norm_hash_name\(\): unknown hash")
+
     def test_90_algs(self):
         "test parsing of 'algs' setting"
         def parse(algs, **kwds):
@@ -1764,9 +1769,9 @@ class scram_test(HandlerCase):
         self.assertTrue(c2.hash_needs_update(h))
 
     def test_96_full_verify(self):
-        "test full_verify flag"
+        "test verify(full=True) flag"
         def vfull(s, h):
-            return self.handler.verify(s, h, full_verify=True)
+            return self.handler.verify(s, h, full=True)
 
         # reference
         h = ('$scram$4096$QSXCR.Q6sek8bf92$'
@@ -1780,7 +1785,7 @@ class scram_test(HandlerCase):
         # catch truncated digests.
         h = ('$scram$4096$QSXCR.Q6sek8bf92$'
              'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
-             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY' # -1 char
+             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhV,' # -1 char
              'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
                 'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
         self.assertRaises(ValueError, vfull, 'pencil', h)
@@ -1788,7 +1793,7 @@ class scram_test(HandlerCase):
         # catch padded digests.
         h = ('$scram$4096$QSXCR.Q6sek8bf92$'
              'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
-             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,a' # +1 char
+             'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVYa,' # +1 char
              'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
                 'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
         self.assertRaises(ValueError, vfull, 'pencil', h)
@@ -1801,29 +1806,6 @@ class scram_test(HandlerCase):
                 'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
         self.assertRaises(ValueError, vfull, 'pencil', h)
         self.assertRaises(ValueError, vfull, 'tape', h)
-
-    ndn_values = [
-        # normalized name, unnormalized names
-
-        # IANA assigned names
-        ("md5", "MD-5"),
-        ("sha-1", "SHA1"),
-        ("sha-256", "SHA_256", "sha2-256", "sha-2-256"),
-
-        # heuristic for unassigned names
-        ("abc6", "aBc-6"),
-        ("abc6-256", "aBc-6-256"),
-        ("ripemd", "RIPEMD"),
-        ("ripemd-160", "RIPEmd160"),
-    ]
-
-    def test_97_norm_digest_name(self):
-        "test norm_digest_name helper"
-        from passlib.handlers.scram import norm_digest_name
-        for row in self.ndn_values:
-            result = row[0]
-            for value in row:
-                self.assertEqual(norm_digest_name(value), result)
 
 #=========================================================
 # (netbsd's) sha1 crypt

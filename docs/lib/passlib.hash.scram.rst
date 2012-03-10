@@ -1,3 +1,5 @@
+.. index:: SCRAM protocol
+
 ===================================================================
 :class:`passlib.hash.scram` - SCRAM Hash
 ===================================================================
@@ -12,14 +14,14 @@ SCRAM.
 
 To accomplish this, Passlib provides the following
 :ref:`modular-crypt-format`-compatible password hash scheme which uses the
-``"$scram$"`` identifier. This format encodes a salt, rounds settings, and one
-or more :func:`~passlib.utils.pbkdf2.pbkdf2` digests, one digest for each
+``$scram$`` identifier. This format encodes a salt, rounds settings, and one
+or more :func:`~passlib.utils.pbkdf2.pbkdf2` digests... one digest for each
 of the hash algorithms the server wishes to support over SCRAM.
 
 Since this format is PBKDF2-based, it has equivalent security to
 Passlib's other :doc:`pbkdf2 hashes <passlib.hash.pbkdf2_digest>`,
-and can be used to authenticate users using either the SCRAM-specific class
-methods documentated below, or the normal :ref:`password-hash-api`.
+and can be used to authenticate users using either the normal :ref:`password-hash-api`
+or the SCRAM-specific class methods documentated below.
 
 .. note::
 
@@ -94,6 +96,11 @@ for SCRAM-specific actions::
 
 Interface
 =========
+.. note::
+
+    This hash format is new in Passlib 1.6, and it's SCRAM-specific API
+    may change in the next few releases, depending on user feedback.
+
 .. autoclass:: scram()
 
 .. rst-class:: html-toggle
@@ -104,36 +111,39 @@ An example scram hash (of the string ``password``) is::
 
     $scram$6400$.Z/znnNOKWUsBaCU$sha-1=cRseQyJpnuPGn3e6d6u6JdJWk.0,sha-256=5G
     cjEbRaUIIci1r6NAMdI9OPZbxl9S5CFR6la9CHXYc,sha-512=.DHbIm82ajXbFR196Y.9Ttb
-    sgzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw'
+    sgzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw
 
 An scram hash string has the format :samp:`$scram${rounds}${salt}${alg1}={digest1},{alg2}={digest2},{...}`, where:
 
 * ``$scram$`` is the prefix used to identify Passlib scram hashes,
   following the :ref:`modular-crypt-format`
 
-* :samp:`{rounds}` is the decimal number of rounds to use (6400 in the example).
+* :samp:`{rounds}` is the number of decimal rounds to use (6400 in the example),
+  zero-padding not allowed. this value must be in ``range(1, 2**32)``.
 
-* :samp:`{salt}` is a base64 encoded salt string (``.Z/znnNOKWUsBaCU`` in the example).
+* :samp:`{salt}` is a base64 salt string (``.Z/znnNOKWUsBaCU`` in the example),
+  encoded using :func:`~passlib.utils.ab64_encode`.
 
-* :samp:`{alg}` is a lowercase IANA hash function name, which should
+* :samp:`{alg}` is a lowercase IANA hash function name [#hnames]_, which should
   match the digest in the SCRAM mechanism name.
 
-* :samp:`{digest}` is a base64 digest for the specific algorithm.
+* :samp:`{digest}` is a base64 digest for the specific algorithm,
+  encoded using :func:`~passlib.utils.ab64_encode`.
   Digests for ``sha-1``, ``sha-256``, and ``sha-512`` are present in the example.
 
-* There will be one or more :samp:`{alg}={digest}` pairs, separated by a comma;
-  per the SCRAM specification, the algorithm ``sha-1`` should always be present.
+* There will always be one or more :samp:`{alg}={digest}` pairs, separated by a
+  comma. Per the SCRAM specification, the algorithm ``sha-1`` should always be present.
 
-There is also an alternate format :samp:`$scram${rounds}${salt}${alg}{,...}`
+There is also an alternate format (:samp:`$scram${rounds}${salt}${alg}{,...}`)
 which is used to represent a configuration string that doesn't contain
-any digests.
+any digests. An example would be ``$scram$6400$.Z/znnNOKWUsBaCU$sha-1,sha-256,sha-512``.
 
 The algorithm used to calculate each digest is::
 
     pbkdf2(salsprep(password).encode("utf-8"), salt, rounds, -1, alg)
 
-...as laid out in the SCRAM specification. All digests
-verify against the same password, or the hash should be considered malformed.
+...as laid out in the SCRAM specification [#scram]_. All digests
+should verify against the same password, or the hash is considered malformed.
 
 .. note::
 
@@ -141,3 +151,22 @@ verify against the same password, or the hash should be considered malformed.
     defined in :rfc:`5803`, except that it encodes everything into a single
     string, and does not have any storage requirements (outside of the ability
     to store 512+ character ascii strings).
+
+Security
+========
+The security of this hash is only as strong as the weakest digest used
+by this hash. Since the SCRAM [#scram]_ protocol requires SHA1
+always be supported, this will generally be the weakest link, since
+the other digests will generally be stronger ones (e.g. SHA2-256).
+
+None-the-less, since PBKDF2 is sufficiently collision-resistant
+on it's own, any pre-image weakenesses found in SHA1 should be mitigated
+by the PBKDF2-HMAC-SHA1 wrapper; and should have no flaws outside of
+brute-force attacks on PBKDF2-HMAC-SHA1.
+
+.. rubric:: Footnotes
+
+.. [#scram] The SCRAM protocol is laid out in :rfc:`5802`.
+
+.. [#hnames] The official list of IANA-assigned hash function names -
+             `<http://www.iana.org/assignments/hash-function-text-names>`_
