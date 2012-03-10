@@ -1,0 +1,101 @@
+.. index:: msdcc; Windows; Domain Cached Credentials
+
+======================================================================
+:class:`passlib.hash.msdcc` - Windows' Domain Cached Credentials
+======================================================================
+
+.. currentmodule:: passlib.hash
+
+This class implements the DCC (Domain Cached Credentials) hash, used
+by Windows to cache and verify remote credentials when the relevant
+server is unavailable. It is known by a number of other names,
+including "mscache" and "mscash" (Microsoft CAched haSH). Security wise
+it is not particularly strong, as it's little more than :doc:`nthash <passlib.hash.nthash>`
+salted with a username. It was replaced by :doc:`msdcc2 <passlib.hash.msdcc2>`
+in Windows Vista.
+
+.. warning::
+
+    This hash is not very secure, and should mainly be used to verify
+    existing cached credentials.
+
+.. seealso::
+
+    :doc:`passlib.hash.msdcc2`
+
+Usage
+=====
+This class can be used directly as follows::
+
+    >>> from passlib.hash import msdcc
+
+    >>> # encrypt password using specified username
+    >>> h = msdcc.encrypt("password", "Administrator")
+    >>> h
+    '25fd08fa89795ed54207e6e8442a6ca0'
+
+    >>> #verify correct password
+    >>> msdcc.verify("password", h, "Administrator")
+    True
+    >>> #verify correct password w/ wrong username
+    >>> msdcc.verify("password", h, "User")
+    False
+    >>> #verify incorrect password
+    >>> msdcc.verify("letmein", h, "Administrator")
+    False
+
+    >>> # check if hash may belong to msdcc
+    >>> msdcc.identify(h)
+    True
+    >>> # check if foreign hash belongs to msdcc
+    >>> msdcc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+Interface
+=========
+.. autoclass:: msdcc()
+
+.. rst-class:: html-toggle
+
+Format & Algorithm
+==================
+Much like :class:`!lmhash` and :class:`!nthash`, MS DCC hashes
+consists of a 16 byte digest, usually encoded as 32 hexidecimal characters.
+An example hash (of ``"password"`` with the account ``"Administrator"``) is
+``25fd08fa89795ed54207e6e8442a6ca0``.
+
+The digest is calculated as follows:
+
+1. The password is encoded using ``UTF-16-LE``.
+2. The MD4 digest of step 1 is calculated.
+   (The result of this step is identical to the :class:`~passlib.hash.nthash`
+   of the password).
+3. The unicode username is converted to lowercase,
+   and encoded using ``UTF-16-LE``.
+   This should be just the plain username (e.g. ``User``
+   not ``SOMEDOMAIN\\User``)
+4. The username from step 3 is appended to the
+   digest from step 2; and the MD4 digest of the result
+   is calculated.
+5. The result of step 4 is encoded into hexidecimal,
+   this is the DCC hash.
+
+Security Issues
+===============
+This algorithm is should not be used for any purpose besides
+manipulating existing DCC v1 hashes, due to the following flaws:
+
+* It's use of the username as a salt value (and lower-case at that),
+  means that common usernames (eg ``Administrator``) will occur
+  more frequently as salts, weakening the effectiveness of the salt in
+  foiling pre-computed tables.
+
+* The MD4 message digest has been severely compromised by collision and
+  preimage attacks.
+
+* Efficient brute-force attacks on MD4 exist.
+
+.. rubric:: Footnotes
+
+.. [#] Description of DCC v1 algorithm -
+       `<http://openwall.info/wiki/john/MSCash>`_

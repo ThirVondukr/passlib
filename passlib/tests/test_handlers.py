@@ -951,6 +951,99 @@ os_crypt_md5_crypt_test = create_backend_case(_md5_crypt_test, "os_crypt")
 builtin_md5_crypt_test = create_backend_case(_md5_crypt_test, "builtin")
 
 #=========================================================
+# msdcc 1 & 2
+#=========================================================
+class msdcc_test(UserHandlerMixin, HandlerCase):
+    handler = hash.msdcc
+    user_case_insensitive = True
+
+    known_correct_hashes = [
+
+        #
+        # http://www.jedge.com/wordpress/windows-password-cache/
+        #
+        (("Asdf999", "sevans"), "b1176c2587478785ec1037e5abc916d0"),
+
+        #
+        # http://infosecisland.com/blogview/12156-Cachedump-for-Meterpreter-in-Action.html
+        #
+        (("ASDqwe123", "jdoe"), "592cdfbc3f1ef77ae95c75f851e37166"),
+
+        #
+        # http://comments.gmane.org/gmane.comp.security.openwall.john.user/1917
+        #
+        (("test1", "test1"), "64cd29e36a8431a2b111378564a10631"),
+        (("test2", "test2"), "ab60bdb4493822b175486810ac2abe63"),
+        (("test3", "test3"), "14dd041848e12fc48c0aa7a416a4a00c"),
+        (("test4", "test4"), "b945d24866af4b01a6d89b9d932a153c"),
+
+        #
+        # http://ciscoit.wordpress.com/2011/04/13/metasploit-hashdump-vs-cachedump/
+        #
+        (("1234qwer!@#$", "Administrator"), "7b69d06ef494621e3f47b9802fe7776d"),
+
+        #
+        # http://www.securiteam.com/tools/5JP0I2KFPA.html
+        #
+        (("password", "user"), "2d9f0b052932ad18b87f315641921cda"),
+
+        #
+        # from JTR 1.7.9
+        #
+        (("", "root"), "176a4c2bd45ac73687676c2f09045353"),
+        (("test1", "TEST1"), "64cd29e36a8431a2b111378564a10631"),
+        (("okolada", "nineteen_characters"), "290efa10307e36a79b3eebf2a6b29455"),
+        ((u("\u00FC"), u("\u00FC")), "48f84e6f73d6d5305f6558a33fa2c9bb"),
+        ((u("\u00FC\u00FC"), u("\u00FC\u00FC")), "593246a8335cf0261799bda2a2a9c623"),
+        ((u("\u20AC\u20AC"), "user"), "9121790702dda0fa5d353014c334c2ce"),
+
+        #
+        # custom
+        #
+
+        # ensures utf-8 used for unicode
+        ((UPASS_TABLE, 'bob'), 'fcb82eb4212865c7ac3503156ca3f349'),
+    ]
+
+    known_alternate_hashes = [
+        # check uppercase accepted.
+        ("B1176C2587478785EC1037E5ABC916D0", ("Asdf999", "sevans"),
+            "b1176c2587478785ec1037e5abc916d0"),
+    ]
+
+class msdcc2_test(UserHandlerMixin, HandlerCase):
+    handler = hash.msdcc2
+    user_case_insensitive = True
+
+    known_correct_hashes = [
+        #
+        # from JTR 1.7.9
+        #
+        (("test1", "test1"), "607bbe89611e37446e736f7856515bf8"),
+        (("qerwt", "Joe"), "e09b38f84ab0be586b730baf61781e30"),
+        (("12345", "Joe"), "6432f517a900b3fc34ffe57f0f346e16"),
+        (("", "bin"), "c0cbe0313a861062e29f92ede58f9b36"),
+        (("w00t", "nineteen_characters"), "87136ae0a18b2dafe4a41d555425b2ed"),
+        (("w00t", "eighteencharacters"), "fc5df74eca97afd7cd5abb0032496223"),
+        (("longpassword", "twentyXXX_characters"), "cfc6a1e33eb36c3d4f84e4c2606623d2"),
+        (("longpassword", "twentyoneX_characters"), "99ff74cea552799da8769d30b2684bee"),
+        (("longpassword", "twentytwoXX_characters"), "0a721bdc92f27d7fb23b87a445ec562f"),
+        (("test2", "TEST2"), "c6758e5be7fc943d00b97972a8a97620"),
+        (("test3", "test3"), "360e51304a2d383ea33467ab0b639cc4"),
+        (("test4", "test4"), "6f79ee93518306f071c47185998566ae"),
+        ((u("\u00FC"), "joe"), "bdb80f2c4656a8b8591bd27d39064a54"),
+        ((u("\u20AC\u20AC"), "joe"), "1e1e20f482ff748038e47d801d0d1bda"),
+        ((u("\u00FC\u00FC"), "admin"), "0839e4a07c00f18a8c65cf5b985b9e73"),
+
+        #
+        # custom
+        #
+
+        # custom unicode test
+        ((UPASS_TABLE, 'bob'), 'cad511dc9edefcf69201da72efb6bb55'),
+    ]
+
+#=========================================================
 # mssql 2000 & 2005
 #=========================================================
 class mssql2000_test(HandlerCase):

@@ -183,6 +183,20 @@ not seen outside those specific contexts:
 
 .. _other-hashes:
 
+Windows Hashes
+==============
+The following hashes are used in various places by Microsoft Windows.
+As they were designed for "internal" use, they generally contain
+no identifying markers, identifying them is pretty much context-dependant.
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.lmhash
+    passlib.hash.nthash
+    passlib.hash.msdcc
+    passlib.hash.msdcc2
+
 Other Hashes
 ============
 The following schemes are used in various contexts,
@@ -192,8 +206,6 @@ in one of the above categories:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.lmhash
-    passlib.hash.nthash
     passlib.hash.cisco_pix
 
 * *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`

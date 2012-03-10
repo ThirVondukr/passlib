@@ -1,4 +1,4 @@
-"""passlib.handlers.nthash - unix-crypt compatible nthash passwords"""
+"""passlib.handlers.nthash - Microsoft Windows -related hashes"""
 #=========================================================
 #imports
 #=========================================================
@@ -19,6 +19,8 @@ __all__ = [
     "lmhash",
     "nthash",
     "bsd_nthash",
+    "msdcc",
+    "msdcc2",
 ]
 
 #=========================================================
@@ -218,6 +220,99 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 ##        # NOTE: verify against both in case encoding issue
 ##        # causes one not to match.
 ##        return lmhash.verify(secret, lm) or nthash.verify(secret, nt)
+
+#=========================================================
+# msdcc v1
+#=========================================================
+class msdcc(uh.HasUserContext, uh.StaticHandler):
+    """This class implements Microsoft's Domain Cached Credentials password hash,
+    and follows the :ref:`password-hash-api`.
+
+    It has a fixed number of rounds, and uses the associated
+    username as the salt.
+
+    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods
+    have the following optional keywords:
+
+    :param user:
+        String containing name of user account this password is associated with.
+        This is required to properly calculate the hash.
+
+        This keyword is case-insensitive, and should contain just the username
+        (e.g. ``Administrator``, not ``SOMEDOMAIN\\Administrator``).
+
+    Note that while this class outputs lower-case hexidecimal digests,
+    it will accept upper-case digests as well.
+    """
+    name = "msdcc"
+    checksum_chars = uh.HEX_CHARS
+    checksum_size = 32
+
+    @classmethod
+    def _norm_hash(cls, hash):
+        return hash.lower()
+
+    def _calc_checksum(self, secret):
+        return hexlify(self.raw(secret, self.user)).decode("ascii")
+
+    @classmethod
+    def raw(cls, secret, user):
+        """encode password using mscash v1 algorithm
+
+        :arg secret: secret as unicode or utf-8 encoded bytes
+        :arg user: username to use as salt
+
+        :returns: returns string of raw bytes
+        """
+        secret = to_unicode(secret, "utf-8", errname="secret").encode("utf-16-le")
+        user = to_unicode(user, "utf-8", errname="user").lower().encode("utf-16-le")
+        return md4(md4(secret).digest() + user).digest()
+
+#=========================================================
+# msdcc2 aka mscash2
+#=========================================================
+class msdcc2(uh.HasUserContext, uh.StaticHandler):
+    """This class implements version 2 of Microsoft's Domain Cached Credentials
+    password hash, and follows the :ref:`password-hash-api`.
+
+    It has a fixed number of rounds, and uses the associated
+    username as the salt.
+
+    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods
+    have the following extra keyword:
+
+    :param user:
+        String containing name of user account this password is associated with.
+        This is required to properly calculate the hash.
+
+        This keyword is case-insensitive, and should contain just the username
+        (e.g. ``Administrator``, not ``SOMEDOMAIN\\Administrator``).
+    """
+    name = "msdcc2"
+    checksum_chars = uh.HEX_CHARS
+    checksum_size = 32
+
+    @classmethod
+    def _norm_hash(cls, hash):
+        return hash.lower()
+
+    def _calc_checksum(self, secret):
+        return hexlify(self.raw(secret, self.user)).decode("ascii")
+
+    @classmethod
+    def raw(cls, secret, user):
+        """encode password using msdcc v2 algorithm
+
+        :arg secret: secret as unicode or utf-8 encoded bytes
+        :arg user: username to use as salt
+
+        :returns: returns string of raw bytes
+        """
+        from passlib.utils.pbkdf2 import pbkdf2
+        secret = to_unicode(secret, "utf-8", errname="secret").encode("utf-16-le")
+        user = to_unicode(user, "utf-8", errname="user").lower().encode("utf-16-le")
+        tmp = md4(md4(secret).digest() + user).digest()
+        return pbkdf2(tmp, user, 10240, 16, 'hmac-sha1')
 
 #=========================================================
 #eof

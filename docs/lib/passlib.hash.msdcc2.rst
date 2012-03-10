@@ -1,0 +1,91 @@
+.. index:: msdcc; Windows; Domain Cached Credentials v2
+
+======================================================================
+:class:`passlib.hash.msdcc2` - Windows' Domain Cached Credentials v2
+======================================================================
+
+.. currentmodule:: passlib.hash
+
+This class implements the DCC2 (Domain Cached Credentials version 2) hash, used
+by Windows Vista and newer to cache and verify remote credentials when the relevant
+server is unavailable. It is known by a number of other names,
+including "mscache2" and "mscash2" (Microsoft CAched haSH). It replaces
+the weaker :doc:`msdcc (v1)<passlib.hash.msdcc>` hash used by previous releases
+of Windows. Security wise it is not particularly weak, but due to it's
+use of the username as a salt, it should probably not be used for anything
+but verifying existing cached credentials.
+
+Usage
+=====
+This class can be used directly as follows::
+
+    >>> from passlib.hash import msdcc2
+
+    >>> # encrypt password using specified username
+    >>> h = msdcc2.encrypt("password", "Administrator")
+    >>> h
+    '4c253e4b65c007a8cd683ea57bc43c76'
+
+    >>> #verify correct password
+    >>> msdcc2.verify("password", h, "Administrator")
+    True
+    >>> #verify correct password w/ wrong username
+    >>> msdcc2.verify("password", h, "User")
+    False
+    >>> #verify incorrect password
+    >>> msdcc2.verify("letmein", h, "Administrator")
+    False
+
+    >>> # check if hash may belong to msdcc
+    >>> msdcc2.identify(h)
+    True
+    >>> # check if foreign hash belongs to msdcc
+    >>> msdcc2.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+Interface
+=========
+.. autoclass:: msdcc2()
+
+.. rst-class:: html-toggle
+
+Format & Algorithm
+==================
+Much like :class:`!lmhash`, :class:`!nthash`, and :class:`!msdcc`,
+MS DCC v2 hashes consists of a 16 byte digest, usually encoded as 32
+hexidecimal characters. An example hash (of ``"password"`` with the
+account ``"Administrator"``) is ``4c253e4b65c007a8cd683ea57bc43c76``.
+
+The digest is calculated as follows:
+
+1. The password is encoded using ``UTF-16-LE``.
+2. The MD4 digest of step 1 is calculated.
+   (The result of this is identical to the :class:`~passlib.hash.nthash`
+   digest of the password).
+3. The unicode username is converted to lowercase,
+   and encoded using ``UTF-16-LE``.
+   This should be just the plain username (e.g. ``User``
+   not ``SOMEDOMAIN\\User``)
+4. The username from step 3 is appended to the
+   digest from step 2; and the MD4 digest of the result
+   is calculated (The result of this is identicial to the
+   :class:`~passlib.hash.msdcc` digest).
+5. :func:`PBKDF2-HMAC-SHA1 <passlib.utils.pbkdf2.pbkdf2>` is then invoked,
+   using the result of step 4 as the secret, the username from step 3 as
+   the salt, 10240 rounds, and resulting in a 16 byte digest.
+6. The result of step 5 is encoded into hexidecimal;
+   this is the DCC2 hash.
+
+Security Issues
+===============
+This hash is essentially DCC v1 with a fixed-round PBKDF2 function
+wrapped around it. The number of rounds of PBKDF2 is currently
+sufficient to make this a semi-reasonable way to store passwords,
+but the use of the lowercase username as a salt, and the fact
+that the rounds can't be increased, means this hash is not particularly
+future-proof, and should not be used for new applications.
+
+.. rubric:: Footnotes
+
+.. [#] Description of DCC v2 algorithm -
+       `<http://openwall.info/wiki/john/MSCash2>`_
