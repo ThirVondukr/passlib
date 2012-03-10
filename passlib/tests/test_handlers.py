@@ -805,6 +805,186 @@ os_crypt_md5_crypt_test = create_backend_case(_md5_crypt_test, "os_crypt")
 builtin_md5_crypt_test = create_backend_case(_md5_crypt_test, "builtin")
 
 #=========================================================
+# mssql 2000 & 2005
+#=========================================================
+class mssql2000_test(HandlerCase):
+    handler = hash.mssql2000
+    secret_case_insensitive = "verify-only"
+
+    known_correct_hashes = [
+        #
+        # http://hkashfi.blogspot.com/2007/08/breaking-sql-server-2005-hashes.html
+        #
+        ('Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED2503412FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
+        ('TEST', '0x010034767D5C2FD54D6119FFF04129A1D72E7C3194F7284A7F3A2FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
+
+        #
+        # http://www.sqlmag.com/forums/aft/68438
+        #
+        ('x', '0x010086489146C46DD7318D2514D1AC706457CBF6CD3DF8407F071DB4BBC213939D484BF7A766E974F03C96524794'),
+
+        #
+        # http://stackoverflow.com/questions/173329/how-to-decrypt-a-password-from-sql-server
+        #
+        ('AAAA', '0x0100CF465B7B12625EF019E157120D58DD46569AC7BF4118455D12625EF019E157120D58DD46569AC7BF4118455D'),
+
+        #
+        # http://msmvps.com/blogs/gladchenko/archive/2005/04/06/41083.aspx
+        #
+        ('123', '0x01002D60BA07FE612C8DE537DF3BFCFA49CD9968324481C1A8A8FE612C8DE537DF3BFCFA49CD9968324481C1A8A8'),
+
+        #
+        # http://www.simple-talk.com/sql/t-sql-programming/temporarily-changing-an-unknown-password-of-the-sa-account-/
+        #
+        ('12345', '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+
+        #
+        # XXX: sample is incomplete, password unknown
+        # https://anthonystechblog.wordpress.com/2011/04/20/password-encryption-in-sql-server-how-to-tell-if-a-user-is-using-a-weak-password/
+        # (????, '0x0100813F782D66EF15E40B1A3FDF7AB88B322F51401A87D8D3E3A8483C4351A3D96FC38499E6CDD2B6F?????????'),
+        #
+
+        #
+        # from JTR 1.7.9
+        #
+        ('foo', '0x0100A607BA7C54A24D17B565C59F1743776A10250F581D482DA8B6D6261460D3F53B279CC6913CE747006A2E3254'),
+        ('bar', '0x01000508513EADDF6DB7DDD270CCA288BF097F2FF69CC2DB74FBB9644D6901764F999BAB9ECB80DE578D92E3F80D'),
+        ('canard', '0x01008408C523CF06DCB237835D701C165E68F9460580132E28ED8BC558D22CEDF8801F4503468A80F9C52A12C0A3'),
+        ('lapin', '0x0100BF088517935FC9183FE39FDEC77539FD5CB52BA5F5761881E5B9638641A79DBF0F1501647EC941F3355440A2'),
+
+        #
+        # custom
+        #
+
+        # ensures utf-8 used for unicode
+        (UPASS_USD,   '0x0100624C0961B28E39FEE13FD0C35F57B4523F0DA1861C11D5A5B28E39FEE13FD0C35F57B4523F0DA1861C11D5A5'),
+        (UPASS_TABLE, '0x010083104228FAD559BE52477F2131E538BE9734E5C4B0ADEFD7F6D784B03C98585DC634FE2B8CA3A6DFFEC729B4'),
+
+    ]
+
+    known_correct_configs = [
+        ('0x010034767D5C00000000000000000000000000000000000000000000000000000000000000000000000000000000',
+         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED2503412FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
+    ]
+
+    known_alternate_hashes = [
+        # lower case hex
+        ('0x01005b20054332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b3',
+         '12345', '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+    ]
+
+    known_unidentified_hashes = [
+        # malformed start
+        '0X01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+
+        # wrong magic value
+        '0x02005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+
+        # wrong size
+        '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3',
+        '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3AF',
+
+        # mssql2005
+        '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+    ]
+
+    known_malformed_hashes = [
+        # non-hex char ---\/
+        '0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+    ]
+
+class mssql2005_test(HandlerCase):
+    handler = hash.mssql2005
+
+    known_correct_hashes = [
+        #
+        # http://hkashfi.blogspot.com/2007/08/breaking-sql-server-2005-hashes.html
+        #
+        ('TEST', '0x010034767D5C2FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
+
+        #
+        # http://www.openwall.com/lists/john-users/2009/07/14/2
+        #
+        ('toto', '0x01004086CEB6BF932BC4151A1AF1F13CD17301D70816A8886908'),
+
+        #
+        # http://msmvps.com/blogs/gladchenko/archive/2005/04/06/41083.aspx
+        #
+        ('123', '0x01004A335DCEDB366D99F564D460B1965B146D6184E4E1025195'),
+        ('123', '0x0100E11D573F359629B344990DCD3D53DE82CF8AD6BBA7B638B6'),
+
+        #
+        # XXX: password unknown
+        # http://www.simple-talk.com/sql/t-sql-programming/temporarily-changing-an-unknown-password-of-the-sa-account-/
+        # (???, '0x01004086CEB6301EEC0A994E49E30DA235880057410264030797'),
+        #
+
+        #
+        # http://therelentlessfrontend.com/2010/03/26/encrypting-and-decrypting-passwords-in-sql-server/
+        #
+        ('AAAA', '0x010036D726AE86834E97F20B198ACD219D60B446AC5E48C54F30'),
+
+        #
+        # from JTR 1.7.9
+        #
+        ("toto", "0x01004086CEB6BF932BC4151A1AF1F13CD17301D70816A8886908"),
+        ("titi", "0x01004086CEB60ED526885801C23B366965586A43D3DEAC6DD3FD"),
+        ("foo", "0x0100A607BA7C54A24D17B565C59F1743776A10250F581D482DA8"),
+        ("bar", "0x01000508513EADDF6DB7DDD270CCA288BF097F2FF69CC2DB74FB"),
+        ("canard", "0x01008408C523CF06DCB237835D701C165E68F9460580132E28ED"),
+        ("lapin", "0x0100BF088517935FC9183FE39FDEC77539FD5CB52BA5F5761881"),
+
+        #
+        # adapted from mssql2000.known_correct_hashes (above)
+        #
+        ('Test',  '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED250341'),
+        ('Test',  '0x0100993BF2315F36CC441485B35C4D84687DC02C78B0E680411F'),
+        ('x',     '0x010086489146C46DD7318D2514D1AC706457CBF6CD3DF8407F07'),
+        ('AAAA',  '0x0100CF465B7B12625EF019E157120D58DD46569AC7BF4118455D'),
+        ('123',   '0x01002D60BA07FE612C8DE537DF3BFCFA49CD9968324481C1A8A8'),
+        ('12345', '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+
+        #
+        # custom
+        #
+
+        # ensures utf-8 used for unicode
+        (UPASS_USD,   '0x0100624C0961B28E39FEE13FD0C35F57B4523F0DA1861C11D5A5'),
+        (UPASS_TABLE, '0x010083104228FAD559BE52477F2131E538BE9734E5C4B0ADEFD7'),
+    ]
+
+    known_correct_configs = [
+        ('0x010034767D5C0000000000000000000000000000000000000000',
+         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED250341'),
+    ]
+
+    known_alternate_hashes = [
+        # lower case hex
+        ('0x01005b20054332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b3',
+         '12345', '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+    ]
+
+    known_unidentified_hashes = [
+        # malformed start
+        '0X010036D726AE86834E97F20B198ACD219D60B446AC5E48C54F30',
+
+        # wrong magic value
+        '0x020036D726AE86834E97F20B198ACD219D60B446AC5E48C54F30',
+
+        # wrong size
+        '0x010036D726AE86834E97F20B198ACD219D60B446AC5E48C54F',
+        '0x010036D726AE86834E97F20B198ACD219D60B446AC5E48C54F3012',
+
+        # mssql2000
+        '0x01005B20054332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+    ]
+
+    known_malformed_hashes = [
+        # non-hex char --\/
+        '0x010036D726AE86G34E97F20B198ACD219D60B446AC5E48C54F30',
+    ]
+
+#=========================================================
 # mysql 323 & 41
 #=========================================================
 class mysql323_test(HandlerCase):

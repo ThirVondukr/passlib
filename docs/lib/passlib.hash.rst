@@ -172,6 +172,8 @@ not seen outside those specific contexts:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.mssql2000
+    passlib.hash.mssql2005
     passlib.hash.mysql323
     passlib.hash.mysql41
     passlib.hash.postgres_md5

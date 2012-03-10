@@ -517,6 +517,8 @@ class HandlerCase(TestCase):
     secret_size = None
 
     # whether hash is case insensitive
+    # True, False, or special value "verify-only" (which indicates
+    # hash contains case-sensitive portion, but verifies is case-insensitive)
     secret_case_insensitive = False
 
     # flag if scheme accepts ALL hash strings (e.g. plaintext)
@@ -1132,15 +1134,27 @@ class HandlerCase(TestCase):
 
     def test_61_case_sensitive(self):
         "test password case sensitivity"
+        hash_insensitive = self.secret_case_insensitive is True
+        verify_insensitive = self.secret_case_insensitive in [True,
+                                                              "verify-only"]
+
         lower = 'test'
         upper = 'TEST'
         h1 = self.do_encrypt(lower)
-        if self.secret_case_insensitive:
+        if verify_insensitive:
             self.assertTrue(self.do_verify(upper, h1),
-                            "hash should not be case sensitive")
+                            "verify() should not be case sensitive")
         else:
             self.assertFalse(self.do_verify(upper, h1),
-                             "hash should be case sensitive")
+                             "verify() should be case sensitive")
+
+        h2 = self.do_genhash(upper, h1)
+        if hash_insensitive:
+            self.assertEqual(h2, h1,
+                             "genhash() should not be case sensitive")
+        else:
+            self.assertNotEqual(h2, h1,
+                                "genhash() should be case sensitive")
 
     def test_62_null(self):
         "test password=None"
