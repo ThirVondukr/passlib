@@ -270,14 +270,14 @@ def consteq(left, right):
     # validate types
     if isinstance(left, unicode):
         if not isinstance(right, unicode):
-            raise TypeError("inputs must be both unicode or bytes")
+            raise TypeError("inputs must be both unicode or both bytes")
         is_py3_bytes = False
     elif isinstance(left, bytes):
         if not isinstance(right, bytes):
-            raise TypeError("inputs must be both unicode or bytes")
+            raise TypeError("inputs must be both unicode or both bytes")
         is_py3_bytes = PY3
     else:
-        raise TypeError("inputs must be both unicode or bytes")
+        raise TypeError("inputs must be both unicode or both bytes")
 
     # do size comparison.
     # NOTE: the double-if construction below is done deliberately, to ensure
@@ -496,7 +496,7 @@ def is_ascii_safe(source):
     r = _B80 if isinstance(source, bytes) else _U80
     return all(c < r for c in source)
 
-def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
+def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
     """helper to normalize input to bytes.
 
     :arg source:
@@ -505,11 +505,13 @@ def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
     :arg encoding:
         Target encoding (defaults to ``"utf-8"``).
 
-    :param source_encoding:
-        Source encoding (if known), used for transcoding.
-
     :param errname:
         Optional name of variable/noun to reference when raising errors
+
+    :param source_encoding:
+        If this is specified, and the source is bytes,
+        the source will be transcoded from *source_encoding* to *encoding*
+        (via unicode).
 
     :raises TypeError: if source is not unicode or bytes.
 
@@ -527,6 +529,8 @@ def to_bytes(source, encoding="utf-8", source_encoding=None, errname="value"):
             return source
     elif isinstance(source, unicode):
         return source.encode(encoding)
+    elif source is None:
+        raise TypeError("no %s specified" % (errname,))
     else:
         raise TypeError("%s must be unicode or bytes, not %s" % (errname,
                                                                  type(source)))
@@ -553,6 +557,8 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
         return source
     elif isinstance(source, bytes):
         return source.decode(source_encoding)
+    elif source is None:
+        raise TypeError("no %s specified" % (errname,))
     else:
         raise TypeError("%s must be unicode or bytes, not %s" % (errname,
                                                                  type(source)))
@@ -563,6 +569,8 @@ if PY3:
             return source.decode(encoding)
         elif isinstance(source, unicode):
             return source
+        elif source is None:
+            raise TypeError("no %s specified" % (errname,))
         else:
             raise TypeError("%s must be unicode or bytes, not %s" %
                             (errname, type(source)))
@@ -572,6 +580,8 @@ else:
             return source
         elif isinstance(source, unicode):
             return source.encode(encoding)
+        elif source is None:
+            raise TypeError("no %s specified" % (errname,))
         else:
             raise TypeError("%s must be unicode or bytes, not %s" %
                             (errname, type(source)))

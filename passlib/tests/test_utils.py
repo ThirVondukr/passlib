@@ -360,7 +360,7 @@ class CodecTest(TestCase):
                                                             b('\x00\xc3\xbf'))
 
         #check bytes transcoding
-        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "utf-8"),
+        self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "", "utf-8"),
                                                             b('\x00\xff'))
 
         #check other
