@@ -235,16 +235,14 @@ which scheme a hash belongs to when multiple schemes are in use.
 
 .. classmethod:: PasswordHash.identify(hash)
 
-    identify if a hash string belongs to this algorithm.
+    Quickly identify if a hash string belongs to this algorithm.
 
     :arg hash:
         the candidate hash string to check
 
     :returns:
-        * ``True`` if input appears to be a hash string belonging to this algorithm.
-        * ``True`` if input appears to be a configuration string belonging to this algorithm.
-        * ``False`` if no input is an empty string or ``None``.
-        * ``False`` if none of the above conditions was met.
+        ``True`` if the input appears to be a hash or configuration string
+        which belongs to this algorithm, otherwise ``False``.
 
     .. note::
 
@@ -278,9 +276,9 @@ which scheme a hash belongs to when multiple schemes are in use.
     :raises TypeError: if :samp:`{secret}` is not a bytes or unicode instance.
 
     :raises ValueError:
-        * if the hash not specified.
-        * if the hash does not match this algorithm's hash format.
-        * if the provided secret contains forbidden characters (see
+        * if no hash is provided, or the hash does not match this
+          algorithm's hash format.
+        * if the secret contains forbidden characters (see
           :meth:`~PasswordHash.encrypt`).
         * if a configuration string from :meth:`~PasswordHash.genconfig`
           is passed in as the value for *hash*.

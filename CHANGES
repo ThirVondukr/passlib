@@ -90,8 +90,8 @@ Release History
           to disable these two requirements, respectively.
 
         * :class:`~passlib.utils.handlers.StaticHandler` now derived from
-        :class:`!GenericHandler`, and required ``_calc_checksum()`` be
-        implemented instead of ``encrypt()``.
+          :class:`!GenericHandler`, and required ``_calc_checksum()`` be
+          implemented instead of ``encrypt()``.
 
         * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
           changed in backward-incompatible way: the :samp:`norm_{xxx}`

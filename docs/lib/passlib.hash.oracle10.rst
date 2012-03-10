@@ -41,7 +41,7 @@ a username for all encrypt/verify operations)::
     True
     >>> or10.verify("password", h, "somebody") #verify correct password w/ wrong username
     False
-    >>> or10.verify("password", h, "username") #verify incorrect password
+    >>> or10.verify("letmein", h, "username") #verify incorrect password
     False
 
 Interface
@@ -83,10 +83,10 @@ Oracle10 account passwords, due to the following flaws [#flaws]_:
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * The fact that it is case insensitive, and simply concatenates the username
-  and password, greatly reduces the keyspace that must be searched by 
+  and password, greatly reduces the keyspace that must be searched by
   brute-force or pre-computed attacks.
 
-* It's simplicity, and decades of research on high-speed DES 
+* It's simplicity, and decades of research on high-speed DES
   implementations, makes efficient brute force attacks much more feasible.
 
 Deviations
@@ -118,4 +118,3 @@ There is only one known issue:
 
 .. [#] Description of Oracle10g and Oracle11g algorithms -
        `<http://www.notesbit.com/index.php/scripts-oracle/oracle-11g-new-password-algorithm-is-revealed-by-seclistsorg/>`_.
-

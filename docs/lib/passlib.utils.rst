@@ -117,16 +117,17 @@ Predefined Instances
    was replaced by the the ``h64`` and ``h64big`` instances;
    the interface remains mostly unchanged.
 
+Other
+-----
+.. autofunction:: ab64_encode
+.. autofunction:: ab64_decode
+
 ..
     .. data:: AB64_CHARS
 
         Variant of standard Base64 character map used by some
         custom Passlib hashes (see :func:`ab64_encode`).
 
-    Other
-    -----
-    .. autofunction:: ab64_encode
-    .. autofunction:: ab64_decode
 
 ..
     Host OS
