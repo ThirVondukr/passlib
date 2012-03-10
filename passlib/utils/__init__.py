@@ -1256,6 +1256,14 @@ except ImportError: #pragma: no cover
 else:
     has_crypt = True
     _NULL = '\x00'
+
+    # some crypt() variants will return various constant strings when
+    # an invalid/unrecognized config string is passed in; instead of
+    # returning NULL / None. examples include ":", ":0", "*0", etc.
+    # safe_crypt() returns None for any string starting with one of the
+    # chars in this string...
+    _invalid_prefixes = u("*:!")
+
     if PY3:
         def safe_crypt(secret, hash):
             if isinstance(secret, bytes):
@@ -1281,8 +1289,10 @@ else:
                 raise ValueError("null character in secret")
             if isinstance(hash, bytes):
                 hash = hash.decode("ascii")
-            # NOTE: may return None on some OSes, if hash not supported.
-            return _crypt(secret, hash)
+            result = _crypt(secret, hash)
+            if not result or result[0] in _invalid_prefixes:
+                return None
+            return result
     else:
         def safe_crypt(secret, hash):
             if isinstance(secret, unicode):
@@ -1291,12 +1301,13 @@ else:
                 raise ValueError("null character in secret")
             if isinstance(hash, unicode):
                 hash = hash.encode("ascii")
-            # NOTE: may return None on some OSes, if hash not supported.
             result = _crypt(secret, hash)
-            if result is None:
+            if not result:
                 return None
-            else:
-                return result.decode("ascii")
+            result = result.decode("ascii")
+            if result[0] in _invalid_prefixes:
+                return None
+            return result
 
 _add_doc(safe_crypt, """wrapper around stdlib's crypt.
 
@@ -1322,6 +1333,10 @@ _add_doc(safe_crypt, """wrapper around stdlib's crypt.
         * Some OSes will return ``None`` if they don't recognize
           the algorithm being used (though most will simply fall
           back to des-crypt).
+
+        * Some OSes will return an error string if the input config
+          is recognized but malformed; current code converts these to ``None``
+          as well.
     """)
 
 def test_crypt(secret, hash):

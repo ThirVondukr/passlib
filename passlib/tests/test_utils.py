@@ -139,15 +139,19 @@ class MiscTest(TestCase):
         self.assertTrue(test_crypt("test", h1))
         self.assertFalse(test_crypt("test", h1x))
 
-        # test crypt.crypt() returning None is supported.
-        # (Python's Modules/_cryptmodule.c notes some platforms may do this
-        # when algorithm is not supported - but don't say which platforms)
+        # check crypt returning variant error indicators
+        # some platforms return None on errors, others empty string,
+        # The BSDs in some cases return ":"
         import passlib.utils as mod
         orig = mod._crypt
         try:
-            mod._crypt = lambda secret, hash: None
-            self.assertEqual(safe_crypt("test", "aa"), None)
-            self.assertFalse(test_crypt("test", h1))
+            fake = None
+            mod._crypt = lambda secret, hash: fake
+            for fake in [None, "", ":", ":0", "*0"]:
+                self.assertEqual(safe_crypt("test", "aa"), None)
+                self.assertFalse(test_crypt("test", h1))
+            fake = 'xxx'
+            self.assertEqual(safe_crypt("test", "aa"), "xxx")
         finally:
             mod._crypt = orig
 
