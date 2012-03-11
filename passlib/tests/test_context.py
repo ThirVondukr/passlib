@@ -581,7 +581,8 @@ class CryptContextTest(TestCase):
     #policy adaptation
     #=========================================================
     sample_policy_1 = dict(
-            schemes = [ "des_crypt", "md5_crypt", "nthash", "bsdi_crypt", "sha256_crypt"],
+            schemes = [ "des_crypt", "md5_crypt", "phpass", "bsdi_crypt",
+                       "sha256_crypt"],
             deprecated = [ "des_crypt", ],
             default = "sha256_crypt",
             bsdi_crypt__max_rounds = 30,
@@ -590,29 +591,31 @@ class CryptContextTest(TestCase):
             sha256_crypt__max_rounds = 3000,
             sha256_crypt__min_rounds = 2000,
             sha256_crypt__default_rounds = 3000,
-            nthash__ident = "NT",
+            phpass__ident = "H",
+            phpass__default_rounds = 7,
     )
 
     def test_10_01_genconfig_settings(self):
         "test genconfig() settings"
         cc = CryptContext(policy=None,
-                          schemes=["md5_crypt", "nthash"],
-                          nthash__ident="NT",
+                          schemes=["md5_crypt", "phpass"],
+                          phpass__ident="H",
+                          phpass__default_rounds=7,
                          )
 
         # hash specific settings
         self.assertTrue(cc.genconfig().startswith("$1$"))
         self.assertEqual(
-            cc.genconfig(scheme="nthash"),
-            '$NT$00000000000000000000000000000000',
+            cc.genconfig(scheme="phpass", salt='.'*8),
+            '$H$5........',
             )
         self.assertEqual(
-            cc.genconfig(scheme="nthash", ident="3"),
-            '$3$$00000000000000000000000000000000',
+            cc.genconfig(scheme="phpass", salt='.'*8, rounds=8, ident='P'),
+            '$P$6........',
             )
 
         # unsupported hash settings should be rejected
-        self.assertRaises(KeyError, cc.replace, md5_crypt__ident="NT")
+        self.assertRaises(KeyError, cc.replace, md5_crypt__ident="P")
 
     def test_10_02_genconfig_rounds_limits(self):
         "test genconfig() policy rounds limits"
@@ -804,12 +807,12 @@ class CryptContextTest(TestCase):
 
         # hash specific settings
         self.assertEqual(
-            cc.encrypt("password", scheme="nthash"),
-            '$NT$8846f7eaee8fb117ad06bdd830b7586c',
+            cc.encrypt("password", scheme="phpass", salt='.'*8),
+            '$H$5........De04R5Egz0aq8Tf.1eVhY/',
             )
         self.assertEqual(
-            cc.encrypt("password", scheme="nthash", ident="3"),
-            '$3$$8846f7eaee8fb117ad06bdd830b7586c',
+            cc.encrypt("password", scheme="phpass", salt='.'*8, ident="P"),
+            '$P$5........De04R5Egz0aq8Tf.1eVhY/',
             )
 
         # NOTE: more thorough job of rounds limits done in genconfig() test,

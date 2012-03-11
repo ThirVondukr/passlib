@@ -512,9 +512,9 @@ class PrefixWrapperTest(TestCase):
                           "{XXX}", ident="{XXXX")
 
         # test ident_values is proxied
-        h = uh.PrefixWrapper("h4", "bcrypt", "{XXX}")
+        h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
         self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, [ u("{XXX}$2$"), u("{XXX}$2a$") ])
+        self.assertEqual(h.ident_values, [ u("{XXX}$P$"), u("{XXX}$H$") ])
 
 #=========================================================
 #sample algorithms - these serve as known quantities
