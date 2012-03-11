@@ -13,7 +13,7 @@ from passlib.context import CryptContext, CryptPolicy
 from passlib.apps import django_context
 from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
-from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
+from passlib.tests.utils import TestCase, unittest, ut_version, catch_all_warnings
 import passlib.tests.test_handlers as th
 from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
@@ -223,9 +223,7 @@ class PatchTest(TestCase):
         def dummy():
             pass
 
-        with catch_warnings(record=True) as wlog:
-            warnings.simplefilter("always")
-
+        with catch_all_warnings(record=True) as wlog:
             #patch to use stock django context
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)

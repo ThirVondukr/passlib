@@ -12,7 +12,7 @@ import warnings
 from passlib import hash
 from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
-        enable_option, b, catch_warnings, UserHandlerMixin, randintgauss
+        enable_option, b, catch_all_warnings, UserHandlerMixin, randintgauss
 from passlib.utils.compat import u
 #module
 
@@ -262,7 +262,7 @@ class _bcrypt_test(HandlerCase):
             check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
 
         # some things that will raise warnings
-        with catch_warnings(record=True) as wlog:
+        with catch_all_warnings(record=True) as wlog:
             #
             # test genconfig() corrects invalid salts & issues warning.
             #

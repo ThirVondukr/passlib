@@ -628,11 +628,9 @@ class HandlerCase(TestCase):
     def setUp(self):
         # backup warning filter state; set to display all warnings during tests;
         # and restore filter state after test.
-        ctx = catch_warnings()
+        ctx = catch_all_warnings()
         ctx.__enter__()
         self._restore_warnings = ctx.__exit__
-        warnings.resetwarnings()
-        warnings.simplefilter("always")
 
         # if needed, select specific backend for duration of test
         handler = self.handler
@@ -1893,6 +1891,33 @@ except ImportError:
                 raise RuntimeError("Cannot exit %r without entering first" % self)
             self._module.filters = self._filters
             self._module.showwarning = self._showwarning
+
+class catch_all_warnings(catch_warnings):
+    "catch_warnings() wrapper which clears filter"
+    def __init__(self, reset=".*", **kwds):
+        super(catch_all_warnings, self).__init__(**kwds)
+        self._reset_pat = reset
+
+    def __enter__(self):
+        # let parent class archive filter state
+        ret = super(catch_all_warnings, self).__enter__()
+
+        # reset the filter to list everything
+        warnings.resetwarnings()
+        warnings.simplefilter("always")
+
+        # wipe the __warningregistry__ off the map, so warnings
+        # reliably get reported per-test.
+        # XXX: *could* restore state
+        pattern = self._reset_pat
+        if pattern:
+            import sys
+            key = "__warningregistry__"
+            for mod in sys.modules.values():
+                if hasattr(mod, key) and re.match(pattern, mod.__name__):
+                    getattr(mod, key).clear()
+
+        return ret
 
 #=========================================================
 #EOF

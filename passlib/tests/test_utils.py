@@ -13,7 +13,7 @@ import warnings
 #module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
                                  unicode, bjoin
-from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
+from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_all_warnings
 
 def hb(source):
     return unhexlify(b(source))
@@ -1010,8 +1010,8 @@ class CryptoTest(TestCase):
         self.assertRaises(TypeError, norm_hash_name, None)
 
         # test selected results
-        with catch_warnings():
-            warnings.filterwarnings("ignore", 'encountered unknown hash')
+        with catch_all_warnings():
+            warnings.filterwarnings("ignore", '.*unknown hash')
             for row in chain(_nhn_hash_names, self.ndn_values):
                 for idx, format in enumerate(self.ndn_formats):
                     correct = row[idx]

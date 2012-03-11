@@ -101,8 +101,6 @@ def setup_context():
     yield test_context_init
 
     ctx = test_context_init()
-#    if PasslibConfigWarning:
-#        warnings.filterwarnings("ignore", category=PasslibConfigWarning)
     def test_context_calls():
         hash = ctx.encrypt(secret, rounds=2001)
         ctx.verify(secret, hash)
