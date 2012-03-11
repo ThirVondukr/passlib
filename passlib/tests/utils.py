@@ -562,13 +562,14 @@ class HandlerCase(TestCase):
     def supports_config_string(self):
         return self.do_genconfig() is not None
 
-    def iter_known_hashes(self):
+    @classmethod
+    def iter_known_hashes(cls):
         "iterate through known (secret, hash) pairs"
-        for secret, hash in self.known_correct_hashes:
+        for secret, hash in cls.known_correct_hashes:
             yield secret, hash
-        for config, secret, hash in self.known_correct_configs:
+        for config, secret, hash in cls.known_correct_configs:
             yield secret, hash
-        for alt, secret, hash in self.known_alternate_hashes:
+        for alt, secret, hash in cls.known_alternate_hashes:
             yield secret, hash
 
     def get_sample_hash(self):
@@ -1152,7 +1153,7 @@ class HandlerCase(TestCase):
             self.assertFalse(self.do_verify(secret2, hash),
                              "full password not used in digest")
 
-    def test_61_case_sensitive(self):
+    def test_61_secret_case_sensitive(self):
         "test password case sensitivity"
         hash_insensitive = self.secret_case_insensitive is True
         verify_insensitive = self.secret_case_insensitive in [True,
@@ -1161,7 +1162,7 @@ class HandlerCase(TestCase):
         lower = 'test'
         upper = 'TEST'
         h1 = self.do_encrypt(lower)
-        if verify_insensitive:
+        if verify_insensitive and not self.is_disabled_handler:
             self.assertTrue(self.do_verify(upper, h1),
                             "verify() should not be case sensitive")
         else:
@@ -1169,14 +1170,14 @@ class HandlerCase(TestCase):
                              "verify() should be case sensitive")
 
         h2 = self.do_genhash(upper, h1)
-        if hash_insensitive:
+        if hash_insensitive or self.is_disabled_handler:
             self.assertEqual(h2, h1,
                              "genhash() should not be case sensitive")
         else:
             self.assertNotEqual(h2, h1,
                                 "genhash() should be case sensitive")
 
-    def test_62_null(self):
+    def test_62_secret_null(self):
         "test password=None"
         _, hash = self.get_sample_hash()
         self.assertRaises(TypeError, self.do_encrypt, None)
@@ -1782,7 +1783,7 @@ class temporary_backend(object):
         return orig
 
     def __exit__(self, *exc_info):
-        registry._unload_handler_name(self.name, locations=False)
+        self.handler.set_backend(self._orig)
 
 #=========================================================
 #helper for creating temp files - all cleaned up when prog exits

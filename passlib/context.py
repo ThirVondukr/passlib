@@ -335,9 +335,12 @@ class CryptPolicy(object):
                     handler = elem
                     scheme = handler.name
                     _validate_handler_name(scheme)
-                else:
+                elif isinstance(elem, str):
                     handler = get_crypt_handler(elem)
                     scheme = handler.name
+                else:
+                    raise TypeError("scheme must be name or crypt handler, "
+                                    "not %r" % type(elem))
 
                 #check scheme hasn't been re-used
                 if scheme in schemes:
@@ -1048,7 +1051,7 @@ class _CryptRecord(object):
             #relative costs of different hashes if under migration)
             warn("CryptContext: verify exceeded min_verify_time: "
                  "scheme=%r min_verify_time=%r elapsed=%r" %
-                 (self.scheme, mvt, end-start), PasslibContextWarning)
+                 (self.scheme, mvt, end-start), PasslibConfigWarning)
         return False
 
     #================================================================

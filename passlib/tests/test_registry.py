@@ -123,7 +123,7 @@ class RegistryTest(TestCase):
 
         self.assertRaises(TypeError, register_crypt_handler, {})
 
-        self.assertRaises(ValueError, register_crypt_handler, uh.StaticHandler)
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name=None)))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="AB_CD")))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab-cd")))
 

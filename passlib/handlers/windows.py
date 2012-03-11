@@ -156,11 +156,12 @@ class nthash(uh.StaticHandler):
         return md4(secret.encode("utf-16-le")).digest()
 
     @classmethod
-    def raw_nthash(cls, secret):
+    def raw_nthash(cls, secret, hex=False):
         warn("nthash.raw_nthash() is deprecated, and will be removed "
              "in Passlib 1.8, please use nthash.raw() instead",
              DeprecationWarning)
-        return nthash_hex.raw(secret)
+        ret = nthash.raw(secret)
+        return hexlify(ret) if hex else ret
 
     #=========================================================
     # eoc

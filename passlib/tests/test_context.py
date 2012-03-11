@@ -209,7 +209,12 @@ admin__context__deprecated = des_crypt, bsdi_crypt
             )
 
         #check nameless handler rejected
-        self.assertRaises(ValueError, CryptPolicy, schemes=[uh.StaticHandler])
+        class nameless(uh.StaticHandler):
+            name = None
+        self.assertRaises(ValueError, CryptPolicy, schemes=[nameless])
+
+        # check scheme must be name or crypt handler
+        self.assertRaises(TypeError, CryptPolicy, schemes=[uh.StaticHandler])
 
         #check name conflicts are rejected
         class dummy_1(uh.StaticHandler):
@@ -941,7 +946,7 @@ class CryptContextTest(TestCase):
                 return True
 
             def _calc_checksum(self, secret):
-                time.sleep(cls.delay)
+                time.sleep(self.delay)
                 return to_unicode(secret + 'x')
 
         # silence deprecation warnings for min verify time

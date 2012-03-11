@@ -294,6 +294,7 @@ def get_crypt_handler(name, default=_NOTSET):
         return handler
 
     #normalize name (and if changed, check dict again)
+    assert isinstance(name, str), "name must be str instance"
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names should be lower-case, and use underscores instead "
