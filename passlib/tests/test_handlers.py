@@ -119,6 +119,25 @@ class _bcrypt_test(HandlerCase):
                 '$2a$05$Z17AXnnlpzddNUvnC6cZNOSwMA/8oNiKnHTHTwLlBijfucQQlHjaG'),
         ]
 
+    if enable_option("cover"):
+        #
+        # add some extra tests related to 2/2a
+        #
+        CONFIG_2 = '$2$05$' + '.'*22
+        CONFIG_A = '$2a$05$' + '.'*22
+        known_correct_hashes.extend([
+            ("", CONFIG_2 + 'J2ihDv8vVf7QZ9BsaRrKyqs2tkn55Yq'),
+            ("", CONFIG_A + 'J2ihDv8vVf7QZ9BsaRrKyqs2tkn55Yq'),
+            ("abc", CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+            ("abc", CONFIG_A + 'ev6gDwpVye3oMCUpLY85aTpfBNHD0Ga'),
+            ("abc"*23, CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+            ("abc"*23, CONFIG_A + '2kIdfSj/4/R/Q6n847VTvc68BXiRYZC'),
+            ("abc"*24, CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+            ("abc"*24, CONFIG_A + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+            ("abc"*24+'x', CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+            ("abc"*24+'x', CONFIG_A + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
+        ])
+
     known_correct_configs = [
         ('$2a$10$Z17AXnnlpzddNUvnC6cZNO', UPASS_TABLE,
          '$2a$10$Z17AXnnlpzddNUvnC6cZNOl54vBeVTewdrxohbPtcwl.GEZFTGjHe'),
@@ -138,7 +157,7 @@ class _bcrypt_test(HandlerCase):
         # unsupported (but recognized) minor version
         "$2x$12$EXRkfkdmXnagzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
 
-        # rounds not zero-padded (pybcrypt rejects this, therefore so do we)
+        # rounds not zero-padded (py-bcrypt rejects this, therefore so do we)
         '$2a$6$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'
 
         #NOTE: salts with padding bits set are technically malformed,
@@ -148,6 +167,12 @@ class _bcrypt_test(HandlerCase):
     #===============================================================
     # override some methods
     #===============================================================
+    def setUp(self):
+        HandlerCase.setUp(self)
+        if self.backend == "builtin":
+            warnings.filterwarnings("ignore",
+                                "SECURITY WARNING: .*pure-python bcrypt.*")
+
     def do_genconfig(self, **kwds):
         # override default to speed up tests
         kwds.setdefault("rounds", 5)
@@ -169,7 +194,7 @@ class _bcrypt_test(HandlerCase):
     def get_fuzz_verifiers(self):
         verifiers = super(_bcrypt_test, self).get_fuzz_verifiers()
 
-        # test other backends against pybcrypt if available
+        # test other backends against py-bcrypt if available
         from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw
@@ -184,7 +209,7 @@ class _bcrypt_test(HandlerCase):
                 try:
                     return hashpw(secret, hash) == hash
                 except ValueError:
-                    raise ValueError("pybcrypt rejected hash: %r" % (hash,))
+                    raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
             verifiers.append(check_pybcrypt)
 
         # test other backends against bcryptor if available
@@ -198,6 +223,14 @@ class _bcrypt_test(HandlerCase):
                 secret = to_native_str(secret, self.fuzz_password_encoding)
                 if hash.startswith("$2y$"):
                     hash = "$2a$" + hash[4:]
+                elif hash.startswith("$2$"):
+                    # bcryptor doesn't support $2$ hashes; but we can fake it
+                    # using the $2a$ algorithm, by repeating the password until
+                    # it's 72 chars in length.
+                    hash = "$2a$" + hash[3:]
+                    ss = len(secret)
+                    if 0 < ss < 72:
+                        secret = secret * (1+72//ss)
                 return Engine(False).hash_key(secret, hash) == hash
             verifiers.append(check_bcryptor)
 
@@ -211,9 +244,6 @@ class _bcrypt_test(HandlerCase):
         ident = super(_bcrypt_test,self).get_fuzz_ident()
         if ident == u("$2x$"):
             # just recognized, not currently supported.
-            return None
-        if ident == u("$2$") and self.handler.has_backend("bcryptor"):
-            # FIXME: skipping this since bcryptor doesn't support v0 hashes
             return None
         return ident
 

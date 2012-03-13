@@ -974,11 +974,14 @@ class Base64Engine(object):
         if isinstance(source, unicode):
             cm = self.charmap
             last = cm[cm.index(last) & mask]
+            assert last in padset, "failed to generate valid padding char"
         else:
             # NOTE: this assumes ascii-compat encoding, and that
             # all chars used by encoding are 7-bit ascii.
             last = self._encode64(self._decode64(last) & mask)
-        assert last in padset, "failed to generate valid padding char"
+            assert last in padset, "failed to generate valid padding char"
+            if PY3:
+                last = bytes([last])
         return True, source[:-1] + last
 
     def repair_unused(self, source):

@@ -56,6 +56,14 @@ class PasslibRuntimeWarning(PasslibWarning):
     that the developers would love to hear under what conditions it occurred.
     """
 
+class PasslibSecurityWarning(PasslibWarning):
+    """Special warning issued when Passlib encounters something
+    that might affect security.
+
+    The main reason this is issued is when Passlib's pure-python bcrypt
+    backend is used, to warn that it's 20x too slow to acheive real security.
+    """
+
 #==========================================================================
 # eof
 #==========================================================================

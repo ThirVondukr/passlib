@@ -18,3 +18,4 @@ Warnings
 .. autoexception:: PasslibConfigWarning
 .. autoexception:: PasslibHashWarning
 .. autoexception:: PasslibRuntimeWarning
+.. autoexception:: PasslibSecurityWarning
