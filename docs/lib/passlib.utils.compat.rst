@@ -54,3 +54,8 @@ Bytes Helpers
 .. function:: byte_elem_value
 
     Function to convert byte element to integer (a no-op under PY3)
+
+.. function:: iter_byte_values
+
+    Function to iterate over a byte string as a series of integers.
+    (This is just the native bytes iterator under PY3).

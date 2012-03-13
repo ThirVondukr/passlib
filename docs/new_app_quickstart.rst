@@ -66,7 +66,7 @@ All three password hashes share the following properties:
 The following comparison should help you choose which hash is
 most appropriate for your application; if in doubt,
 any of these is a good choice, though PBKDF2 is probably the best
-for portability. 
+for portability.
 
 .. rst-class:: html-toggle
 
@@ -96,7 +96,7 @@ of simultaneous logon attempts (eg web apps).
     For BCrypt support on non-BSD systems,
     Passlib requires a C-extension module
     provided by the external
-    :ref:`PyBcrypt or BCryptor <optional-libraries>`  packages.
+    :ref:`py-bcrypt or bcryptor <optional-libraries>`  packages.
     Neither of these currently supports Python 3.
 
 SHA512-Crypt

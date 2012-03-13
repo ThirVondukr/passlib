@@ -14,7 +14,7 @@ for new applications.
 .. note::
 
     It is strongly recommended to install
-    :ref:`PyBcrypt or BCryptor <optional-libraries>`
+    :ref:`py-bcrypt or bcryptor <optional-libraries>`
     if this algorithm is going to be used.
 
 Usage
@@ -63,7 +63,7 @@ Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 * :samp:`{checksum}` is the 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
 While BCrypt's basic algorithm is described in it's design document [#f1]_,
-the OpenBSD implementation [#f2]_ is considered the canonical reference, even 
+the OpenBSD implementation [#f2]_ is considered the canonical reference, even
 though it differs from the design document in a few small ways.
 
 Deviations
@@ -118,7 +118,7 @@ This implementation of bcrypt differs from others in a few ways:
 
   ``$2y$``, the default for crypt_blowfish 1.1 and newer, indicates
   the hash was generated with the canonical OpenBSD-compatible algorithm,
-  and should match *correctly* generated ``$2a$`` hashes. 
+  and should match *correctly* generated ``$2a$`` hashes.
   Passlib 1.6 can generate and verify these hashes.
 
   As well, crypt_blowfish 1.2 modified the way it generates ``$2a$`` hashes,
@@ -134,5 +134,5 @@ This implementation of bcrypt differs from others in a few ways:
 .. [#f2] the OpenBSD BCrypt source -
          `<http://www.openbsd.org/cgi-bin/cvsweb/src/lib/libc/crypt/bcrypt.c>`_
 
-.. [#eight] The flaw in pre-1.1 crypt_blowfish is described here - 
+.. [#eight] The flaw in pre-1.1 crypt_blowfish is described here -
             `CVE-2011-2483 <http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2011-2483>`_

@@ -48,7 +48,7 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     :arg secret: password to encode (if unicode, encoded to utf-8)
     :arg salt: salt string to use (required)
     :arg rounds: int rounds
-    :arg hash: hash constructor function for 256/512 variant
+    :arg hash: hash constructor function for sha-256 or sha-512
 
     :returns:
         Returns tuple of ``(unencoded checksum, normalized salt, normalized rounds)``.
@@ -105,8 +105,8 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     #
     # NOTE: The code below is quite different in appearance from how the
     # specification performs this step. the original algorithm was that:
-    # C should start out set to A
-    # for i in [0,rounds)... the next value of C is calculated as the digest of:
+    # C starts out set to A
+    # for i in [0,rounds), the next value of C is calculated as the digest of:
     #       if i%2>0 then DP else C
     #       +
     #       if i%3>0 then DS else ""
@@ -115,7 +115,7 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     #       +
     #       if i%2>0 then C else DP
     #
-    # The algorithm can be seen as a series of paired even/odd rounds,
+    # This algorithm can be seen as a series of paired even/odd rounds,
     # with each pair performing 'C = md5(odd_data + md5(C + even_data))',
     # where even_data & odd_data cycle through a fixed series of
     # combinations of DP & DS, repeating every 42 rounds (since lcm(2,3,7)==42)
@@ -144,12 +144,12 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     # perform any leftover rounds
     if tail:
         # perform any pairs of rounds
-        half = tail>>1
-        for even, odd in data[:half]:
+        pairs = tail>>1
+        for even, odd in data[:pairs]:
             c = hash(odd + hash(c + even).digest()).digest()
         # if rounds was odd, do one last round
         if tail & 1:
-            c = hash(c + data[half][0]).digest()
+            c = hash(c + data[pairs][0]).digest()
 
     #return unencoded result, along w/ normalized config values
     return c, salt, rounds
@@ -495,7 +495,8 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
                                           "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
                                           "I5c7TZauS0")
 
-    #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
+    # NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster
+    # than builtin (627253 vs 238152 rounds/sec)
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):

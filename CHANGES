@@ -121,6 +121,8 @@ Release History
 
     Other
 
+        * Handle platform-specific error strings returned by :func:`!crypt.crypt`.
+
         * Passlib is now source-compatible with Python 2.5+ and Python 3,
           and no longer requires the use of :command:`2to3` to run under Python 3.
 
@@ -438,7 +440,7 @@ Release History
 ====================
 
     * CryptContext & CryptHandler framework
-    * added support for: des-crypt, bcrypt (via pybcrypt), postgres, mysql
+    * added support for: des-crypt, bcrypt (via py-bcrypt), postgres, mysql
     * added unit tests
 
 **0.5** (2008-05-10)
