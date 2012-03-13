@@ -710,7 +710,7 @@ class HandlerCase(TestCase):
         as possible.
         """
         handler = self.handler
-        alt_backend = _has_other_backends(handler, "os_crypt")
+        alt_backend = _find_alternate_backend(handler, "os_crypt")
         if not alt_backend:
             raise AssertionError("handler has no available backends!")
         import passlib.utils as mod
@@ -921,7 +921,8 @@ class HandlerCase(TestCase):
                     return
             raise self.failureException("failed to find different salt after "
                                         "%d samples" % (samples,))
-        sampler(self.do_genconfig)
+        if self.do_genconfig() is not None: # cisco_type7 has salt & no config
+            sampler(self.do_genconfig)
         sampler(lambda : self.do_encrypt("stub"))
 
     def test_12_min_salt_size(self):
@@ -1487,7 +1488,7 @@ class HandlerCase(TestCase):
         while tick() <= stop:
             # generate random password & options
             secret = self.get_fuzz_password()
-            other = secret.strip()[1:]
+            other = self.mangle_fuzz_password(secret)
             if rng.randint(0,1):
                 secret = secret.encode(self.fuzz_password_encoding)
                 other = other.encode(self.fuzz_password_encoding)
@@ -1496,7 +1497,8 @@ class HandlerCase(TestCase):
 
             # create new hash
             hash = self.do_encrypt(secret, **kwds)
-            ##log.debug("fuzz test: hash=%r secret=%r", hash, secret)
+            ##log.debug("fuzz test: hash=%r secret=%r other=%r",
+            ##          hash, secret, other)
 
             # run through all verifiers we found.
             for verify in verifiers:
@@ -1564,7 +1566,14 @@ class HandlerCase(TestCase):
 
     def get_fuzz_password(self):
         "generate random passwords (for fuzz testing)"
-        return getrandstr(rng, self.fuzz_password_alphabet, rng.randint(5,15))
+        if rng.random() < .0001:
+            return u('')
+        return getrandstr(rng, self.fuzz_password_alphabet, rng.randint(5,99))
+
+    def mangle_fuzz_password(self, secret):
+        "mangle fuzz-testing password so it doesn't match"
+        secret = secret.strip()[1:]
+        return secret or self.get_fuzz_password()
 
     def get_fuzz_settings(self):
         "generate random settings (for fuzz testing)"
@@ -1711,7 +1720,7 @@ def _enable_backend_case(handler, backend):
             return True, None
         from passlib.utils import has_crypt
         if backend == "os_crypt" and has_crypt:
-            if enable_option("cover") and _has_other_backends(handler, "os_crypt"):
+            if enable_option("cover") and _find_alternate_backend(handler, "os_crypt"):
                 #in this case, HandlerCase will monkeypatch os_crypt
                 #to use another backend, just so we can test os_crypt fully.
                 return True, None
@@ -1733,7 +1742,7 @@ def _is_default_backend(handler, name):
     finally:
         handler.set_backend(orig)
 
-def _has_other_backends(handler, ignore):
+def _find_alternate_backend(handler, ignore):
     "helper to check if alternate backend is available"
     for name in handler.backends:
         if name != ignore and handler.has_backend(name):

@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import to_unicode, to_bytes
-from passlib.utils.compat import b, bytes, str_to_uascii, u, uascii_to_str
+from passlib.utils.compat import b, bytes, str_to_uascii, u, unicode, uascii_to_str
 from passlib.utils.md4 import md4
 import passlib.utils.handlers as uh
 #pkg
@@ -161,7 +161,7 @@ class nthash(uh.StaticHandler):
              "in Passlib 1.8, please use nthash.raw() instead",
              DeprecationWarning)
         ret = nthash.raw(secret)
-        return hexlify(ret) if hex else ret
+        return hexlify(ret).decode("ascii") if hex else ret
 
     #=========================================================
     # eoc

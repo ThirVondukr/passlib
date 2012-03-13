@@ -11,7 +11,7 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import h64, to_bytes
-from passlib.utils.compat import b, bascii_to_str, unicode, u, join_byte_values, \
+from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
              join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
 #local
@@ -109,7 +109,6 @@ class cisco_type7(uh.GenericHandler):
     name = "cisco_type7"
     setting_kwds = ("salt",)
     checksum_chars = uh.UPPER_HEX_CHARS
-    _stub_checksum = u("00")
 
     max_salt_value = 52
 
@@ -117,8 +116,14 @@ class cisco_type7(uh.GenericHandler):
     # methods
     #=========================================================
     @classmethod
+    def genconfig(cls):
+        return None
+
+    @classmethod
     def from_string(cls, hash):
         if not hash:
+            if hash is None:
+                return cls(use_defaults=True)
             raise ValueError("no hash provided")
         if len(hash) < 2:
             raise ValueError("invalid cisco_type7 hash")
@@ -155,14 +160,13 @@ class cisco_type7(uh.GenericHandler):
         return uh.rng.randint(0, 15)
 
     def to_string(self):
-        return "%02d%s" % (self.salt, uascii_to_str(self.checksum or
-                                                    self._stub_checksum))
+        return "%02d%s" % (self.salt, uascii_to_str(self.checksum))
 
     def _calc_checksum(self, secret):
         # XXX: no idea what unicode policy is, but all examples are
         # 7-bit ascii compatible, so using UTF-8
         secret = to_bytes(secret, "utf-8", errname="secret")
-        return str_to_uascii(hexlify(self._cipher(secret, self.salt))).upper()
+        return hexlify(self._cipher(secret, self.salt)).decode("ascii").upper()
 
     @classmethod
     def decode(cls, hash, encoding="utf-8"):

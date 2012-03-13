@@ -572,21 +572,21 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 #TODO: provide data samples for algorithms
 # (positive knowns, negative knowns, invalid identify)
 
+UPASS_TEMP = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
+
 class UnsaltedHashTest(HandlerCase):
     handler = UnsaltedHash
 
     known_correct_hashes = [
         ("password", "61cfd32684c47de231f1f982c214e884133762c0"),
+        (UPASS_TEMP, '96b329d120b97ff81ada770042e44ba87343ad2b'),
     ]
 
     def test_bad_kwds(self):
-        if not JYTHON:
-            #FIXME: annoyingly, the object() constructor of Jython (as of 2.5.2)
-            #       silently drops any extra kwds (old 2.4 behavior)
-            #       instead of raising TypeError (new 2.5 behavior).
-            #       we *could* use a custom base object to restore correct
-            #       behavior, but that's a lot of effort for a non-critical
-            #       border case. so just skipping this test instead...
+        if not PY_MAX_25:
+            # annoyingly, py25's ``super().__init__()`` doesn't throw TypeError
+            # when passing unknown keywords to object. just ignoring
+            # this issue for now, since it's a minor border case.
             self.assertRaises(TypeError, UnsaltedHash, salt='x')
         self.assertRaises(TypeError, UnsaltedHash.genconfig, rounds=1)
 
@@ -595,8 +595,7 @@ class SaltedHashTest(HandlerCase):
 
     known_correct_hashes = [
         ("password", '@salt77d71f8fe74f314dac946766c1ac4a2a58365482c0'),
-        (u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'),
-                     '@salt9f978a9bfe360d069b0c13f2afecd570447407fa7e48'),
+        (UPASS_TEMP, '@salt9f978a9bfe360d069b0c13f2afecd570447407fa7e48'),
     ]
 
     def test_bad_kwds(self):

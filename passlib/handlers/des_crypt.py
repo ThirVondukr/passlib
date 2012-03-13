@@ -275,7 +275,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     #--HasRounds--
     default_rounds = 5001
-    min_rounds = 0
+    min_rounds = 1
     max_rounds = 16777215 # (1<<24)-1
     rounds_cost = "linear"
 

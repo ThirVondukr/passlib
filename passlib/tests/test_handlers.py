@@ -10,7 +10,7 @@ import warnings
 #site
 #pkg
 from passlib import hash
-from passlib.utils.compat import irange
+from passlib.utils.compat import irange, PY3
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b, catch_warnings, UserHandlerMixin, randintgauss
 from passlib.utils.compat import u
@@ -24,6 +24,8 @@ from passlib.utils.compat import u
 UPASS_WAV = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
 UPASS_USD = u("\u20AC\u00A5$")
 UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
+
+PASS_TABLE_UTF8 = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99') # utf-8
 
 #=========================================================
 #apr md5 crypt
@@ -597,6 +599,8 @@ builtin_des_crypt_test = create_backend_case(_des_crypt_test, "builtin")
 #django
 #=========================================================
 class _DjangoHelper(object):
+    # NOTE: not testing against Django < 1.0 since it doesn't support
+    # most of these hash formats.
 
     def get_fuzz_verifiers(self):
         verifiers = super(_DjangoHelper, self).get_fuzz_verifiers()
@@ -617,7 +621,7 @@ class _DjangoHelper(object):
             return self.skipTest("no known correct hashes specified")
         from passlib.tests.test_ext_django import has_django1
         if not has_django1:
-            return self.skipTest("Django not installed")
+            return self.skipTest("Django >= 1.0 not installed")
         from django.contrib.auth.models import check_password
         for secret, hash in self.iter_known_hashes():
             self.assertTrue(check_password(secret, hash))
@@ -850,15 +854,26 @@ class ldap_plaintext_test(HandlerCase):
     handler = hash.ldap_plaintext
     known_correct_hashes = [
         ("password", 'password'),
-        (UPASS_TABLE, 't\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99'),
+        (UPASS_TABLE, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
+        (PASS_TABLE_UTF8, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
     ]
     known_unidentified_hashes = [
-        "{FOO}bar"
+        "{FOO}bar",
+
+        # XXX: currently we reject empty string as valid for this format.
+        "",
     ]
 
     known_other_hashes = [
         ("ldap_md5", "{MD5}/F4DjTilcDIIVEHn/nAQsA==")
     ]
+
+    def get_fuzz_password(self):
+        # XXX: currently we reject empty string as valid for this format.
+        pwd = None
+        while not pwd:
+            pwd = super(ldap_plaintext_test, self).get_fuzz_password()
+        return pwd
 
 #NOTE: since the ldap_{crypt} handlers are all wrappers,
 # don't need separate test. have just one for end-to-end testing purposes.
@@ -933,6 +948,13 @@ class lmhash_test(HandlerCase):
 
     known_correct_hashes = [
         #
+        # http://msdn.microsoft.com/en-us/library/cc245828(v=prot.10).aspx
+        #
+        ("OLDPASSWORD", "c9b81d939d6fd80cd408e6b105741864"),
+        ("NEWPASSWORD", '09eeab5aa415d6e4d408e6b105741864'),
+        ("welcome", "c23413a8a1e7665faad3b435b51404ee"),
+
+        #
         # custom
         #
         ('', 'aad3b435b51404eeaad3b435b51404ee'),
@@ -945,7 +967,7 @@ class lmhash_test(HandlerCase):
         (u('encyclop\xE6dia'), 'fed6416bffc9750d48462b9d7aaac065'),
     ]
 
-    # TODO: test encoding keyword. 
+    # TODO: test encoding keyword.
 
     known_unidentified_hashes = [
         # bad char in otherwise correct hash
@@ -1343,6 +1365,12 @@ class nthash_test(HandlerCase):
 
     known_correct_hashes = [
         #
+        # http://msdn.microsoft.com/en-us/library/cc245828(v=prot.10).aspx
+        #
+        ("OLDPASSWORD", u("6677b2c394311355b54f25eec5bfacf5")),
+        ("NEWPASSWORD", u("256781a62031289d3c2c98c14f1efc8c")),
+
+        #
         # from JTR 1.7.9
         #
 
@@ -1612,6 +1640,10 @@ class plaintext_test(HandlerCase):
     known_correct_hashes = [
         ('',''),
         ('password', 'password'),
+
+        # ensure unicode uses utf-8
+        (UPASS_TABLE, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
+        (PASS_TABLE_UTF8, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
     ]
 
 #=========================================================
