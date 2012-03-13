@@ -2,8 +2,7 @@
 
 .. warning::
 
-    This code is experimental and subject to change,
-    and not officially documented in Passlib just yet
+    This code is experimental and subject to change
     (though it should work).
 
 see the Passlib documentation for details on how to use this app

@@ -30,13 +30,16 @@ except ImportError:
     settings = None
     has_django = False
 
-has_django0 = False #are we using django 0.9 release?
-has_django1 = False #inverse - are we using django >= 1.0
+has_django0 = False # are we using django 0.9?
+has_django1 = False # are we using django >= 1.0?
+has_django14 = False # are we using django >= 1.4?
 
 if has_django:
     from django import VERSION
+    log.debug("found django %r installation", VERSION)
     has_django0 = (VERSION < (1,0))
     has_django1 = (VERSION >= (1,0))
+    has_django14 = (VERSION >= (1,4))
 
     if not isinstance(settings, LazySettings):
         #this could mean django has been configured somehow,
@@ -51,6 +54,8 @@ if has_django:
     else:
         if not settings.configured:
             settings.configure()
+else:
+    log.debug("django installation not found")
 
 _NOTSET = object()
 
