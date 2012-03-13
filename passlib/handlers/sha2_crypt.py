@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt
-from passlib.utils.compat import b, bytes, belem_ord, irange, u, \
+from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 #pkg
@@ -97,7 +97,7 @@ def _raw_sha_crypt(secret, salt, rounds, hash):
     dp = extend(tmp.digest(), secret)
 
     #calc DS - hash of salt, extended to size of salt
-    tmp = hash(salt * (16+belem_ord(a[0])))
+    tmp = hash(salt * (16+byte_elem_value(a[0])))
     ds = extend(tmp.digest(), salt)
 
     #

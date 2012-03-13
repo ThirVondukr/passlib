@@ -11,8 +11,8 @@ from warnings import warn
 #libs
 #pkg
 from passlib.utils import h64, to_bytes
-from passlib.utils.compat import b, bascii_to_str, unicode, u, bjoin_ints, \
-             bjoin_elems, belem_ord, biter_ints, uascii_to_str, str_to_uascii
+from passlib.utils.compat import b, bascii_to_str, unicode, u, join_byte_values, \
+             join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
 #local
 __all__ = [
@@ -75,7 +75,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         hash = md5(secret).digest()
 
         # drop every 4th byte
-        hash = bjoin_elems(c for i,c in enumerate(hash) if i & 3 < 3)
+        hash = join_byte_elems(c for i,c in enumerate(hash) if i & 3 < 3)
 
         # encode using Hash64
         return h64.encode_bytes(hash).decode("ascii")
@@ -185,9 +185,9 @@ class cisco_type7(uh.GenericHandler):
         "xor static key against data - encrypts & decrypts"
         key = cls._key
         key_size = len(key)
-        return bjoin_ints(
+        return join_byte_values(
             value ^ ord(key[(salt + idx) % key_size])
-            for idx, value in enumerate(biter_ints(data))
+            for idx, value in enumerate(iter_byte_values(data))
         )
 
 #=========================================================

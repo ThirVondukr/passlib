@@ -32,7 +32,7 @@ from warnings import warn
 #pkg
 from passlib.utils import to_native_str, to_bytes
 from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, \
-                                 belem_ord, str_to_uascii
+                                 byte_elem_value, str_to_uascii
 import passlib.utils.handlers as uh
 #local
 __all__ = [
@@ -78,7 +78,7 @@ class mysql323(uh.StaticHandler):
         for c in secret:
             if c in WHITE:
                 continue
-            tmp = belem_ord(c)
+            tmp = byte_elem_value(c)
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32

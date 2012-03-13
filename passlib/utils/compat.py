@@ -18,8 +18,7 @@ if PY3:
 else:
     import __builtin__ as builtins
 
-
-def _add_doc(obj, doc):
+def add_doc(obj, doc):
     """add docstring to an object"""
     obj.__doc__ = doc
 
@@ -31,7 +30,7 @@ __all__ = [
     'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
 
     # io
-    'BytesIO', 'StringIO', 'SafeConfigParser',
+    'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
     'print_',
 
     # type detection
@@ -45,57 +44,24 @@ __all__ = [
     'unicode', 'bytes', 'sb_types',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
-    'ujoin', 'bjoin', 'bjoin_ints', 'bjoin_elems', 'belem_ord',
+    'join_unicode', 'join_bytes',
+    'join_byte_values', 'join_byte_elems',
+    'byte_elem_value',
+    'iter_byte_values',
 
     # iteration helpers
-    'irange', 'trange', #'lrange',
+    'irange', #'lrange',
     'imap', 'lmap',
     'iteritems', 'itervalues',
+    'next',
 
     # introspection
-    'exc_err', 'get_method_function', '_add_doc',
+    'exc_err', 'get_method_function', 'add_doc',
 ]
 
-#=============================================================================
-# lazy-loaded aliases (see LazyOverlayModule at bottom)
-#=============================================================================
-if PY3:
-    _lazy_attrs = dict(
-        BytesIO="io.BytesIO",
-        StringIO="io.StringIO",
-        SafeConfigParser="configparser.SafeConfigParser",
-    )
-    if PY_MIN_32:
-        # py32 renamed this, removing old ConfigParser
-        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
-else:
-    _lazy_attrs = dict(
-        BytesIO="cStringIO.StringIO",
-        StringIO="StringIO.StringIO",
-        SafeConfigParser="ConfigParser.SafeConfigParser",
-    )
-
-#=============================================================================
-# typing
-#=============================================================================
-def is_mapping(obj):
-    # non-exhaustive check, enough to distinguish from lists, etc
-    return hasattr(obj, "items")
-
-if (3,0) <= sys.version_info < (3,2):
-    # callable isn't dead, it's just resting
-    from collections import Callable
-    def callable(obj):
-        return isinstance(obj, Callable)
-else:
-    callable = builtins.callable
-
-if PY3:
-    int_types = (int,)
-    num_types = (int, float)
-else:
-    int_types = (int, long)
-    num_types = (int, long, float)
+# begin accumulating mapping of lazy-loaded attrs,
+# 'merged' into module at bottom
+_lazy_attrs = dict()
 
 #=============================================================================
 # unicode & bytes types
@@ -103,7 +69,6 @@ else:
 if PY3:
     unicode = str
     bytes = builtins.bytes
-#    string_types = (unicode,)
 
     def u(s):
         assert isinstance(s, str)
@@ -116,7 +81,6 @@ if PY3:
 else:
     unicode = builtins.unicode
     bytes = str if PY_MAX_25 else builtins.bytes
-#    string_types = (unicode, bytes)
 
     def u(s):
         assert isinstance(s, str)
@@ -132,10 +96,10 @@ sb_types = (unicode, bytes)
 # unicode & bytes helpers
 #=============================================================================
 # function to join list of unicode strings
-ujoin = u('').join
+join_unicode = u('').join
 
 # function to join list of byte strings
-bjoin = b('').join
+join_bytes = b('').join
 
 if PY3:
     def uascii_to_str(s):
@@ -154,12 +118,13 @@ if PY3:
         assert isinstance(s, str)
         return s.encode("ascii")
 
-    bjoin_ints = bjoin_elems = bytes
+    join_byte_values = join_byte_elems = bytes
 
-    def belem_ord(elem):
+    def byte_elem_value(elem):
+        assert isinstance(elem, int)
         return elem
 
-    def biter_ints(s):
+    def iter_byte_values(s):
         assert isinstance(s, bytes)
         return s
 
@@ -180,43 +145,53 @@ else:
         assert isinstance(s, str)
         return s
 
-    def bjoin_ints(values):
-        return bjoin(chr(v) for v in values)
+    def join_byte_values(values):
+        return join_bytes(chr(v) for v in values)
 
-    bjoin_elems = bjoin
+    join_byte_elems = join_bytes
 
-    belem_ord = ord
+    byte_elem_value = ord
 
-    def biter_ints(s):
+    def iter_byte_values(s):
         assert isinstance(s, bytes)
         return (ord(c) for c in s)
 
-_add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
-_add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
-_add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
-_add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
+add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
+add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
+add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
+add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
-# bjoin_ints -- function to convert list of ordinal integers to byte string.
+# join_byte_values -- function to convert list of ordinal integers to byte string.
 
-# bjoin_elems --  function to convert list of byte elements to byte string;
+# join_byte_elems --  function to convert list of byte elements to byte string;
 #                 i.e. what's returned by ``b('a')[0]``...
 #                 this is b('a') under PY2, but 97 under PY3.
 
-# belem_ord -- function to convert byte element to integer -- a noop under PY3
+# byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
-_add_doc(biter_ints, "helper to iterate over byte values in byte string")
+add_doc(iter_byte_values, "helper to iterate over byte values in byte string")
+
+#=============================================================================
+# numeric
+#=============================================================================
+if PY3:
+    int_types = (int,)
+    num_types = (int, float)
+else:
+    int_types = (int, long)
+    num_types = (int, long, float)
 
 #=============================================================================
 # iteration helpers
 #
-# irange - range iterator
-# trange - immutable range sequence (list under py2, range object under py3)
-# lrange - range list
+# irange - range iterable / view (xrange under py2, range under py3)
+# lrange - range list (range under py2, list(range()) under py3)
 #
+# imap - map to iterator
 # lmap - map to list
 #=============================================================================
 if PY3:
-    irange = trange = range
+    irange = range
     ##def lrange(*a,**k):
     ##    return list(range(*a,**k))
 
@@ -224,32 +199,49 @@ if PY3:
         return list(map(*a,**k))
     imap = map
 
-else:
-    irange = xrange
-    trange = range
-    ##lrange = range
-
-    lmap = map
-    from itertools import imap
-
-if PY3:
     def iteritems(d):
         return d.items()
     def itervalues(d):
         return d.values()
 else:
+    irange = xrange
+    ##lrange = range
+
+    lmap = map
+    from itertools import imap
+
     def iteritems(d):
         return d.iteritems()
     def itervalues(d):
         return d.itervalues()
 
 if PY_MAX_25:
-    def next(itr):
+    _undef = object()
+    def next(itr, default=_undef):
         "compat wrapper for next()"
-        # NOTE: omits support for 'default' arg
-        return itr.next()
+        if default is _undef:
+            return itr.next()
+        try:
+            return itr.next()
+        except StopIteration:
+            return default
 else:
     next = builtins.next
+
+#=============================================================================
+# typing
+#=============================================================================
+def is_mapping(obj):
+    # non-exhaustive check, enough to distinguish from lists, etc
+    return hasattr(obj, "items")
+
+if (3,0) <= sys.version_info < (3,2):
+    # callable isn't dead, it's just resting
+    from collections import Callable
+    def callable(obj):
+        return isinstance(obj, Callable)
+else:
+    callable = builtins.callable
 
 #=============================================================================
 # introspection
@@ -269,8 +261,26 @@ else:
 # input/output
 #=============================================================================
 if PY3:
+    _lazy_attrs = dict(
+        BytesIO="io.BytesIO",
+        UnicodeIO="io.StringIO",
+        NativeStringIO="io.StringIO",
+        SafeConfigParser="configparser.SafeConfigParser",
+    )
+    if sys.version_info >= (3,2):
+        # py32 renamed this, removing old ConfigParser
+        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
+
     print_ = getattr(builtins, "print")
+
 else:
+    _lazy_attrs = dict(
+        BytesIO="cStringIO.StringIO",
+        UnicodeIO="StringIO.StringIO",
+        NativeStringIO="cStringIO.StringIO",
+        SafeConfigParser="ConfigParser.SafeConfigParser",
+    )
+
     def print_(*args, **kwds):
         """The new-style print function."""
         # extract kwd args
@@ -318,13 +328,13 @@ else:
 #=============================================================================
 from types import ModuleType
 
-def import_object(source):
+def _import_object(source):
     "helper to import object from module; accept format `path.to.object`"
     modname, modattr = source.rsplit(".",1)
     mod = __import__(modname, fromlist=[modattr], level=0)
     return getattr(mod, modattr)
 
-class LazyOverlayModule(ModuleType):
+class _LazyOverlayModule(ModuleType):
     """proxy module which overlays original module,
     and lazily imports specified attributes.
 
@@ -359,7 +369,7 @@ class LazyOverlayModule(ModuleType):
             if callable(source):
                 value = source()
             else:
-                value = import_object(source)
+                value = _import_object(source)
             setattr(self, attr, value)
             self.__log.debug("loaded lazy attr %r: %r", attr, value)
             return value
@@ -382,7 +392,7 @@ class LazyOverlayModule(ModuleType):
         return list(attrs)
 
 # replace this module with overlay that will lazily import attributes.
-LazyOverlayModule.replace_module(__name__, _lazy_attrs)
+_LazyOverlayModule.replace_module(__name__, _lazy_attrs)
 
 #=============================================================================
 # eof

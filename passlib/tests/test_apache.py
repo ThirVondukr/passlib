@@ -30,7 +30,7 @@ def backdate_file_mtime(path, offset=10):
 #=========================================================
 class HtpasswdFileTest(TestCase):
     "test HtpasswdFile class"
-    case_prefix = "HtpasswdFile"
+    descriptionPrefix = "HtpasswdFile"
 
     sample_01 = b('user2:2CHkkwa2AtqGs\nuser3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\nuser1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n')
     sample_02 = b('user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n')
@@ -205,7 +205,7 @@ class HtpasswdFileTest(TestCase):
 #=========================================================
 class HtdigestFileTest(TestCase):
     "test HtdigestFile class"
-    case_prefix = "HtdigestFile"
+    descriptionPrefix = "HtdigestFile"
 
     sample_01 = b('user2:realm:549d2a5f4659ab39a80dac99e159ab19\nuser3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\nuser1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n')
     sample_02 = b('user3:realm:a500bb8c02f6a9170ae46af10c898744\nuser4:realm:ab7b5d5f28ccc7666315f508c7358519\n')

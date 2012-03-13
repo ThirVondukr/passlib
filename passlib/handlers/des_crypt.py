@@ -59,7 +59,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import classproperty, h64, h64big, safe_crypt, test_crypt
-from passlib.utils.compat import b, bytes, belem_ord, u, uascii_to_str, unicode
+from passlib.utils.compat import b, bytes, byte_elem_value, u, uascii_to_str, unicode
 from passlib.utils.des import mdes_encrypt_int_block
 import passlib.utils.handlers as uh
 #pkg
@@ -77,7 +77,7 @@ __all__ = [
 def _crypt_secret_to_key(secret):
     "crypt helper which converts lower 7 bits of first 8 chars of secret -> 56-bit des key, padded to 64 bits"
     return sum(
-        (belem_ord(c) & 0x7f) << (57-8*i)
+        (byte_elem_value(c) & 0x7f) << (57-8*i)
         for i, c in enumerate(secret[:8])
     )
 

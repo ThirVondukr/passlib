@@ -18,7 +18,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import h64
-from passlib.utils.compat import b, bytes, belem_ord, trange, u, \
+from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
 #pkg
@@ -73,7 +73,7 @@ MAGIC_HAMLET = b(
 )
 
 #NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
-xr = trange(7)
+xr = irange(7)
 _XY_ROUNDS = [
     tuple((i,i,i+3) for i in xr), #xrounds 0
     tuple((i,i+1,i+4) for i in xr), #xrounds 1
@@ -116,7 +116,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     round = 0
     while round < real_rounds:
         #convert last result byte string to list of byte-ints for easy access
-        rval = [ belem_ord(c) for c in result ].__getitem__
+        rval = [ byte_elem_value(c) for c in result ].__getitem__
 
         #build up X bit by bit
         x = 0

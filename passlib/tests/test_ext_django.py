@@ -13,7 +13,7 @@ from passlib.context import CryptContext, CryptPolicy
 from passlib.apps import django_context
 from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
-from passlib.tests.utils import TestCase, unittest, ut_version, catch_all_warnings
+from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
 import passlib.tests.test_handlers as th
 from passlib.utils.compat import iteritems, get_method_function, unicode
 from passlib.registry import get_crypt_handler
@@ -130,7 +130,7 @@ def get_cc_rounds(**kwds):
 class PatchTest(TestCase):
     "test passlib.ext.django.utils:set_django_password_context"
 
-    case_prefix = "passlib.ext.django utils"
+    descriptionPrefix = "passlib.ext.django utils"
 
     def assert_unpatched(self):
         "helper to ensure django hasn't been patched"
@@ -223,7 +223,7 @@ class PatchTest(TestCase):
         def dummy():
             pass
 
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             #patch to use stock django context
             utils.set_django_password_context(django_context)
             self.assert_patched(context=django_context)
@@ -422,7 +422,7 @@ if has_django0:
 class PluginTest(TestCase):
     "test django plugin via settings"
 
-    case_prefix = "passlib.ext.django plugin"
+    descriptionPrefix = "passlib.ext.django plugin"
 
     def setUp(self):
         #remove django patch

@@ -12,7 +12,7 @@ import sys
 #libs
 from passlib.context import CryptContext
 from passlib.utils import consteq, render_bytes
-from passlib.utils.compat import b, bytes, bjoin, lmap, str_to_bascii, u, unicode
+from passlib.utils.compat import b, bytes, join_bytes, lmap, str_to_bascii, u, unicode
 #pkg
 #local
 __all__ = [
@@ -148,7 +148,7 @@ class _CommonFile(object):
 
     def to_string(self):
         "export whole database as a byte string"
-        return bjoin(self._iter_lines())
+        return join_bytes(self._iter_lines())
 
     #subclass: _render_line(entry) -> line
 

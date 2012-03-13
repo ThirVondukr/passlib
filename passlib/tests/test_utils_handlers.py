@@ -18,7 +18,7 @@ from passlib.utils import getrandstr, JYTHON, rng, to_unicode
 from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
                                  uascii_to_str, unicode, PY_MAX_25
 import passlib.utils.handlers as uh
-from passlib.tests.utils import HandlerCase, TestCase, catch_all_warnings
+from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
 from passlib.utils.compat import u
 #module
 log = getLogger(__name__)
@@ -190,7 +190,7 @@ class SkeletonTest(TestCase):
         self.assertIn(norm_salt(use_defaults=True), salts3)
 
         # check explicit salts
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
 
             # check too-small salts
             self.assertRaises(ValueError, norm_salt, salt='')
@@ -211,7 +211,7 @@ class SkeletonTest(TestCase):
             self.consumeWarningList(wlog, PasslibHashWarning)
 
         #check generated salts
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
 
             # check too-small salt size
             self.assertRaises(ValueError, gen_salt, 0)
@@ -233,7 +233,7 @@ class SkeletonTest(TestCase):
 
         # test with max_salt_size=None
         del d1.max_salt_size
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             self.assertEqual(len(gen_salt(None)), 3)
             self.assertEqual(len(gen_salt(5)), 5)
             self.consumeWarningList(wlog)
@@ -259,7 +259,7 @@ class SkeletonTest(TestCase):
         self.assertEqual(norm_rounds(use_defaults=True), 2)
 
         # check explicit rounds
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             # too small
             self.assertRaises(ValueError, norm_rounds, rounds=0)
             self.consumeWarningList(wlog)

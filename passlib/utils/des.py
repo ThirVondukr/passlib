@@ -45,7 +45,7 @@ which has some nice notes on how this all works -
 # core
 import struct
 # pkg
-from passlib.utils.compat import bytes, bjoin_ints, belem_ord, irange, trange
+from passlib.utils.compat import bytes, join_byte_values, byte_elem_value, irange, irange
 # local
 __all__ = [
     "expand_des_key",
@@ -56,15 +56,15 @@ __all__ = [
 #=========================================================
 #precalculated iteration ranges & constants
 #=========================================================
-R8 = trange(8)
-RR8 = trange(7, -1, -1)
-RR4 = trange(3, -1, -1)
-RR12_1 = trange(11, 1, -1)
-RR9_1 = trange(9,-1,-1)
+R8 = irange(8)
+RR8 = irange(7, -1, -1)
+RR4 = irange(3, -1, -1)
+RR12_1 = irange(11, 1, -1)
+RR9_1 = irange(9,-1,-1)
 
-RR6_S2 = trange(6, -1, -2)
-RR14_S2 = trange(14, -1, -2)
-R16_S2 = trange(0, 16, 2)
+RR6_S2 = irange(6, -1, -2)
+RR14_S2 = irange(14, -1, -2)
+R16_S2 = irange(0, 16, 2)
 
 INT_24_MAX = 0xffffff
 INT_64_MAX = 0xffffffff
@@ -588,7 +588,7 @@ def expand_des_key(key):
 
     def iter_bits(source):
         for c in source:
-            v = belem_ord(c)
+            v = byte_elem_value(c)
             for i in irange(7,-1,-1):
                 yield (v>>i) & 1
 
@@ -601,7 +601,7 @@ def expand_des_key(key):
             out = (out<<1) + p
             p = 1
 
-    return bjoin_ints(
+    return join_byte_values(
         ((out>>s) & 0xFF)
         for s in irange(8*7,-8,-8)
     )

@@ -17,27 +17,27 @@ Unicode Helpers
 .. autofunction:: uascii_to_str
 .. autofunction:: str_to_uascii
 
-.. function:: ujoin
+.. function:: join_unicode
 
     Join a sequence of unicode strings, e.g.
-    ``ujoin([u"a",u"b",u"c"]) -> u"abc"``.
+    ``join_unicode([u"a",u"b",u"c"]) -> u"abc"``.
 
 Bytes Helpers
 =============
 .. autofunction:: bascii_to_str
 .. autofunction:: str_to_bascii
 
-.. function:: bjoin
+.. function:: join_bytes
 
     Join a sequence of byte strings, e.g.
-    ``bjoin([b"a",b"b",b"c"]) -> b"abc"``.
+    ``join_bytes([b"a",b"b",b"c"]) -> b"abc"``.
 
-.. function:: bjoin_ints
+.. function:: join_byte_values
 
     Join a sequence of integers into a byte string,
-    e.g. ``bjoin_ints([97,98,99]) -> b"abc"``.
+    e.g. ``join_byte_values([97,98,99]) -> b"abc"``.
 
-.. function:: bjoin_elems
+.. function:: join_byte_elems
 
     Join a sequence of byte elements into a byte string.
 
@@ -49,8 +49,8 @@ Bytes Helpers
 
     This function will join a sequence of the appropriate type
     for the given python version -- under Python 2, this is an alias
-    for :func:`bjoin`, under Python 3 this is an alias for :func:`bjoin_ints`.
+    for :func:`join_bytes`, under Python 3 this is an alias for :func:`join_byte_values`.
 
-.. function:: belem_ord
+.. function:: byte_elem_value
 
     Function to convert byte element to integer (a no-op under PY3)

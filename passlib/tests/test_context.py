@@ -22,7 +22,7 @@ from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
 from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_all_warnings, \
+from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
 from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
     _unload_handler_name as unload_handler_name
@@ -37,7 +37,7 @@ class CryptPolicyTest(TestCase):
 
     #TODO: need to test user categories w/in all this
 
-    case_prefix = "CryptPolicy"
+    descriptionPrefix = "CryptPolicy"
 
     #=========================================================
     #sample crypt policies used for testing
@@ -472,11 +472,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
     def test_15_min_verify_time(self):
         "test get_min_verify_time() method"
         # silence deprecation warnings for min verify time
-        with catch_all_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            self._test_15()
-
-    def _test_15(self):
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         pa = CryptPolicy()
         self.assertEqual(pa.get_min_verify_time(), 0)
@@ -526,7 +522,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 #=========================================================
 class CryptContextTest(TestCase):
     "test CryptContext object's behavior"
-    case_prefix = "CryptContext"
+    descriptionPrefix = "CryptContext"
 
     #=========================================================
     #constructor
@@ -632,7 +628,7 @@ class CryptContextTest(TestCase):
                           )
 
         # min rounds
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
 
             # set below handler min
             c2 = cc.replace(all__min_rounds=500, all__max_rounds=None,
@@ -663,7 +659,7 @@ class CryptContextTest(TestCase):
             self.consumeWarningList(wlog)
 
         # max rounds
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             # set above handler max
             c2 = cc.replace(all__max_rounds=int(1e9)+500, all__min_rounds=None,
                             all__default_rounds=int(1e9)+500)
@@ -824,7 +820,7 @@ class CryptContextTest(TestCase):
         # which is much cheaper, and shares the same codebase.
 
         # min rounds
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             self.assertEqual(
                 cc.encrypt("password", rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
@@ -950,7 +946,7 @@ class CryptContextTest(TestCase):
                 return to_unicode(secret + 'x')
 
         # silence deprecation warnings for min verify time
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
         self.consumeWarningList(wlog, DeprecationWarning)
 
@@ -977,7 +973,7 @@ class CryptContextTest(TestCase):
 
         #ensure taking longer emits a warning.
         TimedHash.delay = max_delay
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             elapsed, result = timecall(cc.verify, "blob", "stubx")
         self.assertFalse(result)
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
@@ -1024,7 +1020,7 @@ class CryptContextTest(TestCase):
         GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
         ctx = CryptContext(["bcrypt"])
 
-        with catch_all_warnings(record=True) as wlog:
+        with catch_warnings(record=True) as wlog:
             self.assertTrue(ctx.hash_needs_update(BAD1))
             self.assertFalse(ctx.hash_needs_update(GOOD1))
 
@@ -1101,7 +1097,7 @@ class dummy_2(uh.StaticHandler):
     name = "dummy_2"
 
 class LazyCryptContextTest(TestCase):
-    case_prefix = "LazyCryptContext"
+    descriptionPrefix = "LazyCryptContext"
 
     def setUp(self):
         unload_handler_name("dummy_2")

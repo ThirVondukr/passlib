@@ -77,7 +77,7 @@ class HashTimer(object):
         #
         self.samples = samples
         self.cache = {}
-        self.srange = trange(samples)
+        self.srange = irange(samples)
 
     def time_encrypt(self, rounds):
         "check how long encryption for a given number of rounds will take"

@@ -19,8 +19,8 @@ from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, deprecated_function, to_unicode
-from passlib.utils.compat import b, bjoin_ints, bytes, irange, u, \
-                                 uascii_to_str, ujoin, unicode, str_to_uascii
+from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
+                                 uascii_to_str, join_unicode, unicode, str_to_uascii
 # local
 __all__ = [
     # helpers for implementing MCF handlers
@@ -57,7 +57,7 @@ LOWER_HEX_CHARS = u("0123456789abcdef")
 
 #: special byte string containing all possible byte values
 # XXX: treated as singleton by some of the code for efficiency.
-ALL_BYTE_VALUES = bjoin_ints(irange(256))
+ALL_BYTE_VALUES = join_byte_values(irange(256))
 
 # deprecated aliases - will be removed after passlib 1.8
 H64_CHARS = HASH64_CHARS

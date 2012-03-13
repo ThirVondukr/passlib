@@ -17,9 +17,9 @@ import unicodedata
 from warnings import warn
 #site
 #pkg
-from passlib.utils.compat import _add_doc, b, bytes, bjoin, bjoin_ints, \
-                                 bjoin_elems, exc_err, irange, imap, PY3, u, \
-                                 ujoin, unicode, belem_ord
+from passlib.utils.compat import add_doc, b, bytes, join_bytes, join_byte_values, \
+                                 join_byte_elems, exc_err, irange, imap, PY3, u, \
+                                 join_unicode, unicode, byte_elem_value
 #local
 __all__ = [
     # constants
@@ -353,7 +353,7 @@ def saslprep(source, errname="value"):
     #   - strip 'commonly mapped to nothing' chars (stringprep B.1)
     in_table_c12 = stringprep.in_table_c12
     in_table_b1 = stringprep.in_table_b1
-    data = ujoin(
+    data = join_unicode(
         _USPACE if in_table_c12(c) else c
         for c in source
         if not in_table_b1(c)
@@ -435,8 +435,8 @@ if PY3:
         return bytes(l ^ r for l, r in zip(left, right))
 else:
     def xor_bytes(left, right):
-        return bjoin(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
-_add_doc(xor_bytes, "perform bitwise-xor of two byte strings")
+        return join_bytes(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
+add_doc(xor_bytes, "perform bitwise-xor of two byte strings")
 
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
@@ -463,17 +463,17 @@ def render_bytes(source, *args):
 @deprecated_function(deprecated="1.6", removed="1.8")
 def bytes_to_int(value):
     "decode string of bytes as single big-endian integer"
-    from passlib.utils.compat import belem_ord
+    from passlib.utils.compat import byte_elem_value
     out = 0
     for v in value:
-        out = (out<<8) | belem_ord(v)
+        out = (out<<8) | byte_elem_value(v)
     return out
 
 @deprecated_function(deprecated="1.6", removed="1.8")
 def int_to_bytes(value, count):
     "encodes integer into single big-endian byte string"
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
-    return bjoin_ints(
+    return join_byte_values(
         ((value>>s) & 0xff)
         for s in irange(8*count-8,-8,-8)
     )
@@ -586,7 +586,7 @@ else:
             raise TypeError("%s must be unicode or bytes, not %s" %
                             (errname, type(source)))
 
-_add_doc(to_native_str,
+add_doc(to_native_str,
     """take in unicode or bytes, return native string.
 
     python 2: encodes unicode using specified encoding, leaves bytes alone.
@@ -732,7 +732,7 @@ class Base64Engine(object):
         else:
             next_value = (ord(elem) for elem in source).next
         gen = self._encode_bytes(next_value, chunks, tail)
-        out = bjoin_elems(imap(self._encode64, gen))
+        out = join_byte_elems(imap(self._encode64, gen))
         ##if tail:
         ##    padding = self.padding
         ##    if padding:
@@ -841,7 +841,7 @@ class Base64Engine(object):
         else:
             next_value = imap(self._decode64, source).next
         try:
-            return bjoin_ints(self._decode_bytes(next_value, chunks, tail))
+            return join_byte_values(self._decode_bytes(next_value, chunks, tail))
         except KeyError:
             err = exc_err()
             raise ValueError("invalid character: %r" % (err.args[0],))
@@ -1003,19 +1003,19 @@ class Base64Engine(object):
         "encode byte string, first transposing source using offset list"
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
-        tmp = bjoin_elems(source[off] for off in offsets)
+        tmp = join_byte_elems(source[off] for off in offsets)
         return self.encode_bytes(tmp)
 
     def decode_transposed_bytes(self, source, offsets):
         "decode byte string, then reverse transposition described by offset list"
         # NOTE: if transposition does not use all bytes of source,
-        # the original can't be recovered... and bjoin_elems() will throw
+        # the original can't be recovered... and join_byte_elems() will throw
         # an error because 1+ values in <buf> will be None.
         tmp = self.decode_bytes(source)
         buf = [None] * len(offsets)
         for off, char in zip(offsets, tmp):
             buf[off] = char
-        return bjoin_elems(buf)
+        return join_byte_elems(buf)
 
     #=============================================================
     # integer decoding helpers - mainly used by des_crypt family
@@ -1137,7 +1137,7 @@ class Base64Engine(object):
         else:
             itr = irange(0, bits, 6)
             # padding is msb, so no change needed.
-        return bjoin_elems(imap(self._encode64,
+        return join_byte_elems(imap(self._encode64,
                                 ((value>>off) & 0x3f for off in itr)))
 
     #---------------------------------------------
@@ -1160,7 +1160,7 @@ class Base64Engine(object):
         raw = [value & 0x3f, (value>>6) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return bjoin_elems(imap(self._encode64, raw))
+        return join_byte_elems(imap(self._encode64, raw))
 
     def encode_int24(self, value):
         "encodes 24-bit integer -> 4 char string"
@@ -1170,7 +1170,7 @@ class Base64Engine(object):
                (value>>12) & 0x3f, (value>>18) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return bjoin_elems(imap(self._encode64, raw))
+        return join_byte_elems(imap(self._encode64, raw))
 
     def encode_int64(self, value):
         """encode 64-bit integer -> 11 char hash64 string
@@ -1319,7 +1319,7 @@ else:
                 return None
             return result
 
-_add_doc(safe_crypt, """wrapper around stdlib's crypt.
+add_doc(safe_crypt, """wrapper around stdlib's crypt.
 
     This is a wrapper around stdlib's :func:`!crypt.crypt`, which attempts
     to provide uniform behavior across Python 2 and 3.
@@ -1467,7 +1467,7 @@ def getrandbytes(rng, count):
             yield value & 0xff
             value >>= 3
             i += 1
-    return bjoin_ints(helper())
+    return join_byte_values(helper())
 
 def getrandstr(rng, charset, count):
     """return string containing *count* number of chars/bytes, whose elements are drawn from specified charset, using specified rng"""
@@ -1494,9 +1494,9 @@ def getrandstr(rng, charset, count):
             i += 1
 
     if isinstance(charset, unicode):
-        return ujoin(helper())
+        return join_unicode(helper())
     else:
-        return bjoin_elems(helper())
+        return join_byte_elems(helper())
 
 _52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 

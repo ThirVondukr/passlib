@@ -22,7 +22,10 @@ except ImportError:
     if PY27 or PY_MIN_32:
         ut_version = 2
     else:
-        # XXX: issue warning and deprecate support sometime?
+        # older versions of python will need to install the unittest2
+        # backport (named unittest2_3k for 3.0/3.1)
+        warn("please install unittest2 for python %d.%d, it will be required "
+             "as of passlib 1.7" % sys.version_info[:2])
         ut_version = 1
 
 import warnings
@@ -136,99 +139,88 @@ def get_file(path):
 class TestCase(unittest.TestCase):
     """passlib-specific test case class
 
-    this class mainly overriddes many of the common assert methods
-    so to give a default message which includes the values
-    as well as the class-specific case_prefix string.
-    this latter bit makes the output of various test cases
-    easier to distinguish from eachother.
+    this class adds a number of features to the standard TestCase...
+    * common prefix for all test descriptions
+    * resets warnings filter & registry for every test
+    * tweaks to message formatting
+    * __msg__ kwd added to assertRaises()
+    * backport of a bunch of unittest2 features
+    * suite of methods for matching against warnings
     """
+    #====================================================================
+    # add various custom features
+    #====================================================================
 
-    #=============================================================
-    #make it ease for test cases to add common prefix to all descs
-    #=============================================================
-    #: string or method returning string - prepended to all tests in TestCase
-    case_prefix = None
+    #----------------------------------------------------------------
+    # make it easy for test cases to add common prefix to shortDescription
+    #----------------------------------------------------------------
 
-    #: flag to disable feature
-    longDescription = True
+    # string prepended to all tests in TestCase
+    descriptionPrefix = None
 
     def shortDescription(self):
-        "wrap shortDescription() method to prepend case_prefix"
+        "wrap shortDescription() method to prepend descriptionPrefix"
         desc = super(TestCase, self).shortDescription()
-        if desc is None:
-            #would still like to add prefix, but munges things up.
-            return None
-        prefix = self.case_prefix
-        if prefix and self.longDescription:
-            if callable(prefix):
-                prefix = prefix()
-            desc = "%s: %s" % (prefix, desc)
+        prefix = self.descriptionPrefix
+        if prefix:
+            desc = "%s: %s" % (prefix, desc or str(self))
         return desc
 
-    #============================================================
-    #hack to set UT2 private skip attrs to mirror nose's __test__ attr
-    #============================================================
-    if ut_version >= 2:
+    #----------------------------------------------------------------
+    # hack things so nose and ut2 both skip subclasses who have
+    # "__unittest_skip=True" set, or whose names start with "_"
+    #----------------------------------------------------------------
+    @classproperty
+    def __unittest_skip__(cls):
+        # NOTE: this attr is technically a unittest2 internal detail.
+        name = cls.__name__
+        return name.startswith("_") or \
+               getattr(cls, "_%s__unittest_skip" % name, False)
 
-        @classproperty
-        def __unittest_skip__(cls):
-            # make this mirror nose's '__test__' attr
-            return not getattr(cls, "__test__", True)
+        # make this mirror nose's '__test__' attr
+        return not getattr(cls, "__test__", True)
 
     @classproperty
     def __test__(cls):
-        # nose uses to this to skip tests. overridding this to
-        # skip classes with '__<cls>_unittest_skip' set - that way
-        # we can omit specific classes without affecting subclasses.
-        name = cls.__name__
-        if name.startswith("_"):
-            return False
-        if getattr(cls, "_%s__unittest_skip" % name, False):
-            return False
-        return True
+        # make nose just proxy __unittest_skip__
+        return not cls.__unittest_skip__
 
+    # flag to skip *this* class
     __unittest_skip = True
 
-    #============================================================
-    # tweak msg formatting for some assert methods
-    #============================================================
-    longMessage = True #override python default (False)
+    #----------------------------------------------------------------
+    # reset warning filters & registry before each test
+    #----------------------------------------------------------------
+
+    # flag to enable this feature
+    resetWarningState = True
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        if self.resetWarningState:
+            ctx = reset_warnings()
+            ctx.__enter__()
+            self.addCleanup(ctx.__exit__)
+
+    #----------------------------------------------------------------
+    # tweak message formatting so longMessage mode is only enabled
+    # if msg ends with ":", and turn on longMessage by default.
+    #----------------------------------------------------------------
+    longMessage = True
 
     def _formatMessage(self, msg, std):
-        "override UT2's _formatMessage - only use longMessage if msg ends with ':'"
-        if not msg:
-            return std
-        if not self.longMessage or not msg.endswith(":"):
-            return msg.rstrip(":")
-        return '%s %s' % (msg, std)
+        if self.longMessage and msg and msg.rstrip().endswith(":"):
+            return '%s %s' % (msg.rstrip(), std)
+        else:
+            return msg or std
 
-    #============================================================
-    #override some unittest1 methods to support _formatMessage
-    #============================================================
-    if ut_version < 2:
-
-        def assertEqual(self, real, correct, msg=None):
-            if real != correct:
-                std = "got %r, expected would equal %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        def assertNotEqual(self, real, correct, msg=None):
-            if real == correct:
-                std = "got %r, expected would not equal %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        assertEquals = assertEqual
-        assertNotEquals = assertNotEqual
-
-    #NOTE: overriding this even under UT2.
-    #FIXME: this doesn't support the fancy context manager UT2 provides.
-    def assertRaises(self, _exc_type, _callable, *args, **kwds):
-        #NOTE: overriding this for format ability,
-        #      but ALSO adding "__msg__" kwd so we can set custom msg
+    #----------------------------------------------------------------
+    # override assertRaises() to support '__msg__' keyword
+    #----------------------------------------------------------------
+    def assertRaises(self, _exc_type, _callable=None, *args, **kwds):
         msg = kwds.pop("__msg__", None)
         if _callable is None:
+            # FIXME: this ignores 'msg'
             return super(TestCase, self).assertRaises(_exc_type, None,
                                                       *args, **kwds)
         try:
@@ -239,11 +231,46 @@ class TestCase(unittest.TestCase):
                                                                  _exc_type)
         raise self.failureException(self._formatMessage(msg, std))
 
-    #===============================================================
-    #backport some methods from unittest2
-    #===============================================================
+    #----------------------------------------------------------------
+    # null out a bunch of deprecated aliases so I stop using them
+    #----------------------------------------------------------------
+    assertEquals = assertNotEquals = assertRegexpMatches = None
+
+    #====================================================================
+    # backport some methods from unittest2
+    #====================================================================
     if ut_version < 2:
 
+        #----------------------------------------------------------------
+        # simplistic backport of addCleanup() framework
+        #----------------------------------------------------------------
+        _cleanups = None
+
+        def addCleanup(self, function, *args, **kwds):
+            queue = self._cleanups
+            if queue is None:
+                queue = self._cleanups = []
+            queue.append((function, args, kwds))
+
+        def doCleanups(self):
+            queue = self._cleanups
+            while queue:
+                func, args, kwds = queue.pop()
+                func(*args, **kwds)
+
+        def tearDown(self):
+            self.doCleanups()
+            unittest.TestCase.tearDown(self)
+
+        #----------------------------------------------------------------
+        # backport skipTest (requires nose to work)
+        #----------------------------------------------------------------
+        def skipTest(self, reason):
+            raise SkipTest(reason)
+
+        #----------------------------------------------------------------
+        # backport various assert tests added in unittest2
+        #----------------------------------------------------------------
         def assertIs(self, real, correct, msg=None):
             if real is not correct:
                 std = "got %r, expected would be %r" % (real, correct)
@@ -261,9 +288,6 @@ class TestCase(unittest.TestCase):
                 std = "got %r, expected instance of %r" % (obj, klass)
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
-
-        def skipTest(self, reason):
-            raise SkipTest(reason)
 
         def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
             """Fail if the two objects are unequal as determined by their
@@ -303,45 +327,68 @@ class TestCase(unittest.TestCase):
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
 
+        def assertLess(self, left, right, msg=None):
+            if left >= right:
+                std = "%r not less than %r" % (left, right)
+                raise self.failureException(self._formatMessage(msg, std))
+
+        def assertGreaterEqual(self, left, right, msg=None):
+            if left < right:
+                std = "%r less than %r" % (left, right)
+                raise self.failureException(self._formatMessage(msg, std))
+
+        def assertIn(self, elem, container, msg=None):
+            if elem not in container:
+                std = "%r not found in %r" % (elem, container)
+                raise self.failureException(self._formatMessage(msg, std))
+
+        def assertNotIn(self, elem, container, msg=None):
+            if elem in container:
+                std = "%r unexpectedly in %r" % (elem, container)
+                raise self.failureException(self._formatMessage(msg, std))
+
+        #----------------------------------------------------------------
+        # override some unittest1 methods to support _formatMessage
+        #----------------------------------------------------------------
+        def assertEqual(self, real, correct, msg=None):
+            if real != correct:
+                std = "got %r, expected would equal %r" % (real, correct)
+                msg = self._formatMessage(msg, std)
+                raise self.failureException(msg)
+
+        def assertNotEqual(self, real, correct, msg=None):
+            if real == correct:
+                std = "got %r, expected would not equal %r" % (real, correct)
+                msg = self._formatMessage(msg, std)
+                raise self.failureException(msg)
+
+    #----------------------------------------------------------------
+    # backport assertRegex() alias from 3.2 to 2.7/3.1
+    #----------------------------------------------------------------
     if not hasattr(unittest.TestCase, "assertRegex"):
-        # assertRegexpMatches() added in 2.7/UT2 and 3.1, renamed to
-        # assertRegex() in 3.2; this code ensures assertRegex() is defined.
         if hasattr(unittest.TestCase, "assertRegexpMatches"):
+            # was present in 2.7/3.1 under name assertRegexpMatches
             assertRegex = unittest.TestCase.assertRegexpMatches
         else:
+            # 3.0 and <= 2.6 didn't have this method at all
             def assertRegex(self, text, expected_regex, msg=None):
                 """Fail the test unless the text matches the regular expression."""
                 if isinstance(expected_regex, sb_types):
                     assert expected_regex, "expected_regex must not be empty."
                     expected_regex = re.compile(expected_regex)
                 if not expected_regex.search(text):
-                    msg = msg or "Regex didn't match"
-                    msg = '%s: %r not found in %r' % (msg, expected_regex.pattern, text)
-                    raise self.failureException(msg)
+                    msg = msg or "Regex didn't match: "
+                    std = '%r not found in %r' % (msg, expected_regex.pattern, text)
+                    raise self.failureException(self._formatMessage(msg, std))
 
     #============================================================
-    #add some custom methods
+    # custom methods for matching warnings
     #============================================================
-    def assertFunctionResults(self, func, cases):
-        """helper for running through function calls.
-
-        func should be the function to call.
-        cases should be list of Param instances,
-        where first position argument is expected return value,
-        and remaining args and kwds are passed to function.
-        """
-        for elem in cases:
-            elem = Params.norm(elem)
-            correct = elem.args[0]
-            result = func(*elem.args[1:], **elem.kwds)
-            msg = "error for case %r:" % (elem.render(1),)
-            self.assertEqual(result, correct, msg)
-
     def assertWarning(self, warning,
                              message_re=None, message=None,
                              category=None,
-                             ##filename=None, filename_re=None,
-                             ##lineno=None,
+                             filename_re=None, filename=None,
+                             lineno=None,
                              msg=None,
                              ):
         "check if WarningMessage instance (as returned by catch_warnings) matches parameters"
@@ -355,7 +402,7 @@ class TestCase(unittest.TestCase):
             # no original WarningMessage, passed raw Warning
             wmsg = None
 
-        #tests that can use a warning instance or WarningMessage object
+        # tests that can use a warning instance or WarningMessage object
         if message:
             self.assertEqual(str(warning), message, msg)
         if message_re:
@@ -363,29 +410,29 @@ class TestCase(unittest.TestCase):
         if category:
             self.assertIsInstance(warning, category, msg)
 
-        #commented out until needed...
-        ###tests that require a WarningMessage object
-        ##if filename or filename_re:
-        ##    if not wmsg:
-        ##        raise TypeError("can't read filename from warning object")
-        ##    real = wmsg.filename
-        ##    if real.endswith(".pyc") or real.endswith(".pyo"):
-        ##        #FIXME: should use a stdlib call to resolve this back
-        ##        #       to original module's path
-        ##        real = real[:-1]
-        ##    if filename:
-        ##        self.assertEqual(real, filename, msg)
-        ##    if filename_re:
-        ##        self.assertRegex(real, filename_re, msg)
-        ##if lineno:
-        ##    if not wmsg:
-        ##        raise TypeError("can't read lineno from warning object")
-        ##    self.assertEqual(wmsg.lineno, lineno, msg)
+        # tests that require a WarningMessage object
+        if filename or filename_re:
+            if not wmsg:
+                raise TypeError("matching on filename requires a "
+                                "WarningMessage instance")
+            real = wmsg.filename
+            if real.endswith(".pyc") or real.endswith(".pyo"):
+                # FIXME: should use a stdlib call to resolve this back
+                #        to module's original filename.
+                real = real[:-1]
+            if filename:
+                self.assertEqual(real, filename, msg)
+            if filename_re:
+                self.assertRegex(real, filename_re, msg)
+        if lineno:
+            if not wmsg:
+                raise TypeError("matching on lineno requires a "
+                                "WarningMessage instance")
+            self.assertEqual(wmsg.lineno, lineno, msg)
 
     def assertWarningList(self, wlist, desc=None, msg=None):
         """check that warning list (e.g. from catch_warnings) matches pattern"""
-        # TODO: make this display better diff of *which* warnings did not match,
-        # and make use of _formatWarning below.
+        # TODO: make this display better diff of *which* warnings did not match
         if not isinstance(desc, (list,tuple)):
             desc = [] if desc is None else [desc]
         for idx, entry in enumerate(desc):
@@ -407,6 +454,11 @@ class TestCase(unittest.TestCase):
                 (len(desc), len(wlist), self._formatWarningList(wlist), desc)
         raise self.failureException(self._formatMessage(msg, std))
 
+    def consumeWarningList(self, wlist, *args, **kwds):
+        """assertWarningList() variant that clears list afterwards"""
+        self.assertWarningList(wlist, *args, **kwds)
+        del wlist[:]
+
     def _formatWarning(self, entry):
         tail = ""
         if hasattr(entry, "message"):
@@ -422,10 +474,23 @@ class TestCase(unittest.TestCase):
     def _formatWarningList(self, wlist):
         return "[%s]" % ", ".join(self._formatWarning(entry) for entry in wlist)
 
-    def consumeWarningList(self, wlist, *args, **kwds):
-        """assertWarningList() variant that clears list afterwards"""
-        self.assertWarningList(wlist, *args, **kwds)
-        del wlist[:]
+    #============================================================
+    # misc custom methods
+    #============================================================
+    def assertFunctionResults(self, func, cases):
+        """helper for running through function calls.
+
+        func should be the function to call.
+        cases should be list of Param instances,
+        where first position argument is expected return value,
+        and remaining args and kwds are passed to function.
+        """
+        for elem in cases:
+            elem = Params.norm(elem)
+            correct = elem.args[0]
+            result = func(*elem.args[1:], **elem.kwds)
+            msg = "error for case %r:" % (elem.render(1),)
+            self.assertEqual(result, correct, msg)
 
     #============================================================
     #eoc
@@ -601,10 +666,8 @@ class HandlerCase(TestCase):
     #=========================================================
     __unittest_skip = True
 
-    #optional prefix to prepend to name of test method as it's called,
-    #useful when multiple handler test classes being run.
-    #default behavior should be sufficient
-    def case_prefix(self):
+    @property
+    def descriptionPrefix(self):
         handler = self.handler
         name = handler.name
         if hasattr(handler, "get_backend"):
@@ -627,11 +690,7 @@ class HandlerCase(TestCase):
     # setup / cleanup
     #=========================================================
     def setUp(self):
-        # backup warning filter state; set to display all warnings during tests;
-        # and restore filter state after test.
-        ctx = catch_all_warnings()
-        ctx.__enter__()
-        self._restore_warnings = ctx.__exit__
+        TestCase.setUp(self)
 
         # if needed, select specific backend for duration of test
         handler = self.handler
@@ -641,7 +700,7 @@ class HandlerCase(TestCase):
                 raise RuntimeError("handler doesn't support multiple backends")
             if backend == "os_crypt" and not handler.has_backend("os_crypt"):
                 self._patch_safe_crypt()
-            self._orig_backend = handler.get_backend()
+            self.addCleanup(handler.set_backend, handler.get_backend())
             handler.set_backend(backend)
 
     def _patch_safe_crypt(self):
@@ -660,22 +719,9 @@ class HandlerCase(TestCase):
                 hash = handler.genhash(secret, hash)
             assert isinstance(hash, str)
             return hash
-        self._orig_crypt = mod._crypt
+        self.addCleanup(setattr, mod, "_crypt", mod._crypt)
         mod._crypt = crypt_stub
         self.using_patched_crypt = True
-
-    def tearDown(self):
-        # unpatch safe_crypt()
-        if self._orig_crypt:
-            import passlib.utils as mod
-            mod._crypt = self._orig_crypt
-
-        # restore original backend
-        if self._orig_backend:
-            self.handler.set_backend(self._orig_backend)
-
-        # restore warning filters
-        self._restore_warnings()
 
     #=========================================================
     # basic tests
@@ -1468,11 +1514,8 @@ class HandlerCase(TestCase):
                         "config=%r hash=%r" % (name, other, secret, kwds, hash))
             count +=1
 
-        name = self.case_prefix
-        if not isinstance(name, str):
-            name = name()
         log.debug("fuzz test: %r checked %d passwords against %d verifiers (%s)",
-                  name,  count, len(verifiers),
+                  self.descriptionPrefix,  count, len(verifiers),
                   ", ".join(vname(v) for v in verifiers))
 
     def get_fuzz_verifiers(self):
@@ -1745,7 +1788,7 @@ def create_backend_case(base_class, backend, module=None):
         "%s_%s" % (backend, handler.name),
         (base_class,),
         dict(
-            case_prefix = "%s (%s backend)" % (handler.name, backend),
+            descriptionPrefix = "%s (%s backend)" % (handler.name, backend),
             backend = backend,
             __module__= module or base_class.__module__,
         )
@@ -1802,9 +1845,11 @@ def mktemp(*args, **kwds):
     os.close(fd)
     return path
 
-#=========================================================
-#make sure catch_warnings() is available
-#=========================================================
+#=============================================================================
+# warnings helpers
+#=============================================================================
+
+# make sure catch_warnings() is available
 try:
     from warnings import catch_warnings
 except ImportError:
@@ -1893,33 +1938,59 @@ except ImportError:
             self._module.filters = self._filters
             self._module.showwarning = self._showwarning
 
-class catch_all_warnings(catch_warnings):
-    "catch_warnings() wrapper which clears filter"
-    def __init__(self, reset=".*", **kwds):
-        super(catch_all_warnings, self).__init__(**kwds)
-        self._reset_pat = reset
+class reset_warnings(catch_warnings):
+    "catch_warnings() wrapper which clears warning registry & filters"
+    def __init__(self, reset_filter="always", reset_registry=".*", **kwds):
+        super(reset_warnings, self).__init__(**kwds)
+        self._reset_filter = reset_filter
+        self._reset_registry = re.compile(reset_registry) if reset_registry else None
 
     def __enter__(self):
         # let parent class archive filter state
-        ret = super(catch_all_warnings, self).__enter__()
+        ret = super(reset_warnings, self).__enter__()
 
         # reset the filter to list everything
-        warnings.resetwarnings()
-        warnings.simplefilter("always")
+        if self._reset_filter:
+            warnings.resetwarnings()
+            warnings.simplefilter(self._reset_filter)
 
-        # wipe the __warningregistry__ off the map, so warnings
-        # reliably get reported per-test.
-        # XXX: *could* restore state
-        pattern = self._reset_pat
+        # archive and clear the __warningregistry__ key for all modules
+        # that match the 'reset' pattern.
+        pattern = self._reset_registry
         if pattern:
-            import sys
-            key = "__warningregistry__"
-            for mod in sys.modules.values():
-                if hasattr(mod, key) and re.match(pattern, mod.__name__):
-                    getattr(mod, key).clear()
-
+            orig = self._orig_registry = {}
+            for name, mod in sys.modules.items():
+                if pattern.match(name):
+                    reg = getattr(mod, "__warningregistry__", None)
+                    if reg:
+                        orig[name] = reg.copy()
+                        reg.clear()
         return ret
 
-#=========================================================
-#EOF
-#=========================================================
+    def __exit__(self, *exc_info):
+        # restore warning registry for all modules
+        pattern = self._reset_registry
+        if pattern:
+            # restore archived registry data
+            orig = self._orig_registry
+            for name, content in iteritems(orig):
+                mod = sys.modules.get(name)
+                if mod is None:
+                    continue
+                reg = getattr(mod, "__warningregistry__", None)
+                if reg is None:
+                    setattr(mod, "__warningregistry__", content)
+                else:
+                    reg.clear()
+                    reg.update(content)
+            # clear all registry entries that we didn't archive
+            for name, mod in sys.modules.items():
+                if pattern.match(name) and name not in orig:
+                    reg = getattr(mod, "__warningregistry__", None)
+                    if reg:
+                        reg.clear()
+        super(reset_warnings, self).__exit__(*exc_info)
+
+#=============================================================================
+# eof
+#=============================================================================

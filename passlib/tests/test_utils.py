@@ -12,8 +12,8 @@ import warnings
 #pkg
 #module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode, bjoin
-from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_all_warnings
+                                 unicode, join_bytes
+from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
 
 def hb(source):
     return unhexlify(b(source))
@@ -546,7 +546,7 @@ class _Base64Test(TestCase):
     # helper to generate bytemap-specific strings
     def m(self, *offsets):
         "generate byte string from offsets"
-        return bjoin(self.engine.bytemap[o:o+1] for o in offsets)
+        return join_bytes(self.engine.bytemap[o:o+1] for o in offsets)
 
     #=========================================================
     # test encode_bytes
@@ -842,7 +842,7 @@ from passlib.utils import h64, h64big
 class H64_Test(_Base64Test):
     "test H64 codec functions"
     engine = h64
-    case_prefix = "h64 codec"
+    descriptionPrefix = "h64 codec"
 
     encoded_data = [
         #test lengths 0..6 to ensure tail is encoded properly
@@ -867,7 +867,7 @@ class H64_Test(_Base64Test):
 class H64Big_Test(_Base64Test):
     "test H64Big codec functions"
     engine = h64big
-    case_prefix = "h64big codec"
+    descriptionPrefix = "h64big codec"
 
     encoded_data = [
         #test lengths 0..6 to ensure tail is encoded properly
@@ -960,12 +960,12 @@ has_ssl_md4 = (md4_mod.md4 is not md4_mod._builtin_md4)
 
 if has_ssl_md4:
     class MD4_SSL_Test(_MD4_Test):
-        case_prefix = "MD4 (SSL version)"
+        descriptionPrefix = "MD4 (SSL version)"
         hash = staticmethod(md4_mod.md4)
 
 if not has_ssl_md4 or enable_option("cover"):
     class MD4_Builtin_Test(_MD4_Test):
-        case_prefix = "MD4 (builtin version)"
+        descriptionPrefix = "MD4 (builtin version)"
         hash = md4_mod._builtin_md4
 
 #=========================================================
@@ -1010,7 +1010,7 @@ class CryptoTest(TestCase):
         self.assertRaises(TypeError, norm_hash_name, None)
 
         # test selected results
-        with catch_all_warnings():
+        with catch_warnings():
             warnings.filterwarnings("ignore", '.*unknown hash')
             for row in chain(_nhn_hash_names, self.ndn_values):
                 for idx, format in enumerate(self.ndn_formats):
@@ -1227,12 +1227,12 @@ has_m2crypto = (pbkdf2._EVP is not None)
 
 if has_m2crypto:
     class Pbkdf2_M2Crypto_Test(_Pbkdf2BackendTest):
-        case_prefix = "pbkdf2 (m2crypto backend)"
+        descriptionPrefix = "pbkdf2 (m2crypto backend)"
         enable_m2crypto = True
 
 if not has_m2crypto or enable_option("cover"):
     class Pbkdf2_Builtin_Test(_Pbkdf2BackendTest):
-        case_prefix = "pbkdf2 (builtin backend)"
+        descriptionPrefix = "pbkdf2 (builtin backend)"
         enable_m2crypto = False
 
 #=========================================================
