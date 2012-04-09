@@ -106,15 +106,12 @@ postgres_context = LazyCryptContext(["postgres_md5"])
 #phpass & variants
 #=========================================================
 def _create_phpass_policy(**kwds):
-    "helper to make bcrypt default ONLY if it's available"
-    from passlib.context import default_policy
-    if hash.bcrypt.has_backend():
-        kwds['default'] = 'bcrypt'
-    return default_policy.replace(**kwds)
+    "helper to choose default alg based on bcrypt availability"
+    kwds['default'] = 'bcrypt' if hash.bcrypt.has_backend() else 'phpass'
+    return kwds
 
 phpass_context = LazyCryptContext(
     schemes=["bcrypt", "phpass", "bsdi_crypt"],
-    default="phpass", #NOTE: <-- overridden by create_policy
     create_policy=_create_phpass_policy,
     )
 

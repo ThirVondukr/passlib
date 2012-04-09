@@ -4,10 +4,11 @@ this is a *very* rough benchmark script hacked together when the context
 parsing was being sped up. it could definitely be improved.
 """
 #=============================================================================
-# init app env
+# init script env
 #=============================================================================
 import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
+root_dir = os.path.join(os.path.dirname(__file__), os.path.pardir)
+sys.path.insert(0, root_dir)
 
 #=============================================================================
 # imports
@@ -66,16 +67,15 @@ class AnotherHandler(BlankHandler):
 #=============================================================================
 def setup_policy():
     import os
-    from passlib.context import _load_default_policy, CryptPolicy, \
-                                __file__ as mpath
-    cpath = os.path.abspath(os.path.join(os.path.dirname(mpath), "default.cfg"))
+    from passlib.context import CryptPolicy
+    test_path = os.path.join(root_dir, "passlib", "tests", "sample_config_1s.cfg")
 
     def test_policy_creation():
-        with open(cpath, "rb") as fh:
+        with open(test_path, "rb") as fh:
             policy1 = CryptPolicy.from_string(fh.read())
     yield test_policy_creation
 
-    default = _load_default_policy()
+    default = CryptPolicy.from_path(test_path)
     def test_policy_composition():
         policy2 = default.replace(
             schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",

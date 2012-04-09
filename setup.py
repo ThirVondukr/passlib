@@ -146,7 +146,7 @@ setup(
             "passlib.utils",
             "passlib._setup",
         ],
-    package_data = { "passlib": ["*.cfg" ], "passlib.tests": ["*.cfg"] },
+    package_data = { "passlib.tests": ["*.cfg"] },
     zip_safe=True,
 
     #metadata

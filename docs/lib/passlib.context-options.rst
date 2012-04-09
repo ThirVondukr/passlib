@@ -217,14 +217,6 @@ of the category string it wants to use, and add an additional separator to the k
     the need to use a different hash for a particular category
     can instead be acheived by overridden the ``default`` context option.
 
-Default Policy
-==============
-PassLib defines a library-default policy, providing (hopefully) sensible defaults for new contexts.
-When a new CryptContext is created, a policy is generated from it's constructor arguments, which is then composited
-over the library-default policy. You may optionally override the default policy used by overriding the ``policy`` keyword
-of CryptContext. This default policy object may be imported as :data:`passlib.context.default_policy`,
-or viewed in the source code under ``$SOURCE/passlib/default.cfg``.
-
 Sample Policy File
 ==================
 A sample policy file:

@@ -15,11 +15,6 @@ import re
 from time import sleep
 from warnings import warn
 #site
-try:
-    from pkg_resources import resource_string
-except ImportError:
-    #not available eg: under GAE
-    resource_string = None
 #libs
 from passlib.exc import PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
@@ -737,31 +732,6 @@ class _UncompiledCryptPolicy(CryptPolicy):
         self.__class__ = CryptPolicy
         self._compile()
 
-#---------------------------------------------------------
-#load default policy from default.cfg
-#---------------------------------------------------------
-def _load_default_policy():
-    "helper to try to load default policy from file"
-    #if pkg_resources available, try to read out of egg (common case)
-    if resource_string:
-        try:
-            return CryptPolicy.from_string(resource_string("passlib", "default.cfg"))
-        except IOError:
-            log.warn("error reading passlib/default.cfg, is passlib installed correctly?")
-            pass
-
-    #failing that, see if we can read it from package dir
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "default.cfg"))
-    if os.path.exists(path):
-        with open(path, "rb") as fh:
-            return CryptPolicy.from_string(fh.read())
-
-    #give up - this is not desirable at all, could use another fallback.
-    log.error("can't find passlib/default.cfg, is passlib installed correctly?")
-    return CryptPolicy()
-
-default_policy = _load_default_policy()
-
 #=========================================================
 # helpers for CryptContext
 #=========================================================
@@ -1169,23 +1139,18 @@ class _CryptRecord(object):
 class CryptContext(object):
     """Helper for encrypting passwords using different algorithms.
 
-    :param policy:
-        optionally override the default policy CryptContext starts with before options are added.
-
-        If not specified, the new instance will inherit a set of default options (such as rounds, etc)
-        from the passlib default policy (importable as :data:`passlib.context.default_policy`).
-
-        If explicitly set to ``None``, the new instance will not inherit from the default policy,
-        and will contain only the configuration specified by any additional keywords.
-
-        Alternately, a custom CryptPolicy instance can be passed in,
-        which allows loading the policy from a configuration file,
-        combining multiple policies together, and other features.
-
-    :param kwds:
+    :param \*\*kwds:
 
         ``schemes`` and all other keywords are passed to the CryptPolicy constructor,
         or to :meth:`CryptPolicy.replace`, if a policy has also been specified.
+
+    :param policy:
+        Optionally you can pass in an existing CryptPolicy instance,
+        which allows loading the policy from a configuration file,
+        combining multiple policies together, and other features.
+
+        The options from this policy will be used as defaults,
+        which will be overridden by any keywords passed in explicitly.
 
     .. automethod:: replace
 
@@ -1222,7 +1187,7 @@ class CryptContext(object):
     #===================================================================
     #init
     #===================================================================
-    def __init__(self, schemes=None, policy=default_policy, **kwds):
+    def __init__(self, schemes=None, policy=None, **kwds):
         # XXX: add a name for the contexts, to help out repr?
         # XXX: add ability to make policy readonly for certain instances,
         #      eg the builtin passlib ones?
