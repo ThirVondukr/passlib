@@ -1231,6 +1231,19 @@ class HandlerCase(TestCase):
         self.assertRaises(TypeError, self.do_genhash, None, hash)
         self.assertRaises(TypeError, self.do_verify, None, hash)
 
+    def test_63_max_password_size(self):
+        "test MAX_PASSWORD_SIZE is enforced"
+        if self.is_disabled_handler:
+            raise self.skipTest("not applicable")
+        from passlib.exc import PasswordSizeError
+        from passlib.utils import MAX_PASSWORD_SIZE
+        secret = '.' * (1+MAX_PASSWORD_SIZE)
+        config = self.do_genconfig()
+        hash = self.get_sample_hash()[1]
+        self.assertRaises(PasswordSizeError, self.do_genhash, secret, config)
+        self.assertRaises(PasswordSizeError, self.do_encrypt, secret)
+        self.assertRaises(PasswordSizeError, self.do_verify, secret, hash)
+
     #==============================================================
     # check identify(), verify(), genhash() against test vectors
     #==============================================================

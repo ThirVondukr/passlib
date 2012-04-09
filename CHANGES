@@ -50,6 +50,14 @@ Release History
           that sometimes occurred on platforms with a deviant implementation
           of :func:`!os_crypt`.
 
+        * All hashes will now throw :exc:`~passlib.exc.PasswordSizeError`
+          if the provided password is larger than 4096 characters.
+
+          This limit should be above any reasonable password size,
+          and prevents various things including DOS abuse of hashes
+          that have an expensive password-length-dependant stage,
+          and for OS's which have a buggy :func:`!crypt.crypt` implementation.
+
     CryptContext
 
         .. currentmodule:: passlib.context

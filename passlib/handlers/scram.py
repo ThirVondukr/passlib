@@ -351,6 +351,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def verify(cls, secret, hash, full=False):
+        if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
+            raise uh.exc.PasswordSizeError()
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:

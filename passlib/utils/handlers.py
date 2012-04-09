@@ -13,12 +13,14 @@ import os
 from warnings import warn
 # site
 # pkg
+import passlib.exc as exc
 from passlib.exc import MissingBackendError, PasslibConfigWarning, \
                         PasslibHashWarning
 from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
-                          is_crypt_handler, deprecated_function, to_unicode
+                          is_crypt_handler, deprecated_function, to_unicode, \
+                          MAX_PASSWORD_SIZE
 from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii
 # local
@@ -442,6 +444,8 @@ class GenericHandler(object):
 
     @classmethod
     def genhash(cls, secret, config, **context):
+        if secret and len(secret) > MAX_PASSWORD_SIZE:
+            raise exc.PasswordSizeError()
         self = cls.from_string(config, **context)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
@@ -458,6 +462,8 @@ class GenericHandler(object):
     #=========================================================
     @classmethod
     def encrypt(cls, secret, **kwds):
+        if secret and len(secret) > MAX_PASSWORD_SIZE:
+            raise exc.PasswordSizeError()
         self = cls(use_defaults=True, **kwds)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
@@ -467,6 +473,8 @@ class GenericHandler(object):
         # NOTE: classes with multiple checksum encodings should either
         # override this method, or ensure that from_string() / _norm_checksum()
         # ensures .checksum always uses a single canonical representation.
+        if secret and len(secret) > MAX_PASSWORD_SIZE:
+            raise exc.PasswordSizeError()
         self = cls.from_string(hash, **context)
         chk = self.checksum
         if chk is None:

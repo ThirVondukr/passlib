@@ -170,6 +170,8 @@ class plaintext(object):
 
     @classmethod
     def encrypt(cls, secret):
+        if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
+            raise uh.exc.PasswordSizeError()
         return to_native_str(secret, cls._hash_encoding, "secret")
 
     @classmethod

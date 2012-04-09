@@ -11,6 +11,7 @@ may be raised by Passlib.
 Exceptions
 ==========
 .. autoexception:: MissingBackendError
+.. autoexception:: PasswordSizeError
 
 Warnings
 ========

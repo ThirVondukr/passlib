@@ -105,6 +105,9 @@ _BEMPTY = b('')
 _UEMPTY = u("")
 _USPACE = u(" ")
 
+# maximum password size which passlib will allow; see exc.PasswordSizeError
+MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
+
 #=================================================================================
 #decorators and meta helpers
 #=================================================================================

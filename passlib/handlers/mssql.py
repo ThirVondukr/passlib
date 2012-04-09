@@ -160,6 +160,8 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         chk = self.checksum
         if chk is None:
             raise uh.MissingDigestError(cls)
+        if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
+            raise uh.exc.PasswordSizeError()
         secret = to_unicode(secret, 'utf-8', errname='secret')
         result = _raw_mssql(secret.upper(), self.salt)
         return consteq(result, chk[20:])

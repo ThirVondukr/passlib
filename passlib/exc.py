@@ -14,6 +14,28 @@ class MissingBackendError(RuntimeError):
     from :class:`~passlib.utils.handlers.HasManyBackends`.
     """
 
+class PasswordSizeError(ValueError):
+    """Error raised if the password provided exceeds the limit set by Passlib.
+
+    Many password hashes take proportionately larger amounts of
+    time and/or memory depending on the size of the password provided.
+    This could present a potential denial of service (DOS) situation
+    if a maliciously large password was provided to the application.
+
+    Because of this, Passlib enforces a maximum of 4096 characters.
+    This error will be thrown if a password larger than
+    this is provided to any of the hashes in Passlib.
+
+    Applications wishing to use a different limit should set the
+    ``PASSLIB_MAX_PASSWORD_SIZE`` environmental variable before Passlib
+    is loaded.
+    """
+    def __init__(self):
+        ValueError.__init__(self, "password exceeds maximum allowed size")
+
+    # this also prevents a glibc crypt segfault issue, detailed here ...
+    # http://www.openwall.com/lists/oss-security/2011/11/15/1
+
 #==========================================================================
 # warnings
 #==========================================================================
