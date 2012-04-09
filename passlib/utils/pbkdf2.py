@@ -357,14 +357,16 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     if prf == "hmac-sha1" and _EVP:
         if keylen == -1:
             keylen = 20
-        #NOTE: doing check here, because M2crypto won't take longs (which this is, under 32bit)
+        # NOTE: doing check here, because M2crypto won't take 'long' instances
+        # (which this is when running under 32bit)
         if keylen > MAX_HMAC_SHA1_KEYLEN:
             raise ValueError("key length too long")
 
-        #NOTE: M2crypto reliably segfaults for me if given keylengths
-        # larger than 40 (crashes at 41 on one system, 61 on another).
-        # so just avoiding it for longer calls.
-        if keylen < 41:
+        # NOTE: as of 2012-4-4, m2crypto has buffer overflow issue
+        # which may cause segfaults if keylen > 32 (EVP_MAX_KEY_LENGTH).
+        # therefore we're avoiding m2crypto for large keys until that's fixed.
+        # see https://bugzilla.osafoundation.org/show_bug.cgi?id=13052
+        if keylen < 32:
             return _EVP.pbkdf2(secret, salt, rounds, keylen)
 
     #resolve prf
