@@ -172,7 +172,7 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        salt, chk = uh.parse_mc2(hash, cls.ident, cls.name)
+        salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):

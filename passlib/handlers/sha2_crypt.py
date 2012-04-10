@@ -299,15 +299,15 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid sha256-crypt hash")
+            raise uh.exc.InvalidHashError(cls)
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
         if rounds and rounds.startswith(u("0")):
-            raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         return cls(
             implicit_rounds=not rounds,
             rounds=int(rounds) if rounds else 5000,
@@ -455,15 +455,15 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError()
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid sha512-crypt hash")
+            raise uh.exc.InvalidHashError(cls)
         rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
         if rounds and rounds.startswith("0"):
-            raise ValueError("invalid sha512-crypt hash (zero-padded rounds)")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         return cls(
             implicit_rounds = not rounds,
             rounds=int(rounds) if rounds else 5000,

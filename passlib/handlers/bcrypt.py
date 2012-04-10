@@ -130,7 +130,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         rounds, data = tail.split(u("$"))
         rval = int(rounds)
         if rounds != u('%02d') % (rval,):
-            raise ValueError("invalid bcrypt hash (rounds not zero-padded)")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         salt, chk = data[:22], data[22:]
         return cls(
             rounds=rval,

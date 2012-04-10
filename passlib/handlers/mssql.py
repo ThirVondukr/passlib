@@ -79,10 +79,10 @@ def _ident_mssql(hash, csize, bsize):
         ##    return True
     return False
 
-def _parse_mssql(hash, csize, bsize, name):
+def _parse_mssql(hash, csize, bsize, handler):
     "common parser for mssql 2000/2005; returns 4 byte salt + checksum"
     if not hash:
-        raise ValueError("no hash specified")
+        raise uh.exc.MissingHashError(handler)
     if isinstance(hash, unicode):
         if len(hash) == csize and hash.startswith(UIDENT):
             try:
@@ -99,7 +99,7 @@ def _parse_mssql(hash, csize, bsize, name):
                 pass
         ##elif len(hash) == bsize and hash.startswith(BIDENT2): # raw bytes
         ##    return hash[2:]
-    raise ValueError("invalid %s hash" % name)
+    raise uh.exc.InvalidHashError(handler)
 
 class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the password hash used by MS-SQL 2000, and follows the :ref:`password-hash-api`.
@@ -139,7 +139,7 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        data = _parse_mssql(hash, 94, 46, cls.name)
+        data = _parse_mssql(hash, 94, 46, cls)
         return cls(salt=data[:4], checksum=data[4:])
 
     def to_string(self):
@@ -159,7 +159,7 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         self = cls.from_string(hash)
         chk = self.checksum
         if chk is None:
-            raise uh.MissingDigestError(cls)
+            raise uh.exc.MissingDigestError(cls)
         if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
             raise uh.exc.PasswordSizeError()
         secret = to_unicode(secret, 'utf-8', errname='secret')
@@ -207,7 +207,7 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        data = _parse_mssql(hash, 54, 26, cls.name)
+        data = _parse_mssql(hash, 54, 26, cls)
         return cls(salt=data[:4], checksum=data[4:])
 
     def to_string(self):

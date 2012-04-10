@@ -548,7 +548,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not cls.identify(hash):
-            raise ValueError("not a salted-example hash")
+            raise uh.exc.InvalidHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         return cls(salt=hash[5:-40], checksum=hash[-40:])

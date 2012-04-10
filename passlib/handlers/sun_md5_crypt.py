@@ -247,7 +247,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
 
@@ -262,22 +262,22 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         elif hash.startswith(u("$md5,rounds=")):
             idx = hash.find(u("$"), 12)
             if idx == -1:
-                raise ValueError("invalid sun-md5-crypt hash (unexpected end of rounds)")
+                raise uh.exc.MalformedHashError(cls, "unexpected end of rounds")
             rstr = hash[12:idx]
             try:
                 rounds = int(rstr)
             except ValueError:
-                raise ValueError("invalid sun-md5-crypt hash (bad rounds)")
+                raise uh.exc.MalformedHashError(cls, "bad rounds")
             if rstr != unicode(rounds):
-                raise ValueError("invalid sun-md5-crypt hash (zero-padded rounds)")
+                raise uh.exc.ZeroPaddedRoundsError(cls)
             if rounds == 0:
                 #NOTE: not sure if this is forbidden by spec or not;
                 #      but allowing it would complicate things,
                 #      and it should never occur anyways.
-                raise ValueError("invalid sun-md5-crypt hash (explicit zero rounds)")
+                raise uh.exc.MalformedHashError(cls, "explicit zero rounds")
             salt_idx = idx+1
         else:
-            raise ValueError("invalid sun-md5-crypt hash (unknown prefix)")
+            raise uh.exc.InvalidHashError(cls)
 
         #
         #salt/checksum separation is kinda weird,
@@ -292,7 +292,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             bare_salt = True
         elif chk_idx == len(hash)-1:
             if chk_idx > salt_idx and hash[-2] == u("$"):
-                raise ValueError("invalid sun-md5-crypt hash (too many $)")
+                raise uh.exc.MalformedHashError(cls, "too many '$' separators")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None

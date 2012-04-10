@@ -201,7 +201,7 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 ##    @classmethod
 ##    def genhash(cls, secret, config):
 ##        if config is not None and not cls.identify(config):
-##            raise ValueError("not a valid %s hash" % (cls.name,))
+##            raise uh.exc.InvalidHashError(cls)
 ##        return cls.encrypt(secret)
 ##
 ##    @classmethod
@@ -216,7 +216,7 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 ##            hash = hash.decode("latin-1")
 ##        m = cls._hash_regex.match(hash)
 ##        if not m:
-##            raise ValueError("not a valid %s hash" % (cls.name,))
+##            raise uh.exc.InvalidHashError(cls)
 ##        lm, nt = m.group("lm", "nt")
 ##        # NOTE: verify against both in case encoding issue
 ##        # causes one not to match.

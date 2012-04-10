@@ -69,19 +69,36 @@ UC_HEX_CHARS = UPPER_HEX_CHARS
 LC_HEX_CHARS = LOWER_HEX_CHARS
 
 #=========================================================
-#parsing helpers
+# parsing helpers
 #=========================================================
-def parse_mc2(hash, prefix, name="<unnamed>", sep=u("$")):
-    "parse hash using 2-part modular crypt format"
-    assert isinstance(prefix, unicode)
-    assert isinstance(sep, unicode)
-    #eg: MD5-Crypt: $1$salt[$checksum]
+_UDOLLAR = u("$")
+_UZERO = u("0")
+
+def parse_mc2(hash, prefix, sep=_UDOLLAR, handler=None):
+    """parse hash using 2-part modular crypt format.
+
+    this expects a hash of the format :samp:`{prefix}{salt}[${checksum}]`,
+    such as md5_crypt, and parses it into salt / checksum portions.
+
+    :arg hash: the hash to parse (bytes or unicode)
+    :arg prefix: the identifying prefix (unicode)
+    :param sep: field separator (unicode, defaults to ``$``).
+    :param handler: handler class to pass to error constructors.
+
+    :returns:
+        a ``(salt, chk | None)`` tuple.
+    """
+    # detect prefix
     if not hash:
-        raise ValueError("no hash specified")
+        raise exc.MissingHashError(handler)
     if isinstance(hash, bytes):
         hash = hash.decode('ascii')
+    assert isinstance(prefix, unicode)
     if not hash.startswith(prefix):
-        raise ValueError("not a valid %s hash (wrong prefix)" % (name,))
+        raise exc.InvalidHashError(handler)
+
+    # parse 2-part hash or 1-part config string
+    assert isinstance(sep, unicode)
     parts = hash[len(prefix):].split(sep)
     if len(parts) == 2:
         salt, chk = parts
@@ -89,19 +106,33 @@ def parse_mc2(hash, prefix, name="<unnamed>", sep=u("$")):
     elif len(parts) == 1:
         return parts[0], None
     else:
-        raise ValueError("not a valid %s hash (malformed)" % (name,))
+        raise exc.MalformedHashError(handler)
 
-def parse_mc3(hash, prefix, name="<unnamed>", sep=u("$")):
-    "parse hash using 3-part modular crypt format"
-    assert isinstance(prefix, unicode)
-    assert isinstance(sep, unicode)
-    #eg: SHA1-Crypt: $sha1$rounds$salt[$checksum]
+def parse_mc3(hash, prefix, sep=_UDOLLAR, handler=None):
+    """parse hash using 3-part modular crypt format.
+
+    this expects a hash of the format :samp:`{prefix}[{rounds}$]{salt}[${checksum}]`,
+    such as sha1_crypt, and parses it into rounds / salt / checksum portions.
+
+    :arg hash: the hash to parse (bytes or unicode)
+    :arg prefix: the identifying prefix (unicode)
+    :param sep: field separator (unicode, defaults to ``$``).
+    :param handler: handler class to pass to error constructors.
+
+    :returns:
+        a ``(rounds : str, salt, chk | None)`` tuple.
+    """
+    # detect prefix
     if not hash:
-        raise ValueError("no hash specified")
+        raise exc.MissingHashError(handler)
     if isinstance(hash, bytes):
         hash = hash.decode('ascii')
+    assert isinstance(prefix, unicode)
     if not hash.startswith(prefix):
-        raise ValueError("not a valid %s hash" % (name,))
+        raise exc.InvalidHashError(handler)
+
+    # parse 3-part hash or 2-part config string
+    assert isinstance(sep, unicode)
     parts = hash[len(prefix):].split(sep)
     if len(parts) == 3:
         rounds, salt, chk = parts
@@ -110,7 +141,7 @@ def parse_mc3(hash, prefix, name="<unnamed>", sep=u("$")):
         rounds, salt = parts
         return rounds, salt, None
     else:
-        raise ValueError("not a valid %s hash" % (name,))
+        raise exc.MalformedHashError(handler)
 
 #=====================================================
 #formatting helpers
@@ -130,22 +161,6 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
     else:
         hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
     return uascii_to_str(hash)
-
-#==========================================================================
-# not proper exceptions, just predefined error message constructors
-# used by various handlers.
-#==========================================================================
-def ChecksumSizeError(handler, size, raw=False):
-    name = handler.name
-    unit = "bytes" if raw else "chars"
-    return ValueError("checksum wrong size (%s checksum must be "
-                     "exactly %d %s" % (name, size, unit))
-
-def MissingDigestError(handler):
-    "raised when verify() method gets passed config string instead of hash"
-    name = handler.name
-    return ValueError("expected %s hash, got %s config string instead" %
-                     (name, name))
 
 #=====================================================
 #GenericHandler
@@ -343,7 +358,7 @@ class GenericHandler(object):
         # check size
         cc = self.checksum_size
         if cc and len(checksum) != cc:
-            raise ChecksumSizeError(self, cc, raw=raw)
+            raise exc.ChecksumSizeError(self, raw=raw)
 
         # check charset
         if not raw:
@@ -478,7 +493,7 @@ class GenericHandler(object):
         self = cls.from_string(hash, **context)
         chk = self.checksum
         if chk is None:
-            raise MissingDigestError(cls)
+            raise exc.MissingDigestError(cls)
         return consteq(self._calc_checksum(secret), chk)
 
     #=========================================================
@@ -549,7 +564,7 @@ class StaticHandler(GenericHandler):
             if hash.startswith(prefix):
                 hash = hash[len(prefix):]
             else:
-                raise ValueError("not a valid %s hash" % (cls.name,))
+                raise exc.InvalidHashError(cls)
         return cls(checksum=hash, **context)
 
     @classmethod
@@ -570,7 +585,7 @@ class StaticHandler(GenericHandler):
     def genhash(cls, secret, config, **context):
         # since it has no settings, just verify config, and call encrypt()
         if config is not None and not cls.identify(config):
-            raise ValueError("not a %s hash" % (cls.name,))
+            raise exc.InvalidHashError(cls)
         return cls.encrypt(secret, **context)
 
     __cc_compat_hack = False
@@ -736,13 +751,13 @@ class HasManyIdents(GenericHandler):
     def _parse_ident(cls, hash):
         """extract ident prefix from hash, helper for subclasses' from_string()"""
         if not hash:
-            raise ValueError("no hash specified")
+            raise exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         for ident in cls.ident_values:
             if hash.startswith(ident):
                 return ident, hash[len(ident):]
-        raise ValueError("invalid %s hash" % (cls.name,))
+        raise exc.InvalidHashError(cls)
 
     #=========================================================
     #eoc
@@ -1253,9 +1268,9 @@ class HasManyBackends(GenericHandler):
                 if cls.has_backend(name):
                     break
             else:
-                raise MissingBackendError(cls._no_backends_msg())
+                raise exc.MissingBackendError(cls._no_backends_msg())
         elif not cls.has_backend(name):
-            raise MissingBackendError("%s backend not available: %r" %
+            raise exc.MissingBackendError("%s backend not available: %r" %
                                           (cls.name, name))
         cls._calc_checksum = getattr(cls, "_calc_checksum_" + name)
         cls._backend = name
@@ -1318,7 +1333,7 @@ class PrefixWrapper(object):
             if isinstance(ident, bytes):
                 ident = ident.decode("ascii")
             if ident[:len(prefix)] != prefix[:len(ident)]:
-                raise ValueError("ident agree with prefix")
+                raise ValueError("ident must agree with prefix")
             self._ident = ident
 
     _wrapped_name = None
@@ -1419,7 +1434,7 @@ class PrefixWrapper(object):
             hash = hash.decode('ascii')
         prefix = self.prefix
         if not hash.startswith(prefix):
-            raise ValueError("not a valid %s hash" % (self.name,))
+            raise exc.InvalidHashError(self)
         #NOTE: always passing to handler as unicode, to save reconversion
         return self.orig_prefix + hash[len(prefix):]
 
@@ -1431,7 +1446,7 @@ class PrefixWrapper(object):
             hash = hash.decode('ascii')
         orig_prefix = self.orig_prefix
         if not hash.startswith(orig_prefix):
-            raise ValueError("not a valid %s hash" % (self.wrapped.name,))
+            raise exc.InvalidHashError(self.wrapped)
         wrapped = self.prefix + hash[len(orig_prefix):]
         return uascii_to_str(wrapped)
 
@@ -1462,7 +1477,7 @@ class PrefixWrapper(object):
 
     def verify(self, secret, hash, **kwds):
         if not hash:
-            raise ValueError("no %s hash specified" % (self.name,))
+            raise exc.MissingHashError(self)
         hash = self._unwrap_hash(hash)
         return self.wrapped.verify(secret, hash, **kwds)
 

@@ -80,9 +80,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classmethod
     def from_string(cls, hash):
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
         if rounds.startswith("0"):
-            raise ValueError("invalid sha1-crypt hash (zero-padded rounds)")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         return cls(
             rounds=int(rounds),
             salt=salt,

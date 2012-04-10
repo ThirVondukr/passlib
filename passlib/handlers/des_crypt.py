@@ -183,7 +183,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         salt, chk = hash[:2], hash[2:]
@@ -296,12 +296,12 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid ext-des-crypt hash")
+            raise uh.exc.InvalidHashError(cls)
         rounds, salt, chk = m.group("rounds", "salt", "chk")
         return cls(
             rounds=h64.decode_int24(rounds.encode("ascii")),
@@ -381,12 +381,12 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid bigcrypt hash")
+            raise uh.exc.InvalidHashError(cls)
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk)
 
@@ -397,7 +397,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     def _norm_checksum(self, value):
         value = super(bigcrypt, self)._norm_checksum(value)
         if value and len(value) % 11:
-            raise ValueError("invalid bigcrypt hash")
+            raise uh.exc.InvalidHashError(cls)
         return value
 
     #=========================================================
@@ -461,12 +461,12 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid crypt16 hash")
+            raise uh.exc.InvalidHashError(cls)
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk)
 

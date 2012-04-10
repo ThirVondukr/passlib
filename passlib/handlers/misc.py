@@ -73,7 +73,7 @@ class unix_fallback(uh.StaticHandler):
         if secret is None:
             raise TypeError("secret must be string")
         elif hash is None:
-            raise ValueError("no hash provided")
+            raise uh.exc.MissingHashError(cls)
         elif hash:
             return False
         else:
@@ -179,7 +179,7 @@ class plaintext(object):
         if hash is None:
             raise TypeError("no hash specified")
         elif not cls.identify(hash):
-            raise ValueError("not a %s hash" % (cls.name,))
+            raise uh.exc.InvalidHashError(cls)
         hash = to_native_str(hash, cls._hash_encoding, "hash")
         return consteq(cls.encrypt(secret), hash)
 
@@ -190,7 +190,7 @@ class plaintext(object):
     @classmethod
     def genhash(cls, secret, hash):
         if hash is not None and not cls.identify(hash):
-            raise ValueError("not a %s hash" % (cls.name,))
+            raise uh.exc.InvalidHashError(cls)
         return cls.encrypt(secret)
 
 #=========================================================

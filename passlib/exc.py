@@ -87,5 +87,59 @@ class PasslibSecurityWarning(PasslibWarning):
     """
 
 #==========================================================================
+# error constructors
+#
+# note: these functions are used by the hashes in Passlib to raise common
+# error messages. They are currently just functions which return ValueError,
+# rather than subclasses of ValueError, since the specificity isn't needed
+# yet; and who wants to import a bunch of error classes when catching
+# ValueError will do?
+#==========================================================================
+
+def _get_name(handler):
+    return handler.name if handler else "<unnamed>"
+
+#----------------------------------------------------------------
+# encrypt/verify parameter errors
+#----------------------------------------------------------------
+def MissingHashError(handler=None):
+    "error raised if no hash provided to handler"
+    return ValueError("no hash specified")
+
+def MissingDigestError(handler=None):
+    "raised when verify() method gets passed config string instead of hash"
+    name = _get_name(handler)
+    return ValueError("expected %s hash, got %s config string instead" %
+                     (name, name))
+
+#----------------------------------------------------------------
+# errors when parsing hashes
+#----------------------------------------------------------------
+def InvalidHashError(handler=None):
+    "error raised if unrecognized hash provided to handler"
+    raise ValueError("not a valid %s hash" % _get_name(handler))
+
+def MalformedHashError(handler=None, reason=None):
+    "error raised if recognized-but-malformed hash provided to handler"
+    text = "malformed %s hash" % _get_name(handler)
+    if reason:
+        text = "%s (%s)" % (text, reason)
+    raise ValueError(text)
+
+def ZeroPaddedRoundsError(handler=None):
+    "error raised if hash was recognized but contained zero-padded rounds field"
+    return MalformedHashError(handler, "zero-padded rounds")
+
+#----------------------------------------------------------------
+# settings / hash component errors
+#----------------------------------------------------------------
+def ChecksumSizeError(handler, raw=False):
+    "error raised if hash was recognized, but checksum was wrong size"
+    checksum_size = handler.checksum_size
+    unit = "bytes" if raw else "chars"
+    return ValueError("checksum wrong size (%s checksum must be "
+                     "exactly %d %s" % (handler.name, checksum_size, unit))
+
+#==========================================================================
 # eof
 #==========================================================================

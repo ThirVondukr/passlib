@@ -142,12 +142,12 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("not a valid FSHP hash")
+            raise uh.exc.InvalidHashError(cls)
         variant, salt_size, rounds, data = m.group(1,2,3,4)
         variant = int(variant)
         salt_size = int(salt_size)
@@ -155,7 +155,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         try:
             data = b64decode(data.encode("ascii"))
         except ValueError:
-            raise ValueError("malformed FSHP hash")
+            raise uh.exc.MalformedHashError(cls)
         salt = data[:salt_size]
         chk = data[salt_size:]
         return cls(salt=salt, checksum=chk, rounds=rounds, variant=variant)

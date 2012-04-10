@@ -67,10 +67,10 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     def from_string(cls, hash):
         if not hash:
             raise ValueError("no hash specified")
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
         int_rounds = int(rounds)
         if rounds != unicode(int_rounds): #forbid zero padding, etc.
-            raise ValueError("invalid %s hash" % (cls.name,))
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         raw_salt = ab64_decode(salt.encode("ascii"))
         raw_chk = ab64_decode(chk.encode("ascii")) if chk else None
         return cls(
@@ -202,12 +202,12 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
         if rounds.startswith("0"):
             #passlib deviation: forbidding
             #left-padded with zeroes
-            raise ValueError("invalid cta_pbkdf2_sha1 hash")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         rounds = int(rounds, 16)
         salt = b64decode(salt.encode("ascii"), CTA_ALTCHARS)
         if chk:
@@ -299,10 +299,10 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
+            raise uh.exc.MissingHashError(cls)
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
         if rounds.startswith("0"): #zero not allowed, nor left-padded with zeroes
-            raise ValueError("invalid dlitz_pbkdf2_sha1 hash")
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         rounds = int(rounds, 16) if rounds else 400
         return cls(
             rounds=rounds,
@@ -362,12 +362,12 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         ident = cls.ident
         if not hash.startswith(ident):
-            raise ValueError("invalid %s hash" % (cls.name,))
+            raise uh.exc.InvalidHashError(cls)
         data = b64decode(hash[len(ident):].encode("ascii"))
         salt, chk = data[:16], data[16:]
         return cls(salt=salt, checksum=chk)
@@ -428,11 +428,11 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name, sep=u("."))
+            raise uh.exc.MissingHashError(cls)
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, sep=u("."), handler=cls)
         int_rounds = int(rounds)
         if rounds != str(int_rounds): #forbid zero padding, etc.
-            raise ValueError("invalid %s hash" % (cls.name,))
+            raise uh.exc.ZeroPaddedRoundsError(cls)
         raw_salt = unhexlify(salt.encode("ascii"))
         raw_chk = unhexlify(chk.encode("ascii")) if chk else None
         return cls(

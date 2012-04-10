@@ -79,16 +79,16 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode('ascii')
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("not a %s hash" % (cls.name,))
+            raise uh.exc.InvalidHashError(cls)
         try:
             data = b64decode(m.group("tmp").encode("ascii"))
         except TypeError:
-            raise ValueError("malformed %s hash" % (cls.name,))
+            raise uh.exc.MalformedHashError(cls)
         cs = cls.checksum_size
         assert cs
         return cls(checksum=data[:cs], salt=data[cs:])

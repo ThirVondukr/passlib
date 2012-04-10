@@ -139,12 +139,12 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash provided")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("invalid oracle-11g hash")
+            raise uh.exc.InvalidHashError(cls)
         salt, chk = m.group("salt", "chk")
         return cls(salt=salt, checksum=chk.upper())
 

@@ -124,9 +124,9 @@ class cisco_type7(uh.GenericHandler):
         if not hash:
             if hash is None:
                 return cls(use_defaults=True)
-            raise ValueError("no hash provided")
+            raise uh.exc.MissingHashError(cls)
         if len(hash) < 2:
-            raise ValueError("invalid cisco_type7 hash")
+            raise uh.exc.InvalidHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("latin-1")
         salt = int(hash[:2]) # may throw ValueError

@@ -50,13 +50,13 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     @classmethod
     def from_string(cls, hash):
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         ident = cls.ident
         assert ident.endswith(u("$"))
         if not hash.startswith(ident):
-            raise ValueError("invalid %s hash" % (cls.name,))
+            raise uh.exc.InvalidHashError(cls)
         _, salt, chk = hash.split(u("$"))
         return cls(salt=salt, checksum=chk or None)
 
@@ -160,7 +160,7 @@ class django_des_crypt(DjangoSaltedHash):
         chk = self.checksum
         if salt and chk:
             if salt[:2] != chk[:2]:
-                raise ValueError("invalid django_des_crypt hash: "
+                raise uh.exc.MalformedHashError(cls,
                     "first two digits of salt and checksum must match")
             # repeat stub checksum detection since salt isn't set
             # when _norm_checksum() is called.
@@ -218,7 +218,7 @@ class django_disabled(uh.StaticHandler):
         if secret is None:
             raise TypeError("no secret provided")
         if not cls.identify(hash):
-            raise ValueError("invalid django-disabled hash")
+            raise uh.exc.InvalidHashError(cls)
         return False
 
 #=========================================================

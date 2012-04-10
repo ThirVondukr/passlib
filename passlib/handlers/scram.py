@@ -211,30 +211,30 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def from_string(cls, hash):
         # parse hash
         if not hash:
-            raise ValueError("no hash specified")
+            raise uh.exc.MissingHashError(cls)
         hash = to_native_str(hash, "ascii", errname="hash")
         if not hash.startswith("$scram$"):
-            raise ValueError("invalid scram hash")
+            raise uh.exc.InvalidHashError(cls)
         parts = hash[7:].split("$")
         if len(parts) != 3:
-            raise ValueError("invalid scram hash")
+            raise uh.exc.MalformedHashError(cls)
         rounds_str, salt_str, chk_str = parts
 
         # decode rounds
         rounds = int(rounds_str)
         if rounds_str != str(rounds): #forbid zero padding, etc.
-            raise ValueError("invalid scram hash")
+            raise uh.exc.MalformedHashError(cls)
 
         # decode salt
         try:
             salt = ab64_decode(salt_str.encode("ascii"))
         except TypeError:
-            raise ValueError("malformed scram hash")
+            raise uh.exc.MalformedHashError(cls)
 
         # decode algs/digest list
         if not chk_str:
             # scram hashes MUST have something here.
-            raise ValueError("invalid scram hash")
+            raise uh.exc.MalformedHashError(cls)
         elif "=" in chk_str:
             # comma-separated list of 'alg=digest' pairs
             algs = None
@@ -244,7 +244,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 try:
                     chkmap[alg] = ab64_decode(digest.encode("ascii"))
                 except TypeError:
-                    raise ValueError("malformed scram hash")
+                    raise uh.exc.MalformedHashError(cls)
         else:
             # comma-separated list of alg names, no digests
             algs = chk_str
