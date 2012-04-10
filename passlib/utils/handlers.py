@@ -22,7 +22,8 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           is_crypt_handler, deprecated_function, to_unicode, \
                           MAX_PASSWORD_SIZE
 from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
-                                 uascii_to_str, join_unicode, unicode, str_to_uascii
+                                 uascii_to_str, join_unicode, unicode, str_to_uascii, \
+                                 join_unicode
 # local
 __all__ = [
     # helpers for implementing MCF handlers
@@ -108,19 +109,27 @@ def parse_mc2(hash, prefix, sep=_UDOLLAR, handler=None):
     else:
         raise exc.MalformedHashError(handler)
 
-def parse_mc3(hash, prefix, sep=_UDOLLAR, handler=None):
+def parse_mc3(hash, prefix, sep=_UDOLLAR, rounds_base=10,
+              default_rounds=None, handler=None):
     """parse hash using 3-part modular crypt format.
 
     this expects a hash of the format :samp:`{prefix}[{rounds}$]{salt}[${checksum}]`,
     such as sha1_crypt, and parses it into rounds / salt / checksum portions.
+    tries to convert the rounds to an integer,
+    and throws error if it has zero-padding.
 
     :arg hash: the hash to parse (bytes or unicode)
     :arg prefix: the identifying prefix (unicode)
     :param sep: field separator (unicode, defaults to ``$``).
+    :param rounds_base:
+        the numeric base the rounds are encoded in (defaults to base 10).
+    :param default_rounds:
+        the default rounds value to return if the rounds field was omitted.
+        if this is ``None`` (the default), the rounds field is *required*.
     :param handler: handler class to pass to error constructors.
 
     :returns:
-        a ``(rounds : str, salt, chk | None)`` tuple.
+        a ``(rounds : int, salt, chk | None)`` tuple.
     """
     # detect prefix
     if not hash:
@@ -136,31 +145,76 @@ def parse_mc3(hash, prefix, sep=_UDOLLAR, handler=None):
     parts = hash[len(prefix):].split(sep)
     if len(parts) == 3:
         rounds, salt, chk = parts
-        return rounds, salt, chk or None
     elif len(parts) == 2:
         rounds, salt = parts
-        return rounds, salt, None
+        chk = None
     else:
         raise exc.MalformedHashError(handler)
+
+    # validate & parse rounds portion
+    if rounds.startswith(_UZERO) and rounds != _UZERO:
+        raise exc.ZeroPaddedRoundsError(handler)
+    elif rounds:
+        rounds = int(rounds, rounds_base)
+    elif default_rounds is None:
+        raise exc.MalformedHashError(handler, "missing rounds field")
+    else:
+        rounds = default_rounds
+
+    # return result
+    return rounds, salt, chk or None
 
 #=====================================================
 #formatting helpers
 #=====================================================
 def render_mc2(ident, salt, checksum, sep=u("$")):
-    "format hash using 2-part modular crypt format; inverse of parse_mc2"
-    if checksum:
-        hash = u("%s%s%s%s") % (ident, salt, sep, checksum)
-    else:
-        hash = u("%s%s") % (ident, salt)
-    return uascii_to_str(hash)
+    """format hash using 2-part modular crypt format; inverse of parse_mc2()
 
-def render_mc3(ident, rounds, salt, checksum, sep=u("$")):
-    "format hash using 3-part modular crypt format; inverse of parse_mc3"
+    returns native string with format :samp:`{ident}{salt}[${checksum}]`,
+    such as used by md5_crypt.
+
+    :arg ident: identifier prefix (unicode)
+    :arg salt: encoded salt (unicode)
+    :arg checksum: encoded checksum (unicode or None)
+    :param sep: separator char (unicode, defaults to ``$``)
+
+    :returns:
+        config or hash (native str)
+    """
     if checksum:
-        hash = u("%s%s%s%s%s%s") % (ident, rounds, sep, salt, sep, checksum)
+        parts = [ident, salt, sep, checksum]
     else:
-        hash = u("%s%s%s%s") % (ident, rounds, sep, salt)
-    return uascii_to_str(hash)
+        parts = [ident, salt]
+    return uascii_to_str(join_unicode(parts))
+
+def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
+    """format hash using 3-part modular crypt format; inverse of parse_mc3()
+
+    returns native string with format :samp:`{ident}[{rounds}$]{salt}[${checksum}]`,
+    such as used by sha1_crypt.
+
+    :arg ident: identifier prefix (unicode)
+    :arg rounds: rounds field (int or None)
+    :arg salt: encoded salt (unicode)
+    :arg checksum: encoded checksum (unicode or None)
+    :param sep: separator char (unicode, defaults to ``$``)
+    :param rounds_base: base to encode rounds value (defaults to base 10)
+
+    :returns:
+        config or hash (native str)
+    """
+    if rounds is None:
+        rounds = u('')
+    elif rounds_base == 16:
+        rounds = u("%x") % rounds
+    else:
+        assert rounds_base == 10
+        rounds = unicode(rounds)
+    if checksum:
+        parts = [ident, rounds, sep, salt, sep, checksum]
+    else:
+        parts = [ident, rounds, sep, salt]
+    return uascii_to_str(join_unicode(parts))
 
 #=====================================================
 #GenericHandler

@@ -81,19 +81,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     @classmethod
     def from_string(cls, hash):
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
-        if rounds.startswith("0"):
-            raise uh.exc.ZeroPaddedRoundsError(cls)
-        return cls(
-            rounds=int(rounds),
-            salt=salt,
-            checksum=chk,
-        )
+        return cls(rounds=rounds, salt=salt, checksum=chk)
 
     def to_string(self):
-        hash = u("$sha1$%d$%s") % (self.rounds, self.salt)
-        if self.checksum:
-            hash += u("$") + self.checksum
-        return uascii_to_str(hash)
+        return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
     #=========================================================
     #backend
