@@ -266,8 +266,10 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         return _raw_md5_crypt(secret, self.salt)
 
     def _calc_checksum_os_crypt(self, secret):
-        hash = safe_crypt(secret, self.ident + self.salt)
+        config = self.ident + self.salt
+        hash = safe_crypt(secret, config)
         if hash:
+            assert hash.startswith(config) and len(hash) == len(config) + 23
             return hash[-22:]
         else:
             return self._calc_checksum_builtin(secret)

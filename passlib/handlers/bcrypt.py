@@ -244,8 +244,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                "'bcryptor' for bcrypt support"
 
     def _calc_checksum_os_crypt(self, secret):
-        hash = safe_crypt(secret, self._get_config())
+        config = self._get_config()
+        hash = safe_crypt(secret, config)
         if hash:
+            assert hash.startswith(config) and len(hash) == len(config)+31
             return hash[-31:]
         else:
             #NOTE: not checking backends since this is lowest priority,
@@ -260,7 +262,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         #   py3: not supported (patch submitted)
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        hash = pybcrypt_hashpw(secret, self._get_config())
+        config = self._get_config()
+        hash = pybcrypt_hashpw(secret, config)
+        assert hash.startswith(config) and len(hash) == len(config)+31
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_bcryptor(self, secret):
@@ -281,6 +285,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         else:
             config = self._get_config()
         hash = bcryptor_engine(False).hash_key(secret, config)
+        assert hash.startswith(config) and len(hash) == len(config)+31
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_builtin(self, secret):

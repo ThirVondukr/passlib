@@ -349,6 +349,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             # NOTE: avoiding full parsing routine via from_string().checksum,
             # and just extracting the bit we need.
             cs = self.checksum_size
+            assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
             return hash[-cs:]
         else:
             return self._calc_checksum_builtin(secret)

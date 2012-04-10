@@ -219,7 +219,8 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         # no official policy since des-crypt predates unicode
         hash = safe_crypt(secret, self.salt)
         if hash:
-            return hash[2:]
+            assert hash.startswith(self.salt) and len(hash) == 4
+            return hash[-2:]
         else:
             return self._calc_checksum_builtin(secret)
 
@@ -331,9 +332,11 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return raw_ext_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
-        hash = safe_crypt(secret, self.to_string())
+        config = self.to_string()
+        hash = safe_crypt(secret, config)
         if hash:
-            return hash[9:]
+            assert hash.startswith(config[:9]) and len(hash) == 20
+            return hash[-11:]
         else:
             return self._calc_checksum_builtin(secret)
 

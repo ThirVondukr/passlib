@@ -698,30 +698,8 @@ class HandlerCase(TestCase):
         if backend:
             if not hasattr(handler, "set_backend"):
                 raise RuntimeError("handler doesn't support multiple backends")
-            if backend == "os_crypt" and not handler.has_backend("os_crypt"):
-                self._patch_safe_crypt()
             self.addCleanup(handler.set_backend, handler.get_backend())
             handler.set_backend(backend)
-
-    def _patch_safe_crypt(self):
-        """if crypt() doesn't support current hash alg, this patches
-        safe_crypt() so that it transparently uses another one of the handler's
-        backends, so that we can go ahead and test as much of code path
-        as possible.
-        """
-        handler = self.handler
-        alt_backend = _find_alternate_backend(handler, "os_crypt")
-        if not alt_backend:
-            raise AssertionError("handler has no available backends!")
-        import passlib.utils as mod
-        def crypt_stub(secret, hash):
-            with temporary_backend(handler, alt_backend):
-                hash = handler.genhash(secret, hash)
-            assert isinstance(hash, str)
-            return hash
-        self.addCleanup(setattr, mod, "_crypt", mod._crypt)
-        mod._crypt = crypt_stub
-        self.using_patched_crypt = True
 
     #=========================================================
     # basic tests
@@ -1635,6 +1613,115 @@ class HandlerCase(TestCase):
     # eoc
     #=========================================================
 
+class OsCryptMixin(HandlerCase):
+    """helper used by create_backend_case() which adds additional features
+    to test the os_crypt backend.
+
+    * if crypt support is missing, inserts fake crypt support to simulate
+      a working safe_crypt, to test passlib's codepath as fully as possible.
+
+    * extra tests to verify non-conformant crypt implementations are handled
+      correctly.
+
+    * check that native crypt support is detected correctly for known platforms.
+    """
+    #=========================================================
+    # option flags
+    #=========================================================
+    # platforms that are known to support / not support this hash natively.
+    # encodeds as os.platform prefixes.
+    platform_crypt_support = dict()
+
+    # TODO: test that os_crypt support is detected correct on the expected
+    # platofrms.
+
+    #=========================================================
+    # instance attrs
+    #=========================================================
+    __unittest_skip = True
+
+    # force this backend
+    backend = "os_crypt"
+
+    # flag read by HandlerCase to detect if fake os crypt is enabled.
+    using_patched_crypt = False
+
+    #=========================================================
+    # setup
+    #=========================================================
+    def setUp(self):
+        assert self.backend == "os_crypt"
+        if not self.handler.has_backend("os_crypt"):
+            self.handler.get_backend() # hack to prevent recursion issue
+            self._patch_safe_crypt()
+        HandlerCase.setUp(self)
+
+    def _patch_safe_crypt(self):
+        """if crypt() doesn't support current hash alg, this patches
+        safe_crypt() so that it transparently uses another one of the handler's
+        backends, so that we can go ahead and test as much of code path
+        as possible.
+        """
+        handler = self.handler
+        alt_backend = _find_alternate_backend(handler, "os_crypt")
+        if not alt_backend:
+            raise AssertionError("handler has no available backends!")
+        import passlib.utils as mod
+        def crypt_stub(secret, hash):
+            with temporary_backend(handler, alt_backend):
+                hash = handler.genhash(secret, hash)
+            assert isinstance(hash, str)
+            return hash
+        self.addCleanup(setattr, mod, "_crypt", mod._crypt)
+        mod._crypt = crypt_stub
+        self.using_patched_crypt = True
+
+    #=========================================================
+    # custom tests
+    #=========================================================
+    def test_80_faulty_crypt(self):
+        "test with faulty crypt()"
+        # patch safe_crypt to return mock value.
+        import passlib.utils as mod
+        self.addCleanup(setattr, mod, "_crypt", mod._crypt)
+        crypt_value = [None]
+        mod._crypt = lambda secret, config: crypt_value[0]
+
+        # prepare framework
+        config = self.do_genconfig()
+        hash = self.get_sample_hash()[1]
+        exc_types = (AssertionError,)
+
+        def test(value):
+            crypt_value[0] = value
+            self.assertRaises(exc_types, self.do_genhash, "stub", config)
+            self.assertRaises(exc_types, self.do_encrypt, "stub")
+            self.assertRaises(exc_types, self.do_verify, "stub", hash)
+
+        test('$x' + hash[2:]) # detect wrong prefix
+        test(hash[:-1]) # detect too short
+        test(hash + 'x') # detect too long
+
+    def test_81_crypt_support(self):
+        "test crypt support detection"
+        platform = sys.platform
+        for name, flag in self.platform_crypt_support.items():
+            if not platform.startswith(name):
+                continue
+            if flag != self.using_patched_crypt:
+                return
+            if flag:
+                self.fail("expected %r platform would have native support "
+                          "for %r" % (platform, self.handler.name))
+            else:
+                self.fail("expected %r platform would NOT have native support "
+                          "for %r" % (platform, self.handler.name))
+        raise self.skipTest("no data for %r platform" % platform)
+
+    #=========================================================
+    # eoc
+    #=========================================================
+
 class UserHandlerMixin(HandlerCase):
     """helper for handlers w/ 'user' context kwd; mixin for HandlerCase
 
@@ -1643,11 +1730,21 @@ class UserHandlerMixin(HandlerCase):
     calls. as well, passing in a pair of strings as the password
     will be interpreted as (secret,user)
     """
-    __unittest_skip = True
+    #=========================================================
+    # option flags
+    #=========================================================
     default_user = "user"
     requires_user = True
     user_case_insensitive = False
 
+    #=========================================================
+    # instance attrs
+    #=========================================================
+    __unittest_skip = True
+
+    #=========================================================
+    # custom tests
+    #=========================================================
     def test_80_user(self):
         "test user context keyword"
         handler = self.handler
@@ -1687,6 +1784,10 @@ class UserHandlerMixin(HandlerCase):
 
     # TODO: user size? kinda dicey, depends on algorithm.
 
+    #=========================================================
+    # override test helpers
+    #=========================================================
+
     def is_secret_8bit(self, secret):
         secret = self._insert_user({}, secret)
         return not is_ascii_safe(secret)
@@ -1715,12 +1816,21 @@ class UserHandlerMixin(HandlerCase):
         secret = self._insert_user(kwds, secret)
         return self.handler.genhash(secret, config, **kwds)
 
+    #=========================================================
+    # modify fuzz testing
+    #=========================================================
     fuzz_user_alphabet = u("asdQWE123")
+
     fuzz_settings = HandlerCase.fuzz_settings + ["user"]
+
     def get_fuzz_user(self):
         if not self.requires_user and rng.random() < .1:
             return None
         return getrandstr(rng, self.fuzz_user_alphabet, rng.randint(2,10))
+
+    #=========================================================
+    # eoc
+    #=========================================================
 
 #=========================================================
 #backend test helpers
@@ -1805,10 +1915,15 @@ def create_backend_case(base_class, backend, module=None):
     if not enable and ut_version < 2:
         return None
 
-    #create subclass of 'base' which uses correct backend
+    # pick bases
+    bases = (base_class,)
+    if backend == "os_crypt":
+        bases += (OsCryptMixin,)
+
+    # create subclass to test backend
     backend_class = type(
         "%s_%s" % (backend, handler.name),
-        (base_class,),
+        bases,
         dict(
             descriptionPrefix = "%s (%s backend)" % (handler.name, backend),
             backend = backend,
