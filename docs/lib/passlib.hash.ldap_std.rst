@@ -80,7 +80,7 @@ These hashes have the format :samp:`{prefix}{data}`.
 * :samp:`{prefix}` is `{SMD5}` for ldap_salted_md5,
   and `{SSHA}` for ldap_salted_sha1.
 * :samp:`{data}` is the base64 encoding of :samp:`{checksum}{salt}`;
-  and in turn :samp:`{salt}` is a 4 byte binary salt,
+  and in turn :samp:`{salt}` is a multi-byte binary salt,
   and :samp:`{checksum}` is the raw digest of the
   the string :samp:`{password}{salt}`,
   using the appropriate digest algorithm.
@@ -113,13 +113,22 @@ Plaintext
 
 This handler does not hash passwords at all,
 rather it encoded them into UTF-8.
-The only difference between this class and :class:`passlib.hash.plaintext`
-is that this class will NOT recognize any strings using
+The only difference between this class and :class:`~passlib.hash.plaintext`
+is that this class will NOT recognize any strings that use
 the ``{SCHEME}HASH`` format.
 
+Deviations
+==========
+
+* The salt size for the salted digests appears to vary between applications.
+  While OpenLDAP is fixed at 4 bytes, some systems appear to use 8 or more.
+  Passlib can accept and generate strings with salts between 4-16 bytes,
+  though various servers may differ in what they can handle.
 
 .. rubric:: Footnotes
 
 .. [#pwd] The manpage for :command:`slappasswd` - `<http://gd.tuwien.ac.at/linuxcommand.org/man_pages/slappasswd8.html>`_.
 
 .. [#rfc] The basic format for these hashes is laid out in RFC 2307 - `<http://www.ietf.org/rfc/rfc2307.txt>`_
+
+.. [#] OpenLDAP hash documentation - `<http://www.openldap.org/doc/admin24/security.html>`_

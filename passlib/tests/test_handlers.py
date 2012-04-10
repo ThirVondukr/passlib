@@ -840,6 +840,23 @@ class ldap_salted_md5_test(HandlerCase):
     known_correct_hashes = [
         ("testing1234", '{SMD5}UjFY34os/pnZQ3oQOzjqGu4yeXE='),
         (UPASS_TABLE, '{SMD5}Z0ioJ58LlzUeRxm3K6JPGAvBGIM='),
+
+        # alternate salt sizes (8, 15, 16)
+        ('test', '{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw'),
+        ('test', '{SMD5}XRlncfRzvGi0FDzgR98tUgBg7B3jXOs9p9S615qTkg=='),
+        ('test', '{SMD5}FbAkzOMOxRbMp6Nn4hnZuel9j9Gas7a2lvI+x5hT6j0='),
+    ]
+
+    known_malformed_hashes = [
+        # salt too small (3)
+        '{SMD5}IGVhwK+anvspmfDt2t0vgGjt/Q==',
+
+        # incorrect base64 encoding
+        '{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4c',
+        '{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw'
+        '{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P4cw=',
+        '{SMD5}LnuZPJhiaY95/4lmV=pg548xBsD4P4cw',
+        '{SMD5}LnuZPJhiaY95/4lmVFpg548xBsD4P===',
     ]
 
 class ldap_salted_sha1_test(HandlerCase):
@@ -848,6 +865,22 @@ class ldap_salted_sha1_test(HandlerCase):
         ("testing123", '{SSHA}0c0blFTXXNuAMHECS4uxrj3ZieMoWImr'),
         ("secret", "{SSHA}0H+zTv8o4MR4H43n03eCsvw1luG8LdB7"),
         (UPASS_TABLE, '{SSHA}3yCSD1nLZXznra4N8XzZgAL+s1sQYsx5'),
+
+        # alternate salt sizes (8, 15, 16)
+        ('test', '{SSHA}P90+qijSp8MJ1tN25j5o1PflUvlqjXHOGeOckw=='),
+        ('test', '{SSHA}/ZMF5KymNM+uEOjW+9STKlfCFj51bg3BmBNCiPHeW2ttbU0='),
+        ('test', '{SSHA}Pfx6Vf48AT9x3FVv8znbo8WQkEVSipHSWovxXmvNWUvp/d/7'),
+    ]
+
+    known_malformed_hashes = [
+        # salt too small (3)
+        '{SSHA}ZQK3Yvtvl6wtIRoISgMGPkcWU7Nfq5U=',
+
+        # incorrect base64 encoding
+        '{SSHA}P90+qijSp8MJ1tN25j5o1PflUvlqjXHOGeOck',
+        '{SSHA}P90+qijSp8MJ1tN25j5o1PflUvlqjXHOGeOckw=',
+        '{SSHA}P90+qijSp8MJ1tN25j5o1Pf=UvlqjXHOGeOckw==',
+        '{SSHA}P90+qijSp8MJ1tN25j5o1PflUvlqjXHOGeOck===',
     ]
 
 class ldap_plaintext_test(HandlerCase):

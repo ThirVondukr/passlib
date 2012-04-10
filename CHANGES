@@ -50,6 +50,9 @@ Release History
           that sometimes occurred on platforms with a deviant implementation
           of :func:`!os_crypt`.
 
+        * The :doc:`ldap salted digests </lib/passlib.hash.ldap_std>`
+          now support salts from 4-16 bytes [issue 30].
+
         * All hashes will now throw :exc:`~passlib.exc.PasswordSizeError`
           if the provided password is larger than 4096 characters.
 
