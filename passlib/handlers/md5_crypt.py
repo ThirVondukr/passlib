@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_bytes
 from passlib.utils.compat import b, bytes, irange, unicode, u
 import passlib.utils.handlers as uh
 #pkg
@@ -26,148 +26,187 @@ B_NULL = b("\x00")
 B_MD5_MAGIC = b("$1$")
 B_APR_MAGIC = b("$apr1$")
 
-_OFFSETS = [
-    (0, 3), (3, 2), (3, 3), (2, 1), (3, 2), (3, 3), (2, 3),
-    (1, 2), (3, 3), (2, 3), (3, 0), (3, 3), (2, 3), (3, 2),
-    (1, 3), (2, 3), (3, 2), (3, 1), (2, 3), (3, 2), (3, 3),
-    ]
+# pre-calculated offsets used to speed up C digest stage (see notes below).
+# sequence generated using the following:
+    ##perms_order = "p,pp,ps,psp,sp,spp".split(",")
+    ##def offset(i):
+    ##    key = (("p" if i % 2 else "") + ("s" if i % 3 else "") +
+    ##        ("p" if i % 7 else "") + ("" if i % 2 else "p"))
+    ##    return perms_order.index(key)
+    ##_c_digest_offsets = [(offset(i), offset(i+1)) for i in range(0,42,2)]
+_c_digest_offsets = (
+    (0, 3), (5, 1), (5, 3), (1, 2), (5, 1), (5, 3), (1, 3),
+    (4, 1), (5, 3), (1, 3), (5, 0), (5, 3), (1, 3), (5, 1),
+    (4, 3), (1, 3), (5, 1), (5, 2), (1, 3), (5, 1), (5, 3),
+    )
 
-def extend(source, size_ref):
-    "helper which repeats <source> so it's the same length as <size_ref>"
-    m,d = divmod(len(size_ref), len(source))
-    if d:
-        return source*m + source[:d]
-    else:
-        return source*m
+# map used to transpose bytes when encoding final digest
+_transpose_map = (12, 6, 0, 13, 7, 1, 14, 8, 2, 15, 9, 3, 5, 10, 4, 11)
 
-def _raw_md5_crypt(password, salt, apr=False):
+def _raw_md5_crypt(pwd, salt, use_apr=False):
     """perform raw md5-crypt calculation
 
-    :arg password:
-        password, bytes or unicode (encoded to utf-8)
+    this function provides a pure-python implementation of the internals
+    for the MD5-Crypt algorithms; it doesn't handle any of the
+    parsing/validation of the hash strings themselves.
 
-    :arg salt:
-        salt portion of hash, bytes or unicode (encoded to ascii),
-        clipped to max 8 bytes.
-
-    :param apr:
-        flag to use apache variant
+    :arg pwd: password chars/bytes to encrypt
+    :arg salt: salt chars to use
+    :arg use_apr: use apache variant
 
     :returns:
-        encoded checksum as unicode
+        encoded checksum chars
     """
-    #NOTE: regarding 'apr' format:
+    # NOTE: regarding 'apr' format:
     # really, apache? you had to invent a whole new "$apr1$" format,
     # when all you did was change the ident incorporated into the hash?
     # would love to find webpage explaining why just using a portable
     # implementation of $1$ wasn't sufficient. *nothing* else was changed.
 
-    #validate password
-    #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-    if isinstance(password, unicode):
-        password = password.encode("utf-8")
+    #=====================================================================
+    # init & validate inputs
+    #=====================================================================
+
+    #validate secret
+    if isinstance(pwd, unicode):
+        # XXX: not sure what official unicode policy is, using this as default
+        pwd = pwd.encode("utf-8")
+    elif not isinstance(pwd, bytes):
+        raise TypeError("password must be bytes or unicode")
+    pwd_len = len(pwd)
 
     #validate salt
-    if isinstance(salt, unicode):
-        salt = salt.encode("ascii")
-    if len(salt) > 8:
-        salt = salt[:8]
+    assert isinstance(salt, unicode), "salt not unicode"
+    salt = salt.encode("ascii")
+    assert len(salt) < 9, "salt too large"
+        # NOTE: spec says salts larger than 8 bytes should be truncated,
+        # instead of causing an error. this function assumes that's been
+        # taken care of by the handler class.
 
-    #primary hash = password+id+salt+...
-    if apr:
+    # load APR specific constants
+    if use_apr:
         magic = B_APR_MAGIC
     else:
         magic = B_MD5_MAGIC
-    a_hash = md5(password + magic + salt)
 
-    # primary hash - add len(password) chars of tmp hash,
-    # where temp hash is md5(password+salt+password)
-    b = md5(password + salt + password).digest()
-    a_hash.update(extend(b, password))
+    #=====================================================================
+    # digest B - used as subinput to digest A
+    #=====================================================================
+    db = md5(pwd + salt + pwd).digest()
 
-    # primary hash - add null chars & first char of password !?!
-    #
-    # this may have historically been a bug,
-    # where they meant to use tmp[0] instead of '\x00',
-    # but the code memclear'ed the buffer,
-    # and now all implementations have to use this.
-    #
-    # sha-crypt replaced this step with
-    # something more useful, anyways
-    idx = len(password)
-    evenchar = password[:1]
-    while idx > 0:
-        a_hash.update(B_NULL if idx & 1 else evenchar)
-        idx >>= 1
-    a = a_hash.digest()
+    #=====================================================================
+    # digest A - used to initialize first round of digest C
+    #=====================================================================
+    # start out with pwd + magic + salt
+    a_ctx = md5(pwd + magic + salt)
+    a_ctx_update = a_ctx.update
 
-    #next:
-    # do 1000 rounds of md5 to make things harder.
-    # each round we do digest of round-specific content,
-    # where content is formed from concatenation of...
-    #   secret if round % 2 else result
-    #   salt if round % 3
-    #   secret if round % 7
-    #   result if round % 2 else secret
-    #
-    # NOTE: instead of doing this directly, this implementation precomputes
-    # most of the data ahead of time. (see sha2_crypt for details, it
-    # uses the same alg & optimization).
-    #
-    p = password
-    s = salt
-    p_p = p*2
-    s_p = s+p
-    evens = [p, s_p, p_p, s_p+p]
-    odds =  [p, p+s, p_p, p+s_p]
-    data = [(evens[e], odds[o]) for e,o in _OFFSETS]
+    # add pwd_len bytes of b, repeating b as many times as needed.
+    a_ctx_update(repeat_bytes(db, pwd_len))
 
-    # perform 23 blocks of 42 rounds each
-    c = a
-    i = 0
-    while i < 23:
+    # add null chars & first char of password
+        # NOTE: this may have historically been a bug,
+        # where they meant to use db[0] instead of B_NULL,
+        # but the original code memclear'ed db,
+        # and now all implementations have to use this.
+    i = pwd_len
+    evenchar = pwd[:1]
+    while i:
+        a_ctx_update(B_NULL if i & 1 else evenchar)
+        i >>= 1
+
+    # finish A
+    da = a_ctx.digest()
+
+    #=====================================================================
+    # digest C - for a 1000 rounds, combine A, S, and P
+    #            digests in various ways; in order to burn CPU time.
+    #=====================================================================
+
+    # NOTE: the original MD5-Crypt implementation performs the C digest
+    # calculation using the following loop:
+    #
+    ##dc = da
+    ##i = 0
+    ##while i < rounds:
+    ##    tmp_ctx = md5(pwd if i & 1 else dc)
+    ##    if i % 3:
+    ##        tmp_ctx.update(salt)
+    ##    if i % 7:
+    ##        tmp_ctx.update(pwd)
+    ##    tmp_ctx.update(dc if i & 1 else pwd)
+    ##    dc = tmp_ctx.digest()
+    ##    i += 1
+    #
+    # The code Passlib uses (below) implements an equivalent algorithm,
+    # it's just been heavily optimized to pre-calculate a large number
+    # of things beforehand. It works off of a couple of observations
+    # about the original algorithm:
+    #
+    # 1. each round is a combination of 'dc', 'salt', and 'pwd'; determined
+    #    by the whether 'i' a multiple of 2,3, and/or 7.
+    # 2. since lcm(2,3,7)==42, the series of combinations will repeat
+    #    every 42 rounds.
+    # 3. even rounds 0-40 consist of 'hash(dc + round-specific-constant)';
+    #    while odd rounds 1-41 consist of hash(round-specific-constant + dc)
+    #
+    # Using these observations, the following code...
+    # * calculates the round-specific combination of salt & pwd for each round 0-41
+    # * runs through as many 42-round blocks as possible
+    # * runs through as many pairs of rounds as possible for remaining rounds
+    # * performs once last round if the total rounds should be odd.
+    #
+    # this cuts out a lot of the control overhead incurred when running the
+    # original loop 40,000+ times in python, resulting in ~20% increase in
+    # speed under CPython (though still 2x slower than glibc crypt)
+
+    # prepare the 6 combinations of pwd & salt which are needed
+    # (order of 'perms' must match how _c_digest_offsets was generated)
+    pwd_pwd = pwd+pwd
+    pwd_salt = pwd+salt
+    perms = [pwd, pwd_pwd, pwd_salt, pwd_salt+pwd, salt+pwd, salt+pwd_pwd]
+
+    # build up list of even-round & odd-round constants,
+    # and store in 21-element list as (even,odd) pairs.
+    data = [ (perms[even], perms[odd]) for even, odd in _c_digest_offsets]
+
+    # perform 23 blocks of 42 rounds each (for a total of 966 rounds)
+    dc = da
+    blocks = 23
+    while blocks:
         for even, odd in data:
-            c = md5(odd + md5(c + even).digest()).digest()
-        i += 1
+            dc = md5(odd + md5(dc + even).digest()).digest()
+        blocks -= 1
 
-    # perform 34 additional rounds, 2 at a time; for a total of 1000 rounds.
+    # perform 17 more pairs of rounds (34 more rounds, for a total of 1000)
     for even, odd in data[:17]:
-        c = md5(odd + md5(c + even).digest()).digest()
+        dc = md5(odd + md5(dc + even).digest()).digest()
 
-    #encode resulting hash
-    return h64.encode_transposed_bytes(c, _chk_offsets).decode("ascii")
-
-_chk_offsets = (
-    12,6,0,
-    13,7,1,
-    14,8,2,
-    15,9,3,
-    5,10,4,
-    11,
-)
+    #=====================================================================
+    # encode digest using appropriate transpose map
+    #=====================================================================
+    return h64.encode_transposed_bytes(dc, _transpose_map).decode("ascii")
 
 #=========================================================
-#handler
+# handler
 #=========================================================
-class _Md5Common(uh.HasSalt, uh.GenericHandler):
+class _MD5_Common(uh.HasSalt, uh.GenericHandler):
     "common code for md5_crypt and apr_md5_crypt"
     #=========================================================
-    #algorithm information
+    # class attrs
     #=========================================================
-    #--GenericHandler--
-    #name in subclass
+    #name - set in subclass
     setting_kwds = ("salt", "salt_size")
-    #ident in subclass
+    #ident - set in subclass
     checksum_size = 22
     checksum_chars = uh.HASH64_CHARS
 
-    #--HasSalt--
     min_salt_size = 0
     max_salt_size = 8
     salt_chars = uh.HASH64_CHARS
 
     #=========================================================
-    #internal helpers
+    # methods
     #=========================================================
 
     @classmethod
@@ -178,19 +217,13 @@ class _Md5Common(uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         return uh.render_mc2(self.ident, self.salt, self.checksum)
 
-    #=========================================================
-    #primary interface
-    #=========================================================
-    # calc_checksum defined in subclass
+    # _calc_checksum() - provided by subclass
 
     #=========================================================
     #eoc
     #=========================================================
 
-#=========================================================
-#handler
-#=========================================================
-class md5_crypt(uh.HasManyBackends, _Md5Common):
+class md5_crypt(uh.HasManyBackends, _MD5_Common):
     """This class implements the MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -210,13 +243,13 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
     #=========================================================
-    #algorithm information
+    # class attrs
     #=========================================================
     name = "md5_crypt"
     ident = u("$1$")
 
     #=========================================================
-    #primary interface
+    # methods
     #=========================================================
     #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
     # all backends currently coerce -> utf-8
@@ -240,13 +273,10 @@ class md5_crypt(uh.HasManyBackends, _Md5Common):
             return self._calc_checksum_builtin(secret)
 
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
-#=========================================================
-#apache variant of md5-crypt
-#=========================================================
-class apr_md5_crypt(_Md5Common):
+class apr_md5_crypt(_MD5_Common):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
@@ -259,21 +289,21 @@ class apr_md5_crypt(_Md5Common):
         If specified, it must be 0-8 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
     """
     #=========================================================
-    #algorithm information
+    # class attrs
     #=========================================================
     name = "apr_md5_crypt"
     ident = u("$apr1$")
 
     #=========================================================
-    #primary interface
+    # methods
     #=========================================================
     def _calc_checksum(self, secret):
-        return _raw_md5_crypt(secret, self.salt, apr=True)
+        return _raw_md5_crypt(secret, self.salt, use_apr=True)
 
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
 #=========================================================
-#eof
+# eof
 #=========================================================

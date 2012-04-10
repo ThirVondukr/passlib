@@ -481,6 +481,15 @@ def int_to_bytes(value, count):
         for s in irange(8*count-8,-8,-8)
     )
 
+def repeat_bytes(source, size):
+    "repeat or truncate <source> bytes, so it has length <size>"
+    cur = len(source)
+    if size <= cur:
+        return source[:size]
+    else:
+        mult = (size+cur-1)//cur
+        return (source*mult)[:size]
+
 #=============================================================================
 # encoding helpers
 #=============================================================================

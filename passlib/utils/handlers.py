@@ -113,7 +113,7 @@ def parse_mc3(hash, prefix, sep=_UDOLLAR, rounds_base=10,
               default_rounds=None, handler=None):
     """parse hash using 3-part modular crypt format.
 
-    this expects a hash of the format :samp:`{prefix}[{rounds}$]{salt}[${checksum}]`,
+    this expects a hash of the format :samp:`{prefix}[{rounds}]${salt}[${checksum}]`,
     such as sha1_crypt, and parses it into rounds / salt / checksum portions.
     tries to convert the rounds to an integer,
     and throws error if it has zero-padding.
