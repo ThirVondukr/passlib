@@ -39,7 +39,8 @@ if ut_version < 2:
 from passlib.exc import MissingBackendError
 import passlib.registry as registry
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
-                          classproperty, rng, getrandstr, is_ascii_safe, to_native_str
+                          classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
+                          repeat_string
 from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
                                  sb_types, exc_err, u, unicode
 import passlib.utils.handlers as uh
@@ -1148,8 +1149,7 @@ class HandlerCase(TestCase):
             # hash only counts the first <sc> characters; eg: bcrypt, des-crypt
 
             # create & hash string that's exactly sc+1 chars
-            secret = (base * (1+sc//16))[:sc+1]
-            assert len(secret) == sc+1
+            secret = repeat_string(base, sc+1)
             hash = self.do_encrypt(secret)
 
             # check sc value isn't too large by verifying that sc-1'th char

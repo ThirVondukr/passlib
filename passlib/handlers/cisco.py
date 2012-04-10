@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import h64, to_bytes
+from passlib.utils import h64, to_bytes, right_pad_string
 from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
              join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
@@ -69,7 +69,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
             secret += user[:4]
 
         # pad/truncate to 16
-        secret = secret[:16] + b("\x00") * (16 - len(secret))
+        secret = right_pad_string(secret, 16)
 
         # md5 digest
         hash = md5(secret).digest()

@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_bytes
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_string
 from passlib.utils.compat import b, bytes, irange, unicode, u
 import passlib.utils.handlers as uh
 #pkg
@@ -102,7 +102,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     a_ctx_update = a_ctx.update
 
     # add pwd_len bytes of b, repeating b as many times as needed.
-    a_ctx_update(repeat_bytes(db, pwd_len))
+    a_ctx_update(repeat_string(db, pwd_len))
 
     # add null chars & first char of password
         # NOTE: this may have historically been a bug,

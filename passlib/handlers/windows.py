@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_unicode, to_bytes
+from passlib.utils import to_unicode, to_bytes, right_pad_string
 from passlib.utils.compat import b, bytes, str_to_uascii, u, unicode, uascii_to_str
 from passlib.utils.md4 import md4
 import passlib.utils.handlers as uh
@@ -104,8 +104,7 @@ class lmhash(_HasEncodingContext, uh.StaticHandler):
             secret = secret.upper()
         else:
             raise TypeError("secret must be unicode or bytes")
-        if len(secret) < 14:
-            secret += b("\x00") * (14-len(secret))
+        secret = right_pad_string(secret, 14)
         return des_encrypt_block(secret[0:7], MAGIC) + \
                des_encrypt_block(secret[7:14], MAGIC)
 

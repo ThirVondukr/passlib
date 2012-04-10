@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_bytes
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_string
 from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, lmap
 import passlib.utils.handlers as uh
@@ -117,7 +117,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     a_ctx_update = a_ctx.update
 
     # add pwd_len bytes of b, repeating b as many times as needed.
-    a_ctx_update(repeat_bytes(db, pwd_len))
+    a_ctx_update(repeat_string(db, pwd_len))
 
     # for each bit in pwd_len: add b if it's 1, or pwd if it's 0
     i = pwd_len
@@ -135,7 +135,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     if pwd_len < 64:
         # method this is faster under python, but uses O(pwd_len**2) memory
         # so we don't use it for larger passwords, to avoid a potential DOS.
-        dp = repeat_bytes(hash_const(pwd * pwd_len).digest(), pwd_len)
+        dp = repeat_string(hash_const(pwd * pwd_len).digest(), pwd_len)
     else:
         tmp_ctx = hash_const(pwd)
         tmp_ctx_update = tmp_ctx.update
@@ -143,7 +143,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
         while i:
             tmp_ctx_update(pwd)
             i -= 1
-        dp = repeat_bytes(tmp_ctx.digest(), pwd_len)
+        dp = repeat_string(tmp_ctx.digest(), pwd_len)
     assert len(dp) == pwd_len
 
     #=====================================================================

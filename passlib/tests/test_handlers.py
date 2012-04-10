@@ -10,10 +10,10 @@ import warnings
 #site
 #pkg
 from passlib import hash
-from passlib.utils.compat import irange, PY3
+from passlib.utils import repeat_string
+from passlib.utils.compat import irange, PY3, u
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b, catch_warnings, UserHandlerMixin, randintgauss
-from passlib.utils.compat import u
 #module
 
 #=========================================================
@@ -238,9 +238,8 @@ class _bcrypt_test(HandlerCase):
                     # using the $2a$ algorithm, by repeating the password until
                     # it's 72 chars in length.
                     hash = "$2a$" + hash[3:]
-                    ss = len(secret)
-                    if 0 < ss < 72:
-                        secret = secret * (1+72//ss)
+                    if secret:
+                        secret = repeat_string(secret, 72)
                 return Engine(False).hash_key(secret, hash) == hash
             verifiers.append(check_bcryptor)
 

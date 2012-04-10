@@ -5,6 +5,7 @@
 #core
 import struct
 #pkg
+from passlib.utils import repeat_string
 #local
 __all__ = [
     "BlowfishEngine",
@@ -328,12 +329,7 @@ class BlowfishEngine(object):
             return [0]*size
 
         # repeat data until it fills up 4*size bytes
-        needed = size<<2
-        if dlen > needed:
-            data = data[:needed]
-        elif dlen < needed:
-            count = (needed+dlen-1)//dlen
-            data = (data * count)[:needed]
+        data = repeat_string(data, size<<2)
 
         # unpack
         return struct.unpack(">%dI" % (size,), data)

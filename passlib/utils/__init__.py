@@ -481,14 +481,27 @@ def int_to_bytes(value, count):
         for s in irange(8*count-8,-8,-8)
     )
 
-def repeat_bytes(source, size):
-    "repeat or truncate <source> bytes, so it has length <size>"
+def repeat_string(source, size):
+    "repeat or truncate <source> string, so it has length <size>"
     cur = len(source)
-    if size <= cur:
-        return source[:size]
-    else:
+    if size > cur:
         mult = (size+cur-1)//cur
         return (source*mult)[:size]
+    else:
+        return source[:size]
+
+_BNULL = b("\x00")
+_UNULL = u("\x00")
+
+def right_pad_string(source, size, pad=None):
+    "right-pad or truncate <source> string, so it has length <size>"
+    cur = len(source)
+    if size > cur:
+        if pad is None:
+            pad = _UNULL if isinstance(source, unicode) else _BNULL
+        return source+pad*(size-cur)
+    else:
+        return source[:size]
 
 #=============================================================================
 # encoding helpers
