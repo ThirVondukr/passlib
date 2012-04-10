@@ -1,13 +1,9 @@
-"""passlib.bcrypt
-
-Implementation of OpenBSD's BCrypt algorithm.
+"""passlib.bcrypt -- implementation of OpenBSD's BCrypt algorithm.
 
 TODO:
 
 * support 2x and altered-2a hashes?
   http://www.openwall.com/lists/oss-security/2011/06/27/9
-
-* is there any workaround for bcryptor lacking $2$ support?
 
 * deal with lack of PY3-compatibile c-ext implementation
 """
@@ -42,6 +38,9 @@ __all__ = [
     "bcrypt",
 ]
 
+#=========================================================
+# support funcs & constants
+#=========================================================
 _builtin_bcrypt = None
 
 def _load_builtin():
@@ -55,7 +54,7 @@ IDENT_2X = u("$2x$")
 IDENT_2Y = u("$2y$")
 
 #=========================================================
-#handler
+# handler
 #=========================================================
 class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.GenericHandler):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
@@ -168,7 +167,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         # check for incorrect padding bits (passlib issue 25)
-        if hash.startswith(u("$2a$")) and hash[28] not in bcrypt64._padinfo2[1]:
+        if hash.startswith(IDENT_2A) and hash[28] not in bcrypt64._padinfo2[1]:
             return True
         return False
 

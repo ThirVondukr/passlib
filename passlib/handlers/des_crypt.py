@@ -496,7 +496,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         result1 = mdes_encrypt_int_block(key1, 0, salt_value, 20)
 
         #convert next 8 bytes of secret string into integer (key=0 if secret < 8 chars)
-        key2 = _crypt_secret_to_key(secret[8:])
+        key2 = _crypt_secret_to_key(secret[8:16])
 
         #run data through des using input of 0
         result2 = mdes_encrypt_int_block(key2, 0, salt_value, 5)

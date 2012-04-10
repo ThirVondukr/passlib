@@ -65,7 +65,7 @@ class PasslibRegistryProxy(object):
     #eoc
     #=========================================================
 
-#singleton instance - available publicallly as 'passlib.hash'
+#singleton instance - available publically as 'passlib.hash'
 _proxy = PasslibRegistryProxy()
 
 #==========================================================

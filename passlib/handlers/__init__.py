@@ -1,3 +1,1 @@
-#XXX: make this a namespace package ?
-
-#TODO: bigcrypt, crypt16, raw hex strings for md5/sha1/sha256/sha512
+"""passlib.handlers -- holds implementations of all passlib's builtin hash formats"""
