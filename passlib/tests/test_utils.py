@@ -348,7 +348,6 @@ class CodecTest(TestCase):
         #check unicode w/ encodings
         self.assertEqual(to_bytes(u('\x00\xff'), 'latin-1'),  b('\x00\xff'))
         self.assertRaises(ValueError, to_bytes, u('\x00\xff'), 'ascii')
-        self.assertRaises(TypeError, to_bytes, u('abc'),      None)
 
         #check bytes inputs
         self.assertEqual(to_bytes(b('abc')),                b('abc'))
@@ -364,6 +363,7 @@ class CodecTest(TestCase):
                                                             b('\x00\xff'))
 
         #check other
+        self.assertRaises(AssertionError, to_bytes, 'abc', None)
         self.assertRaises(TypeError, to_bytes, None)
 
     def test_to_unicode(self):
@@ -375,7 +375,6 @@ class CodecTest(TestCase):
         self.assertEqual(to_unicode(u('\x00\xff')),           u('\x00\xff'))
 
         #check unicode input ignores encoding
-        self.assertEqual(to_unicode(u('\x00\xff'), None),     u('\x00\xff'))
         self.assertEqual(to_unicode(u('\x00\xff'), "ascii"),  u('\x00\xff'))
 
         #check bytes input
@@ -384,9 +383,9 @@ class CodecTest(TestCase):
         self.assertEqual(to_unicode(b('\x00\xff'), 'latin-1'),
                                                             u('\x00\xff'))
         self.assertRaises(ValueError, to_unicode, b('\x00\xff'))
-        self.assertRaises(TypeError, to_unicode, b('\x00\xff'), None)
 
         #check other
+        self.assertRaises(AssertionError, to_unicode, 'abc', None)
         self.assertRaises(TypeError, to_unicode, None)
 
     def test_to_native_str(self):

@@ -28,7 +28,7 @@ def patch():
     catfunc = getattr(settings, "PASSLIB_GET_CATEGORY", get_category)
 
     #parse & validate input value
-    if ctx == "disabled":
+    if ctx == "disabled" or ctx is None:
         # remove any patching that was already set, just in case.
         set_django_password_context(None)
         return

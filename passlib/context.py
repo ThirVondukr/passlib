@@ -1576,7 +1576,8 @@ class LazyCryptContext(CryptContext):
         kwds = self._lazy_kwds
         if 'create_policy' in kwds:
             create_policy = kwds.pop("create_policy")
-            kwds = dict(policy=create_policy(**kwds))
+            policy = create_policy(**kwds)
+            kwds = dict(policy=CryptPolicy.from_source(policy))
         super(LazyCryptContext, self).__init__(**kwds)
         del self._lazy_kwds
         self.__class__ = CryptContext

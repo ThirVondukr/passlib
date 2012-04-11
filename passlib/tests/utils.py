@@ -197,7 +197,7 @@ class TestCase(unittest.TestCase):
     resetWarningState = True
 
     def setUp(self):
-        unittest.TestCase.setUp(self)
+        super(TestCase, self).setUp()
         if self.resetWarningState:
             ctx = reset_warnings()
             ctx.__enter__()
@@ -1535,7 +1535,7 @@ class HandlerCase(TestCase):
         from passlib.utils import tick
         handler = self.handler
         disabled = self.is_disabled_handler
-        max_time = int(os.environ.get("PASSLIB_TESTS_FUZZ_TIME") or 1)
+        max_time = float(os.environ.get("PASSLIB_TESTS_FUZZ_TIME") or 1)
         verifiers = self.get_fuzz_verifiers()
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
@@ -1721,7 +1721,7 @@ class OsCryptMixin(HandlerCase):
         if not self.handler.has_backend("os_crypt"):
             self.handler.get_backend() # hack to prevent recursion issue
             self._patch_safe_crypt()
-        HandlerCase.setUp(self)
+        super(OsCryptMixin, self).setUp()
 
     def _patch_safe_crypt(self):
         """if crypt() doesn't support current hash alg, this patches

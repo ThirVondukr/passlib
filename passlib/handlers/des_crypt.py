@@ -216,8 +216,8 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         # no official policy since des-crypt predates unicode
         hash = safe_crypt(secret, self.salt)
         if hash:
-            assert hash.startswith(self.salt) and len(hash) == 4
-            return hash[-2:]
+            assert hash.startswith(self.salt) and len(hash) == 13
+            return hash[2:]
         else:
             return self._calc_checksum_builtin(secret)
 

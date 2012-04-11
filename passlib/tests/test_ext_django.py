@@ -533,7 +533,7 @@ class PluginTest(TestCase):
     def test_06_categories(self):
         "test PASSLIB_GET_CATEGORY unset"
         update_settings(
-            PASSLIB_CONTEXT=category_context.policy,
+            PASSLIB_CONTEXT=category_context.policy.to_string(),
         )
         import passlib.ext.django.models
 
@@ -546,7 +546,7 @@ class PluginTest(TestCase):
         def get_category(user):
             return user.first_name or None
         update_settings(
-            PASSLIB_CONTEXT = category_context.policy,
+            PASSLIB_CONTEXT = category_context.policy.to_string(),
             PASSLIB_GET_CATEGORY = get_category,
         )
         import passlib.ext.django.models
@@ -559,7 +559,7 @@ class PluginTest(TestCase):
     def test_08_categories_disabled(self):
         "test PASSLIB_GET_CATEGORY = None"
         update_settings(
-            PASSLIB_CONTEXT = category_context.policy,
+            PASSLIB_CONTEXT = category_context.policy.to_string(),
             PASSLIB_GET_CATEGORY = None,
         )
         import passlib.ext.django.models

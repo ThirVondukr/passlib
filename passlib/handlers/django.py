@@ -157,7 +157,7 @@ class django_des_crypt(DjangoSaltedHash):
         chk = self.checksum
         if salt and chk:
             if salt[:2] != chk[:2]:
-                raise uh.exc.MalformedHashError(cls,
+                raise uh.exc.MalformedHashError(self,
                     "first two digits of salt and checksum must match")
             # repeat stub checksum detection since salt isn't set
             # when _norm_checksum() is called.

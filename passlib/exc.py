@@ -106,7 +106,7 @@ def ExpectedStringError(value, param):
     "error message when param was supposed to be unicode or bytes"
     # NOTE: value is never displayed, since it may sometimes be a password.
     cls = value.__class__
-    if cls.__module__ and cls.__module__ != "__builtin__":
+    if cls.__module__ and cls.__module__ not in ["__builtin__", "builtins"]:
         name = "%s.%s" % (cls.__module__, cls.__name__)
     elif value is None:
         name = 'None'

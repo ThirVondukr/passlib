@@ -47,7 +47,7 @@ def _import_django():
         import django.contrib.auth.models as _dam
         from django import VERSION
         _has_django0 = VERSION < (1,0)
-        _has_django14 = VERISON >= (1,4)
+        _has_django14 = VERSION >= (1,4)
         if _has_django14:
             # django 1.4 had a large rewrite that adds new stronger schemes,
             # but changes how things work. our monkeypatching may not jive.

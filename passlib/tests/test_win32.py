@@ -21,7 +21,7 @@ class UtilTest(TestCase):
     ## among other places
 
     def setUp(self):
-        TestCase.setUp(self)
+        super(UtilTest, self).setUp()
         warnings.filterwarnings("ignore",
                                 "the 'passlib.win32' module is deprecated")
 

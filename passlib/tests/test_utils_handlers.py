@@ -74,7 +74,8 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify(u('a')))
         self.assertFalse(d1.identify(u('b')))
         self.assertFalse(d1.identify(u('c')))
-        self.assertFalse(d1.identify(None))
+        self.assertRaises(TypeError, d1.identify, None)
+        self.assertRaises(TypeError, d1.identify, 1)
 
         # check default genconfig method
         self.assertIs(d1.genconfig(), None)
@@ -109,23 +110,24 @@ class SkeletonTest(TestCase):
                     raise ValueError
 
         # check fallback
-        self.assertFalse(d1.identify(None))
+        self.assertRaises(TypeError, d1.identify, None)
+        self.assertRaises(TypeError, d1.identify, 1)
         self.assertFalse(d1.identify(''))
         self.assertTrue(d1.identify('a'))
         self.assertFalse(d1.identify('b'))
 
         # check regexp
         d1._hash_regex = re.compile(u('@.'))
-        self.assertFalse(d1.identify(None))
-        self.assertFalse(d1.identify(''))
+        self.assertRaises(TypeError, d1.identify, None)
+        self.assertRaises(TypeError, d1.identify, 1)
         self.assertTrue(d1.identify('@a'))
         self.assertFalse(d1.identify('a'))
         del d1._hash_regex
 
         # check ident-based
         d1.ident = u('!')
-        self.assertFalse(d1.identify(None))
-        self.assertFalse(d1.identify(''))
+        self.assertRaises(TypeError, d1.identify, None)
+        self.assertRaises(TypeError, d1.identify, 1)
         self.assertTrue(d1.identify('!a'))
         self.assertFalse(d1.identify('a'))
         del d1.ident
@@ -372,7 +374,8 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify(u("!Cxxx")))
         self.assertFalse(d1.identify(u("A")))
         self.assertFalse(d1.identify(u("")))
-        self.assertFalse(d1.identify(None))
+        self.assertRaises(TypeError, d1.identify, None)
+        self.assertRaises(TypeError, d1.identify, 1)
 
         # check default_ident missing is detected.
         d1.default_ident = None

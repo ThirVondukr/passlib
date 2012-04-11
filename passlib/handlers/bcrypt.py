@@ -27,7 +27,7 @@ except ImportError: #pragma: no cover
     bcryptor_engine = None
 #libs
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning
-from passlib.utils import bcrypt64, safe_crypt, \
+from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
@@ -250,10 +250,12 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             assert hash.startswith(config) and len(hash) == len(config)+31
             return hash[-31:]
         else:
-            #NOTE: not checking backends since this is lowest priority,
-            #      so they probably aren't available either
-            raise ValueError("encoded password can't be handled by os_crypt, "
-                             "recommend installing py-bcrypt or bcryptor.")
+            #NOTE: not checking other backends since this is lowest priority one,
+            #      so they probably aren't available either.
+            raise uh.exc.MissingBackendError(
+                "encoded password can't be handled by os_crypt, "
+                "recommend installing py-bcrypt.",
+                )
 
     def _calc_checksum_pybcrypt(self, secret):
         #py-bcrypt behavior:
@@ -278,9 +280,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             # bcryptor doesn't support $2$ hashes; but we can fake $2$ behavior
             # using the $2a$ algorithm, by repeating the password until
             # it's at least 72 chars in length.
-            ss = len(secret)
-            if 0 < ss < 72:
-                secret = secret * (1 + 72//ss)
+            if secret:
+                secret = repeat_string(secret, 72)
             config = self._get_config(IDENT_2A)
         else:
             config = self._get_config()

@@ -120,6 +120,14 @@ class cisco_type7(uh.GenericHandler):
         return None
 
     @classmethod
+    def genhash(cls, secret, config):
+        # special case to handle ``config=None`` in same style as StaticHandler
+        if config is None:
+            return cls.encrypt(secret)
+        else:
+            return super(cisco_type7, cls).genhash(secret, config)
+
+    @classmethod
     def from_string(cls, hash):
         hash = to_unicode(hash, "ascii", "hash")
         if len(hash) < 2:

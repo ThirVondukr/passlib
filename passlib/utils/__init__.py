@@ -548,6 +548,7 @@ def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
         * if *source_encoding* is specified, byte strings will be transcoded
           to *encoding*.
     """
+    assert encoding
     if isinstance(source, bytes):
         if source_encoding and not is_same_codec(source_encoding, encoding):
             return source.decode(source_encoding).encode(encoding)
@@ -579,6 +580,7 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
     if isinstance(source, unicode):
         return source
     elif isinstance(source, bytes):
+        assert source_encoding
         return source.decode(source_encoding)
     else:
         raise ExpectedStringError(source, errname)

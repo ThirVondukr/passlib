@@ -178,7 +178,7 @@ class _bcrypt_test(HandlerCase):
     # override some methods
     #===============================================================
     def setUp(self):
-        HandlerCase.setUp(self)
+        super(_bcrypt_test, self).setUp()
         if self.backend == "builtin":
             warnings.filterwarnings("ignore",
                                 "SECURITY WARNING: .*pure-python bcrypt.*")
@@ -2325,7 +2325,7 @@ class sun_md5_crypt_test(HandlerCase):
     def do_verify(self, secret, hash):
         # override to fake error for "$..." hash strings listed in known_config.
         # these have to be hash strings, in order to test bare salt issue.
-        if hash and hash.endswith("$......................"):
+        if isinstance(hash, str) and hash.endswith("$......................"):
             raise ValueError("pretending '$.' hash is config string")
         return self.handler.verify(secret, hash)
 
