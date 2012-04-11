@@ -695,7 +695,7 @@ class HandlerCase(TestCase):
     # setup / cleanup
     #=========================================================
     def setUp(self):
-        TestCase.setUp(self)
+        super(HandlerCase, self).setUp()
 
         # if needed, select specific backend for duration of test
         handler = self.handler
@@ -715,6 +715,9 @@ class HandlerCase(TestCase):
         def ga(name):
             return getattr(handler, name, None)
 
+        #
+        # name should be a str, and valid
+        #
         name = ga("name")
         self.assertTrue(name, "name not defined:")
         self.assertIsInstance(name, str, "name must be native str")
@@ -722,72 +725,116 @@ class HandlerCase(TestCase):
         self.assertTrue(re.match("^[a-z0-9_]+$", name),
                         "name must be alphanum + underscore: %r" % (name,))
 
+        #
+        # setting_kwds should be specified
+        #
         settings = ga("setting_kwds")
         self.assertTrue(settings is not None, "setting_kwds must be defined:")
         self.assertIsInstance(settings, tuple, "setting_kwds must be a tuple:")
 
+        #
+        # context_kwds should be specified
+        #
         context = ga("context_kwds")
         self.assertTrue(context is not None, "context_kwds must be defined:")
         self.assertIsInstance(context, tuple, "context_kwds must be a tuple:")
 
-    def test_02_genconfig(self):
-        "test basic genconfig() behavior"
-        # this also tests identify/verify/genhash have basic functionality.
+        # XXX: any more checks needed?
 
+    def test_02_config(self):
+        """test basic config-string workflow
+
+        this tests that genconfig() returns the expected types,
+        and that identify() and genhash() handle the result correctly.
+        """
+        #
+        # genconfig() should return native string,
+        # or ``None`` if handler does not use a configuration string
+        # (mostly used by static hashes)
+        #
+        config = self.do_genconfig()
         if self.supports_config_string:
-            # try to generate a config string, make sure it's right type
-            config = self.do_genconfig()
-            self.assertIsInstance(config, str,
-                "genconfig() failed to return native string: %r" % (config,))
+            self.check_returned_native_str(config, "genconfig")
+        else:
+            self.assertIs(config, None)
 
-            # config should be positively identified by handler
-            self.assertTrue(self.do_identify(config),
-                "identify() failed to identify genconfig() output: %r" %
-                (config,))
+        #
+        # genhash() should always accept genconfig()'s output,
+        # whether str OR None.
+        #
+        result = self.do_genhash('stub', config)
+        self.check_returned_native_str(result, "genhash")
 
-            # verify() should throw error for config strings.
+        #
+        # verify() should never accept config strings
+        #
+        if self.supports_config_string:
             self.assertRaises(ValueError, self.do_verify, 'stub', config,
                 __msg__="verify() failed to reject genconfig() output: %r" %
                 (config,))
-
-            # genhash should accept genconfig output
-            result = self.do_genhash('stub', config)
-            self.assertIsInstance(result, str,
-                "genhash() failed to return native string: %r" % (result,))
-
         else:
-            self.assertIs(self.do_genconfig(), None)
-            # identify/verify/genhash are tested against 'None'
-            # in test_76_null()
+            self.assertRaises(TypeError, self.do_verify, 'stub', config)
 
-    def test_03_encrypt(self):
-        "test basic encrypt() behavior"
-        # this also tests identify/verify/genhash have basic functionality.
+        #
+        # identify() should positively identify config strings if not None.
+        #
+        if self.supports_config_string:
+            self.assertTrue(self.do_identify(config),
+                "identify() failed to identify genconfig() output: %r" %
+                (config,))
+        else:
+            self.assertRaises(TypeError, self.do_identify, config)
 
-        # test against stock passwords
+    def test_03_hash(self):
+        """test basic hash-string workflow.
+
+        this tests that encrypt()'s hashes are accepted
+        by verify() and identify(), and regenerated correctly by genhash().
+        the test is run against a couple of different stock passwords.
+        """
+        wrong_secret = 'stub'
         for secret in self.stock_passwords:
 
-            # encrypt should generate hash...
+            #
+            # encrypt() should generate native str hash
+            #
             result = self.do_encrypt(secret)
             self.check_returned_native_str(result, "encrypt")
 
-            # which should be positively identifiable...
-            self.assertTrue(self.do_identify(result))
-
-            # and should verify correctly...
+            #
+            # verify() should work only against secret
+            #
             self.check_verify(secret, result)
+            self.check_verify(wrong_secret, result, negate=True)
 
-            # and should NOT verify correctly
-            assert secret != 'stub'
-            self.check_verify('stub', result, negate=True)
-
-            # and genhash should reproduce original
+            #
+            # genhash() should reproduce original hash
+            #
             other = self.do_genhash(secret, result)
-            self.assertIsInstance(other, str,
-                                  "genhash must return native str:")
+            self.check_returned_native_str(other, "genhash")
             self.assertEqual(other, result, "genhash() failed to reproduce "
                              "hash: secret=%r hash=%r: result=%r" %
-                             (secret, hash, result))
+                             (secret, result, other))
+
+            #
+            # genhash() should NOT reproduce original hash for wrong password
+            #
+            other = self.do_genhash(wrong_secret, result)
+            self.check_returned_native_str(other, "genhash")
+            if self.is_disabled_handler:
+                self.assertEqual(other, result, "genhash() failed to reproduce "
+                                 "disabled-hash: secret=%r hash=%r other_secret=%r: result=%r" %
+                                 (secret, result, wrong_secret, other))
+            else:
+                self.assertNotEqual(other, result, "genhash() duplicated "
+                                 "hash: secret=%r hash=%r wrong_secret=%r: result=%r" %
+                                 (secret, result, wrong_secret, other))
+
+            #
+            # identify() should positively identify hash
+            #
+            self.assertTrue(self.do_identify(result))
+
 
     def test_04_backends(self):
         "test multi-backend support"
@@ -797,12 +844,16 @@ class HandlerCase(TestCase):
         with temporary_backend(handler):
             for backend in handler.backends:
 
+                #
                 # validate backend name
+                #
                 self.assertIsInstance(backend, str)
                 self.assertNotIn(backend, RESERVED_BACKEND_NAMES,
                                  "invalid backend name: %r" % (backend,))
 
+                #
                 # ensure has_backend() returns bool value
+                #
                 ret = handler.has_backend(backend)
                 if ret is True:
                     # verify backend can be loaded
@@ -1224,9 +1275,8 @@ class HandlerCase(TestCase):
         from passlib.exc import PasswordSizeError
         from passlib.utils import MAX_PASSWORD_SIZE
         secret = '.' * (1+MAX_PASSWORD_SIZE)
-        config = self.do_genconfig()
         hash = self.get_sample_hash()[1]
-        self.assertRaises(PasswordSizeError, self.do_genhash, secret, config)
+        self.assertRaises(PasswordSizeError, self.do_genhash, secret, hash)
         self.assertRaises(PasswordSizeError, self.do_encrypt, secret)
         self.assertRaises(PasswordSizeError, self.do_verify, secret, hash)
 
@@ -1705,13 +1755,12 @@ class OsCryptMixin(HandlerCase):
         mod._crypt = lambda secret, config: crypt_value[0]
 
         # prepare framework
-        config = self.do_genconfig()
         hash = self.get_sample_hash()[1]
         exc_types = (AssertionError,)
 
         def test(value):
             crypt_value[0] = value
-            self.assertRaises(exc_types, self.do_genhash, "stub", config)
+            self.assertRaises(exc_types, self.do_genhash, "stub", hash)
             self.assertRaises(exc_types, self.do_encrypt, "stub")
             self.assertRaises(exc_types, self.do_verify, "stub", hash)
 

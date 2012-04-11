@@ -1140,12 +1140,12 @@ class LazyCryptContextTest(TestCase):
     descriptionPrefix = "LazyCryptContext"
 
     def setUp(self):
+        # make sure this isn't registered before OR after
         unload_handler_name("dummy_2")
-
-    def tearDown(self):
-        unload_handler_name("dummy_2")
+        self.addCleanup(unload_handler_name, "dummy_2")
 
     def test_kwd_constructor(self):
+        "test plain kwds"
         self.assertFalse(has_crypt_handler("dummy_2"))
         register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
 
@@ -1159,12 +1159,31 @@ class LazyCryptContextTest(TestCase):
         self.assertTrue(has_crypt_handler("dummy_2", True))
 
     def test_callable_constructor(self):
+        "test create_policy() hook, returning CryptPolicy"
         self.assertFalse(has_crypt_handler("dummy_2"))
         register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
 
         def create_policy(flag=False):
             self.assertTrue(flag)
             return CryptPolicy(schemes=iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
+
+        cc = LazyCryptContext(create_policy=create_policy, flag=True)
+
+        self.assertFalse(has_crypt_handler("dummy_2", True))
+
+        self.assertTrue(cc.policy.handler_is_deprecated("des_crypt"))
+        self.assertEqual(cc.policy.schemes(), ["dummy_2", "des_crypt"])
+
+        self.assertTrue(has_crypt_handler("dummy_2", True))
+
+    def test_callable_constructor2(self):
+        "test create_policy() hook, returning dict"
+        self.assertFalse(has_crypt_handler("dummy_2"))
+        register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
+
+        def create_policy(flag=False):
+            self.assertTrue(flag)
+            return dict(schemes=iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
 
         cc = LazyCryptContext(create_policy=create_policy, flag=True)
 
