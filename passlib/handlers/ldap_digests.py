@@ -12,8 +12,8 @@ from warnings import warn
 #site
 #libs
 from passlib.handlers.misc import plaintext
-from passlib.utils import to_native_str, unix_crypt_schemes, to_bytes, \
-                          classproperty
+from passlib.utils import to_native_str, unix_crypt_schemes, \
+                          classproperty, to_unicode
 from passlib.utils.compat import b, bytes, uascii_to_str, unicode, u
 import passlib.utils.handlers as uh
 #pkg
@@ -53,7 +53,8 @@ class _Base64DigestHelper(uh.StaticHandler):
         return cls.ident
 
     def _calc_checksum(self, secret):
-        secret = to_bytes(secret, "utf-8", errname="secret")
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         chk = self._hash_func(secret).digest()
         return b64encode(chk).decode("ascii")
 
@@ -78,10 +79,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode('ascii')
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)
@@ -99,8 +97,6 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):
-        if secret is None:
-            raise TypeError("no secret provided")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return self._hash_func(secret + self.salt).digest()
@@ -199,15 +195,9 @@ class ldap_plaintext(plaintext):
 
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode(cls._hash_encoding)
-            except UnicodeDecodeError:
-                return False
         # NOTE: identifies all strings EXCEPT those with {XXX} prefix
-        return cls._2307_pat.match(hash) is None
+        hash = uh.to_unicode_for_identify(hash)
+        return bool(hash) and cls._2307_pat.match(hash) is None
 
 #=========================================================
 #{CRYPT} wrappers

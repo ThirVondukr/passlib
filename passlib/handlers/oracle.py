@@ -88,8 +88,8 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
         #
         # this whole mess really needs someone w/ an oracle system,
         # and some answers :)
-
-        secret = to_unicode(secret, "utf-8", errname="secret")
+        if isinstance(secret, bytes):
+            secret = secret.decode("utf-8")
         user = to_unicode(self.user, "utf-8", errname="user")
         input = (user+secret).upper().encode("utf-16-be")
         hash = des_cbc_encrypt(ORACLE10_MAGIC, input)
@@ -138,10 +138,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)

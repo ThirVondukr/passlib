@@ -126,13 +126,13 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         if ident == IDENT_2X:
             raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
                              "currently supported")
-        rounds, data = tail.split(u("$"))
-        rval = int(rounds)
-        if rounds != u('%02d') % (rval,):
-            raise uh.exc.ZeroPaddedRoundsError(cls)
+        rounds_str, data = tail.split(u("$"))
+        rounds = int(rounds_str)
+        if rounds_str != u('%02d') % (rounds,):
+            raise uh.exc.MalformedHashError(cls, "malformed cost field")
         salt, chk = data[:22], data[22:]
         return cls(
-            rounds=rval,
+            rounds=rounds,
             salt=salt,
             checksum=chk or None,
             ident=ident,
@@ -289,8 +289,6 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_builtin(self, secret):
-        if secret is None:
-            raise TypeError("no secret provided")
         warn("SECURITY WARNING: Passlib is using it's pure-python bcrypt "
              "implementation, which is TOO SLOW FOR PRODUCTION USE. It is "
              "strongly recommended that you install py-bcrypt or bcryptor for "

@@ -8,7 +8,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_string
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
+                          repeat_string, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, lmap
 import passlib.utils.handlers as uh
@@ -279,10 +280,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
         # portion has a slightly different grammar.
 
         # convert to unicode, check for ident prefix, split on dollar signs.
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode('ascii')
+        hash = to_unicode(hash, "ascii", "hash")
         ident = cls.ident
         if not hash.startswith(ident):
             raise uh.exc.InvalidHashError(cls)

@@ -209,10 +209,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        # parse hash
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        hash = to_native_str(hash, "ascii", errname="hash")
+        hash = to_native_str(hash, "ascii", "hash")
         if not hash.startswith("$scram$"):
             raise uh.exc.InvalidHashError(cls)
         parts = hash[7:].split("$")
@@ -351,8 +348,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def verify(cls, secret, hash, full=False):
-        if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
-            raise uh.exc.PasswordSizeError()
+        uh.validate_secret(secret)
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:

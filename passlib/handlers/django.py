@@ -49,10 +49,7 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         ident = cls.ident
         assert ident.endswith(u("$"))
         if not hash.startswith(ident):
@@ -201,22 +198,15 @@ class django_disabled(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            return hash == b("!")
-        else:
-            return hash == u("!")
+        hash = uh.to_unicode_for_identify(hash)
+        return hash == u("!")
 
     def _calc_checksum(self, secret):
-        if secret is None:
-            raise TypeError("no secret provided")
         return u("!")
 
     @classmethod
     def verify(cls, secret, hash):
-        if secret is None:
-            raise TypeError("no secret provided")
+        uh.validate_secret(secret)
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
         return False

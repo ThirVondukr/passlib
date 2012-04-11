@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import to_native_str, consteq
-from passlib.utils.compat import bytes, unicode, u
+from passlib.utils.compat import bytes, unicode, u, base_string_types
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -48,7 +48,10 @@ class unix_fallback(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        return hash is not None
+        if isinstance(hash, base_string_types):
+            return True
+        else:
+            raise uh.exc.ExpectedStringError(hash, "hash")
 
     def __init__(self, enable_wildcard=False, **kwds):
         warn("'unix_fallback' is deprecated, "
@@ -59,8 +62,6 @@ class unix_fallback(uh.StaticHandler):
         self.enable_wildcard = enable_wildcard
 
     def _calc_checksum(self, secret):
-        if secret is None:
-            raise TypeError("secret must be string")
         if self.checksum:
             # NOTE: hash will generally be "!", but we want to preserve
             # it in case it's something else, like "*".
@@ -70,10 +71,9 @@ class unix_fallback(uh.StaticHandler):
 
     @classmethod
     def verify(cls, secret, hash, enable_wildcard=False):
-        if secret is None:
-            raise TypeError("secret must be string")
-        elif hash is None:
-            raise uh.exc.MissingHashError(cls)
+        uh.validate_secret(secret)
+        if not isinstance(hash, base_string_types):
+            raise uh.exc.ExpectedStringError(hash, "hash")
         elif hash:
             return False
         else:
@@ -114,7 +114,10 @@ class unix_disabled(object):
 
     @classmethod
     def identify(cls, hash):
-        return hash is not None
+        if isinstance(hash, base_string_types):
+            return True
+        else:
+            raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
     def encrypt(cls, secret, marker=None):
@@ -122,10 +125,9 @@ class unix_disabled(object):
 
     @classmethod
     def verify(cls, secret, hash):
-        if secret is None:
-            raise TypeError("no secret provided")
-        if hash is None:
-            raise TypeError("no hash provided")
+        uh.validate_secret(secret)
+        if not isinstance(hash, base_string_types):
+            raise uh.exc.ExpectedStringError(hash, "hash")
         return False
 
     @classmethod
@@ -134,8 +136,7 @@ class unix_disabled(object):
 
     @classmethod
     def genhash(cls, secret, config, marker=None):
-        if secret is None:
-            raise TypeError("secret must be string")
+        uh.validate_secret(secret)
         if config is not None:
             # NOTE: config/hash will generally be "!" or "*",
             # but we want to preserve it in case it has some other content,
@@ -165,22 +166,21 @@ class plaintext(object):
 
     @classmethod
     def identify(cls, hash):
-        # by default, identify ALL strings
-        return hash is not None
+        if isinstance(hash, base_string_types):
+            return True
+        else:
+            raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
     def encrypt(cls, secret):
-        if secret and len(secret) > uh.MAX_PASSWORD_SIZE:
-            raise uh.exc.PasswordSizeError()
+        uh.validate_secret(secret)
         return to_native_str(secret, cls._hash_encoding, "secret")
 
     @classmethod
     def verify(cls, secret, hash):
-        if hash is None:
-            raise TypeError("no hash specified")
-        elif not cls.identify(hash):
-            raise uh.exc.InvalidHashError(cls)
         hash = to_native_str(hash, cls._hash_encoding, "hash")
+        if not cls.identify(hash):
+            raise uh.exc.InvalidHashError(cls)
         return consteq(cls.encrypt(secret), hash)
 
     @classmethod

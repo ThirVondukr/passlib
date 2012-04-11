@@ -38,10 +38,11 @@ __all__ = [
     'callable',
     'int_types',
     'num_types',
+    'base_string_types',
 
     # unicode/bytes types & helpers
     'u', 'b',
-    'unicode', 'bytes', 'sb_types',
+    'unicode', 'bytes',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
@@ -78,6 +79,8 @@ if PY3:
         assert isinstance(s, str)
         return s.encode("latin-1")
 
+    base_string_types = (unicode, bytes)
+
 else:
     unicode = builtins.unicode
     bytes = str if PY_MAX_25 else builtins.bytes
@@ -90,7 +93,7 @@ else:
         assert isinstance(s, str)
         return s
 
-sb_types = (unicode, bytes)
+    base_string_types = basestring
 
 #=============================================================================
 # unicode & bytes helpers
@@ -301,13 +304,13 @@ else:
         # pick default end sequence
         if end is None:
             end = u("\n") if want_unicode else "\n"
-        elif not isinstance(end, sb_types):
+        elif not isinstance(end, base_string_types):
             raise TypeError("end must be None or a string")
 
         # pick default separator
         if sep is None:
             sep = u(" ") if want_unicode else " "
-        elif not isinstance(sep, sb_types):
+        elif not isinstance(sep, base_string_types):
             raise TypeError("sep must be None or a string")
 
         # write to buffer

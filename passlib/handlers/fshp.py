@@ -11,6 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
+from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, u,\
                                  unicode
@@ -141,10 +142,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)

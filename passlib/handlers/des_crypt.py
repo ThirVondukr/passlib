@@ -58,7 +58,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import classproperty, h64, h64big, safe_crypt, test_crypt
+from passlib.utils import classproperty, h64, h64big, safe_crypt, test_crypt, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, u, uascii_to_str, unicode
 from passlib.utils.des import mdes_encrypt_int_block
 import passlib.utils.handlers as uh
@@ -182,10 +182,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         salt, chk = hash[:2], hash[2:]
         return cls(salt=salt, checksum=chk or None)
 
@@ -296,10 +293,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)
@@ -383,10 +377,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)
@@ -463,10 +454,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)

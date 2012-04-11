@@ -17,7 +17,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64
+from passlib.utils import h64, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
@@ -235,21 +235,12 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("ascii")
-            except UnicodeDecodeError:
-                return False
+        hash = uh.to_unicode_for_identify(hash)
         return hash.startswith(cls.ident_values)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
 
         #
         #detect if hash specifies rounds value.
@@ -338,8 +329,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     def _calc_checksum(self, secret):
         #NOTE: no reference for how sun_md5_crypt handles unicode
-        if secret is None:
-            raise TypeError("no secret specified")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         config = str_to_bascii(self.to_string(withchk=False))

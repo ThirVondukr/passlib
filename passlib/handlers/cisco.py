@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import h64, to_bytes, right_pad_string
+from passlib.utils import h64, right_pad_string, to_unicode
 from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
              join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
@@ -121,14 +121,9 @@ class cisco_type7(uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            if hash is None:
-                return cls(use_defaults=True)
-            raise uh.exc.MissingHashError(cls)
+        hash = to_unicode(hash, "ascii", "hash")
         if len(hash) < 2:
             raise uh.exc.InvalidHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("latin-1")
         salt = int(hash[:2]) # may throw ValueError
         return cls(salt=salt, checksum=hash[2:].upper())
 
@@ -165,7 +160,8 @@ class cisco_type7(uh.GenericHandler):
     def _calc_checksum(self, secret):
         # XXX: no idea what unicode policy is, but all examples are
         # 7-bit ascii compatible, so using UTF-8
-        secret = to_bytes(secret, "utf-8", errname="secret")
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return hexlify(self._cipher(secret, self.salt)).decode("ascii").upper()
 
     @classmethod

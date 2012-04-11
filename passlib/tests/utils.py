@@ -42,7 +42,7 @@ from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string
 from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
-                                 sb_types, exc_err, u, unicode
+                                 base_string_types, exc_err, u, unicode
 import passlib.utils.handlers as uh
 #local
 __all__ = [
@@ -374,7 +374,7 @@ class TestCase(unittest.TestCase):
             # 3.0 and <= 2.6 didn't have this method at all
             def assertRegex(self, text, expected_regex, msg=None):
                 """Fail the test unless the text matches the regular expression."""
-                if isinstance(expected_regex, sb_types):
+                if isinstance(expected_regex, base_string_types):
                     assert expected_regex, "expected_regex must not be empty."
                     expected_regex = re.compile(expected_regex)
                 if not expected_regex.search(text):
@@ -662,6 +662,10 @@ class HandlerCase(TestCase):
                 msg = "verify failed: secret=%r, hash=%r" % (secret, hash)
             raise self.failureException(msg)
 
+    def check_returned_native_str(self, result, func_name):
+        self.assertIsInstance(result, str,
+            "%s() failed to return native string: %r" % (func_name, result,))
+
     #=========================================================
     # internal class attrs
     #=========================================================
@@ -765,8 +769,7 @@ class HandlerCase(TestCase):
 
             # encrypt should generate hash...
             result = self.do_encrypt(secret)
-            self.assertIsInstance(result, str,
-                                  "encrypt must return native str:")
+            self.check_returned_native_str(result, "encrypt")
 
             # which should be positively identifiable...
             self.assertTrue(self.do_identify(result))
@@ -1202,17 +1205,22 @@ class HandlerCase(TestCase):
             self.assertNotEqual(h2, h1,
                                 "genhash() should be case sensitive")
 
-    def test_62_secret_null(self):
-        "test password=None"
-        _, hash = self.get_sample_hash()
+    def test_62_secret_border(self):
+        "test non-string passwords are rejected"
+        hash = self.get_sample_hash()[1]
+
+        # secret=None
         self.assertRaises(TypeError, self.do_encrypt, None)
         self.assertRaises(TypeError, self.do_genhash, None, hash)
         self.assertRaises(TypeError, self.do_verify, None, hash)
 
-    def test_63_max_password_size(self):
+        # secret=int (picked as example of entirely wrong class)
+        self.assertRaises(TypeError, self.do_encrypt, 1)
+        self.assertRaises(TypeError, self.do_genhash, 1, hash)
+        self.assertRaises(TypeError, self.do_verify, 1, hash)
+
+    def test_63_large_secret(self):
         "test MAX_PASSWORD_SIZE is enforced"
-        if self.is_disabled_handler:
-            raise self.skipTest("not applicable")
         from passlib.exc import PasswordSizeError
         from passlib.utils import MAX_PASSWORD_SIZE
         secret = '.' * (1+MAX_PASSWORD_SIZE)
@@ -1400,25 +1408,28 @@ class HandlerCase(TestCase):
                     __msg__= "genhash() failed to throw error for hash "
                     "belonging to %s: %r" % (name, hash))
 
-    def test_76_none(self):
-        "test empty hashes"
+    def test_76_hash_border(self):
+        "test non-string hashes are rejected"
         #
-        # test hash=None
+        # test hash=None is rejected (except if config=None)
         #
-        # FIXME: allowing value or type error to simplify implementation,
-        # but TypeError is really the correct one here.
-        self.assertFalse(self.do_identify(None))
-        self.assertRaises((ValueError, TypeError), self.do_verify, 'stub', None)
+        self.assertRaises(TypeError, self.do_identify, None)
+        self.assertRaises(TypeError, self.do_verify, 'stub', None)
         if self.supports_config_string:
-            self.assertRaises((ValueError, TypeError), self.do_genhash,
-                'stub', None)
+            self.assertRaises(TypeError, self.do_genhash, 'stub', None)
         else:
             result = self.do_genhash('stub', None)
-            self.assertIsInstance(result, str,
-                "genhash() failed to return native string: %r" % (result,))
+            self.check_returned_native_str(result, "genhash")
 
         #
-        # test hash=''
+        # test hash=int is rejected (picked as example of entirely wrong type)
+        #
+        self.assertRaises(TypeError, self.do_identify, 1)
+        self.assertRaises(TypeError, self.do_verify, 'stub', 1)
+        self.assertRaises(TypeError, self.do_genhash, 'stub', 1)
+
+        #
+        # test hash='' is rejected for all but the plaintext hashes
         #
         for hash in [u(''), b('')]:
             if self.accepts_all_hashes:
@@ -1426,15 +1437,21 @@ class HandlerCase(TestCase):
                 self.assertTrue(self.do_identify(hash))
                 self.do_verify('stub', hash)
                 result = self.do_genhash('stub', hash)
-                self.assertIsInstance(result, str,
-                    "genhash() failed to return native string: %r" % (result,))
+                self.check_returned_native_str(result, "genhash")
             else:
+                # otherwise it should reject them
                 self.assertFalse(self.do_identify(hash),
                     "identify() incorrectly identified empty hash")
                 self.assertRaises(ValueError, self.do_verify, 'stub', hash,
                     __msg__="verify() failed to reject empty hash")
                 self.assertRaises(ValueError, self.do_genhash, 'stub', hash,
                     __msg__="genhash() failed to reject empty hash")
+
+        #
+        # test identify doesn't throw decoding errors on 8-bit input
+        #
+        self.do_identify('\xe2\x82\xac\xc2\xa5$') # utf-8
+        self.do_identify('abc\x91\x00') # non-utf8
 
     #---------------------------------------------------------
     # fuzz testing

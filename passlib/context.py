@@ -16,13 +16,13 @@ from time import sleep
 from warnings import warn
 #site
 #libs
-from passlib.exc import PasslibConfigWarning
+from passlib.exc import PasslibConfigWarning, ExpectedStringError
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import is_crypt_handler, rng, saslprep, tick, to_bytes, \
                           to_unicode
 from passlib.utils.compat import bytes, is_mapping, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, SafeConfigParser, \
-                                 NativeStringIO, BytesIO
+                                 NativeStringIO, BytesIO, base_string_types
 #pkg
 #local
 __all__ = [
@@ -1311,18 +1311,20 @@ class CryptContext(object):
             ]
             return value
 
-    def _identify_record(self, hash, category=None, required=True):
-        "internal helper to identify appropriate _HandlerRecord"
+    def _identify_record(self, hash, category, required=True):
+        """internal helper to identify appropriate _CryptRecord for hash"""
+        if not isinstance(hash, base_string_types):
+            raise ExpectedStringError(hash, "hash")
         records = self._get_record_list(category)
         for record in records:
             if record.identify(hash):
                 return record
-        if required:
-            if not records:
-                raise KeyError("no crypt algorithms supported")
-            raise ValueError("hash could not be identified")
-        else:
+        if not required:
             return None
+        elif not records:
+            raise KeyError("no crypt algorithms supported")
+        else:
+            raise ValueError("hash could not be identified")
 
     #===================================================================
     #password hash api proxy methods
@@ -1334,8 +1336,8 @@ class CryptContext(object):
     #       since it will have optimized itself for the particular
     #       settings used within the policy by that (scheme,category).
 
-    # XXX: would a better name be is_deprecated(hash)?
-    def hash_needs_update(self, hash, category=None):
+    # XXX: would a better name be needs_update/is_deprecated?
+    def hash_needs_update(self, hash, scheme=None, category=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted.
 
         the core of CryptContext's support for hash migration:
@@ -1347,12 +1349,18 @@ class CryptContext(object):
         if so, the password should be re-encrypted using ``ctx.encrypt(passwd)``.
 
         :arg hash: existing hash string
+        :param scheme: optionally identify specific scheme to check against.
         :param category: optional user category
 
         :returns: True/False
         """
-        # XXX: add scheme kwd for compatibility w/ other methods?
-        return self._identify_record(hash, category).hash_needs_update(hash)
+        if scheme:
+            if not isinstance(hash, base_string_types):
+                raise ExpectedStringError(hash, "hash")
+            record = self._get_record(scheme, category)
+        else:
+            record = self._identify_record(hash, category)
+        return record.hash_needs_update(hash)
 
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler
@@ -1395,10 +1403,6 @@ class CryptContext(object):
             The handler which first identifies the hash,
             or ``None`` if none of the algorithms identify the hash.
         """
-        if hash is None:
-            if required:
-                raise ValueError("no hash provided")
-            return None
         record = self._identify_record(hash, category, required)
         if record is None:
             return None
@@ -1456,8 +1460,6 @@ class CryptContext(object):
 
         :returns: True/False
         """
-        if hash is None:
-            return False
         if scheme:
             record = self._get_record(scheme, category)
         else:
@@ -1505,8 +1507,6 @@ class CryptContext(object):
 
         .. seealso:: :ref:`context-migrating-passwords` for a usage example.
         """
-        if hash is None:
-            return False, None
         if scheme:
             record = self._get_record(scheme, category)
         else:

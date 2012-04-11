@@ -17,6 +17,7 @@ import unicodedata
 from warnings import warn
 #site
 #pkg
+from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, b, bytes, join_bytes, join_byte_values, \
                                  join_byte_elems, exc_err, irange, imap, PY3, u, \
                                  join_unicode, unicode, byte_elem_value
@@ -554,11 +555,8 @@ def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
             return source
     elif isinstance(source, unicode):
         return source.encode(encoding)
-    elif source is None:
-        raise TypeError("no %s specified" % (errname,))
     else:
-        raise TypeError("%s must be unicode or bytes, not %s" % (errname,
-                                                                 type(source)))
+        raise ExpectedStringError(source, errname)
 
 def to_unicode(source, source_encoding="utf-8", errname="value"):
     """helper to normalize input to unicode.
@@ -582,11 +580,8 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
         return source
     elif isinstance(source, bytes):
         return source.decode(source_encoding)
-    elif source is None:
-        raise TypeError("no %s specified" % (errname,))
     else:
-        raise TypeError("%s must be unicode or bytes, not %s" % (errname,
-                                                                 type(source)))
+        raise ExpectedStringError(source, errname)
 
 if PY3:
     def to_native_str(source, encoding="utf-8", errname="value"):
@@ -594,22 +589,16 @@ if PY3:
             return source.decode(encoding)
         elif isinstance(source, unicode):
             return source
-        elif source is None:
-            raise TypeError("no %s specified" % (errname,))
         else:
-            raise TypeError("%s must be unicode or bytes, not %s" %
-                            (errname, type(source)))
+            raise ExpectedStringError(source, errname)
 else:
     def to_native_str(source, encoding="utf-8", errname="value"):
         if isinstance(source, bytes):
             return source
         elif isinstance(source, unicode):
             return source.encode(encoding)
-        elif source is None:
-            raise TypeError("no %s specified" % (errname,))
         else:
-            raise TypeError("%s must be unicode or bytes, not %s" %
-                            (errname, type(source)))
+            raise ExpectedStringError(source, errname)
 
 add_doc(to_native_str,
     """take in unicode or bytes, return native string.

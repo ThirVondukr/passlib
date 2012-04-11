@@ -216,7 +216,7 @@ which scheme a hash belongs to when multiple schemes are in use.
 
     :raises TypeError:
 
-        * if :samp:`{secret}` is not a bytes or unicode instance.
+        * if :samp:`{secret}` is not a unicode or bytes instance.
 
         * if a required option (such as a context keyword) was not set.
 
@@ -237,8 +237,9 @@ which scheme a hash belongs to when multiple schemes are in use.
 
     Quickly identify if a hash string belongs to this algorithm.
 
-    :arg hash:
-        the candidate hash string to check
+    :arg hash: the candidate hash string to check
+
+    :raises TypeError: if :samp:`{hash}` is not a unicode or bytes instance.
 
     :returns:
         ``True`` if the input appears to be a hash or configuration string
@@ -273,11 +274,12 @@ which scheme a hash belongs to when multiple schemes are in use.
         method. These should be limited to those listed
         in :attr:`~PasswordHash.context_kwds`.
 
-    :raises TypeError: if :samp:`{secret}` is not a bytes or unicode instance.
+    :raises TypeError:
+
+        if either *secret* or *hash* is not a unicode or bytes instance.
 
     :raises ValueError:
-        * if no hash is provided, or the hash does not match this
-          algorithm's hash format.
+        * the hash does not match this algorithm's hash format.
         * if the secret contains forbidden characters (see
           :meth:`~PasswordHash.encrypt`).
         * if a configuration string from :meth:`~PasswordHash.genconfig`
@@ -356,9 +358,8 @@ and :meth:`~PasswordHash.genhash`.
         these kwds must be specified in :attr:`~PasswordHash.context_kwds`.
 
     :raises TypeError:
-        * if the configuration string is not provided
-        * if required contextual information is not provided
-        * if :samp:`{secret}` is not a bytes or unicode instance.
+        * if either *secret* or *config* is not a unicode or bytes instance.
+        * if required contextual keywords are not provided
 
     :raises ValueError:
         * if the configuration string is not in a recognized format.

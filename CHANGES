@@ -84,6 +84,14 @@ Release History
           legacy config files may need to escape raw ``%`` characters
           in order to load successfully.
 
+        * The main CryptContext methods (e.g. :meth:`~CryptContext.encrypt`,
+          and :meth:`~CryptContext.verify`) will now consistently raise
+          a :exc:`TypeError` when called with ``hash=None`` or another
+          non-string type, to match the :doc:`password-hash-api`.
+          Under previous releases, they might return ``False``,
+          raise :exc:`ValueError`, or raise :exc:`TypeError`,
+          depending on the specific method and context settings.
+
     Utils
 
         .. currentmodule:: passlib.utils.handlers

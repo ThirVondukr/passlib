@@ -21,7 +21,7 @@ except ImportError:
     _EVP = None
 #pkg
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils import to_bytes, xor_bytes, to_native_str
+from passlib.utils import xor_bytes, to_native_str
 from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
 #local
 __all__ = [

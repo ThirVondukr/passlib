@@ -102,9 +102,17 @@ def _get_name(handler):
 #----------------------------------------------------------------
 # encrypt/verify parameter errors
 #----------------------------------------------------------------
-def MissingHashError(handler=None):
-    "error raised if no hash provided to handler"
-    return ValueError("no hash specified")
+def ExpectedStringError(value, param):
+    "error message when param was supposed to be unicode or bytes"
+    # NOTE: value is never displayed, since it may sometimes be a password.
+    cls = value.__class__
+    if cls.__module__ and cls.__module__ != "__builtin__":
+        name = "%s.%s" % (cls.__module__, cls.__name__)
+    elif value is None:
+        name = 'None'
+    else:
+        name = cls.__name__
+    return TypeError("%s must be unicode or bytes, not %s" % (param, name))
 
 def MissingDigestError(handler=None):
     "raised when verify() method gets passed config string instead of hash"

@@ -521,7 +521,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 #CryptContext
 #=========================================================
 class CryptContextTest(TestCase):
-    "test CryptContext object's behavior"
+    "test CryptContext class"
     descriptionPrefix = "CryptContext"
 
     #=========================================================
@@ -893,10 +893,6 @@ class CryptContextTest(TestCase):
         self.assertEqual(cc.identify('$9$232323123$1287319827'), None)
         self.assertRaises(ValueError, cc.identify, '$9$232323123$1287319827', required=True)
 
-        #make sure "None" is accepted
-        self.assertEqual(cc.identify(None), None)
-        self.assertRaises(ValueError, cc.identify, None, required=True)
-
     def test_22_verify(self):
         "test verify() scheme kwd"
         handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
@@ -914,14 +910,6 @@ class CryptContextTest(TestCase):
 
         #check verify using wrong alg
         self.assertRaises(ValueError, cc.verify, 'test', h, scheme='bsdi_crypt')
-
-    def test_23_verify_empty_hash(self):
-        "test verify() allows hash=None"
-        handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
-        cc = CryptContext(handlers, policy=None)
-        self.assertTrue(not cc.verify("test", None))
-        for handler in handlers:
-            self.assertTrue(not cc.verify("test", None, scheme=handler.name))
 
     def test_24_min_verify_time(self):
         "test verify() honors min_verify_time"
@@ -1006,6 +994,58 @@ class CryptContextTest(TestCase):
         ok, new_hash = cc.verify_and_update("password", h2)
         self.assertTrue(ok)
         self.assertIs(new_hash, None)
+
+    #=========================================================
+    # border cases
+    #=========================================================
+    def test_30_nonstring_hash(self):
+        "test non-string hash values cause error"
+        #
+        # test hash=None or some other non-string causes TypeError
+        # and that explicit-scheme code path behaves the same.
+        #
+        cc = CryptContext(["des_crypt"])
+        for hash, kwds in [
+                (None, {}),
+                (None, {"scheme": "des_crypt"}),
+                (1, {}),
+                ((), {}),
+                ]:
+
+            self.assertRaises(TypeError, cc.identify, hash, **kwds)
+            self.assertRaises(TypeError, cc.genhash, 'stub', hash, **kwds)
+            self.assertRaises(TypeError, cc.verify, 'stub', hash, **kwds)
+            self.assertRaises(TypeError, cc.verify_and_update, 'stub', hash, **kwds)
+            self.assertRaises(TypeError, cc.hash_needs_update, hash, **kwds)
+
+        #
+        # but genhash *should* accept None if default scheme lacks config string.
+        #
+        cc2 = CryptContext(["mysql323"])
+        self.assertRaises(TypeError, cc2.identify, None)
+        self.assertIsInstance(cc2.genhash("stub", None), str)
+        self.assertRaises(TypeError, cc2.verify, 'stub', None)
+        self.assertRaises(TypeError, cc2.verify_and_update, 'stub', None)
+        self.assertRaises(TypeError, cc2.hash_needs_update, None)
+
+
+    def test_31_nonstring_secret(self):
+        "test non-string password values cause error"
+        cc = CryptContext(["des_crypt"])
+        hash = cc.encrypt("stub")
+        #
+        # test secret=None, or some other non-string causes TypeError
+        #
+        for secret, kwds in [
+                (None, {}),
+                (None, {"scheme": "des_crypt"}),
+                (1, {}),
+                ((), {}),
+                ]:
+            self.assertRaises(TypeError, cc.encrypt, secret, **kwds)
+            self.assertRaises(TypeError, cc.genhash, secret, hash, **kwds)
+            self.assertRaises(TypeError, cc.verify, secret, hash, **kwds)
+            self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
 
     #=========================================================
     # other

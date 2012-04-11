@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import ab64_decode, ab64_encode
+from passlib.utils import ab64_decode, ab64_encode, to_unicode
 from passlib.utils.compat import b, bytes, str_to_bascii, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
@@ -279,8 +279,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, rounds_base=16,
                                          default_rounds=400, handler=cls)
         return cls(rounds=rounds, salt=salt, checksum=chk)
@@ -335,10 +333,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise uh.exc.MissingHashError(cls)
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
         ident = cls.ident
         if not hash.startswith(ident):
             raise uh.exc.InvalidHashError(cls)

@@ -45,7 +45,8 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     # primary interface
     #=========================================================
     def _calc_checksum(self, secret):
-        secret = to_bytes(secret, "utf-8", errname="secret")
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         user = to_bytes(self.user, "utf-8", errname="user")
         return str_to_uascii(md5(secret + user).hexdigest())
 

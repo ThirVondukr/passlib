@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_native_str, to_bytes
+from passlib.utils import to_native_str
 from passlib.utils.compat import bascii_to_str, bytes, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.utils.md4 import md4
@@ -44,7 +44,8 @@ class HexDigestHash(uh.StaticHandler):
         return hash.lower()
 
     def _calc_checksum(self, secret):
-        secret = to_bytes(secret, "utf-8", errname="secret")
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
         return str_to_uascii(self._hash_func(secret).hexdigest())
 
     #=========================================================
