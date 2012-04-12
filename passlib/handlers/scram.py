@@ -374,9 +374,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 else:
                     failed = True
             if correct and failed:
-                warning("scram hash verified inconsistently, may be corrupted",
-                        PasslibHashWarning)
-                return False
+                raise ValueError("scram hash verified inconsistently, "
+                                 "may be corrupted")
             else:
                 return correct
         else:

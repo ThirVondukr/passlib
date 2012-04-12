@@ -1789,6 +1789,13 @@ class scram_test(HandlerCase):
         # bad char in digest                                       ---\/
         '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX3-',
 
+        # missing sections
+        '$scram$4096$QSXCR.Q6sek8bf92',
+        '$scram$4096$QSXCR.Q6sek8bf92$',
+
+        # too many sections
+        '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30$',
+
         # missing separator
         '$scram$4096$QSXCR.Q6sek8bf92$sha-1=HZbuOlKbWl.eR8AfIposuKbhX30'
                    'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY',
@@ -1800,6 +1807,8 @@ class scram_test(HandlerCase):
         # missing sha-1 alg
         '$scram$4096$QSXCR.Q6sek8bf92$sha-256=HZbuOlKbWl.eR8AfIposuKbhX30',
 
+        # non-iana name
+        '$scram$4096$QSXCR.Q6sek8bf92$sha1=HZbuOlKbWl.eR8AfIposuKbhX30',
     ]
 
     # silence norm_hash_name() warning
@@ -1858,6 +1867,10 @@ class scram_test(HandlerCase):
                    'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30'), ["sha-1"])
 
         self.assertEqual(eda('$scram$4096$QSXCR.Q6sek8bf92$'
+                   'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30', format="hashlib"),
+                         ["sha1"])
+
+        self.assertEqual(eda('$scram$4096$QSXCR.Q6sek8bf92$'
                    'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
                    'sha-256=qXUXrlcvnaxxWG00DdRgVioR2gnUpuX5r.3EZ1rdhVY,'
                    'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
@@ -1886,6 +1899,9 @@ class scram_test(HandlerCase):
 
         # check rounds
         self.assertRaises(ValueError, hash, "IX", s1, 0, 'sha-1')
+
+        # bad types
+        self.assertRaises(TypeError, hash, "IX", u('\x01'), 1000, 'md5')
 
     def test_94_saslprep(self):
         "test encrypt/verify use saslprep"
@@ -1925,6 +1941,8 @@ class scram_test(HandlerCase):
 
     def test_96_full_verify(self):
         "test verify(full=True) flag"
+        def vpart(s, h):
+            return self.handler.verify(s, h)
         def vfull(s, h):
             return self.handler.verify(s, h, full=True)
 
@@ -1953,12 +1971,16 @@ class scram_test(HandlerCase):
                 'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
         self.assertRaises(ValueError, vfull, 'pencil', h)
 
-        # catch digests belonging to diff passwords.
+        # catch hash containing digests belonging to diff passwords.
+        # proper behavior for quick-verify (the default) is undefined,
+        # but full-verify should throw error.
         h = ('$scram$4096$QSXCR.Q6sek8bf92$'
-             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,'
-             'sha-256=R7RJDWIbeKRTFwhE9oxh04kab0CllrQ3kCcpZUcligc' # 'tape'
-             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/'
+             'sha-1=HZbuOlKbWl.eR8AfIposuKbhX30,' # 'pencil'
+             'sha-256=R7RJDWIbeKRTFwhE9oxh04kab0CllrQ3kCcpZUcligc,' # 'tape'
+             'sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/' # 'pencil'
                 'edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ')
+        self.assertTrue(vpart('tape', h))
+        self.assertFalse(vpart('pencil', h))
         self.assertRaises(ValueError, vfull, 'pencil', h)
         self.assertRaises(ValueError, vfull, 'tape', h)
 
