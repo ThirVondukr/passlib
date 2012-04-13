@@ -3,7 +3,7 @@
 =============================================
 
 .. module:: passlib.utils
-    :synopsis: helper functions for implementing password hashes
+    :synopsis: internal helpers for implementing password hashes
 
 This module contains a number of utility functions used by passlib
 to implement the builtin handlers, and other code within passlib.
