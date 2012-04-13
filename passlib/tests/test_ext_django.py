@@ -430,85 +430,70 @@ class PluginTest(TestCase):
     descriptionPrefix = "passlib.ext.django plugin"
 
     def setUp(self):
-        #remove django patch
-        utils.set_django_password_context(None)
+        super(PluginTest, self).setUp()
 
-        #ensure django settings are empty
+        # remove django patch now, and at end
+        utils.set_django_password_context(None)
+        self.addCleanup(utils.set_django_password_context, None)
+
+        # ensure django settings are empty
         update_settings(
             PASSLIB_CONTEXT=_NOTSET,
             PASSLIB_GET_CATEGORY=_NOTSET,
         )
 
-        #unload module so it's re-run
+        # unload module so it's re-run when imported
         sys.modules.pop("passlib.ext.django.models", None)
 
-    def tearDown(self):
-        #remove django patch
-        utils.set_django_password_context(None)
+    def check_hashes(self, tests, default_scheme, deprecated=[], load=True):
+        """run through django api to verify patch is configured & functioning"""
+        # load extension if it hasn't been already.
+        if load:
+            import passlib.ext.django.models
 
-    def check_hashes(self, tests, new_hash=None, deprecated=None):
-        u = FakeUser()
-        deprecated = None
+        # create fake user object
+        user = FakeUser()
 
-        # check new hash construction
-        if new_hash:
-            u.set_password("placeholder")
-            handler = get_crypt_handler(new_hash)
-            self.assertTrue(handler.identify(u.password))
+        # check new hashes constructed using default scheme
+        user.set_password("stub")
+        handler = get_crypt_handler(default_scheme)
+        self.assertTrue(handler.identify(user.password),
+                        "handler failed to identify hash: %r %r" %
+                        (default_scheme, user.password))
 
         # run against hashes from tests...
         for test in tests:
             for secret, hash in test.iter_known_hashes():
 
                 # check against valid password
-                u.password = hash
+                user.password = hash
                 if has_django0 and isinstance(secret, unicode):
                     secret = secret.encode("utf-8")
-                self.assertTrue(u.check_password(secret))
-                if new_hash and deprecated and test.handler.name in deprecated:
+                self.assertTrue(user.check_password(secret))
+                if deprecated and test.handler.name in deprecated:
                     self.assertFalse(handler.identify(hash))
-                    self.assertTrue(handler.identify(u.password))
+                    self.assertTrue(handler.identify(user.password))
 
                 # check against invalid password
-                u.password = hash
-                self.assertFalse(u.check_password('x'+secret))
-                if new_hash and deprecated and test.handler.name in deprecated:
+                user.password = hash
+                self.assertFalse(user.check_password('x'+secret))
+                if deprecated and test.handler.name in deprecated:
                     self.assertFalse(handler.identify(hash))
-                    self.assertEqual(u.password, hash)
+                    self.assertEqual(user.password, hash)
 
         # check disabled handling
         if has_django1:
-            u.set_password(None)
+            user.set_password(None)
             handler = get_crypt_handler("django_disabled")
-            self.assertTrue(handler.identify(u.password))
-            self.assertFalse(u.check_password('placeholder'))
+            self.assertTrue(handler.identify(user.password))
+            self.assertFalse(user.check_password('placeholder'))
 
-    def test_00_actual_django(self):
-        "test actual Django behavior has not changed"
-        #NOTE: if this test fails,
-        #      probably means newer version of Django,
-        #      and passlib's policies should be updated.
+    def check_django_stock(self, load=True):
         self.check_hashes(django_hash_tests,
                           "django_salted_sha1",
-                          ["hex_md5"])
+                          ["hex_md5"], load=load)
 
-    def test_01_explicit_unset(self, value=None):
-        "test PASSLIB_CONTEXT = None"
-        update_settings(
-            PASSLIB_CONTEXT=value,
-        )
-        import passlib.ext.django.models
-        self.check_hashes(django_hash_tests,
-                          "django_salted_sha1",
-                          ["hex_md5"])
-
-    def test_02_stock_ctx(self):
-        "test PASSLIB_CONTEXT = utils.STOCK_CTX"
-        self.test_01_explicit_unset(value=utils.STOCK_CTX)
-
-    def test_03_implicit_default_ctx(self):
-        "test PASSLIB_CONTEXT unset"
-        import passlib.ext.django.models
+    def check_passlib_stock(self):
         self.check_hashes(default_hash_tests,
                           "sha512_crypt",
                           ["hex_md5", "django_salted_sha1",
@@ -516,21 +501,43 @@ class PluginTest(TestCase):
                            "django_des_crypt",
                            ])
 
-    def test_04_explicit_default_ctx(self):
+    def test_10_django(self):
+        "test actual Django behavior has not changed"
+        #NOTE: if this test fails,
+        #      probably means newer version of Django,
+        #      and passlib's policies should be updated.
+        self.check_django_stock(load=False)
+
+    def test_11_none(self):
+        "test PASSLIB_CONTEXT=None"
+        update_settings(PASSLIB_CONTEXT=None)
+        self.check_django_stock(load=False)
+
+    def test_12_string(self):
+        "test PASSLIB_CONTEXT=string"
+        update_settings(PASSLIB_CONTEXT=utils.STOCK_CTX)
+        self.check_django_stock(load=False)
+
+    def test_13_unset(self):
+        "test unset PASSLIB_CONTEXT uses default"
+        self.check_passlib_stock()
+
+    def test_14_default(self):
         "test PASSLIB_CONTEXT = utils.DEFAULT_CTX"
-        update_settings(
-            PASSLIB_CONTEXT=utils.DEFAULT_CTX,
-        )
-        self.test_03_implicit_default_ctx()
+        update_settings(PASSLIB_CONTEXT=utils.DEFAULT_CTX)
+        self.check_passlib_stock()
 
-    def test_05_default_ctx_alias(self):
+    def test_15_default_alias(self):
         "test PASSLIB_CONTEXT = 'passlib-default'"
-        update_settings(
-            PASSLIB_CONTEXT="passlib-default",
-        )
-        self.test_03_implicit_default_ctx()
+        update_settings(PASSLIB_CONTEXT="passlib-default")
+        self.check_passlib_stock()
 
-    def test_06_categories(self):
+    def test_16_invalid(self):
+        "test PASSLIB_CONTEXT = invalid type"
+        update_settings(PASSLIB_CONTEXT=123)
+        self.assertRaises(TypeError, __import__, 'passlib.ext.django.models')
+
+    def test_20_categories(self):
         "test PASSLIB_GET_CATEGORY unset"
         update_settings(
             PASSLIB_CONTEXT=category_context.policy.to_string(),
@@ -541,7 +548,7 @@ class PluginTest(TestCase):
         self.assertEqual(get_cc_rounds(is_staff=True), 2000)
         self.assertEqual(get_cc_rounds(is_superuser=True), 3000)
 
-    def test_07_categories_explicit(self):
+    def test_21_categories_explicit(self):
         "test PASSLIB_GET_CATEGORY = function"
         def get_category(user):
             return user.first_name or None
@@ -556,7 +563,7 @@ class PluginTest(TestCase):
         self.assertEqual(get_cc_rounds(first_name='staff'), 2000)
         self.assertEqual(get_cc_rounds(first_name='superuser'), 3000)
 
-    def test_08_categories_disabled(self):
+    def test_22_categories_disabled(self):
         "test PASSLIB_GET_CATEGORY = None"
         update_settings(
             PASSLIB_CONTEXT = category_context.policy.to_string(),

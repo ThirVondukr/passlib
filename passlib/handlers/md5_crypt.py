@@ -68,14 +68,13 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     #=====================================================================
 
     #validate secret
+    # XXX: not sure what official unicode policy is, using this as default
     if isinstance(pwd, unicode):
-        # XXX: not sure what official unicode policy is, using this as default
         pwd = pwd.encode("utf-8")
-    elif not isinstance(pwd, bytes):
-        raise TypeError("password must be bytes or unicode")
+    assert isinstance(pwd, bytes), "pwd not unicode or bytes"
     pwd_len = len(pwd)
 
-    #validate salt
+    #validate salt - should have been taken care of by caller
     assert isinstance(salt, unicode), "salt not unicode"
     salt = salt.encode("ascii")
     assert len(salt) < 9, "salt too large"

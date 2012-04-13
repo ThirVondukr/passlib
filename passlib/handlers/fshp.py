@@ -116,7 +116,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if not isinstance(variant, int):
             raise TypeError("fshp variant must be int or known alias")
         if variant not in self._variant_info:
-            raise TypeError("unknown fshp variant")
+            raise ValueError("invalid fshp variant")
         return variant
 
     @property
@@ -152,7 +152,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         rounds = int(rounds)
         try:
             data = b64decode(data.encode("ascii"))
-        except ValueError:
+        except TypeError:
             raise uh.exc.MalformedHashError(cls)
         salt = data[:salt_size]
         chk = data[salt_size:]

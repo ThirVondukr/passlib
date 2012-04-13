@@ -285,7 +285,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 raise ValueError("SCRAM limits algorithm names to "
                                  "9 characters: %r" % (alg,))
             if not isinstance(digest, bytes):
-                raise TypeError("digests must be raw bytes")
+                raise uh.exc.ExpectedTypeError(digest, "raw bytes", "digests")
             # TODO: verify digest size (if digest is known)
         if 'sha-1' not in checksum:
             # NOTE: required because of SCRAM spec.
@@ -384,7 +384,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 if alg in chkmap:
                     other = self._calc_checksum(secret, alg)
                     return consteq(other, chkmap[alg])
-            # there should *always* be at least sha-1.
+            # there should always be sha-1 at the very least,
+            # or something went wrong inside _norm_algs()
             raise AssertionError("sha-1 digest not found!")
 
     #=========================================================

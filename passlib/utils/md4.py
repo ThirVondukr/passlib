@@ -242,14 +242,14 @@ def _has_native_md4():
     try:
         h = hashlib.new("md4")
     except ValueError:
-        #not supported
+        # not supported - ssl probably missing (e.g. ironpython)
         return False
     result = h.hexdigest()
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
     if PYPY and result == '':
-        #as of 1.5, pypy md4 just returns null!
-        #since this is expected, don't bother w/ warning.
+        # as of pypy 1.5-1.7, this returns empty string! 
+        # since this is expected, don't bother w/ warning.
         return False
     #anything else should alert user
     from passlib.exc import PasslibRuntimeWarning

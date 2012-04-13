@@ -126,6 +126,8 @@ class RegistryTest(TestCase):
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name=None)))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="AB_CD")))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab-cd")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab__cd")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="default")))
 
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"

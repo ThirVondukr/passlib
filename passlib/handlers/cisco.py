@@ -149,7 +149,7 @@ class cisco_type7(uh.GenericHandler):
             else:
                 raise TypeError("no salt specified")
         if not isinstance(salt, int):
-            raise TypeError("salt must be an integer")
+            raise uh.exc.ExpectedTypeError(salt, "integer", "salt")
         if salt < 0 or salt > self.max_salt_value:
             msg = "salt/offset must be in 0..52 range"
             if self.relaxed:

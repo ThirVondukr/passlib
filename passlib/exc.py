@@ -102,17 +102,25 @@ def _get_name(handler):
 #----------------------------------------------------------------
 # encrypt/verify parameter errors
 #----------------------------------------------------------------
-def ExpectedStringError(value, param):
-    "error message when param was supposed to be unicode or bytes"
-    # NOTE: value is never displayed, since it may sometimes be a password.
+def type_name(value):
+    "return pretty-printed string containing name of value's type"
     cls = value.__class__
     if cls.__module__ and cls.__module__ not in ["__builtin__", "builtins"]:
-        name = "%s.%s" % (cls.__module__, cls.__name__)
+        return "%s.%s" % (cls.__module__, cls.__name__)
     elif value is None:
-        name = 'None'
+        return 'None'
     else:
-        name = cls.__name__
-    return TypeError("%s must be unicode or bytes, not %s" % (param, name))
+        return cls.__name__
+
+def ExpectedTypeError(value, expected, param):
+    "error message when param was supposed to be one type, but found another"
+    # NOTE: value is never displayed, since it may sometimes be a password.
+    name = type_name(value)
+    return TypeError("%s must be %s, not %s" % (param, expected, name))
+
+def ExpectedStringError(value, param):
+    "error message when param was supposed to be unicode or bytes"
+    return ExpectedTypeError(value, "unicode or bytes", param)
 
 def MissingDigestError(handler=None):
     "raised when verify() method gets passed config string instead of hash"

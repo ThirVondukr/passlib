@@ -26,6 +26,60 @@ class MiscTest(TestCase):
 
     #NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
 
+    def test_classproperty(self):
+        from passlib.utils import classproperty
+
+        class test(object):
+            xvar = 1
+            @classproperty
+            def xprop(cls):
+                return cls.xvar
+
+        self.assertEqual(test.xprop, 1)
+        prop = test.__dict__['xprop']
+        self.assertIs(prop.im_func, prop.__func__)
+
+    def test_deprecated_function(self):
+        from passlib.utils import deprecated_function
+        # NOTE: not comprehensive, just tests the basic behavior
+
+        @deprecated_function(deprecated="1.6", removed="1.8")
+        def test_func(*args):
+            "test docstring"
+            return args
+
+        self.assertTrue(".. deprecated::" in test_func.__doc__)
+
+        with catch_warnings(record=True) as wlog:
+            self.assertEqual(test_func(1,2), (1,2))
+            self.consumeWarningList(wlog,[
+                dict(category=DeprecationWarning,
+                     message="the function passlib.tests.test_utils.test_func() "
+                             "is deprecated as of Passlib 1.6, and will be "
+                             "removed in Passlib 1.8."
+                ),
+            ])
+
+    def test_memoized_property(self):
+        from passlib.utils import memoized_property
+
+        class dummy(object):
+            counter = 0
+
+            @memoized_property
+            def value(self):
+                value = self.counter
+                self.counter = value+1
+                return value
+
+        d = dummy()
+        self.assertEqual(d.value, 0)
+        self.assertEqual(d.value, 0)
+        self.assertEqual(d.counter, 1)
+
+        prop = dummy.value
+        self.assertIs(prop.im_func, prop.__func__)
+
     def test_getrandbytes(self):
         "test getrandbytes()"
         from passlib.utils import getrandbytes, rng
@@ -284,6 +338,8 @@ class MiscTest(TestCase):
             # unassigned code points (as of unicode 3.2)
         self.assertRaises(ValueError, sp, u("\u0900"))
         self.assertRaises(ValueError, sp, u("\uFFF8"))
+            # tagging characters
+        self.assertRaises(ValueError, sp, u("\U000e0001"))
 
         # verify bidi behavior
             # if starts with R/AL -- must end with R/AL
@@ -524,6 +580,30 @@ b("""    0000000000000000 0000000000000000 8CA64DE9C1B123A7
 #=========================================================
 # base64engine
 #=========================================================
+class Base64EngineTest(TestCase):
+    "test standalone parts of Base64Engine"
+    # NOTE: most Base64Engine testing done via _Base64Test subclasses below.
+
+    def test_constructor(self):
+        from passlib.utils import Base64Engine, AB64_CHARS
+
+        # bad charmap type
+        self.assertRaises(TypeError, Base64Engine, 1)
+
+        # bad charmap size
+        self.assertRaises(ValueError, Base64Engine, AB64_CHARS[:-1])
+
+        # dup charmap letter
+        self.assertRaises(ValueError, Base64Engine, AB64_CHARS[:-1] + "A")
+
+    def test_ab64(self):
+        from passlib.utils import ab64_decode
+        # TODO: make ab64_decode (and a b64 variant) *much* stricter about
+        # padding chars, etc.
+
+        # 1 mod 4 not valid
+        self.assertRaises(ValueError, ab64_decode, "abcde")
+
 class _Base64Test(TestCase):
     "common tests for all Base64Engine instances"
     #=========================================================
@@ -723,6 +803,8 @@ class _Base64Test(TestCase):
             tmp = engine.encode_transposed_bytes(input, offsets)
             out = engine.decode_bytes(tmp)
             self.assertEqual(out, result)
+
+        self.assertRaises(TypeError, engine.encode_transposed_bytes, u("a"), [])
 
     def test_decode_transposed_bytes(self):
         "test decode_transposed_bytes()"

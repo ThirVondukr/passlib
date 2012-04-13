@@ -19,11 +19,11 @@ from passlib.exc import MissingBackendError, PasslibConfigWarning, \
 from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
-                          is_crypt_handler, deprecated_function, to_unicode, \
+                          is_crypt_handler, to_unicode, \
                           MAX_PASSWORD_SIZE
 from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
-                                 join_unicode, base_string_types
+                                 join_unicode, base_string_types, PY2
 # local
 __all__ = [
     # helpers for implementing MCF handlers
@@ -173,7 +173,7 @@ def parse_mc3(hash, prefix, sep=_UDOLLAR, rounds_base=10,
     elif rounds:
         rounds = int(rounds, rounds_base)
     elif default_rounds is None:
-        raise exc.MalformedHashError(handler, "missing rounds field")
+        raise exc.MalformedHashError(handler, "empty rounds field")
     else:
         rounds = default_rounds
 
@@ -411,15 +411,15 @@ class GenericHandler(object):
             # NOTE: no clear route to reasonbly convert unicode -> raw bytes,
             # so relaxed does nothing here
             if not isinstance(checksum, bytes):
-                raise TypeError("checksum must be byte string")
+                raise exc.ExpectedTypeError(checksum, "bytes", "checksum")
 
         elif not isinstance(checksum, unicode):
-            if self.relaxed:
+            if isinstance(checksum, bytes) and self.relaxed:
                 warn("checksum should be unicode, not bytes",
                      PasslibHashWarning)
                 checksum = checksum.decode("ascii")
             else:
-                raise TypeError("checksum must be unicode string")
+                raise exc.ExpectedTypeError(checksum, "unicode", "checksum")
 
         # handle stub
         if checksum == self._stub_checksum:
@@ -960,14 +960,14 @@ class HasSalt(GenericHandler):
         # check type
         if self._salt_is_bytes:
             if not isinstance(salt, bytes):
-                raise TypeError("salt must be specified as bytes")
+                raise exc.ExpectedTypeError(salt, "bytes", "salt")
         else:
             if not isinstance(salt, unicode):
-                # XXX: should we disallow bytes here?
-                if isinstance(salt, bytes):
+                # NOTE: allowing bytes under py2 so salt can be native str.
+                if isinstance(salt, bytes) and (PY2 or self.relaxed):
                     salt = salt.decode("ascii")
                 else:
-                    raise TypeError("salt must be specified as unicode")
+                    raise exc.ExpectedTypeError(salt, "unicode", "salt")
 
             # check charset
             sc = self.salt_chars
@@ -1139,7 +1139,7 @@ class HasRounds(GenericHandler):
 
         # check type
         if not isinstance(rounds, int):
-            raise TypeError("rounds must be an integer")
+            raise exc.ExpectedTypeError(rounds, "integer", "rounds")
 
         # check bounds
         mn = self.min_rounds

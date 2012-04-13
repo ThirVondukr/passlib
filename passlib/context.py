@@ -20,7 +20,7 @@ from passlib.exc import PasslibConfigWarning, ExpectedStringError
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import is_crypt_handler, rng, saslprep, tick, to_bytes, \
                           to_unicode
-from passlib.utils.compat import bytes, is_mapping, iteritems, num_types, \
+from passlib.utils.compat import bytes, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, SafeConfigParser, \
                                  NativeStringIO, BytesIO, base_string_types
 #pkg

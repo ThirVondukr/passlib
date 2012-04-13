@@ -497,6 +497,7 @@ class cisco_pix_test(UserHandlerMixin, HandlerCase):
 class cisco_type7_test(HandlerCase):
     handler = hash.cisco_type7
     salt_bits = 4
+    salt_type = int
 
     known_correct_hashes = [
         #
@@ -538,6 +539,41 @@ class cisco_type7_test(HandlerCase):
         # ensures utf-8 used for unicode
         (UPASS_TABLE, '0958EDC8A9F495F6F8A5FD'),
     ]
+
+    known_unidentified_hashes = [
+        # salt with hex value
+        "0A480E051A33490E",
+
+        # salt value > 52. this may in fact be valid, but we reject it for now
+        # (see docs for more).
+        '99400E4812',
+    ]
+
+    def test_90_decode(self):
+        "test cisco_type7.decode()"
+        from passlib.utils import to_unicode, to_bytes
+
+        handler = self.handler
+        for secret, hash in self.known_correct_hashes:
+            usecret = to_unicode(secret)
+            bsecret = to_bytes(secret)
+            self.assertEqual(handler.decode(hash), usecret)
+            self.assertEqual(handler.decode(hash, None), bsecret)
+
+        self.assertRaises(UnicodeDecodeError, handler.decode,
+                          '0958EDC8A9F495F6F8A5FD', 'ascii')
+
+    def test_91_salt(self):
+        "test salt value border cases"
+        handler = self.handler
+        self.assertRaises(TypeError, handler, salt=None)
+        handler(salt=None, use_defaults=True)
+        self.assertRaises(TypeError, handler, salt='abc')
+        self.assertRaises(ValueError, handler, salt=-10)
+        with catch_warnings(record=True) as wlog:
+            h = handler(salt=100, relaxed=True)
+            self.consumeWarningList(wlog, ["salt/offset must be.*"])
+            self.assertEqual(h.salt, 52)
 
 #=========================================================
 # crypt16
@@ -794,12 +830,41 @@ class fshp_test(HandlerCase):
         ]
 
     known_malformed_hashes = [
+        # bad base64 padding
+        '{FSHP0|0|1}qUqP5cyxm6YcTAhz05Hph5gvu9M',
+
         # wrong salt size
         '{FSHP0|1|1}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
 
         # bad rounds
         '{FSHP0|0|A}qUqP5cyxm6YcTAhz05Hph5gvu9M=',
     ]
+
+    def test_90_variant(self):
+        "test variant keyword"
+        handler = self.handler
+        kwds = dict(salt='a', rounds=1)
+
+        # accepts ints
+        handler(variant=1, **kwds)
+
+        # accepts bytes or unicode
+        handler(variant=u('1'), **kwds)
+        handler(variant=b('1'), **kwds)
+
+        # aliases
+        handler(variant=u('sha256'), **kwds)
+        handler(variant=b('sha256'), **kwds)
+
+        # rejects None
+        self.assertRaises(TypeError, handler, variant=None, **kwds)
+
+        # rejects other types
+        self.assertRaises(TypeError, handler, variant=complex(1,1), **kwds)
+
+        # invalid variant
+        self.assertRaises(ValueError, handler, variant='9', **kwds)
+        self.assertRaises(ValueError, handler, variant=9, **kwds)
 
 #=========================================================
 #hex digests
@@ -1080,6 +1145,9 @@ class _md5_crypt_test(HandlerCase):
     known_malformed_hashes = [
         # bad char in otherwise correct hash \/
            '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
+
+        # too many fields
+        '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.$',
         ]
 
     platform_crypt_support = dict(
@@ -2005,6 +2073,12 @@ class _sha1_crypt_test(HandlerCase):
 
         # zero padded rounds
         '$sha1$01773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH',
+
+        # too many fields
+        '$sha1$21773$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH$',
+
+        # empty rounds field
+        '$sha1$$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH$',
     ]
 
     platform_crypt_support = dict(
@@ -2316,6 +2390,14 @@ class sun_md5_crypt_test(HandlerCase):
     ]
 
     known_malformed_hashes = [
+        # unexpected end of hash
+        "$md5,rounds=5000",
+
+        # bad rounds
+        "$md5,rounds=500A$xxxx",
+        "$md5,rounds=0500$xxxx",
+        "$md5,rounds=0$xxxx",
+
         # bad char in otherwise correct hash
         "$md5$RPgL!6IJ$WTvAlUJ7MqH5xak2FMEwS/",
 
@@ -2368,6 +2450,16 @@ class unix_disabled_test(HandlerCase):
 
     # TODO: test custom marker support
     # TODO: test default marker selection
+
+    def test_90_preserves_existing(self):
+        "test preserves existing disabled hash"
+        handler = self.handler
+
+        # use marker if no hash
+        self.assertEqual(handler.genhash("stub", None), handler.marker)
+
+        # use hash if provided and valid
+        self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
 
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback

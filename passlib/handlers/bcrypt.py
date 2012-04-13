@@ -186,8 +186,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     def _norm_salt(self, salt, **kwds):
         salt = super(bcrypt, self)._norm_salt(salt, **kwds)
-        if not salt:
-            return None
+        assert salt is not None, "HasSalt didn't generate new salt!"
         changed, salt = bcrypt64.check_repair_unused(salt)
         if changed:
             warn(

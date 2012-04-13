@@ -162,50 +162,50 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True):
         return wrapper
     return build
 
-def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
-                       removed=None, updoc=True):
-    """constructor to create alias for relocated function.
-
-    :arg target: import path to target
-    :arg msg: optional msg, default chosen if omitted
-    :kwd deprecated: release where function was first deprecated
-    :kwd removed: release where function will be removed
-    :kwd updoc: add notice to docstring (default ``True``)
-    """
-    target_mod, target_name = target.rsplit(".",1)
-    if mod is None:
-        import inspect
-        mod = inspect.currentframe(1).f_globals["__name__"]
-    if not name:
-        name = target_name
-    if msg is None:
-        msg = ("the function %(mod)s.%(name)s() has been moved to "
-               "%(target_mod)s.%(target_name)s(), the old location is deprecated")
-        if deprecated:
-            msg += " as of Passlib %(deprecated)s"
-        if removed:
-            msg += ", and will be removed in Passlib %(removed)s"
-        msg += "."
-    msg %= dict(
-        mod=mod,
-        name=name,
-        target_mod=target_mod,
-        target_name=target_name,
-        deprecated=deprecated,
-        removed=removed,
-    )
-    state = [None]
-    def wrapper(*args, **kwds):
-        warn(msg, DeprecationWarning, stacklevel=2)
-        func = state[0]
-        if func is None:
-            module = __import__(target_mod, fromlist=[target_name], level=0)
-            func = state[0] = getattr(module, target_name)
-        return func(*args, **kwds)
-    wrapper.__module__ = mod
-    wrapper.__name__ = name
-    wrapper.__doc__ = msg
-    return wrapper
+##def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
+##                       removed=None, updoc=True):
+##    """constructor to create alias for relocated function.
+##
+##    :arg target: import path to target
+##    :arg msg: optional msg, default chosen if omitted
+##    :kwd deprecated: release where function was first deprecated
+##    :kwd removed: release where function will be removed
+##    :kwd updoc: add notice to docstring (default ``True``)
+##    """
+##    target_mod, target_name = target.rsplit(".",1)
+##    if mod is None:
+##        import inspect
+##        mod = inspect.currentframe(1).f_globals["__name__"]
+##    if not name:
+##        name = target_name
+##    if msg is None:
+##        msg = ("the function %(mod)s.%(name)s() has been moved to "
+##               "%(target_mod)s.%(target_name)s(), the old location is deprecated")
+##        if deprecated:
+##            msg += " as of Passlib %(deprecated)s"
+##        if removed:
+##            msg += ", and will be removed in Passlib %(removed)s"
+##        msg += "."
+##    msg %= dict(
+##        mod=mod,
+##        name=name,
+##        target_mod=target_mod,
+##        target_name=target_name,
+##        deprecated=deprecated,
+##        removed=removed,
+##    )
+##    state = [None]
+##    def wrapper(*args, **kwds):
+##        warn(msg, DeprecationWarning, stacklevel=2)
+##        func = state[0]
+##        if func is None:
+##            module = __import__(target_mod, fromlist=[target_name], level=0)
+##            func = state[0] = getattr(module, target_name)
+##        return func(*args, **kwds)
+##    wrapper.__module__ = mod
+##    wrapper.__name__ = name
+##    wrapper.__doc__ = msg
+##    return wrapper
 
 class memoized_property(object):
     """decorator which invokes method once, then replaces attr with result"""
@@ -309,7 +309,7 @@ def consteq(left, right):
     return result == 0
 
 @deprecated_function(deprecated="1.6", removed="1.8")
-def splitcomma(source, sep=","):
+def splitcomma(source, sep=","): # pragma: no cover
     """split comma-separated string into list of elements,
     stripping whitespace and discarding empty elements.
     """
@@ -465,7 +465,7 @@ def render_bytes(source, *args):
 # NOTE: deprecating bytes<->int in favor of just using struct module.
 
 @deprecated_function(deprecated="1.6", removed="1.8")
-def bytes_to_int(value):
+def bytes_to_int(value): # pragma: no cover
     "decode string of bytes as single big-endian integer"
     from passlib.utils.compat import byte_elem_value
     out = 0
@@ -474,7 +474,7 @@ def bytes_to_int(value):
     return out
 
 @deprecated_function(deprecated="1.6", removed="1.8")
-def int_to_bytes(value, count):
+def int_to_bytes(value, count): # pragma: no cover
     "encodes integer into single big-endian byte string"
     assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
     return join_byte_values(
@@ -577,10 +577,10 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
         * returns unicode strings unchanged.
         * returns bytes strings decoded using *source_encoding*
     """
+    assert source_encoding
     if isinstance(source, unicode):
         return source
     elif isinstance(source, bytes):
-        assert source_encoding
         return source.decode(source_encoding)
     else:
         raise ExpectedStringError(source, errname)
@@ -624,7 +624,7 @@ add_doc(to_native_str,
     """)
 
 @deprecated_function(deprecated="1.6", removed="1.7")
-def to_hash_str(source, encoding="ascii"):
+def to_hash_str(source, encoding="ascii"): # pragma: no cover
     "deprecated, use to_native_str() instead"
     return to_native_str(source, encoding, errname="hash")
 
@@ -698,7 +698,7 @@ class Base64Engine(object):
         if isinstance(charmap, unicode):
             charmap = charmap.encode("latin-1")
         elif not isinstance(charmap, bytes):
-            raise TypeError("charmap must be unicode/bytes string")
+            raise ExpectedStringError(charmap, "charmap")
         if len(charmap) != 64:
             raise ValueError("charmap must be 64 characters in length")
         if len(set(charmap)) != 64:
@@ -1145,8 +1145,7 @@ class Base64Engine(object):
         :returns:
             a string of length ``int(ceil(bits/6.0))``.
         """
-        if value < 0:
-            raise ValueError("value cannot be negative")
+        assert value >= 0, "caller did not sanitize input"
         pad = -bits % 6
         bits += pad
         if self.big:
@@ -1298,22 +1297,14 @@ else:
             if isinstance(secret, bytes):
                 # Python 3's crypt() only accepts unicode, which is then
                 # encoding using utf-8 before passing to the C-level crypt().
-                # so we have to decode the secret, but also check that it
-                # re-encodes to the original sequence of bytes... otherwise
-                # the call to crypt() will digest the wrong value.
+                # so we have to decode the secret.
                 orig = secret
                 try:
                     secret = secret.decode("utf-8")
                 except UnicodeDecodeError:
                     return None
-                if secret.encode("utf-8") != orig:
-                    # just in case original encoding wouldn't be reproduced
-                    # during call to os_crypt. not sure if/how this could
-                    # happen, but being paranoid.
-                    from passlib.exc import PasslibRuntimeWarning
-                    warn("utf-8 password didn't re-encode correctly!",
-                         PasslibRuntimeWarning)
-                    return None
+                assert secret.encode("utf-8") == orig, \
+                            "utf-8 spec says this can't happen!"
             if _NULL in secret:
                 raise ValueError("null character in secret")
             if isinstance(hash, bytes):

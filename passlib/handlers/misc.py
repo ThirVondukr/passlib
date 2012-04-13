@@ -141,6 +141,8 @@ class unix_disabled(object):
             # NOTE: config/hash will generally be "!" or "*",
             # but we want to preserve it in case it has some other content,
             # such as ``"!"  + original hash``, which glibc uses.
+            # XXX: should this detect mcf header, or other things re:
+            # local system policy?
             return to_native_str(config, errname="config")
         else:
             return to_native_str(marker or cls.marker, errname="marker")

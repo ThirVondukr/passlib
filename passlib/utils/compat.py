@@ -34,7 +34,7 @@ __all__ = [
     'print_',
 
     # type detection
-    'is_mapping',
+##    'is_mapping',
     'callable',
     'int_types',
     'num_types',
@@ -234,9 +234,9 @@ else:
 #=============================================================================
 # typing
 #=============================================================================
-def is_mapping(obj):
-    # non-exhaustive check, enough to distinguish from lists, etc
-    return hasattr(obj, "items")
+##def is_mapping(obj):
+##    # non-exhaustive check, enough to distinguish from lists, etc
+##    return hasattr(obj, "items")
 
 if (3,0) <= sys.version_info < (3,2):
     # callable isn't dead, it's just resting
@@ -390,7 +390,7 @@ class _LazyOverlayModule(ModuleType):
         attrs.update(self.__dict__)
         attrs.update(self.__attrmap)
         proxy = self.__proxy
-        if proxy:
+        if proxy is not None:
             attrs.update(dir(proxy))
         return list(attrs)
 
