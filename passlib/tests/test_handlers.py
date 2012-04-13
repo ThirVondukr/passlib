@@ -428,6 +428,10 @@ class _bsdi_crypt_test(HandlerCase):
         # darwin ?
     )
 
+    def setUp(self):
+        super(_bsdi_crypt_test, self).setUp()
+        warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
+
 os_crypt_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "os_crypt")
 builtin_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "builtin")
 

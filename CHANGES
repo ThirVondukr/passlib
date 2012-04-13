@@ -53,6 +53,9 @@ Release History
         * The :doc:`ldap salted digests </lib/passlib.hash.ldap_std>`
           now support salts from 4-16 bytes [issue 30].
 
+        * :class:`bsdi_crypt` now issues a warning if an even number of rounds
+          is requested by the application, due to a known weakness in DES.
+
         * All hashes will now throw :exc:`~passlib.exc.PasswordSizeError`
           if the provided password is larger than 4096 characters.
 

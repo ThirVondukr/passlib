@@ -905,6 +905,7 @@ class _CryptRecord(object):
         if df is None or fixed:
             self._generate_rounds = None
             self._has_rounds = self._has_rounds_bounds
+            return
         elif vr:
             scale_value = lambda v,uf: v
             if vr_is_pct:
@@ -932,6 +933,13 @@ class _CryptRecord(object):
             df = clip(df)
             self._generate_rounds = lambda: df
             self._has_rounds = True
+
+        # hack for bsdi_crypt - want to avoid even-valued rounds
+        # NOTE: this technically might generate a rounds value 1 larger
+        # than the requested upper bound - but better to err on side of safety.
+        if getattr(handler, "_avoid_even_rounds", False):
+            gen = self._generate_rounds
+            self._generate_rounds = lambda : gen()|1
 
     # filled in by _compile_rounds_settings()
     _generate_rounds = None

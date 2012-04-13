@@ -18,19 +18,19 @@ This class can be used directly as follows::
     >>> from passlib.hash import bsdi_crypt as bc
 
     >>> bc.encrypt("password") #generate new salt, encrypt password
-    '_cD..Bf/46u7tr9IAJ6M'
+    '_7C/.Bf/4gZk10RYRs4Y'
 
-    >>> bc.encrypt("password", rounds=10000) #same, but with explict number of rounds
-    '_EQ0.amG/Pp5b0hIpggo'
+    >>> bc.encrypt("password", rounds=10001) #same, but with explict number of rounds
+    '_FQ0.amG/zwCMip7DnBk'
 
-    >>> bc.identify('_cD..Bf/46u7tr9IAJ6M') #check if hash is recognized
+    >>> bc.identify('_7C/.Bf/4gZk10RYRs4Y') #check if hash is recognized
     True
     >>> bc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
     False
 
-    >>> bc.verify("password", '_cD..Bf/46u7tr9IAJ6M') #verify correct password
+    >>> bc.verify("password", '_7C/.Bf/4gZk10RYRs4Y') #verify correct password
     True
-    >>> bc.verify("secret", '_cD..Bf/46u7tr9IAJ6M') #verify incorrect password
+    >>> bc.verify("secret", '_7C/.Bf/4gZk10RYRs4Y') #verify incorrect password
     False
 
 Interface
@@ -110,11 +110,16 @@ BSDi Crypt should not be considered sufficiently secure, for a number of reasons
 * The fact that it only uses the lower 7 bits of each byte of the password
   restricts the keyspace which needs to be searched.
 
-.. note::
+* Additionally, even *rounds* values are slightly weaker still,
+  as they may reveal the hash used one of the weak DES keys [#weak]_.
+  This information could theoretically allow an attacker to perform a
+  brute-force attack on a reduced keyspace and against only 1-2 rounds of DES.
+  (This issue is mitagated by the fact that few passwords are both valid *and*
+  result in a weak key).
 
-    This algorithm is none-the-less stronger than des-crypt itself,
-    since it supports variable rounds, a larger salt size,
-    and uses all bytes of the password.
+This algorithm is none-the-less stronger than :class:`!des_crypt` itself,
+since it supports variable rounds, a larger salt size,
+and uses all the bytes of the password.
 
 Deviations
 ==========
@@ -138,3 +143,5 @@ This implementation of bsdi-crypt differs from others in one way:
 
 .. [#] Another source describing algorithm -
        `<http://ftp.lava.net/cgi-bin/bsdi-man?proto=1.1&query=crypt&msection=3&apropos=0>`_
+
+.. [#weak] DES weak keys - `<https://en.wikipedia.org/wiki/Weak_key#Weak_keys_in_DES>`_

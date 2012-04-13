@@ -261,7 +261,23 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return uascii_to_str(hash)
 
     #=========================================================
-    #backend
+    # validation
+    #=========================================================
+
+    # flag so CryptContext won't generate even rounds.
+    _avoid_even_rounds = True
+
+    def _norm_rounds(self, rounds):
+        rounds = super(bsdi_crypt, self)._norm_rounds(rounds)
+        # issue warning if app provided an even rounds value
+        if self.use_defaults and not rounds & 1:
+            warn("bsdi_crypt rounds should be odd, "
+                 "as even rounds may reveal weak DES keys",
+                 uh.exc.PasslibSecurityWarning)
+        return rounds
+
+    #=========================================================
+    # backends
     #=========================================================
     backends = ("os_crypt", "builtin")
 
