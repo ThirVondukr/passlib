@@ -143,6 +143,11 @@ Release History
 
     Other
 
+        * The api for the :mod:`passlib.apache` module has been updated
+          to add more flexibility, and to fix some ambiguous method
+          and keyword names. The old names are still supported, but deprecated,
+          and will be removed in Passlib 1.8.
+
         * Handle platform-specific error strings returned by :func:`!crypt.crypt`.
 
         * Passlib is now source-compatible with Python 2.5+ and Python 3,

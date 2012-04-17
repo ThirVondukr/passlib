@@ -126,30 +126,46 @@ class classproperty(object):
         "py3 compatible alias"
         return self.im_func
 
-def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True):
+def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
+                        replacement=None, _is_method=False):
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
     :kwd deprecated: release where function was first deprecated
     :kwd removed: release where function will be removed
+    :kwd replacement: name/instructions for replacement function.
     :kwd updoc: add notice to docstring (default ``True``)
     """
     if msg is None:
-        msg = "the function %(mod)s.%(name)s() is deprecated"
+        if _is_method:
+            msg = "the method %(mod)s.%(klass)s.%(name)s() is deprecated"
+        else:
+            msg = "the function %(mod)s.%(name)s() is deprecated"
         if deprecated:
             msg += " as of Passlib %(deprecated)s"
         if removed:
             msg += ", and will be removed in Passlib %(removed)s"
+        if replacement:
+            msg += ", use %s instead" % replacement
         msg += "."
     def build(func):
-        final = msg % dict(
+        kwds = dict(
             mod=func.__module__,
             name=func.__name__,
             deprecated=deprecated,
             removed=removed,
-        )
+            )
+        if _is_method:
+            state = [None]
+        else:
+            state = [msg % kwds]
         def wrapper(*args, **kwds):
-            warn(final, DeprecationWarning, stacklevel=2)
+            text = state[0]
+            if text is None:
+                klass = args[0].__class__
+                kwds.update(klass=klass.__name__, mod=klass.__module__)
+                text = state[0] = msg % kwds
+            warn(text, DeprecationWarning, stacklevel=2)
             return func(*args, **kwds)
         update_wrapper(wrapper, func)
         if updoc and (deprecated or removed) and wrapper.__doc__:
@@ -161,6 +177,19 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True):
             wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
         return wrapper
     return build
+
+def deprecated_method(msg=None, deprecated=None, removed=None, updoc=True,
+                      replacement=None):
+    """decorator to deprecate a method.
+
+    :arg msg: optional msg, default chosen if omitted
+    :kwd deprecated: release where function was first deprecated
+    :kwd removed: release where function will be removed
+    :kwd replacement: name/instructions for replacement method.
+    :kwd updoc: add notice to docstring (default ``True``)
+    """
+    return deprecated_function(msg, deprecated, removed, updoc, replacement,
+                               _is_method=True)
 
 ##def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
 ##                       removed=None, updoc=True):

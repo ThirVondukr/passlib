@@ -913,6 +913,37 @@ class hex_sha512_test(HandlerCase):
     ]
 
 #=========================================================
+# htdigest hash
+#=========================================================
+class htdigest_test(UserHandlerMixin, HandlerCase):
+    handler = hash.htdigest
+
+    known_correct_hashes = [
+        # secret, user, realm
+
+        # from RFC 2617
+        (("Circle Of Life", "Mufasa", "testrealm@host.com"),
+            '939e7578ed9e3c518a452acee763bce9'),
+
+        # custom
+        ((UPASS_TABLE, UPASS_USD, UPASS_WAV),
+            '4dabed2727d583178777fab468dd1f17'),
+    ]
+
+    def test_80_user(self):
+        raise self.skipTest("test case doesn't support 'realm' keyword")
+
+    def _insert_user(self, kwds, secret):
+        "insert username into kwds"
+        if isinstance(secret, tuple):
+            secret, user, realm = secret
+        else:
+            user, realm = "user", "realm"
+        kwds.setdefault("user", user)
+        kwds.setdefault("realm", realm)
+        return secret
+
+#=========================================================
 #ldap hashes
 #=========================================================
 class ldap_md5_test(HandlerCase):

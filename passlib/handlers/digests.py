@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_native_str
+from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
 from passlib.utils.compat import bascii_to_str, bytes, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.utils.md4 import md4
@@ -74,6 +74,66 @@ hex_md5     = create_hex_hash(hashlib.md5,      "md5")
 hex_sha1    = create_hex_hash(hashlib.sha1,     "sha1")
 hex_sha256  = create_hex_hash(hashlib.sha256,   "sha256")
 hex_sha512  = create_hex_hash(hashlib.sha512,   "sha512")
+
+#=========================================================
+# htdigest
+#=========================================================
+class htdigest(object):
+    """htdigest hash function.
+
+    .. todo::
+        document this hash
+    """
+    name = "htdigest"
+    setting_kwds = ()
+    context_kwds = ("user", "realm")
+
+    @classmethod
+    def encrypt(cls, secret, user, realm, encoding="utf-8"):
+        # NOTE: deliberately written so that raw bytes are passed through
+        # unchanged, encoding only used to handle unicode values.
+        uh.validate_secret(secret)
+        if isinstance(secret, unicode):
+            secret = secret.encode(encoding)
+        user = to_bytes(user, encoding, "user")
+        realm = to_bytes(realm, encoding, "realm")
+        data = render_bytes("%s:%s:%s", user, realm, secret)
+        return hashlib.md5(data).hexdigest()
+
+    @classmethod
+    def _norm_hash(cls, hash):
+        "normalize hash to native string, and validate it"
+        hash = to_native_str(hash, errname="hash")
+        if len(hash) != 32:
+            raise uh.exc.MalformedHashError(cls, "wrong size")
+        for char in hash:
+            if char not in uh.LC_HEX_CHARS:
+                raise uh.exc.MalformedHashError(cls, "invalid chars in hash")
+        return hash
+
+    @classmethod
+    def verify(cls, secret, hash, user, realm, encoding="utf-8"):
+        hash = cls._norm_hash(hash)
+        other = cls.encrypt(secret, user, realm, encoding)
+        return consteq(hash, other)
+
+    @classmethod
+    def identify(cls, hash):
+        try:
+            cls._norm_hash(hash)
+        except ValueError:
+            return False
+        return True
+
+    @classmethod
+    def genconfig(cls):
+        return None
+
+    @classmethod
+    def genhash(cls, secret, config, user, realm, encoding="utf-8"):
+        if config is not None:
+            cls._norm_hash(config)
+        return cls.encrypt(secret, user, realm, encoding)
 
 #=========================================================
 #eof
