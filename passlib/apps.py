@@ -112,7 +112,7 @@ def _create_phpass_policy(**kwds):
 
 phpass_context = LazyCryptContext(
     schemes=["bcrypt", "phpass", "bsdi_crypt"],
-    create_policy=_create_phpass_policy,
+    onload=_create_phpass_policy,
     )
 
 phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")

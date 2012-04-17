@@ -13,7 +13,7 @@ see the Passlib documentation for details on how to use this app
 #site
 from django.conf import settings
 #pkg
-from passlib.context import CryptContext, CryptPolicy
+from passlib.context import CryptContext
 from passlib.utils import is_crypt_context
 from passlib.utils.compat import bytes, unicode, base_string_types
 from passlib.ext.django.utils import DEFAULT_CTX, get_category, \
@@ -35,7 +35,7 @@ def patch():
     if ctx == "passlib-default":
         ctx = DEFAULT_CTX
     if isinstance(ctx, base_string_types):
-        ctx = CryptContext(policy=CryptPolicy.from_string(ctx))
+        ctx = CryptContext.from_string(ctx)
     if not is_crypt_context(ctx):
         raise TypeError("django settings.PASSLIB_CONTEXT must be CryptContext "
                         "instance or configuration string: %r" % (ctx,))

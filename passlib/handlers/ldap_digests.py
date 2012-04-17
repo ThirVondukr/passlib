@@ -223,7 +223,7 @@ _init_ldap_crypt_handlers()
 ##    global _lcn_host
 ##    if _lcn_host is None:
 ##        from passlib.hosts import host_context
-##        schemes = host_context.policy.schemes()
+##        schemes = host_context.schemes()
 ##        _lcn_host = [
 ##            "ldap_" + name
 ##            for name in unix_crypt_names

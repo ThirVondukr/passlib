@@ -2414,20 +2414,28 @@ class LazyCryptContext(CryptContext):
         the first positional argument can be a list of schemes, or omitted,
         just like CryptContext.
 
-    :param create_policy:
+    :param onload:
 
         if a callable is passed in via this keyword,
         it will be invoked at lazy-load time
         with the following signature:
-        ``create_policy(**kwds) -> CryptPolicy``;
+        ``onload(**kwds) -> kwds``;
         where ``kwds`` is all the additional kwds passed to LazyCryptContext.
-        It should return a CryptPolicy instance, which will then be used
-        by the CryptContext.
+        It should perform any additional deferred initialization,
+        and return the final dict of options to be passed to CryptContext.
+
+        .. versionadded:: 1.6
+
+    :param create_policy:
+
+        .. deprecated:: 1.6
+            This option will be removed in Passlib 1.8.
+            Applications should use *onload* instead.
 
     :param kwds:
 
-        All additional keywords are passed to CryptPolicy;
-        or to the create_policy function if provided.
+        All additional keywords are passed to CryptContext;
+        or to the *onload* function (if provided).
 
     This is mainly used internally by modules such as :mod:`passlib.apps`,
     which define a large number of contexts, but only a few of them will be needed
@@ -2443,7 +2451,7 @@ class LazyCryptContext(CryptContext):
     #       previously it just called _lazy_init() when ``.policy`` was
     #       first accessed. now that is done whenever any of the public
     #       attributes are accessed, and the class itself is changed
-    #       to a regular CryptContext, to remove the overhead one it's unneeded.
+    #       to a regular CryptContext, to remove the overhead once it's unneeded.
 
     def __init__(self, schemes=None, **kwds):
         if schemes is not None:
@@ -2453,16 +2461,26 @@ class LazyCryptContext(CryptContext):
     def _lazy_init(self):
         kwds = self._lazy_kwds
         if 'create_policy' in kwds:
+            warn("The CryptPolicy class, and LazyCryptContext's "
+                 "``create_policy`` keyword have been deprecated as of "
+                 "Passlib 1.6, and will be removed in Passlib 1.8; "
+                 "please use the ``onload`` keyword instead.",
+                 DeprecationWarning)
             create_policy = kwds.pop("create_policy")
-            policy = create_policy(**kwds)
-            kwds = dict(policy=CryptPolicy.from_source(policy))
-        super(LazyCryptContext, self).__init__(**kwds)
+            result = create_policy(**kwds)
+            policy = CryptPolicy.from_source(result, _warn=False)
+            kwds = policy._context.to_dict()
+        elif 'onload' in kwds:
+            onload = kwds.pop("onload")
+            kwds = onload(**kwds)
         del self._lazy_kwds
+        super(LazyCryptContext, self).__init__(**kwds)
         self.__class__ = CryptContext
 
     def __getattribute__(self, attr):
-        if not attr.startswith("_"):
-            self._lazy_init()
+        if (not attr.startswith("_") or attr.startswith("__")) and \
+            self._lazy_kwds is not None:
+                self._lazy_init()
         return object.__getattribute__(self, attr)
 
 #=========================================================

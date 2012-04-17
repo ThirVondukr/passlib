@@ -156,7 +156,7 @@ _handler_locations = {
 _name_re = re.compile("^[a-z][_a-z0-9]{2,}$")
 
 #: names which aren't allowed for various reasons (mainly keyword conflicts in CryptContext)
-_forbidden_names = frozenset(["policy", "context", "all", "default", "none"])
+_forbidden_names = frozenset(["onload", "policy", "context", "all", "default", "none"])
 
 #==========================================================
 #registry frontend functions
@@ -289,10 +289,11 @@ def get_crypt_handler(name, default=_NOTSET):
     """
     global _handlers, _handler_locations
 
-    #check if handler loaded
-    handler = _handlers.get(name)
-    if handler:
-        return handler
+    #check if handler is already loaded
+    try:
+        return _handlers[name]
+    except KeyError:
+        pass
 
     #normalize name (and if changed, check dict again)
     assert isinstance(name, str), "name must be str instance"

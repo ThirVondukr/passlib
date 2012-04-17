@@ -9,7 +9,7 @@ import sys
 import warnings
 #site
 #pkg
-from passlib.context import CryptContext, CryptPolicy
+from passlib.context import CryptContext
 from passlib.apps import django_context
 from passlib.ext.django import utils
 from passlib.hash import sha256_crypt
@@ -118,9 +118,9 @@ sample1_sha1 = 'sha1$b215d$9ee0a66f84ef1ad99096355e788135f7e949bd41'
 # context for testing category funcs
 category_context = CryptContext(
     schemes = [ "sha256_crypt" ],
-    sha256_crypt__rounds = 1000,
-    staff__sha256_crypt__rounds = 2000,
-    superuser__sha256_crypt__rounds = 3000,
+    sha256_crypt__default_rounds = 1000,
+    staff__sha256_crypt__default_rounds = 2000,
+    superuser__sha256_crypt__default_rounds = 3000,
 )
 
 def get_cc_rounds(**kwds):
@@ -258,7 +258,6 @@ class PatchTest(TestCase):
     def test_01_patch_bad_types(self):
         "test set_django_password_context bad inputs"
         set = utils.set_django_password_context
-        self.assertRaises(TypeError, set, CryptPolicy())
         self.assertRaises(TypeError, set, "")
 
     def test_02_models_check_password(self):
@@ -540,7 +539,7 @@ class PluginTest(TestCase):
     def test_20_categories(self):
         "test PASSLIB_GET_CATEGORY unset"
         update_settings(
-            PASSLIB_CONTEXT=category_context.policy.to_string(),
+            PASSLIB_CONTEXT=category_context.to_string(),
         )
         import passlib.ext.django.models
 
@@ -553,7 +552,7 @@ class PluginTest(TestCase):
         def get_category(user):
             return user.first_name or None
         update_settings(
-            PASSLIB_CONTEXT = category_context.policy.to_string(),
+            PASSLIB_CONTEXT = category_context.to_string(),
             PASSLIB_GET_CATEGORY = get_category,
         )
         import passlib.ext.django.models
@@ -566,7 +565,7 @@ class PluginTest(TestCase):
     def test_22_categories_disabled(self):
         "test PASSLIB_GET_CATEGORY = None"
         update_settings(
-            PASSLIB_CONTEXT = category_context.policy.to_string(),
+            PASSLIB_CONTEXT = category_context.to_string(),
             PASSLIB_GET_CATEGORY = None,
         )
         import passlib.ext.django.models

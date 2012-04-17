@@ -25,7 +25,7 @@ class AppsTest(TestCase):
 
     def test_custom_app_context(self):
         ctx = apps.custom_app_context
-        self.assertEqual(ctx.policy.schemes(), ["sha512_crypt", "sha256_crypt"])
+        self.assertEqual(ctx.schemes(), ("sha512_crypt", "sha256_crypt"))
         for hash in [
             ('$6$rounds=41128$VoQLvDjkaZ6L6BIE$4pt.1Ll1XdDYduEwEYPCMOBiR6W6'
                 'znsyUEoNlcVXpv2gKKIbQolgmTGe6uEEVJ7azUxuc8Tf7zV9SD2z7Ij751'),
@@ -93,10 +93,12 @@ class AppsTest(TestCase):
         h1 = '$2a$10$Ljj0Kgu7Ddob9xWoqzn0ae.uNfxPRofowWdksk.6jCUHKTGYLD.QG'
         if hashmod.bcrypt.has_backend():
             self.assertTrue(ctx.verify("test", h1))
-            self.assertEqual(ctx.policy.get_handler().name, "bcrypt")
+            self.assertEqual(ctx.default_scheme(), "bcrypt")
+            self.assertEqual(ctx.handler().name, "bcrypt")
         else:
             self.assertEqual(ctx.identify(h1), "bcrypt")
-            self.assertEqual(ctx.policy.get_handler().name, "phpass")
+            self.assertEqual(ctx.default_scheme(), "phpass")
+            self.assertEqual(ctx.handler().name, "phpass")
 
     def test_phpbb3_context(self):
         ctx = apps.phpbb3_context

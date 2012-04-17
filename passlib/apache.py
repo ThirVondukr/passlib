@@ -515,7 +515,7 @@ class HtpasswdFile(_CommonFile):
                  DeprecationWarning, stacklevel=2)
             default_scheme = kwds.pop("default")
         if default_scheme:
-            context = context.replace(default=default_scheme)
+            context = context.copy(default=default_scheme)
         self.context = context
         super(HtpasswdFile, self).__init__(path, **kwds)
 

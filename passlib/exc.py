@@ -48,10 +48,10 @@ class PasslibConfigWarning(PasslibWarning):
 
     This occurs primarily in one of two cases:
 
-    * the policy contains rounds limits which exceed the hard limits
+    * the CryptContext contains rounds limits which exceed the hard limits
       imposed by the underlying algorithm.
     * an explicit rounds value was provided which exceeds the limits
-      imposed by the policy.
+      imposed by the CryptContext.
 
     In both of these cases, the code will perform correctly & securely;
     but the warning is issued as a sign the configuration may need updating.

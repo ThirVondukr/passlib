@@ -72,7 +72,7 @@ class HostsTest(TestCase):
 
         # validate schemes is non-empty,
         # and contains unix_disabled + at least one real scheme
-        schemes = ctx.policy.schemes()
+        schemes = list(ctx.schemes())
         self.assertTrue(schemes, "appears to be unix system, but no known schemes supported by crypt")
         self.assertTrue('unix_disabled' in schemes)
         schemes.remove("unix_disabled")
