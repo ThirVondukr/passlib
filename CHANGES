@@ -69,31 +69,44 @@ Release History
         .. currentmodule:: passlib.context
 
         * :class:`~CryptContext` now supports a :ref:`passprep <passprep>` option,
-          which runs all passwords through SASLPrep (:rfc:`4013`)
+          which can be used to run all passwords through SASLPrep (:rfc:`4013`),
           in order to normalize their unicode representation before hashing
           [issue 24].
 
-        * Internals of :class:`CryptPolicy` have been
-          re-written drastically. Should now be stricter (and more informative)
-          about invalid values, and common :class:`CryptContext`
-          operations should all have much shorter code-paths.
+        * The :class:`!CryptContext` option
+          :ref:`min_verify_time <min-verify-time>` has been deprecated,
+          will be ignored in release 1.7, and will be removed in release 1.8.
 
-        * Config parsing now done with :class:`SafeConfigParser`.
-          :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
-          previously used :class:`!ConfigParser` interpolation.
-          Release 1.5 switched to :class:`SafeConfigParser`,
+        * The internals of :class:`!CryptContext` have been rewritten
+          drastically. It's methods should now be stricter and more informative
+          about invalid values; and common :class:`!CryptContext` operations
+          should be faster, and have shorter internal code paths.
+
+        * The :attr:`!CryptContext.policy` attr, and the supporting
+          :class:`!CryptPolicy` class, have been deprecated in their entirety.
+
+          They will not be removed until Passlib 1.8, to give applications
+          which used these features time to migrate. Applications which did
+          not use either of these features explicitly should be unaffected by
+          this change.
+
+          The functionality of :class:`!CryptPolicy` has been merged
+          into the :class:`CryptContext` class, in order to simplify
+          the exposed interface. Information on migrating can be found
+          in the :class:`CryptPolicy` documentation, as well as in
+          the :exc:`DeprecationWarning` messages issued when a :class:`!CryptPolicy`
+          is invoked.
+
+        * :meth:`CryptContext.from_path` and :meth:`CryptContext.from_string`
+          (and the legacy :class:`CryptPolicy` object) now use stdlib's
+          :class:`!SafeConfigParser`.
+
+          Previous releases used the original :class:`!ConfigParser` interpolation.
+          Passlib 1.5 switched to :class:`SafeConfigParser`,
           but kept support for the old format as a (deprecated) fallback.
           This fallback has been removed in 1.6; any
-          legacy config files may need to escape raw ``%`` characters
+          legacy config files may need to double any raw ``%`` characters
           in order to load successfully.
-
-        * The main CryptContext methods (e.g. :meth:`~CryptContext.encrypt`,
-          and :meth:`~CryptContext.verify`) will now consistently raise
-          a :exc:`TypeError` when called with ``hash=None`` or another
-          non-string type, to match the :doc:`password-hash-api`.
-          Under previous releases, they might return ``False``,
-          raise :exc:`ValueError`, or raise :exc:`TypeError`,
-          depending on the specific method and context settings.
 
     Utils
 
@@ -136,10 +149,6 @@ Release History
 
         * deprecated some unused functions in :mod:`!passlib.utils`,
           they will be removed in release 1.7.
-
-        * The :class:`!CryptContext` option
-          :ref:`min_verify_time <min-verify-time>` has been deprecated,
-          will be ignored in release 1.7, and will be removed in release 1.8.
 
     Other
 

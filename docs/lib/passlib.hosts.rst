@@ -52,7 +52,7 @@ for the following Unix variants:
     All of the above contexts include the :class:`~passlib.hash.unix_disabled` handler
     as a final fallback. This special handler treats all strings as invalid passwords,
     particularly the common strings ``!`` and ``*`` which are used to indicate
-    that an account has been disabled [#shadow]_. 
+    that an account has been disabled [#shadow]_.
 
 A quick usage example, using the :data:`!linux_context` instance::
 
@@ -81,7 +81,7 @@ Current Host OS
     The main differences between this object and :func:`!crypt`:
 
     * this object provides introspection about *which* schemes
-      are available on a given system (via ``host_context.policy.schemes()``).
+      are available on a given system (via ``host_context.schemes()``).
     * it defaults to the strongest algorithm available,
       automatically configured to an appropriate strength
       for encrypting new passwords.

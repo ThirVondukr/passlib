@@ -9,9 +9,13 @@
 .. currentmodule:: passlib.context
 
 The :class:`CryptContext` accepts a number of keyword options.
-These are divides into the "context options", which affect
-the context instance directly, and the "hash options",
-which affect the context treats a particular type of hash:
+These can be provided to any of the CryptContext constructor methods,
+as well as the :meth:`CryptContext.update` method, or any configuration
+string or INI file passed to :meth:`CryptContext.load`.
+
+The options are divided into two categories: "context options", which directly
+affect the :class:`!CryptContext` object itself; and "hash options", which
+affect the behavior of a particular password hashing scheme.
 
 .. seealso::
 
@@ -21,8 +25,7 @@ which affect the context treats a particular type of hash:
 
 Context Options
 ===============
-The following keyword options are accepted by both the :class:`CryptContext`
-and :class:`CryptPolicy` constructors, and directly affect the behavior
+The following keyword options directly affect the behavior
 of the :class:`!CryptContext` instance itself:
 
 ``schemes``
@@ -41,15 +44,14 @@ of the :class:`!CryptContext` instance itself:
 ``deprecated``
 
     List of handler names which should be considered deprecated by the CryptContext.
-    This should be a subset of the names of the handlers listed in schemes.
-    This is optional, if not specified, no handlers will be considered deprecated.
+    This should be a subset of the names of the handlers listed in *schemes*.
+    This is optional, and if not specified, no handlers will be considered deprecated.
 
-    For use in INI files, this may also be specified as a single comma-separated string
+    For INI files, this may also be specified as a single comma-separated string
     of handler names.
 
-    This is primarily used by :meth:`CryptContext.hash_needs_update` and
-    :meth:`CryptPolicy.handler_is_deprecated`. If the application does not use
-    these methods, this option can be ignored.
+    This is primarily used by :meth:`CryptContext.hash_needs_update`.
+    If the application does not use this method, this option can be ignored.
 
     Example: ``deprecated=["des_crypt"]``.
 
@@ -77,25 +79,22 @@ of the :class:`!CryptContext` instance itself:
 
     For symmetry with the format of the hash option keywords (below),
     all of the above context option keywords may also be specified
-    using the format :samp:`context__{option}` (note double underscores),
-    or :samp:`context.{option}` within INI files.
+    using the format :samp:`context__{option}` (note double underscores).
 
 .. note::
 
     To override context options for a particular :ref:`user category <user-categories>`,
-    use the format :samp:`{category}__context__{option}`,
-    or :samp:`{category}.context.{option}` within an INI file.
+    use the format :samp:`{category}__context__{option}`.
 
 Hash Options
 ============
-The following keyword options are accepted by both the :class:`CryptContext`
-and :class:`CryptPolicy` constructors, and affect how a :class:`!CryptContext` instance
-treats hashes belonging to a particular hash scheme, as identified by the hash's handler name.
+The following keyword option affect how a :class:`!CryptContext` instance
+treats hashes belonging to a particular hash scheme,
+as identified by the scheme's name.
 
 All hash option keywords should be specified using the format :samp:`{hash}__{option}`
 (note double underscores); where :samp:`{hash}` is the name of the hash's handler,
 and :samp:`{option}` is the name of the specific options being set.
-Within INI files, this may be specified using the alternate format :samp:`{hash}.{option}`.
 
 :samp:`{hash}__default_rounds`
 
@@ -111,10 +110,8 @@ Within INI files, this may be specified using the alternate format :samp:`{hash}
     to have a rounds value random chosen from the range :samp:`{default_rounds} +/- {vary_rounds}`.
 
     This may be specified as an integer value, or as a string containing an integer
-    with a percent suffix (eg: ``"10%"``). if specified as a percent,
+    with a percent suffix (eg: ``"10%"``). If specified as a percent,
     the amount varied will be calculated as a percentage of the :samp:`{default_rounds}` value.
-
-    The default Passlib policy sets this to ``"10%"``.
 
     .. note::
 
@@ -217,48 +214,61 @@ of the category string it wants to use, and add an additional separator to the k
     the need to use a different hash for a particular category
     can instead be acheived by overridden the ``default`` context option.
 
-Sample Policy File
+Sample Config File
 ==================
-A sample policy file:
+A sample config file:
 
 .. code-block:: ini
 
     [passlib]
-    #configure what schemes the context supports (note the "context." prefix is implied for these keys)
+    # configure what schemes the context supports
+    # (note that the "context__" prefix is implied for these keys)
     schemes = md5_crypt, sha512_crypt, bcrypt
     deprecated = md5_crypt
     default = sha512_crypt
 
-    #set some common options for all schemes
-    all.vary_rounds = 10%%
-        ; NOTE the '%' above has to be escaped due to configparser interpolation
+    # set some common options for all schemes
+    # (this particular setting causes the rounds value to be varied
+    # +/- 10% for each encrypt call)
+    all__vary_rounds = 0.1
 
-    #setup some hash-specific defaults
-    sha512_crypt.min_rounds = 40000
-    bcrypt.min_rounds = 10
+    # setup some hash-specific defaults
+    sha512_crypt__min_rounds = 40000
+    bcrypt__min_rounds = 10
 
-    #create a "admin" category, which uses bcrypt by default, and has stronger hashes
-    admin.context.default = bcrypt
-    admin.sha512_crypt.min_rounds = 100000
-    admin.bcrypt.min_rounds = 13
+    # create an "admin" category which uses bcrypt by default,
+    #  and has stronger default cost
+    admin__context__default = bcrypt
+    admin__sha512_crypt__min_rounds = 100000
+    admin__bcrypt__min_rounds = 13
 
-And the equivalent as a set of python keyword options::
+This can be turned into a :class:`!CryptContext` via :meth:`CryptContext.from_path`,
+or loaded into an existing object via :meth:`CryptContext.load`.
+
+And the equivalent of the above, as a set of Python keyword options::
 
     dict(
-        #configure what schemes the context supports (note the "context." prefix is implied for these keys)
+        # configure what schemes the context supports
+        # (note the "context__" prefix is implied for these keys)
         schemes = ["md5_crypt", "sha512_crypt", "bcrypt" ],
         deprecated = ["md5_crypt"],
         default = "sha512_crypt",
 
-        #set some common options for all schemes
-        all__vary_rounds = "10%",
+        # set some common options for all schemes
+        # (this particular setting causes the rounds value to be varied
+        # +/- 10% for each encrypt call)
+        all__vary_rounds = 0.1,
 
-        #setup some hash-specific defaults
+        # setup some hash-specific defaults
         sha512_crypt__min_rounds = 40000,
         bcrypt__min_rounds = 10,
 
-        #create a "admin" category, which uses bcrypt by default, and has stronger hashes
-        admin__context__default = bcrypt
-        admin__sha512_crypt__min_rounds = 100000
-        admin__bcrypt__min_rounds = 13
+        # create a "admin" category which uses bcrypt by default,
+        # and has stronger default cost
+        admin__context__default = bcrypt,
+        admin__sha512_crypt__min_rounds = 100000,
+        admin__bcrypt__min_rounds = 13,
     )
+
+This can be turned into a :class:`CryptContext` via the class constructor,
+or loaded into an existing object via :meth:`CryptContext.load`.

@@ -73,7 +73,7 @@ you may set the following options in django ``settings.py``:
    * ``"disabled"``, in which case this app will do nothing when Django is loaded.
 
    * A multiline configuration string suitable for passing to
-     :meth:`passlib.context.CryptPolicy.from_string`.
+     :meth:`passlib.context.CryptContext.from_string`.
      It is *strongly* recommended to use a configuration which will support
      the existing Django hashes
      (see :data:`~passlib.ext.django.utils.STOCK_CTX`).
