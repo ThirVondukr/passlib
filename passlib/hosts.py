@@ -20,10 +20,10 @@ __all__ = [
 ]
 
 #=========================================================
-#linux support
+# linux support
 #=========================================================
 
-#known platform names - linux2
+# known platform names - linux2
 
 linux_context = linux2_context = LazyCryptContext(
     schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
@@ -32,7 +32,7 @@ linux_context = linux2_context = LazyCryptContext(
     )
 
 #=========================================================
-#bsd support
+# bsd support
 #=========================================================
 
 #known platform names -
@@ -59,13 +59,16 @@ openbsd_context = LazyCryptContext(["bcrypt", "md5_crypt", "bsdi_crypt",
 netbsd_context = LazyCryptContext(["bcrypt", "sha1_crypt", "md5_crypt",
                                    "bsdi_crypt", "des_crypt", "unix_disabled"])
 
+# XXX: include darwin in this list? it's got a BSD crypt variant,
+# but that's not what it uses for user passwords.
+
 #=========================================================
 #current host
 #=========================================================
 if has_crypt:
-    #NOTE: this is basically mimicing the output of os crypt(),
-    #except that it uses passlib's (usually stronger) defaults settings,
-    #and can be introspected and used much more flexibly.
+    # NOTE: this is basically mimicing the output of os crypt(),
+    # except that it uses passlib's (usually stronger) defaults settings,
+    # and can be introspected and used much more flexibly.
 
     def _iter_os_crypt_schemes():
         "helper which iterates over supported os_crypt schemes"
@@ -76,11 +79,11 @@ if has_crypt:
                 found = True
                 yield name
         if found:
-            #only offer fallback if there's another scheme in front,
-            #as this can't actually hash any passwords
+            # only offer disabled handler if there's another scheme in front,
+            # as this can't actually hash any passwords
             yield "unix_disabled"
         else: # pragma: no cover
-            #no idea what OS this could happen on, but just in case...
+            # no idea what OS this could happen on...
             warn("crypt.crypt() function is present, but doesn't support any "
                  "formats known to passlib!", PasslibRuntimeWarning)
 

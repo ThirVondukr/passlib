@@ -129,6 +129,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     name = "des_crypt"
     setting_kwds = ("salt",)
     checksum_chars = uh.HASH64_CHARS
+    checksum_size = 11
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2

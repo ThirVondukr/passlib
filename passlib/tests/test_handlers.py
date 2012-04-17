@@ -643,6 +643,10 @@ class _des_crypt_test(HandlerCase):
         # bad char in otherwise correctly formatted hash
         #\/
         '!gAwTx2l6NADI',
+
+        # wrong size
+        'OgAwTx2l6NAD',
+        'OgAwTx2l6NADIj',
         ]
 
     platform_crypt_support = dict(
