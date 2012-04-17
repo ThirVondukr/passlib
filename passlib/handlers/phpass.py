@@ -64,7 +64,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
-    default_rounds = 9
+    default_rounds = 16
     min_rounds = 7
     max_rounds = 30
     rounds_cost = "log2"

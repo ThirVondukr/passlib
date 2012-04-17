@@ -253,7 +253,6 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     max_salt_size = 16
     salt_chars = uh.HASH64_CHARS
 
-    default_rounds = 40000 # current passlib default
     min_rounds = 1000 # bounds set by spec
     max_rounds = 999999999 # bounds set by spec
     rounds_cost = "linear"
@@ -393,6 +392,7 @@ class sha256_crypt(_SHA2_Common):
     name = "sha256_crypt"
     ident = u("$5$")
     checksum_size = 43
+    default_rounds = 80000 # current passlib default
 
     #=========================================================
     # backends
@@ -448,6 +448,7 @@ class sha512_crypt(_SHA2_Common):
     ident = u("$6$")
     checksum_size = 86
     _cdb_use_512 = True
+    default_rounds = 60000 # current passlib default
 
     #=========================================================
     # backend

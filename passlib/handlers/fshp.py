@@ -68,7 +68,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     max_salt_size = None
 
     #--HasRounds--
-    default_rounds = 16384 #current passlib default, FSHP uses 4096
+    # FIXME: should probably use different default rounds
+    # based on the variant. setting for default variant (sha256) for now.
+    default_rounds = 50000 #current passlib default, FSHP uses 4096
     min_rounds = 1 #set by FSHP
     max_rounds = 4294967295 # 32-bit integer limit - not set by FSHP
     rounds_cost = "linear"

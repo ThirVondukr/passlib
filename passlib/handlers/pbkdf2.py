@@ -44,7 +44,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     max_salt_size = 1024
 
     #--HasRounds--
-    default_rounds = 6400
+    default_rounds = None # set by subclass
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
@@ -84,7 +84,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
-def create_pbkdf2_hash(hash_name, digest_size, ident=None):
+def create_pbkdf2_hash(hash_name, digest_size, rounds=6400, ident=None):
     "create new Pbkdf2DigestHandler subclass for a specific hash"
     name = 'pbkdf2_' + hash_name
     if ident is None:
@@ -95,6 +95,7 @@ def create_pbkdf2_hash(hash_name, digest_size, ident=None):
         name=name,
         ident=ident,
         _prf = prf,
+        default_rounds=rounds,
         checksum_size=digest_size,
         encoded_checksum_size=(digest_size*4+2)//3,
         __doc__="""This class implements a generic ``PBKDF2-%(prf)s``-based password hash, and follows the :ref:`password-hash-api`.
@@ -121,9 +122,9 @@ def create_pbkdf2_hash(hash_name, digest_size, ident=None):
 #---------------------------------------------------------
 #derived handlers
 #---------------------------------------------------------
-pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, ident=u("$pbkdf2$"))
-pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32)
-pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64)
+pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 32000, ident=u("$pbkdf2$"))
+pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32, 4000)
+pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64, 3200)
 
 ldap_pbkdf2_sha1 = uh.PrefixWrapper("ldap_pbkdf2_sha1", pbkdf2_sha1, "{PBKDF2}", "$pbkdf2$")
 ldap_pbkdf2_sha256 = uh.PrefixWrapper("ldap_pbkdf2_sha256", pbkdf2_sha256, "{PBKDF2-SHA256}", "$pbkdf2-sha256$")
@@ -173,8 +174,8 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     min_salt_size = 0
     max_salt_size = 1024
 
-    #--HasROunds--
-    default_rounds = 10000
+    #--HasRounds--
+    default_rounds = 20000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
@@ -260,8 +261,8 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     max_salt_size = 1024
     salt_chars = uh.HASH64_CHARS
 
-    #--HasROunds--
-    default_rounds = 10000
+    #--HasRounds--
+    default_rounds = 20000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
