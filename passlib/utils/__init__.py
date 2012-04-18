@@ -2,6 +2,7 @@
 #=============================================================================
 #imports
 #=============================================================================
+from passlib.utils.compat import PYPY, JYTHON
 #core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
@@ -11,9 +12,19 @@ import math
 import os
 import sys
 import random
-import stringprep
+if JYTHON:
+    # Jython 2.5.2 lacks stringprep module -
+    # see http://bugs.jython.org/issue1758320
+    try:
+        import stringprep
+    except ImportError:
+        stringprep = None
+        _stringprep_missing_reason = "not present under Jython"
+else:
+    import stringprep
 import time
-import unicodedata
+if stringprep:
+    import unicodedata
 from warnings import warn
 #site
 #pkg
@@ -78,10 +89,6 @@ __all__ = [
 #=================================================================================
 # constants
 #=================================================================================
-
-# Python VM identification
-PYPY = hasattr(sys, "pypy_version_info")
-JYTHON = sys.platform.startswith('java')
 
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
@@ -371,6 +378,11 @@ def saslprep(source, errname="value"):
 
     :returns:
         normalized unicode string
+
+    .. note::
+
+        Due to a missing :mod:`!stringprep` module, this feature
+        is not available on Jython.
     """
     # saslprep - http://tools.ietf.org/html/rfc4013
     # stringprep - http://tools.ietf.org/html/rfc3454
@@ -459,6 +471,13 @@ def saslprep(source, errname="value"):
             raise ValueError("forbidden bidi character in " + errname)
 
     return data
+
+# replace saslprep() with stub when stringprep is missing
+if stringprep is None:
+    def saslprep(source, errname="value"):
+        "stub for saslprep()"
+        raise NotImplementedError("saslprep() support requires the 'stringprep' "
+                            "module, which is " + _stringprep_missing_reason)
 
 #=============================================================================
 # bytes helpers

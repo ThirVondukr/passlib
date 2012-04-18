@@ -1919,9 +1919,13 @@ class scram_test(HandlerCase):
         '$scram$4096$QSXCR.Q6sek8bf92$sha1=HZbuOlKbWl.eR8AfIposuKbhX30',
     ]
 
-    # silence norm_hash_name() warning
     def setUp(self):
         super(scram_test, self).setUp()
+
+        # some platforms lack stringprep (e.g. Jython, IronPython)
+        self.require_stringprep()
+
+        # silence norm_hash_name() warning
         warnings.filterwarnings("ignore", r"norm_hash_name\(\): unknown hash")
 
     def test_90_algs(self):

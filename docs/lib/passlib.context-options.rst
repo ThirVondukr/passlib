@@ -169,6 +169,11 @@ and :samp:`{option}` is the name of the specific options being set.
         It is recommended to set this for all hashes via ``all__passprep``,
         instead of settings it per algorithm.
 
+    .. note::
+
+        Due to a missing :mod:`!stringprep` module, this feature
+        is not available on Jython.
+
 :samp:`{hash}__{setting}`
 
     Any other option values, which match the name of a parameter listed

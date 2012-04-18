@@ -295,6 +295,7 @@ class MiscTest(TestCase):
 
     def test_saslprep(self):
         "test saslprep() unicode normalizer"
+        self.require_stringprep()
         from passlib.utils import saslprep as sp
 
         # invalid types

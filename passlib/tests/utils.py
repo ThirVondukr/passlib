@@ -505,6 +505,13 @@ class TestCase(unittest.TestCase):
             msg = "error for case %r:" % (elem.render(1),)
             self.assertEqual(result, correct, msg)
 
+    def require_stringprep(self):
+        "helper to skip test if stringprep is missing"
+        from passlib.utils import stringprep
+        if not stringprep:
+            from passlib.utils import _stringprep_missing_reason
+            raise self.skipTest("not available - stringprep module is " +
+                                _stringprep_missing_reason)
     #============================================================
     #eoc
     #============================================================

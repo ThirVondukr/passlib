@@ -1263,6 +1263,8 @@ sha512_crypt__min_rounds = 45000
 
     def test_61_passprep(self):
         "test passprep option"
+        self.require_stringprep()
+
         # saslprep should normalize pu -> pn
         pu = u("a\u0300") # unnormalized unicode
         pn = u("\u00E0") # normalized unicode

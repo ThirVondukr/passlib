@@ -10,6 +10,12 @@ PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
 PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 
 #=============================================================================
+# figure out what VM we're running
+#=============================================================================
+PYPY = hasattr(sys, "pypy_version_info")
+JYTHON = sys.platform.startswith('java')
+
+#=============================================================================
 # common imports
 #=============================================================================
 import logging; log = logging.getLogger(__name__)
