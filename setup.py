@@ -134,7 +134,7 @@ else:
 #=========================================================
 #run setup
 #=========================================================
-# XXX: could omit 'passlib.setup' from eggs, but not sdist
+# XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     #package info
     packages = [
@@ -144,6 +144,7 @@ setup(
             "passlib.handlers",
             "passlib.tests",
             "passlib.utils",
+                "passlib.utils._blowfish",
             "passlib._setup",
         ],
     package_data = { "passlib.tests": ["*.cfg"] },
