@@ -99,7 +99,7 @@ class HtpasswdFileTest(TestCase):
 
         ht = apache.HtpasswdFile(path, autosave=True)
         ht.delete("user1")
-        self.assertEqual(get_file(path), "user2:pass2\n")
+        self.assertEqual(get_file(path), b("user2:pass2\n"))
 
     def test_02_set_password(self):
         "test set_password()"
@@ -125,7 +125,7 @@ class HtpasswdFileTest(TestCase):
 
         ht = apache.HtpasswdFile(path, default_scheme="plaintext", autosave=True)
         ht.set_password("user1", "pass2")
-        self.assertEqual(get_file(path), "user1:pass2\n")
+        self.assertEqual(get_file(path), b("user1:pass2\n"))
 
     def test_03_users(self):
         "test users()"

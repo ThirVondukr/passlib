@@ -23,7 +23,7 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           MAX_PASSWORD_SIZE
 from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
-                                 join_unicode, base_string_types, PY2
+                                 join_unicode, base_string_types, PY2, int_types
 # local
 __all__ = [
     # helpers for implementing MCF handlers
@@ -1138,7 +1138,7 @@ class HasRounds(GenericHandler):
                                  % (self.name,))
 
         # check type
-        if not isinstance(rounds, int):
+        if not isinstance(rounds, int_types):
             raise exc.ExpectedTypeError(rounds, "integer", "rounds")
 
         # check bounds

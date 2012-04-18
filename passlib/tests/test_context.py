@@ -78,6 +78,19 @@ class CryptContextTest(TestCase):
     sample_1_resolved_dict = merge_dicts(sample_1_dict,
                                          schemes = sample_1_handlers)
 
+    sample_1_unnormalized = u("""\
+[passlib]
+schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
+default = md5_crypt
+; this is using %...
+all__vary_rounds = 10%%
+; this is using 'rounds' instead of 'default_rounds'
+bsdi_crypt__rounds = 25000
+bsdi_crypt__max_rounds = 30000
+sha512_crypt__max_rounds = 50000
+sha512_crypt__min_rounds = 40000
+""")
+
     sample_1_unicode = u("""\
 [passlib]
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
@@ -193,6 +206,10 @@ sha512_crypt__min_rounds = 45000
         "test from_string() constructor"
         # test sample 1 unicode
         ctx = CryptContext.from_string(self.sample_1_unicode)
+        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
+
+        # test sample 1 with unnormalized inputs
+        ctx = CryptContext.from_string(self.sample_1_unnormalized)
         self.assertEqual(ctx.to_dict(), self.sample_1_dict)
 
         # test sample 1 utf-8
@@ -708,8 +725,21 @@ sha512_crypt__min_rounds = 45000
     def test_35_to_string(self):
         "test to_string() method"
 
+        # create ctx and serialize
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.to_string(), self.sample_1_unicode)
+        dump = ctx.to_string()
+
+        # check ctx->string returns canonical format.
+        # NOTE: ConfigParser for PY26 and earlier didn't use OrderedDict,
+        # so to_string() won't get order correct.
+        # so we skip this test.
+        import sys
+        if sys.version_info >= (2,7):
+            self.assertEqual(dump, self.sample_1_unicode)
+
+        # check ctx->string->ctx->dict returns original
+        ctx2 = CryptContext.from_string(dump)
+        self.assertEqual(ctx2.to_dict(), self.sample_1_dict)
 
         # TODO: test other features, like the unmanaged handler warning.
         # TODO: test compact mode, section
@@ -1063,8 +1093,10 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
 
         # fallback default rounds - use handler's
-        c2 = cc.copy(all__default_rounds=None, all__max_rounds=50000)
-        self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=40000$nacl$')
+        df = hash.sha256_crypt.default_rounds
+        c2 = cc.copy(all__default_rounds=None, all__max_rounds=df<<1)
+        self.assertEqual(c2.genconfig(salt="nacl"),
+                         '$5$rounds=%d$nacl$' % df)
 
         # fallback default rounds - use handler's, but clipped to max rounds
         c2 = cc.copy(all__default_rounds=None, all__max_rounds=3000)

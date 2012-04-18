@@ -249,8 +249,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             assert hash.startswith(config) and len(hash) == len(config)+31
             return hash[-31:]
         else:
-            #NOTE: not checking other backends since this is lowest priority one,
-            #      so they probably aren't available either.
+            # NOTE: not checking other backends since this is lowest priority one,
+            #       so they probably aren't available either.
+            # XXX:  though could conceivably use builtin 8|
             raise uh.exc.MissingBackendError(
                 "encoded password can't be handled by os_crypt, "
                 "recommend installing py-bcrypt.",

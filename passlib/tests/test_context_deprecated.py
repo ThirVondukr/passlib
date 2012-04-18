@@ -725,9 +725,11 @@ class CryptContextTest(TestCase):
         # explicit default rounds
         self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
 
-        # fallback default rounds - use handler's
-        c2 = cc.replace(all__default_rounds=None, all__max_rounds=50000)
-        self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=40000$nacl$')
+        # fallback default rounds - use handler's default
+        df = hash.sha256_crypt.default_rounds
+        c2 = cc.copy(all__default_rounds=None, all__max_rounds=df<<1)
+        self.assertEqual(c2.genconfig(salt="nacl"),
+                         '$5$rounds=%d$nacl$' % df)
 
         # fallback default rounds - use handler's, but clipped to max rounds
         c2 = cc.replace(all__default_rounds=None, all__max_rounds=3000)

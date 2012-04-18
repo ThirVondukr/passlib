@@ -116,7 +116,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=6400, ident=None):
     :param rounds:
         Optional number of rounds to use.
         Defaults to %(dr)d, but must be within ``range(1,1<<32)``.
-    """ % dict(prf=prf.upper(), dsc=base.default_salt_size, dr=base.default_rounds)
+    """ % dict(prf=prf.upper(), dsc=base.default_salt_size, dr=rounds)
     ))
 
 #---------------------------------------------------------

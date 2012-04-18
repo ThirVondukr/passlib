@@ -59,6 +59,7 @@ class _bcrypt_test(HandlerCase):
     "base for BCrypt test cases"
     handler = hash.bcrypt
     secret_size = 72
+    os_crypt_has_fallback = False
 
     known_correct_hashes = [
         #
@@ -421,7 +422,7 @@ class _bsdi_crypt_test(HandlerCase):
 
     platform_crypt_support = dict(
         freebsd=True,
-        openbsd=False,
+        openbsd=True,
         netbsd=True,
         linux=False,
         solaris=False,
@@ -851,7 +852,7 @@ class fshp_test(HandlerCase):
     def test_90_variant(self):
         "test variant keyword"
         handler = self.handler
-        kwds = dict(salt='a', rounds=1)
+        kwds = dict(salt=b('a'), rounds=1)
 
         # accepts ints
         handler(variant=1, **kwds)
