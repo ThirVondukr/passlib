@@ -210,6 +210,9 @@ class TestCase(unittest.TestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
+        self.setUpWarnings()
+
+    def setUpWarnings(self):
         if self.resetWarningState:
             ctx = reset_warnings()
             ctx.__enter__()

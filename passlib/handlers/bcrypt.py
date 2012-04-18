@@ -293,6 +293,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_builtin(self, secret):
+        # XXX: silence this warnings under pypy1.7? it's almost fast enough.
         warn("SECURITY WARNING: Passlib is using it's pure-python bcrypt "
              "implementation, which is TOO SLOW FOR PRODUCTION USE. It is "
              "strongly recommended that you install py-bcrypt or bcryptor for "

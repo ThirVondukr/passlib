@@ -177,10 +177,9 @@ class _bcrypt_test(HandlerCase):
     #===============================================================
     # override some methods
     #===============================================================
-    def setUp(self):
-        super(_bcrypt_test, self).setUp()
-        if self.backend == "builtin":
-            warnings.filterwarnings("ignore",
+    def setUpWarnings(self):
+        super(_bcrypt_test, self).setUpWarnings()
+        warnings.filterwarnings("ignore",
                                 "SECURITY WARNING: .*pure-python bcrypt.*")
 
     def do_genconfig(self, **kwds):
