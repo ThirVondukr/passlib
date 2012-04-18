@@ -202,49 +202,53 @@ class _bcrypt_test(HandlerCase):
     #===============================================================
     # fuzz testing
     #===============================================================
-    def get_fuzz_verifiers(self):
-        verifiers = super(_bcrypt_test, self).get_fuzz_verifiers()
+    def os_supports_ident(self, hash):
+        "check if OS crypt is expected to support given ident"
+        # most OSes won't support 2x/2y
+        # XXX: definitely not the BSDs, but what about the linux variants?
+        if hash.startswith("$2x$") or hash.startswith("$2y$"):
+            return False
+        return True
 
-        # test other backends against py-bcrypt if available
+    def fuzz_verifier_pybcrypt(self):
+        # test against py-bcrypt if available
         from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw
         except ImportError:
-            pass
-        else:
-            def check_pybcrypt(secret, hash):
-                "pybcrypt"
-                secret = to_native_str(secret, self.fuzz_password_encoding)
-                if hash.startswith("$2y$"):
-                    hash = "$2a$" + hash[4:]
-                try:
-                    return hashpw(secret, hash) == hash
-                except ValueError:
-                    raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
-            verifiers.append(check_pybcrypt)
+            return
+        def check_pybcrypt(secret, hash):
+            "pybcrypt"
+            secret = to_native_str(secret, self.fuzz_password_encoding)
+            if hash.startswith("$2y$"):
+                hash = "$2a$" + hash[4:]
+            try:
+                return hashpw(secret, hash) == hash
+            except ValueError:
+                raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
+        return check_pybcrypt
 
-        # test other backends against bcryptor if available
+    def fuzz_verifier_bcryptor(self):
+        # test against bcryptor if available
+        from passlib.utils import to_native_str
         try:
             from bcryptor.engine import Engine
         except ImportError:
-            pass
-        else:
-            def check_bcryptor(secret, hash):
-                "bcryptor"
-                secret = to_native_str(secret, self.fuzz_password_encoding)
-                if hash.startswith("$2y$"):
-                    hash = "$2a$" + hash[4:]
-                elif hash.startswith("$2$"):
-                    # bcryptor doesn't support $2$ hashes; but we can fake it
-                    # using the $2a$ algorithm, by repeating the password until
-                    # it's 72 chars in length.
-                    hash = "$2a$" + hash[3:]
-                    if secret:
-                        secret = repeat_string(secret, 72)
-                return Engine(False).hash_key(secret, hash) == hash
-            verifiers.append(check_bcryptor)
-
-        return verifiers
+            return
+        def check_bcryptor(secret, hash):
+            "bcryptor"
+            secret = to_native_str(secret, self.fuzz_password_encoding)
+            if hash.startswith("$2y$"):
+                hash = "$2a$" + hash[4:]
+            elif hash.startswith("$2$"):
+                # bcryptor doesn't support $2$ hashes; but we can fake it
+                # using the $2a$ algorithm, by repeating the password until
+                # it's 72 chars in length.
+                hash = "$2a$" + hash[3:]
+                if secret:
+                    secret = repeat_string(secret, 72)
+            return Engine(False).hash_key(secret, hash) == hash
+        return check_bcryptor
 
     def get_fuzz_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.
@@ -254,6 +258,8 @@ class _bcrypt_test(HandlerCase):
         ident = super(_bcrypt_test,self).get_fuzz_ident()
         if ident == u("$2x$"):
             # just recognized, not currently supported.
+            return None
+        if self.backend == "os_crypt" and not self.using_patched_crypt and not self.os_supports_ident(ident):
             return None
         return ident
 
@@ -672,18 +678,15 @@ class _DjangoHelper(object):
     # NOTE: not testing against Django < 1.0 since it doesn't support
     # most of these hash formats.
 
-    def get_fuzz_verifiers(self):
-        verifiers = super(_DjangoHelper, self).get_fuzz_verifiers()
-
+    def fuzz_verifier_django(self):
         from passlib.tests.test_ext_django import has_django1
-        if has_django1:
-            from django.contrib.auth.models import check_password
-            def verify_django(secret, hash):
-                "django check_password()"
-                return check_password(secret, hash)
-            verifiers.append(verify_django)
-
-        return verifiers
+        if not has_django1:
+            return None
+        from django.contrib.auth.models import check_password
+        def verify_django(secret, hash):
+            "django check_password()"
+            return check_password(secret, hash)
+        return verify_django
 
     def test_90_django_reference(self):
         "run known correct hashes through Django's check_password()"

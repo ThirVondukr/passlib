@@ -1636,12 +1636,15 @@ class HandlerCase(TestCase):
             # run through all verifiers we found.
             for verify in verifiers:
                 name = vname(verify)
-
-                if not verify(secret, hash, **ctx):
+                result = verify(secret, hash, **ctx)
+                if result == "skip": # let verifiers signal lack of support
+                    continue
+                assert result is True or result is False
+                if not result:
                     raise self.failureException("failed to verify against %s: "
                                                 "secret=%r config=%r hash=%r" %
                                                 (name, secret, kwds, hash))
-                # occasionally check that some other secret WON'T verify
+                # occasionally check that some other secrets WON'T verify
                 # against this hash.
                 if rng.random() < .1 and verify(other, hash, **ctx):
                     raise self.failureException("was able to verify wrong "
@@ -1663,13 +1666,16 @@ class HandlerCase(TestCase):
         handler = self.handler
         verifiers = []
 
-        # test against self
-        def check_default(secret, hash, **ctx):
-            "self"
-            return self.do_verify(secret, hash, **ctx)
-        verifiers.append(check_default)
+        # call all methods starting with prefix in order to create
+        # any verifiers.
+        prefix = "fuzz_verifier_"
+        for name in dir(self):
+            if name.startswith(prefix):
+                func = getattr(self, name)()
+                if func is not None:
+                    verifiers.append(func)
 
-        # test against any other available backends
+        # create verifiers for any other available backends
         if hasattr(handler, "backends") and enable_option("all-backends"):
             def maker(backend):
                 def func(secret, hash):
@@ -1679,23 +1685,41 @@ class HandlerCase(TestCase):
                 func.__doc__ = backend + "-backend"
                 return func
             cur = handler.get_backend()
-            check_default.__doc__ = cur + "-backend"
             for backend in handler.backends:
                 if backend != cur and handler.has_backend(backend):
                     verifiers.append(maker(backend))
 
+        return verifiers
+
+    def fuzz_verifier_default(self):
+        # test against self
+        def check_default(secret, hash, **ctx):
+            return self.do_verify(secret, hash, **ctx)
+        if self.backend:
+            check_default.__doc__ = self.backend + "-backend"
+        else:
+            check_default.__doc__ = "self"
+        return check_default
+
+    def os_supports_ident(self, ident):
+        "skip verifier_crypt when OS doesn't support ident"
+        return True
+
+    def fuzz_verifier_crypt(self):
         # test againt OS crypt()
         # NOTE: skipping this if using_patched_crypt since _has_crypt_support()
         # will return false positive in that case.
-        if not self.using_patched_crypt and _has_crypt_support(handler):
-            from crypt import crypt
-            def check_crypt(secret, hash):
-                "stdlib-crypt"
-                secret = to_native_str(secret, self.fuzz_password_encoding)
-                return crypt(secret, hash) == hash
-            verifiers.append(check_crypt)
-
-        return verifiers
+        handler = self.handler
+        if self.using_patched_crypt or not _has_crypt_support(handler):
+            return None
+        from crypt import crypt
+        def check_crypt(secret, hash):
+            "stdlib-crypt"
+            if not self.os_supports_ident(hash):
+                return "skip"
+            secret = to_native_str(secret, self.fuzz_password_encoding)
+            return crypt(secret, hash) == hash
+        return check_crypt
 
     def get_fuzz_password(self):
         "generate random passwords (for fuzz testing)"
