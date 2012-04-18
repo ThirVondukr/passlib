@@ -1795,9 +1795,6 @@ class OsCryptMixin(HandlerCase):
     # encodeds as os.platform prefixes.
     platform_crypt_support = dict()
 
-    # hack for bcrypt, indicating os_crypt backend has no fallback
-    os_crypt_has_fallback = True
-
     #=========================================================
     # instance attrs
     #=========================================================
@@ -1876,7 +1873,7 @@ class OsCryptMixin(HandlerCase):
         # set safe_crypt to return None
         setter = self._use_mock_crypt()
         setter(None)
-        if self.os_crypt_has_fallback and _find_alternate_backend(self.handler, "os_crypt"):
+        if _find_alternate_backend(self.handler, "os_crypt"):
             # handler should have a fallback to use
             h1 = self.do_encrypt("stub")
             h2 = self.do_genhash("stub", h1)

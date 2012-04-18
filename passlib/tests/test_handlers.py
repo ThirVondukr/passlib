@@ -59,7 +59,6 @@ class _bcrypt_test(HandlerCase):
     "base for BCrypt test cases"
     handler = hash.bcrypt
     secret_size = 72
-    os_crypt_has_fallback = False
 
     known_correct_hashes = [
         #
@@ -204,6 +203,8 @@ class _bcrypt_test(HandlerCase):
     #===============================================================
     def os_supports_ident(self, hash):
         "check if OS crypt is expected to support given ident"
+        if hash is None:
+            return True
         # most OSes won't support 2x/2y
         # XXX: definitely not the BSDs, but what about the linux variants?
         if hash.startswith("$2x$") or hash.startswith("$2y$"):

@@ -249,11 +249,14 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             assert hash.startswith(config) and len(hash) == len(config)+31
             return hash[-31:]
         else:
-            # NOTE: not checking other backends since this is lowest priority one,
-            #       so they probably aren't available either.
-            # XXX:  though could conceivably use builtin 8|
+            # NOTE: it's unlikely any other backend will be available,
+            # but checking before we bail, just in case.
+            for name in self.backends:
+                if name != "os_crypt" and self.has_backend(name):
+                    func = getattr(self, "_calc_checksum_" + name)
+                    return func(secret)
             raise uh.exc.MissingBackendError(
-                "encoded password can't be handled by os_crypt, "
+                "password can't be handled by os_crypt, "
                 "recommend installing py-bcrypt.",
                 )
 
