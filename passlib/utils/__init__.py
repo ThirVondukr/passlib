@@ -31,7 +31,7 @@ from warnings import warn
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, b, bytes, join_bytes, join_byte_values, \
                                  join_byte_elems, exc_err, irange, imap, PY3, u, \
-                                 join_unicode, unicode, byte_elem_value
+                                 join_unicode, unicode, byte_elem_value, PY_MIN_32
 #local
 __all__ = [
     # constants
@@ -482,14 +482,6 @@ if stringprep is None:
 #=============================================================================
 # bytes helpers
 #=============================================================================
-if PY3:
-    def xor_bytes(left, right):
-        return bytes(l ^ r for l, r in zip(left, right))
-else:
-    def xor_bytes(left, right):
-        return join_bytes(chr(ord(l) ^ ord(r)) for l, r in zip(left, right))
-add_doc(xor_bytes, "perform bitwise-xor of two byte strings")
-
 def render_bytes(source, *args):
     """helper for using formatting operator with bytes.
 
@@ -510,25 +502,30 @@ def render_bytes(source, *args):
                             else arg for arg in args)
     return result.encode("latin-1")
 
-# NOTE: deprecating bytes<->int in favor of just using struct module.
+if PY_MIN_32:
+    def bytes_to_int(value):
+        return int.from_bytes(value, 'big')
+    def int_to_bytes(value, count):
+        return value.to_bytes(count, 'big')
+else:
+    # XXX: can any of these be sped up?
+    from binascii import hexlify, unhexlify
+    def bytes_to_int(value):
+        return int(hexlify(value),16)
+    if PY3:
+        # grr, why did py3 have to break % for bytes?
+        def int_to_bytes(value, count):
+            return unhexlify((('%%0%dx' % (count<<1)) % value).encode("ascii"))
+    else:
+        def int_to_bytes(value, count):
+            return unhexlify(('%%0%dx' % (count<<1)) % value)
 
-@deprecated_function(deprecated="1.6", removed="1.8")
-def bytes_to_int(value): # pragma: no cover
-    "decode string of bytes as single big-endian integer"
-    from passlib.utils.compat import byte_elem_value
-    out = 0
-    for v in value:
-        out = (out<<8) | byte_elem_value(v)
-    return out
+add_doc(bytes_to_int, "decode byte string as single big-endian integer")
+add_doc(int_to_bytes, "encode intger as single big-endian byte string")
 
-@deprecated_function(deprecated="1.6", removed="1.8")
-def int_to_bytes(value, count): # pragma: no cover
-    "encodes integer into single big-endian byte string"
-    assert value < (1<<(8*count)), "value too large for %d bytes: %d" % (count, value)
-    return join_byte_values(
-        ((value>>s) & 0xff)
-        for s in irange(8*count-8,-8,-8)
-    )
+def xor_bytes(left, right):
+    "perform bitwise-xor of two byte strings"
+    return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 def repeat_string(source, size):
     "repeat or truncate <source> string, so it has length <size>"

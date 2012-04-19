@@ -84,7 +84,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
-def create_pbkdf2_hash(hash_name, digest_size, rounds=6400, ident=None):
+def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None):
     "create new Pbkdf2DigestHandler subclass for a specific hash"
     name = 'pbkdf2_' + hash_name
     if ident is None:
@@ -122,9 +122,9 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=6400, ident=None):
 #---------------------------------------------------------
 #derived handlers
 #---------------------------------------------------------
-pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 32000, ident=u("$pbkdf2$"))
-pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32, 4000)
-pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64, 3200)
+pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 60000, ident=u("$pbkdf2$"))
+pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32)
+pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64)
 
 ldap_pbkdf2_sha1 = uh.PrefixWrapper("ldap_pbkdf2_sha1", pbkdf2_sha1, "{PBKDF2}", "$pbkdf2$")
 ldap_pbkdf2_sha256 = uh.PrefixWrapper("ldap_pbkdf2_sha256", pbkdf2_sha256, "{PBKDF2-SHA256}", "$pbkdf2-sha256$")
@@ -175,7 +175,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     max_salt_size = 1024
 
     #--HasRounds--
-    default_rounds = 20000
+    default_rounds = 60000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
@@ -262,7 +262,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
-    default_rounds = 20000
+    default_rounds = 60000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
@@ -390,7 +390,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     min_salt_size = 0
     max_salt_size = 1024
 
-    default_rounds = 10000
+    default_rounds = 12000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"

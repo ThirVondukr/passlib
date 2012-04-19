@@ -52,6 +52,8 @@ Bytes Helpers
 =============
 .. autofunction:: xor_bytes
 .. autofunction:: render_bytes
+.. autofunction:: int_to_bytes
+.. autofunction:: bytes_to_int
 
 Encoding Helpers
 ================

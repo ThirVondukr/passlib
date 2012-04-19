@@ -8,7 +8,7 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
-sys.path.insert(0, root)
+sys.path.insert(0, os.curdir)
 
 #=============================================================================
 # imports
@@ -233,6 +233,19 @@ def test_ldap_salted_md5():
         hash = handler.encrypt(SECRET, salt='....')
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
+    yield helper
+
+#=============================================================================
+# crypto utils
+#=============================================================================
+@benchmark.constructor()
+def test_pbkdf2():
+#    from passlib.hash import pbkdf2_sha1
+    from passlib.hash import pbkdf2_sha256 as hash
+    def helper():
+#        hash.encrypt("password", salt="salt", rounds=10000)
+        result = pbkdf2_sha1.encrypt("password", salt="salt", rounds=10000)
+        assert result == '$pbkdf2-sha256$10240$c2FsdA$FUGp71zmshcv1IwX1DV3ADWDyP66H/ANJZwmoGuF7FA'
     yield helper
 
 #=============================================================================
