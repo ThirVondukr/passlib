@@ -20,7 +20,7 @@ see that class for details.
 
 Interface
 =========
-.. autoclass:: apr_md5_crypt(checksum=None, salt=None, strict=False)
+.. autoclass:: apr_md5_crypt()
 
 Format & Algorithm
 ==================

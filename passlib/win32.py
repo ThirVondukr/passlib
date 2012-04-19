@@ -1,4 +1,4 @@
-"""passlib.win32 - MS Windows support
+"""passlib.win32 - MS Windows support - DEPRECATED, WILL BE REMOVED IN 1.8
 
 the LMHASH and NTHASH algorithms are used in various windows related contexts,
 but generally not in a manner compatible with how passlib is structured.
@@ -20,6 +20,13 @@ this module provided two functions to aid in any use-cases which exist.
 
 See also :mod:`passlib.hash.nthash`.
 """
+
+from warnings import warn
+warn("the 'passlib.win32' module is deprecated, and will be removed in "
+     "passlib 1.8; please use the 'passlib.hash.nthash' and "
+     "'passlib.hash.lmhash' classes instead.",
+     DeprecationWarning)
+
 #=========================================================
 #imports
 #=========================================================
@@ -27,7 +34,7 @@ See also :mod:`passlib.hash.nthash`.
 from binascii import hexlify
 #site
 #pkg
-from passlib.utils import to_native_str, b
+from passlib.utils.compat import b, unicode
 from passlib.utils.des import des_encrypt_block
 from passlib.hash import nthash
 #local

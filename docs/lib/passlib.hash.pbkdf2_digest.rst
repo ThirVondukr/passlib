@@ -36,7 +36,7 @@ All of the following classes can be used directly as follows::
     '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'
 
     >>> #same, but with explicit number of rounds and salt length
-    >>> engine.encrypt("password", rounds=8000, salt_size=10) 
+    >>> engine.encrypt("password", rounds=8000, salt_size=10)
     '$pbkdf2-sha256$8000$XAuBMIYQQogxRg$tRRlz8hYn63B9LYiCd6PRo6FMiunY9ozmMMI3srxeRE'
 
     >>> #check if hash is a pbkdf2-sha256 hash
@@ -89,10 +89,10 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
   this is encoded as a positive decimal number with no zero-padding
   (``6400`` in the example).
 
-* :samp:`{salt}` - this is the :func:`adapted base64 encoding <passlib.utils.adapted_b64_encode>`
+* :samp:`{salt}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
   of the raw salt bytes passed into the PBKDF2 function.
 
-* :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.adapted_b64_encode>`
+* :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
   of the raw derived key bytes returned from the PBKDF2 function.
   Each scheme uses output size of it's specific :samp:`{digest}`
   as the size of the raw derived key. This is enlarged
@@ -104,7 +104,7 @@ The password is encoded into UTF-8 if not already encoded,
 and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
-The result is then encoded using :func:`~passlib.utils.adapted_b64_encode`.
+The result is then encoded using :func:`~passlib.utils.ab64_encode`.
 
 .. rubric:: Footnotes
 

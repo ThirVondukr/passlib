@@ -25,8 +25,9 @@ PKCS#5 Key Derivation Functions
 
 Helper Functions
 ================
+.. autofunction:: norm_hash_name
 .. autofunction:: get_prf
 
 ..
     given how this module is expanding in scope,
-    perhaps it should be renamed "kdf"?
+    perhaps it should be renamed "kdf" or "crypto"?

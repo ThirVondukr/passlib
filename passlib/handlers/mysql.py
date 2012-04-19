@@ -30,7 +30,10 @@ from warnings import warn
 #site
 #libs
 #pkg
-from passlib.utils import handlers as uh, to_hash_str, b, bord, bytes
+from passlib.utils import to_native_str
+from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, \
+                                 byte_elem_value, str_to_uascii
+import passlib.utils.handlers as uh
 #local
 __all__ = [
     'mysql323',
@@ -48,54 +51,42 @@ class mysql323(uh.StaticHandler):
     The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
     """
     #=========================================================
-    #class attrs
+    # class attrs
     #=========================================================
     name = "mysql323"
+    checksum_size = 16
     checksum_chars = uh.HEX_CHARS
 
-    _pat = re.compile(ur"^[0-9a-f]{16}$", re.I)
-
     #=========================================================
-    #methods
+    # methods
     #=========================================================
-
     @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
+    def _norm_hash(cls, hash):
+        return hash.lower()
 
-    @classmethod
-    def genhash(cls, secret, config):
-        if config is not None and not cls.identify(config):
-            raise ValueError("not a mysql-3.2.3 hash")
-
-        #FIXME: no idea if mysql has a policy about handling unicode passwords
+    def _calc_checksum(self, secret):
+        # FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
 
         MASK_32 = 0xffffffff
         MASK_31 = 0x7fffffff
+        WHITE = b(' \t')
 
         nr1 = 0x50305735
         nr2 = 0x12345671
         add = 7
         for c in secret:
-            if c in b(' \t'):
+            if c in WHITE:
                 continue
-            tmp = bord(c)
+            tmp = byte_elem_value(c)
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
-        hash = u"%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
-        return to_hash_str(hash)
-
-    @classmethod
-    def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        return hash.lower()
+        return u("%08x%08x") % (nr1 & MASK_31, nr2 & MASK_31)
 
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
 #=========================================================
@@ -109,36 +100,28 @@ class mysql41(uh.StaticHandler):
     The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
     """
     #=========================================================
-    #class attrs
+    # class attrs
     #=========================================================
     name = "mysql41"
-    _pat = re.compile(r"^\*[0-9A-F]{40}$", re.I)
+    _hash_prefix = u("*")
+    checksum_chars = uh.HEX_CHARS
+    checksum_size = 40
 
     #=========================================================
-    #methods
+    # methods
     #=========================================================
-
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
-
-    @classmethod
-    def genhash(cls, secret, config):
-        if config is not None and not cls.identify(config):
-            raise ValueError("not a mysql-4.1 hash")
-        #FIXME: no idea if mysql has a policy about handling unicode passwords
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return '*' + sha1(sha1(secret).digest()).hexdigest().upper()
-
     @classmethod
     def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
         return hash.upper()
 
+    def _calc_checksum(self, secret):
+        # FIXME: no idea if mysql has a policy about handling unicode passwords
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return str_to_uascii(sha1(sha1(secret).digest()).hexdigest()).upper()
+
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
 #=========================================================

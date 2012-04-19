@@ -84,7 +84,7 @@ by the modular crypt format hashes found in passlib:
    use ascii letters, numbers, ``.``, and ``/``
    to provide base64 encoding of their raw data,
    though the exact character value assignments vary between hashes
-   (see :mod:`passlib.utils.h64`).
+   (see :data:`passlib.utils.h64`).
 
 4. Hash schemes should put their "checksum" portion
    at the end of the hash, preferrably separated
@@ -131,11 +131,11 @@ and indicates which operating systems [#gae]_ offer native support.
 Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
 ==================================== ==================== =========== =========== =========== =========== =======
 :class:`~passlib.hash.des_crypt`     n/a                  y           y           y           y           y
-:class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y
+:class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y           y
 :class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
 :class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                            y
 :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``                y           y           y           y
-:class:`~passlib.hash.nthash`        ``$3$``                          y
+:class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
 :class:`~passlib.hash.sha256_crypt`  ``$5$``              y                                               y
 :class:`~passlib.hash.sha512_crypt`  ``$6$``              y                                               y
 :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
@@ -149,20 +149,20 @@ Scheme                                      Prefix              Primary Use (if 
 =========================================== =================== ===========================
 :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
 :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
-:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``
-:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$``
-:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$``
+:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific
+:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$`` Passlib-specific
+:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$`` Passlib-specific
+:class:`~passlib.hash.scram`                ``$scram$``         Passlib-specific
 :class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
 :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
 =========================================== =================== ===========================
 
 .. rubric:: Footnotes
 
-.. [#gae] As of 2011-08-19, Google App Engine's :mod:`crypt` implementation 
+.. [#gae] As of 2011-08-19, Google App Engine's :mod:`crypt` implementation
           appears to provide hash support matching that of a typical Linux system.
 
 .. [#cta] :class:`!cta_pbkdf2_sha1` and :class:`!dlitz_pbkdf2_sha1` both use
           the same identifier. They can be distinguished
           by the fact that cta hashes will always end in ``=``, while dlitz
           hashes contain no ``=`` at all.
-

@@ -8,6 +8,12 @@
 .. module:: passlib.utils.handlers
     :synopsis: helper classes for writing password hash handlers
 
+.. warning::
+
+    This module is primarily used as an internal support module.
+    It's interface has not been finalized yet, and may change between major
+    releases of Passlib.
+
 .. todo::
 
     This module, and the instructions on how to write a custom handler,
@@ -45,9 +51,9 @@ workflow for hashes is some combination of the following:
 
 1. parse hash into constituent parts - performed by :meth:`~GenericHandler.from_string`.
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
-   and the normalization functions such as :meth:`~GenericHandler.norm_checksum` and :meth:`~HasSalt.norm_salt`
+   and the normalization functions such as :meth:`~GenericHandler._norm_checksum` and :meth:`~HasSalt._norm_salt`
    which are provided by it's related mixin classes.
-3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler.calc_checksum`.
+3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler._calc_checksum`.
 4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
 
 With this in mind, :class:`!GenericHandler` provides implementations
@@ -80,7 +86,7 @@ In order to use :class:`!GenericHandler`, just subclass it, and then do the foll
       (such as returned by :meth:`from_string`), returning
       a hash string.
 
-    * provide an implementation of the :meth:`calc_checksum` instance method.
+    * provide an implementation of the :meth:`_calc_checksum` instance method.
 
       this is the heart of the hash; this method should take in the password
       as the first argument, then generate and return the digest portion
@@ -157,7 +163,7 @@ checking if a handler adheres to the :ref:`password-hash-api`.
 Usage
 -----
 As an example of how to use :class:`!HandlerCase`,
-the following is an annoted version
+the following is an annotated version
 of the unittest for :class:`passlib.hash.des_crypt`::
 
     from passlib.hash import des_crypt
@@ -172,7 +178,7 @@ of the unittest for :class:`passlib.hash.des_crypt`::
 
         #: [optional] - if your hash only uses the first X characters of the password,
         #:              set that value here. otherwise leave the default (-1).
-        secret_chars = 8
+        secret_size = 8
 
         #: [required] - this should be a list of (password, hash) pairs,
         #               which should all verify correctly using your handler.

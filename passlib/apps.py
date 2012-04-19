@@ -29,6 +29,11 @@ custom_app_context = LazyCryptContext(
     #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
 
+    # TODO: enable passprep for default policy? would definitely be a good
+    # idea for most applications; but want passprep to get a release or
+    # two worth of deployment & feedback before turning it on here.
+    ## all__passprep = "saslprep,raw",
+
     #set some useful global options
     all__vary_rounds = "10%",
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
@@ -45,6 +50,10 @@ custom_app_context = LazyCryptContext(
 #=========================================================
 #django
 #=========================================================
+
+# XXX: should this be integrated with passlib.ext.django,
+# so that it's policy changes to reflect what the extension has set?
+# in that case we might need a default_django_context as well.
 django_context = LazyCryptContext(
     schemes=[
         "django_salted_sha1", "django_salted_md5", "django_des_crypt",
@@ -97,16 +106,13 @@ postgres_context = LazyCryptContext(["postgres_md5"])
 #phpass & variants
 #=========================================================
 def _create_phpass_policy(**kwds):
-    "helper to make bcrypt default ONLY if it's available"
-    from passlib.context import default_policy
-    if hash.bcrypt.has_backend():
-        kwds['default'] = 'bcrypt'
-    return default_policy.replace(**kwds)
+    "helper to choose default alg based on bcrypt availability"
+    kwds['default'] = 'bcrypt' if hash.bcrypt.has_backend() else 'phpass'
+    return kwds
 
 phpass_context = LazyCryptContext(
     schemes=["bcrypt", "phpass", "bsdi_crypt"],
-    default="phpass", #NOTE: <-- overridden by create_policy
-    create_policy=_create_phpass_policy,
+    onload=_create_phpass_policy,
     )
 
 phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")

@@ -18,4 +18,4 @@ since they are designed primarily for use in password hash algorithms
 
 .. autofunction:: expand_des_key
 .. autofunction:: des_encrypt_block
-.. autofunction:: mdes_encrypt_int_block
+.. autofunction:: des_encrypt_int_block

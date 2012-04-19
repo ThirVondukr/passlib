@@ -15,7 +15,7 @@ from binascii import hexlify
 import struct
 from warnings import warn
 #site
-from passlib.utils import b, bytes, to_native_str
+from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY3
 #local
 __all__ = [ "md4" ]
 #=========================================================================
@@ -170,7 +170,7 @@ class md4(object):
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
         #add back into original state
-        for i in xrange(4):
+        for i in irange(4):
             orig[i] = (orig[i]+state[i]) & MASK_32
 
     def update(self, content):
@@ -223,7 +223,7 @@ class md4(object):
         return out
 
     def hexdigest(self):
-        return to_native_str(hexlify(self.digest()), "latin-1")
+        return bascii_to_str(hexlify(self.digest()))
 
     #=========================================================================
     #eoc
@@ -235,33 +235,33 @@ _builtin_md4 = md4
 #=========================================================================
 #check if hashlib provides accelarated md4
 #=========================================================================
-from passlib.utils import pypy_vm
 import hashlib
+from passlib.utils import PYPY
 
 def _has_native_md4():
     try:
         h = hashlib.new("md4")
     except ValueError:
-        #not supported
+        # not supported - ssl probably missing (e.g. ironpython)
         return False
     result = h.hexdigest()
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
-    if pypy_vm and result == '':
-        #as of 1.5, pypy md4 just returns null!
-        #since this is expected, don't bother w/ warning.
+    if PYPY and result == '':
+        # as of pypy 1.5-1.7, this returns empty string! 
+        # since this is expected, don't bother w/ warning.
         return False
     #anything else should alert user
-    warn("native md4 support disabled, incorrect value returned")
+    from passlib.exc import PasslibRuntimeWarning
+    warn("native md4 support disabled, incorrect value returned!",
+         PasslibRuntimeWarning)
     return False
 
-if _has_native_md4():    
+if _has_native_md4():
     #overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         "wrapper for hashlib.new('md4')"
         return hashlib.new('md4', content or b(''))
-else:
-    del hashlib
 
 #=========================================================================
 #eof

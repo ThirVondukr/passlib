@@ -47,11 +47,11 @@ where:
   stored as lowercase hexidecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
 
 * :samp:`{salt}` is the salt string, which can be any number of characters,
-  drawn from the :ref:`hash64 charset <h64charset>`
+  drawn from the :data:`hash64 charset <passlib.utils.HASH64_CHARS>`
   (``.pPqsEwHD7MiECU0`` in the example).
 
 * :samp:`{checksum}` is 32 characters, which encode
-  the resulting 24-byte PBKDF2 derived key using :func:`~passlib.utils.adapted_b64_encode`
+  the resulting 24-byte PBKDF2 derived key using :func:`~passlib.utils.ab64_encode`
   (``b8TQ5AMQemtlaSgegw5Je.JBE3QQhLbO`` in the example).
 
 In order to generate the checksum, the password is first encoded into UTF-8 if it's unicode.

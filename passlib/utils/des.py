@@ -1,4 +1,5 @@
-"""
+"""passlib.utils.des -- DES block encryption routines
+
 History
 =======
 These routines (which have since been drastically modified for python)
@@ -32,8 +33,7 @@ The copyright & license for that source is as follows::
     @version $Id: UnixCrypt2.txt,v 1.1.1.1 2005/09/13 22:20:13 christos Exp $
     @author Greg Wilkins (gregw)
 
-netbsd des-crypt implementation,
-which has some nice notes on how this all works -
+The netbsd des-crypt implementation has some nice notes on how this all works -
     http://fxr.googlebit.com/source/lib/libcrypt/crypt.c?v=NETBSD-CURRENT
 """
 
@@ -42,9 +42,14 @@ which has some nice notes on how this all works -
 #=========================================================
 #imports
 #=========================================================
-#pkg
-from passlib.utils import bytes_to_int, int_to_bytes, bytes, bord, bjoin_ints
-#local
+# core
+import struct
+# pkg
+from passlib import exc
+from passlib.utils.compat import bytes, join_byte_values, byte_elem_value, \
+                                 b, irange, irange, int_types
+from passlib.utils import deprecated_function
+# local
 __all__ = [
     "expand_des_key",
     "des_encrypt_block",
@@ -52,28 +57,29 @@ __all__ = [
 ]
 
 #=========================================================
-#precalculated iteration ranges & constants
+# constants
 #=========================================================
-R8 = range(8)
-RR8 = range(7, -1, -1)
-RR4 = range(3, -1, -1)
-RR12_1 = range(11, 1, -1)
-RR9_1 = range(9,-1,-1)
 
-RR6_S2 = range(6, -1, -2)
-RR14_S2 = range(14, -1, -2)
-R16_S2 = range(0, 16, 2)
+# masks/upper limits for various integer sizes
+INT_24_MASK = 0xffffff
+INT_56_MASK = 0xffffffffffffff
+INT_64_MASK = 0xffffffffffffffff
 
-INT_24_MAX = 0xffffff
-INT_64_MAX = 0xffffffff
-INT_64_MAX = 0xffffffffffffffff
+# mask to clear parity bits from 64-bit key
+_KDATA_MASK = 0xfefefefefefefefe
+_KPARITY_MASK = 0x0101010101010101
+
+# mask used to setup key schedule
+_KS_MASK = 0xfcfcfcfcffffffff
 
 #=========================================================
-# static tables for des
+# static DES tables
 #=========================================================
-PCXROT = IE3264 = SPE = CF6464 = None #placeholders filled in by load_tables
 
-def load_tables():
+# placeholders filled in by _load_tables()
+PCXROT = IE3264 = SPE = CF6464 = None
+
+def _load_tables():
     "delay loading tables until they are actually needed"
     global PCXROT, IE3264, SPE, CF6464
 
@@ -554,10 +560,14 @@ def load_tables():
       0x0000000004040000, 0x0000000004040004, 0x0000000004040400, 0x0000000004040404, ),
     )
     #=========================================================
-    #eof load_data
+    # eof _load_tables()
     #=========================================================
 
-def permute(c, p):
+#=========================================================
+# support
+#=========================================================
+
+def _permute(c, p):
     """Returns the permutation of the given 32-bit or 64-bit code with
     the specified permutation table."""
     #NOTE: only difference between 32 & 64 bit permutations
@@ -569,106 +579,213 @@ def permute(c, p):
     return out
 
 #=========================================================
-#des frontend
+# packing & unpacking
 #=========================================================
+_uint64_struct = struct.Struct(">Q")
+
+_BNULL = b('\x00')
+
+def _pack64(value):
+    return _uint64_struct.pack(value)
+
+def _unpack64(value):
+    return _uint64_struct.unpack(value)[0]
+
+def _pack56(value):
+    return _uint64_struct.pack(value)[1:]
+
+def _unpack56(value):
+    return _uint64_struct.unpack(_BNULL+value)[0]
+
+#=========================================================
+# 56->64 key manipulation
+#=========================================================
+
+##def expand_7bit(value):
+##    "expand 7-bit integer => 7-bits + 1 odd-parity bit"
+##    # parity calc adapted from 32-bit even parity alg found at
+##    # http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+##    assert 0 <= value < 0x80, "value out of range"
+##    return (value<<1) | (0x9669 >> ((value ^ (value >> 4)) & 0xf)) & 1
+
+_EXPAND_ITER = irange(49,-7,-7)
+
 def expand_des_key(key):
-    "convert 7 byte des key to 8 byte des key (by adding parity bit every 7 bits)"
-    if not isinstance(key, bytes):
-        raise TypeError("key must be bytes, not %s" % (type(key),))
+    "convert DES from 7 bytes to 8 bytes (by inserting empty parity bits)"
+    if isinstance(key, bytes):
+        if len(key) != 7:
+            raise ValueError("key must be 7 bytes in size")
+    elif isinstance(key, int_types):
+        if key < 0 or key > INT_56_MASK:
+            raise ValueError("key must be 56-bit non-negative integer")
+        return _unpack64(expand_des_key(_pack56(key)))
+    else:
+        raise exc.ExpectedTypeError(key, "bytes or int", "key")
+    key = _unpack56(key)
+    # NOTE: this function would insert correctly-valued parity bits in each key,
+    # but the parity bit would just be ignored in des_encrypt_block(),
+    # so not bothering to use it.
+    ##return join_byte_values(expand_7bit((key >> shift) & 0x7f)
+    #                         for shift in _EXPAND_ITER)
+    return join_byte_values(((key>>shift) & 0x7f)<<1 for shift in _EXPAND_ITER)
 
-    #NOTE: could probably do this much more cleverly and efficiently,
-    # but no need really given it's use.
+def shrink_des_key(key):
+    "convert DES key from 8 bytes to 7 bytes (by discarding the parity bits)"
+    if isinstance(key, bytes):
+        if len(key) != 8:
+            raise ValueError("key must be 8 bytes in size")
+        return _pack56(shrink_des_key(_unpack64(key)))
+    elif isinstance(key, int_types):
+        if key < 0 or key > INT_64_MASK:
+            raise ValueError("key must be 64-bit non-negative integer")
+    else:
+        raise exc.ExpectedTypeError(key, "bytes or int", "key")
+    key >>= 1
+    result = 0
+    offset = 0
+    while offset < 56:
+        result |= (key & 0x7f)<<offset
+        key >>= 8
+        offset += 7
+    assert not (result & ~INT_64_MASK)
+    return result
 
-    #NOTE: the parity bits are generally ignored, including by des_encrypt_block below
-    assert len(key) == 7
+#=========================================================
+# des encryption
+#=========================================================
+def des_encrypt_block(key, input, salt=0, rounds=1):
+    """encrypt single block of data using DES, operates on 8-byte strings.
 
-    def iter_bits(source):
-        for c in source:
-            v = bord(c)
-            for i in xrange(7,-1,-1):
-                yield (v>>i) & 1
+    :arg key:
+        DES key as 7 byte string, or 8 byte string with parity bits
+        (parity bit values are ignored).
 
-    out = 0
-    p = 1
-    for i, b in enumerate(iter_bits(key)):
-        out = (out<<1) + b
-        p ^= b
-        if i % 7 == 6:
-            out = (out<<1) + p
-            p = 1
+    :arg input:
+        plaintext block to encrypt, as 8 byte string.
 
-    return bjoin_ints(
-        ((out>>s) & 0xFF)
-        for s in xrange(8*7,-8,-8)
-    )
+    :arg salt:
+        optional 24-bit integer used to mutate the base DES algorithm in a
+        manner specific to :class:`~passlib.hash.des_crypt` and it's variants:
 
-def des_encrypt_block(key, input):
-    """do traditional encryption of a single DES block
+        for each bit ``i`` which is set in the salt value,
+        bits ``i`` and ``i+24`` are swapped in the DES E-box output.
+        the default (``salt=0``) provides the normal DES behavior.
 
-    :arg key: 8 byte des key
-    :arg input: 8 byte plaintext
-    :returns: 8 byte ciphertext
+    :arg rounds:
+        optional number of rounds of to apply the DES key schedule.
+        the default (``rounds=1``) provides the normal DES behavior,
+        but :class:`~passlib.hash.des_crypt` and it's variants use
+        alternate rounds values.
 
-    all values must be :class:`bytes`
-    """
-    if not isinstance(key, bytes):
-        raise TypeError("key must be bytes, not %s" % (type(key),))
-    if len(key) == 7:
-        key = expand_des_key(key)
-    assert len(key) == 8
-    if not isinstance(input, bytes):
-        raise TypeError("input must be bytes, not %s" % (type(input),))
-    assert len(input) == 8
-    input = bytes_to_int(input)
-    key = bytes_to_int(key)
-    out = mdes_encrypt_int_block(key, input, 0, 1)
-    return int_to_bytes(out, 8)
-
-def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
-    """do modified multi-round DES encryption of single DES block.
-
-    the function implements the salted, variable-round version
-    of DES used by :class:`~passlib.hash.des_crypt` and related variants.
-    it also can perform regular DES encryption
-    by using ``salt=0, rounds=1`` (the default values).
-
-    :arg key: 8 byte des key as integer
-    :arg input: 8 byte plaintext block as integer
-    :arg salt: integer 24 bit salt, used to mutate output (defaults to 0)
-    :arg rounds: number of rounds of DES encryption to apply (defaults to 1)
-
-    The salt is used to to mutate the normal DES encrypt operation
-    by swapping bits ``i`` and ``i+24`` in the DES E-Box output
-    if and only if bit ``i`` is set in the salt value. Thus,
-    if the salt is set to ``0``, normal DES encryption is performed.
+    :raises TypeError: if any of the provided args are of the wrong type.
+    :raises ValueError:
+        if any of the input blocks are the wrong size,
+        or the salt/rounds values are out of range.
 
     :returns:
-        resulting block as 8 byte integer
+        resulting 8-byte ciphertext block.
     """
+    # validate & unpack key
+    if isinstance(key, bytes):
+        if len(key) == 7:
+            key = expand_des_key(key)
+        elif len(key) != 8:
+            raise ValueError("key must be 7 or 8 bytes")
+        key = _unpack64(key)
+    else:
+        raise exc.ExpectedTypeError(key, "bytes", "key")
+
+    # validate & unpack input
+    if isinstance(input, bytes):
+        if len(input) != 8:
+            raise ValueError("input block must be 8 bytes")
+        input = _unpack64(input)
+    else:
+        raise exc.ExpectedTypeError(input, "bytes", "input")
+
+    # hand things off to other func
+    result = des_encrypt_int_block(key, input, salt, rounds)
+
+    # repack result
+    return _pack64(result)
+
+def des_encrypt_int_block(key, input, salt=0, rounds=1):
+    """encrypt single block of data using DES, operates on 64-bit integers.
+
+    this function is essentially the same as :func:`des_encrypt_block`,
+    except that it operates on integers, and will NOT automatically
+    expand 56-bit keys if provided (since there's no way to detect them).
+
+    :arg key:
+        DES key as 64-bit integer (the parity bits are ignored).
+
+    :arg input:
+        input block as 64-bit integer
+
+    :arg salt:
+        optional 24-bit integer used to mutate the base DES algorithm.
+        defaults to ``0`` (no mutation applied).
+
+    :arg rounds:
+        optional number of rounds of to apply the DES key schedule.
+        defaults to ``1``.
+
+    :raises TypeError: if any of the provided args are of the wrong type.
+    :raises ValueError:
+        if any of the input blocks are the wrong size,
+        or the salt/rounds values are out of range.
+
+    :returns:
+        resulting ciphertext as 64-bit integer.
+    """
+    #-------------------------------------------------------------------
+    # input validation
+    #-------------------------------------------------------------------
+
+    # validate salt, rounds
+    if rounds < 1:
+        raise ValueError("rounds must be positive integer")
+    if salt < 0 or salt > INT_24_MASK:
+        raise ValueError("salt must be 24-bit non-negative integer")
+
+    # validate & unpack key
+    if not isinstance(key, int_types):
+        raise exc.ExpectedTypeError(key, "int", "key")
+    elif key < 0 or key > INT_64_MASK:
+        raise ValueError("key must be 64-bit non-negative integer")
+
+    # validate & unpack input
+    if not isinstance(input, int_types):
+        raise exc.ExpectedTypeError(input, "int", "input")
+    elif input < 0 or input > INT_64_MASK:
+        raise ValueError("input must be 64-bit non-negative integer")
+
+    #-------------------------------------------------------------------
+    # DES setup
+    #-------------------------------------------------------------------
+    # load tables if not already done
     global SPE, PCXROT, IE3264, CF6464
-
-    #bounds check
-    assert 0 <= input <= INT_64_MAX, "input value out of range"
-    assert 0 <= salt <= INT_24_MAX, "salt value out of range"
-    assert rounds >= 0, "rounds out of range"
-    assert 0 <= key <= INT_64_MAX, "key value out of range"
-
-    #load tables if not already done
     if PCXROT is None:
-        load_tables()
+        _load_tables()
 
-    #convert key int -> key schedule
-    #NOTE: generation was modified to output two elements at a time,
-    #to optimize for per-round algorithm below.
-    mask = ~0x0303030300000000
-    def _gen(K):
+    # load SPE into local vars to speed things up and remove an array access call
+    SPE0, SPE1, SPE2, SPE3, SPE4, SPE5, SPE6, SPE7 = SPE
+
+    # NOTE: parity bits are ignored completely
+    # (UTs do fuzz testing to ensure this)
+
+    # generate key schedule
+    # NOTE: generation was modified to output two elements at a time,
+    # so that per-round loop could do two passes at once.
+    def _iter_key_schedule(ks_odd):
+        "given 64-bit key, iterates over the 8 (even,odd) key schedule pairs"
         for p_even, p_odd in PCXROT:
-            K1 = permute(K, p_even)
-            K = permute(K1, p_odd)
-            yield K1 & mask, K & mask
-    ks_list = list(_gen(key))
+            ks_even = _permute(ks_odd, p_even)
+            ks_odd = _permute(ks_even, p_odd)
+            yield ks_even & _KS_MASK, ks_odd & _KS_MASK
+    ks_list = list(_iter_key_schedule(key))
 
-    #expand 24 bit salt -> 32 bit
+    # expand 24 bit salt -> 32 bit per des_crypt & bsdi_crypt
     salt = (
         ((salt & 0x00003f) << 26) |
         ((salt & 0x000fc0) << 12) |
@@ -676,26 +793,25 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
         ((salt & 0xfc0000) >> 16)
         )
 
-    #init L & R
+    # init L & R
     if input == 0:
         L = R = 0
     else:
         L = ((input >> 31) & 0xaaaaaaaa) | (input & 0x55555555)
-        L = permute(L, IE3264)
+        L = _permute(L, IE3264)
 
         R = ((input >> 32) & 0xaaaaaaaa) | ((input >> 1) & 0x55555555)
-        R = permute(R, IE3264)
+        R = _permute(R, IE3264)
 
-    #load SPE into local vars to speed things up and remove an array access call
-    SPE0, SPE1, SPE2, SPE3, SPE4, SPE5, SPE6, SPE7 = SPE
-
-    #run specified number of passed
+    #-------------------------------------------------------------------
+    # main DES loop - run for specified number of rounds
+    #-------------------------------------------------------------------
     while rounds:
         rounds -= 1
 
-        #run over each part of the schedule, 2 parts at a time
+        # run over each part of the schedule, 2 parts at a time
         for ks_even, ks_odd in ks_list:
-            k = ((R>>32) ^ R) & salt #use the salt to alter specific bits
+            k = ((R>>32) ^ R) & salt # use the salt to flip specific bits
             B = (k<<32) ^ k ^ R ^ ks_even
 
             L ^= (SPE0[(B>>58)&0x3f] ^ SPE1[(B>>50)&0x3f] ^
@@ -703,7 +819,7 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
                   SPE4[(B>>26)&0x3f] ^ SPE5[(B>>18)&0x3f] ^
                   SPE6[(B>>10)&0x3f] ^ SPE7[(B>>2)&0x3f])
 
-            k = ((L>>32) ^ L) & salt #use the salt to alter specific bits
+            k = ((L>>32) ^ L) & salt # use the salt to flip specific bits
             B = (k<<32) ^ k ^ L ^ ks_odd
 
             R ^= (SPE0[(B>>58)&0x3f] ^ SPE1[(B>>50)&0x3f] ^
@@ -714,6 +830,9 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
         # swap L and R
         L, R = R, L
 
+    #-------------------------------------------------------------------
+    # return final result
+    #-------------------------------------------------------------------
     C = (
             ((L>>3) &  0x0f0f0f0f00000000)
             |
@@ -723,10 +842,16 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1):
             |
             ((R<<1) &  0x00000000f0f0f0f0)
         )
+    return _permute(C, CF6464)
 
-    C = permute(C, CF6464)
-
-    return C
+def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover
+    warn("mdes_encrypt_int_block() has been deprecated as of Passlib 1.6,"
+         "and will be removed in Passlib 1.8, use des_encrypt_int_block instead.")
+    if isinstance(key, bytes):
+        if len(key) == 7:
+            key = expand_des_key(key)
+        key = _unpack64(key)
+    return des_encrypt_int_block(key, input, salt, rounds)
 
 #=========================================================
 #eof

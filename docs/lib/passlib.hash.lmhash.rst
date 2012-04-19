@@ -1,0 +1,163 @@
+.. index:: lan manager; hash, windows; lan manager hash
+
+==================================================================
+:class:`passlib.hash.lmhash` - LanManager Hash
+==================================================================
+
+.. currentmodule:: passlib.hash
+
+This class implements the LanManager Hash (aka *LanMan* or *LM* hash).
+It was used by early versions of Microsoft Windows to store user passwords,
+until it was supplanted (though not entirely replaced) by
+the :doc:`nthash <passlib.hash.nthash>` algorithm in Windows NT.
+It continues to crop up in production due to it's integral role
+in the legacy NTLM authentication protocol.
+
+.. warning::
+
+    This scheme has been deprecated since Windows NT, and is  notoriously weak.
+    It should be used for compatibility with existing systems;
+    **do not use** in new code.
+
+Usage
+=====
+This class can be used directly as follows::
+
+    >>> from passlib.hash import lmhash
+
+    >>> # encrypt password
+    >>> h = lmhash.encrypt("password")
+    >>> h
+    'e52cac67419a9a224a3b108f3fa6cb6d'
+
+    >>> # verify correct password
+    >>> lmhash.verify("password", h)
+    True
+    >>> # verify incorrect password
+    >>> lmhash.verify("secret", h)
+    False
+
+    >>> # check if hash is recognized
+    >>> lmhash.identify(h)
+    True
+    >>> # check if some other hash is recognized
+    >>> lmhash.identify('3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    False
+
+Issues with Non-ASCII Characters
+--------------------------------
+Passwords containing only ``ascii`` characters should hash and compare
+correctly across all LMhash implementations. However, due to historical
+issues, no two LMhash implementations handle non-``ascii`` characters in quite
+the same way. While Passlib makes every attempt to behave as close to correct
+as possible, the meaning of "correct" is dependant on the software you are
+interoperating with. If you think you will have passwords containing
+non-``ascii`` characters, please read the `Deviations`_ section (below) for
+details about the known interoperability issues.
+
+Interface
+=========
+.. autoclass:: lmhash
+
+.. rst-class:: html-toggle
+
+Format & Algorithm
+==================
+A LM hash consists of 32 hexidecimal digits,
+which encode the 16 byte digest. An example hash (of ``password``) is
+``e52cac67419a9a224a3b108f3fa6cb6d``.
+
+The digest is calculated as follows:
+
+1. First the password should be converted to uppercase, and encoded
+   to bytes using the "OEM Codepage" used [#cp]_ by the specific release of
+   Windows that the host or target server is running.
+
+   For pure-ASCII passwords, this step can be performed as normal
+   using the ``us-ascii`` encoding. For passwords with non-ASCII
+   characters, this step is fraught with compatibility issues
+   and border cases (see `Deviations`_ for details).
+
+2. The password is then truncated or NULL padded to 14 bytes, as appropriate.
+
+3. The first 7 bytes of the password in step 2 are used as a key,
+   to DES encrypt the constant ``KGS!@#$%``, resulting
+   in the first 8 bytes of the final digest.
+
+4. Step 4 is repeated using the second 7 bytes of the password from step 2,
+   resulting in the second 8 bytes of the final digest.
+
+5. The combined digests from 3 and 4 are then encoded to hexidecimal.
+
+Security Issues
+===============
+Due to this myriad of flaws, high-speed password cracking software
+dedicated to LMHASH exists, and the algorithm should be considered broken:
+
+* It has no salt, making hashes easily pre-computable.
+
+* It limits the password to 14 characters, and converts the password to
+  uppercase before hashing, greatly reducing the keyspace.
+
+* By breaking the password into two independant chunks,
+  they can be attacked independantly and simultaneously.
+
+* The independance of the chunks reveals significant information
+  about the original password: The second 8 bytes of the digest
+  are the same for all passwords < 8 bytes; and for passwords
+  of 8-9 characters, the second chunk can be broken *much* faster,
+  revealing part of the password, and reducing the likely
+  keyspace for the first chunk.
+
+Deviations
+==========
+Passlib's implementation differs from others in a few ways, all related to
+the handling of non-ASCII characters. Future releases of Passlib may update
+the implementation as new information comes up.
+
+* Unicode Policy:
+
+  Officially, unicode passwords should be encoded using the "OEM Codepage"
+  used [#cp]_ by the specific release of Windows that the host or target server
+  is running. Common encodings include ``cp437`` (used by the English
+  edition of Windows XP), ``cp580`` (used by many Western European editions
+  of XP), and ``cp866`` (used by many Eastern European editions of XP).
+  Complicating matters further, some third-party implementations are known
+  to use encodings such as ``latin-1`` and ``utf-8``, which cause
+  the non-ASCII characters to have different hashes entirely.
+
+  Thus the application must decide which encoding to use, if it wants
+  to provide support for non-ASCII passwords. Passlib uses ``cp437`` as a
+  default, but this may need to be overridden via
+  ``lmhash.encrypt(secret, encoding="some-other-codec")``.
+  All known encodings are ``us-ascii``-compatible, so for ASCII passwords,
+  the default should be sufficient.
+
+* Upper Case Conversion:
+
+  Once critical step in the LMHASH algorithm is converting the password
+  to upper case. While ASCII characters are converted to uppercase as normal,
+  non-ASCII characters are converted in implementation dependant ways:
+
+  Windows systems encode the password first, and then
+  convert it to uppercase using a codepage-dependant table.
+  For the most part these tables appear to agree with the Unicode specification,
+  but there are some codepoints where they deviate (for example,
+  Unicode uppercases U+00B5 -> U+039C, but ``cp437`` leaves it unchanged
+  [#uc]_).
+
+  Most third-party implementations (Passlib included) choose to uppercase
+  non-ASCII characters according to the Unicode specification, and then
+  encode the password; despite the border cases where the hash would not match
+  the official windows hash.
+
+.. rubric:: Footnotes
+
+.. [#] Article used as reference for algorithm -
+       `<http://www.linuxjournal.com/article/2717>`_.
+
+.. [#cp] The OEM codepage used by specific Window XP (and earlier releases)
+         can be found at `<http://msdn.microsoft.com/nl-nl/goglobal/cc563921%28en-us%29.aspx>`_.
+
+.. [#uc] Online discussion dealing with upper-case encoding issues -
+         `<http://www.openwall.com/lists/john-dev/2011/08/01/2>`_.

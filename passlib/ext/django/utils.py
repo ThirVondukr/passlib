@@ -2,9 +2,21 @@
 
 .. warning::
 
-    This code is experimental and subject to change,
-    and not officially documented in Passlib just yet
+    This code is experimental and subject to change
     (though it should work).
+
+Django 1.4 Notes
+================
+they isolated the hashing code into auth.hashers.
+public interface is check_password(), make_password(), is_password_unusable()
+make_password(None) should return unusable.
+User object uses these stubs.
+will need to refactor monkeypatching quite a bit.
+and their new hashers framework might not require passlib anymore anyways.
+
+as opposed to pre-1.4, which had everything in auth.models -
+a check_password(), and User.set_password / check_password / set_unusable methods.
+so if there is utility for this, will need to rethink.
 """
 #===================================================================
 #imports
@@ -12,7 +24,9 @@
 #site
 from warnings import warn
 #pkg
-from passlib.utils import is_crypt_context, bytes
+from passlib.exc import PasslibRuntimeWarning
+from passlib.utils import is_crypt_context
+from passlib.utils.compat import bytes, get_method_function as um
 #local
 __all__ = [
     "get_category",
@@ -24,14 +38,20 @@ __all__ = [
 #===================================================================
 
 _has_django0 = None # old 0.9 django - lacks unusable_password support
+_has_django14 = None # new django 1.4 with auth.hashers
 _dam = None #django.contrib.auth.models reference
 
 def _import_django():
-    global _dam, _has_django0
+    global _dam, _has_django0, _has_django4
     if _dam is None:
         import django.contrib.auth.models as _dam
         from django import VERSION
         _has_django0 = VERSION < (1,0)
+        _has_django14 = VERSION >= (1,4)
+        if _has_django14:
+            # django 1.4 had a large rewrite that adds new stronger schemes,
+            # but changes how things work. our monkeypatching may not jive.
+            warn("passlib.ext.django may not work correctly with django >= 1.4")
     return _dam
 
 #===================================================================
@@ -56,7 +76,6 @@ DEFAULT_CTX = """
 [passlib]
 schemes =
     sha512_crypt,
-    pbkdf2_sha256,
     django_salted_sha1, django_salted_md5,
     django_des_crypt, hex_md5,
     django_disabled
@@ -64,7 +83,6 @@ schemes =
 default = sha512_crypt
 
 deprecated =
-    pbkdf2_sha256,
     django_salted_sha1, django_salted_md5,
     django_des_crypt, hex_md5
 
@@ -94,10 +112,6 @@ def get_category(user):
     if user.is_staff:
         return "staff"
     return None
-
-def um(func):
-    "unwrap method (eg User.set_password -> orig func)"
-    return func.im_func
 
 #===================================================================
 # monkeypatch framework
@@ -152,13 +166,16 @@ def set_django_password_context(context=None, get_category=get_category):
     if state is not None:
         if um(User.set_password) is not state['user_set_password']:
             warn("another library has patched "
-                    "django.contrib.auth.models:User.set_password")
+                    "django.contrib.auth.models:User.set_password",
+                    PasslibRuntimeWarning)
         if um(User.check_password) is not state['user_check_password']:
             warn("another library has patched"
-                    "django.contrib.auth.models:User.check_password")
+                    "django.contrib.auth.models:User.check_password",
+                    PasslibRuntimeWarning)
         if _dam.check_password is not state['models_check_password']:
             warn("another library has patched"
-                    "django.contrib.auth.models:check_password")
+                    "django.contrib.auth.models:check_password",
+                    PasslibRuntimeWarning)
 
     #check if we should just restore original state
     if context is None:

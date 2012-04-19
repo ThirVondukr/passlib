@@ -21,7 +21,7 @@ this scheme is used in exactly the same way as :doc:`bcrypt <passlib.hash.bcrypt
 
 Interface
 =========
-.. autoclass:: phpass(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: phpass()
 
 Format
 ==================

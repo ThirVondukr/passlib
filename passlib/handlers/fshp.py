@@ -11,7 +11,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, bytes, b, to_hash_str
+from passlib.utils import to_unicode
+import passlib.utils.handlers as uh
+from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, u,\
+                                 unicode
 from passlib.utils.pbkdf2 import pbkdf1
 #pkg
 #local
@@ -55,7 +58,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #--GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
-    checksum_chars = uh.PADDED_B64_CHARS
+    checksum_chars = uh.PADDED_BASE64_CHARS
+    ident = u("{FSHP")
+    # checksum_size is property() that depends on variant
 
     #--HasRawSalt--
     default_salt_size = 16 #current passlib default, FSHP uses 8
@@ -63,7 +68,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     max_salt_size = None
 
     #--HasRounds--
-    default_rounds = 16384 #current passlib default, FSHP uses 4096
+    # FIXME: should probably use different default rounds
+    # based on the variant. setting for default variant (sha256) for now.
+    default_rounds = 50000 #current passlib default, FSHP uses 4096
     min_rounds = 1 #set by FSHP
     max_rounds = 4294967295 # 32-bit integer limit - not set by FSHP
     rounds_cost = "linear"
@@ -71,7 +78,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #--variants--
     default_variant = 1
     _variant_info = {
-        #variant: (hash, digest size)
+        #variant: (hash name, digest size)
         0: ("sha1",     20),
         1: ("sha256",   32),
         2: ("sha384",   48),
@@ -79,7 +86,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         }
     _variant_aliases = dict(
         [(unicode(k),k) for k in _variant_info] +
-        [(v[0],k) for k,v in _variant_info.items()]
+        [(v[0],k) for k,v in iteritems(_variant_info)]
         )
 
     #=========================================================
@@ -90,86 +97,84 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #=========================================================
     #init
     #=========================================================
-    def __init__(self, variant=None, strict=False, **kwds):
-        self.variant = self.norm_variant(variant, strict=strict)
-        super(fshp, self).__init__(strict=strict, **kwds)
+    def __init__(self, variant=None, **kwds):
+        # NOTE: variant must be set first, since it controls checksum size, etc.
+        self.use_defaults = kwds.get("use_defaults") # load this early
+        self.variant = self._norm_variant(variant)
+        super(fshp, self).__init__(**kwds)
 
-    @classmethod
-    def norm_variant(cls, variant, strict=False):
+    def _norm_variant(self, variant):
         if variant is None:
-            if strict:
-                raise ValueError("no variant specified")
-            variant = cls.default_variant
+            if not self.use_defaults:
+                raise TypeError("no variant specified")
+            variant = self.default_variant
         if isinstance(variant, bytes):
             variant = variant.decode("ascii")
         if isinstance(variant, unicode):
             try:
-                variant = cls._variant_aliases[variant]
+                variant = self._variant_aliases[variant]
             except KeyError:
                 raise ValueError("invalid fshp variant")
         if not isinstance(variant, int):
             raise TypeError("fshp variant must be int or known alias")
-        if variant not in cls._variant_info:
-            raise TypeError("unknown fshp variant")
+        if variant not in self._variant_info:
+            raise ValueError("invalid fshp variant")
         return variant
 
-    def norm_checksum(self, checksum, strict=False):
-        checksum = super(fshp, self).norm_checksum(checksum, strict)
-        if checksum is not None and len(checksum) != self._variant_info[self.variant][1]:
-            raise ValueError, "invalid checksum length for FSHP variant"
-        return checksum
+    @property
+    def checksum_alg(self):
+        return self._variant_info[self.variant][0]
 
     @property
-    def _info(self):
-        return self._variant_info[self.variant]
+    def checksum_size(self):
+        return self._variant_info[self.variant][1]
 
     #=========================================================
     #formatting
     #=========================================================
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_prefix(hash, u"{FSHP")
-
-    _fshp_re = re.compile(ur"^\{FSHP(\d+)\|(\d+)\|(\d+)\}([a-zA-Z0-9+/]+={0,3})$")
+    _hash_regex = re.compile(u(r"""
+            ^
+            \{FSHP
+            (\d+)\| # variant
+            (\d+)\| # salt size
+            (\d+)\} # rounds
+            ([a-zA-Z0-9+/]+={0,3}) # digest
+            $"""), re.X)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        m = cls._fshp_re.match(hash)
+        hash = to_unicode(hash, "ascii", "hash")
+        m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("not a valid FSHP hash")
+            raise uh.exc.InvalidHashError(cls)
         variant, salt_size, rounds, data = m.group(1,2,3,4)
         variant = int(variant)
         salt_size = int(salt_size)
         rounds = int(rounds)
         try:
             data = b64decode(data.encode("ascii"))
-        except ValueError:
-            raise ValueError("malformed FSHP hash")
+        except TypeError:
+            raise uh.exc.MalformedHashError(cls)
         salt = data[:salt_size]
         chk = data[salt_size:]
-        return cls(checksum=chk, salt=salt, rounds=rounds,
-                   variant=variant, strict=True)
+        return cls(salt=salt, checksum=chk, rounds=rounds, variant=variant)
+
+    @property
+    def _stub_checksum(self):
+        return b('\x00') * self.checksum_size
 
     def to_string(self):
-        chk = self.checksum
-        if not chk: #fill in stub checksum
-            chk = b('\x00') * self._info[1]
+        chk = self.checksum or self._stub_checksum
         salt = self.salt
-        data = b64encode(salt+chk).decode("ascii")
-        hash = u"{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
-        return to_hash_str(hash)
+        data = bascii_to_str(b64encode(salt+chk))
+        return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
 
     #=========================================================
     #backend
     #=========================================================
 
-    def calc_checksum(self, secret):
-        hash, klen = self._info
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         #NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.
@@ -179,8 +184,8 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             secret=self.salt,
             salt=secret,
             rounds=self.rounds,
-            keylen=klen,
-            hash=hash,
+            keylen=self.checksum_size,
+            hash=self.checksum_alg,
             )
 
     #=========================================================

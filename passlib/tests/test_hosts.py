@@ -24,14 +24,14 @@ class HostsTest(TestCase):
     #      they mainly try to ensure no typos
     #      or dynamic behavior foul-ups.
 
-    def check_unix_fallback(self, ctx):
+    def check_unix_disabled(self, ctx):
         for hash in [
             "",
             "!",
             "*",
             "!$1$TXl/FX/U$BZge.lr.ux6ekjEjxmzwz0",
         ]:
-            self.assertEqual(ctx.identify(hash), 'unix_fallback')
+            self.assertEqual(ctx.identify(hash), 'unix_disabled')
             self.assertFalse(ctx.verify('test', hash))
 
     def test_linux_context(self):
@@ -45,7 +45,7 @@ class HostsTest(TestCase):
             'kAJJz.Rwp0A/I',
         ]:
             self.assertTrue(ctx.verify("test", hash))
-        self.check_unix_fallback(ctx)
+        self.check_unix_disabled(ctx)
 
     def test_bsd_contexts(self):
         for ctx in [
@@ -63,7 +63,7 @@ class HostsTest(TestCase):
                 self.assertTrue(ctx.verify("test", h1))
             else:
                 self.assertEqual(ctx.identify(h1), "bcrypt")
-            self.check_unix_fallback(ctx)
+            self.check_unix_disabled(ctx)
 
     def test_host_context(self):
         ctx = getattr(hosts, "host_context", None)
@@ -71,16 +71,16 @@ class HostsTest(TestCase):
             return self.skipTest("host_context not available on this platform")
 
         # validate schemes is non-empty,
-        # and contains unix_fallback + at least one real scheme
-        schemes = ctx.policy.schemes()
+        # and contains unix_disabled + at least one real scheme
+        schemes = list(ctx.schemes())
         self.assertTrue(schemes, "appears to be unix system, but no known schemes supported by crypt")
-        self.assertTrue('unix_fallback' in schemes)
-        schemes.remove("unix_fallback")
+        self.assertTrue('unix_disabled' in schemes)
+        schemes.remove("unix_disabled")
         self.assertTrue(schemes, "should have schemes beside fallback scheme")
         self.assertTrue(set(unix_crypt_schemes).issuperset(schemes))
 
         # check for hash support
-        self.check_unix_fallback(ctx)
+        self.check_unix_disabled(ctx)
         for scheme, hash in [
             ("sha512_crypt", ('$6$rounds=41128$VoQLvDjkaZ6L6BIE$4pt.1Ll1XdDYduEwEYPCMOBiR6W6'
                 'znsyUEoNlcVXpv2gKKIbQolgmTGe6uEEVJ7azUxuc8Tf7zV9SD2z7Ij751')),

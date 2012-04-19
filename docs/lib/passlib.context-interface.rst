@@ -8,8 +8,7 @@
 
 .. currentmodule:: passlib.context
 
-This details all the constructors and methods provided by :class:`!CryptContext`
-and :class:`!CryptPolicy`.
+This details all the constructors and methods provided by :class:`!CryptContext`.
 
 .. seealso::
 
@@ -19,12 +18,14 @@ and :class:`!CryptPolicy`.
 
 The Context Object
 ==================
-.. autoclass:: CryptContext(schemes=None, policy=<default policy>, \*\*kwds)
-
-The Policy Object
-=================
-.. autoclass:: CryptPolicy(\*\*kwds)
+.. autoclass:: CryptContext(schemes=None, \*\*kwds)
 
 Other Helpers
 =============
-.. autoclass:: LazyCryptContext([schemes=None,] **kwds [, create_policy=None])
+.. autoclass:: LazyCryptContext([schemes=None,] \*\*kwds [, onload=None])
+
+.. rst-class:: html-toggle
+
+(deprecated) The CryptPolicy Class
+==================================
+.. autoclass:: CryptPolicy

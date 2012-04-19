@@ -15,7 +15,9 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, bytes, b, to_unicode, to_hash_str
+from passlib.utils import h64
+from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -55,23 +57,22 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #--GenericHandler--
     name = "phpass"
     setting_kwds = ("salt", "rounds", "ident")
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     min_salt_size = max_salt_size = 8
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
-    default_rounds = 9
+    default_rounds = 16
     min_rounds = 7
     max_rounds = 30
     rounds_cost = "log2"
-    _strict_rounds_bounds = True
 
     #--HasManyIdents--
-    default_ident = u"$P$"
-    ident_values = [u"$P$", u"$H$"]
-    ident_aliases = {u"P":u"$P$", u"H":u"$H$"}
+    default_ident = u("$P$")
+    ident_values = [u("$P$"), u("$H$")]
+    ident_aliases = {u("P"):u("$P$"), u("H"):u("$H$")}
 
     #=========================================================
     #formatting
@@ -85,36 +86,26 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode('ascii')
-        for ident in cls.ident_values:
-            if hash.startswith(ident):
-                break
-        else:
-            raise ValueError("invalid phpass portable hash")
-        data = hash[len(ident):]
+        ident, data = cls._parse_ident(hash)
         rounds, salt, chk = data[0], data[1:9], data[9:]
         return cls(
             ident=ident,
             rounds=h64.decode_int6(rounds.encode("ascii")),
             salt=salt,
-            checksum=chk,
-            strict=bool(chk),
+            checksum=chk or None,
         )
 
     def to_string(self):
-        hash = u"%s%s%s%s" % (self.ident,
+        hash = u("%s%s%s%s") % (self.ident,
                               h64.encode_int6(self.rounds).decode("ascii"),
                               self.salt,
-                              self.checksum or u'')
-        return to_hash_str(hash)
+                              self.checksum or u(''))
+        return uascii_to_str(hash)
 
     #=========================================================
     #backend
     #=========================================================
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")

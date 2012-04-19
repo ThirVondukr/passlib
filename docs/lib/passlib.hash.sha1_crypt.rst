@@ -15,7 +15,7 @@ this scheme is used in exactly the same way as :doc:`sha512_crypt <passlib.hash.
 
 Functions
 =========
-.. autoclass:: sha1_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: sha1_crypt()
 
 Format
 ======
@@ -80,7 +80,7 @@ in a few ways:
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, PassLib strictly limits salts to the
-  :mod:`hash 64 <passlib.utils.h64>` character set,
+  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of sha1-crypt generate
   and expect salts containing those characters.
 

@@ -51,11 +51,11 @@ released under the BSD license::
 #imports
 #=========================================================
 #core
-from cStringIO import StringIO
 from itertools import chain
 import struct
 #pkg
-from passlib.utils import rng, getrandbytes, bytes, bord, b
+from passlib.utils import bcrypt64, getrandbytes, rng
+from passlib.utils.compat import b, bytes, BytesIO, unicode, u
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 #local
 __all__ = [
@@ -75,110 +75,6 @@ BCRYPT_CDATA = [
 
 # struct used to encode ciphertext as digest (last output byte discarded)
 digest_struct = struct.Struct(">6I")
-
-#=========================================================
-#base64 encoding
-#=========================================================
-
-# Table for Base64 encoding
-CHARS = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-CHARSIDX = dict( (c, i) for i, c in enumerate(CHARS))
-
-def encode_base64(d):
-    """Encode a byte array using bcrypt's slightly-modified base64 encoding scheme.
-
-    Note that this is *not* compatible with the standard MIME-base64 encoding.
-
-    :param d:
-        the bytes to encode
-    :returns:
-        the bytes as encoded using bcrypt's base64
-    """
-    if isinstance(d, unicode):
-        d = d.encode("utf-8")
-        #ensure ord() returns something w/in 0..255
-
-    rs = StringIO()
-    write = rs.write
-    dlen = len(d)
-    didx = 0
-
-    while True:
-        #encode first byte ->  1 byte (6 bits) w/ 2 bits left over
-        if didx >= dlen:
-            break
-        c1 = ord(d[didx])
-        write(CHARS[(c1 >> 2) & 0x3f])
-        c1 = (c1 & 0x03) << 4
-        didx += 1
-
-        #encode 2 bits + second byte -> 1 byte (6 bits) w/ 4 bits left over
-        if didx >= dlen:
-            write(CHARS[c1])
-            break
-        c2 = ord(d[didx])
-        write(CHARS[c1 | (c2 >> 4) ])
-        c2 = (c2 & 0x0f) << 2
-        didx += 1
-
-        #encode 4 bits left over + third byte -> 1 byte (6 bits) w/ 2 bits left over
-        if didx >= dlen:
-            write(CHARS[c2])
-            break
-        c3 = ord(d[didx])
-        write(CHARS[c2 | (c3 >> 6)])
-        write(CHARS[c3 & 0x3f])
-        didx += 1
-
-    return rs.getvalue()
-
-def decode_base64(s):
-    """Decode bytes encoded using bcrypt's base64 scheme.
-
-    :param s:
-        string of bcrypt-base64 encoded bytes
-
-    :returns:
-        string of decoded bytes
-
-    :raises ValueError:
-        if invalid values are passed in
-    """
-    rs = StringIO()
-    write = rs.write
-    slen = len(s)
-    sidx = 0
-
-    def char64(c):
-        "look up 6 bit value in table"
-        try:
-            return CHARSIDX[c]
-        except KeyError:
-            raise ValueError, "invalid chars in base64 string"
-
-    while True:
-
-        #decode byte 1 + byte 2 -> 1 byte + 4 bits left over
-        if sidx >= slen-1:
-            break
-        c2 = char64(s[sidx+1])
-        write(chr((char64(s[sidx]) << 2) | (c2 >> 4)))
-        sidx += 2
-
-        #decode 4 bits left over + 3rd byte -> 1 byte + 2 bits left over
-        if sidx >= slen:
-            break
-        c3 = char64(s[sidx])
-        write(chr(((c2 & 0x0f) << 4) | (c3 >> 2)))
-        sidx += 1
-
-        #decode 2 bits left over + 4th byte -> 1 byte
-        if sidx >= slen:
-            break
-        write(chr(((c3 & 0x03) << 6) | char64(s[sidx])))
-        sidx += 1
-
-    return rs.getvalue()
 
 #=========================================================
 #base bcrypt helper
@@ -203,18 +99,26 @@ def raw_bcrypt(password, ident, salt, log_rounds):
 
     # parse ident
     assert isinstance(ident, unicode)
-    if ident == u'2':
+    if ident == u('2'):
         minor = 0
-    elif ident == u'2a':
+    elif ident == u('2a'):
+        minor = 1
+        # XXX: how to indicate caller wants to use crypt_blowfish's
+        # workaround variant of 2a?
+    elif ident == u('2x'):
+        raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
+                         "currently supported")
+    elif ident == u('2y'):
+        # crypt_blowfish compatibility ident which guarantees compat w/ 2a
         minor = 1
     else:
-        raise ValueError, "unknown ident: %r" % (ident,)
+        raise ValueError("unknown ident: %r" % (ident,))
 
     # decode & validate salt
     assert isinstance(salt, bytes)
-    salt = decode_base64(salt)
+    salt = bcrypt64.decode_bytes(salt)
     if len(salt) < 16:
-        raise ValueError, "Missing salt bytes"
+        raise ValueError("Missing salt bytes")
     elif len(salt) > 16:
         salt = salt[:16]
 
@@ -259,7 +163,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
         data[i], data[i+1] = engine.repeat_encipher(data[i], data[i+1], 64)
         i += 2
     raw = digest_struct.pack(*data)[:-1]
-    return encode_base64(raw)
+    return bcrypt64.encode_bytes(raw)
 
 #=========================================================
 #eof

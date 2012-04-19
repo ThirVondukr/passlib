@@ -15,6 +15,7 @@ import time
 import sys
 #site
 #pkg
+from passlib.utils.compat import iteritems, print_
 from passlib.registry import get_crypt_handler
 #local
 log = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class HashTimer(object):
         #
         self.samples = samples
         self.cache = {}
-        self.srange = range(samples)
+        self.srange = irange(samples)
 
     def time_encrypt(self, rounds):
         "check how long encryption for a given number of rounds will take"
@@ -121,7 +122,7 @@ class HashTimer(object):
         #check if useful lower & upper bounds already exist in cache
         #
         lower = upper = None
-        for rounds, delta in self.cache.iteritems():
+        for rounds, delta in iteritems(self.cache.iteritems):
             if delta < target:
                 if lower is None or rounds > lower:
                     lower = rounds
@@ -203,7 +204,7 @@ class HashTimer(object):
         if not cache:
             raise RuntimeError("should not be called until cache populated by find_rounds()")
         get_rps = self.get_rps
-        rps = sum(r*get_rps(r,d) for r,d in cache.iteritems())/sum(cache)
+        rps = sum(r*get_rps(r,d) for r,d in iteritems(cache))/sum(cache)
         if rps > 1000: #for almost all cases, we'd return integer
             rps = int(rps)
         return rps
@@ -216,8 +217,8 @@ def main(*args):
     setup_std_logging(level="debug", dev=True)
 
     timer = HashTimer("sha256_crypt")
-    print timer.find_rounds_range(.5)
-    print timer.estimate_rps()
+    print_(timer.find_rounds_range(.5))
+    print_(timer.estimate_rps())
 
     #TODO: give script ability to generate timings for a range of schemes, and minimum / maximum times.
 

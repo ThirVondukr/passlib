@@ -17,7 +17,7 @@ as it contains builtin fallbacks
 for almost all OS-dependant features.
 Google App Engine is supported as well.
 
-.. _optional-libraries: 
+.. _optional-libraries:
 
 Optional Libraries
 ==================
@@ -49,15 +49,6 @@ To download and install using :command:`pip`::
 To install from a source directory using :command:`setup.py`::
 
     python setup.py install
-
-.. note::
-
-    Passlib's source ships as Python 2 code,
-    and the setup script invokes the :command:`2to3` tool + a preprocessor
-    to translate the source to Python 3 code at install time.
-    Aside from this internal detail,
-    installation under Python 3
-    should be identical to that of Python 2.
 
 Testing
 =======

@@ -8,10 +8,13 @@
 
 .. warning::
 
-    This module is currently under development.
-    It works and has good unittest coverage,
-    but has not seen very much real-world use;
-    *caveat emptor*.
+    This submodule should be considered "release candidate" quality.
+    It works, and has good unittest coverage,
+    but has not seen very much real-world use.
+    *caveat emptor*, and please report any issues.
+
+    This module is currently not compatible with Django 1.4's new
+    password hashing system, or formats.
 
 .. todo::
 
@@ -23,36 +26,35 @@ Overview
 This module is intended for use with
 `Django <http://www.djangoproject.com>`_-based web applications.
 It contains a Django app which allows you to override
-Django's builtin password hashing routine
-with any Passlib :doc:`CryptContext <passlib.context>` instance.
-By default, it comes configured to add support for
-:class:`~passlib.hash.sha512_crypt`, and will automatically
-upgrade all existing Django password hashes as your users log in.
+Django's builtin password hashing routines
+to use any Passlib :doc:`CryptContext <passlib.context>` configuration.
+It provides the following features:
 
-:doc:`SHA512-Crypt <passlib.hash.sha512_crypt>`
-was chosen as the best choice for the average Django deployment:
-accelerated implementations are available on most stock Linux systems,
-as well as Google App Engine, and Passlib provides a pure-python
-fallback for all other platforms. 
+* Custom configurations allow the use of any password hash supported by Passlib.
+* Increased-strength hashing for staff and admin accounts.
+* Automatically upgrading of deprecated and weaker hashes.
+* Default configuration supports all standard Django hash formats,
+  and automatically upgrades all hashes to use :class:`~passlib.hash.sha512_crypt`
+  (upgrades only occur when the user logs in or changes their password).
+* Tested against Django 0.9 - 1.3
 
 Installation
 =============
-Installation is simple: just add ``"passlib.ext.django"`` to
-Django's ``settings.INSTALLED_APPS``. This app will handle
-everything else.
+Installation is simple: once Passlib is installed, just add
+``"passlib.ext.django"`` to Django's ``settings.INSTALLED_APPS``.
+This app will handle everything else.
 
-Once done, when this app is imported by Django,
-it will automatically monkeypatch
-:class:`!django.contrib.auth.models.User`
-to use a Passlib :class:`~passlib.context.CryptContext` instance
-in place of the normal Django password authentication routines.
-
+Once installed, when this app is imported by Django, it will automatically monkeypatch
+:class:`!django.contrib.auth.models.User` to use a Passlib
+:class:`~passlib.context.CryptContext` instance in place of the normal Django
+password authentication routines.
 This provides hash migration, the ability to set stronger policies
 for superuser & staff passwords, and stronger password hashing schemes.
 
 Configuration
 =============
-Once installed, you can set the following options in django ``settings.py``:
+While the default configuration should be secure, once installed,
+you may set the following options in django ``settings.py``:
 
 ``PASSLIB_CONTEXT``
    This may be one of a number of values:
@@ -68,10 +70,10 @@ Once installed, you can set the following options in django ``settings.py``:
      The exact default policy used can be found in
      :data:`~passlib.ext.django.utils.DEFAULT_CTX`.
 
-   * ``None``, in which case this app will do nothing when Django is loaded.
+   * ``"disabled"``, in which case this app will do nothing when Django is loaded.
 
    * A multiline configuration string suitable for passing to
-     :meth:`passlib.context.CryptPolicy.from_string`.
+     :meth:`passlib.context.CryptContext.from_string`.
      It is *strongly* recommended to use a configuration which will support
      the existing Django hashes
      (see :data:`~passlib.ext.django.utils.STOCK_CTX`).
@@ -79,15 +81,14 @@ Once installed, you can set the following options in django ``settings.py``:
 ``PASSLIB_GET_CATEGORY``
 
    By default, Passlib will invoke the specified context with a category
-   string that's dependant on the User instance.
-   superusers will be assigned to the ``superuser`` category,
-   staff to the ``staff`` category, and all other accounts
-   assigned to ``None``.
+   string that's dependant on the User instance.  superusers will be assigned
+   to the ``superuser`` category, staff to the ``staff`` category, and all
+   other accounts assigned to ``None``.
 
    This configuration option allows overriding that logic
    by specifying an alternate function with the call signature
    ``get_category(user) -> category|None``.
-   
+
    .. seealso::
 
         See :ref:`user-categories` for more details about

@@ -17,7 +17,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, to_hash_str, to_unicode, bytes, b, bord
+from passlib.utils import h64, to_unicode
+from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
+                                 uascii_to_str, unicode, str_to_bascii
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -70,7 +73,7 @@ MAGIC_HAMLET = b(
 )
 
 #NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
-xr = range(7)
+xr = irange(7)
 _XY_ROUNDS = [
     tuple((i,i,i+3) for i in xr), #xrounds 0
     tuple((i,i+1,i+4) for i in xr), #xrounds 1
@@ -113,7 +116,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     round = 0
     while round < real_rounds:
         #convert last result byte string to list of byte-ints for easy access
-        rval = [ bord(c) for c in result ].__getitem__
+        rval = [ byte_elem_value(c) for c in result ].__getitem__
 
         #build up X bit by bit
         x = 0
@@ -194,7 +197,8 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
+    checksum_size = 22
 
     #NOTE: docs say max password length is 255.
     #release 9u2
@@ -204,14 +208,15 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     default_salt_size = 8
     min_salt_size = 0
     max_salt_size = None
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     default_rounds = 5000 #current passlib default
     min_rounds = 0
     max_rounds = 4294963199 ##2**32-1-4096
         #XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
-    _strict_rounds_bounds = True
+
+    ident_values = (u("$md5$"), u("$md5,"))
 
     #=========================================================
     #instance attrs
@@ -230,62 +235,60 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #=========================================================
     @classmethod
     def identify(cls, hash):
-        return uh.identify_prefix(hash, (u"$md5$", u"$md5,"))
+        hash = uh.to_unicode_for_identify(hash)
+        return hash.startswith(cls.ident_values)
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
+        hash = to_unicode(hash, "ascii", "hash")
 
         #
         #detect if hash specifies rounds value.
         #if so, parse and validate it.
         #by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
-        if hash.startswith(u"$md5$"):
+        if hash.startswith(u("$md5$")):
             rounds = 0
             salt_idx = 5
-        elif hash.startswith(u"$md5,rounds="):
-            idx = hash.find(u"$", 12)
+        elif hash.startswith(u("$md5,rounds=")):
+            idx = hash.find(u("$"), 12)
             if idx == -1:
-                raise ValueError("invalid sun-md5-crypt hash (unexpected end of rounds)")
+                raise uh.exc.MalformedHashError(cls, "unexpected end of rounds")
             rstr = hash[12:idx]
             try:
                 rounds = int(rstr)
             except ValueError:
-                raise ValueError("invalid sun-md5-crypt hash (bad rounds)")
+                raise uh.exc.MalformedHashError(cls, "bad rounds")
             if rstr != unicode(rounds):
-                raise ValueError("invalid sun-md5-crypt hash (zero-padded rounds)")
+                raise uh.exc.ZeroPaddedRoundsError(cls)
             if rounds == 0:
-                #NOTE: not sure if this is *forbidden* precisely,
+                #NOTE: not sure if this is forbidden by spec or not;
                 #      but allowing it would complicate things,
                 #      and it should never occur anyways.
-                raise ValueError("invalid sun-md5-crypt hash (explicit zero rounds)")
+                raise uh.exc.MalformedHashError(cls, "explicit zero rounds")
             salt_idx = idx+1
         else:
-            raise ValueError("invalid sun-md5-crypt hash (unknown prefix)")
+            raise uh.exc.InvalidHashError(cls)
 
         #
         #salt/checksum separation is kinda weird,
         #to deal cleanly with some backward-compatible workarounds
         #implemented by original implementation.
         #
-        chk_idx = hash.rfind(u"$", salt_idx)
+        chk_idx = hash.rfind(u("$"), salt_idx)
         if chk_idx == -1:
             # ''-config for $-hash
             salt = hash[salt_idx:]
             chk = None
             bare_salt = True
         elif chk_idx == len(hash)-1:
-            if chk_idx > salt_idx and hash[-2] == u"$":
-                raise ValueError("invalid sun-md5-crypt hash (too many $)")
+            if chk_idx > salt_idx and hash[-2] == u("$"):
+                raise uh.exc.MalformedHashError(cls, "too many '$' separators")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None
             bare_salt = False
-        elif chk_idx > 0 and hash[chk_idx-1] == u"$":
+        elif chk_idx > 0 and hash[chk_idx-1] == u("$"):
             # $$-hash
             salt = hash[salt_idx:chk_idx-1]
             chk = hash[chk_idx+1:]
@@ -301,21 +304,20 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             salt=salt,
             checksum=chk,
             bare_salt=bare_salt,
-            strict=bool(chk),
         )
 
-    def to_string(self, withchk=True, native=True):
-        ss = u'' if self.bare_salt else u'$'
+    def to_string(self, withchk=True):
+        ss = u('') if self.bare_salt else u('$')
         rounds = self.rounds
         if rounds > 0:
-            out = u"$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
+            hash = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
         else:
-            out = u"$md5$%s%s" % (self.salt, ss)
+            hash = u("$md5$%s%s") % (self.salt, ss)
         if withchk:
             chk = self.checksum
             if chk:
-                out = u"%s$%s" % (out, chk)
-        return to_hash_str(out) if native else out
+                hash = u("%s$%s") % (hash, chk)
+        return uascii_to_str(hash)
 
     #=========================================================
     #primary interface
@@ -325,13 +327,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # actually behaves correctly.
     # especially, when using ''-config, make sure to append '$x' to string.
 
-    def calc_checksum(self, secret):
+    def _calc_checksum(self, secret):
         #NOTE: no reference for how sun_md5_crypt handles unicode
-        if secret is None:
-            raise TypeError("no secret specified")
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        config = self.to_string(withchk=False,native=False).encode("ascii")
+        config = str_to_bascii(self.to_string(withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
     #=========================================================

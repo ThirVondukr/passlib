@@ -17,7 +17,7 @@ This class can be used in exactly the same manner as :class:`~passlib.hash.sha51
 
 Interface
 =========
-.. autoclass:: sha256_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: sha256_crypt()
 
 Format & Algorithm
 ==================

@@ -18,24 +18,24 @@ This class can be used directly as follows::
     >>> from passlib.hash import bsdi_crypt as bc
 
     >>> bc.encrypt("password") #generate new salt, encrypt password
-    '_cD..Bf/46u7tr9IAJ6M'
+    '_7C/.Bf/4gZk10RYRs4Y'
 
-    >>> bc.encrypt("password", rounds=10000) #same, but with explict number of rounds
-    '_EQ0.amG/Pp5b0hIpggo'
+    >>> bc.encrypt("password", rounds=10001) #same, but with explict number of rounds
+    '_FQ0.amG/zwCMip7DnBk'
 
-    >>> bc.identify('_cD..Bf/46u7tr9IAJ6M') #check if hash is recognized
+    >>> bc.identify('_7C/.Bf/4gZk10RYRs4Y') #check if hash is recognized
     True
     >>> bc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
     False
 
-    >>> bc.verify("password", '_cD..Bf/46u7tr9IAJ6M') #verify correct password
+    >>> bc.verify("password", '_7C/.Bf/4gZk10RYRs4Y') #verify correct password
     True
-    >>> bc.verify("secret", '_cD..Bf/46u7tr9IAJ6M') #verify incorrect password
+    >>> bc.verify("secret", '_7C/.Bf/4gZk10RYRs4Y') #verify incorrect password
     False
 
 Interface
 =========
-.. autoclass:: bsdi_crypt(checksum=None, salt=None, rounds=None, strict=False)
+.. autoclass:: bsdi_crypt()
 
 Format
 ======
@@ -44,7 +44,7 @@ A bsdi_crypt hash string consists of a 21 character string of the form :samp:`_{
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
-* :samp:`{rounds}` is the number of rounds, stored as a 4 character :mod:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
+* :samp:`{rounds}` is the number of rounds, stored as a 4 character :data:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
 * :samp:`{salt}` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
 * :samp:`{checksum}` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
 
@@ -60,12 +60,12 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
 1. Given a password string, a salt string, and rounds string.
 
 2. The 4 character rounds string is decoded to a 24-bit integer rounds value;
-   The rounds string uses little-endian
-   :func:`hash64 <passlib.utils.h64.decode_int24>` encoding.
+   The rounds string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   encoding.
 
 3. The 4 character salt string is decoded to a 24-bit integer salt value;
-   The salt string uses little-endian
-   :func:`hash64 <passlib.utils.h64.decode_int24>` encoding.
+   The salt string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   encoding.
 
 4. The password is NULL-padded on the end to the smallest non-zero multiple of 8 bytes.
 
@@ -95,7 +95,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    lsb-padded with 2 zero bits.
 
 9. The resulting 66-bit integer is encoded in big-endian order
-   using the :func:`hash 64 <passlib.utils.h64.encode_int>` format.
+   using the :data:`hash64-big <passlib.utils.h64big>` format.
 
 Security Issues
 ===============
@@ -110,11 +110,16 @@ BSDi Crypt should not be considered sufficiently secure, for a number of reasons
 * The fact that it only uses the lower 7 bits of each byte of the password
   restricts the keyspace which needs to be searched.
 
-.. note::
+* Additionally, even *rounds* values are slightly weaker still,
+  as they may reveal the hash used one of the weak DES keys [#weak]_.
+  This information could theoretically allow an attacker to perform a
+  brute-force attack on a reduced keyspace and against only 1-2 rounds of DES.
+  (This issue is mitagated by the fact that few passwords are both valid *and*
+  result in a weak key).
 
-    This algorithm is none-the-less stronger than des-crypt itself,
-    since it supports variable rounds, a larger salt size,
-    and uses all bytes of the password.
+This algorithm is none-the-less stronger than :class:`!des_crypt` itself,
+since it supports variable rounds, a larger salt size,
+and uses all the bytes of the password.
 
 Deviations
 ==========
@@ -138,3 +143,5 @@ This implementation of bsdi-crypt differs from others in one way:
 
 .. [#] Another source describing algorithm -
        `<http://ftp.lava.net/cgi-bin/bsdi-man?proto=1.1&query=crypt&msection=3&apropos=0>`_
+
+.. [#weak] DES weak keys - `<https://en.wikipedia.org/wiki/Weak_key#Weak_keys_in_DES>`_

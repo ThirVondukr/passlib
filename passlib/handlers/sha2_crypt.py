@@ -1,215 +1,361 @@
-"""passlib.handlers.sha2_crypt - SHA256/512-CRYPT"""
+"""passlib.handlers.sha2_crypt - SHA256-Crypt / SHA512-Crypt"""
 #=========================================================
 #imports
 #=========================================================
 #core
-from hashlib import sha256, sha512
-import re
+import hashlib
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, safe_os_crypt, classproperty, handlers as uh, \
-    to_hash_str, to_unicode, bytes, b, bord
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
+                          repeat_string, to_unicode
+from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
+                                 uascii_to_str, unicode, lmap
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
-    "SHA256Crypt",
-    "SHA512Crypt",
+    "sha512_crypt",
+    "sha256_crypt",
 ]
 
-#=========================================================
-#pure-python backend (shared between sha256-crypt & sha512-crypt)
-#=========================================================
-INVALID_SALT_VALUES = b("\x00$")
+#==============================================================
+# pure-python backend, used by both sha256_crypt & sha512_crypt
+# when crypt.crypt() backend is not available.
+#==============================================================
 
-def raw_sha_crypt(secret, salt, rounds, hash):
-    """perform raw sha crypt
+# pre-calculated offsets used to speed up C digest stage (see notes below).
+# sequence generated using the following:
+    ##perms_order = "p,pp,ps,psp,sp,spp".split(",")
+    ##def offset(i):
+    ##    key = (("p" if i % 2 else "") + ("s" if i % 3 else "") +
+    ##        ("p" if i % 7 else "") + ("" if i % 2 else "p"))
+    ##    return perms_order.index(key)
+    ##_c_digest_offsets = [(offset(i), offset(i+1)) for i in range(0,42,2)]
+_c_digest_offsets = (
+    (0, 3), (5, 1), (5, 3), (1, 2), (5, 1), (5, 3), (1, 3),
+    (4, 1), (5, 3), (1, 3), (5, 0), (5, 3), (1, 3), (5, 1),
+    (4, 3), (1, 3), (5, 1), (5, 2), (1, 3), (5, 1), (5, 3),
+    )
 
-    :arg secret: password to encode (if unicode, encoded to utf-8)
-    :arg salt: salt string to use (required)
-    :arg rounds: int rounds
-    :arg hash: hash constructor function for 256/512 variant
+# map used to transpose bytes when encoding final sha256_crypt digest
+_256_transpose_map = (
+    20, 10,  0, 11,  1, 21,  2, 22, 12, 23, 13,  3, 14,  4, 24,  5,
+    25, 15, 26, 16,  6, 17,  7, 27,  8, 28, 18, 29, 19,  9, 30, 31,
+)
+
+# map used to transpose bytes when encoding final sha512_crypt digest
+_512_transpose_map = (
+    42, 21,  0,  1, 43, 22, 23,  2, 44, 45, 24,  3,  4, 46, 25, 26,
+     5, 47, 48, 27,  6,  7, 49, 28, 29,  8, 50, 51, 30,  9, 10, 52,
+    31, 32, 11, 53, 54, 33, 12, 13, 55, 34, 35, 14, 56, 57, 36, 15,
+    16, 58, 37, 38, 17, 59, 60, 39, 18, 19, 61, 40, 41, 20, 62, 63,
+)
+
+def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
+    """perform raw sha256-crypt / sha512-crypt
+
+    this function provides a pure-python implementation of the internals
+    for the SHA256-Crypt and SHA512-Crypt algorithms; it doesn't
+    handle any of the parsing/validation of the hash strings themselves.
+
+    :arg pwd: password chars/bytes to encrypt
+    :arg salt: salt chars to use
+    :arg rounds: linear rounds cost
+    :arg use_512: use sha512-crypt instead of sha256-crypt mode
 
     :returns:
-        Returns tuple of ``(unencoded checksum, normalized salt, normalized rounds)``.
-
+        encoded checksum chars
     """
-    #validate secret
-    if not isinstance(secret, bytes):
-        raise TypeError("secret must be encoded as bytes")
+    #=====================================================================
+    # init & validate inputs
+    #=====================================================================
 
-    #validate rounds
-    if rounds < 1000:
-        rounds = 1000
-    if rounds > 999999999: #pragma: no cover
-        rounds = 999999999
+    # validate secret
+    if isinstance(pwd, unicode):
+        # XXX: not sure what official unicode policy is, using this as default
+        pwd = pwd.encode("utf-8")
+    elif not isinstance(pwd, bytes):
+        raise TypeError("password must be bytes or unicode")
+    pwd_len = len(pwd)
 
-    #validate salt
-    if not isinstance(salt, bytes):
-        raise TypeError("salt must be encoded as bytes")
-    if any(c in salt for c in INVALID_SALT_VALUES):
-        raise ValueError("invalid chars in salt")
-    if len(salt) > 16:
-        salt = salt[:16]
+    # validate rounds
+    assert 1000 <= rounds <= 999999999, "invalid rounds"
+        # NOTE: spec says out-of-range rounds should be clipped, instead of
+        # causing an error. this function assumes that's been taken care of
+        # by the handler class.
 
-    #init helpers
-    def extend(source, size_ref):
-        "helper which repeats <source> digest string until it's the same length as <size_ref> string"
-        assert len(source) == chunk_size
-        size = len(size_ref)
-        return source * int(size/chunk_size) + source[:size % chunk_size]
+    # validate salt
+    assert isinstance(salt, unicode), "salt not unicode"
+    salt = salt.encode("ascii")
+    salt_len = len(salt)
+    assert salt_len < 17, "salt too large"
+        # NOTE: spec says salts larger than 16 bytes should be truncated,
+        # instead of causing an error. this function assumes that's been
+        # taken care of by the handler class.
 
-    #calc digest B
-    b = hash(secret)
-    chunk_size = b.digest_size #grab this once hash is created
-    b.update(salt)
-    a = b.copy() #make a copy to save a little time later
-    b.update(secret)
-    b_result = b.digest()
-    b_extend = extend(b_result, secret)
+    # load sha256/512 specific constants
+    if use_512:
+        hash_const = hashlib.sha512
+        hash_len = 64
+        transpose_map = _512_transpose_map
+    else:
+        hash_const = hashlib.sha256
+        hash_len = 32
+        transpose_map = _256_transpose_map
 
-    #begin digest A
-    #a = hash(secret) <- performed above
-    #a.update(salt) <- performed above
-    a.update(b_extend)
+    #=====================================================================
+    # digest B - used as subinput to digest A
+    #=====================================================================
+    db = hash_const(pwd + salt + pwd).digest()
 
-    #for each bit in slen, add B or SECRET
-    value = len(secret)
-    while value > 0:
-        if value % 2:
-            a.update(b_result)
-        else:
-            a.update(secret)
-        value >>= 1
+    #=====================================================================
+    # digest A - used to initialize first round of digest C
+    #=====================================================================
+    # start out with pwd + salt
+    a_ctx = hash_const(pwd + salt)
+    a_ctx_update = a_ctx.update
 
-    #finish A
-    a_result = a.digest()
+    # add pwd_len bytes of b, repeating b as many times as needed.
+    a_ctx_update(repeat_string(db, pwd_len))
 
-    #calc DP - hash of password, extended to size of password
-    dp = hash(secret * len(secret))
-    dp_result = extend(dp.digest(), secret)
+    # for each bit in pwd_len: add b if it's 1, or pwd if it's 0
+    i = pwd_len
+    while i:
+        a_ctx_update(db if i & 1 else pwd)
+        i >>= 1
 
-    #calc DS - hash of salt, extended to size of salt
-    ds = hash(salt * (16+bord(a_result[0])))
-    ds_result = extend(ds.digest(), salt) #aka 'S'
+    # finish A
+    da = a_ctx.digest()
 
+    #=====================================================================
+    # digest P from password - used instead of password itself
+    #                          when calculating digest C.
+    #=====================================================================
+    if pwd_len < 64:
+        # method this is faster under python, but uses O(pwd_len**2) memory
+        # so we don't use it for larger passwords, to avoid a potential DOS.
+        dp = repeat_string(hash_const(pwd * pwd_len).digest(), pwd_len)
+    else:
+        tmp_ctx = hash_const(pwd)
+        tmp_ctx_update = tmp_ctx.update
+        i = pwd_len-1
+        while i:
+            tmp_ctx_update(pwd)
+            i -= 1
+        dp = repeat_string(tmp_ctx.digest(), pwd_len)
+    assert len(dp) == pwd_len
+
+    #=====================================================================
+    # digest S  - used instead of salt itself when calculating digest C
+    #=====================================================================
+    ds = hash_const(salt * (16 + byte_elem_value(da[0]))).digest()[:salt_len]
+    assert len(ds) == salt_len, "salt_len somehow > hash_len!"
+
+    #=====================================================================
+    # digest C - for a variable number of rounds, combine A, S, and P
+    #            digests in various ways; in order to burn CPU time.
+    #=====================================================================
+
+    # NOTE: the original SHA256/512-Crypt specification performs the C digest
+    # calculation using the following loop:
     #
-    #calc digest C
-    #NOTE: this has been contorted a little to allow pre-computing
-    #some of the hashes. the original algorithm was that
-    #each round generates digest composed of:
-    #   if round%2>0 => dp else lr
-    #   if round%3>0 => ds
-    #   if round%7>0 => dp
-    #   if round%2>0 => lr else dp
-    #where lr is digest of the last round's hash (initially = a_result)
+    ##dc = da
+    ##i = 0
+    ##while i < rounds:
+    ##    tmp_ctx = hash_const(dp if i & 1 else dc)
+    ##    if i % 3:
+    ##        tmp_ctx.update(ds)
+    ##    if i % 7:
+    ##        tmp_ctx.update(dp)
+    ##    tmp_ctx.update(dc if i & 1 else dp)
+    ##    dc = tmp_ctx.digest()
+    ##    i += 1
     #
+    # The code Passlib uses (below) implements an equivalent algorithm,
+    # it's just been heavily optimized to pre-calculate a large number
+    # of things beforehand. It works off of a couple of observations
+    # about the original algorithm:
+    #
+    # 1. each round is a combination of 'dc', 'ds', and 'dp'; determined
+    #    by the whether 'i' a multiple of 2,3, and/or 7.
+    # 2. since lcm(2,3,7)==42, the series of combinations will repeat
+    #    every 42 rounds.
+    # 3. even rounds 0-40 consist of 'hash(dc + round-specific-constant)';
+    #    while odd rounds 1-41 consist of hash(round-specific-constant + dc)
+    #
+    # Using these observations, the following code...
+    # * calculates the round-specific combination of ds & dp for each round 0-41
+    # * runs through as many 42-round blocks as possible
+    # * runs through as many pairs of rounds as possible for remaining rounds
+    # * performs once last round if the total rounds should be odd.
+    #
+    # this cuts out a lot of the control overhead incurred when running the
+    # original loop 40,000+ times in python, resulting in ~20% increase in
+    # speed under CPython (though still 2x slower than glibc crypt)
 
-    #pre-calculate some digests to speed up odd rounds
-    dp_hash = hash(dp_result).copy
-    dp_ds_hash = hash(dp_result + ds_result).copy
-    dp_dp_hash = hash(dp_result * 2).copy
-    dp_ds_dp_hash = hash(dp_result + ds_result + dp_result).copy
+    # prepare the 6 combinations of ds & dp which are needed
+    # (order of 'perms' must match how _c_digest_offsets was generated)
+    dp_dp = dp+dp
+    dp_ds = dp+ds
+    perms = [dp, dp_dp, dp_ds, dp_ds+dp, ds+dp, ds+dp_dp]
 
-    #pre-calculate some strings to speed up even rounds
-    ds_dp_result = ds_result + dp_result
-    dp_dp_result = dp_result * 2
-    ds_dp_dp_result = ds_result + dp_dp_result
+    # build up list of even-round & odd-round constants,
+    # and store in 21-element list as (even,odd) pairs.
+    data = [ (perms[even], perms[odd]) for even, odd in _c_digest_offsets]
 
-    #run through rounds
-    last_result = a_result
-    i = 0
-    while i < rounds:
-        if i % 2:
-            if i % 3:
-                if i % 7:
-                    c = dp_ds_dp_hash()
-                else:
-                    c = dp_ds_hash()
-            elif i % 7:
-                c = dp_dp_hash()
-            else:
-                c = dp_hash()
-            c.update(last_result)
-        else:
-            c = hash(last_result)
-            if i % 3:
-                if i % 7:
-                    c.update(ds_dp_dp_result)
-                else:
-                    c.update(ds_dp_result)
-            elif i % 7:
-                c.update(dp_dp_result)
-            else:
-                c.update(dp_result)
-        last_result = c.digest()
-        i += 1
+    # perform as many full 42-round blocks as possible
+    dc = da
+    blocks, tail = divmod(rounds, 42)
+    while blocks:
+        for even, odd in data:
+            dc = hash_const(odd + hash_const(dc + even).digest()).digest()
+        blocks -= 1
 
-    #return unencoded result, along w/ normalized config values
-    return last_result, salt, rounds
+    # perform any leftover rounds
+    if tail:
+        # perform any pairs of rounds
+        pairs = tail>>1
+        for even, odd in data[:pairs]:
+            dc = hash_const(odd + hash_const(dc + even).digest()).digest()
 
-def raw_sha256_crypt(secret, salt, rounds):
-    "perform raw sha256-crypt; returns encoded checksum, normalized salt & rounds"
-    #run common crypt routine
-    result, salt, rounds = raw_sha_crypt(secret, salt, rounds, sha256)
-    out = h64.encode_transposed_bytes(result, _256_offsets)
-    assert len(out) == 43, "wrong length: %r" % (out,)
-    return out, salt, rounds
+        # if rounds was odd, do one last round (since we started at 0,
+        # last round will be an even-numbered round)
+        if tail & 1:
+            dc = hash_const(dc + data[pairs][0]).digest()
 
-_256_offsets = (
-    20, 10, 0,
-    11, 1,  21,
-    2,  22, 12,
-    23, 13, 3,
-    14, 4,  24,
-    5,  25, 15,
-    26, 16, 6,
-    17, 7,  27,
-    8,  28, 18,
-    29, 19, 9,
-    30, 31,
-)
-
-def raw_sha512_crypt(secret, salt, rounds):
-    "perform raw sha512-crypt; returns encoded checksum, normalized salt & rounds"
-    #run common crypt routine
-    result, salt, rounds = raw_sha_crypt(secret, salt, rounds, sha512)
-
-    ###encode result
-    out = h64.encode_transposed_bytes(result, _512_offsets)
-    assert len(out) == 86, "wrong length: %r" % (out,)
-    return out, salt, rounds
-
-_512_offsets = (
-    42, 21, 0,
-    1,  43, 22,
-    23, 2,  44,
-    45, 24, 3,
-    4,  46, 25,
-    26, 5,  47,
-    48, 27, 6,
-    7,  49, 28,
-    29, 8,  50,
-    51, 30, 9,
-    10, 52, 31,
-    32, 11, 53,
-    54, 33, 12,
-    13, 55, 34,
-    35, 14, 56,
-    57, 36, 15,
-    16, 58, 37,
-    38, 17, 59,
-    60, 39, 18,
-    19, 61, 40,
-    41, 20, 62,
-    63,
-)
+    #=====================================================================
+    # encode digest using appropriate transpose map
+    #=====================================================================
+    return h64.encode_transposed_bytes(dc, transpose_map).decode("ascii")
 
 #=========================================================
-#handler
+# handlers
 #=========================================================
-class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+_UROUNDS = u("rounds=")
+_UDOLLAR = u("$")
+_UZERO = u("0")
+
+class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
+                   uh.GenericHandler):
+    "class containing common code shared by sha256_crypt & sha512_crypt"
+    #=========================================================
+    # class attrs
+    #=========================================================
+    # name - set by subclass
+    setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
+    # ident - set by subclass
+    checksum_chars = uh.HASH64_CHARS
+    # checksum_size - set by subclass
+
+    min_salt_size = 0
+    max_salt_size = 16
+    salt_chars = uh.HASH64_CHARS
+
+    min_rounds = 1000 # bounds set by spec
+    max_rounds = 999999999 # bounds set by spec
+    rounds_cost = "linear"
+
+    _cdb_use_512 = False # flag for _calc_digest_builtin()
+    _rounds_prefix = None # ident + _UROUNDS
+
+    #=========================================================
+    # methods
+    #=========================================================
+    implicit_rounds = True
+
+    def __init__(self, implicit_rounds=None, **kwds):
+        if implicit_rounds is not None:
+            self.implicit_rounds = implicit_rounds
+        super(_SHA2_Common, self).__init__(**kwds)
+
+    @classmethod
+    def from_string(cls, hash):
+        # basic format this parses -
+        # $5$[rounds=<rounds>$]<salt>[$<checksum>]
+
+        # TODO: this *could* use uh.parse_mc3(), except that the rounds
+        # portion has a slightly different grammar.
+
+        # convert to unicode, check for ident prefix, split on dollar signs.
+        hash = to_unicode(hash, "ascii", "hash")
+        ident = cls.ident
+        if not hash.startswith(ident):
+            raise uh.exc.InvalidHashError(cls)
+        assert len(ident) == 3
+        parts = hash[3:].split(_UDOLLAR)
+
+        # extract rounds value
+        if parts[0].startswith(_UROUNDS):
+            assert len(_UROUNDS) == 7
+            rounds = parts.pop(0)[7:]
+            if rounds.startswith(_UZERO) and rounds != _UZERO:
+                raise uh.exc.ZeroPaddedRoundsError(cls)
+            rounds = int(rounds)
+            implicit_rounds = False
+        else:
+            rounds = 5000
+            implicit_rounds = True
+
+        # rest should be salt and checksum
+        if len(parts) == 2:
+            salt, chk = parts
+        elif len(parts) == 1:
+            salt = parts[0]
+            chk = None
+        else:
+            raise uh.exc.MalformedHashError(cls)
+
+        # return new object
+        return cls(
+            rounds=rounds,
+            salt=salt,
+            checksum=chk or None,
+            implicit_rounds=implicit_rounds,
+            relaxed=not chk, # NOTE: relaxing parsing for config strings
+                             # so that out-of-range rounds are clipped,
+                             # since SHA2-Crypt spec treats them this way.
+            )
+
+    def to_string(self):
+        if self.rounds == 5000 and self.implicit_rounds:
+            hash = u("%s%s$%s") % (self.ident, self.salt,
+                                   self.checksum or u(''))
+        else:
+            hash = u("%srounds=%d$%s$%s") % (self.ident, self.rounds,
+                                             self.salt, self.checksum or u(''))
+        return uascii_to_str(hash)
+
+    #=========================================================
+    # backends
+    #=========================================================
+    backends = ("os_crypt", "builtin")
+
+    _has_backend_builtin = True
+
+    # _has_backend_os_crypt - provided by subclass
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_sha2_crypt(secret, self.salt, self.rounds,
+                               self._cdb_use_512)
+
+    def _calc_checksum_os_crypt(self, secret):
+        hash = safe_crypt(secret, self.to_string())
+        if hash:
+            # NOTE: avoiding full parsing routine via from_string().checksum,
+            # and just extracting the bit we need.
+            cs = self.checksum_size
+            assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
+            return hash[-cs:]
+        else:
+            return self._calc_checksum_builtin(secret)
+
+    #=========================================================
+    # eoc
+    #=========================================================
+
+class sha256_crypt(_SHA2_Common):
     """This class implements the SHA256-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -240,119 +386,21 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     You can see which backend is in use by calling the :meth:`get_backend()` method.
     """
-
     #=========================================================
-    #algorithm information
+    # class attrs
     #=========================================================
-    #--GenericHandler--
     name = "sha256_crypt"
-    setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
-    ident = u"$5$"
-    checksum_chars = uh.H64_CHARS
-
-    #--HasSalt--
-    min_salt_size = 0
-    max_salt_size = 16
-    #TODO: allow salt charset 0-255 except for "\x00\n:$"
-    salt_chars = uh.H64_CHARS
-
-    #--HasRounds--
-    default_rounds = 40000 #current passlib default
-    min_rounds = 1000 #other bounds set by spec
-    max_rounds = 999999999
-    rounds_cost = "linear"
+    ident = u("$5$")
+    checksum_size = 43
+    default_rounds = 80000 # current passlib default
 
     #=========================================================
-    #init
+    # backends
     #=========================================================
-    def __init__(self, implicit_rounds=None, **kwds):
-        if implicit_rounds is None:
-            implicit_rounds = True
-        self.implicit_rounds = implicit_rounds
-        super(sha256_crypt, self).__init__(**kwds)
-
-    #=========================================================
-    #parsing
-    #=========================================================
-
-    #: regexp used to parse hashes
-    _pat = re.compile(ur"""
-        ^
-        \$5
-        (\$rounds=(?P<rounds>\d+))?
-        \$
-        (
-            (?P<salt1>[^:$]*)
-            |
-            (?P<salt2>[^:$]{0,16})
-            \$
-            (?P<chk>[A-Za-z0-9./]{43})?
-        )
-        $
-        """, re.X)
-
-    @classmethod
-    def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid sha256-crypt hash")
-        rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
-        if rounds and rounds.startswith(u"0"):
-            raise ValueError("invalid sha256-crypt hash (zero-padded rounds)")
-        return cls(
-            implicit_rounds = not rounds,
-            rounds=int(rounds) if rounds else 5000,
-            salt=salt1 or salt2,
-            checksum=chk,
-            strict=bool(chk),
-        )
-
-    def to_string(self, native=True):
-        if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$5$%s$%s" % (self.salt, self.checksum or u'')
-        else:
-            hash = u"$5$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
-        return to_hash_str(hash) if native else hash
-
-    #=========================================================
-    #backend
-    #=========================================================
-    backends = ("os_crypt", "builtin")
-
-    _has_backend_builtin = True
-
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$5$rounds=1000$test$QmQADEXMG8POI5WDsaeho0P36yK3Tcrgboabng6bkb/"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
-
-    def _calc_checksum_builtin(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        checksum, salt, rounds = raw_sha256_crypt(secret,
-                                                  self.salt.encode("ascii"),
-                                                  self.rounds)
-        assert salt == self.salt.encode("ascii"), \
-            "class doesn't agree w/ builtin backend: salt %r != %r" % (salt, self.salt.encode("ascii"))
-        assert rounds == self.rounds, \
-            "class doesn't agree w/ builtin backend: rounds %r != %r" % (rounds, self.rounds)
-        return checksum.decode("ascii")
-
-    def _calc_checksum_os_crypt(self, secret):
-        ok, result = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
-            #NOTE: avoiding full parsing routine via from_string().checksum,
-            # and just extracting the bit we need.
-            assert result.startswith(u"$5$")
-            chk = result[-43:]
-            assert u'$' not in chk
-            return chk
-        else:
-            return self._calc_checksum_builtin(secret)
+        return test_crypt("test", "$5$rounds=1000$test$QmQADEXMG8POI5W"
+                                         "Dsaeho0P36yK3Tcrgboabng6bkb/")
 
     #=========================================================
     #eoc
@@ -361,7 +409,7 @@ class sha256_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 #=========================================================
 #sha 512 crypt
 #=========================================================
-class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+class sha512_crypt(_SHA2_Common):
     """This class implements the SHA512-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -394,124 +442,28 @@ class sha512_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
     """
 
     #=========================================================
-    #algorithm information
+    # class attrs
     #=========================================================
     name = "sha512_crypt"
-    ident = u"$6$"
-    checksum_chars = uh.H64_CHARS
-
-    setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
-
-    min_salt_size = 0
-    max_salt_size = 16
-    #TODO: allow salt charset 0-255 except for "\x00\n:$"
-    salt_chars = uh.H64_CHARS
-
-    default_rounds = 40000 #current passlib default
-    min_rounds = 1000
-    max_rounds = 999999999
-    rounds_cost = "linear"
+    ident = u("$6$")
+    checksum_size = 86
+    _cdb_use_512 = True
+    default_rounds = 60000 # current passlib default
 
     #=========================================================
-    #init
+    # backend
     #=========================================================
-    def __init__(self, implicit_rounds=None, **kwds):
-        if implicit_rounds is None:
-            implicit_rounds = True
-        self.implicit_rounds = implicit_rounds
-        super(sha512_crypt, self).__init__(**kwds)
-
-    #=========================================================
-    #parsing
-    #=========================================================
-
-    #: regexp used to parse hashes
-    _pat = re.compile(ur"""
-        ^
-        \$6
-        (\$rounds=(?P<rounds>\d+))?
-        \$
-        (
-            (?P<salt1>[^:$\n]*)
-            |
-            (?P<salt2>[^:$\n]{0,16})
-            (
-                \$
-                (?P<chk>[A-Za-z0-9./]{86})?
-            )?
-        )
-        $
-        """, re.X)
-
-    @classmethod
-    def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode("ascii")
-        m = cls._pat.match(hash)
-        if not m:
-            raise ValueError("invalid sha512-crypt hash")
-        rounds, salt1, salt2, chk = m.group("rounds", "salt1", "salt2", "chk")
-        if rounds and rounds.startswith("0"):
-            raise ValueError("invalid sha512-crypt hash (zero-padded rounds)")
-        return cls(
-            implicit_rounds = not rounds,
-            rounds=int(rounds) if rounds else 5000,
-            salt=salt1 or salt2,
-            checksum=chk,
-            strict=bool(chk),
-        )
-
-    def to_string(self, native=True):
-        if self.rounds == 5000 and self.implicit_rounds:
-            hash = u"$6$%s$%s" % (self.salt, self.checksum or u'')
-        else:
-            hash = u"$6$rounds=%d$%s$%s" % (self.rounds, self.salt, self.checksum or u'')
-        return to_hash_str(hash) if native else hash
-
-    #=========================================================
-    #backend
-    #=========================================================
-    backends = ("os_crypt", "builtin")
-
-    _has_backend_builtin = True
-
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u"$6$rounds=1000$test$2M/Lx6MtobqjLjobw0Wmo4Q5OFx5nVLJvmgseatA6oMnyWeBdRDx4DU.1H3eGmse6pgsOgDisWBGI5c7TZauS0"
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
-
-    #NOTE: testing w/ HashTimer shows 64-bit linux's crypt to be ~2.6x faster than builtin (627253 vs 238152 rounds/sec)
-
-    def _calc_checksum_builtin(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        checksum, salt, rounds = raw_sha512_crypt(secret,
-                                                  self.salt.encode("ascii"),
-                                                  self.rounds)
-        assert salt == self.salt.encode("ascii"), \
-            "class doesn't agree w/ builtin backend: salt %r != %r" % (salt, self.salt.encode("ascii"))
-        assert rounds == self.rounds, \
-            "class doesn't agree w/ builtin backend: rounds %r != %r" % (rounds, self.rounds)
-        return checksum.decode("ascii")
-
-    def _calc_checksum_os_crypt(self, secret):
-        ok, result = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
-            #NOTE: avoiding full parsing routine via from_string().checksum,
-            # and just extracting the bit we need.
-            assert result.startswith(u"$6$")
-            chk = result[-86:]
-            assert u'$' not in chk
-            return chk
-        else:
-            return self._calc_checksum_builtin(secret)
+        return test_crypt("test", "$6$rounds=1000$test$2M/Lx6Mtobqj"
+                                          "Ljobw0Wmo4Q5OFx5nVLJvmgseatA6oMn"
+                                          "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
+                                          "I5c7TZauS0")
 
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
 #=========================================================
-#eof
+# eof
 #=========================================================

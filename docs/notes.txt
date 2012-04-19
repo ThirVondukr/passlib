@@ -5,7 +5,6 @@ Todo
 Internal Changes
 ----------------
 * C extensions to speed up some implementations
-* py3k support
 
 Other Hash Formats
 ------------------
@@ -17,23 +16,6 @@ Other Hash Formats
 
 Notes on various hash formats
 =============================
-
-Cisco PIX
----------
-sample hashes found - http://www.freerainbowtables.com/phpBB3/viewtopic.php?f=2&t=1441
-
-  8Ry2YjIyt7RRXU24 ''
-  2KFQnbNIdI.2KYOU 'cisco'
-  hN7LzeyYjw12FSIU 'john'/'cisco'
-  7DrfeZ7cyOj/PslD 'jack'/'cisco'
-
-alg
-  secret+user
-  truncate/pad-right-null to 16 bytes
-  md5().digest()
-  h64 encode
-
-todo: get some samples w/ passwords longer than 16 chars to verify
 
 Mac OSX
 -------

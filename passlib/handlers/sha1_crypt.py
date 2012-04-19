@@ -13,9 +13,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import h64, handlers as uh, safe_os_crypt, classproperty, \
-    to_hash_str, to_unicode, bytes, b
+from passlib.utils import classproperty, h64, safe_crypt, test_crypt
+from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import hmac_sha1
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -57,15 +58,15 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #--GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
-    ident = u"$sha1$"
+    ident = u("$sha1$")
     checksum_size = 28
-    checksum_chars = uh.H64_CHARS
+    checksum_chars = uh.HASH64_CHARS
 
     #--HasSalt--
     default_salt_size = 8
     min_salt_size = 0
     max_salt_size = 64
-    salt_chars = uh.H64_CHARS
+    salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
     default_rounds = 40000 #current passlib default
@@ -79,21 +80,12 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classmethod
     def from_string(cls, hash):
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, cls.name)
-        if rounds.startswith("0"):
-            raise ValueError("invalid sha1-crypt hash (zero-padded rounds)")
-        return cls(
-            rounds=int(rounds),
-            salt=salt,
-            checksum=chk,
-            strict=bool(chk),
-        )
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
+        return cls(rounds=rounds, salt=salt, checksum=chk)
 
-    def to_string(self, native=True):
-        out = u"$sha1$%d$%s" % (self.rounds, self.salt)
-        if self.checksum:
-            out += u"$" + self.checksum
-        return to_hash_str(out) if native else out
+    def to_string(self, config=False):
+        chk = None if config else self.checksum
+        return uh.render_mc3(self.ident, self.rounds, self.salt, chk)
 
     #=========================================================
     #backend
@@ -104,15 +96,15 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        h = u'$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHimExLaiSFlGkAe'
-        return bool(safe_os_crypt and safe_os_crypt(u"test",h)[1]==h)
+        return test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
+                                          'ExLaiSFlGkAe')
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         rounds = self.rounds
             #NOTE: this uses a different format than the hash...
-        result = u"%s$sha1$%s" % (self.salt, rounds)
+        result = u("%s$sha1$%s") % (self.salt, rounds)
         result = result.encode("ascii")
         r = 0
         while r < rounds:
@@ -131,9 +123,11 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     ]
 
     def _calc_checksum_os_crypt(self, secret):
-        ok, hash = safe_os_crypt(secret, self.to_string(native=False))
-        if ok:
-            return hash[hash.rindex("$")+1:]
+        config = self.to_string(config=True)
+        hash = safe_crypt(secret, config)
+        if hash:
+            assert hash.startswith(config) and len(hash) == len(config) + 29
+            return hash[-28:]
         else:
             return self._calc_checksum_builtin(secret)
 

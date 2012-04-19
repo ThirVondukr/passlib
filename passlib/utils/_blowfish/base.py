@@ -5,6 +5,7 @@
 #core
 import struct
 #pkg
+from passlib.utils import repeat_string
 #local
 __all__ = [
     "BlowfishEngine",
@@ -19,7 +20,7 @@ def _init_constants():
     global BLOWFISH_P, BLOWFISH_S
 
     # NOTE: blowfish's spec states these numbers are the hex representation
-    # of the fractional portion of PI, in order. 
+    # of the fractional portion of PI, in order.
 
     # Initial contents of key schedule - 18 integers
     BLOWFISH_P = [
@@ -318,8 +319,8 @@ class BlowfishEngine(object):
     #=========================================================
     @staticmethod
     def key_to_words(data, size=18):
-        """convert data to tuple of integers, repeated or truncating data
-        as needed to reach specified size"""
+        """convert data to tuple of <size> 4-byte integers, repeating or
+        truncating data as needed to reach specified size"""
         assert isinstance(data, bytes)
         dlen = len(data)
         if not dlen:
@@ -328,12 +329,7 @@ class BlowfishEngine(object):
             return [0]*size
 
         # repeat data until it fills up 4*size bytes
-        needed = size<<2
-        if dlen > needed:
-            data = data[:needed]
-        elif dlen < needed:
-            count = (needed+dlen-1)//dlen
-            data = (data * count)[:needed]
+        data = repeat_string(data, size<<2)
 
         # unpack
         return struct.unpack(">%dI" % (size,), data)

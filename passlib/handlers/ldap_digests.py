@@ -11,7 +11,11 @@ import re
 from warnings import warn
 #site
 #libs
-from passlib.utils import handlers as uh, unix_crypt_schemes, b, bytes, to_hash_str
+from passlib.handlers.misc import plaintext
+from passlib.utils import to_native_str, unix_crypt_schemes, \
+                          classproperty, to_unicode
+from passlib.utils.compat import b, bytes, uascii_to_str, unicode, u
+import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
@@ -34,69 +38,65 @@ __all__ = [
 #=========================================================
 #ldap helpers
 #=========================================================
-#reference - http://www.openldap.org/doc/admin24/security.html
-
 class _Base64DigestHelper(uh.StaticHandler):
     "helper for ldap_md5 / ldap_sha1"
     #XXX: could combine this with hex digests in digests.py
 
     ident = None #required - prefix identifier
     _hash_func = None #required - hash function
-    _pat = None #required - regexp to recognize hash
-    checksum_chars = uh.PADDED_B64_CHARS
+    _hash_regex = None #required - regexp to recognize hash
+    checksum_chars = uh.PADDED_BASE64_CHARS
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
+    @classproperty
+    def _hash_prefix(cls):
+        "tell StaticHandler to strip ident from checksum"
+        return cls.ident
 
-    @classmethod
-    def genhash(cls, secret, hash):
-        if secret is None:
-            raise TypeError("no secret provided")
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        if hash is not None and not cls.identify(hash):
-            raise ValueError("not a %s hash" % (cls.name,))
-        chk = cls._hash_func(secret).digest()
-        hash = cls.ident + b64encode(chk).decode("ascii")
-        return to_hash_str(hash)
+        chk = self._hash_func(secret).digest()
+        return b64encode(chk).decode("ascii")
 
 class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     "helper for ldap_salted_md5 / ldap_salted_sha1"
-    setting_kwds = ("salt",)
-    checksum_chars = uh.PADDED_B64_CHARS
+    setting_kwds = ("salt", "salt_size")
+    checksum_chars = uh.PADDED_BASE64_CHARS
 
     ident = None #required - prefix identifier
+    checksum_size = None #required
     _hash_func = None #required - hash function
-    _pat = None #required - regexp to recognize hash
+    _hash_regex = None #required - regexp to recognize hash
     _stub_checksum = None #required - default checksum to plug in
     min_salt_size = max_salt_size = 4
 
-    @classmethod
-    def identify(cls, hash):
-        return uh.identify_regexp(hash, cls._pat)
+    # NOTE: openldap implementation uses 4 byte salt,
+    # but it's been reported (issue 30) that some servers use larger salts.
+    # the semi-related rfc3112 recommends support for up to 16 byte salts.
+    min_salt_size = 4
+    default_salt_size = 4
+    max_salt_size = 16
 
     @classmethod
     def from_string(cls, hash):
-        if not hash:
-            raise ValueError("no hash specified")
-        if isinstance(hash, bytes):
-            hash = hash.decode('ascii')
-        m = cls._pat.match(hash)
+        hash = to_unicode(hash, "ascii", "hash")
+        m = cls._hash_regex.match(hash)
         if not m:
-            raise ValueError("not a %s hash" % (cls.name,))
-        data = b64decode(m.group("tmp").encode("ascii"))
-        chk, salt = data[:-4], data[-4:]
-        return cls(checksum=chk, salt=salt, strict=True)
+            raise uh.exc.InvalidHashError(cls)
+        try:
+            data = b64decode(m.group("tmp").encode("ascii"))
+        except TypeError:
+            raise uh.exc.MalformedHashError(cls)
+        cs = cls.checksum_size
+        assert cs
+        return cls(checksum=data[:cs], salt=data[cs:])
 
     def to_string(self):
         data = (self.checksum or self._stub_checksum) + self.salt
         hash = self.ident + b64encode(data).decode("ascii")
-        return to_hash_str(hash)
+        return uascii_to_str(hash)
 
-    def calc_checksum(self, secret):
-        if secret is None:
-            raise TypeError("no secret provided")
+    def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return self._hash_func(secret + self.salt).digest()
@@ -112,9 +112,9 @@ class ldap_md5(_Base64DigestHelper):
     name = "ldap_md5"
     setting_kwds = ()
 
-    ident = u"{MD5}"
+    ident = u("{MD5}")
     _hash_func = md5
-    _pat = re.compile(ur"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
+    _hash_regex = re.compile(u(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$"))
 
 class ldap_sha1(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain SHA1 format, and follows the :ref:`password-hash-api`.
@@ -124,47 +124,61 @@ class ldap_sha1(_Base64DigestHelper):
     name = "ldap_sha1"
     setting_kwds = ()
 
-    ident = u"{SHA}"
+    ident = u("{SHA}")
     _hash_func = sha1
-    _pat = re.compile(ur"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
+    _hash_regex = re.compile(u(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$"))
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted MD5 format, and follows the :ref:`password-hash-api`.
 
-    It supports a 4-byte salt.
+    It supports a 4-16 byte salt.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keyword:
 
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
-        If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
+        If specified, it may be any 4-16 byte string.
+
+    :param salt_size:
+        Optional number of bytes to use when autogenerating new salts.
+        Defaults to 4 bytes for compatibility with the LDAP spec,
+        but some systems use larger salts, and Passlib supports
+        any value between 4-16.
     """
     name = "ldap_salted_md5"
-    ident = u"{SMD5}"
+    ident = u("{SMD5}")
+    checksum_size = 16
     _hash_func = md5
-    _pat = re.compile(ur"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27}=)$")
+    _hash_regex = re.compile(u(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$"))
     _stub_checksum = b('\x00') * 16
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted SHA1 format, and follows the :ref:`password-hash-api`.
 
-    It supports a 4-byte salt.
+    It supports a 4-16 byte salt.
 
     The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keyword:
 
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
-        If specified, it must be a 4 byte string; each byte may have any value from 0x00 .. 0xff.
+        If specified, it may be any 4-16 byte string.
+
+    :param salt_size:
+        Optional number of bytes to use when autogenerating new salts.
+        Defaults to 4 bytes for compatibility with the LDAP spec,
+        but some systems use larger salts, and Passlib supports
+        any value between 4-16.
     """
     name = "ldap_salted_sha1"
-    ident = u"{SSHA}"
+    ident = u("{SSHA}")
+    checksum_size = 20
     _hash_func = sha1
-    _pat = re.compile(ur"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32})$")
+    _hash_regex = re.compile(u(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$"))
     _stub_checksum = b('\x00') * 20
 
-class ldap_plaintext(uh.StaticHandler):
+class ldap_plaintext(plaintext):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     This class acts much like the generic :class:`!passlib.hash.plaintext` handler,
@@ -173,39 +187,17 @@ class ldap_plaintext(uh.StaticHandler):
 
     Unicode passwords will be encoded using utf-8.
     """
-    name = "ldap_plaintext"
+    # NOTE: this subclasses plaintext, since all it does differently
+    # is override identify()
 
-    _2307_pat = re.compile(ur"^\{\w+\}.*$")
+    name = "ldap_plaintext"
+    _2307_pat = re.compile(u(r"^\{\w+\}.*$"))
 
     @classmethod
     def identify(cls, hash):
-        if not hash:
-            return False
-        if isinstance(hash, bytes):
-            try:
-                hash = hash.decode("utf-8")
-            except UnicodeDecodeError:
-                return False
-        #NOTE: identifies all strings EXCEPT those which match...
-        return cls._2307_pat.match(hash) is None
-
-    @classmethod
-    def genhash(cls, secret, hash):
-        if hash is not None and not cls.identify(hash):
-            raise ValueError("not a valid ldap_plaintext hash")
-        if secret is None:
-            raise TypeError("secret must be string")
-        return to_hash_str(secret, "utf-8")
-
-    @classmethod
-    def _norm_hash(cls, hash):
-        if isinstance(hash, bytes):
-            #XXX: current code uses utf-8
-            #     if existing hashes use something else,
-            #     probably have to modify this code to allow hash_encoding
-            #     to be specified as an option.
-            hash = hash.decode("utf-8")
-        return hash
+        # NOTE: identifies all strings EXCEPT those with {XXX} prefix
+        hash = uh.to_unicode_for_identify(hash)
+        return bool(hash) and cls._2307_pat.match(hash) is None
 
 #=========================================================
 #{CRYPT} wrappers
@@ -222,7 +214,7 @@ def _init_ldap_crypt_handlers():
     g = globals()
     for wname in unix_crypt_schemes:
         name = 'ldap_' + wname
-        g[name] = uh.PrefixWrapper(name, wname, prefix=u"{CRYPT}", lazy=True)
+        g[name] = uh.PrefixWrapper(name, wname, prefix=u("{CRYPT}"), lazy=True)
     del g
 _init_ldap_crypt_handlers()
 
@@ -231,7 +223,7 @@ _init_ldap_crypt_handlers()
 ##    global _lcn_host
 ##    if _lcn_host is None:
 ##        from passlib.hosts import host_context
-##        schemes = host_context.policy.schemes()
+##        schemes = host_context.schemes()
 ##        _lcn_host = [
 ##            "ldap_" + name
 ##            for name in unix_crypt_names

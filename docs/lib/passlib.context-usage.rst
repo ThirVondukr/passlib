@@ -77,28 +77,39 @@ copy; using the :meth:`CryptContext.replace` method to create
 a mutated copy of the original object::
 
     >>> from passlib.apps import ldap_context
-    >>> pwd_context = ldap_context.replace(default="ldap_md5_crypt")
+    >>> pwd_context = ldap_context.copy(default="ldap_md5_crypt")
     >>> pwd_context.encrypt("somepass")
     '{CRYPT}$1$Cw7t4sbP$dwRgCMc67mOwwus9m33z71'
 
 Examining a CryptContext Instance
 =================================
 All configuration options for a :class:`!CryptContext` instance
-are stored in a :class:`!CryptPolicy` instance accessible through
-the :attr:`CryptContext.policy` attribute::
+are accessible through various methods of the object:
 
     >>> from passlib.context import CryptContext
     >>> myctx = CryptContext([ "md5_crypt", "des_crypt" ], deprecated="des_crypt")
 
-    >>> #get a list of schemes recognized in this context:
-    >>> myctx.policy.schemes()
+    >>> # get a list of schemes recognized in this context:
+    >>> myctx.schemes()
     [ 'md5-crypt', 'bcrypt' ]
 
-    >>> #get the default handler class :
-    >>> myctx.policy.get_handler()
+    >>> # get the default handler object:
+    >>> myctx.handler("default")
     <class 'passlib.handlers.md5_crypt.md5_crypt'>
 
-See the :class:`CryptPolicy` class for more details on it's interface.
+    >>> # the results of a CryptContext object can be serialized as a dict,
+    >>> # suitable for passing to CryptContext's class constructor.
+    >>> myctx.to_dict()
+    {'schemes': ['md5_crypt, 'des_crypt'], 'deprecated': 'des_crypt'}
+
+    >>> # or serialized to an INI-style string, suitable for passing to
+    >>> # CryptContext's from_string() method.
+    >>> print myctx.to_string()
+    [passlib]
+    schemes = md5_crypt, des_crypt
+    deprecated = des_crypt
+
+See the :class:`CryptContext` reference for more details on it's interface.
 
 Full Integration Example
 ========================
@@ -123,34 +134,32 @@ applications with advanced policy requirements may want to create a hash policy 
 
     [passlib]
 
-    ;setup the context to support pbkdf2_sha1, along with legacy md5_crypt hashes:
+    ; setup the context to support pbkdf2_sha1, along with legacy md5_crypt hashes:
     schemes = pbkdf2_sha1, md5_crypt
 
-    ;flag md5_crypt as deprecated
-    ;   (existing md5_crypt hashes will be flagged as needs-updating)
+    ; flag md5_crypt as deprecated
+    ; (existing md5_crypt hashes will be flagged as needs-updating)
     deprecated = md5_crypt
 
-    ;set verify to always take at least 1/10th of a second
-    min_verify_time = 0.1
+    ; set boundaries for pbkdf2 rounds parameter
+    ; (pbkdf2 hashes outside this range will be flagged as needs-updating)
+    pbkdf2_sha1__min_rounds = 10000
+    pbkdf2_sha1__max_rounds = 50000
 
-    ;set boundaries for pbkdf2 rounds parameter
-    ;   (pbkdf2 hashes outside this range will be flagged as needs-updating)
-    pbkdf2_sha1.min_rounds = 10000
-    pbkdf2_sha1.max_rounds = 50000
+    ; set the default rounds to use when encrypting new passwords.
+    ; the 'vary' field will cause each new hash to randomly vary
+    ; from the default by the specified % of the default (in this case,
+    ; 20000 +/- 10% or 2000).
+    pbkdf2_sha1__default_rounds = 20000
+    pbkdf2_sha1__vary_rounds = 0.1
 
-    ;set the default rounds to use when encrypting new passwords.
-    ;the 'vary' field will cause each new hash to randomly vary
-    ;from the default by the specified %.
-    pbkdf2_sha1.default_rounds = 20000
-    pbkdf2_sha1.vary_rounds = 10%%
-        ; NOTE the '%' above has to be doubled due to configparser interpolation
-
-    ;applications can choose to treat certain user accounts differently,
-    ;by assigning different types of account to a 'user category',
-    ;and setting special policy options for that category.
-    ;this create a category named 'admin', which will have a larger default rounds value.
-    admin.pbkdf2_sha1.min_rounds = 40000
-    admin.pbkdf2_sha1.default_rounds = 50000
+    ; applications can choose to treat certain user accounts differently,
+    ; by assigning different types of account to a 'user category',
+    ; and setting special policy options for that category.
+    ; this create a category named 'admin', which will have a larger default
+    ; rounds value.
+    admin__pbkdf2_sha1__min_rounds = 40000
+    admin__pbkdf2_sha1__default_rounds = 50000
 
 Initializing the CryptContext
 -----------------------------
@@ -175,7 +184,6 @@ the configuration once the application starts:
         #
 
         from myapp.model.security import user_pwd_context
-        from passlib.context import CryptPolicy
 
         def myapp_startup():
 
@@ -183,10 +191,13 @@ the configuration once the application starts:
             # ... other code ...
             #
 
-            # vars:
-            #   policy_path - path to policy file defined in previous step
             #
-            user_pwd_context.policy = CryptPolicy.from_path(policy_path)
+            # load configuration from some application-specified path.
+            # the load() method also supports loading from a string,
+            # or from dictionary, and other options.
+            #
+            ##user_pwd_context.load(policy_config_string)
+            user_pwd_context.load_path(policy_config_path)
 
             #
             #if you want to reconfigure the context without restarting the application,

@@ -1,3 +1,5 @@
+.. index:: cisco; type 5 hash
+
 ==================================================================
 :class:`passlib.hash.md5_crypt` - MD5 Crypt
 ==================================================================
@@ -12,28 +14,44 @@ Security-wise it is considered to be steadily weakening (due to fixed cost),
 and most unix flavors have since replaced with with stronger schemes,
 such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`.
 
+This is also referred to under Cisco IOS systems as a "type 5" hash.
+The format and algorithm are identical, though Cisco seems to require [#cisco]_
+4 salt characters instead of the full 8 characters
+used by most systems.
+
 Usage
 =====
 PassLib provides an md5_crypt class, which can be can be used directly as follows::
 
-    >>> from passlib.hash import md5_crypt as mc
+    >>> from passlib.hash import md5_crypt
 
-    >>> mc.encrypt("password") #generate new salt, encrypt password
+    >>> #generate new salt, encrypt password
+    >>> h = md5_crypt.encrypt("password")
+    >>> h
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'
 
-    >>> mc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if hash is recognized
+
+    >>> #verify correct password
+    >>> md5_crypt.verify("password", h)
     True
-    >>> mc.identify('JQMuyS6H.AGMo') #check if some other hash is recognized
+    >>> #verify incorrect password
+    >>> md5_crypt.verify("secret", h)
     False
 
-    >>> mc.verify("password", '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #verify correct password
+    >>> #check if hash is recognized
+    >>> md5_crypt.identify(h)
     True
-    >>> mc.verify("secret", '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #verify incorrect password
+    >>> #check if some other hash is recognized
+    >>> md5_crypt.identify('JQMuyS6H.AGMo')
     False
+
+    >>> # encrypt password using cisco-compatible 4-char salt
+    >>> md5_crypt.encrypt("password", salt_size=4)
+    '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
 Interface
 =========
-.. autoclass:: md5_crypt(checksum=None, salt=None, strict=False)
+.. autoclass:: md5_crypt()
 
 Format
 ======
@@ -81,7 +99,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 9. Add the password to digest A.
 
-10. Add the constant string ``$1$`` to digest A. 
+10. Add the constant string ``$1$`` to digest A.
     (The Apache variant of MD5-Crypt uses ``$apr1$`` instead,
     this is the only change made by this variant).
 
@@ -122,7 +140,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
     following order: ``12,6,0,13,7,1,14,8,2,15,9,3,5,10,4,11``.
 
 18. Encode the resulting 16 byte string into a 22 character
-    :mod:`hash 64 <passlib.utils.h64.encode_bytes>`-encoded string
+    :data:`hash64 <passlib.utils.h64>`-encoded string
     (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
     This results in the portion of the md5 crypt hash string referred to as :samp:`{checksum}` in the format section.
 
@@ -151,7 +169,7 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, PassLib strictly limits salts to the
-  :mod:`hash 64 <passlib.utils.h64>` character set,
+  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,
   but may have unexpected behaviors for other character values.
@@ -178,3 +196,6 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
 
 .. [#f2] Security issues with MD5 -
          `<http://en.wikipedia.org/wiki/MD5#Security>`_.
+
+.. [#cisco] Note about Cisco Type 5 salt size -
+            `<http://serverfault.com/a/46399>`_.

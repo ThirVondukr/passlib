@@ -56,24 +56,24 @@ Interface
 Format & Algorithm
 ==================
 
-All of this scheme's hashes have the format: ``{FSHP<variant>|<saltsize>|<rounds>}<data>``.
+All of this scheme's hashes have the format: :samp:`\\{FSHP{variant}|{saltsize}|{rounds}\\}{data}`.
 A example hash (of ``password``) is:
 
     ``{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C``
 
-* :samp:`<variant>` is a decimal integer identifying the version of FSHP;
+* :samp:`{variant}` is a decimal integer identifying the version of FSHP;
   in particular, which cryptographic hash function should be used
   to calculate the checksum. ``1`` in the example.
   (see the class description above for a list of possible values).
 
-* :samp:`<saltsize>` is a decimal integer identifying the number of bytes
+* :samp:`{saltsize}` is a decimal integer identifying the number of bytes
   in the salt. ``16`` in the example.
 
-* :samp:`<rounds>` is a decimal integer identifying the number
+* :samp:`{rounds}` is a decimal integer identifying the number
   of rounds to apply when calculating the checksum (see below).
   ``16384`` in the example.
 
-* :samp:`<data>` is a base64-encoded string which, when decoded,
+* :samp:`{data}` is a base64-encoded string which, when decoded,
   contains a salt string of the specified size, followed
   by the checksum. In the example, the data portion decodes to
   a salt value (in hexdecimal octets) of:

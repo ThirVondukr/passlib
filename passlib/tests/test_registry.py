@@ -40,7 +40,7 @@ dummy_x = 1
 #=========================================================
 class RegistryTest(TestCase):
 
-    case_prefix = "passlib registry"
+    descriptionPrefix = "passlib registry"
 
     def tearDown(self):
         for name in ("dummy_0", "dummy_1", "dummy_x", "dummy_bad"):
@@ -123,9 +123,11 @@ class RegistryTest(TestCase):
 
         self.assertRaises(TypeError, register_crypt_handler, {})
 
-        self.assertRaises(ValueError, register_crypt_handler, uh.StaticHandler)
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name=None)))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="AB_CD")))
         self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab-cd")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="ab__cd")))
+        self.assertRaises(ValueError, register_crypt_handler, type('x', (uh.StaticHandler,), dict(name="default")))
 
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"

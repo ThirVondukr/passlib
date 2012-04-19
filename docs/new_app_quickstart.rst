@@ -66,7 +66,7 @@ All three password hashes share the following properties:
 The following comparison should help you choose which hash is
 most appropriate for your application; if in doubt,
 any of these is a good choice, though PBKDF2 is probably the best
-for portability. 
+for portability.
 
 .. rst-class:: html-toggle
 
@@ -86,7 +86,7 @@ There is also an alternative LDAP-formatted version
 Issues: Neither the original Blowfish,
 nor the modified version which BCrypt uses, have been NIST approved;
 this matter of concern is what motivated the development of SHA512-Crypt.
-As well, it's rounds parameter is logarithmically scaled,
+As well, its rounds parameter is logarithmically scaled,
 making it hard to fine-tune the amount of time taken to verify passwords;
 which can be an issue for applications that handle a large number
 of simultaneous logon attempts (eg web apps).
@@ -96,13 +96,13 @@ of simultaneous logon attempts (eg web apps).
     For BCrypt support on non-BSD systems,
     Passlib requires a C-extension module
     provided by the external
-    :ref:`PyBcrypt or BCryptor <optional-libraries>`  packages.
+    :ref:`py-bcrypt or bcryptor <optional-libraries>`  packages.
     Neither of these currently supports Python 3.
 
 SHA512-Crypt
 ............
 :class:`~passlib.hash.sha512_crypt` is
-based on well-tested :class:`~passlib.hash.md5_crypt`
+based on the well-tested :class:`~passlib.hash.md5_crypt`
 algorithm. In use since 2008, it's the default hash on most Linux systems;
 its direct ancestor :class:`!md5_crypt` has been in use since 1994 on most Unix systems.
 If you want your application's hashes to be readable by the
@@ -112,10 +112,10 @@ on 32 bit processors; as well as LDAP-formatted versions of these (
 :class:`~passlib.hash.ldap_sha512_crypt` and
 :class:`~passlib.hash.ldap_sha256_crypt`).
 
-Issues: Like :class:`~passlib.hash.md5_crypt`, it's algorithm
+Issues: Like :class:`~passlib.hash.md5_crypt`, its algorithm
 composes the underlying message digest hash in a baroque
 and somewhat arbitrary set combinations.
-So far this "kitchen sink" design has been successful in it's
+So far this "kitchen sink" design has been successful in its
 primary purpose: to prevent any attempts to create an optimized
 version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
@@ -123,13 +123,13 @@ for future flaws.
 
 This algorithm is probably the best choice for Google App Engine,
 as Google's production servers appear to provide native support
-via :mod:`crypt`, which will be used by Passlib. 
+via :mod:`crypt`, which will be used by Passlib.
 
 .. note::
 
-    References to this algorithm are frequently confused with a raw SHA-512 hash;
-    while it uses SHA-512 as a cryptographic primitive,
-    this algorithm's resulting password hash is far more secure.
+    References to this algorithm are frequently confused with a raw SHA-512 hash.
+    While :class:`!sha512_crypt` uses the SHA-512 hash as a cryptographic primitive,
+    the algorithm's resulting password hash is far more secure.
 
 PBKDF2
 ......
@@ -148,10 +148,10 @@ on 32 bit processors; as well as LDAP-formatted versions of these (
 :class:`~passlib.hash.ldap_pbkdf2_sha256`).
 
 Issues: PBKDF2 has no security or portability issues.
-However, it's only come into wide use as a password hash
+However, it has only come into wide use as a password hash
 in recent years; mainly hampered by the fact that there is no
 standard format for encoding password hashes using this algorithm
-(which is why Passlib has it's own :ref:`custom format <mcf-pbkdf2-format>`).
+(which is why Passlib has its own :ref:`custom format <mcf-pbkdf2-format>`).
 
 .. note::
 

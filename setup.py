@@ -19,31 +19,14 @@ try:
     from setuptools import setup
     has_distribute = True
 except ImportError:
-    from distutils import setup
+    from distutils.core import setup
     has_distribute = False
-    
+
 #=========================================================
 # init setup options
 #=========================================================
 opts = { "cmdclass": { } }
 args = sys.argv[1:]
-
-#=========================================================
-# 2to3 translation
-#=========================================================
-if py3k:
-    # monkeypatch preprocessor into lib2to3
-    from passlib._setup.cond2to3 import patch2to3
-    patch2to3()
-
-    # enable 2to3 translation in build_py
-    if has_distribute:
-        opts['use_2to3'] = True
-    else:
-        # if we can't use distribute's "use_2to3" flag,
-        # have to override build_py command
-        from distutils.command.build_py import build_py_2to3 as build_py
-        opts['cmdclass']['build_py'] = build_py
 
 #=========================================================
 #register docdist command (not required)
@@ -75,7 +58,7 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         elif not v.startswith("-"):
             break
         i += 1
-    
+
     if for_release:
         assert '.dev' not in VERSION and '.post' not in VERSION
     else:
@@ -91,7 +74,7 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         # to have the correct version string
         from passlib._setup.stamp import stamp_distutils_output
         stamp_distutils_output(opts, VERSION)
-    
+
 #=========================================================
 #static text
 #=========================================================
@@ -130,9 +113,14 @@ Programming Language :: Python :: 2.5
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: Jython
+Programming Language :: Python :: Implementation :: PyPy
 Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
 """.splitlines()
+
+# TODO: also test releases under ironpython -- "Programming Language :: Python :: Implementation :: IronPython"
 
 is_release = False
 if '.dev' in VERSION:
@@ -146,7 +134,7 @@ else:
 #=========================================================
 #run setup
 #=========================================================
-# XXX: could omit 'passlib.setup' from eggs, but not sdist
+# XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     #package info
     packages = [
@@ -156,9 +144,10 @@ setup(
             "passlib.handlers",
             "passlib.tests",
             "passlib.utils",
+                "passlib.utils._blowfish",
             "passlib._setup",
         ],
-    package_data = { "passlib": ["*.cfg" ], "passlib.tests": ["*.cfg"] },
+    package_data = { "passlib.tests": ["*.cfg"] },
     zip_safe=True,
 
     #metadata

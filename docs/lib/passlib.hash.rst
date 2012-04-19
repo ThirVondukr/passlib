@@ -90,10 +90,12 @@ they can be used compatibly along side other modular crypt format hashes.
 
     passlib.hash.apr_md5_crypt
     passlib.hash.phpass
-    passlib.hash.nthash
     passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
     passlib.hash.dlitz_pbkdf2_sha1
+    passlib.hash.scram
+
+* :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible :doc:`nthash <passlib.hash.nthash>` encoding
 
 Special note should be made of the fallback helper,
 which is not an actual hash scheme, but provides "disabled account"
@@ -102,7 +104,7 @@ behavior found in many Linux & BSD password files:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.unix_fallback
+    passlib.hash.unix_disabled
 
 .. _ldap-hashes:
 
@@ -171,6 +173,8 @@ not seen outside those specific contexts:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.mssql2000
+    passlib.hash.mssql2005
     passlib.hash.mysql323
     passlib.hash.mysql41
     passlib.hash.postgres_md5
@@ -178,6 +182,20 @@ not seen outside those specific contexts:
     passlib.hash.oracle11
 
 .. _other-hashes:
+
+Windows Hashes
+==============
+The following hashes are used in various places by Microsoft Windows.
+As they were designed for "internal" use, they generally contain
+no identifying markers, identifying them is pretty much context-dependant.
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.lmhash
+    passlib.hash.nthash
+    passlib.hash.msdcc
+    passlib.hash.msdcc2
 
 Other Hashes
 ============
@@ -188,6 +206,14 @@ in one of the above categories:
 .. toctree::
     :maxdepth: 1
 
+    passlib.hash.cisco_pix
+
+* *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.cisco_type7
     passlib.hash.django_std
     passlib.hash.grub_pbkdf2_sha512
     passlib.hash.hex_digests
