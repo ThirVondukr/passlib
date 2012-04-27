@@ -1622,6 +1622,7 @@ class CryptContext(object):
         strip_items(defaults, lambda k,v: k and v==cur)
 
         # remove redundant category deprecations.
+        # TODO: this should work w/ 'auto', but needs closer inspection
         deprecated = self._deprecated_schemes
         cur = self._deprecated_schemes.get(None)
         strip_items(deprecated, lambda k,v: k and v==cur)
@@ -1688,7 +1689,7 @@ class CryptContext(object):
 
         # add deprecated flag
         # XXX: this logic is now a mess thanks to 'auto' mode.
-        #      a preprocessing pass up in _load() would probably
+        #      a preprocessing pass up in _load(), would probably
         #      simplify this logic quite a bit.
         dep_map = self._deprecated_schemes
         if dep_map:
