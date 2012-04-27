@@ -26,17 +26,7 @@ __all__ = [
 #=========================================================
 # lanman hash
 #=========================================================
-
-class _HasEncodingContext(uh.GenericHandler):
-    # NOTE: consider moving this to helpers if other classes could use it.
-    context_kwds = ("encoding",)
-    _default_encoding = "utf-8"
-
-    def __init__(self, encoding=None, **kwds):
-        super(_HasEncodingContext, self).__init__(**kwds)
-        self.encoding = encoding or self._default_encoding
-
-class lmhash(_HasEncodingContext, uh.StaticHandler):
+class lmhash(uh.HasEncodingContext, uh.StaticHandler):
     """This class implements the Lan Manager Password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
@@ -59,7 +49,7 @@ class lmhash(_HasEncodingContext, uh.StaticHandler):
     name = "lmhash"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
-    _default_encoding = "cp437"
+    default_encoding = "cp437"
 
     #=========================================================
     # methods
@@ -75,7 +65,7 @@ class lmhash(_HasEncodingContext, uh.StaticHandler):
     _magic = b("KGS!@#$%")
 
     @classmethod
-    def raw(cls, secret, encoding="cp437"):
+    def raw(cls, secret, encoding=None):
         """encode password using LANMAN hash algorithm.
 
         :arg secret: secret as unicode or utf-8 encoded bytes
@@ -86,6 +76,8 @@ class lmhash(_HasEncodingContext, uh.StaticHandler):
 
         :returns: returns string of raw bytes
         """
+        if not encoding:
+            encoding = cls.default_encoding
         # some nice empircal data re: different encodings is at...
         # http://www.openwall.com/lists/john-dev/2011/08/01/2
         # http://www.freerainbowtables.com/phpBB3/viewtopic.php?t=387&p=12163

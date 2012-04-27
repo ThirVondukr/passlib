@@ -678,6 +678,15 @@ class StaticHandler(GenericHandler):
 #=====================================================
 #GenericHandler mixin classes
 #=====================================================
+class HasEncodingContext(GenericHandler):
+    """helper for classes which require knowledge of the encoding used"""
+    context_kwds = ("encoding",)
+    default_encoding = "utf-8"
+
+    def __init__(self, encoding=None, **kwds):
+        super(HasEncodingContext, self).__init__(**kwds)
+        self.encoding = encoding or self.default_encoding
+
 class HasUserContext(GenericHandler):
     """helper for classes which require a user context keyword"""
     context_kwds = ("user",)

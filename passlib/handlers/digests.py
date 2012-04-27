@@ -86,12 +86,15 @@ class htdigest(object):
     """
     name = "htdigest"
     setting_kwds = ()
-    context_kwds = ("user", "realm")
+    context_kwds = ("user", "realm", "encoding")
+    default_encoding = "utf-8"
 
     @classmethod
-    def encrypt(cls, secret, user, realm, encoding="utf-8"):
-        # NOTE: deliberately written so that raw bytes are passed through
-        # unchanged, encoding only used to handle unicode values.
+    def encrypt(cls, secret, user, realm, encoding=None):
+        # NOTE: this was deliberately written so that raw bytes are passed through
+        # unchanged, the encoding kwd is only used to handle unicode values.
+        if not encoding:
+            encoding = cls.default_encoding
         uh.validate_secret(secret)
         if isinstance(secret, unicode):
             secret = secret.encode(encoding)

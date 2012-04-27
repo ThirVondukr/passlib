@@ -150,21 +150,22 @@ class unix_disabled(object):
 class plaintext(object):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
-    Unicode passwords will be encoded using utf-8.
+    :type encoding: str
+    :param encoding:
+        This controls the character encoding to use (defaults to ``utf-8``).
 
-    Under Python 3, existing 'hashes' must decode as utf-8.
+        This encoding will be used to encode :class:`!unicode` passwords
+        under Python 2, and decode :class:`!bytes` hashes under Python 3.
+
+    .. versionchanged:: 1.6
+        The ``encoding`` keyword was added.
     """
-    # NOTE: this tries to avoid decoding bytes under py2,
-    # for applications that are using latin-1 or some other encoding.
-    # they'll just have to stop using plaintext under py3 :)
-    # (or re-encode as utf-8)
-
     # NOTE: this is subclassed by ldap_plaintext
 
     name = "plaintext"
     setting_kwds = ()
-    context_kwds = ()
-    _hash_encoding = "utf-8"
+    context_kwds = ("encoding",)
+    default_encoding = "utf-8"
 
     @classmethod
     def identify(cls, hash):
@@ -174,26 +175,30 @@ class plaintext(object):
             raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
-    def encrypt(cls, secret):
+    def encrypt(cls, secret, encoding=None):
         uh.validate_secret(secret)
-        return to_native_str(secret, cls._hash_encoding, "secret")
+        if not encoding:
+            encoding = cls.default_encoding
+        return to_native_str(secret, encoding, "secret")
 
     @classmethod
-    def verify(cls, secret, hash):
-        hash = to_native_str(hash, cls._hash_encoding, "hash")
+    def verify(cls, secret, hash, encoding=None):
+        if not encoding:
+            encoding = cls.default_encoding
+        hash = to_native_str(hash, encoding, "hash")
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
-        return consteq(cls.encrypt(secret), hash)
+        return consteq(cls.encrypt(secret, encoding), hash)
 
     @classmethod
     def genconfig(cls):
         return None
 
     @classmethod
-    def genhash(cls, secret, hash):
+    def genhash(cls, secret, hash, encoding=None):
         if hash is not None and not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
-        return cls.encrypt(secret)
+        return cls.encrypt(secret, encoding)
 
 #=========================================================
 #eof
