@@ -979,6 +979,7 @@ class HandlerCase(TestCase):
     @property
     def salt_bits(self):
         "calculate number of salt bits in hash"
+        # XXX: replace this with bitsize() method?
         handler = self.handler
         assert has_salt_info(handler), "need explicit bit-size for " + handler.name
         from math import log
@@ -1604,6 +1605,10 @@ class HandlerCase(TestCase):
     fuzz_password_encoding = "utf-8"
     fuzz_settings = ["rounds", "salt_size", "ident"]
 
+    @property
+    def max_fuzz_time(self):
+        return float(os.environ.get("PASSLIB_TESTS_FUZZ_TIME") or 1)
+
     def test_77_fuzz_input(self):
         """test random passwords and options"""
         if self.is_disabled_handler:
@@ -1613,7 +1618,7 @@ class HandlerCase(TestCase):
         from passlib.utils import tick
         handler = self.handler
         disabled = self.is_disabled_handler
-        max_time = float(os.environ.get("PASSLIB_TESTS_FUZZ_TIME") or 1)
+        max_time = self.max_fuzz_time
         verifiers = self.get_fuzz_verifiers()
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
@@ -1623,11 +1628,7 @@ class HandlerCase(TestCase):
         count = 0
         while tick() <= stop:
             # generate random password & options
-            secret = self.get_fuzz_password()
-            other = self.mangle_fuzz_password(secret)
-            if rng.randint(0,1):
-                secret = secret.encode(self.fuzz_password_encoding)
-                other = other.encode(self.fuzz_password_encoding)
+            secret, other = self.get_fuzz_password_pair()
             kwds = self.get_fuzz_settings()
             ctx = dict((k,kwds[k]) for k in handler.context_kwds if k in kwds)
 
@@ -1726,14 +1727,30 @@ class HandlerCase(TestCase):
 
     def get_fuzz_password(self):
         "generate random passwords (for fuzz testing)"
+        # occasionally try an empty password
         if rng.random() < .0001:
             return u('')
-        return getrandstr(rng, self.fuzz_password_alphabet, rng.randint(5,99))
+        # otherwise alternate between large and small passwords.
+        if rng.random() < .5:
+            size = randintgauss(1, 50, 15, 15)
+        else:
+            size = randintgauss(50, 99, 70, 20)
+        return getrandstr(rng, self.fuzz_password_alphabet, size)
 
     def mangle_fuzz_password(self, secret):
         "mangle fuzz-testing password so it doesn't match"
         secret = secret.strip()[1:]
         return secret or self.get_fuzz_password()
+
+    def get_fuzz_password_pair(self):
+        "generate random password, and non-matching alternate password"
+        secret = self.get_fuzz_password()
+        other = self.mangle_fuzz_password(secret)
+        if rng.randint(0,1):
+            secret = secret.encode(self.fuzz_password_encoding)
+        if rng.randint(0,1):
+            other = other.encode(self.fuzz_password_encoding)
+        return secret, other
 
     def get_fuzz_settings(self):
         "generate random settings (for fuzz testing)"
@@ -1771,6 +1788,8 @@ class HandlerCase(TestCase):
         handler = self.handler
         if 'ident' in handler.setting_kwds and hasattr(handler, "ident_values"):
             if rng.random() < .5:
+                # resolve wrappers before reading values
+                handler = getattr(handler, "wrapped", handler)
                 return rng.choice(handler.ident_values)
 
     #=========================================================

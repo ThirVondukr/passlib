@@ -678,27 +678,64 @@ class _DjangoHelper(object):
     # NOTE: not testing against Django < 1.0 since it doesn't support
     # most of these hash formats.
 
+    # flag if hash wasn't added until Django 1.4
+    requires14 = False
+
     def fuzz_verifier_django(self):
-        from passlib.tests.test_ext_django import has_django1
+        from passlib.tests.test_ext_django import has_django1, has_django14
         if not has_django1:
+            return None
+        if self.requires14 and not has_django14:
             return None
         from django.contrib.auth.models import check_password
         def verify_django(secret, hash):
-            "django check_password()"
+            "django/check_password"
+            if has_django14 and not secret:
+                return "skip"
+            if self.handler.name == "django_bcrypt" and hash.startswith("bcrypt$$2y$"):
+                hash = hash.replace("$$2y$", "$$2a$")
             return check_password(secret, hash)
         return verify_django
 
     def test_90_django_reference(self):
         "run known correct hashes through Django's check_password()"
-        if not self.known_correct_hashes:
-            return self.skipTest("no known correct hashes specified")
-        from passlib.tests.test_ext_django import has_django1
+        from passlib.tests.test_ext_django import has_django1, has_django14
+        if self.requires14 and not has_django14:
+            raise self.skipTest("Django >= 1.4 not installed")
         if not has_django1:
-            return self.skipTest("Django >= 1.0 not installed")
+            raise self.skipTest("Django >= 1.0 not installed")
         from django.contrib.auth.models import check_password
+        assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
-            self.assertTrue(check_password(secret, hash))
-            self.assertFalse(check_password('x' + secret, hash))
+            if has_django14 and not secret:
+                # django 1.4 rejects empty passwords
+                self.assertFalse(check_password(secret, hash),
+                                "empty string should not have verified")
+                continue
+            self.assertTrue(check_password(secret, hash),
+                            "secret=%r hash=%r failed to verify" %
+                            (secret, hash))
+            self.assertFalse(check_password('x' + secret, hash),
+                            "mangled secret=%r hash=%r incorrect verified" %
+                            (secret, hash))
+
+    def test_91_django_generation(self):
+        "test against output of Django's make_password()"
+        from passlib.tests.test_ext_django import has_django14
+        if not has_django14:
+            raise self.skipTest("Django >= 1.4 not installed")
+        from passlib.utils import tick
+        from django.contrib.auth.hashers import make_password
+        name = self.handler.django_name # set for all the django_* handlers
+        end = tick() + self.max_fuzz_time/2
+        while tick() < end:
+            secret, other = self.get_fuzz_password_pair()
+            if not secret: # django 1.4 rejects empty passwords.
+                continue
+            hash = make_password(secret, hasher=name)
+            self.assertTrue(self.do_identify(hash))
+            self.assertTrue(self.do_verify(secret, hash))
+            self.assertFalse(self.do_verify(other, hash))
 
 class django_disabled_test(HandlerCase):
     "test django_disabled"
@@ -732,6 +769,12 @@ class django_des_crypt_test(HandlerCase, _DjangoHelper):
         ("foo", 'crypt$MNVY.9ajgdvDQ$MNVY.9ajgdvDQ'),
     ]
 
+    known_alternate_hashes = [
+        # ensure django 1.4 empty salt field is accepted;
+        # but that salt field is re-filled (for django 1.0 compatibility)
+        ('crypt$$c2M87q...WWcU', "password", 'crypt$c2$c2M87q...WWcU'),
+    ]
+
     known_unidentified_hashes = [
         'sha1$aa$bb',
     ]
@@ -741,11 +784,9 @@ class django_des_crypt_test(HandlerCase, _DjangoHelper):
         'crypt$c2$c2M87q',
 
         # salt must be >2
-        'crypt$$c2M87q...WWcU',
         'crypt$f$c2M87q...WWcU',
 
-        # this format duplicates salt inside checksum,
-        # reject any where the two copies don't match
+        # make sure first 2 chars of salt & chk field agree.
         'crypt$ffe86$c2M87q...WWcU',
     ]
 
@@ -756,6 +797,9 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
     known_correct_hashes = [
         # test extra large salt
         ("password",    'md5$123abcdef$c8272612932975ee80e8a35995708e80'),
+
+        # test django 1.4 alphanumeric salt
+        ("test", 'md5$3OpqnFAHW5CT$54b29300675271049a1ebae07b395e20'),
 
         # ensures utf-8 used for unicode
         (UPASS_USD,     'md5$c2e86$92105508419a81a6babfaecf876a2fa0'),
@@ -779,6 +823,9 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
         # test extra large salt
         ("password",'sha1$123abcdef$e4a1877b0e35c47329e7ed7e58014276168a37ba'),
 
+        # test django 1.4 alphanumeric salt
+        ("test", 'sha1$bcwHF9Hy8lxS$6b4cfa0651b43161c6f1471ce9523acf1f751ba3'),
+
         # ensures utf-8 used for unicode
         (UPASS_USD,     'sha1$c2e86$0f75c5d7fbd100d587c127ef0b693cde611b4ada'),
         (UPASS_TABLE,   'sha1$6d853$ef13a4d8fb57aed0cb573fe9c82e28dc7fd372d4'),
@@ -795,6 +842,82 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
         # checksum too short
         'sha1$c2e86$0f75',
     ]
+
+class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
+    "test django_pbkdf2_sha256"
+    handler = hash.django_pbkdf2_sha256
+    requires14 = True
+
+    known_correct_hashes = [
+        #
+        # custom - generated via django 1.4 hasher
+        #
+        ('not a password',
+         'pbkdf2_sha256$10000$kjVJaVz6qsnJ$5yPHw3rwJGECpUf70daLGhOrQ5+AMxIJdz1c3bqK1Rs='),
+        (UPASS_TABLE,
+         'pbkdf2_sha256$10000$bEwAfNrH1TlQ$OgYUblFNUX1B8GfMqaCYUK/iHyO0pa7STTDdaEJBuY0='),
+    ]
+
+class django_pbkdf2_sha1_test(HandlerCase, _DjangoHelper):
+    "test django_pbkdf2_sha1"
+    handler = hash.django_pbkdf2_sha1
+    requires14 = True
+
+    known_correct_hashes = [
+        #
+        # custom - generated via django 1.4 hashers
+        #
+        ('not a password',
+         'pbkdf2_sha1$10000$wz5B6WkasRoF$atJmJ1o+XfJxKq1+Nu1f1i57Z5I='),
+        (UPASS_TABLE,
+         'pbkdf2_sha1$10000$KZKWwvqb8BfL$rw5pWsxJEU4JrZAQhHTCO+u0f5Y='),
+    ]
+
+class django_bcrypt_test(HandlerCase, _DjangoHelper):
+    "test django_bcrypt"
+    handler = hash.django_bcrypt
+    secret_size = 72
+    requires14 = True
+
+    known_correct_hashes = [
+        #
+        # just copied and adapted a few test vectors from bcrypt (above),
+        # since django_bcrypt is just a wrapper for the real bcrypt class.
+        #
+        ('', 'bcrypt$$2a$06$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'),
+        ('abcdefghijklmnopqrstuvwxyz',
+             'bcrypt$$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'),
+        (UPASS_TABLE,
+                'bcrypt$$2a$05$Z17AXnnlpzddNUvnC6cZNOSwMA/8oNiKnHTHTwLlBijfucQQlHjaG'),
+    ]
+
+    # NOTE: the following have been cloned from _bcrypt_test()
+
+    def do_genconfig(self, **kwds):
+        # override default to speed up tests
+        kwds.setdefault("rounds", 5)
+
+        # correct unused bits in provided salts, to silence some warnings.
+        if 'salt' in kwds:
+            from passlib.utils import bcrypt64
+            kwds['salt'] = bcrypt64.repair_unused(kwds['salt'])
+        return self.handler.genconfig(**kwds)
+
+    def do_encrypt(self, secret, **kwds):
+        # override default to speed up tests
+        kwds.setdefault("rounds", 5)
+        return self.handler.encrypt(secret, **kwds)
+
+    def get_fuzz_rounds(self):
+        # decrease default rounds for fuzz testing to speed up volume.
+        return randintgauss(5, 8, 6, 1)
+
+    def get_fuzz_ident(self):
+        ident = super(django_bcrypt_test,self).get_fuzz_ident()
+        if ident == u("$2x$"):
+            # just recognized, not currently supported.
+            return None
+        return ident
 
 #=========================================================
 #fshp
@@ -888,7 +1011,7 @@ class hex_md4_test(HandlerCase):
         (UPASS_TABLE, '876078368c47817ce5f9115f3a42cf74'),
     ]
 
-class hex_md5_test(HandlerCase):
+class hex_md5_test(HandlerCase, _DjangoHelper):
     handler = hash.hex_md5
     known_correct_hashes = [
         ("password", '5f4dcc3b5aa765d61d8327deb882cf99'),
@@ -2534,5 +2657,5 @@ class unix_fallback_test(HandlerCase):
             self.assertFalse(h.verify('password',c))
 
 #=========================================================
-#EOF
+# eof
 #=========================================================

@@ -89,18 +89,25 @@ custom_app_context = LazyCryptContext(
 #=========================================================
 #django
 #=========================================================
-
-# XXX: should this be integrated with passlib.ext.django,
-# so that it's policy changes to reflect what the extension has set?
-# in that case we might need a default_django_context as well.
-django_context = LazyCryptContext(
-    schemes=[
+_django10_schemes = [
         "django_salted_sha1", "django_salted_md5", "django_des_crypt",
         "hex_md5", "django_disabled",
-    ],
+]
+
+django10_context = LazyCryptContext(
+    schemes=_django10_schemes,
     default="django_salted_sha1",
     deprecated=["hex_md5"],
 )
+
+django14_context = LazyCryptContext(
+    schemes=["django_pbkdf2_sha256", "django_pbkdf2_sha1", "django_bcrypt"] \
+            + _django10_schemes,
+    deprecated=_django10_schemes,
+)
+
+# this will always point to latest version
+django_context = django14_context
 
 #=========================================================
 #ldap

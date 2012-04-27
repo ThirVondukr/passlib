@@ -3,26 +3,31 @@
 #imports
 #=========================================================
 #core
+from base64 import b64encode
 from hashlib import md5, sha1
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 #site
 #libs
-from passlib.utils import to_unicode
+from passlib.utils import to_unicode, classproperty
 from passlib.utils.compat import b, bytes, str_to_uascii, uascii_to_str, unicode, u
+from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 #pkg
 #local
 __all__ = [
     "django_salted_sha1",
     "django_salted_md5",
+    "django_bcrypt",
+    "django_pbkdf2_sha1",
+    "django_pbkdf2_sha256",
     "django_des_crypt",
     "django_disabled",
 ]
 
 #=========================================================
-# lazy imports
+# lazy imports & constants
 #=========================================================
 des_crypt = None
 
@@ -32,35 +37,56 @@ def _import_des_crypt():
         from passlib.hash import des_crypt
     return des_crypt
 
+# django 1.4's salt charset
+SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
 #=========================================================
-#salted hashes
+# salted hashes
 #=========================================================
 class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
-    #must be specified by subclass - along w/ calc_checksum
+    # name, ident, checksum_size must be set by subclass.
+    # ident must include "$" suffix.
     setting_kwds = ("salt", "salt_size")
-    ident = None #must have "$" suffix
 
-    #common to most subclasses
     min_salt_size = 0
-    default_salt_size = 5
+        # NOTE: django 1.0-1.3 would accept empty salt strings.
+        #       django 1.4 won't, but this appears to be regression
+        #       (https://code.djangoproject.com/ticket/18144)
+        #       so presumably it will be fixed in a later release.
+    default_salt_size = 12
     max_salt_size = None
-    salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
+    salt_chars = SALT_CHARS
+
+    checksum_chars = uh.LOWER_HEX_CHARS
+
+    @classproperty
+    def _stub_checksum(cls):
+        return cls.checksum_chars[0] * cls.checksum_size
 
     @classmethod
     def from_string(cls, hash):
-        hash = to_unicode(hash, "ascii", "hash")
-        ident = cls.ident
-        assert ident.endswith(u("$"))
-        if not hash.startswith(ident):
-            raise uh.exc.InvalidHashError(cls)
-        _, salt, chk = hash.split(u("$"))
-        return cls(salt=salt, checksum=chk or None)
+        salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
+        return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        chk = self.checksum or self._stub_checksum
-        hash = u("%s%s$%s") % (self.ident, self.salt, chk)
-        return uascii_to_str(hash)
+        return uh.render_mc2(self.ident, self.salt,
+                             self.checksum or self._stub_checksum)
+
+class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
+    """base class providing common code for django hashes w/ variable rounds"""
+    setting_kwds = DjangoSaltedHash.setting_kwds + ("rounds",)
+
+    min_rounds = 1
+
+    @classmethod
+    def from_string(cls, hash):
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
+        return cls(rounds=rounds, salt=salt, checksum=chk)
+
+    def to_string(self):
+        return uh.render_mc3(self.ident, self.rounds, self.salt,
+                             self.checksum or self._stub_checksum)
 
 class django_salted_sha1(DjangoSaltedHash):
     """This class implements Django's Salted SHA1 hash, and follows the :ref:`password-hash-api`.
@@ -81,7 +107,6 @@ class django_salted_sha1(DjangoSaltedHash):
     name = "django_salted_sha1"
     ident = u("sha1$")
     checksum_size = 40
-    _stub_checksum = u('0') * 40
 
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
@@ -107,18 +132,105 @@ class django_salted_md5(DjangoSaltedHash):
     name = "django_salted_md5"
     ident = u("md5$")
     checksum_size = 32
-    _stub_checksum = u('0') * 32
 
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         return str_to_uascii(md5(self.salt.encode("ascii") + secret).hexdigest())
 
+django_bcrypt = uh.PrefixWrapper("django_bcrypt", "bcrypt",
+    prefix=u('bcrypt$'), ident=u("bcrypt$"),
+    # NOTE: this docstring is duplicated in the docs, since sphinx
+    # seems to be having trouble reading it via autodata::
+    doc="""This class implements Django 1.4's BCrypt wrapper, and follows the :ref:`password-hash-api`.
+
+    This is identical to :class:`!bcrypt` itself, but with
+    the Django-specific prefix ``"bcrypt$"`` prepended.
+
+    See :doc:`/lib/passlib.hash.bcrypt` for more details,
+    the usage and behavior is identical.
+
+    This should be compatible with the hashes generated by
+    Django 1.4's :class:`!BCryptPasswordHasher` class.
+
+    .. versionadded:: 1.6
+    """)
+
+class django_pbkdf2_sha256(DjangoVariableHash):
+    """This class implements Django's PBKDF2-HMAC-SHA256 hash, and follows the :ref:`password-hash-api`.
+
+    It supports a variable-length salt, and a variable number of rounds.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+
+    :param salt:
+        Optional salt string.
+        If not specified, a 12 character one will be autogenerated (this is recommended).
+        If specified, may be any series of characters drawn from the regexp range ``[0-9a-zA-Z]``.
+
+    :param salt_size:
+        Optional number of characters to use when autogenerating new salts.
+        Defaults to 12, but can be any positive value.
+
+    :param rounds:
+        Optional number of rounds to use.
+        Defaults to 10000, but must be within ``range(1,1<<32)``.
+
+    This should be compatible with the hashes generated by
+    Django 1.4's :class:`!PBKDF2PasswordHasher` class.
+
+    .. versionadded:: 1.6
+    """
+    name = "django_pbkdf2_sha256"
+    ident = u('pbkdf2_sha256$')
+    min_salt_size = 1
+    max_rounds = 0xffffffff # setting at 32-bit limit for now
+    checksum_chars = uh.PADDED_BASE64_CHARS
+    checksum_size = 44 # 32 bytes -> base64
+    default_rounds = 10000 # NOTE: using django default here
+    _prf = "hmac-sha256"
+
+    def _calc_checksum(self, secret):
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        hash = pbkdf2(secret, self.salt.encode("ascii"), self.rounds,
+                      keylen=-1, prf=self._prf)
+        return b64encode(hash).rstrip().decode("ascii")
+
+class django_pbkdf2_sha1(django_pbkdf2_sha256):
+    """This class implements Django's PBKDF2-HMAC-SHA1 hash, and follows the :ref:`password-hash-api`.
+
+    It supports a variable-length salt, and a variable number of rounds.
+
+    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+
+    :param salt:
+        Optional salt string.
+        If not specified, a 12 character one will be autogenerated (this is recommended).
+        If specified, may be any series of characters drawn from the regexp range ``[0-9a-zA-Z]``.
+
+    :param salt_size:
+        Optional number of characters to use when autogenerating new salts.
+        Defaults to 12, but can be any positive value.
+
+    :param rounds:
+        Optional number of rounds to use.
+        Defaults to 10000, but must be within ``range(1,1<<32)``.
+
+    This should be compatible with the hashes generated by
+    Django 1.4's :class:`!PBKDF2SHA1PasswordHasher` class.
+
+    .. versionadded:: 1.6
+    """
+    name = "django_pbkdf2_sha1"
+    ident = u('pbkdf2_sha1$')
+    checksum_size = 28 # 20 bytes -> base64
+    _prf = "hmac-sha1"
+
 #=========================================================
 #other
 #=========================================================
-
-class django_des_crypt(DjangoSaltedHash):
+class django_des_crypt(uh.HasSalt, uh.GenericHandler):
     """This class implements Django's :class:`des_crypt` wrapper, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
@@ -130,50 +242,49 @@ class django_des_crypt(DjangoSaltedHash):
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 2 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
 
-    .. note::
+    This should be compatible with the hashes generated by
+    Django 1.4's :class:`!CryptPasswordHasher` class.
+    Note that Django only supports this hash on Unix systems
+    (though :class:`!django_des_crypt` is available cross-platform
+    under Passlib).
 
-        Django only supports this on Unix systems,
-        but it is available cross-platform under Passlib.
+    .. versionchanged:: 1.6
+        This class will now accept hashes with empty salt strings,
+        since Django 1.4 generates them this way.
     """
-
     name = "django_des_crypt"
+    setting_kwds = ("salt", "salt_size")
     ident = u("crypt$")
     checksum_chars = salt_chars = uh.HASH64_CHARS
-    checksum_size = 13
-    min_salt_size = 2
+    checksum_size = 11
+    min_salt_size = default_salt_size = 2
+    _stub_checksum = u('.')*11
 
-    # NOTE: checksum is full des_crypt hash,
-    #       including salt as first two digits.
-    #       these should always match first two digits
-    #       of django_des_crypt's salt...
-    #       and all remaining chars of salt are ignored.
-
-    def __init__(self, **kwds):
-        super(django_des_crypt, self).__init__(**kwds)
-
-        # make sure salt embedded in checksum is a match,
-        # else hash can *never* validate
-        salt = self.salt
-        chk = self.checksum
-        if salt and chk:
-            if salt[:2] != chk[:2]:
-                raise uh.exc.MalformedHashError(self,
+    @classmethod
+    def from_string(cls, hash):
+        salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
+        if chk:
+            # chk should be full des_crypt hash
+            if not salt:
+                # django 1.4 always uses empty salt field,
+                # so extract salt from des_crypt hash <chk>
+                salt = chk[:2]
+            elif salt[:2] != chk[:2]:
+                # django 1.0 stored 5 chars in salt field, and duplicated
+                # the first two chars in <chk>. we keep the full salt,
+                # but make sure the first two chars match as sanity check.
+                raise uh.exc.MalformedHashError(cls,
                     "first two digits of salt and checksum must match")
-            # repeat stub checksum detection since salt isn't set
-            # when _norm_checksum() is called.
-            if chk == self._stub_checksum:
-                self.checksum = None
+            # in all cases, strip salt chars from <chk>
+            chk = chk[2:]
+        return cls(salt=salt, checksum=chk)
 
-    _base_stub_checksum = u('.') * 13
-
-    @property
-    def _stub_checksum(self):
-        "generate stub checksum dynamically, so it matches always matches salt"
-        stub = self._base_stub_checksum
-        if self.salt:
-            return self.salt[:2] + stub[2:]
-        else:
-            return stub
+    def to_string(self):
+        # NOTE: always filling in salt field, so that we're compatible
+        # with django 1.0 (which requires it)
+        salt = self.salt
+        chk = salt[:2] + (self.checksum or self._stub_checksum)
+        return uh.render_mc2(self.ident, salt, chk)
 
     def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,
@@ -181,8 +292,7 @@ class django_des_crypt(DjangoSaltedHash):
         global des_crypt
         if des_crypt is None:
             _import_des_crypt()
-        salt = self.salt[:2]
-        return salt + des_crypt(salt=salt)._calc_checksum(secret)
+        return des_crypt(salt=self.salt[:2])._calc_checksum(secret)
 
 class django_disabled(uh.StaticHandler):
     """This class provides disabled password behavior for Django, and follows the :ref:`password-hash-api`.
@@ -212,5 +322,5 @@ class django_disabled(uh.StaticHandler):
         return False
 
 #=========================================================
-#eof
+# eof
 #=========================================================

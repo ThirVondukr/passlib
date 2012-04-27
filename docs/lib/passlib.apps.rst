@@ -47,20 +47,48 @@ Custom Applications
 
 Django
 ======
+The following objects provide pre-configured :class:`!CryptContext` instances
+for handling `Django <http://www.djangoproject.com>`_
+password hashes, as used by Django's ``django.contrib.auth`` module.
+They recognize all the :doc:`builtin Django hashes <passlib.hash.django_std>`
+supported by the particular Django version.
+
+.. note::
+
+    These objects may not match the hashes in your database if a third-party
+    library has been used to patch Django to support alternate hash formats.
+    This includes the `django-bcrypt <http://pypi.python.org/pypi/django-bcrypt>`_
+    plugin, or Passlib's builtin :mod:`django extension <passlib.ext.django>`.
+    As well, Django 1.4 introduced a very configurable "hashers" framework,
+    and individual deployments may support additional hashes and/or
+    have other defaults.
+
+.. data:: django10_context
+
+    The object replicates the password hashing policy for Django 1.0-1.3.
+    It supports all the Django 1.0 hashes, and defaults to
+    :class:`~passlib.hash.django_salted_sha1`.
+
+    .. versionadded:: 1.6
+
+.. data:: django14_context
+
+    The object replicates the stock password hashing policy for Django 1.4.
+    It supports all the Django 1.0 & 1.4 hashes, and defaults to
+    :class:`~passlib.hash.django_pbkdf2_sha256`. It treats all
+    Django 1.0 hashes as deprecated.
+
+    .. versionadded:: 1.6
+
 .. data:: django_context
 
-    This object provides a pre-configured :class:`!CryptContext` instance
-    for handling `Django <http://www.djangoproject.com>`_
-    password hashes, as used by Django's ``django.contrib.auth`` module.
-    It recognizes all the :doc:`builtin Django hashes <passlib.hash.django_std>`.
-    It defaults to using the :class:`~passlib.hash.django_salted_sha1` hash.
+    This alias will always point to the latest preconfigured Django
+    context supported by Passlib, and as such should support
+    all historical hashes built into Django.
 
-    .. note::
-
-        This object may not match the hashes in your database if a third-party
-        library has been used to patch Django to support alternate hash formats.
-        This includes the `django-bcrypt <http://pypi.python.org/pypi/django-bcrypt>`_
-        plugin, or Passlib's builtin :mod:`django extension <passlib.ext.django>`.
+    .. versionchanged:: 1.6
+        This previously was an alias for :data:`django10_context`,
+        and now points to :data:`django14_context`.
 
 .. _ldap-contexts:
 

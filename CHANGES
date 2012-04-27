@@ -39,6 +39,13 @@ Release History
           :doc:`mssql2000 <lib/passlib.hash.mssql2000>` and
           :doc:`mssql2005 <lib/passlib.hash.mssql2005>`).
 
+        * added support for the hashes added in Django 1.4:
+          :class:`~passlib.hash.django_bcrypt`,
+          :class:`~passlib.hash.django_pbkdf2_sha256`,
+          :class:`~passlib.hash.django_pbkdf2_sha1`.
+          Also added the :class:`~passlib.apps.django14`
+          predefined :class:`!CryptContext`.
+
         * Passlib now offers the :doc:`scram <lib/passlib.hash.scram>` hash,
           specially designed for storing digest information for verifying
           a user against the SCRAM protocol (:rfc:`5802`). It can also
