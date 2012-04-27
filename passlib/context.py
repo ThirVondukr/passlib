@@ -411,8 +411,6 @@ class CryptPolicy(object):
                  "create a CryptContext instance and "
                  "use ``context.handler()``.",
                  DeprecationWarning, stacklevel=2)
-        if not name: # CryptContext.handler() uses different default value
-            name = "default"
         # CryptContext.handler() doesn't support required=False,
         # so wrapping it in try/except
         try:
@@ -1891,10 +1889,10 @@ class CryptContext(object):
     ##    kwds.pop("min_verify_time", None)
     ##    return kwds
 
-    def handler(self, scheme="default", category=None):
+    def handler(self, scheme=None, category=None):
         """helper to resolve name of scheme -> handler object.
 
-        the scheme may optionally be set to ``"default"``,
+        the scheme may optionally be set to ``None``,
         in which case the handler attached to the default scheme will be
         returned. if ``category`` is specified, the default for that
         category will be returned.
@@ -1905,7 +1903,7 @@ class CryptContext(object):
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.get_handler()``
         """
-        if scheme == "default":
+        if scheme is None:
             return self.default_scheme(category, True)
         for handler in self._handlers:
             if handler.name == scheme:
@@ -2122,6 +2120,15 @@ class CryptContext(object):
     # and hand off the real work to the record's methods,
     # which are optimized for the specific set of options.
 
+    def _get_or_identify_record(self, hash, scheme=None, category=None):
+        "return record based on scheme, or failing that, by identifying hash"
+        if scheme:
+            if not isinstance(hash, base_string_types):
+                raise ExpectedStringError(hash, "hash")
+            return self._get_record(scheme, category)
+        else:
+            return self._identify_record(hash, category)
+
     def _get_record(self, scheme, category=None):
         "return record for specific scheme & category (cached)"
         # quick lookup in cache
@@ -2130,8 +2137,13 @@ class CryptContext(object):
         except KeyError:
             pass
 
-        # if scheme=None, use category's default scheme,
-        # and cache for next time.
+        # type check
+        if category is not None and not isinstance(category, str):
+            raise ExpectedTypeError(category, "str|None", "category")
+        if scheme is not None and not isinstance(scheme, str):
+            raise ExpectedTypeError(scheme, "str|None", "scheme")
+
+        # if scheme=None, use category's default scheme, and cache result.
         if not scheme:
             default = self.default_scheme(category)
             assert default
@@ -2139,8 +2151,8 @@ class CryptContext(object):
                                                                       category)
             return record
 
-        # if category has no record for scheme, use default category's record,
-        # and cache for next time.
+        # if no record for (scheme,category), use record for
+        # (scheme, default category), and cache result.
         if category:
             try:
                 cache = self._records
@@ -2149,7 +2161,7 @@ class CryptContext(object):
             except KeyError:
                 pass
 
-        # scheme not found in configuration.
+        # scheme not found in configuration for default category
         if scheme:
             raise KeyError("crypt algorithm not found in policy: %r" %
                            (scheme,))
@@ -2159,14 +2171,20 @@ class CryptContext(object):
 
     def _get_record_list(self, category=None):
         "return list of records for category (cached)"
+        # quick lookup in cache
         try:
             return self._record_lists[category]
         except KeyError:
-            value = self._record_lists[category] = [
-                self._get_record(scheme, category)
-                for scheme in self._schemes
-                ]
-            return value
+            pass
+
+        # type check of category - handled by _get_record()
+
+        # cache miss - build list
+        value = self._record_lists[category] = [
+            self._get_record(scheme, category)
+            for scheme in self._schemes
+            ]
+        return value
 
     def _identify_record(self, hash, category, required=True):
         """internal helper to identify appropriate _CryptRecord for hash"""
@@ -2215,12 +2233,7 @@ class CryptContext(object):
 
         :returns: True/False
         """
-        if scheme:
-            if not isinstance(hash, base_string_types):
-                raise ExpectedStringError(hash, "hash")
-            record = self._get_record(scheme, category)
-        else:
-            record = self._identify_record(hash, category)
+        record = self._get_or_identify_record(hash, scheme, category)
         return record.hash_needs_update(hash)
 
     def genconfig(self, scheme=None, category=None, **settings):
@@ -2337,12 +2350,10 @@ class CryptContext(object):
 
         :returns: True/False
         """
-        if scheme:
-            record = self._get_record(scheme, category)
-        else:
-            record = self._identify_record(hash, category)
         # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here
+        # XXX: what about supporting a setter() callback ala django 1.4 ?
+        record = self._get_or_identify_record(hash, scheme, category)
         return record.verify(secret, hash, **context)
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
@@ -2384,12 +2395,9 @@ class CryptContext(object):
 
         .. seealso:: :ref:`context-migrating-passwords` for a usage example.
         """
-        if scheme:
-            record = self._get_record(scheme, category)
-        else:
-            record = self._identify_record(hash, category)
         # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here.
+        record = self._get_or_identify_record(hash, scheme, category)
         if not record.verify(secret, hash, **kwds):
             return False, None
         elif record.hash_needs_update(hash):
