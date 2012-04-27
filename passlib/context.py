@@ -630,8 +630,8 @@ class _CryptRecord(object):
     # verify() attrs
     _min_verify_time = None
 
-    # hash_needs_update() attrs
-    _is_deprecated_by_handler = None # optional callable used by bcrypt/scram
+    # needs_update() attrs
+    _needs_update = None # optional callable provided by handler
     _has_rounds_introspection = False # if rounds can be extract from hash
 
     # cloned directly from handler, not affected by config options.
@@ -658,7 +658,7 @@ class _CryptRecord(object):
         # init wrappers for handler methods we modify args to
         self._init_encrypt_and_genconfig()
         self._init_verify(min_verify_time)
-        self._init_hash_needs_update()
+        self._init_needs_update()
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
         self.identify = handler.identify
@@ -931,44 +931,44 @@ class _CryptRecord(object):
         return False
 
     #================================================================
-    # hash_needs_update()
+    # needs_update()
     #================================================================
-    def _init_hash_needs_update(self):
-        """initialize state for hash_needs_update()"""
+    def _init_needs_update(self):
+        """initialize state for needs_update()"""
         # if handler has been deprecated, replace wrapper and skip other checks
         if self.deprecated:
-            self.hash_needs_update = lambda hash: True
+            self.needs_update = lambda hash, secret: True
             return
 
         # let handler detect hashes with configurations that don't match
         # current settings. currently do this by calling
-        # ``handler._deprecation_detector(**settings)``, which if defined
-        # should return None or a callable ``is_deprecated(hash)->bool``.
+        # ``handler._bind_needs_update(**settings)``, which if defined
+        # should return None or a callable ``needs_update(hash,secret)->bool``.
         #
         # NOTE: this interface is still private, because it was hacked in
         # for the sake of bcrypt & scram, and is subject to change.
         handler = self.handler
-        const = getattr(handler, "_deprecation_detector", None)
+        const = getattr(handler, "_bind_needs_update", None)
         if const:
-            self._is_deprecated_by_handler = const(**self.settings)
+            self._needs_update = const(**self.settings)
 
         # XXX: what about a "min_salt_size" deprecator?
 
         # set flag if we can extract rounds from hash, allowing
-        # hash_needs_update() to check for rounds that are outside of
+        # needs_update() to check for rounds that are outside of
         # the configured range.
         if self._has_rounds_bounds and hasattr(handler, "from_string"):
             self._has_rounds_introspection = True
 
-    def hash_needs_update(self, hash):
+    def needs_update(self, hash, secret):
         # init replaces this method entirely for this case.
         ### check if handler has been deprecated
         ##if self.deprecated:
         ##    return True
 
         # check handler's detector if it provided one.
-        check = self._is_deprecated_by_handler
-        if check and check(hash):
+        check = self._needs_update
+        if check and check(hash, secret):
             return True
 
         # if we can parse rounds parameter, check if it's w/in bounds.
@@ -1078,7 +1078,7 @@ class CryptContext(object):
     Applications which want to detect and re-encrypt deprecated
     hashes will want to use one of the following methods:
 
-    .. automethod:: hash_needs_update
+    .. automethod:: needs_update
     .. automethod:: verify_and_update
 
     Additionally, the main interface offers a few helper methods,
@@ -2215,8 +2215,7 @@ class CryptContext(object):
     #       Each record object stores the options used
     #       by the specific (scheme,category) combination it manages.
 
-    # XXX: would a better name be needs_update/is_deprecated?
-    def hash_needs_update(self, hash, scheme=None, category=None):
+    def needs_update(self, hash, scheme=None, category=None, secret=None):
         """check if hash is allowed by current policy, or if secret should be re-encrypted.
 
         the core of CryptContext's support for hash migration:
@@ -2230,11 +2229,20 @@ class CryptContext(object):
         :arg hash: existing hash string
         :param scheme: optionally identify specific scheme to check against.
         :param category: optional user category
+        :param secret: optional copy of associated password
 
         :returns: True/False
         """
         record = self._get_or_identify_record(hash, scheme, category)
-        return record.hash_needs_update(hash)
+        return record.needs_update(hash, secret)
+
+    def hash_needs_update(self, hash, scheme=None, category=None):
+        """legacy alias for :meth:`needs_update`.
+
+        .. deprecated:: 1.6
+            use :meth:`needs_update` instead.
+        """
+        return self.needs_update(hash, scheme, category)
 
     def genconfig(self, scheme=None, category=None, **settings):
         """Call genconfig() for specified handler
@@ -2362,7 +2370,7 @@ class CryptContext(object):
         This is a convenience method for a common situation in most applications:
         When a user logs in, they must :meth:`verify` if the password matches;
         if successful, check if the hash algorithm
-        has been deprecated (:meth:`hash_needs_update`); and if so,
+        has been deprecated (:meth:`needs_update`); and if so,
         re-:meth:`encrypt` the secret.
         This method takes care of calling all of these 3 methods,
         returning a simple tuple for the application to use.
@@ -2400,7 +2408,7 @@ class CryptContext(object):
         record = self._get_or_identify_record(hash, scheme, category)
         if not record.verify(secret, hash, **kwds):
             return False, None
-        elif record.hash_needs_update(hash):
+        elif record.needs_update(hash, secret):
             # NOTE: we re-encrypt with default scheme, not current one.
             return True, self.encrypt(secret, None, category, **kwds)
         else:

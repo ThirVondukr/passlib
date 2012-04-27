@@ -941,21 +941,23 @@ sha512_crypt__min_rounds = 45000
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().verify, 'secret', 'hash')
 
-    def test_46_hash_needs_update(self):
-        "test hash_needs_update() method"
+    def test_46_needs_update(self):
+        "test needs_update() method"
         cc = CryptContext(**self.sample_4_dict)
 
         #check deprecated scheme
-        self.assertTrue(cc.hash_needs_update('9XXD4trGYeGJA'))
-        self.assertFalse(cc.hash_needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
+        self.assertTrue(cc.needs_update('9XXD4trGYeGJA'))
+        self.assertFalse(cc.needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
 
         #check min rounds
-        self.assertTrue(cc.hash_needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
-        self.assertFalse(cc.hash_needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
+        self.assertTrue(cc.needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
+        self.assertFalse(cc.needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
 
         #check max rounds
-        self.assertFalse(cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
-        self.assertTrue(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
+        self.assertFalse(cc.needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
+        self.assertTrue(cc.needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
+
+        # TODO: check with secret passed in, that _bind_needs_update() is invoked correctly.
 
         #--------------------------------------------------------------
         # border cases
@@ -964,10 +966,10 @@ sha512_crypt__min_rounds = 45000
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
         for hash, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.hash_needs_update, hash, **kwds)
+            self.assertRaises(TypeError, cc.needs_update, hash, **kwds)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().hash_needs_update, 'hash')
+        self.assertRaises(KeyError, CryptContext().needs_update, 'hash')
 
     def test_47_verify_and_update(self):
         "test verify_and_update()"
@@ -1322,8 +1324,11 @@ sha512_crypt__min_rounds = 45000
         self.assertFalse(ctx.verify(pu, ctx.encrypt(pn, scheme="md5_crypt")))
         self.assertTrue(ctx.verify(pu, ctx.encrypt(pn, scheme="sha256_crypt")))
 
+    #=========================================================
+    # handler deprecation detectors
+    #=========================================================
     def test_62_bcrypt_update(self):
-        "test verify_and_update / hash_needs_update corrects bcrypt padding"
+        "test verify_and_update / needs_update corrects bcrypt padding"
         # see issue 25.
         bcrypt = hash.bcrypt
 
@@ -1333,8 +1338,8 @@ sha512_crypt__min_rounds = 45000
         ctx = CryptContext(["bcrypt"])
 
         with catch_warnings(record=True) as wlog:
-            self.assertTrue(ctx.hash_needs_update(BAD1))
-            self.assertFalse(ctx.hash_needs_update(GOOD1))
+            self.assertTrue(ctx.needs_update(BAD1))
+            self.assertFalse(ctx.needs_update(GOOD1))
 
             if bcrypt.has_backend():
                 self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
@@ -1344,14 +1349,14 @@ sha512_crypt__min_rounds = 45000
                 self.assertTrue(new_hash and new_hash != BAD1)
 
     def test_63_bsdi_crypt_update(self):
-        "test verify_and_update / hash_needs_update correct bsdi even rounds"
+        "test verify_and_update / needs_update corrects bsdi even rounds"
         even_hash = '_Y/../cG0zkJa6LY6k4c'
         odd_hash = '_Z/..TgFg0/ptQtpAgws'
         secret = 'test'
         ctx = CryptContext(['bsdi_crypt'])
 
-        self.assertTrue(ctx.hash_needs_update(even_hash))
-        self.assertFalse(ctx.hash_needs_update(odd_hash))
+        self.assertTrue(ctx.needs_update(even_hash))
+        self.assertFalse(ctx.needs_update(odd_hash))
 
         self.assertEqual(ctx.verify_and_update(secret, odd_hash), (True,None))
         self.assertEqual(ctx.verify_and_update("x", even_hash), (False,None))

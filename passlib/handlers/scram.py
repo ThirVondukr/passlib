@@ -323,12 +323,12 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #=========================================================
 
     @classmethod
-    def _deprecation_detector(cls, **settings):
+    def _bind_needs_update(cls, **settings):
         "generate a deprecation detector for CryptContext to use"
         # generate deprecation hook which marks hashes as deprecated
         # if they don't support a superset of current algs.
         algs = frozenset(cls(use_defaults=True, **settings).algs)
-        def detector(hash):
+        def detector(hash, secret):
             return not algs.issubset(cls.from_string(hash).algs)
         return detector
 

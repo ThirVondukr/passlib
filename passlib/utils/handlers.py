@@ -563,13 +563,13 @@ class GenericHandler(object):
     #=========================================================
 
     ##@classmethod
-    ##def _deprecation_detector(cls, **settings):
+    ##def _bind_needs_update(cls, **settings):
     ##    """return helper to detect deprecated hashes.
     ##
     ##    if this method is defined, the CryptContext constructor
     ##    will invoke it with the settings specified for the context.
     ##    this method should return None or a callable
-    ##    with the signature ``func(hash)->bool``.
+    ##    with the signature ``func(hash,secret)->bool``.
     ##
     ##    this function should return true if the hash
     ##    should be re-encrypted, whether due to internal

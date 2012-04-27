@@ -2046,13 +2046,13 @@ class scram_test(HandlerCase):
 
         h = c1.encrypt("dummy")
         self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
-        self.assertFalse(c1.hash_needs_update(h))
+        self.assertFalse(c1.needs_update(h))
 
         c2 = c1.copy(scram__algs="sha1")
-        self.assertFalse(c2.hash_needs_update(h))
+        self.assertFalse(c2.needs_update(h))
 
         c2 = c1.copy(scram__algs="sha1,sha256")
-        self.assertTrue(c2.hash_needs_update(h))
+        self.assertTrue(c2.needs_update(h))
 
     def test_96_full_verify(self):
         "test verify(full=True) flag"

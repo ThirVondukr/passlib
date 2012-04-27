@@ -159,16 +159,17 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #=========================================================
 
     @classmethod
-    def _deprecation_detector(cls, **settings):
-        return cls._hash_needs_update
+    def _bind_needs_update(cls, **settings):
+        return cls._needs_update
 
     @classmethod
-    def _hash_needs_update(cls, hash):
+    def _needs_update(cls, hash, secret):
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
         # check for incorrect padding bits (passlib issue 25)
         if hash.startswith(IDENT_2A) and hash[28] not in bcrypt64._padinfo2[1]:
             return True
+        # TODO: try to detect incorrect $2x$ hashes using *secret*
         return False
 
     @classmethod

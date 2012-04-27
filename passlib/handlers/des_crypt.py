@@ -278,11 +278,11 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return rounds
 
     @classmethod
-    def _deprecation_detector(cls, **settings):
-        return cls._hash_needs_update
+    def _bind_needs_update(cls, **settings):
+        return cls._needs_update
 
     @classmethod
-    def _hash_needs_update(cls, hash):
+    def _needs_update(cls, hash, secret):
         # mark bsdi_crypt hashes as deprecated if they have even rounds.
         assert cls.identify(hash)
         if isinstance(hash, unicode):
