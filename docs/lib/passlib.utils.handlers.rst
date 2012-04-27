@@ -2,17 +2,18 @@
     pair: custom hash handler; implementing
 
 ==========================================================================
-:mod:`passlib.utils.handlers` - Helpers for writing password hash handlers
+:mod:`passlib.utils.handlers` - Framework for writing password hashes
 ==========================================================================
 
 .. module:: passlib.utils.handlers
-    :synopsis: helper classes for writing password hash handlers
+    :synopsis: framework for writing password hashes
 
 .. warning::
 
     This module is primarily used as an internal support module.
-    It's interface has not been finalized yet, and may change between major
-    releases of Passlib.
+    It's interface has not been finalized yet, and may be changed somewhat
+    between major releases of Passlib, as the internal code is cleaned up
+    and simplified.
 
 .. todo::
 
@@ -23,29 +24,29 @@
 Implementing Custom Handlers
 ============================
 All that is required in order to write a custom handler that will work with
-PassLib is to create an object (be it module, class, or object) that
+Passlib is to create an object (be it module, class, or object) that
 exposes the functions and attributes required by the :ref:`password-hash-api`.
-For classes, PassLib does not make any requirements about what a class instance
+For classes, Passlib does not make any requirements about what a class instance
 should look like (if the implementation even uses them).
 
-That said, most of the handlers built into PassLib are based around the :class:`GenericHandler`
+That said, most of the handlers built into Passlib are based around the :class:`GenericHandler`
 class, and it's associated mixin classes. While deriving from this class is not required,
 doing so will greatly reduce the amount of addition code that is needed for
 all but the most convoluted password hash schemes.
 
 Once a handler has been written, it may be used explicitly, passed into
 an application's custom :class:`CryptContext` directly, or registered
-globally with PassLib via the :mod:`passlib.registry` module.
+globally with Passlib via the :mod:`passlib.registry` module.
 
 See :ref:`testing-hash-handlers` for details about how to test
-custom handlers against PassLib's unittest suite.
+custom handlers against Passlib's unittest suite.
 
 The GenericHandler Class
 ========================
 
 Design
 ------
-Most of the handlers built into PassLib are based around the :class:`GenericHandler`
+Most of the handlers built into Passlib are based around the :class:`GenericHandler`
 class. This class is designed under the assumption that the common
 workflow for hashes is some combination of the following:
 

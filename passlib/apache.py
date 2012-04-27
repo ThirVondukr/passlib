@@ -1,4 +1,5 @@
 """passlib.apache - apache password support"""
+# XXX: relocate this to passlib.ext.apache?
 #=========================================================
 #imports
 #=========================================================
@@ -109,8 +110,9 @@ class _CommonFile(object):
     def from_string(cls, data, **kwds):
         """create new object from raw string.
 
+        :type data: unicode or bytes
         :arg data:
-            unicode or bytes string to load
+            database to load, as single string.
 
         :param \*\*kwds:
             all other keywords are the same as in the class constructor
@@ -125,6 +127,7 @@ class _CommonFile(object):
     def from_path(cls, path, **kwds):
         """create new object from file, without binding object to file.
 
+        :type path: str
         :arg path:
             local filepath to load from
 
@@ -212,8 +215,10 @@ class _CommonFile(object):
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 
+        :type path: str
         :arg path: local file to load from
 
+        :type force: bool
         :param force:
             if ``force=False``, only load from ``self.path`` if file
             has changed since last load.
@@ -407,7 +412,7 @@ class HtpasswdFile(_CommonFile):
            This feature is new in Passlib 1.6, and is the default if no
            ``path`` value is provided to the constructor.
 
-        This is exposed as a readonly instance attribute.
+        This is also exposed as a readonly instance attribute.
 
     :type new: bool
     :param new:
@@ -429,7 +434,7 @@ class HtpasswdFile(_CommonFile):
         if ``autosave=True`` is specified, any changes made will be
         saved to disk immediately (assuming *path* has been set).
 
-        This is exposed as a writeable instance attribute.
+        This is also exposed as a writeable instance attribute.
 
     :type encoding: str
     :param encoding:
@@ -438,7 +443,7 @@ class HtpasswdFile(_CommonFile):
         and hash passwords. Defaults to ``utf-8``, though ``latin-1``
         is the only other commonly encountered encoding.
 
-        This is exposed as a readonly instance attribute.
+        This is also exposed as a readonly instance attribute.
 
     :type default_scheme: str
     :param default_scheme:
@@ -457,14 +462,14 @@ class HtpasswdFile(_CommonFile):
         The default value is a pre-built context which supports all
         of the hashes officially allowed in an htpasswd file.
 
-        This is exposed as a readonly instance attribute.
+        This is also exposed as a readonly instance attribute.
 
         .. warning::
 
-            This option is useful to add support for non-standard hash
+            This option may be used to add support for non-standard hash
             formats to an htpasswd file. However, the resulting file
             will probably not be usuable by another application,
-            particularly Apache itself.
+            and particularly not by Apache.
 
     Loading & Saving
     ================
@@ -677,7 +682,7 @@ class HtdigestFile(_CommonFile):
            This feature is new in Passlib 1.6, and is the default if no
            ``path`` value is provided to the constructor.
 
-        This is exposed as a readonly instance attribute.
+        This is also exposed as a readonly instance attribute.
 
     :type default_realm: str
     :param default_realm:
@@ -687,7 +692,7 @@ class HtdigestFile(_CommonFile):
         provided explicitly. If unset, they will raise an error stating
         that an explicit realm is required.
 
-        This is exposed as a writeable instance attribute.
+        This is also exposed as a writeable instance attribute.
 
         .. versionadded:: 1.6
 
@@ -711,7 +716,7 @@ class HtdigestFile(_CommonFile):
         if ``autosave=True`` is specified, any changes made will be
         saved to disk immediately (assuming *path* has been set).
 
-        This is exposed as a writeable instance attribute.
+        This is also exposed as a writeable instance attribute.
 
     :type encoding: str
     :param encoding:
@@ -720,7 +725,7 @@ class HtdigestFile(_CommonFile):
         and hash passwords. Defaults to ``utf-8``, though ``latin-1``
         is the only other commonly encountered encoding.
 
-        This is exposed as a readonly instance attribute.
+        This is also exposed as a readonly instance attribute.
 
     Loading & Saving
     ================

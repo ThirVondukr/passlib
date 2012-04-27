@@ -681,6 +681,15 @@ class Base64Engine(object):
     """provides routines for encoding/decoding base64 data using
     arbitrary character mappings, selectable endianness, etc.
 
+    :arg charmap:
+        A string of 64 unique characters,
+        which will be used to encode successive 6-bit chunks.
+        A character's position within the string will correspond
+        to it's 6-bit value.
+
+    :param big:
+        Whether the encoding should be big-endian (default False).
+
     Raw Bytes <-> Encoded Bytes
     ===========================
     .. automethod:: encode_bytes
@@ -782,6 +791,7 @@ class Base64Engine(object):
     #=============================================================
     def encode_bytes(self, source):
         """encode bytes to engine's specific base64 variant.
+
         :arg source: byte string to encode.
         :returns: byte string containing encoded data.
         """
@@ -884,6 +894,7 @@ class Base64Engine(object):
 
     def decode_bytes(self, source):
         """decode bytes from engine's specific base64 variant.
+
         :arg source: byte string to decode.
         :returns: byte string containing decoded data.
         """
@@ -1289,7 +1300,7 @@ _A64_PAD2 = b("==")
 def ab64_encode(data):
     """encode using variant of base64
 
-    the output of this function is identical to b64_encode,
+    the output of this function is identical to stdlib's b64_encode,
     except that it uses ``.`` instead of ``+``,
     and omits trailing padding ``=`` and whitepsace.
 
@@ -1300,7 +1311,7 @@ def ab64_encode(data):
 def ab64_decode(data):
     """decode using variant of base64
 
-    the input of this function is identical to b64_decode,
+    the input of this function is identical to stdlib's b64_decode,
     except that it uses ``.`` instead of ``+``,
     and should not include trailing padding ``=`` or whitespace.
 
@@ -1602,12 +1613,12 @@ def is_crypt_context(obj):
 ##    return hasattr(handler, "set_backend")
 
 def has_rounds_info(handler):
-    "check if handler provides the optional :ref:`rounds information <optional-rounds-attributes>` attributes"
+    "check if handler provides the optional :ref:`rounds information <rounds-attributes>` attributes"
     return ('rounds' in handler.setting_kwds and
             getattr(handler, "min_rounds", None) is not None)
 
 def has_salt_info(handler):
-    "check if handler provides the optional :ref:`salt information <optional-salt-attributes>` attributes"
+    "check if handler provides the optional :ref:`salt information <salt-attributes>` attributes"
     return ('salt' in handler.setting_kwds and
             getattr(handler, "min_salt_size", None) is not None)
 

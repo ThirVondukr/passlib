@@ -78,15 +78,14 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
 #=========================================================
 #static text
 #=========================================================
-SUMMARY = "comprehensive password hashing framework supporting over 20 schemes"
+SUMMARY = "comprehensive password hashing framework supporting over 30 schemes"
 
 DESCRIPTION = """\
-Passlib is a password hashing library for Python 2 & 3,
-which provides cross-platform implementations of over 20
-password hashing algorithms, as well as a framework for
-managing existing password hashes. It's designed to be useful
-for a wide range of tasks; from verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user applications.
+Passlib is a password hashing library for Python 2 & 3, which provides
+cross-platform implementations of over 30 password hashing algorithms, as well
+as a framework for managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow, to
+providing full-strength password hashing for multi-user application.
 
 * See the `online documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.

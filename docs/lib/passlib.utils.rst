@@ -5,9 +5,16 @@
 .. module:: passlib.utils
     :synopsis: internal helpers for implementing password hashes
 
-This module contains a number of utility functions used by passlib
-to implement the builtin handlers, and other code within passlib.
+This module contains a number of utility functions used by Passlib
+to implement the builtin hashes and other internals.
 They may also be useful when implementing custom handlers for existing legacy formats.
+
+.. warning::
+
+    This module is primarily used as an internal support module.
+    It's interface has not been finalized yet, and may be changed somewhat
+    between major releases of Passlib, as the internal code is cleaned up
+    and simplified.
 
 Constants
 =========
@@ -116,7 +123,8 @@ Predefined Instances
 .. versionchanged:: 1.6
    Previous versions of Passlib contained
    a module named :mod:`!passlib.utils.h64`; As of Passlib 1.6 this
-   was replaced by the the ``h64`` and ``h64big`` instances;
+   was replaced by the the ``h64`` and ``h64big`` instances of
+   the :class:`Base64Engine` class;
    the interface remains mostly unchanged.
 
 Other
@@ -170,7 +178,6 @@ There are also a few sub modules which provide additional utility functions:
 
     passlib.utils.handlers
     passlib.utils.des
-    passlib.utils.md4
     passlib.utils.pbkdf2
 
 ..

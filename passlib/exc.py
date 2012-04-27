@@ -9,26 +9,27 @@ class MissingBackendError(RuntimeError):
     :exc:`!MissingBackendError` derives
     from :exc:`RuntimeError`, since this usually indicates
     lack of an external library or OS feature.
-
     This is primarily used by handlers which derive
     from :class:`~passlib.utils.handlers.HasManyBackends`.
     """
 
 class PasswordSizeError(ValueError):
-    """Error raised if the password provided exceeds the limit set by Passlib.
+    """Error raised if a password exceeds the maximum size enforced
+    by Passlib (4096 characters).
 
-    Many password hashes take proportionately larger amounts of
-    time and/or memory depending on the size of the password provided.
-    This could present a potential denial of service (DOS) situation
-    if a maliciously large password was provided to the application.
+    Many password hash algorithms take proportionately larger amounts of time and/or
+    memory depending on the size of the password provided. This could present
+    a potential denial of service (DOS) situation if a maliciously large
+    password is provided to an application. Because of this, Passlib enforces
+    a maximum size limit, but one which should be larger
+    than any legitimate password.
 
-    Because of this, Passlib enforces a maximum of 4096 characters.
-    This error will be thrown if a password larger than
-    this is provided to any of the hashes in Passlib.
+    .. note::
+        Applications wishing to use a different limit should set the
+        ``PASSLIB_MAX_PASSWORD_SIZE`` environmental variable before
+        Passlib is loaded. The value can be any large positive integer.
 
-    Applications wishing to use a different limit should set the
-    ``PASSLIB_MAX_PASSWORD_SIZE`` environmental variable before Passlib
-    is loaded.
+    .. versionadded:: 1.6
     """
     def __init__(self):
         ValueError.__init__(self, "password exceeds maximum allowed size")
@@ -40,7 +41,10 @@ class PasswordSizeError(ValueError):
 # warnings
 #==========================================================================
 class PasslibWarning(UserWarning):
-    """base class for Passlib's user warnings"""
+    """base class for Passlib's user warnings.
+
+    .. versionadded:: 1.6
+    """
 
 class PasslibConfigWarning(PasslibWarning):
     """Warning issued when non-fatal issue is found related to the configuration
@@ -151,6 +155,8 @@ def ZeroPaddedRoundsError(handler=None):
 #----------------------------------------------------------------
 def ChecksumSizeError(handler, raw=False):
     "error raised if hash was recognized, but checksum was wrong size"
+    # TODO: if handler.use_defaults is set, this came from app-provided value,
+    # not from parsing a hash string, might want different error msg.
     checksum_size = handler.checksum_size
     unit = "bytes" if raw else "chars"
     return ValueError("checksum wrong size (%s checksum must be "

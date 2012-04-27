@@ -42,7 +42,7 @@ and is released under the `BSD license <http://www.opensource.org/licenses/bsd-l
 
 Licenses for incorporated software
 ==================================
-PassLib contains some code derived from the following sources:
+Passlib contains some code derived from the following sources:
 
 MD5-Crypt
 ---------

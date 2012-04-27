@@ -5,12 +5,22 @@
 .. module:: passlib.registry
     :synopsis: registry for tracking password hash handlers.
 
-This module contains the code PassLib uses to track all password hash handlers
+This module contains the code Passlib uses to track all password hash handlers
 that it knows about. While custom handlers can be used directly within an application,
 or even handed to a :class:`!CryptContext`; it is frequently useful to register
 them globally within a process and then refer to them by name.
 This module provides facilities for that, as well as programmatically
 querying passlib to detect what algorithms are available.
+
+.. warning::
+
+    This module is primarily used as an internal support module.
+    It's interface has not been finalized yet, and may be changed somewhat
+    between major releases of Passlib, as the internal code is cleaned up
+    and simplified.
+
+    Applications should access hashes through the :mod:`passlib.hash` module
+    where possible (new ones may also be registered by writing to that module).
 
 Interface
 =========

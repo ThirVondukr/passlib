@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# PassLib documentation build configuration file, created by
+# Passlib documentation build configuration file, created by
 # sphinx-quickstart on Mon Mar  2 14:12:06 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -57,6 +57,9 @@ extensions = [
 
     # replace sphinx :samp: role handler with one that allows escaped {} chars
     'cloud_sptheme.ext.escaped_samp_literals',
+
+    # add "issue" role
+    'cloud_sptheme.ext.issue_tracker',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -73,7 +76,7 @@ master_doc = 'contents'
 index_doc = 'index'
 
 # General information about the project.
-project = u'PassLib'
+project = u'Passlib'
 copyright = u'2008-2011, Assurance Technologies, LLC'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -99,8 +102,11 @@ version = csp.get_version(release)
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = [
-    #disabling documentation of this until module is more mature.
+    # disabling documentation of this until module is more mature.
     "lib/passlib.utils.compat.rst",
+
+    # may remove this in future release
+    "lib/passlib.utils.md4.rst",
 ]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
@@ -126,6 +132,7 @@ modindex_common_prefix = [ "passlib." ]
 # -- Options for all output ---------------------------------------------------
 todo_include_todos = "hide-todos" not in options
 keep_warnings = "hide-warnings" not in options
+issue_tracker_url = "gc:passlib"
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -136,7 +143,7 @@ html_theme = 'cloud'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-if html_theme == 'cloud':
+if html_theme in ['cloud', 'redcloud']:
     html_theme_options = { "roottarget": index_doc, "collapsiblesidebar": True }
     if 'for-pypi' in options:
         html_theme_options['googleanalytics_id'] = 'UA-22302196-2'

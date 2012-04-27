@@ -40,7 +40,7 @@ instance; see below for more...
 Choosing a Hash
 ================
 *If you already know what hash algorithm(s) you want to use,
-skip to the next section,* `Creating a CryptContext`_.
+skip to the next section,* `Creating and Using a CryptContext`_.
 
 If you'd like to set up a configuration that's right for your
 application, the first thing to do is choose a password hashing scheme.
@@ -159,8 +159,26 @@ standard format for encoding password hashes using this algorithm
     the external M2Crypto package to speed up PBKDF2 calculations,
     though this is not required.
 
-Creating a CryptContext
-=======================
+.. index:: scrypt; status of
+
+What about SCrypt?
+..................
+`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the leading contender
+to be the next-generation password hash algorithm. It offers many advances
+over all of the above hashes; the primary feature being that it has
+a variable *memory* cost as well as time cost. It is incredibly well designed,
+and looks to likely replace all the others in this section.
+
+However, it is still young by comparison to the others; and has not been as throughly
+tested, or widely implemented. The only Python wrapper that exists
+does not even expose the underlying :func:`!scrypt` function,
+but is rather a file encryption tool.
+Due to these reasons, SCrypt has not yet been integrated into Passlib.
+
+.. seealso:: :issue:`8` of the Passlib bugtracker, for the current status of Passlib's SCrypt support.
+
+Creating and Using a CryptContext
+=================================
 One you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
 to manage your hashes, and relating configuration information.
@@ -175,36 +193,32 @@ Insert the following code into your application::
     #create a single global instance for your app...
     #
     pwd_context = CryptContext(
-        #replace this list with the hash(es) you wish to support.
-        #this example sets pbkdf2_sha256 as the default,
-        #with support for legacy des_crypt hashes.
+        # replace this list with the hash(es) you wish to support.
+        # this example sets pbkdf2_sha256 as the default,
+        # with support for legacy des_crypt hashes.
         schemes=["pbkdf2_sha256", "des_crypt" ],
         default="pbkdf2_sha256",
 
-        #vary rounds parameter randomly when creating new hashes...
-        all__vary_rounds = "10%",
+        # vary rounds parameter randomly when creating new hashes...
+        all__vary_rounds = 0.1,
 
-        #set the number of rounds that should be used...
-        #(appropriate values may vary for different schemes,
+        # set the number of rounds that should be used...
+        # (appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
         pbkdf2_sha256__default_rounds = 8000,
         )
 
+To start using your CryptContext, import the context you created wherever it's needed::
 
-Using a CryptContext
-====================
-To start using your CryptContext, import the context you created
-in the previous section wherever needed::
-
-    >>> #import context from where you defined it...
+    >>> # import context from where you defined it...
     >>> from myapp.model.security import pwd_context
 
-    >>> #encrypting a password...
+    >>> # encrypting a password...
     >>> hash = pwd_context.encrypt("somepass")
     >>> hash
     '$pbkdf2-sha256$7252$qKFNyMYTmgQDCFDS.jRJDQ$sms3/EWbs4/3k3aOoid5azwq3HPZKVpUUrAsCfjrN6M'
 
-    >>> #verifying a password...
+    >>> # verifying a password...
     >>> pwd_context.verify("somepass", hash)
     True
     >>> pwd_context.verify("wrongpass", hash)
@@ -212,8 +226,9 @@ in the previous section wherever needed::
 
 .. seealso::
 
-    * :mod:`passlib.hash` - list of all hashes supported by passlib.
-    * :mod:`passlib.context` - for more details about the CryptContext class.
+    * :mod:`passlib.hash` -- list of all hashes supported by passlib.
+    * :ref:`CryptContext Overview & Tutorial <context-overview>` -- walkthrough of how to use the CryptContext class.
+    * :ref:`CryptContext Reference <context-reference>` -- reference for the CryptContext api.
 
 .. rubric:: Footnotes
 

@@ -52,12 +52,12 @@ To install from a source directory using :command:`setup.py`::
 
 Testing
 =======
-PassLib contains a comprehensive set of unittests providing nearly complete coverage.
+Passlib contains a comprehensive set of unittests providing nearly complete coverage.
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
 `Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
 
-Once PassLib and Nose have been installed, the tests may be run from the source directory::
+Once Passlib and Nose have been installed, the tests may be run from the source directory::
 
     # to run the platform-relevant tests...
     nosetests -v --tests passlib/tests
@@ -82,9 +82,9 @@ you will need to:
 
 1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
 2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
-3. Download the PassLib source
-4. From the PassLib source directory, run :samp:`python setup.py build_sphinx`.
+3. Download the Passlib source
+4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
 5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/build/sphinx/html/index.html`
-   to access the PassLib documentation in html format.
+   to access the Passlib documentation in html format.
 6. Alternately, steps 4 & 5 can be replaced by running :samp:`python setup.py docdist`,
    which will build a zip file of the documentation in :samp:`{$SOURCE}/dist`.

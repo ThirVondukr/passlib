@@ -5,6 +5,7 @@ Release History
 ===============
 
 **1.6** (NOT YET RELEASED)
+==========================
 
     Hashes
 
@@ -58,7 +59,7 @@ Release History
           of :func:`!os_crypt`.
 
         * The :doc:`ldap salted digests </lib/passlib.hash.ldap_std>`
-          now support salts from 4-16 bytes [issue 30].
+          now support salts from 4-16 bytes :issue:`30`.
 
         * :class:`bsdi_crypt` now issues a warning if an even number of rounds
           is requested by the application, due to a known weakness in DES.
@@ -231,7 +232,7 @@ Release History
         *all* passwords if any of the padding bits are set.  Thus Passlib's
         BCrypt salt generation needed to be fixed to ensure compatibility,
         and a route provided to correct existing hashes already out in the wild
-        [issue 25].
+        :issue:`25`.
 
     *Changes in this release:*
 
@@ -266,7 +267,7 @@ Release History
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
           :data:`hash64 <passlib.utils.h64>` characters in it's salts;
-          previously it accepted only lower-case hexidecimal characters [issue 22].
+          previously it accepted only lower-case hexidecimal characters :issue:`22`.
 
         * Additional unittests added for all
           standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
@@ -290,16 +291,16 @@ Release History
     Minor bugfix release -- now compatible with Google App Engine.
 
     * *bugfix:* make ``passlib.hash.__loader__`` attribute writable -
-      needed by Google App Engine (GAE) [issue 19].
+      needed by Google App Engine (GAE) :issue:`19`.
 
     * *bugfix:* provide fallback for loading ``passlib/default.cfg``
-      if :mod:`pkg_resources` is not present, such as for GAE [issue 19].
+      if :mod:`pkg_resources` is not present, such as for GAE :issue:`19`.
 
     * *bugfix:* fixed error thrown by CryptContext.verify
-      when issuing min_verify_time warning [issue 17].
+      when issuing min_verify_time warning :issue:`17`.
 
     * removed min_verify_time setting from custom_app_context,
-      min_verify_time is too host & load dependant to be hardcoded [issue 17].
+      min_verify_time is too host & load dependant to be hardcoded :issue:`17`.
 
     * under GAE, disable all unittests which require writing to filesystem.
 
@@ -474,7 +475,7 @@ Release History
 
     .. note::
 
-        For this and all previous versions, PassLib did not exist independantly,
+        For this and all previous versions, Passlib did not exist independantly,
         but as a subpackage of *BPS*, a private & unreleased toolkit library.
 
     * many bugfixes

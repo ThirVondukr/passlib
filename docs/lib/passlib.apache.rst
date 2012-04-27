@@ -10,10 +10,11 @@ htpasswd and htdigest files; though the use of two helper classes.
 
 .. versionchanged:: 1.6
     The api for this module was updated to be more flexible,
-    and to have (hopefully) less confusing method names.
-    The old method and keyword names are supported but deprecated, and
+    and to have less ambiguous method names.
+    The old method and keyword names are deprecated, and
     will be removed in Passlib 1.8.
-    No more backwards-incompatible changes are currently planned.
+    No more backwards-incompatible changes are currently planned
+    for these classes.
 
 .. index:: apache; htpasswd
 
