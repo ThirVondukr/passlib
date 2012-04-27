@@ -389,7 +389,7 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
 
         If you are considering using this method to select from multiple
         algorithms in order to verify a password, you may be better served
-        by the :doc:`CryptContext </lib/passlib.context>` class.
+        by the :doc:`CryptContext <context-overview>` class.
 
 ..
     the undocumented and experimental support methods currently include

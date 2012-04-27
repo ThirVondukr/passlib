@@ -36,7 +36,7 @@ All of the hashes in this module can used in two ways:
         True
 
 2. Alternately, when working with multiple algorithms at once, it is frequently useful
-   to construct a :doc:`CryptContext <passlib.context>` object instead;
+   to construct a :ref:`CryptContext <context-overview>` object instead;
    and reference the hashes by name only. For example, the following
    code creates a :class:`!CryptContext` object which recognizes both
    the :class:`md5_crypt` and :class:`des_crypt` hash algorithms::

@@ -14,6 +14,7 @@ Table Of Contents
     password_hash_api
     lib/passlib.hash
 
+    lib/passlib.context-tutorial
     lib/passlib.context
     lib/passlib.apps
     lib/passlib.apache

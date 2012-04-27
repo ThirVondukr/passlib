@@ -82,13 +82,15 @@ _preamble = ("The CryptPolicy class has been deprecated as of "
              "Passlib 1.6, and will be removed in Passlib 1.8. ")
 
 class CryptPolicy(object):
-    """This class has been deprecated, and will be removed in Passlib 1.8.
+    """
+    .. deprecated:: 1.6
+        This class has been deprecated, and will be removed in Passlib 1.8.
+        All of it's functionality has been rolled into :class:`CryptContext`.
 
     This class previously stored the configuration options for the
     CryptContext class. In the interest of interface simplification,
     all of this class' functionality has been rolled into the CryptContext
     class itself.
-
     The documentation for this class is now focused on  documenting how to
     migrate to the new api. Additionally, where possible, the deprecation
     warnings issued by the CryptPolicy methods will list the replacement call
@@ -236,10 +238,9 @@ class CryptPolicy(object):
         and the results are merged together.
 
         .. deprecated:: 1.6
-
-        Instead of using this method to merge multiple policies together,
-        a :class:`CryptContext` instance should be created, and then
-        the multiple sources merged together via :meth:`CryptContext.load`.
+            Instead of using this method to merge multiple policies together,
+            a :class:`CryptContext` instance should be created, and then
+            the multiple sources merged together via :meth:`CryptContext.load`.
         """
         if _warn:
             warn(_preamble +
@@ -261,9 +262,8 @@ class CryptPolicy(object):
         existing configuration.
 
         .. deprecated:: 1.6
-
-        Callers of this method should :meth:`CryptContext.update` or
-        :meth:`CryptContext.copy` instead.
+            Callers of this method should :meth:`CryptContext.update` or
+            :meth:`CryptContext.copy` instead.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -327,9 +327,8 @@ class CryptPolicy(object):
         """return True if policy defines *any* schemes for use.
 
         .. deprecated:: 1.6
-
-        applications should use ``bool(context.schemes())`` instead.
-        see :meth:`CryptContext.schemes`.
+            applications should use ``bool(context.schemes())`` instead.
+            see :meth:`CryptContext.schemes`.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -348,9 +347,8 @@ class CryptPolicy(object):
         """return iterator over handlers defined in policy.
 
         .. deprecated:: 1.6
-
-        applications should use ``context.schemes(resolve=True))`` instead.
-        see :meth:`CryptContext.schemes`.
+            applications should use ``context.schemes(resolve=True))`` instead.
+            see :meth:`CryptContext.schemes`.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -369,8 +367,7 @@ class CryptPolicy(object):
         """return list of schemes defined in policy.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.schemes` instead.
+            applications should use :meth:`CryptContext.schemes` instead.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -389,10 +386,9 @@ class CryptPolicy(object):
         """return handler as specified by name, or default handler.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.handler` instead,
-        though note that the ``required`` keyword has been removed,
-        and the new method will always act as if ``required=True``.
+            applications should use :meth:`CryptContext.handler` instead,
+            though note that the ``required`` keyword has been removed,
+            and the new method will always act as if ``required=True``.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -419,8 +415,7 @@ class CryptPolicy(object):
         """get min_verify_time setting for policy.
 
         .. deprecated:: 1.6
-
-        min_verify_time will be removed entirely in passlib 1.8
+            min_verify_time will be removed entirely in passlib 1.8
         """
         warn("get_min_verify_time() and min_verify_time option is deprecated, "
              "and will be removed in Passlib 1.8", DeprecationWarning,
@@ -437,10 +432,9 @@ class CryptPolicy(object):
         """return dictionary of options specific to a given handler.
 
         .. deprecated:: 1.6
-
-        this method has no direct replacement in the 1.6 api, as there
-        is not a clearly defined use-case. however, examining the output of
-        :meth:`CryptContext.to_dict` should serve as the closest alternative.
+            this method has no direct replacement in the 1.6 api, as there
+            is not a clearly defined use-case. however, examining the output of
+            :meth:`CryptContext.to_dict` should serve as the closest alternative.
         """
         # XXX: might make a public replacement, but need more study of the use cases.
         if self._stub_policy:
@@ -459,10 +453,9 @@ class CryptPolicy(object):
         """check if handler has been deprecated by policy.
 
         .. deprecated:: 1.6
-
-        this method has no direct replacement in the 1.6 api, as there
-        is not a clearly defined use-case. however, examining the output of
-        :meth:`CryptContext.to_dict` should serve as the closest alternative.
+            this method has no direct replacement in the 1.6 api, as there
+            is not a clearly defined use-case. however, examining the output of
+            :meth:`CryptContext.to_dict` should serve as the closest alternative.
         """
         # XXX: might make a public replacement, but need more study of the use cases.
         if self._stub_policy:
@@ -485,8 +478,7 @@ class CryptPolicy(object):
         """iterate over key/value pairs representing the policy object.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.to_dict` instead.
+            applications should use :meth:`CryptContext.to_dict` instead.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -522,8 +514,7 @@ class CryptPolicy(object):
         """export policy object as dictionary of options.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.to_dict` instead.
+            applications should use :meth:`CryptContext.to_dict` instead.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -542,9 +533,8 @@ class CryptPolicy(object):
         """export policy to file.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.to_string` instead,
-        and then write the output to a file as desired.
+            applications should use :meth:`CryptContext.to_string` instead,
+            and then write the output to a file as desired.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -566,8 +556,7 @@ class CryptPolicy(object):
         """export policy to file.
 
         .. deprecated:: 1.6
-
-        applications should use :meth:`CryptContext.to_string` instead.
+            applications should use :meth:`CryptContext.to_string` instead.
         """
         if self._stub_policy:
             warn(_preamble +
@@ -964,6 +953,7 @@ class _CryptRecord(object):
 
         # if we can parse rounds parameter, check if it's w/in bounds.
         if self._has_rounds_introspection:
+            # XXX: this might be a good place to use parsehash()
             hash_obj = self.handler.from_string(hash)
             try:
                 rounds = hash_obj.rounds
@@ -997,75 +987,18 @@ class CryptContext(object):
     which algorithms should be deprecated, and automatically handle
     migrating users to stronger hashes when they log in.
 
-    This class can be created one of three ways: directly through it's
-    constructor via keywords, loaded from a configuration string,
-    or loaded from a file. Configuration strings / files can be created by hand;
-    or automatically created by serializing an existing CryptContext, using
-    :meth:``to_string``.
+    Basic usage::
 
-    :param \*\*kwds:
+        >>> ctx = CryptContext(schemes=[...])
 
-        CryptContext instances accept a wide number of keywords as possible
-        options. Common keywords include ``schemes`` and ``default``.
-        See :doc:`/lib/passlib.context-options` for a full list.
-
-    Main Interface
-    ==============
-    Most applications will only need to make use two methods in a CryptContext
-    instance:
-
-    .. automethod:: encrypt
-    .. automethod:: verify
-
-    Applications which want to detect and re-encrypt deprecated
-    hashes will want to use one of the following methods:
-
-    .. automethod:: needs_update
-    .. automethod:: verify_and_update
-
-    Additionally, the main interface offers a few helper methods,
-    useful for certain border cases:
-
-    .. automethod:: identify
-    .. automethod:: genhash
-    .. automethod:: genconfig
-
-    Alternate Constructors
-    ======================
-    In addition to the main class constructor, which accepts a configuration
-    as a set of keywords, there are the following alternate constructors:
-
-    .. automethod:: from_string
-    .. automethod:: from_path
-    .. automethod:: copy
-
-    Updating the Configuration
-    ==========================
-    CryptContext objects can have their configuration replaced or updated
-    on the fly, and from a variety of sources (keywords, strings, files).
-    This is done through two methods:
-
-    .. automethod:: update(\*\*kwds)
-    .. automethod:: load
-    .. automethod:: load_path
-
-    Examining the Configuration
-    ===========================
-    The CryptContext object also supports some basic inspection of it's
-    current configuration:
-
-    .. automethod:: schemes
-    .. automethod:: default_scheme
-    .. automethod:: handler
-
-    More detailed inspection can be done through the serialization methods:
-
-    .. automethod:: to_dict
-    .. automethod:: to_string
+    See the Passlib online documentation for details and full documentation.
     """
     # FIXME: altering the configuration of this object isn't threadsafe,
     # but is generally only done during application init, so not a major
     # issue (just yet).
+
+    # XXX: would like some way to restrict the categories that are allowed,
+    # to restrict what the app OR the config can use.
 
     #===================================================================
     #instance attrs
@@ -1106,22 +1039,38 @@ class CryptContext(object):
     # secondary constructors
     #===================================================================
     @classmethod
+    def _norm_source(cls, source):
+        "internal helper - accepts string, dict, or context"
+        if isinstance(source, dict):
+            return cls(**source)
+        elif isinstance(source, cls):
+            return source
+        else:
+            self = cls()
+            self.load(source)
+            return self
+
+    @classmethod
     def from_string(cls, source, section="passlib", encoding="utf-8"):
         """create new CryptContext instance from an INI-formatted string.
 
+        :type source: unicode or bytes
         :arg source:
-            bytes/unicode string containing INI-formatted content.
+            string containing INI-formatted content.
 
+        :type section: str
         :param section:
             option name of section to read from, defaults to ``"passlib"``.
 
+        :type encoding: str
         :arg encoding:
             optional encoding used when source is bytes, defaults to ``"utf-8"``.
 
         :returns:
-            new CryptContext instance.
+            new :class:`CryptContext` instance, configured based on the
+            parameters in the *source* string.
 
-        usage example::
+        Usage example::
 
             >>> from passlib.context import CryptContext
             >>> context = CryptContext.from_string('''
@@ -1131,6 +1080,8 @@ class CryptContext(object):
             ... ''')
 
         .. versionadded:: 1.6
+
+        .. seealso:: :meth:`to_string`, the inverse of this constructor.
         """
         if not isinstance(source, base_string_types):
             raise ExpectedTypeError(source, "unicode or bytes", "source")
@@ -1145,51 +1096,58 @@ class CryptContext(object):
         this functions exactly the same as :meth:`from_string`,
         except that it loads from a local file.
 
-        :arg source:
+        :type path: str
+        :arg path:
             path to local file containing INI-formatted config.
 
+        :type section: str
         :param section:
             option name of section to read from, defaults to ``"passlib"``.
 
+        :type encoding: str
         :arg encoding:
             encoding used to load file, defaults to ``"utf-8"``.
 
         :returns:
-            new CryptContext instance.
+            new CryptContext instance, configured based on the parameters
+            stored in the file *path*.
 
         .. versionadded:: 1.6
+
+        .. seealso:: :meth:`from_string` for an equivalent usage example.
         """
         self = cls(_autoload=False)
         self.load_path(path, section=section, encoding=encoding)
         return self
 
     def copy(self, **kwds):
-        """return copy of existing CryptContext instance.
+        """Return copy of existing CryptContext instance.
 
-        this function returns a new CryptContext instance whose configuration
+        This function returns a new CryptContext instance whose configuration
         is exactly the same as the original, with the exception that any keywords
         passed in will take precedence over the original settings.
+        As an example::
 
-        usage example::
+            >>> from passlib.context import CryptContext
 
-            >>> # given an existing context, e.g...
-            >>> from passlib.apps import custom_app_context
+            >>> # given an existing context...
+            >>> ctx1 = CryptContext(["sha256_crypt", "md5_crypt"])
 
-            >>> # copy can be used to make a clone
-            >>> my_context = custom_app_context.copy(default="sha512_crypt")
+            >>> # copy can be used to make a clone, and update
+            >>> # some of the settings at the same time...
+            >>> ctx2 = custom_app_context.copy(default="md5_crypt")
 
             >>> # and the original will be unaffected by the change
-            >>> my_context.default_scheme()
-            "sha512_crypt"
-            >>> custom_app_context.default_scheme()
+            >>> ctx1.default_scheme()
             "sha256_crypt"
-
-        .. seealso:: :meth:`update`
+            >>> ctx2.default_scheme()
+            "md5_crypt"
 
         .. versionchanged:: 1.6
-            This method was previously named ``replace``, that name
-            is still supported, but deprecated, and will be removed
-            in Passlib 1.8.
+            This method was previously named :meth:`!replace`. That alias
+            has been deprecated, and will be removed in Passlib 1.8.
+
+        .. seealso:: :meth:`update`
         """
         other = CryptContext(**self.to_dict(resolve=True))
         if kwds:
@@ -1299,7 +1257,7 @@ class CryptContext(object):
         return dict(p.items(section))
 
     def load_path(self, path, update=False, section="passlib", encoding="utf-8"):
-        """load new configuration into CryptContext from a local file.
+        """Load new configuration into CryptContext from a local file.
 
         This function is a wrapper for :meth:`load`, which
         loads a configuration string from the local file *path*,
@@ -1327,23 +1285,27 @@ class CryptContext(object):
                 return helper(BytesIO(tmp))
 
     def load(self, source, update=False, section="passlib", encoding="utf-8"):
-        """load new configuration into CryptContext, replacing existing config.
+        """Load new configuration into CryptContext, replacing existing config.
 
         :arg source:
-            source of new configuration.
+            source of new configuration to load.
+            this value can be a number of different types:
 
-            *source* can be one of a few of different types:
-
-            :class:`!dict` or another mapping
+            * a :class:`!dict` object, or compatible Mapping
 
                 the key/value pairs will be interpreted the same
                 keywords for the :class:`CryptContext` class constructor.
 
-            :class:`!unicode` or :class:`!bytes` string
+            * a :class:`!unicode` or :class:`!bytes` string
 
                 this will be interpreted as an INI-formatted file,
                 and appropriate key/value pairs will be loaded from
                 the specified *section*.
+
+            * another :class:`!CryptContext` object.
+
+                this will export a snapshot of it's configuration
+                using :meth:`to_dict`.
 
         :type update: bool
         :param update:
@@ -1370,10 +1332,12 @@ class CryptContext(object):
         :raises ValueError:
             If an invalid keyword value is encountered.
 
-        If an error occurs during a :meth:`!load` call, the :class`!CryptContext`
-        instance will be restored to the configuration it was in before
-        the :meth:`!load` call was made, it should never be left in an
-        inconsistent state due to a load failure.
+        .. note::
+
+            If an error occurs during a :meth:`!load` call, the :class`!CryptContext`
+            instance will be restored to the configuration it was in before
+            the :meth:`!load` call was made; this is to ensure it is
+            *never* left in an inconsistent state due to a load error.
 
         .. versionadded:: 1.6
         """
@@ -1531,12 +1495,7 @@ class CryptContext(object):
                     for scheme in value:
                         if not isinstance(scheme, str):
                             raise ExpectedTypeError(value, "str", "deprecated element")
-                        if scheme in schemes:
-                            continue
-                        elif scheme == "auto":
-                            if len(value) > 1:
-                                raise ValueError("cannot list other schemes if ``deprecated=['auto']`` is used")
-                        else:
+                        if scheme not in schemes and scheme != "auto":
                             raise KeyError("deprecated scheme not found "
                                        "in policy: %r" % (scheme,))
                     # TODO: make sure there's at least one non-deprecated scheme.
@@ -1613,12 +1572,14 @@ class CryptContext(object):
         return cat, scheme, key
 
     def update(self, *args, **kwds):
-        """helper for quickly changing configuration.
+        """Helper for quickly changing configuration.
 
-        this acts much like the dictionary :meth:`!update` method;
-        it accepts any keyword accepted by the :class:`CryptContext`
-        constructor, and updates the context's configuration,
-        replacing the original value(s).
+        This acts much like the :meth:`!dict.update` method:
+        it updates the context's configuration,
+        replacing the original value(s) for the specified keys,
+        and preserving the rest.
+        It accepts any :ref:`keyword <context-options>`
+        accepted by the :class:`!CryptContext` constructor.
 
         .. versionadded:: 1.6
 
@@ -1774,18 +1735,25 @@ class CryptContext(object):
     def schemes(self, resolve=False):
         """return schemes loaded into this CryptContext instance.
 
+        :type resolve: bool
+        :arg resolve:
+            if ``True``, will return a tuple of :class:`~passlib.ifc.PasswordHash`
+            objects instead of their names.
+
         :returns:
-            returns list of schemes as a tuple.
-            if ``resolve=True``, returns the actual handler objects instead
-            of the names (but in the same order).
+            returns tuple of the schemes configured for this context
+            via the *schemes* option.
 
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.schemes()``
+
+        .. seealso:: the :ref:`schemes <context-schemes-option>` option for usage example.
         """
         return self._handlers if resolve else self._schemes
 
     # XXX: need to decide if exposing this would be useful to applications
     # in any way that isn't already served by to_dict()
+    # FIXME: this doesn't support deprecated='auto'
     ##def deprecated_schemes(self, category=None, resolve=False):
     ##    """return tuple of deprecated schemes"""
     ##    depmap = self._deprecated_schemes
@@ -1797,11 +1765,13 @@ class CryptContext(object):
     ##        return self.schemes(resolve)
     ##    if resolve:
     ##        return tuple(handler for handler in self._handlers
-    ##                     if handler.name not in deplist)
+    ##                     if handler.name in deplist)
     ##    else:
     ##        return tuple(scheme for scheme in self._schemes
-    ##                     if scheme not in deplist)
+    ##                     if scheme in deplist)
 
+    # XXX: if public, should this just be a flag in schemes()?
+    #      or something e.g. is_scheme_deprecated()?
     def _is_deprecated_scheme(self, scheme, category=None):
         "helper used by unittests to check if scheme is deprecated"
         return self._get_record(scheme, category).deprecated
@@ -1810,6 +1780,21 @@ class CryptContext(object):
 
     def default_scheme(self, category=None, resolve=False):
         """return name of scheme that :meth:`encrypt` will use by default.
+
+        :type resolve: bool
+        :arg resolve:
+            if ``True``, will return a :class:`~passlib.ifc.PasswordHash`
+            object instead of the name.
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            If specified, this will return the catgory-specific default scheme instead.
+
+        :returns:
+            name of the default scheme.
+
+        .. seealso:: the :ref:`default <context-default-option>` option for usage example.
 
         .. versionadded:: 1.6
         """
@@ -1856,13 +1841,23 @@ class CryptContext(object):
     def handler(self, scheme=None, category=None):
         """helper to resolve name of scheme -> handler object.
 
-        the scheme may optionally be set to ``None``,
-        in which case the handler attached to the default scheme will be
-        returned. if ``category`` is specified, the default for that
-        category will be returned.
+        :arg scheme:
+            This should identify the scheme to lookup.
+            If omitted or set to ``None``, this will return the handler
+            for the default scheme.
 
-        this will raise a :exc:`KeyError` if no scheme of that name has been
-        loaded into this CryptContext.
+        :arg category:
+            If a user category is specified, and no scheme is provided,
+            it will use the default for that category.
+            Otherwise this parameter is ignored.
+
+        :raises KeyError:
+            If the scheme does not exist OR is not being used within this context.
+
+        :returns:
+            :class:`~passlib.ifc.PasswordHash` object used to implement
+            the named scheme within this context (this will usually
+            be one of the objects from :mod:`passlib.hash`)
 
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.get_handler()``
@@ -1975,15 +1970,19 @@ class CryptContext(object):
         return value.replace("%", "%%")
 
     def to_dict(self, resolve=False):
-        """return as config dictionary;
+        """Return current configuration as a dictionary.
 
-        if ``resolve=True``, the ``schemes`` key will contain
-        a list of handler objects rather than just their names.
+        :type resolve: bool
+        :arg resolve:
+            if ``True``, the ``schemes`` key will contain a list of
+            a :class:`~passlib.ifc.PasswordHash` objects instead of just
+            their names.
 
-        the output of this should be acceptable as input
-        to the CryptContext constructor.
-
-        usage example::
+        This method dumps the current configuration of the CryptContext
+        instance. The key/value pairs should be in the format accepted
+        by the :class:`!CryptContext` class constructor, in fact
+        ``CryptContext(**myctx.to_dict())`` will create an exact copy of ``myctx``.
+        As an example::
 
             >>> # you can dump the configuration of any crypt context...
             >>> from passlib.apps import ldap_nocrypt_context
@@ -1996,6 +1995,8 @@ class CryptContext(object):
 
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.to_dict()``
+
+        .. seealso:: the :ref:`context-serialization-example` example in the tutorial.
         """
         # XXX: should resolve default to conditional behavior
         # based on presence of unregistered handlers?
@@ -2026,7 +2027,11 @@ class CryptContext(object):
         :returns:
             CryptContext configuration, serialized to a INI unicode string.
 
-        usage example::
+        This function acts exactly like :meth:`to_dict`, except that it
+        serializes all the contents into a single human-readable string,
+        which can be hand edited, and/or stored in a file. The
+        output of this method is accepted by :meth:`from_string`,
+        :meth:`from_path`, and :meth:`load`. As an example::
 
             >>> # you can dump the configuration of any crypt context...
             >>> from passlib.apps import ldap_nocrypt_context
@@ -2034,12 +2039,10 @@ class CryptContext(object):
             [passlib]
             schemes = ldap_salted_sha1, ldap_salted_md5, ldap_sha1, ldap_md5, ldap_plaintext
 
-        passing the output of this method into :meth:`load`,
-        :meth:`from_string` or :meth:`from_file` should recreate
-        the exact state of the :class:`CryptContext` instance.
-
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.to_string()``
+
+        .. seealso:: the :ref:`context-serialization-example` example in the tutorial.
         """
         parser = SafeConfigParser()
         self._write_to_parser(parser, section, compact)
@@ -2180,22 +2183,53 @@ class CryptContext(object):
     #       by the specific (scheme,category) combination it manages.
 
     def needs_update(self, hash, scheme=None, category=None, secret=None):
-        """check if hash is allowed by current policy, or if secret should be re-encrypted.
+        """Check if hash needs to be replaced for some reason,
+        in which case the secret should be re-hashed.
 
-        the core of CryptContext's support for hash migration:
+        This function is the core of CryptContext's support for hash migration:
+        This function takes in a hash string, and checks the scheme,
+        number of rounds, and other properties against the current policy.
+        It returns ``True`` if the hash is using a deprecated scheme,
+        or is otherwise outside of the bounds specified by the policy
+        (e.g. the number of rounds is lower than :ref:`min_rounds <context-min-rounds-option>`
+        configuration for that algorithm).
+        If so, the password should be re-encrypted using :meth:`encrypt`
+        Otherwise, it will return ``False``.
 
-        this function takes in a hash string, and checks the scheme,
-        number of rounds, and other properties against the current policy;
-        and returns True if the hash is using a deprecated scheme,
-        or is otherwise outside of the bounds specified by the policy.
-        if so, the password should be re-encrypted using :meth:`encrypt`.
+        :type hash: unicode or bytes
+        :arg hash:
+            The hash string to examine.
 
-        :arg hash: existing hash string
-        :param scheme: optionally identify specific scheme to check against.
-        :param category: optional user category
-        :param secret: optional copy of associated password
+        :type scheme: str or None
+        :param scheme:
 
-        :returns: True/False
+            Optional scheme to use. Scheme must be one of the ones
+            configured for this context (see the
+            :ref:`schemes <context-schemes-option>` option).
+            If no scheme is specified, it will be identified
+            based on the value of *hash*.
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            If specified, this will cause any category-specific defaults to
+            be used when determining if the hash needs to be updated
+            (e.g. is below the minimum rounds).
+
+        :type secret: unicode, bytes, or None
+        :param secret:
+            Optionally, the secret associated with the hash.
+            This is not required, or in fact useful for any current purpose,
+            and can be safely omitted. It's mainly present to allow the
+            development of future deprecation checks which might need this information.
+
+        :returns: ``True`` if hash should be replaced, otherwise ``False``.
+
+        .. versionchanged:: 1.6
+            The *secret* argument was added, and this method was renamed
+            from the longer alias ``hash_needs_update``.
+
+        .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
         record = self._get_or_identify_record(hash, scheme, category)
         return record.needs_update(hash, secret)
@@ -2209,41 +2243,119 @@ class CryptContext(object):
         return self.needs_update(hash, scheme, category)
 
     def genconfig(self, scheme=None, category=None, **settings):
-        """Call genconfig() for specified handler
+        """Generate a config string for specified scheme.
 
-        This wraps the genconfig() method of the appropriate handler
-        (using the default if none other is specified).
-        See the :ref:`password-hash-api` for details.
+        This wraps the :meth:`~passlib.ifc.PasswordHash.genconfig`
+        method of the appropriate algorithm, using the default if
+        one is not specified.
+        The main difference between this and calling a hash's
+        :meth:`!genconfig` method directly is that this way, the CryptContext
+        will add in any hash-specific options, such as the default rounds.
 
-        The main different between this and calling a handlers' genhash method
-        directly is that this method will add in any policy-specific
-        options relevant for the particular hash.
+        :type scheme: str or None
+        :param scheme:
+
+            Optional scheme to use. Scheme must be one of the ones
+            configured for this context (see the
+            :ref:`schemes <context-schemes-option>` option).
+            If no scheme is specified, the configured default
+            will be used.
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            If specified, this will cause any category-specific defaults to
+            be used when hashing the password (e.g. different default scheme,
+            different default rounds values, etc).
+
+        :param \*\*settings:
+            All additional keywords are passed to the appropriate handler,
+            and should match it's :attr:`~passlib.ifc.PasswordHash.setting_kwds`.
+
+        :returns:
+            A configuration string suitable for passing to :meth:`~CryptContext.genhash`,
+            encoding all the provided settings and defaults; or ``None``
+            if the selected algorithm doesn't support configuration strings.
+            The return value will always be a :class:`!str`.
         """
         return self._get_record(scheme, category).genconfig(**settings)
 
-    def genhash(self, secret, config, scheme=None, category=None, **context):
-        """Call genhash() for specified handler.
+    def genhash(self, secret, config, scheme=None, category=None, **kwds):
+        """Generate hash for the specified secret using another hash.
 
-        This wraps the genconfig() method of the appropriate handler
-        (using the default if none other is specified).
-        See the :ref:`password-hash-api` for details.
+        This wraps the :meth:`~passlib.ifc.PasswordHash.genhash`
+        method of the appropriate algorithm, identifying it based
+        on the provided hash / configuration if a scheme is not specified
+        explicitly.
+
+        :type secret: unicode or bytes
+        :arg secret:
+            the password to hash.
+
+        :type config: unicode or bytes
+        :arg hash:
+            The hash or configuration string to extract the settings and salt
+            from when hashing the password.
+
+        :type scheme: str or None
+        :param scheme:
+
+            Optional scheme to use. Scheme must be one of the ones
+            configured for this context (see the
+            :ref:`schemes <context-schemes-option>` option).
+            If no scheme is specified, it will be identified
+            based on the value of *config*.
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            Ignored by this function, this parameter
+            is provided for symmetry with the other methods.
+
+        :param \*\*kwds:
+            All additional keywords are passed to the appropriate handler,
+            and should match it's :attr:`~passlib.ifc.PasswordHash.context_kwds`.
+
+        :returns:
+            The secret as encoded by the specified algorithm and options.
+            The return value will always be a :class:`!str`.
+
+        :raises TypeError, ValueError:
+            * if any of the arguments have an invalid type or value.
+            * if the selected algorithm's underlying :meth:`~passlib.ifc.PasswordHash.genhash`
+              method throws an error based on *secret* or the provided *kwds*.
         """
         # XXX: could insert normalization to preferred unicode encoding here
-        return self._get_record(scheme, category).genhash(secret, config,
-                                                          **context)
+        return self._get_record(scheme, category).genhash(secret, config, **kwds)
 
     def identify(self, hash, category=None, resolve=False, required=False):
-        """Attempt to identify which algorithm hash belongs to w/in this context.
+        """Attempt to identify which algorithm the hash belongs to.
 
+        Note that this will only consider the algorithms
+        currently configured for this context
+        (see the :ref:`schemes <context-schemes-option>` option).
+        All registered algorithms will be checked, from first to last,
+        and whichever one positively identifies the hash first will be returned.
+
+        :type hash: unicode or bytes
         :arg hash:
             The hash string to test.
 
-        :param resolve:
-            If ``True``, returns the handler itself,
-            instead of the name of the handler.
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            Ignored by this function, this parameter
+            is provided for symmetry with the other methods.
 
-        All registered algorithms will be checked in from last to first,
-        and whichever one claims the hash first will be returned.
+        :type resolve: bool
+        :param resolve:
+            If ``True``, returns the hash handler itself,
+            instead of the name of the hash.
+
+        :type required: bool
+        :param required:
+            If ``True``, this will raise a ValueError if the hash
+            cannot be identified, instead of returning ``None``.
 
         :returns:
             The handler which first identifies the hash,
@@ -2258,114 +2370,149 @@ class CryptContext(object):
             return record.scheme
 
     def encrypt(self, secret, scheme=None, category=None, **kwds):
-        """encrypt secret, returning resulting hash.
+        """run secret through selected algorithm, returning resulting hash.
 
+        :type secret: unicode or bytes
         :arg secret:
-            String containing the secret to encrypt
+            the password to hash.
 
+        :type scheme: str or None
         :param scheme:
-            Optionally specify the name of the algorithm to use.
-            If no algorithm is specified, an attempt is made
-            to guess from the hash string. If no hash string
-            is specified, the last algorithm in the list is used.
+
+            Optional scheme to use. Scheme must be one of the ones
+            configured for this context (see the
+            :ref:`schemes <context-schemes-option>` option).
+            If no scheme is specified, the configured default
+            will be used.
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>`.
+            If specified, this will cause any category-specific defaults to
+            be used when hashing the password (e.g. different default scheme,
+            different default rounds values, etc).
 
         :param \*\*kwds:
-            All other keyword options are passed to the algorithm's encrypt method.
-            The two most common ones are "keep_salt" and "rounds".
+            All other keyword options are passed to the selected algorithm's
+            :meth:`~passlib.ifc.PasswordHash.encrypt` method.
 
         :returns:
             The secret as encoded by the specified algorithm and options.
+            The return value will always be a :class:`!str`.
 
-        usage example::
+        :raises TypeError, ValueError:
+            * if any of the arguments have an invalid type or value.
+            * if the selected algorithm's underlying :meth:`~passlib.ifc.PasswordHash.encrypt`
+              method throws an error based on *secret* or the provided *kwds*.
 
-            >>> # given an existing CryptContext...
-            >>> from passlib.apps import custom_app_context
-
-            >>> # calling encrypt will generate a new salt, and hash
-            >>> # the password using the context's default scheme
-            >>> custom_app_context.encrypt("fooey")
-            '$5$rounds=39987$WWelpiPfgTdTrpSr$tosg/YcCKCzePQnB6eseVh8YdSKRkCJ6uQ/QpXoEUm.'
-
-            >>> # optionally you can specify a particular scheme and options
-            >>> # (though if these options are to be hardcoded, you should
-            >>> # just create your own CryptContext instance).
-            >>> custom_app_context.encrypt("fooey", "sha512_crypt", rounds=5000)
-            '$6$D3OcBBac5qGdvIbT$mQvIwPS8bWx2DnSrZrFK3e1Rie1vv8hlixCoBfDSJ..Bg1E0PJVzKzAkdt/cBm9CdADrCxv6tOPjqqn8AxpF01'
+        .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: could insert normalization to preferred unicode encoding here
         return self._get_record(scheme, category).encrypt(secret, **kwds)
 
-    def verify(self, secret, hash, scheme=None, category=None, **context):
-        """verify secret against specified hash.
+    def verify(self, secret, hash, scheme=None, category=None, **kwds):
+        """verify secret against an existing hash.
 
-        This identifies the scheme used by the hash (within this context),
-        and verifies that the specified password matches.
+        If no scheme is specified, this will attempt to identify
+        the scheme based on the contents of the provided hash
+        (limited to the schemes configured for this context).
+        It will then check whether the password verifies against the hash.
 
-        If the policy specified a min_verify_time, this method
-        will always take at least that amount of time
-        (so as to not reveal legacy entries which use a weak hash scheme).
-
+        :type secret: unicode or bytes
         :arg secret:
             the secret to verify
+
+        :type secret: unicode or bytes
         :arg hash:
             hash string to compare to
-        :param scheme:
-            optional force context to use specfic scheme
-            (must be listed in context)
-        :param category:
-            optional user category, if used by the application.
-            defaults to ``None``.
-        :param \*\*context:
-            all additional keywords are passed to the appropriate handler,
-            and should match it's
-            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
 
-        :returns: True/False
+        :type scheme: str
+        :param scheme:
+            Optionally force context to use specific scheme.
+            This is usually not needed, as most hashes can be unambiguously
+            identified. Scheme must be one of the ones configured
+            for this context
+            (see the :ref:`schemes <context-schemes-option>` option).
+
+        :type category: str or None
+        :param category:
+            Optional :ref:`user category <user-categories>` string.
+            This is mainly used when generating new hashes, it has little
+            effect when verifying; this keyword is mainly provided for symmetry.
+
+        :param \*\*kwds:
+            All additional keywords are passed to the appropriate handler,
+            and should match it's :attr:`~passlib.ifc.PasswordHash.context_kwds`.
+
+        :returns:
+            ``True`` if the password matched hash, else ``False``.
+
+        :raises TypeError, ValueError:
+            * if any of the arguments have an invalid type or value.
+            * if the selected algorithm's underlying :meth:`~passlib.ifc.PasswordHash.verify`
+              method throws an error based on *secret* or the provided *kwds*.
+
+        :raises ValueError: if the hash could not be identified.
+
+        .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here
         # XXX: what about supporting a setter() callback ala django 1.4 ?
         record = self._get_or_identify_record(hash, scheme, category)
-        return record.verify(secret, hash, **context)
+        return record.verify(secret, hash, **kwds)
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
-        """verify secret and check if hash needs upgrading, in a single call.
+        """verify password and re-hash the password if needed, all in a single call.
 
-        This is a convenience method for a common situation in most applications:
-        When a user logs in, they must :meth:`verify` if the password matches;
-        if successful, check if the hash algorithm
-        has been deprecated (:meth:`needs_update`); and if so,
-        re-:meth:`encrypt` the secret.
-        This method takes care of calling all of these 3 methods,
-        returning a simple tuple for the application to use.
+        This is a convenience method which takes care of all the following:
+        first it verifies the password (:meth:`~CryptContext.verify`), if this is successfull
+        it checks if the hash needs updating (:meth:`~CryptContext.needs_update`), and if so,
+        re-hashes the password (:meth:`~CryptContext.encrypt`), returning the replacement hash.
+        This series of steps is a very common task for applications
+        which wish to update deprecated hashes, and this call takes
+        care of all 3 steps efficiently.
 
+        :type secret: unicode or bytes
         :arg secret:
             the secret to verify
+
+        :type secret: unicode or bytes
         :arg hash:
             hash string to compare to
+
+        :type scheme: str
         :param scheme:
-            optional force context to use specfic scheme
-            (must be listed in context)
+            Optionally force context to use specific scheme.
+            This is usually not needed, as most hashes can be unambiguously
+            identified. Scheme must be one of the ones configured
+            for this context
+            (see the :ref:`schemes <context-schemes-option>` option).
+
+        :type category: str or None
         :param category:
-            optional user category, if used by the application.
-            defaults to ``None``.
-        :param \*\*context:
+            Optional :ref:`user category <user-categories>`.
+            If specified, this will cause any category-specific defaults to
+            be used if the password has to be re-hashed.
+
+        :param \*\*kwds:
             all additional keywords are passed to the appropriate handler,
-            and should match it's
-            :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
+            and should match it's :attr:`context keywords <passlib.hash.PasswordHash.context_kwds>`.
 
         :returns:
-            The tuple ``(verified, new_hash)``, where one of the following
-            cases is true:
+            This function returns a tuple containing two elements:
+            the first indicates whether the password verified,
+            and the second whether the existing hash needs to be replaced.
+            The return value will always match one of the following 3 cases:
 
             * ``(False, None)`` indicates the secret failed to verify.
             * ``(True, None)`` indicates the secret verified correctly,
               and the hash does not need upgrading.
             * ``(True, str)`` indicates the secret verified correctly,
-              but the existing hash has been deprecated, and should be replaced
-              by the :class:`str` returned as ``new_hash``.
+              and the existing hash needs to be updated. the :class:`!str`
+              will be the freshly generated hash to replace the old one with.
 
-        .. seealso:: :ref:`context-migrating-passwords` for a usage example.
+        .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
         # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here.
@@ -2422,7 +2569,7 @@ class LazyCryptContext(CryptContext):
     at any one time. Use of this class saves the memory needed to import
     the specified handlers until the context instance is actually accessed.
     As well, it allows constructing a context at *module-init* time,
-    but using :func:`!create_policy()` to provide dynamic configuration
+    but using :func:`!onload()` to provide dynamic configuration
     at *application-run* time.
     """
     _lazy_kwds = None
