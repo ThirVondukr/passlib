@@ -263,12 +263,14 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     #=========================================================
     # methods
     #=========================================================
-    implicit_rounds = True
+    implicit_rounds = False
 
     def __init__(self, implicit_rounds=None, **kwds):
-        if implicit_rounds is not None:
-            self.implicit_rounds = implicit_rounds
         super(_SHA2_Common, self).__init__(**kwds)
+        # if user calls encrypt() w/ 5000 rounds, default to compact form.
+        if implicit_rounds is None:
+            implicit_rounds = (self.use_defaults and self.rounds == 5000)
+        self.implicit_rounds = implicit_rounds
 
     @classmethod
     def from_string(cls, hash):

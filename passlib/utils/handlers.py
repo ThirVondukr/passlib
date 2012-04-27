@@ -70,6 +70,17 @@ UC_HEX_CHARS = UPPER_HEX_CHARS
 LC_HEX_CHARS = LOWER_HEX_CHARS
 
 #=========================================================
+# support functions
+#=========================================================
+def _bitsize(count, chars):
+    """helper for bitsize() methods"""
+    if chars and count:
+        import math
+        return int(count * math.log(len(chars), 2))
+    else:
+        return 0
+
+#=========================================================
 # parsing helpers
 #=========================================================
 _UDOLLAR = u("$")
@@ -585,8 +596,22 @@ class GenericHandler(object):
     ##    currently only provided by bcrypt() to fix an historical passlib issue.
     ##    """
 
+    @classmethod
+    def bitsize(cls, **kwds):
+        "[experimental method] return info about bitsizes of hash"
+        try:
+            info = super(GenericHandler, cls).bitsize(**kwds)
+        except AttributeError:
+            info = {}
+        cc = ALL_BYTES if cls._checksum_is_bytes else cls.checksum_chars
+        if cls.checksum_size and cc:
+            # FIXME: this may overestimate size due to padding bits (e.g. bcrypt)
+            # FIXME: this will be off by 1 for case-insensitive hashes.
+            info['checksum'] = _bitsize(cls.checksum_size, cc)
+        return info
+
     #=========================================================
-    #eoc
+    # eoc
     #=========================================================
 
 class StaticHandler(GenericHandler):
@@ -705,13 +730,22 @@ class HasUserContext(GenericHandler):
 
     @classmethod
     def verify(cls, secret, hash, user=None, **context):
-        return super(HasUserContext, cls).verify(secret, hash, user=user,
-                                               **context)
+        return super(HasUserContext, cls).verify(secret, hash, user=user, **context)
 
     @classmethod
     def genhash(cls, secret, config, user=None, **context):
-        return super(HasUserContext, cls).genhash(secret, config, user=user,
-                                               **context)
+        return super(HasUserContext, cls).genhash(secret, config, user=user, **context)
+
+    # XXX: how to guess the entropy of a username?
+    #      most of these hashes are for a system (e.g. Oracle)
+    #      which has a few *very common* names and thus really low entropy;
+    #      while the rest are slightly less predictable.
+    #      need to find good reference about this.
+    ##@classmethod
+    ##def bitsize(cls, **kwds):
+    ##    info = super(HasUserContext, cls).bitsize(**kwds)
+    ##    info['user'] = xxx
+    ##    return info
 
 #-----------------------------------------------------
 # checksum mixins
@@ -1018,6 +1052,17 @@ class HasSalt(GenericHandler):
         """
         return getrandstr(rng, self.default_salt_chars, salt_size)
 
+    @classmethod
+    def bitsize(cls, salt_size=None, **kwds):
+        "[experimental method] return info about bitsizes of hash"
+        info = super(HasSalt, cls).bitsize(**kwds)
+        if salt_size is None:
+            salt_size = cls.default_salt_size
+        # FIXME: this may overestimate size due to padding bits
+        # FIXME: this will be off by 1 for case-insensitive hashes.
+        info['salt'] = _bitsize(salt_size, cls.default_salt_chars)
+        return info
+
     #=========================================================
     #eoc
     #=========================================================
@@ -1101,7 +1146,7 @@ class HasRounds(GenericHandler):
     #=========================================================
     min_rounds = 0
     max_rounds = None
-    defaults_rounds = None
+    default_rounds = None
     rounds_cost = "linear" # default to the common case
 
     #=========================================================
@@ -1170,6 +1215,28 @@ class HasRounds(GenericHandler):
                 raise ValueError(msg)
 
         return rounds
+
+    @classmethod
+    def bitsize(cls, rounds=None, vary_rounds=.1, **kwds):
+        "[experimental method] return info about bitsizes of hash"
+        info = super(HasRounds, cls).bitsize(**kwds)
+        # NOTE: this essentially estimates how many bits of "salt"
+        # can be added by varying the rounds value just a little bit.
+        if cls.rounds_cost != "log2":
+            # assume rounds can be randomized within the range
+            #     rounds*(1-vary_rounds) ... rounds*(1+vary_rounds)
+            # then this can be used to encode
+            #     log2(rounds*(1+vary_rounds)-rounds*(1-vary_rounds))
+            # worth of salt-like bits. this works out to
+            #     1+log2(rounds*vary_rounds)
+            import math
+            if rounds is None:
+                rounds = cls.default_rounds
+            info['rounds'] = max(0, int(1+math.log(rounds*vary_rounds,2)))
+        ## else: # log2 rounds
+            # all bits of the rounds value are critical to choosing
+            # the time-cost, and can't be randomized.
+        return info
 
     #=========================================================
     #eoc
