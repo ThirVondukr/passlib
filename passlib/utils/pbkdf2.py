@@ -335,8 +335,12 @@ def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
 #=================================================================================
 MAX_BLOCKS = 0xffffffff #2**32-1
 MAX_HMAC_SHA1_KEYLEN = MAX_BLOCKS*20
+# NOTE: the pbkdf2 spec does not specify a maximum number of rounds.
+#       however, many of the hashes in passlib are currently clamped
+#       at the 32-bit limit, just for sanity. once realistic pbkdf2 rounds
+#       start approaching 24 bits, this limit will be raised.
 
-def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
+def pbkdf2(secret, salt, rounds, keylen=-1, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
 
     :arg secret: passphrase to use to generate key
@@ -344,7 +348,7 @@ def pbkdf2(secret, salt, rounds, keylen, prf="hmac-sha1"):
     :param rounds: number of rounds to use to generate key
     :arg keylen:
         number of bytes to generate.
-        if -1, will use digest size of prf.
+        if set to ``-1``, will use digest size of selected prf.
     :param prf:
         psuedo-random family to use for key strengthening.
         this can be any string or callable accepted by :func:`get_prf`.

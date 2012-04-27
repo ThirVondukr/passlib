@@ -24,7 +24,7 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import u, print_, unicode
+from passlib.utils.compat import u, print_, unicode, next_method_attr
 # local
 
 #=============================================================================
@@ -64,7 +64,7 @@ class benchmark:
         kwds.update(options)
         if mode == "ctor":
             itr = obj()
-            if not hasattr(itr, "next"):
+            if not hasattr(itr, next_method_attr):
                 itr = [itr]
             for func in itr:
                 # TODO: per function name & options
@@ -231,6 +231,17 @@ def test_ldap_salted_md5():
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
         hash = handler.encrypt(SECRET, salt='....')
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
+    yield helper
+
+@benchmark.constructor()
+def test_phpass():
+    "test phpass"
+    from passlib.hash import phpass as handler
+    kwds = dict(salt='.'*8, rounds=16)
+    def helper():
+        hash = handler.encrypt(SECRET, **kwds)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     yield helper

@@ -1595,16 +1595,18 @@ _handler_attrs = (
 
 def is_crypt_handler(obj):
     "check if object follows the :ref:`password-hash-api`"
+    # XXX: change to use isinstance(obj, PasswordHash) under py26+?
     return all(hasattr(obj, name) for name in _handler_attrs)
 
 _context_attrs = (
-        "hash_needs_update",
+        "needs_update",
         "genconfig", "genhash",
         "verify", "encrypt", "identify",
         )
 
 def is_crypt_context(obj):
     "check if object appears to be a :class:`~passlib.context.CryptContext` instance"
+    # XXX: change to use isinstance(obj, CryptContext)?
     return all(hasattr(obj, name) for name in _context_attrs)
 
 ##def has_many_backends(handler):

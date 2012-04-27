@@ -74,16 +74,16 @@ custom_app_context = LazyCryptContext(
     schemes=["sha512_crypt", "sha256_crypt"],
 
     #set some useful global options
-    all__vary_rounds = "10%",
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
+    all__vary_rounds = 0.1,
 
     #set a good starting point for rounds selection
-    sha512_crypt__default_rounds = 40000,
-    sha256_crypt__default_rounds = 40000,
+    sha512_crypt__min_rounds = 60000,
+    sha256_crypt__min_rounds = 80000,
 
     #if the admin user category is selected, make a much stronger hash,
-    admin__sha512_crypt__default_rounds = 80000,
-    admin__sha256_crypt__default_rounds = 80000,
+    admin__sha512_crypt__min_rounds = 120000,
+    admin__sha256_crypt__min_rounds = 160000,
     )
 
 #=========================================================

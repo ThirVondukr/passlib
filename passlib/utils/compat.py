@@ -212,6 +212,9 @@ if PY3:
         return d.items()
     def itervalues(d):
         return d.values()
+
+    next_method_attr = "__next__"
+
 else:
     irange = xrange
     ##lrange = range
@@ -223,6 +226,8 @@ else:
         return d.iteritems()
     def itervalues(d):
         return d.itervalues()
+
+    next_method_attr = "next"
 
 if PY_MAX_25:
     _undef = object()

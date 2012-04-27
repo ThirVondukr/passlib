@@ -159,8 +159,8 @@ def ChecksumSizeError(handler, raw=False):
     # not from parsing a hash string, might want different error msg.
     checksum_size = handler.checksum_size
     unit = "bytes" if raw else "chars"
-    return ValueError("checksum wrong size (%s checksum must be "
-                     "exactly %d %s" % (handler.name, checksum_size, unit))
+    reason = "checksum must be exactly %d %s" % (checksum_size, unit)
+    return MalformedHashError(handler, reason)
 
 #==========================================================================
 # eof
