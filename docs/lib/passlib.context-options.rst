@@ -53,6 +53,9 @@ of the :class:`!CryptContext` instance itself:
     This is primarily used by :meth:`CryptContext.hash_needs_update`.
     If the application does not use this method, this option can be ignored.
 
+    If ``deprecated`` is set to ``"auto"``, all schemes which are not the default
+    will be deprecated.
+
     Example: ``deprecated=["des_crypt"]``.
 
 ``default``

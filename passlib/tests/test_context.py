@@ -1266,6 +1266,38 @@ sha512_crypt__min_rounds = 45000
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
         self.consumeWarningList(wlog, ".*verify exceeded min_verify_time")
 
+    def test_61_autodeprecate(self):
+        "test deprecated='auto' is handled correctly"
+
+        def getstate(ctx, category=None):
+            return [ctx._is_deprecated_scheme(scheme, category) for scheme in ctx.schemes()]
+
+        # correctly reports default
+        ctx = CryptContext("sha256_crypt,md5_crypt,des_crypt", deprecated="auto")
+        self.assertEqual(getstate(ctx,    None), [False, True, True])
+        self.assertEqual(getstate(ctx, "admin"), [False, True, True])
+
+        # correctly reports changed default
+        ctx.update(default="md5_crypt")
+        self.assertEqual(getstate(ctx,    None), [True, False, True])
+        self.assertEqual(getstate(ctx, "admin"), [True, False, True])
+
+        # category default is handled correctly
+        ctx.update(admin__context__default="des_crypt")
+        self.assertEqual(getstate(ctx,    None), [True, False, True])
+        self.assertEqual(getstate(ctx, "admin"), [True, True, False])
+
+        # handles 1 scheme
+        ctx = CryptContext(["sha256_crypt"], deprecated="auto")
+        self.assertEqual(getstate(ctx,    None), [False])
+        self.assertEqual(getstate(ctx, "admin"), [False])
+
+        # disallow auto & other deprecated schemes at same time.
+        self.assertRaises(ValueError, CryptContext, "sha256_crypt,md5_crypt",
+                          deprecated="auto,md5_crypt")
+        self.assertRaises(ValueError, CryptContext, "sha256_crypt,md5_crypt",
+                          deprecated="md5_crypt,auto")
+
     #=========================================================
     # handler deprecation detectors
     #=========================================================

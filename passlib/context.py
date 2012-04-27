@@ -1531,7 +1531,12 @@ class CryptContext(object):
                     for scheme in value:
                         if not isinstance(scheme, str):
                             raise ExpectedTypeError(value, "str", "deprecated element")
-                        if scheme not in schemes:
+                        if scheme in schemes:
+                            continue
+                        elif scheme == "auto":
+                            if len(value) > 1:
+                                raise ValueError("cannot list other schemes if ``deprecated=['auto']`` is used")
+                        else:
                             raise KeyError("deprecated scheme not found "
                                        "in policy: %r" % (scheme,))
                     # TODO: make sure there's at least one non-deprecated scheme.
@@ -1721,18 +1726,35 @@ class CryptContext(object):
                     has_cat_options = True
 
         # add deprecated flag
+        # XXX: this logic is now a mess thanks to 'auto' mode.
+        #      a preprocessing pass up in _load() would probably
+        #      simplify this logic quite a bit.
         dep_map = self._deprecated_schemes
         if dep_map:
             deplist = dep_map.get(None)
-            dep = (deplist is not None and scheme in deplist)
+            flag = False
+            if deplist:
+                if scheme in deplist:
+                    flag = True
+                elif 'auto' in deplist:
+                    default_scheme = self.default_scheme(None)
+                    if category:
+                        cat_default_scheme = self.default_scheme(category)
+                        if scheme != cat_default_scheme:
+                            flag = True
+                        if default_scheme != cat_default_scheme:
+                            has_cat_options = True
+                    elif scheme != default_scheme:
+                        flag = True
             if category:
                 deplist = dep_map.get(category)
                 if deplist is not None:
-                    value = (scheme in deplist)
-                    if value != dep:
-                        dep = value
+                    alt_flag = (scheme in deplist or ('auto' in deplist and
+                                       scheme != self.default_scheme(category)))
+                    if alt_flag != flag:
+                        flag = alt_flag
                         has_cat_options = True
-            if dep:
+            if flag:
                 kwds['deprecated'] = True
 
         # add min_verify_time setting

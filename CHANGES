@@ -72,6 +72,10 @@ Release History
           :ref:`min_verify_time <min-verify-time>` has been deprecated,
           will be ignored in release 1.7, and will be removed in release 1.8.
 
+        * The :class:`!CryptContext` option ``deprecated`` can now be set
+          to the special string ``"auto"``, in which case all schemes
+          except for the default will be automatically flagged as deprecated.
+
         * The internals of :class:`!CryptContext` have been rewritten
           drastically. It's methods should now be stricter and more informative
           about invalid values; and common :class:`!CryptContext` operations
