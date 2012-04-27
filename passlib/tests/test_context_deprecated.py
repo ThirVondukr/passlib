@@ -30,8 +30,11 @@ from passlib.utils.compat import irange, u
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
-from passlib.registry import register_crypt_handler_path, has_crypt_handler, \
-    _unload_handler_name as unload_handler_name
+from passlib.registry import (register_crypt_handler_path,
+                        _has_crypt_handler as has_crypt_handler,
+                        _unload_handler_name as unload_handler_name,
+                        get_crypt_handler,
+                        )
 #module
 log = getLogger(__name__)
 

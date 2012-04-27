@@ -156,6 +156,7 @@ class RegistryTest(TestCase):
             name = "dummy_1"
 
         self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
+        self.asssertIs(get_crypt_handler("dummy_1", None), None)
 
         register_crypt_handler(dummy_1)
         self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
