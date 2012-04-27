@@ -23,6 +23,50 @@ __all__ = [
 ]
 
 #=========================================================
+# master containing all identifiable hashes
+#=========================================================
+def _load_master_config():
+    from passlib.registry import list_crypt_handlers
+
+    # get master list
+    schemes = list_crypt_handlers()
+
+    # exclude the ones we know have ambiguous or greedy identify() methods.
+    excluded = [
+        # frequently confused for eachother
+        'bigcrypt',
+        'crypt16',
+
+        # no good identifiers
+        'cisco_pix',
+        'cisco_type7',
+        'htdigest',
+        'mysql323',
+        'oracle10',
+
+        # all have same size
+        'lmhash',
+        'msdcc',
+        'msdcc2',
+        'nthash',
+
+        # plaintext handlers
+        'plaintext',
+        'ldap_plaintext',
+
+        # disabled handlers
+        'django_disabled',
+        'unix_disabled',
+        'unix_fallback',
+    ]
+    for name in excluded:
+        schemes.remove(name)
+
+    # return config
+    return dict(schemes=schemes, default="sha256_crypt")
+master_context = LazyCryptContext(onload=_load_master_config)
+
+#=========================================================
 #for quickly bootstrapping new custom applications
 #=========================================================
 custom_app_context = LazyCryptContext(
