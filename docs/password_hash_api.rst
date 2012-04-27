@@ -46,7 +46,7 @@ defined by the following abstract base class:
 Usage Examples
 ==============
 The following code shows how to use the primary
-methods of the :class:`~passlib.utils.handlers.PasswordHash` interface --
+methods of the :class:`~passlib.ifc.PasswordHash` interface --
 :meth:`~PasswordHash.encrypt` and :meth:`~PasswordHash.verify` --
 using the :class:`~passlib.hash.sha256_crypt` hash as an example::
 

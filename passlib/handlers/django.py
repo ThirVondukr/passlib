@@ -93,7 +93,7 @@ class django_salted_sha1(DjangoSaltedHash):
 
     It supports a variable-length salt, and uses a single round of SHA1.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -130,7 +130,7 @@ class django_salted_md5(DjangoSaltedHash):
 
     It supports a variable-length salt, and uses a single round of MD5.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -187,7 +187,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -232,7 +232,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -269,7 +269,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
 
     It supports a fixed-length salt.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:

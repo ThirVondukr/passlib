@@ -107,7 +107,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
 class ldap_md5(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain MD5 format, and follows the :ref:`password-hash-api`.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods have no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_md5"
     setting_kwds = ()
@@ -119,7 +119,7 @@ class ldap_md5(_Base64DigestHelper):
 class ldap_sha1(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain SHA1 format, and follows the :ref:`password-hash-api`.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods have no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_sha1"
     setting_kwds = ()
@@ -133,7 +133,7 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
 
     It supports a 4-16 byte salt.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keyword:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
 
     :type salt: bytes
     :param salt:
@@ -163,7 +163,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
 
     It supports a 4-16 byte salt.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keyword:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
 
     :type salt: bytes
     :param salt:
@@ -195,7 +195,7 @@ class ldap_plaintext(plaintext):
     except that it will identify a hash only if it does NOT begin with the ``{XXX}`` identifier prefix
     used by RFC2307 passwords.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods all require the
+    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keyword:
 
     :type encoding: str

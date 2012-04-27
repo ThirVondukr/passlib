@@ -48,7 +48,7 @@ class mysql323(uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """
     #=========================================================
     # class attrs
@@ -97,7 +97,7 @@ class mysql41(uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """
     #=========================================================
     # class attrs

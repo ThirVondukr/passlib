@@ -88,7 +88,7 @@ class unix_disabled(uh.PasswordHash):
     * "encrypting" a password will simply return the disabled account marker.
     * it will reject all passwords, no matter the hash.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` method supports one optional keyword:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` method supports one optional keyword:
 
     :type marker: str
     :param marker:
@@ -153,7 +153,7 @@ class unix_disabled(uh.PasswordHash):
 class plaintext(uh.PasswordHash):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
-    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods all require the
+    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keyword:
 
     :type encoding: str
