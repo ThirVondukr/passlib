@@ -84,7 +84,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             secret = secret.encode("utf-8")
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
-def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None):
+def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=__name__):
     "create new Pbkdf2DigestHandler subclass for a specific hash"
     name = 'pbkdf2_' + hash_name
     if ident is None:
@@ -92,6 +92,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None):
     prf = "hmac-%s" % (hash_name,)
     base = Pbkdf2DigestHandler
     return type(name, (base,), dict(
+        __module__=module, # so ABCMeta won't clobber it.
         name=name,
         ident=ident,
         _prf = prf,
@@ -126,9 +127,9 @@ pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 60000, ident=u("$pbkdf2$"))
 pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32)
 pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64)
 
-ldap_pbkdf2_sha1 = uh.PrefixWrapper("ldap_pbkdf2_sha1", pbkdf2_sha1, "{PBKDF2}", "$pbkdf2$")
-ldap_pbkdf2_sha256 = uh.PrefixWrapper("ldap_pbkdf2_sha256", pbkdf2_sha256, "{PBKDF2-SHA256}", "$pbkdf2-sha256$")
-ldap_pbkdf2_sha512 = uh.PrefixWrapper("ldap_pbkdf2_sha512", pbkdf2_sha512, "{PBKDF2-SHA512}", "$pbkdf2-sha512$")
+ldap_pbkdf2_sha1 = uh.PrefixWrapper("ldap_pbkdf2_sha1", pbkdf2_sha1, "{PBKDF2}", "$pbkdf2$", ident=True)
+ldap_pbkdf2_sha256 = uh.PrefixWrapper("ldap_pbkdf2_sha256", pbkdf2_sha256, "{PBKDF2-SHA256}", "$pbkdf2-sha256$", ident=True)
+ldap_pbkdf2_sha512 = uh.PrefixWrapper("ldap_pbkdf2_sha512", pbkdf2_sha512, "{PBKDF2-SHA512}", "$pbkdf2-sha512$", ident=True)
 
 #=========================================================
 #cryptacular's pbkdf2 hash

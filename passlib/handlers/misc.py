@@ -79,7 +79,7 @@ class unix_fallback(uh.StaticHandler):
         else:
             return enable_wildcard
 
-class unix_disabled(object):
+class unix_disabled(uh.PasswordHash):
     """This class provides disabled password behavior for unix shadow files,
     and follows the :ref:`password-hash-api`. This class does not implement a
     hash, but instead provides disabled account behavior as found in
@@ -147,7 +147,7 @@ class unix_disabled(object):
         else:
             return to_native_str(marker or cls.marker, param="marker")
 
-class plaintext(object):
+class plaintext(uh.PasswordHash):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     :type encoding: str

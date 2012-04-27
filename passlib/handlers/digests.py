@@ -52,12 +52,13 @@ class HexDigestHash(uh.StaticHandler):
     # eoc
     #=========================================================
 
-def create_hex_hash(hash, digest_name):
+def create_hex_hash(hash, digest_name, module=__name__):
     #NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.
     h = hash()
     name = "hex_" + digest_name
     return type(name, (HexDigestHash,), dict(
         name=name,
+        __module__=module, # so ABCMeta won't clobber it
         _hash_func=staticmethod(hash), #sometimes it's a function, sometimes not. so wrap it.
         checksum_size=h.digest_size*2,
         __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
@@ -78,7 +79,7 @@ hex_sha512  = create_hex_hash(hashlib.sha512,   "sha512")
 #=========================================================
 # htdigest
 #=========================================================
-class htdigest(object):
+class htdigest(uh.PasswordHash):
     """htdigest hash function.
 
     .. todo::

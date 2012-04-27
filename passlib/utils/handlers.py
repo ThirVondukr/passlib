@@ -16,6 +16,7 @@ from warnings import warn
 import passlib.exc as exc
 from passlib.exc import MissingBackendError, PasslibConfigWarning, \
                         PasslibHashWarning
+from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
@@ -246,7 +247,7 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
 #=====================================================
 #GenericHandler
 #=====================================================
-class GenericHandler(object):
+class GenericHandler(PasswordHash):
     """helper class for implementing hash handlers.
 
     GenericHandler-derived classes will have (at least) the following
@@ -570,31 +571,8 @@ class GenericHandler(object):
         return consteq(self._calc_checksum(secret), chk)
 
     #=========================================================
-    # undocumented entry points
+    # experimental methods
     #=========================================================
-
-    ##@classmethod
-    ##def _bind_needs_update(cls, **settings):
-    ##    """return helper to detect deprecated hashes.
-    ##
-    ##    if this method is defined, the CryptContext constructor
-    ##    will invoke it with the settings specified for the context.
-    ##    this method should return None or a callable
-    ##    with the signature ``func(hash,secret)->bool``.
-    ##
-    ##    this function should return true if the hash
-    ##    should be re-encrypted, whether due to internal
-    ##    issues or the specified settings.
-    ##
-    ##    CryptContext will automatically take care of rounds-deprecation
-    ##    for GenericHandler-derived classes
-    ##    """
-
-    ##@classmethod
-    ##def normhash(cls, hash):
-    ##    """helper to clean up non-canonic instances of hash.
-    ##    currently only provided by bcrypt() to fix an historical passlib issue.
-    ##    """
 
     @classmethod
     def bitsize(cls, **kwds):
@@ -1459,8 +1437,15 @@ class PrefixWrapper(object):
                 self._get_wrapped()
 
         if ident is not None:
+            if ident is True:
+                # signal that prefix is identifiable in itself.
+                if prefix:
+                    ident = prefix
+                else:
+                    raise ValueError("no prefix specified")
             if isinstance(ident, bytes):
                 ident = ident.decode("ascii")
+            # XXX: what if ident includes parts of wrapped hash's ident?
             if ident[:len(prefix)] != prefix[:len(ident)]:
                 raise ValueError("ident must agree with prefix")
             self._ident = ident
