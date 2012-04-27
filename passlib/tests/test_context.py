@@ -1266,64 +1266,6 @@ sha512_crypt__min_rounds = 45000
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
         self.consumeWarningList(wlog, ".*verify exceeded min_verify_time")
 
-    def test_61_passprep(self):
-        "test passprep option"
-        self.require_stringprep()
-
-        # saslprep should normalize pu -> pn
-        pu = u("a\u0300") # unnormalized unicode
-        pn = u("\u00E0") # normalized unicode
-
-        # create contexts w/ various options
-        craw = CryptContext(["md5_crypt"])
-        cnorm = CryptContext(["md5_crypt"], all__passprep="saslprep")
-        cback = CryptContext(["md5_crypt"], all__passprep="saslprep,raw")
-        clst = [craw,cnorm,cback]
-
-        # check raw encrypt against verify methods
-        h = craw.encrypt(pu)
-
-        self.assertTrue(craw.verify(pu, h))
-        self.assertFalse(cnorm.verify(pu, h))
-        self.assertTrue(cback.verify(pu, h))
-
-        self.assertFalse(craw.verify(pn, h))
-        self.assertFalse(craw.verify(pn, h))
-        self.assertFalse(craw.verify(pn, h))
-
-        # check normalized encrypt against verify methods
-        for ctx in [cnorm, cback]:
-            h = ctx.encrypt(pu)
-
-            self.assertFalse(craw.verify(pu, h))
-            self.assertTrue(cnorm.verify(pu, h))
-            self.assertTrue(cback.verify(pu, h))
-
-            for ctx2 in clst:
-                self.assertTrue(ctx2.verify(pn, h))
-
-        # check all encrypts leave normalized input alone
-        for ctx in clst:
-            h = ctx.encrypt(pn)
-
-            self.assertFalse(craw.verify(pu, h))
-            self.assertTrue(cnorm.verify(pu, h))
-            self.assertTrue(cback.verify(pu, h))
-
-            for ctx2 in clst:
-                self.assertTrue(ctx2.verify(pn, h))
-
-        # test invalid name
-        self.assertRaises(KeyError, CryptContext, ["md5_crypt"],
-                          all__passprep="xxx")
-
-        # test per-hash passprep
-        ctx = CryptContext(["md5_crypt", "sha256_crypt"],
-            all__passprep="raw", sha256_crypt__passprep="saslprep",
-            )
-        self.assertFalse(ctx.verify(pu, ctx.encrypt(pn, scheme="md5_crypt")))
-        self.assertTrue(ctx.verify(pu, ctx.encrypt(pn, scheme="sha256_crypt")))
-
     #=========================================================
     # handler deprecation detectors
     #=========================================================

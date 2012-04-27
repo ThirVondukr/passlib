@@ -29,11 +29,6 @@ custom_app_context = LazyCryptContext(
     #choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
 
-    # TODO: enable passprep for default policy? would definitely be a good
-    # idea for most applications; but want passprep to get a release or
-    # two worth of deployment & feedback before turning it on here.
-    ## all__passprep = "saslprep,raw",
-
     #set some useful global options
     all__vary_rounds = "10%",
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",

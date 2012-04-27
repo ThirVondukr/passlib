@@ -68,11 +68,6 @@ Release History
 
         .. currentmodule:: passlib.context
 
-        * :class:`~CryptContext` now supports a :ref:`passprep <passprep>` option,
-          which can be used to run all passwords through SASLPrep (:rfc:`4013`),
-          in order to normalize their unicode representation before hashing
-          [issue 24].
-
         * The :class:`!CryptContext` option
           :ref:`min_verify_time <min-verify-time>` has been deprecated,
           will be ignored in release 1.7, and will be removed in release 1.8.
