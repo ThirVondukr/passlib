@@ -260,9 +260,11 @@ def exc_err():
     return sys.exc_info()[1]
 
 if PY3:
+    method_function_attr = "__func__"
     def get_method_function(method):
         return method.__func__
 else:
+    method_function_attr = "im_func"
     def get_method_function(method):
         return method.im_func
 

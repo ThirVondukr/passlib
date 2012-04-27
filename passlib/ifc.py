@@ -165,6 +165,11 @@ class PasswordHash(object):
     ##    currently only provided by bcrypt() to fix an historical passlib issue.
     ##    """
 
+    # experimental helper to parse hash into components.
+    ##@classmethod
+    ##def parsehash(cls, hash, checksum=True, sanitize=False):
+    ##    """helper to parse hash into components, returns dict"""
+
     # experiment helper to estimate bitsize of different hashes,
     # implement for GenericHandler, but may be currently be off for some hashes.
     # want to expand this into a way to programmatically compare

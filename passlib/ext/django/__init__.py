@@ -1,9 +1,6 @@
-"""passlib.ext.django - Django app to monkeypatch better password hashing into django
+"""passlib.ext.django.models -- monkeypatch django hashing framework
 
-.. warning::
-
-    This code is experimental and subject to change
-    (though it should work).
-
-see the Passlib documentation for details on how to use this app
+this plugin monkeypatches django's hashing framework
+so that it uses a passlib context object, allowing handling of arbitrary
+hashes in Django databases.
 """

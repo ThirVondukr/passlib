@@ -100,7 +100,6 @@ version = csp.get_version(release)
 # directories to ignore when looking for source files.
 exclude_patterns = [
     #disabling documentation of this until module is more mature.
-    "lib/passlib.ext.django.rst",
     "lib/passlib.utils.compat.rst",
 ]
 

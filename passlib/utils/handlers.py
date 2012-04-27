@@ -573,6 +573,63 @@ class GenericHandler(PasswordHash):
     #=========================================================
     # experimental methods
     #=========================================================
+    _unparsed_settings = ("salt_size", "relaxed")
+    _unsafe_settings = ("salt", "checksum")
+
+    @classproperty
+    def _parsed_settings(cls):
+        return (key for key in cls.setting_kwds
+                if key not in cls._unparsed_settings)
+
+    @staticmethod
+    def _sanitize(value, char=u("*")):
+        "default method to obscure sensitive fields"
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            from passlib.utils import ab64_encode
+            value = ab64_encode(value).decode("ascii")
+        elif not isinstance(value, unicode):
+            value = unicode(value)
+        size = len(value)
+        clip = min(4, size//8)
+        return value[:clip] + char * (size-clip)
+
+    @classmethod
+    def parsehash(cls, hash, checksum=True, sanitize=False):
+        """[experimental method] parse hash into dictionary of settings.
+
+        this essentially acts as the inverse of :meth:`encrypt`: for most
+        cases, if ``hash = cls.encrypt(secret, **opts)``, then
+        ``cls.parsehash(hash)`` will return a dict matching the original options
+        (with the extra keyword *checksum*).
+
+        this method may not work correctly for all hashes,
+        and may not be available on some few. it's interface may
+        change in future releases, if it's kept around at all.
+
+        :arg hash: hash to parse
+        :param checksum: include checksum keyword? (defaults to True)
+        :param sanitize: mask data for sensitive fields? (defaults to False)
+        """
+        # FIXME: this may not work for hashes with non-standard settings.
+        # XXX: how should this handle checksum/salt encoding?
+        # need to work that out for encrypt anyways.
+        self = cls.from_string(hash)
+        # XXX: could split next few lines out as self._parsehash() for subclassing
+        # XXX: could try to resolve ident/variant to publically suitable alias.
+        UNSET = object()
+        kwds = dict((key, getattr(self, key)) for key in self._parsed_settings
+                    if getattr(self, key) != getattr(cls, key, UNSET))
+        if checksum and self.checksum is not None:
+            kwds['checksum'] = self.checksum
+        if sanitize:
+            if sanitize is True:
+                sanitize = cls._sanitize
+            for key in cls._unsafe_settings:
+                if key in kwds:
+                    kwds[key] = sanitize(kwds[key])
+        return kwds
 
     @classmethod
     def bitsize(cls, **kwds):

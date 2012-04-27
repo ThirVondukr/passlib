@@ -105,6 +105,7 @@ class django_salted_sha1(DjangoSaltedHash):
         Defaults to 5, but can be any non-negative value.
     """
     name = "django_salted_sha1"
+    django_name = "sha1"
     ident = u("sha1$")
     checksum_size = 40
 
@@ -130,6 +131,7 @@ class django_salted_md5(DjangoSaltedHash):
         Defaults to 5, but can be any non-negative value.
     """
     name = "django_salted_md5"
+    django_name = "md5"
     ident = u("md5$")
     checksum_size = 32
 
@@ -155,6 +157,7 @@ django_bcrypt = uh.PrefixWrapper("django_bcrypt", "bcrypt",
 
     .. versionadded:: 1.6
     """)
+django_bcrypt.django_name = "bcrypt"
 
 class django_pbkdf2_sha256(DjangoVariableHash):
     """This class implements Django's PBKDF2-HMAC-SHA256 hash, and follows the :ref:`password-hash-api`.
@@ -182,6 +185,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     .. versionadded:: 1.6
     """
     name = "django_pbkdf2_sha256"
+    django_name = "pbkdf2_sha256"
     ident = u('pbkdf2_sha256$')
     min_salt_size = 1
     max_rounds = 0xffffffff # setting at 32-bit limit for now
@@ -223,6 +227,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     .. versionadded:: 1.6
     """
     name = "django_pbkdf2_sha1"
+    django_name = "pbkdf2_sha1"
     ident = u('pbkdf2_sha1$')
     checksum_size = 28 # 20 bytes -> base64
     _prf = "hmac-sha1"
@@ -253,6 +258,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
         since Django 1.4 generates them this way.
     """
     name = "django_des_crypt"
+    django_name = "crypt"
     setting_kwds = ("salt", "salt_size")
     ident = u("crypt$")
     checksum_chars = salt_chars = uh.HASH64_CHARS

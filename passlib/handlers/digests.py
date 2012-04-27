@@ -72,6 +72,7 @@ It supports no optional or contextual keywords.
 #=========================================================
 hex_md4     = create_hex_hash(md4,              "md4")
 hex_md5     = create_hex_hash(hashlib.md5,      "md5")
+hex_md5.django_name = "unsalted_md5"
 hex_sha1    = create_hex_hash(hashlib.sha1,     "sha1")
 hex_sha256  = create_hex_hash(hashlib.sha256,   "sha256")
 hex_sha512  = create_hex_hash(hashlib.sha512,   "sha512")

@@ -3,65 +3,61 @@
 #imports
 #=========================================================
 from __future__ import with_statement
-#core
+# core
 import logging; log = logging.getLogger(__name__)
 import sys
 import warnings
-#site
-#pkg
+# site
+# pkg
+from passlib.apps import django10_context, django14_context
 from passlib.context import CryptContext
-from passlib.apps import django_context
-from passlib.ext.django import utils
-from passlib.hash import sha256_crypt
-from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
-import passlib.tests.test_handlers as th
-from passlib.utils.compat import iteritems, get_method_function, unicode
+from passlib.utils.compat import iteritems, unicode, method_function_attr
+from passlib.utils import memoized_property
 from passlib.registry import get_crypt_handler
-#module
+# tests
+from passlib.tests.utils import TestCase, unittest, ut_version, catch_warnings
+from passlib.tests.test_handlers import get_handler_case
+# local
 
 #=========================================================
-# import & configure django settings,
+# configure django settings for testcases
 #=========================================================
 
-try:
-    from django.conf import settings, LazySettings
-    has_django = True
-except ImportError:
-    settings = None
-    has_django = False
+# convert django version to some cheap flags
+from passlib.ext.django.utils import DJANGO_VERSION
+has_django = bool(DJANGO_VERSION)
+has_django0 = has_django and DJANGO_VERSION < (1,0)
+has_django1 = DJANGO_VERSION >= (1,0)
+has_django14 = DJANGO_VERSION >= (1,4)
 
-has_django0 = False # are we using django 0.9?
-has_django1 = False # are we using django >= 1.0?
-has_django14 = False # are we using django >= 1.4?
-
+# import and configure empty django settings
 if has_django:
-    from django import VERSION
-    log.debug("found django %r installation", VERSION)
-    has_django0 = (VERSION < (1,0))
-    has_django1 = (VERSION >= (1,0))
-    has_django14 = (VERSION >= (1,4))
+    from django.conf import settings, LazySettings
 
     if not isinstance(settings, LazySettings):
-        #this could mean django has been configured somehow,
-        #which we don't want, since test cases reset and manipulate settings.
+        # this probably means django globals have been configured already,
+        # which we don't want, since test cases reset and manipulate settings.
         raise RuntimeError("expected django.conf.settings to be LazySettings: %r" % (settings,))
 
-    #else configure a blank settings instance for our unittests
+    # else configure a blank settings instance for the unittests
     if has_django0:
         if settings._target is None:
             from django.conf import UserSettingsHolder, global_settings
             settings._target = UserSettingsHolder(global_settings)
-    else:
-        if not settings.configured:
-            settings.configure()
-else:
-    log.debug("django installation not found")
+    elif not settings.configured:
+        settings.configure()
 
-_NOTSET = object()
+#=========================================================
+# support funcs
+#=========================================================
+
+# flag for update_settings() to remove specified key entirely
+UNSET = object()
 
 def update_settings(**kwds):
+    """helper to update django settings from kwds"""
     for k,v in iteritems(kwds):
-        if v is _NOTSET:
+        if v is UNSET:
             if hasattr(settings, k):
                 if has_django0:
                     delattr(settings._target, k)
@@ -70,512 +66,660 @@ def update_settings(**kwds):
         else:
             setattr(settings, k, v)
 
-#=========================================================
-# and prepare helper to skip all relevant tests
-# if django isn't installed.
-#=========================================================
 def skipUnlessDjango(cls):
-    "helper to skip class if django not present"
+    "helper to skip testcase if django not present"
     if has_django:
         return cls
     if ut_version < 2:
         return None
     return unittest.skip("Django not installed")(cls)
 
-#=========================================================
-# mock user object
-#=========================================================
 if has_django:
-    import django.contrib.auth.models as dam
+    if has_django14:
+        import django.contrib.auth.hashers as hashers
+    import django.contrib.auth.models as models
 
-    class FakeUser(dam.User):
-        "stub user object for testing"
-        #this mainly just overrides .save() to test commit behavior.
+    class FakeUser(models.User):
+        "mock user object for use in testing"
+        # NOTE: this mainly just overrides .save() to test commit behavior.
 
-        saved_password = None
+        @memoized_property
+        def saved_passwords(self):
+            return []
+
+        def pop_saved_passwords(self):
+            try:
+                return self.saved_passwords[:]
+            finally:
+                del self.saved_passwords[:]
 
         def save(self):
-            self.saved_password = self.password
+            self.saved_passwords.append(self.password)
+
+# attrs we're patching in various modules.
+_patched_attrs = ["set_password", "check_password",
+                  "make_password", "get_hasher", "identify_hasher"]
+
+def iter_patch_candidates():
+    "helper to scan for monkeypatches"
+    objs = [models, models.User]
+    if has_django14:
+        objs.append(hashers)
+    for obj in objs:
+        for attr in dir(obj):
+            if attr.startswith("_"):
+                continue
+            value = getattr(obj, attr)
+            value = getattr(value, method_function_attr, value)
+            source = getattr(value, "__module__", None)
+            if source:
+                yield obj, attr, source
+
+config_keys = ["PASSLIB_CONFIG", "PASSLIB_CONTEXT", "PASSLIB_GET_CATEGORY"]
+
+def create_mock_setter():
+    state = []
+    def setter(password):
+        state.append(password)
+    def popstate():
+        try:
+            return state[:]
+        finally:
+            del state[:]
+    setter.popstate = popstate
+    return setter
 
 #=========================================================
-# helper contexts
+# sample config used by basic tests
 #=========================================================
 
 # simple context which looks NOTHING like django,
 # so we can tell if patching worked.
-simple_context = CryptContext(
+simple_config = dict(
     schemes = [ "md5_crypt", "des_crypt" ],
-    default = "md5_crypt",
     deprecated = [ "des_crypt" ],
 )
 
-# some sample hashes
+# sample password
 sample1 = 'password'
+
+# some sample hashes using above config
 sample1_md5 = '$1$kAd49ifN$biuRAv1Tv0zGHyCv0uIqW.'
 sample1_des = 'PPPTDkiCeu/jM'
 sample1_sha1 = 'sha1$b215d$9ee0a66f84ef1ad99096355e788135f7e949bd41'
+empty_md5 = '$1$1.thfpQC$3bIi1iFVFxRQ6cZS7q/WR.'
 
-# context for testing category funcs
-category_context = CryptContext(
-    schemes = [ "sha256_crypt" ],
-    sha256_crypt__default_rounds = 1000,
-    staff__sha256_crypt__default_rounds = 2000,
-    superuser__sha256_crypt__default_rounds = 3000,
-)
-
-def get_cc_rounds(**kwds):
-    "helper for testing category funcs"
-    user = FakeUser(**kwds)
-    user.set_password("placeholder")
-    return sha256_crypt.from_string(user.password).rounds
+#=========================================================
+# work up stock django config
+#=========================================================
+if has_django14:
+    # have to modify this a little -
+    # all but pbkdf2_sha256 will be deprecated here,
+    # whereas stock passlib policy is more permissive
+    stock_config = django14_context.to_dict()
+    stock_config['deprecated'] = ["django_pbkdf2_sha1", "django_bcrypt"] + stock_config['deprecated']
+elif has_django1:
+    stock_config = django10_context.to_dict()
+else:
+    # 0.9.6 config
+    stock_config = dict(schemes=["django_salted_sha1", "django_salted_md5", "hex_md5"],
+                 deprecated=["hex_md5"])
 
 #=========================================================
 # test utils
 #=========================================================
-class PatchTest(TestCase):
-    "test passlib.ext.django.utils:set_django_password_context"
+class _ExtensionSupport(object):
+    "support funcs for loading/unloading extension"
 
-    descriptionPrefix = "passlib.ext.django utils"
+    def unload_extension(self):
+        "helper to remove patches and unload extension"
+        # remove patches and unload module
+        mod = sys.modules.get("passlib.ext.django.models")
+        if mod:
+            mod._remove_patch()
+            del sys.modules["passlib.ext.django.models"]
+        # wipe config from django settings
+        update_settings(**dict((key, UNSET) for key in config_keys))
+        # check everything's gone
+        self.assert_unpatched()
 
     def assert_unpatched(self):
-        "helper to ensure django hasn't been patched"
-        state = utils._django_patch_state
+        "test that django is in unpatched state"
+        # make sure we aren't currently patched
+        mod = sys.modules.get("passlib.ext.django.models")
+        self.assertFalse(mod and mod._patched, "patch should not be enabled")
 
-        #make sure we aren't currently patched
-        self.assertIs(state, None)
+        # make sure no objects have been replaced, by checking __module__
+        for obj, attr, source in iter_patch_candidates():
+            if attr in _patched_attrs:
+                self.assertTrue(source.startswith("django.contrib.auth."),
+                                "obj=%r attr=%r was not reverted: %r" %
+                                (obj, attr, source))
+            else:
+                self.assertFalse(source.startswith("passlib."),
+                                "obj=%r attr=%r should not have been patched: %r" %
+                                (obj, attr, source))
 
-        #make sure nothing else patches django
-        for func in [
-            dam.check_password,
-            dam.User.check_password,
-            dam.User.set_password,
-            ]:
-            self.assertEqual(func.__module__, "django.contrib.auth.models")
-        self.assertFalse(hasattr(dam.User, "password_context"))
+    def load_extension(self, check=True, **kwds):
+        "helper to load extension with specified config & patch django"
+        self.unload_extension()
+        if check:
+            config = kwds.get("PASSLIB_CONFIG") or kwds.get("PASSLIB_CONTEXT")
+        for key in config_keys:
+            kwds.setdefault(key, UNSET)
+        update_settings(**kwds)
+        import passlib.ext.django.models
+        if check:
+            self.assert_patched(context=config)
 
-    def assert_patched(self, context=_NOTSET):
+    def assert_patched(self, context=None):
         "helper to ensure django HAS been patched"
-        state = utils._django_patch_state
+        # make sure we're currently patched
+        mod = sys.modules.get("passlib.ext.django.models")
+        self.assertTrue(mod and mod._patched, "patch should have been enabled")
 
-        #make sure we're patched
-        self.assertIsNot(state, None)
+        # make sure only the expected objects have been patched
+        for obj, attr, source in iter_patch_candidates():
+            if attr in _patched_attrs:
+                self.assertTrue(source == "passlib.ext.django.models",
+                                "obj=%r attr=%r should have been patched: %r" %
+                                (obj, attr, source))
+            else:
+                self.assertFalse(source.startswith("passlib."),
+                                "obj=%r attr=%r should not have been patched: %r" %
+                                (obj, attr, source))
 
-        #make sure our methods are exposed
-        for func in [
-            dam.check_password,
-            dam.User.check_password,
-            dam.User.set_password,
-            ]:
-            self.assertEqual(func.__module__, "passlib.ext.django.utils")
+        # check context matches
+        if context is not None:
+            context = CryptContext._norm_source(context)
+            self.assertEqual(mod.password_context.to_dict(resolve=True),
+                             context.to_dict(resolve=True))
 
-        #make sure methods match
-        self.assertIs(dam.check_password, state['models_check_password'])
-        self.assertIs(get_method_function(dam.User.check_password),
-                      state['user_check_password'])
-        self.assertIs(get_method_function(dam.User.set_password),
-                      state['user_set_password'])
+class DjangoExtensionTest(TestCase, _ExtensionSupport):
+    """test the ``passlib.ext.django`` plugin"""
+    descriptionPrefix = "passlib.ext.django plugin"
 
-        #make sure context matches
-        obj = dam.User.password_context
-        self.assertIs(obj, state['context'])
-        if context is not _NOTSET:
-            self.assertIs(obj, context)
-
-        #make sure old methods were stored
-        for key in [
-                "orig_models_check_password",
-                "orig_user_check_password",
-                "orig_user_set_password",
-            ]:
-            value = state[key]
-            self.assertEqual(value.__module__, "django.contrib.auth.models")
-
+    #=========================================================
+    # init
+    #=========================================================
     def setUp(self):
-        #reset to baseline, and verify
-        utils.set_django_password_context(None)
-        self.assert_unpatched()
+        # reset to baseline, and verify it worked
+        self.unload_extension()
 
-    def tearDown(self):
-        #reset to baseline, and verify
-        utils.set_django_password_context(None)
-        self.assert_unpatched()
+        # and do the same when the test exits
+        self.addCleanup(self.unload_extension)
 
+    #=========================================================
+    # monkeypatch testing
+    #=========================================================
     def test_00_patch_control(self):
         "test set_django_password_context patch/unpatch"
 
-        #check context=None has no effect
-        utils.set_django_password_context(None)
+        # check config="disabled"
+        self.load_extension(PASSLIB_CONFIG="disabled", check=False)
         self.assert_unpatched()
 
-        #patch to use stock django context
-        utils.set_django_password_context(django_context)
-        self.assert_patched(context=django_context)
+        # check legacy config=None
+        with catch_warnings(record=True) as wlog:
+            self.load_extension(PASSLIB_CONFIG=None, check=False)
+            self.consumeWarningList(wlog, ["PASSLIB_CONFIG=None is deprecated.*"])
+            self.assert_unpatched()
 
-        #try to remove patch
-        utils.set_django_password_context(None)
-        self.assert_unpatched()
+        # try stock django 1.0 context
+        self.load_extension(PASSLIB_CONFIG="django-1.0", check=False)
+        self.assert_patched(context=django10_context)
 
-        #patch to use stock django context again
-        utils.set_django_password_context(django_context)
-        self.assert_patched(context=django_context)
+        # try to remove patch
+        self.unload_extension()
 
-        #try to remove patch again
-        utils.set_django_password_context(None)
-        self.assert_unpatched()
+        # patch to use stock django 1.4 context
+        self.load_extension(PASSLIB_CONFIG="django-1.4", check=False)
+        self.assert_patched(context=django14_context)
 
-    def test_01_patch_control_detection(self):
-        "test set_django_password_context detection of foreign monkeypatches"
+        # try to remove patch again
+        self.unload_extension()
+
+    def test_01_overwrite_detection(self):
+        "test detection of foreign monkeypatching"
+        # NOTE: this sets things up, and spot checks two methods.
+        #       this should be enough to verify patch manager is working.
+        # TODO: test unpatch behavior honors flag.
         def dummy():
             pass
 
         with catch_warnings(record=True) as wlog:
-            #patch to use stock django context
-            utils.set_django_password_context(django_context)
-            self.assert_patched(context=django_context)
+            # patch to use simple context, should issue no warnings
+            self.load_extension(PASSLIB_CONFIG=simple_config)
             self.consumeWarningList(wlog)
+            from passlib.ext.django.models import _manager
 
-            #mess with User.set_password, make sure it's detected
-            dam.User.set_password = dummy
-            utils.set_django_password_context(django_context)
-            self.assert_patched(context=django_context)
-            self.consumeWarningList(wlog,
-                        "^another library has patched.*User\.set_password$")
+            # mess with User.set_password, make sure it's detected
+            orig = models.User.set_password
+            models.User.set_password = dummy
+            _manager.check_all()
+            self.consumeWarningList(wlog,"another library has patched.*User\.set_password")
+            models.User.set_password = orig
 
-            #mess with user.check_password, make sure it's detected
-            dam.User.check_password = dummy
-            utils.set_django_password_context(django_context)
-            self.assert_patched(context=django_context)
-            self.consumeWarningList(wlog,
-                        "^another library has patched.*User\.check_password$")
+            # mess with models.check_password, make sure it's detected
+            orig = models.check_password
+            models.check_password = dummy
+            _manager.check_all()
+            self.consumeWarningList(wlog,"another library has patched.*models:check_password")
+            models.check_password = orig
 
-            #mess with user.check_password, make sure it's detected
-            dam.check_password = dummy
-            utils.set_django_password_context(django_context)
-            self.assert_patched(context=django_context)
-            self.consumeWarningList(wlog,
-                        "^another library has patched.*models:check_password$")
-
-    def test_01_patch_bad_types(self):
-        "test set_django_password_context bad inputs"
-        set = utils.set_django_password_context
-        self.assertRaises(TypeError, set, "")
-
-    def test_02_models_check_password(self):
-        "test monkeypatched models.check_password()"
-
+    def test_02_check_password(self):
+        "test monkeypatched check_password() function"
         # patch to use simple context
-        utils.set_django_password_context(simple_context)
-        self.assert_patched(context=simple_context)
+        self.load_extension(PASSLIB_CONFIG=simple_config)
+        check_password = models.check_password
 
-        # check correct hashes pass
-        self.assertTrue(dam.check_password(sample1, sample1_des))
-        self.assertTrue(dam.check_password(sample1, sample1_md5))
+        # check hashers module has same function
+        if has_django14:
+            self.assertIs(hashers.check_password, check_password)
 
-        # check bad password fail w/ false
-        self.assertFalse(dam.check_password('x', sample1_des))
-        self.assertFalse(dam.check_password('x', sample1_md5))
+        # check correct password returns True
+        self.assertTrue(check_password(sample1, sample1_des))
+        self.assertTrue(check_password(sample1, sample1_md5))
 
-        # and other hashes fail w/ error
-        self.assertRaises(ValueError, dam.check_password, sample1, sample1_sha1)
-        self.assertRaises(ValueError, dam.check_password, sample1, None)
+        # check bad password returns False
+        self.assertFalse(check_password('x', sample1_des))
+        self.assertFalse(check_password('x', sample1_md5))
 
-    def test_03_check_password(self):
-        "test monkeypatched User.check_password()"
-        # NOTE: using FakeUser so we can test .save()
-        user = FakeUser()
+        # check empty password returns False
+        self.assertFalse(check_password(None, sample1_des))
+        self.assertFalse(check_password('', sample1_des))
+        if has_django14:
+            # 1.4 and up reject empty passwords even if they'd match hash
+            self.assertFalse(check_password('', empty_md5))
+        else:
+            self.assertTrue(check_password('', empty_md5))
 
+        # test unusable hash returns False
+        self.assertFalse(check_password(sample1, None))
+        self.assertFalse(check_password(sample1, "!"))
+
+        # check unsupported hash throws error
+        self.assertRaises(ValueError, check_password, sample1, sample1_sha1)
+
+    def test_03_check_password_migration(self):
+        "test monkeypatched check_password() function's migration support"
+        # check setter callback works (django 1.4 feature)
+        self.load_extension(PASSLIB_CONFIG=simple_config)
+        setter = create_mock_setter()
+        check_password = models.check_password
+
+        # correct pwd, deprecated hash
+        self.assertTrue(check_password(sample1, sample1_des, setter=setter))
+        self.assertEqual(setter.popstate(), [sample1])
+
+        # wrong pwd, deprecated hash
+        self.assertFalse(check_password('x', sample1_des, setter=setter))
+        self.assertEqual(setter.popstate(), [])
+
+        # correct pwd, preferred hash
+        self.assertTrue(check_password(sample1, sample1_md5, setter=setter))
+        self.assertEqual(setter.popstate(), [])
+
+        # check preferred is ignored (django 1.4 feature)
+        self.assertTrue(check_password(sample1, sample1_des, setter=setter,
+                                           preferred='fooey'))
+        self.assertEqual(setter.popstate(), [sample1])
+
+    def test_04_user_check_password(self):
+        "test monkeypatched User.check_password() method"
         # patch to use simple context
-        utils.set_django_password_context(simple_context)
-        self.assert_patched(context=simple_context)
+        self.load_extension(PASSLIB_CONFIG=simple_config)
 
         # test that blank hash is never accepted
+        user = FakeUser()
         self.assertEqual(user.password, '')
-        self.assertIs(user.saved_password, None)
-        self.assertFalse(user.check_password('x'))
+        self.assertEqual(user.saved_passwords, [])
+        self.assertRaises(ValueError, user.check_password, 'x')
 
         # check correct secrets pass, and wrong ones fail
+        user = FakeUser()
         user.password = sample1_md5
         self.assertTrue(user.check_password(sample1))
         self.assertFalse(user.check_password('x'))
         self.assertFalse(user.check_password(None))
-
-        # none of that should have triggered update of password
+            # none of that should have triggered update of password
         self.assertEqual(user.password, sample1_md5)
-        self.assertIs(user.saved_password, None)
+        self.assertEqual(user.saved_passwords, [])
+
+        # check empty password returns False
+        user = FakeUser()
+        user.password = sample1_md5
+        self.assertFalse(user.check_password(None))
+        self.assertFalse(user.check_password(''))
+        user.password = empty_md5
+        if has_django14:
+            # 1.4 and up reject empty passwords even if they'd match hash
+            self.assertFalse(user.check_password(''))
+        else:
+            self.assertTrue(user.check_password(''))
 
         #check unusable password
-        if has_django1:
-            user.set_unusable_password()
-            self.assertFalse(user.has_usable_password())
-            self.assertFalse(user.check_password(None))
-            self.assertFalse(user.check_password(''))
-            self.assertFalse(user.check_password(sample1))
-
-    def test_04_check_password_migration(self):
-        "test User.check_password() hash migration"
-        # NOTE: using FakeUser so we can test .save()
+            # NOTE: not present under django 0.9, but our patch backports it.
         user = FakeUser()
+        user.set_unusable_password()
+        self.assertFalse(user.has_usable_password())
+        self.assertFalse(user.check_password(None))
+        self.assertFalse(user.check_password(''))
+        self.assertFalse(user.check_password(sample1))
+        self.assertEqual(user.saved_passwords, [])
 
+    def test_05_user_check_password_migration(self):
+        "test monkeypatched User.check_password() method's migration support"
         # patch to use simple context
-        utils.set_django_password_context(simple_context)
-        self.assert_patched(context=simple_context)
+        self.load_extension(PASSLIB_CONFIG=simple_config)
 
         # set things up with a password that needs migration
+        user = FakeUser()
         user.password = sample1_des
         self.assertEqual(user.password, sample1_des)
-        self.assertIs(user.saved_password, None)
+        self.assertEqual(user.pop_saved_passwords(), [])
 
-        # run check with bad password...
-        # shouldn't have migrated
+        # run check with wrong password... shouldn't have migrated
         self.assertFalse(user.check_password('x'))
         self.assertFalse(user.check_password(None))
-
         self.assertEqual(user.password, sample1_des)
-        self.assertIs(user.saved_password, None)
+        self.assertEqual(user.pop_saved_passwords(), [])
 
-        # run check with correct password...
-        # should have migrated to md5 and called save()
+        # run check with correct password... should have migrated to md5 and called save()
         self.assertTrue(user.check_password(sample1))
-
         self.assertTrue(user.password.startswith("$1$"))
-        self.assertEqual(user.saved_password, user.password)
+        self.assertEqual(user.pop_saved_passwords(), [user.password])
 
-        # check resave doesn't happen
-        user.saved_password = None
+        # check re-migration doesn't happen
+        orig = user.password
         self.assertTrue(user.check_password(sample1))
-        self.assertIs(user.saved_password, None)
+        self.assertEqual(user.password, orig)
+        self.assertEqual(user.pop_saved_passwords(), [])
 
-    def test_05_set_password(self):
-        "test monkeypatched User.set_password()"
-        user = FakeUser()
-
+    def test_06_set_password(self):
+        "test monkeypatched User.set_password() method"
         # patch to use simple context
-        utils.set_django_password_context(simple_context)
-        self.assert_patched(context=simple_context)
+        self.load_extension(PASSLIB_CONFIG=simple_config)
+        from passlib.ext.django.models import password_context
 
         # sanity check
+        user = FakeUser()
         self.assertEqual(user.password, '')
-        self.assertIs(user.saved_password, None)
-        if has_django1:
-            self.assertTrue(user.has_usable_password())
+        self.assertEqual(user.pop_saved_passwords(), [])
+        self.assertTrue(user.has_usable_password())
 
         # set password
         user.set_password(sample1)
+        self.assertEqual(password_context.identify(user.password), "md5_crypt")
         self.assertTrue(user.check_password(sample1))
-        self.assertEqual(simple_context.identify(user.password), "md5_crypt")
-        self.assertIs(user.saved_password, None)
+        self.assertEqual(user.pop_saved_passwords(), [])
+        self.assertTrue(user.has_usable_password())
 
-        #check unusable password
+        # check unusable password
         user.set_password(None)
-        if has_django1:
-            self.assertFalse(user.has_usable_password())
-        self.assertIs(user.saved_password, None)
+        self.assertFalse(user.has_usable_password())
+        self.assertEqual(user.pop_saved_passwords(), [])
 
-    def test_06_get_category(self):
-        "test default get_category function"
-        func = utils.get_category
-        self.assertIs(func(FakeUser()), None)
-        self.assertEqual(func(FakeUser(is_staff=True)), "staff")
-        self.assertEqual(func(FakeUser(is_superuser=True)), "superuser")
-        self.assertEqual(func(FakeUser(is_staff=True,
-                                        is_superuser=True)), "superuser")
+    def test_07_get_hasher(self):
+        "test monkeypatched get_hasher() function"
+        if not has_django14:
+            raise self.skipTest("Django >= 1.4 not installed")
+        # TODO: test this
 
-    def test_07_get_category(self):
-        "test set_django_password_context's get_category parameter"
-        # test patch uses default get_category
-        utils.set_django_password_context(category_context)
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(is_staff=True), 2000)
-        self.assertEqual(get_cc_rounds(is_superuser=True), 3000)
+    def test_08_identify_hasher(self):
+        "test custom identify_hasher() function"
+        if not has_django14:
+            raise self.skipTest("Django >= 1.4 not installed")
+        # TODO: test this
 
-        # test patch uses explicit get_category
-        def get_category(user):
-            return user.first_name or None
-        utils.set_django_password_context(category_context, get_category)
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
-        self.assertEqual(get_cc_rounds(first_name='staff'), 2000)
-        self.assertEqual(get_cc_rounds(first_name='superuser'), 3000)
+    def test_09_handler_wrapper(self):
+        "test Hasher-compatible handler wrappers"
+        if not has_django14:
+            raise self.skipTest("Django >= 1.4 not installed")
+        from passlib.ext.django.utils import get_passlib_hasher
 
-        # test patch can disable get_category
-        utils.set_django_password_context(category_context, None)
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
-        self.assertEqual(get_cc_rounds(first_name='staff', is_staff=True), 1000)
-        self.assertEqual(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
+        # should return native django hasher if available
+        hasher = get_passlib_hasher("hex_md5")
+        self.assertIs(hasher.__class__, hashers.UnsaltedMD5PasswordHasher)
 
-PatchTest = skipUnlessDjango(PatchTest)
+        hasher = get_passlib_hasher("django_bcrypt")
+        self.assertIs(hasher.__class__, hashers.BCryptPasswordHasher)
 
-#=========================================================
-# test django plugin
-#=========================================================
+        # otherwise should return wrapper
+        from passlib.hash import sha256_crypt
+        hasher = get_passlib_hasher("sha256_crypt")
+        self.assertEqual(hasher.algorithm, "passlib_sha256_crypt")
+        encoded = hasher.encode("stub")
+        self.assertTrue(sha256_crypt.verify("stub", encoded))
+        self.assertTrue(hasher.verify("stub", encoded))
+        self.assertFalse(hasher.verify("xxxx", encoded))
 
-django_hash_tests = [
-                    th.hex_md5_test,
-                    th.django_des_crypt_test,
-                    th.django_salted_md5_test,
-                    th.django_salted_sha1_test,
-                     ]
+        # test wrapper accepts options
+        encoded = hasher.encode("stub", "abcd"*4, iterations=1234)
+        self.assertEqual(encoded, "$5$rounds=1234$abcdabcdabcdabcd$"
+                                  "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6")
+        self.assertEqual(hasher.safe_summary(encoded),
+            {'algorithm': 'sha256_crypt',
+             'salt': u'abcdab**********',
+             'iterations': 1234,
+             'hash': u'v2RWkZ*************************************',
+             })
 
-default_hash_tests = django_hash_tests + [ th.builtin_sha512_crypt_test \
-                                          or th.os_crypt_sha512_crypt_test ]
+    #=========================================================
+    # PASSLIB_CONFIG setting
+    #=========================================================
+    def test_10_stock(self):
+        "test unloaded extension / actual django behavior"
+        # test against stock django configuration before loading extension
+        #NOTE: if this test fails, probably means newer version of Django,
+        #      and that passlib's stock configs should be updated.
+        self.check_config(stock_config, patched=False)
 
-if has_django0:
-    django_hash_tests.remove(th.django_des_crypt_test)
+    def test_11_config_disabled(self):
+        "test PASSLIB_CONFIG='disabled'"
+        # test config=None (deprecated)
+        with catch_warnings(record=True) as wlog:
+            self.load_extension(PASSLIB_CONFIG=None,check=False)
+            self.consumeWarningList(wlog, "PASSLIB_CONFIG=None is deprecated")
+        self.assert_unpatched()
 
-class PluginTest(TestCase):
-    "test django plugin via settings"
+        # test disabled config
+        self.load_extension(PASSLIB_CONFIG="disabled", check=False)
+        self.assert_unpatched()
 
-    descriptionPrefix = "passlib.ext.django plugin"
+    def test_12_config_presets(self):
+        "test PASSLIB_CONFIG='<preset>'"
+        # test django presets
+        self.load_extension(PASSLIB_CONTEXT="django-default", check=False)
+        if has_django14:
+            ctx = django14_context
+        else:
+            ctx = django10_context
+        self.assert_patched(ctx)
 
-    def setUp(self):
-        super(PluginTest, self).setUp()
+        self.load_extension(PASSLIB_CONFIG="django-1.0", check=False)
+        self.assert_patched(django10_context)
 
-        # remove django patch now, and at end
-        utils.set_django_password_context(None)
-        self.addCleanup(utils.set_django_password_context, None)
+        self.load_extension(PASSLIB_CONFIG="django-1.4", check=False)
+        self.assert_patched(django14_context)
 
-        # ensure django settings are empty
-        update_settings(
-            PASSLIB_CONTEXT=_NOTSET,
-            PASSLIB_GET_CATEGORY=_NOTSET,
-        )
+    def test_13_config_defaults(self):
+        "test PASSLIB_CONFIG default behavior"
+        # check implicit default
+        from passlib.ext.django.utils import PASSLIB_DEFAULT
+        default = CryptContext.from_string(PASSLIB_DEFAULT)
+        self.load_extension()
+        self.check_config(default)
 
-        # unload module so it's re-run when imported
-        sys.modules.pop("passlib.ext.django.models", None)
+        # check default preset
+        self.load_extension(PASSLIB_CONTEXT="passlib-default", check=False)
+        self.assert_patched(PASSLIB_DEFAULT)
 
-    def check_hashes(self, tests, default_scheme, deprecated=[], load=True):
-        """run through django api to verify patch is configured & functioning"""
-        # load extension if it hasn't been already.
-        if load:
-            import passlib.ext.django.models
+        # check explicit string
+        self.load_extension(PASSLIB_CONTEXT=PASSLIB_DEFAULT, check=False)
+        self.assert_patched(PASSLIB_DEFAULT)
 
-        # create fake user object
-        user = FakeUser()
+    def test_14_config_invalid(self):
+        "test PASSLIB_CONFIG type checks"
+        update_settings(PASSLIB_CONTEXT=123, PASSLIB_CONFIG=UNSET)
+        self.assertRaises(TypeError, __import__, 'passlib.ext.django.models')
+
+    def check_config(self, context, patched=True):
+        """run through django api to verify it's matches the specified config"""
+        # XXX: this take a while to run. what could be trimmed?
+
+        # setup helpers
+        if isinstance(context, dict):
+            context = CryptContext(**context)
+        check_password = models.check_password
+        if has_django14:
+            from passlib.ext.django.utils import hasher_to_passlib_name, passlib_to_hasher_name
+        setter = create_mock_setter()
 
         # check new hashes constructed using default scheme
+        user = FakeUser()
         user.set_password("stub")
-        handler = get_crypt_handler(default_scheme)
-        self.assertTrue(handler.identify(user.password),
-                        "handler failed to identify hash: %r %r" %
-                        (default_scheme, user.password))
+        default = context.handler()
+        self.assertTrue(default.verify("stub", user.password))
 
-        # run against hashes from tests...
-        for test in tests:
-            for secret, hash in test.iter_known_hashes():
+        # test module-level make_password
+        if has_django14:
+            hash = hashers.make_password('stub')
+            self.assertTrue(default.verify('stub', hash))
+
+        # run through known hashes for supported schemes
+        for scheme in context.schemes():
+            deprecated = context._is_deprecated_scheme(scheme)
+            assert not (deprecated and scheme == default.name)
+            testcase = get_handler_case(scheme)
+            if testcase.is_disabled_handler:
+                continue
+            handler = testcase.handler
+            for secret, hash in testcase.iter_known_hashes():
+##                print [scheme, secret, hash, deprecated, scheme==default.name]
+                other = 'stub'
+
+                # store hash
+                user = FakeUser()
+                user.password = hash
+
+                # check against invalid password
+                self.assertFalse(user.check_password(other))
+                self.assertEqual(user.password, hash)
+
+                # empty passwords no longer accepted by django 1.4
+                if not secret and has_django14:
+                    self.assertFalse(user.check_password(secret))
+                    self.assertFalse(check_password(secret, hash))
+                    user.set_password(secret)
+                    self.assertFalse(user.has_usable_password())
+                    continue
 
                 # check against valid password
-                user.password = hash
                 if has_django0 and isinstance(secret, unicode):
                     secret = secret.encode("utf-8")
                 self.assertTrue(user.check_password(secret))
-                if deprecated and test.handler.name in deprecated:
-                    self.assertFalse(handler.identify(hash))
-                    self.assertTrue(handler.identify(user.password))
 
-                # check against invalid password
-                user.password = hash
-                self.assertFalse(user.check_password('x'+secret))
-                if deprecated and test.handler.name in deprecated:
-                    self.assertFalse(handler.identify(hash))
+                # check if it upgraded the hash
+                if deprecated:
+                    self.assertNotEqual(user.password, hash)
+                    self.assertFalse(handler.identify(user.password))
+                    self.assertTrue(default.identify(user.password))
+                else:
                     self.assertEqual(user.password, hash)
 
+                # test module-level check_password
+                self.assertTrue(check_password(secret, hash, setter=setter))
+                self.assertEqual(setter.popstate(), [secret] if deprecated else [])
+                self.assertFalse(check_password(other, hash, setter=setter))
+                self.assertEqual(setter.popstate(), [])
+
+                # test module-level identify_hasher
+                if has_django14 and patched:
+                    self.assertTrue(hashers.is_password_usable(hash))
+                    hasher = hashers.identify_hasher(hash)
+                    name = hasher_to_passlib_name(hasher.algorithm)
+                    self.assertEqual(name, scheme)
+
+                # test module-level make_password
+                if has_django14:
+                    alg = passlib_to_hasher_name(scheme)
+                    hash2 = hashers.make_password(secret, hasher=alg)
+                    self.assertTrue(handler.verify(secret, hash2))
+
         # check disabled handling
-        if has_django1:
-            user.set_password(None)
-            handler = get_crypt_handler("django_disabled")
-            self.assertTrue(handler.identify(user.password))
-            self.assertFalse(user.check_password('placeholder'))
+        user = FakeUser()
+        user.set_password(None)
+        handler = get_crypt_handler("django_disabled")
+        self.assertTrue(handler.identify(user.password))
+        self.assertFalse(user.check_password('stub'))
+        if has_django14 and patched:
+            self.assertFalse(hashers.is_password_usable(user.password))
+            self.assertRaises(ValueError, hashers.identify_hasher, user.password)
 
-    def check_django_stock(self, load=True):
-        self.check_hashes(django_hash_tests,
-                          "django_salted_sha1",
-                          ["hex_md5"], load=load)
+    #=========================================================
+    # PASSLIB_GET_CATEGORY setting
+    #=========================================================
+    def test_20_category_setting(self):
+        "test PASSLIB_GET_CATEGORY parameter"
+        # define config where rounds can be used to detect category
+        config = dict(
+            schemes = ["sha256_crypt"],
+            sha256_crypt__default_rounds = 1000,
+            staff__sha256_crypt__default_rounds = 2000,
+            superuser__sha256_crypt__default_rounds = 3000,
+            )
+        from passlib.hash import sha256_crypt
 
-    def check_passlib_stock(self):
-        self.check_hashes(default_hash_tests,
-                          "sha512_crypt",
-                          ["hex_md5", "django_salted_sha1",
-                           "django_salted_md5",
-                           "django_des_crypt",
-                           ])
+        def run(**kwds):
+            "helper to take in user opts, return rounds used in password"
+            user = FakeUser(**kwds)
+            user.set_password("stub")
+            return sha256_crypt.from_string(user.password).rounds
 
-    def test_10_django(self):
-        "test actual Django behavior has not changed"
-        #NOTE: if this test fails,
-        #      probably means newer version of Django,
-        #      and passlib's policies should be updated.
-        self.check_django_stock(load=False)
+        # test default get_category
+        self.load_extension(PASSLIB_CONFIG=config)
+        self.assertEqual(run(), 1000)
+        self.assertEqual(run(is_staff=True), 2000)
+        self.assertEqual(run(is_superuser=True), 3000)
 
-    def test_11_none(self):
-        "test PASSLIB_CONTEXT=None"
-        update_settings(PASSLIB_CONTEXT=None)
-        self.check_django_stock(load=False)
-
-    def test_12_string(self):
-        "test PASSLIB_CONTEXT=string"
-        update_settings(PASSLIB_CONTEXT=utils.STOCK_CTX)
-        self.check_django_stock(load=False)
-
-    def test_13_unset(self):
-        "test unset PASSLIB_CONTEXT uses default"
-        self.check_passlib_stock()
-
-    def test_14_default(self):
-        "test PASSLIB_CONTEXT = utils.DEFAULT_CTX"
-        update_settings(PASSLIB_CONTEXT=utils.DEFAULT_CTX)
-        self.check_passlib_stock()
-
-    def test_15_default_alias(self):
-        "test PASSLIB_CONTEXT = 'passlib-default'"
-        update_settings(PASSLIB_CONTEXT="passlib-default")
-        self.check_passlib_stock()
-
-    def test_16_invalid(self):
-        "test PASSLIB_CONTEXT = invalid type"
-        update_settings(PASSLIB_CONTEXT=123)
-        self.assertRaises(TypeError, __import__, 'passlib.ext.django.models')
-
-    def test_20_categories(self):
-        "test PASSLIB_GET_CATEGORY unset"
-        update_settings(
-            PASSLIB_CONTEXT=category_context.to_string(),
-        )
-        import passlib.ext.django.models
-
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(is_staff=True), 2000)
-        self.assertEqual(get_cc_rounds(is_superuser=True), 3000)
-
-    def test_21_categories_explicit(self):
-        "test PASSLIB_GET_CATEGORY = function"
+        # test patch uses explicit get_category function
         def get_category(user):
             return user.first_name or None
-        update_settings(
-            PASSLIB_CONTEXT = category_context.to_string(),
-            PASSLIB_GET_CATEGORY = get_category,
-        )
-        import passlib.ext.django.models
+        self.load_extension(PASSLIB_CONTEXT=config,
+                            PASSLIB_GET_CATEGORY=get_category)
+        self.assertEqual(run(), 1000)
+        self.assertEqual(run(first_name='other'), 1000)
+        self.assertEqual(run(first_name='staff'), 2000)
+        self.assertEqual(run(first_name='superuser'), 3000)
 
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
-        self.assertEqual(get_cc_rounds(first_name='staff'), 2000)
-        self.assertEqual(get_cc_rounds(first_name='superuser'), 3000)
+        # test patch can disable get_category entirely
+        def get_category(user):
+            return None
+        self.load_extension(PASSLIB_CONTEXT=config,
+                            PASSLIB_GET_CATEGORY=get_category)
+        self.assertEqual(run(), 1000)
+        self.assertEqual(run(first_name='other'), 1000)
+        self.assertEqual(run(first_name='staff', is_staff=True), 1000)
+        self.assertEqual(run(first_name='superuser', is_superuser=True), 1000)
 
-    def test_22_categories_disabled(self):
-        "test PASSLIB_GET_CATEGORY = None"
-        update_settings(
-            PASSLIB_CONTEXT = category_context.to_string(),
-            PASSLIB_GET_CATEGORY = None,
-        )
-        import passlib.ext.django.models
+    #=========================================================
+    # eoc
+    #=========================================================
 
-        self.assertEqual(get_cc_rounds(), 1000)
-        self.assertEqual(get_cc_rounds(first_name='other'), 1000)
-        self.assertEqual(get_cc_rounds(first_name='staff', is_staff=True), 1000)
-        self.assertEqual(get_cc_rounds(first_name='superuser', is_superuser=True), 1000)
+DjangoExtensionTest = skipUnlessDjango(DjangoExtensionTest)
 
-PluginTest = skipUnlessDjango(PluginTest)
+# hack up the some of the real django tests to run w/ extension loaded,
+# to ensure we mimic their behavior.
+if has_django14:
+    from django.contrib.auth.tests.hashers import TestUtilsHashPass as _TestHashers
+    class HashersTest(_TestHashers, _ExtensionSupport):
+        def setUp(self):
+            # omitted orig setup, loading hashers our own way
+            self.load_extension(PASSLIB_CONTEXT=stock_config, check=False)
+        def tearDown(self):
+            self.unload_extension()
+            super(HashersTest, self).tearDown()
 
 #=========================================================
 #eof

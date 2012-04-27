@@ -158,6 +158,10 @@ Release History
 
     Other
 
+        * Added :mod:`passlib.ext.django`, a Django plugin which can be used to
+          override Django's password hashing framework with a custom Passlib
+          policy (An undocumented beta version was present in the 1.5 release).
+
         * The api for the :mod:`passlib.apache` module has been updated
           to add more flexibility, and to fix some ambiguous method
           and keyword names. The old names are still supported, but deprecated,

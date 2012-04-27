@@ -17,7 +17,7 @@ from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
 #module
 
 #=========================================================
-#some
+# constants & support
 #=========================================================
 
 # some common unicode passwords which used as test cases
@@ -26,6 +26,17 @@ UPASS_USD = u("\u20AC\u00A5$")
 UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
 
 PASS_TABLE_UTF8 = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99') # utf-8
+
+def get_handler_case(scheme):
+    "return HandlerCase instance for scheme, used by other tests"
+    from passlib.registry import get_crypt_handler
+    handler = get_crypt_handler(scheme)
+    if hasattr(handler, "backends") and not hasattr(handler, "wrapped"):
+        backend = handler.get_backend()
+        name = "%s_%s_test" % (backend, scheme)
+    else:
+        name = "%s_test" % scheme
+    return globals()[name]
 
 #=========================================================
 #apr md5 crypt

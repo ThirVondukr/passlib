@@ -19,6 +19,8 @@ Table Of Contents
     lib/passlib.apache
     lib/passlib.hosts
 
+    lib/passlib.ext.django
+
     lib/passlib.exc
     lib/passlib.registry
     lib/passlib.utils
@@ -30,8 +32,3 @@ Table Of Contents
 
 * :ref:`General Index <genindex>`
 * :ref:`Module List <modindex>`
-
-..
-    unlisted:
-
-    lib/passlib.ext.django
