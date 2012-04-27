@@ -103,7 +103,7 @@ class htdigest(object):
     @classmethod
     def _norm_hash(cls, hash):
         "normalize hash to native string, and validate it"
-        hash = to_native_str(hash, errname="hash")
+        hash = to_native_str(hash, param="hash")
         if len(hash) != 32:
             raise uh.exc.MalformedHashError(cls, "wrong size")
         for char in hash:

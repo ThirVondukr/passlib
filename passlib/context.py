@@ -1443,10 +1443,10 @@ class CryptContext(object):
         parse_keys = True
         if isinstance(source, base_string_types):
             if PY3:
-                source = to_unicode(source, encoding, errname="source")
+                source = to_unicode(source, encoding, param="source")
             else:
                 source = to_bytes(source, "utf-8", source_encoding=encoding,
-                                  errname="source")
+                                  param="source")
             source = self._parse_ini_stream(NativeStringIO(source), section,
                                             "<string>")
         elif isinstance(source, CryptContext):

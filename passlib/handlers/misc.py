@@ -143,9 +143,9 @@ class unix_disabled(object):
             # such as ``"!"  + original hash``, which glibc uses.
             # XXX: should this detect mcf header, or other things re:
             # local system policy?
-            return to_native_str(config, errname="config")
+            return to_native_str(config, param="config")
         else:
-            return to_native_str(marker or cls.marker, errname="marker")
+            return to_native_str(marker or cls.marker, param="marker")
 
 class plaintext(object):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

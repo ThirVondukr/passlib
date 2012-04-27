@@ -90,7 +90,7 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
         # and some answers :)
         if isinstance(secret, bytes):
             secret = secret.decode("utf-8")
-        user = to_unicode(self.user, "utf-8", errname="user")
+        user = to_unicode(self.user, "utf-8", param="user")
         input = (user+secret).upper().encode("utf-16-be")
         hash = des_cbc_encrypt(ORACLE10_MAGIC, input)
         hash = des_cbc_encrypt(hash, input)

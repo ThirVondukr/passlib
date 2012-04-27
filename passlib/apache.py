@@ -314,7 +314,7 @@ class _CommonFile(object):
         "realm-specific wrapper for _encode_field()"
         return self._encode_field(realm, "realm")
 
-    def _encode_field(self, value, errname="field"):
+    def _encode_field(self, value, param="field"):
         """convert field to internal representation.
 
         internal representation is always bytes. byte strings are left as-is,
@@ -334,13 +334,13 @@ class _CommonFile(object):
         if isinstance(value, unicode):
             value = value.encode(self.encoding)
         elif not isinstance(value, bytes):
-            raise ExpectedStringError(value, errname)
+            raise ExpectedStringError(value, param)
         if len(value) > 255:
             raise ValueError("%s must be at most 255 characters: %r" %
-                             (errname, value))
+                             (param, value))
         if any(c in _INVALID_FIELD_CHARS for c in value):
             raise ValueError("%s contains invalid characters: %r" %
-                             (errname, value,))
+                             (param, value,))
         return value
 
     def _decode_field(self, value):

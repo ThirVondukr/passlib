@@ -355,7 +355,7 @@ def splitcomma(source, sep=","): # pragma: no cover
         if elem.strip()
     ]
 
-def saslprep(source, errname="value"):
+def saslprep(source, param="value"):
     """normalizes unicode string using SASLPrep stringprep profile.
 
     The SASLPrep profile is defined in :rfc:`4013`.
@@ -368,7 +368,7 @@ def saslprep(source, errname="value"):
     :arg source:
         unicode string to normalize & validate
 
-    :param errname:
+    :param param:
         optionally override noun used to refer to source in error messages,
         defaults to ``value``; mainly useful to make caller's error
         messages make more sense.
@@ -421,7 +421,7 @@ def saslprep(source, errname="value"):
     is_ral_char = stringprep.in_table_d1
     if is_ral_char(data[0]):
         if not is_ral_char(data[-1]):
-            raise ValueError("malformed bidi sequence in " + errname)
+            raise ValueError("malformed bidi sequence in " + param)
         # forbid L chars within R/AL sequence.
         is_forbidden_bidi_char = stringprep.in_table_d2
     else:
@@ -445,36 +445,36 @@ def saslprep(source, errname="value"):
 
         # check for forbidden chars
         if in_table_a1(c):
-            raise ValueError("unassigned code points forbidden in " + errname)
+            raise ValueError("unassigned code points forbidden in " + param)
         if in_table_c21_c22(c):
-            raise ValueError("control characters forbidden in " + errname)
+            raise ValueError("control characters forbidden in " + param)
         if in_table_c3(c):
-            raise ValueError("private use characters forbidden in " + errname)
+            raise ValueError("private use characters forbidden in " + param)
         if in_table_c4(c):
-            raise ValueError("non-char code points forbidden in " + errname)
+            raise ValueError("non-char code points forbidden in " + param)
         if in_table_c5(c):
-            raise ValueError("surrogate codes forbidden in " + errname)
+            raise ValueError("surrogate codes forbidden in " + param)
         if in_table_c6(c):
-            raise ValueError("non-plaintext chars forbidden in " + errname)
+            raise ValueError("non-plaintext chars forbidden in " + param)
         if in_table_c7(c):
             # XXX: should these have been caught by normalize?
             # if so, should change this to an assert
-            raise ValueError("non-canonical chars forbidden in " + errname)
+            raise ValueError("non-canonical chars forbidden in " + param)
         if in_table_c8(c):
             raise ValueError("display-modifying / deprecated chars "
-                             "forbidden in" + errname)
+                             "forbidden in" + param)
         if in_table_c9(c):
-            raise ValueError("tagged characters forbidden in " + errname)
+            raise ValueError("tagged characters forbidden in " + param)
 
         # do bidi constraint check chosen by bidi init, above
         if is_forbidden_bidi_char(c):
-            raise ValueError("forbidden bidi character in " + errname)
+            raise ValueError("forbidden bidi character in " + param)
 
     return data
 
 # replace saslprep() with stub when stringprep is missing
 if stringprep is None:
-    def saslprep(source, errname="value"):
+    def saslprep(source, param="value"):
         "stub for saslprep()"
         raise NotImplementedError("saslprep() support requires the 'stringprep' "
                             "module, which is " + _stringprep_missing_reason)
@@ -567,7 +567,7 @@ def is_ascii_safe(source):
     r = _B80 if isinstance(source, bytes) else _U80
     return all(c < r for c in source)
 
-def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
+def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
     """helper to normalize input to bytes.
 
     :arg source:
@@ -576,7 +576,7 @@ def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
     :arg encoding:
         Target encoding (defaults to ``"utf-8"``).
 
-    :param errname:
+    :param param:
         Optional name of variable/noun to reference when raising errors
 
     :param source_encoding:
@@ -602,9 +602,9 @@ def to_bytes(source, encoding="utf-8", errname="value", source_encoding=None):
     elif isinstance(source, unicode):
         return source.encode(encoding)
     else:
-        raise ExpectedStringError(source, errname)
+        raise ExpectedStringError(source, param)
 
-def to_unicode(source, source_encoding="utf-8", errname="value"):
+def to_unicode(source, source_encoding="utf-8", param="value"):
     """helper to normalize input to unicode.
 
     :arg source:
@@ -613,7 +613,7 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
     :arg source_encoding:
         encoding to use when decoding bytes instances.
 
-    :param errname:
+    :param param:
         optional name of variable/noun to reference when raising errors.
 
     :raises TypeError: if source is not unicode or bytes.
@@ -628,24 +628,24 @@ def to_unicode(source, source_encoding="utf-8", errname="value"):
     elif isinstance(source, bytes):
         return source.decode(source_encoding)
     else:
-        raise ExpectedStringError(source, errname)
+        raise ExpectedStringError(source, param)
 
 if PY3:
-    def to_native_str(source, encoding="utf-8", errname="value"):
+    def to_native_str(source, encoding="utf-8", param="value"):
         if isinstance(source, bytes):
             return source.decode(encoding)
         elif isinstance(source, unicode):
             return source
         else:
-            raise ExpectedStringError(source, errname)
+            raise ExpectedStringError(source, param)
 else:
-    def to_native_str(source, encoding="utf-8", errname="value"):
+    def to_native_str(source, encoding="utf-8", param="value"):
         if isinstance(source, bytes):
             return source
         elif isinstance(source, unicode):
             return source.encode(encoding)
         else:
-            raise ExpectedStringError(source, errname)
+            raise ExpectedStringError(source, param)
 
 add_doc(to_native_str,
     """take in unicode or bytes, return native string.
@@ -662,7 +662,7 @@ add_doc(to_native_str,
         encoding to use when encoding unicode or decoding bytes.
         this defaults to ``"utf-8"``.
 
-    :param errname:
+    :param param:
         optional name of variable/noun to reference when raising errors.
 
     :returns: :class:`str` instance
@@ -671,7 +671,7 @@ add_doc(to_native_str,
 @deprecated_function(deprecated="1.6", removed="1.7")
 def to_hash_str(source, encoding="ascii"): # pragma: no cover
     "deprecated, use to_native_str() instead"
-    return to_native_str(source, encoding, errname="hash")
+    return to_native_str(source, encoding, param="hash")
 
 #=================================================================================
 # base64-variant encoding

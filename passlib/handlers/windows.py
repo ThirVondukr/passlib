@@ -150,7 +150,7 @@ class nthash(uh.StaticHandler):
 
         :returns: returns string of raw bytes
         """
-        secret = to_unicode(secret, "utf-8", errname="secret")
+        secret = to_unicode(secret, "utf-8", param="secret")
         # XXX: found refs that say only first 128 chars are used.
         return md4(secret.encode("utf-16-le")).digest()
 
@@ -256,8 +256,8 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
 
         :returns: returns string of raw bytes
         """
-        secret = to_unicode(secret, "utf-8", errname="secret").encode("utf-16-le")
-        user = to_unicode(user, "utf-8", errname="user").lower().encode("utf-16-le")
+        secret = to_unicode(secret, "utf-8", param="secret").encode("utf-16-le")
+        user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         return md4(md4(secret).digest() + user).digest()
 
 #=========================================================
@@ -301,8 +301,8 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
         :returns: returns string of raw bytes
         """
         from passlib.utils.pbkdf2 import pbkdf2
-        secret = to_unicode(secret, "utf-8", errname="secret").encode("utf-16-le")
-        user = to_unicode(user, "utf-8", errname="user").lower().encode("utf-16-le")
+        secret = to_unicode(secret, "utf-8", param="secret").encode("utf-16-le")
+        user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         tmp = md4(md4(secret).digest() + user).digest()
         return pbkdf2(tmp, user, 10240, 16, 'hmac-sha1')
 
