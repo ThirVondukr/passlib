@@ -15,43 +15,47 @@ and most unix flavors have since replaced with with stronger schemes,
 such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`.
 
 This is also referred to under Cisco IOS systems as a "type 5" hash.
-The format and algorithm are identical, though Cisco seems to require [#cisco]_
+The format and algorithm are identical, though Cisco seems to require
 4 salt characters instead of the full 8 characters
-used by most systems.
+used by most systems [#cisco]_.
 
-Usage
-=====
-PassLib provides an md5_crypt class, which can be can be used directly as follows::
+The :class:`!md5_crypt` class can be can be used directly as follows::
 
     >>> from passlib.hash import md5_crypt
 
-    >>> #generate new salt, encrypt password
+    >>> # generate new salt, encrypt password
     >>> h = md5_crypt.encrypt("password")
     >>> h
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'
 
-
-    >>> #verify correct password
+    >>> # verify the password
     >>> md5_crypt.verify("password", h)
     True
-    >>> #verify incorrect password
     >>> md5_crypt.verify("secret", h)
-    False
-
-    >>> #check if hash is recognized
-    >>> md5_crypt.identify(h)
-    True
-    >>> #check if some other hash is recognized
-    >>> md5_crypt.identify('JQMuyS6H.AGMo')
     False
 
     >>> # encrypt password using cisco-compatible 4-char salt
     >>> md5_crypt.encrypt("password", salt_size=4)
     '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`apr_md5_crypt <passlib.hash.apr_md5_crypt>` -- Apache's variant of this algorithm.
+
 Interface
 =========
 .. autoclass:: md5_crypt()
+
+.. note::
+
+    This class will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports MD5-Crypt (most Unix systems).
+    * a pure python implementation of MD5-Crypt built into Passlib.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
 
 Format
 ======
@@ -162,13 +166,13 @@ though it is not yet considered broken:
 
 Deviations
 ==========
-PassLib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
+Passlib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
 
 * Restricted salt string character set:
 
   The underlying algorithm can unambigously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
-  However, PassLib strictly limits salts to the
+  However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,
@@ -183,10 +187,10 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
   as well as all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through md5-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 

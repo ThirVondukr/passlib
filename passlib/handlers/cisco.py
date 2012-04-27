@@ -29,9 +29,10 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     It has a single round, and relies on the username
     as the salt.
 
-    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods
     have the following extra keyword:
 
+    :type user: str
     :param user:
         String containing name of user account this password is associated with.
 
@@ -93,15 +94,20 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`encrypt` and :meth:`genhash` methods
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genhash` methods
     have the following optional keyword:
 
+    :type salt: int
     :param salt:
         This may be an optional salt integer drawn from ``range(0,16)``.
         If omitted, one will be chosen at random.
 
     Note that while this class outputs digests in upper-case hexidecimal,
     it will accept lower-case as well.
+
+    This class also provides the following additional method:
+
+    .. automethod:: decode
     """
     #=========================================================
     # class attrs
@@ -110,6 +116,7 @@ class cisco_type7(uh.GenericHandler):
     setting_kwds = ("salt",)
     checksum_chars = uh.UPPER_HEX_CHARS
 
+    min_salt_value = 0
     max_salt_value = 52
 
     #=========================================================

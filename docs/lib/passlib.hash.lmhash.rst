@@ -4,6 +4,14 @@
 :class:`passlib.hash.lmhash` - LanManager Hash
 ==================================================================
 
+.. versionadded:: 1.6
+
+.. warning::
+
+    This scheme has been deprecated since Windows NT, and is  notoriously weak.
+    It should be used for compatibility with existing systems;
+    **do not use** in new code.
+
 .. currentmodule:: passlib.hash
 
 This class implements the LanManager Hash (aka *LanMan* or *LM* hash).
@@ -12,15 +20,6 @@ until it was supplanted (though not entirely replaced) by
 the :doc:`nthash <passlib.hash.nthash>` algorithm in Windows NT.
 It continues to crop up in production due to it's integral role
 in the legacy NTLM authentication protocol.
-
-.. warning::
-
-    This scheme has been deprecated since Windows NT, and is  notoriously weak.
-    It should be used for compatibility with existing systems;
-    **do not use** in new code.
-
-Usage
-=====
 This class can be used directly as follows::
 
     >>> from passlib.hash import lmhash
@@ -37,12 +36,11 @@ This class can be used directly as follows::
     >>> lmhash.verify("secret", h)
     False
 
-    >>> # check if hash is recognized
-    >>> lmhash.identify(h)
-    True
-    >>> # check if some other hash is recognized
-    >>> lmhash.identify('3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
+.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+
+Interface
+=========
+.. autoclass:: lmhash()
 
 Issues with Non-ASCII Characters
 --------------------------------
@@ -53,11 +51,7 @@ the same way. While Passlib makes every attempt to behave as close to correct
 as possible, the meaning of "correct" is dependant on the software you are
 interoperating with. If you think you will have passwords containing
 non-``ascii`` characters, please read the `Deviations`_ section (below) for
-details about the known interoperability issues.
-
-Interface
-=========
-.. autoclass:: lmhash
+details about the known interoperability issues. It's a mess of codepages.
 
 .. rst-class:: html-toggle
 

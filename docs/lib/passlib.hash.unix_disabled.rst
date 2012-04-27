@@ -7,41 +7,41 @@
 This class does not provide an encryption scheme,
 but instead provides a helper for handling disabled
 password fields as found in unix ``/etc/shadow`` files.
-
-Usage
-=====
 This class is mainly useful only for plugging into a
 :class:`~passlib.context.CryptContext` instance.
 It can be used directly as follows::
 
-    >>> from passlib.hash import unix_disabled as ud
+    >>> from passlib.hash import unix_disabled
 
     >>> # 'encrypting' a password always results in "!" or "*"
-    >>> ud.encrypt("password")
+    >>> unix_disabled.encrypt("password")
     '!'
 
     >>> # verifying will fail for all passwords and hashes
-    >>> ud.verify("password", "!")
+    >>> unix_disabled.verify("password", "!")
     False
-    >>> ud.verify("letmein", "*NOPASSWORD*")
+    >>> unix_disabled.verify("letmein", "*NOPASSWORD*")
     False
 
-    >>> # all strings are recognized - if used in conjunction with other hashes,
-    >>> # this should be the last one checked.
-    >>> ud.identify('!')
+    >>> # this class will positively identify all strings - so if it's used
+    >>> # in conjunction with other hashes, this should be the last one checked.
+    >>> unix_disabled.identify('!')
     True
-    >>> ud.identify('*')
+    >>> unix_disabled.identify('*')
     True
-    >>> ud.identify('')
+    >>> unix_disabled.identify('')
     True
-
 
 Interface
 =========
-.. autoclass:: unix_disabled
+.. autoclass:: unix_disabled()
+
+Deprecated Interface
+====================
+.. autoclass:: unix_fallback()
 
 Deviations
 ==========
 According to the Linux ``shadow`` man page, an empty string is treated
 as a wildcard by Linux, allowing all passwords. For security purposes,
-this behavior is NOT supported; empty strings are treated the same as ``!``.
+this behavior is NOT supported; empty strings are treated the same as ``!`` or ``*``.

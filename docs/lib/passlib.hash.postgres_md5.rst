@@ -4,41 +4,38 @@
 :class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
 
-.. currentmodule:: passlib.hash
-
-This class implements the md5-based hash algorithm used by PostgreSQL to store
-it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
-prior to this PostgreSQL stored it's password in plain text.
-
 .. warning::
 
     This hash is not secure, and should not be used for any purposes
     besides manipulating existing PostgreSQL password hashes.
 
-Usage
-=====
+.. currentmodule:: passlib.hash
+
+This class implements the md5-based hash algorithm used by PostgreSQL to store
+it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
+prior to this PostgreSQL stored it's password in plain text.
 Users will most likely find the frontend provided by :mod:`passlib.apps`
 to be more useful than accessing this class directly.
 That aside, this class can be used directly as follows::
 
-    >>> from passlib.hash import postgres_md5 as pm
+    >>> from passlib.hash import postgres_md5
 
-    >>> #encrypt password using specified username
-    >>> h = pm.encrypt("password", "username")
-    >>> h
+    >>> # encrypt password using specified username
+    >>> hash = postgres_md5.encrypt("password", user="username")
+    >>> hash
     'md55a231fcdb710d73268c4f44283487ba2'
 
-    >>> pm.identify(h) #check if hash is recognized
+    >>> # verify correct password
+    >>> postgres_md5.verify("password", hash, user="username")
     True
-    >>> pm.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
+    >>> # verify correct password w/ wrong username
+    >>> postgres_md5.verify("password", hash, user="somebody")
+    False
+    >>> # verify incorrect password
+    >>> postgres_md5.verify("password", hash, user="username")
     False
 
-    >>> pm.verify("password", h, "username") #verify correct password
-    True
-    >>> pm.verify("password", h, "somebody") #verify correct password w/ wrong username
-    False
-    >>> pm.verify("password", h, "username") #verify incorrect password
-    False
+.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
 
 Interface
 =========

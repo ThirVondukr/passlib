@@ -26,12 +26,11 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
-
-    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods all require the
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods all require the
     following additional contextual keywords:
 
-    :param user: string containing name of postgres user account this password is associated with.
+    :type user: str
+    :param user: name of postgres user account this password is associated with.
     """
     #=========================================================
     # algorithm information

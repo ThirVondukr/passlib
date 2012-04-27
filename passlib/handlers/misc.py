@@ -26,12 +26,6 @@ __all__ = [
 class unix_fallback(uh.StaticHandler):
     """This class provides the fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
-    .. note::
-
-        This class has been deprecated as of Passlib 1.6,
-        and will be removed in Passlib 1.8.
-        Use 'unix_disabled' instead.
-
     This class does not implement a hash, but instead provides fallback
     behavior as found in /etc/shadow on most unix variants.
     If used, should be the last scheme in the context.
@@ -42,6 +36,10 @@ class unix_fallback(uh.StaticHandler):
     * by default it rejects all passwords if the hash is an empty string,
       but if ``enable_wildcard=True`` is passed to verify(),
       all passwords will be allowed through if the hash is an empty string.
+
+    .. deprecated:: 1.6
+        This has been deprecated due to it's "wildcard" feature,
+        and will be removed in Passlib 1.8. Use :class:`unix_disabled` instead.
     """
     name = "unix_fallback"
     context_kwds = ("enable_wildcard",)
@@ -90,8 +88,9 @@ class unix_disabled(uh.PasswordHash):
     * "encrypting" a password will simply return the disabled account marker.
     * it will reject all passwords, no matter the hash.
 
-    The :meth:`encrypt` method supports one optional keyword:
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` method supports one optional keyword:
 
+    :type marker: str
     :param marker:
         Optional marker string which overrides the platform default
         used to indicate a disabled account.
@@ -99,6 +98,10 @@ class unix_disabled(uh.PasswordHash):
         If not specified, this will default to ``*`` on BSD systems,
         and use the Linux default ``!`` for all other platforms.
         (:attr:`!unix_disabled.marker` will contain the default value)
+
+    .. versionadded:: 1.6
+        This class was added as a replacement for the now-deprecated
+        :class:`unix_fallback` class, which had some undesirable features.
     """
     name = "unix_disabled"
     setting_kwds = ("marker",)
@@ -149,6 +152,9 @@ class unix_disabled(uh.PasswordHash):
 
 class plaintext(uh.PasswordHash):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
+
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods all require the
+    following additional contextual keyword:
 
     :type encoding: str
     :param encoding:

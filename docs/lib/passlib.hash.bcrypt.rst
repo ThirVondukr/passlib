@@ -9,7 +9,24 @@ It uses a modified version of the Blowfish stream cipher. Featuring
 a large salt and variable number of rounds, it's currently the default
 password hash for many systems (notably BSD), and has no known weaknesses.
 It is one of the three hashes Passlib :ref:`recommends <recommended-hashes>`
-for new applications.
+for new applications. This class can be used directly as follows::
+
+    >>> from passlib.hash import bcrypt
+
+    >>> # generate new salt, encrypt password
+    >>> h = bcrypt.encrypt("password")
+    >>> h
+    '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
+
+    >>> # the same, but with an explicit number of rounds
+    >>> bcrypt.encrypt("password", rounds=8)
+    '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
+
+    >>> #verify password
+    >>> bcrypt.verify("password", h)
+    True
+    >>> bcrypt.verify("wrong", h)
+    False
 
 .. note::
 
@@ -17,38 +34,37 @@ for new applications.
     :ref:`py-bcrypt or bcryptor <optional-libraries>`
     if this algorithm is going to be used.
 
-Usage
-=====
-This class can be used directly as follows::
-
-    >>> from passlib.hash import bcrypt
-
-    >>> #generate new salt, encrypt password
-    >>> h = bcrypt.encrypt("password")
-    >>> h
-    '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
-
-    >>> #same, but with explict number of rounds
-    >>> bcrypt.encrypt("password", rounds=8)
-    '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
-
-    >>> #check if hash is a bcrypt hash
-    >>> bcrypt.identify(h)
-    True
-    >>> #check if some other hash is recognized
-    >>> bcrypt.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
-
-    >>> #verify correct password
-    >>> bcrypt.verify("password", h)
-    True
-    >>> #verify incorrect password
-    >>> bcrypt.verify("wrong", h)
-    False
+.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
 
 Interface
 =========
-.. autoclass:: bcrypt
+.. autoclass:: bcrypt()
+
+.. note::
+
+    This class will use the first available of four possible backends:
+
+    1. `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
+    2. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
+    3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
+       (primarily BSD-derived systems).
+    4. A *slow* pure-python implementation of BCrypt, built into Passlib.
+
+    It should be noted that the builtin pure-python implementation is too slow
+    to be both secure and responsive at the same time (except under PyPy > 1.7)
+    Because of this, it is disabled by default, unless
+    the environment variable ``PASSLIB_BUILTIN_BCRYPT="enabled"`` has been set
+    before Passlib is first loaded.
+
+    If the first three backends are not available, and the builtin
+    backend has not been enabled, :meth:`encrypt` and :meth:`verify`
+    will throw a :exc:`~passlib.exc.MissingBackendError` when they are called.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
+
+.. versionchanged:: 1.6
+    The pure-python backend was added, though it's disabled by default
+    for security. (speedups are welcome!)
 
 Format & Algorithm
 ==================
@@ -74,7 +90,7 @@ This implementation of bcrypt differs from others in a few ways:
 
   BCrypt does not specify what the behavior should be when
   passed a salt string outside of the regexp range ``[./A-Za-z0-9]``.
-  In order to avoid this situtation, PassLib strictly limits salts to the
+  In order to avoid this situtation, Passlib strictly limits salts to the
   allowed character set, and will throw a ValueError if an invalid
   salt character is encountered.
 
@@ -87,10 +103,10 @@ This implementation of bcrypt differs from others in a few ways:
   as well as all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through bcrypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 * Padding Bits
 
@@ -105,7 +121,9 @@ This implementation of bcrypt differs from others in a few ways:
   (This behavior will eventually be deprecated and such hashes
   will throw a :exc:`ValueError` instead).
 
-* crypt_blowfish 2x/2y hashes
+* the crypt_blowfish bug, and the 2x/2y hashes
+
+  .. _crypt-blowfish-bug:
 
   Pre-1.1 versions of the `crypt_blowfish <http://www.openwall.com/crypt/>`_
   bcrypt implementation suffered from a serious flaw [#eight]_

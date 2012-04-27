@@ -13,23 +13,15 @@ variable length salts, variable number of rounds.
 
 .. seealso::
 
-    * :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
-      for some other PBKDF2-based hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use this class via the common hash interface.
 
-    * :doc:`passlib.hash.dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
+    * :doc:`dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
       for another hash which looks almost exactly like this one.
-
-Usage
-=====
-This class support both rounds and salts,
-and can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
 
 Interface
 =========
 .. autoclass:: cta_pbkdf2_sha1()
-
-.. rst-class:: html-toggle
 
 Format & Algorithm
 ==================

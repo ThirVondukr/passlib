@@ -4,55 +4,47 @@
 :class:`passlib.hash.cisco_type7` - Cisco "Type 7" hash
 ==================================================================
 
+.. versionadded:: 1.6
+
+.. warning::
+
+    This is not a hash, this is a reversible plaintext encoding.
+    **This format can be trivially decoded**.
+
 .. currentmodule:: passlib.hash
 
 This class implements the "Type 7" password encoding used Cisco IOS.
-This is not actually a true hash, but a reversible encoding of the plaintext
-password. Type 7 strings are (and were designed to be) **plaintext equivalent**;
+This is not actually a true hash, but a reversible XOR Cipher encoding of the plaintext
+password. Type 7 strings are (and were designed to be) plaintext equivalent;
 the goal was to protect from "over the shoulder" eavesdropping, and
-little else. They can be trivially decoded. **Do not use for any purpose
-where actual security is needed**.
+little else. They can be trivially decoded.
+This class can be used directly as follows::
+
+    >>> from passlib.hash import cisco_type7
+
+    >>> # encode password
+    >>> h = cisco_type7.encrypt("password")
+    >>> h
+    '044B0A151C36435C0D'
+
+    >>> # verify password
+    >>> cisco_type7.verify("password", h)
+    True
+    >>> pm.verify("letmein", h)
+    False
+
+    >>> # to demonstrate this is an encoding, not a real hash,
+    >>> # this class supports decoding the resulting string:
+    >>> cisco_type7.decode(h)
+    "password"
+
+.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
 
 .. note::
 
     This implementation should work correctly for most cases, but may not
     fully implement some edge cases (see `Deviations`_ below).
     Please report any issues encountered.
-
-.. seealso::
-
-    * :doc:`passlib.hash.md5_crypt` (referred to as a "type 5" hash by Cisco)
-    * :doc:`passlib.hash.cisco_pix`
-
-Usage
-=====
-This class can be used directly as follows::
-
-    >>> from passlib.hash import cisco_type7 as ct
-
-    >>> # encode password
-    >>> h = ct.encrypt("password")
-    >>> h
-    '044B0A151C36435C0D'
-
-    >>> #verify correct password
-    >>> ct.verify("password", h)
-    True
-    >>> #verify incorrect password
-    >>> pm.verify("letmein", h)
-    False
-
-    >>> #check if hash is recognized
-    >>> ct.identify(h)
-        True
-    >>> #check if some other hash is recognized
-    >>> ct.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
-
-    >>> # to demonstrate this is an encoding, not a real hash,
-    >>> # this class supports decoding the resulting string:
-    >>> ct.decode(h)
-    "password"
 
 Interface
 =========
@@ -101,10 +93,10 @@ It may be updated as more information becomes available.
   Type 7 encoding is primarily used with ``ASCII`` passwords,
   how it handles other characters is not known.
 
-  In order to provide support for unicode strings, PassLib will encode unicode
+  In order to provide support for unicode strings, Passlib will encode unicode
   passwords using ``UTF-8`` before running them through this algorithm. If a
   different encoding is desired by an application, the password should be
-  encoded before handing it to PassLib.
+  encoded before handing it to Passlib.
 
 * Magic Key:
 

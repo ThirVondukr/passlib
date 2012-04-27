@@ -4,6 +4,8 @@
 :class:`passlib.hash.msdcc2` - Windows' Domain Cached Credentials v2
 ======================================================================
 
+.. versionadded:: 1.6
+
 .. currentmodule:: passlib.hash
 
 This class implements the DCC2 (Domain Cached Credentials version 2) hash, used
@@ -14,34 +16,30 @@ the weaker :doc:`msdcc (v1)<passlib.hash.msdcc>` hash used by previous releases
 of Windows. Security wise it is not particularly weak, but due to it's
 use of the username as a salt, it should probably not be used for anything
 but verifying existing cached credentials.
-
-Usage
-=====
 This class can be used directly as follows::
 
     >>> from passlib.hash import msdcc2
 
     >>> # encrypt password using specified username
-    >>> h = msdcc2.encrypt("password", "Administrator")
-    >>> h
+    >>> hash = msdcc2.encrypt("password", user="Administrator")
+    >>> hash
     '4c253e4b65c007a8cd683ea57bc43c76'
 
-    >>> #verify correct password
-    >>> msdcc2.verify("password", h, "Administrator")
+    >>> # verify correct password
+    >>> msdcc2.verify("password", hash, user="Administrator")
     True
-    >>> #verify correct password w/ wrong username
-    >>> msdcc2.verify("password", h, "User")
+    >>> # verify correct password w/ wrong username
+    >>> msdcc2.verify("password", hash, user="User")
     False
-    >>> #verify incorrect password
-    >>> msdcc2.verify("letmein", h, "Administrator")
+    >>> # verify incorrect password
+    >>> msdcc2.verify("letmein", hash, user="Administrator")
     False
 
-    >>> # check if hash may belong to msdcc
-    >>> msdcc2.identify(h)
-    True
-    >>> # check if foreign hash belongs to msdcc
-    >>> msdcc2.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`msdcc <passlib.hash.msdcc>` -- the predecessor to this hash
 
 Interface
 =========

@@ -31,9 +31,10 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`encrypt()` and :meth:`verify` methods accept a single
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods accept a single
     optional keyword:
 
+    :type encoding: str
     :param encoding:
 
         This specifies what character encoding LMHASH should use when
@@ -68,7 +69,9 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
     def raw(cls, secret, encoding=None):
         """encode password using LANMAN hash algorithm.
 
-        :arg secret: secret as unicode or utf-8 encoded bytes
+        :type secret: unicode or utf-8 encoded bytes
+        :arg secret: secret to hash
+        :type encoding: str
         :arg encoding:
             optional encoding to use for unicode inputs.
             this defaults to ``cp437``, which is the
@@ -112,7 +115,7 @@ class nthash(uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept no optional keywords.
 
     Note that while this class outputs lower-case hexidecimal digests,
     it will accept upper-case digests as well.
@@ -165,7 +168,7 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 
     It has no salt and a single fixed round.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept no optional keywords.
     """)
 
 ##class ntlm_pair(object):
@@ -215,9 +218,10 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
     It has a fixed number of rounds, and uses the associated
     username as the salt.
 
-    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods
     have the following optional keywords:
 
+    :type user: str
     :param user:
         String containing name of user account this password is associated with.
         This is required to properly calculate the hash.
@@ -262,9 +266,10 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
     It has a fixed number of rounds, and uses the associated
     username as the salt.
 
-    The :meth:`encrypt()`, :meth:`genhash()`, and :meth:`verify()` methods
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt`, :meth:`~passlib.utils.handlers.PasswordHash.genhash`, and :meth:`~passlib.utils.handlers.PasswordHash.verify` methods
     have the following extra keyword:
 
+    :type user: str
     :param user:
         String containing name of user account this password is associated with.
         This is required to properly calculate the hash.
@@ -287,7 +292,10 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
     def raw(cls, secret, user):
         """encode password using msdcc v2 algorithm
 
-        :arg secret: secret as unicode or utf-8 encoded bytes
+        :type secret: unicode or utf-8 bytes
+        :arg secret: secret
+
+        :type user: str
         :arg user: username to use as salt
 
         :returns: returns string of raw bytes

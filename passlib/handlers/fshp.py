@@ -29,7 +29,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.utils.handlers.PasswordHash.encrypt` and :meth:`~passlib.utils.handlers.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :param salt:
         Optional raw salt string.
@@ -41,7 +41,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 40000, must be between 1 and 4294967295, inclusive.
+        Defaults to 50000, must be between 1 and 4294967295, inclusive.
 
     :param variant:
         Optionally specifies variant of FSHP to use.

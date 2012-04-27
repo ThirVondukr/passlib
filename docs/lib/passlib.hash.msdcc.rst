@@ -4,6 +4,13 @@
 :class:`passlib.hash.msdcc` - Windows' Domain Cached Credentials
 ======================================================================
 
+.. versionadded:: 1.6
+
+.. warning::
+
+    This hash is not very secure, and should mainly be used to verify
+    existing cached credentials.
+
 .. currentmodule:: passlib.hash
 
 This class implements the DCC (Domain Cached Credentials) hash, used
@@ -13,43 +20,30 @@ including "mscache" and "mscash" (Microsoft CAched haSH). Security wise
 it is not particularly strong, as it's little more than :doc:`nthash <passlib.hash.nthash>`
 salted with a username. It was replaced by :doc:`msdcc2 <passlib.hash.msdcc2>`
 in Windows Vista.
-
-.. warning::
-
-    This hash is not very secure, and should mainly be used to verify
-    existing cached credentials.
-
-.. seealso::
-
-    :doc:`passlib.hash.msdcc2`
-
-Usage
-=====
 This class can be used directly as follows::
 
     >>> from passlib.hash import msdcc
 
     >>> # encrypt password using specified username
-    >>> h = msdcc.encrypt("password", "Administrator")
-    >>> h
+    >>> hash = msdcc.encrypt("password", user="Administrator")
+    >>> hash
     '25fd08fa89795ed54207e6e8442a6ca0'
 
-    >>> #verify correct password
-    >>> msdcc.verify("password", h, "Administrator")
+    >>> # verify correct password
+    >>> msdcc.verify("password", hash, user="Administrator")
     True
-    >>> #verify correct password w/ wrong username
-    >>> msdcc.verify("password", h, "User")
+    >>> # verify correct password w/ wrong username
+    >>> msdcc.verify("password", hash, user="User")
     False
-    >>> #verify incorrect password
-    >>> msdcc.verify("letmein", h, "Administrator")
+    >>> # verify incorrect password
+    >>> msdcc.verify("letmein", hash, user="Administrator")
     False
 
-    >>> # check if hash may belong to msdcc
-    >>> msdcc.identify(h)
-    True
-    >>> # check if foreign hash belongs to msdcc
-    >>> msdcc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`msdcc2 <passlib.hash.msdcc2>` -- the successor to this hash
 
 Interface
 =========

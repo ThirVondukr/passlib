@@ -2,43 +2,39 @@
 :class:`passlib.hash.mssql2000` - MS SQL 2000 password hash
 ==================================================================
 
-.. currentmodule:: passlib.hash
-
-This class implements the hash algorithm used by Microsoft SQL Server 2000
-to store it's user account passwords, until it was replaced
-by a slightly more secure variant (:class:`~passlib.hash.mssql2005`)
-in MSSQL 2005.
+.. versionadded:: 1.6
 
 .. warning::
 
     This hash is not very secure, and should not be used for any purposes
     besides manipulating existing MSSQL 2000 password hashes.
 
-.. seealso::
+.. currentmodule:: passlib.hash
 
-    :class:`~passlib.hash.mssql2005`
-
-Usage
-=====
-This class can be used directly as follows (note that this class requires
-a username for all encrypt/verify operations)::
+This class implements the hash algorithm used by Microsoft SQL Server 2000
+to store it's user account passwords, until it was replaced
+by a slightly more secure variant (:class:`~passlib.hash.mssql2005`)
+in MSSQL 2005.
+This class can be used directly as follows::
 
     >>> from passlib.hash import mssql2000 as m20
 
-    >>> #encrypt password using specified username
+    >>> # encrypt password
     >>> h = m20.encrypt("password")
     >>> h
     '0x0100200420C4988140FD3920894C3EDC188E94F428D57DAD5905F6CC1CBAF950CAD4C63F272B2C91E4DEEB5E6444'
 
-    >>> m20.identify(h) #check if hash is recognized
+    >>> # verify correct password
+    >>> m20.verify("password", h)
     True
-    >>> m20.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
+    >>> m20.verify("letmein", h)
     False
 
-    >>> m20.verify("password", h) #verify correct password
-    True
-    >>> m20.verify("letmein", h) #verify incorrect password
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`mssql2005 <passlib.hash.mssql2005>` -- the successor to this hash.
 
 Interface
 =========

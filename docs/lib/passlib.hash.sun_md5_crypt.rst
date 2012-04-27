@@ -11,17 +11,16 @@ It was introduced in Solaris 9u2. While based on the MD5 message digest, it has 
 in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
 32 bit variable rounds and an 8 character salt.
 
-.. warning::
+.. seealso::
+    :ref:`password hash usage <password-hash-examples>` --
+    for examples of how to use this class via the common hash interface.
+
+.. note::
 
     The original Solaris implementation has some hash encoding quirks
     which may not be properly accounted for in Passlib.
-    For now, this implementation should not be relied on for anything but novelty purposes.
-
-Usage
-=====
-This class supports both rounds and salts,
-and so can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
+    Until more user feedback and sample hashes have been gathered,
+    *caveat emptor*.
 
 Interface
 =========
@@ -147,7 +146,7 @@ conform to what users are used to.
 
 Deviations
 ==========
-PassLib's implementation of Sun-MD5-Crypt deliberately
+Passlib's implementation of Sun-MD5-Crypt deliberately
 deviates from the official implementation in the following ways:
 
 * Unicode Policy:
@@ -158,10 +157,10 @@ deviates from the official implementation in the following ways:
   is implied by all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through sun-md5-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 * Rounds encoding
 

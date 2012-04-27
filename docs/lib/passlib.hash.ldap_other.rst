@@ -10,7 +10,10 @@ but are not part of any standard.
 
 .. seealso::
 
-    :ref:`ldap-hashes` for a full list of RFC 2307 style hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use these classes via the common hash interface.
+
+    * :ref:`ldap-hashes` for a full list of RFC 2307 style hashes.
 
 Hexidecimal Digests
 ===================

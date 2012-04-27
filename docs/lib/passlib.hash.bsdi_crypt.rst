@@ -4,38 +4,48 @@
 
 .. currentmodule:: passlib.hash
 
+.. note::
+
+    This algorithm is weak by modern standards, and should not be used in new applications.
+
 This algorithm was developed by BSDi for their BSD/OS distribution.
 It's based on :class:`~passlib.hash.des_crypt`, and contains a larger
 salt and a variable number of rounds. This algorithm is also
 known as "Extended DES Crypt".
-This algorithm is weak by modern standards,
-and should not be used in new applications.
+It class can be used directly as follows::
 
-Usage
-=====
-This class can be used directly as follows::
+    >>> from passlib.hash import bsdi_crypt
 
-    >>> from passlib.hash import bsdi_crypt as bc
-
-    >>> bc.encrypt("password") #generate new salt, encrypt password
+    >>> # generate new salt, encrypt password
+    >>> hash = bsdi_crypt.encrypt("password")
+    >>> hash
     '_7C/.Bf/4gZk10RYRs4Y'
 
-    >>> bc.encrypt("password", rounds=10001) #same, but with explict number of rounds
+    >>> # same, but with explict number of rounds
+    >>> bsdi_crypt.encrypt("password", rounds=10001)
     '_FQ0.amG/zwCMip7DnBk'
 
-    >>> bc.identify('_7C/.Bf/4gZk10RYRs4Y') #check if hash is recognized
+    >>> # verify password
+    >>> bsdi_crypt.verify("password", hash)
     True
-    >>> bc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
+    >>> bsdi_crypt.verify("secret", hash)
     False
 
-    >>> bc.verify("password", '_7C/.Bf/4gZk10RYRs4Y') #verify correct password
-    True
-    >>> bc.verify("secret", '_7C/.Bf/4gZk10RYRs4Y') #verify incorrect password
-    False
+.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
 
 Interface
 =========
 .. autoclass:: bsdi_crypt()
+
+.. note::
+
+    This class will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports BSDi-Crypt
+      (primarily BSD-derived systems).
+    * a pure Python implementation of BSDi-Crypt built into Passlib.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
 
 Format
 ======
@@ -97,6 +107,8 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
 9. The resulting 66-bit integer is encoded in big-endian order
    using the :data:`hash64-big <passlib.utils.h64big>` format.
 
+.. _bsdi-crypt-security-issues:
+
 Security Issues
 ===============
 BSDi Crypt should not be considered sufficiently secure, for a number of reasons:
@@ -131,10 +143,10 @@ This implementation of bsdi-crypt differs from others in one way:
   (as evidenced by the fact that it discards the 8th bit of all password bytes).
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through bsdi-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 
