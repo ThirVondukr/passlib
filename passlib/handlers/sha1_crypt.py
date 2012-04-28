@@ -15,7 +15,7 @@ from warnings import warn
 #libs
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
-from passlib.utils.pbkdf2 import hmac_sha1
+from passlib.utils.pbkdf2 import get_prf
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -24,6 +24,8 @@ __all__ = [
 #=========================================================
 #sha1-crypt
 #=========================================================
+_hmac_sha1 = get_prf("hmac-sha1")[0]
+
 class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -104,7 +106,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         result = result.encode("ascii")
         r = 0
         while r < rounds:
-            result = hmac_sha1(secret, result)
+            result = _hmac_sha1(secret, result)
             r += 1
         return h64.encode_transposed_bytes(result, self._chk_offsets).decode("ascii")
 

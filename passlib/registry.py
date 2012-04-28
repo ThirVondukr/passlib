@@ -220,7 +220,7 @@ def register_crypt_handler_path(name, path):
     if ':' in path:
         if path.count(':') > 1:
             raise ValueError("path cannot have more than one ':'")
-        if path.index('.', path.index(':')) > -1:
+        if path.find('.', path.index(':')) > -1:
             raise ValueError("path cannot have '.' to right of ':'")
 
     # store location

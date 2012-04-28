@@ -11,7 +11,7 @@ import warnings
 #pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, u
+from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
         enable_option, b, catch_warnings, UserHandlerMixin, randintgauss
 #module
@@ -70,6 +70,7 @@ class _bcrypt_test(HandlerCase):
     "base for BCrypt test cases"
     handler = hash.bcrypt
     secret_size = 72
+    reduce_default_rounds = True
 
     known_correct_hashes = [
         #
@@ -826,6 +827,19 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
         'md5$aa$bb',
     ]
 
+    def get_fuzz_salt_size(self):
+        # workaround for django14 regression --
+        # 1.4 won't accept hashes with empty salt strings, unlike 1.3 and earlier.
+        # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
+        # for now, we avoid salt_size==0 under 1.4
+        handler = self.handler
+        from passlib.tests.test_ext_django import has_django14
+        default = handler.default_salt_size
+        assert handler.min_salt_size == 0
+        lower = 1 if has_django14 else 0
+        upper = handler.max_salt_size or default*4
+        return randintgauss(lower, upper, default, default*.5)
+
 class django_salted_sha1_test(HandlerCase, _DjangoHelper):
     "test django_salted_sha1"
     handler = hash.django_salted_sha1
@@ -853,6 +867,8 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
         # checksum too short
         'sha1$c2e86$0f75',
     ]
+
+    get_fuzz_salt_size = get_method_function(django_salted_md5_test.get_fuzz_salt_size)
 
 class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
     "test django_pbkdf2_sha256"
@@ -1022,7 +1038,7 @@ class hex_md4_test(HandlerCase):
         (UPASS_TABLE, '876078368c47817ce5f9115f3a42cf74'),
     ]
 
-class hex_md5_test(HandlerCase, _DjangoHelper):
+class hex_md5_test(HandlerCase):
     handler = hash.hex_md5
     known_correct_hashes = [
         ("password", '5f4dcc3b5aa765d61d8327deb882cf99'),

@@ -248,8 +248,7 @@ def _has_native_md4():
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
     if PYPY and result == '':
-        # as of pypy 1.5-1.7, this returns empty string! 
-        # since this is expected, don't bother w/ warning.
+        # workaround for https://bugs.pypy.org/issue957, fixed in PyPy 1.8
         return False
     #anything else should alert user
     from passlib.exc import PasslibRuntimeWarning

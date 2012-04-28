@@ -1739,8 +1739,13 @@ class HandlerCase(TestCase):
 
     def mangle_fuzz_password(self, secret):
         "mangle fuzz-testing password so it doesn't match"
-        secret = secret.strip()[1:]
-        return secret or self.get_fuzz_password()
+        other = secret.strip()[1:]
+        if other:
+            return other
+        while True:
+            other = self.get_fuzz_password()
+            if other != secret:
+                return other
 
     def get_fuzz_password_pair(self):
         "generate random password, and non-matching alternate password"

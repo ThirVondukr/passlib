@@ -52,9 +52,9 @@ class PasswordHash(object):
     #----------------------------------
     # general information
     #----------------------------------
-    name = abstractproperty()
-    setting_kwds = abstractproperty()
-    context_kwds = abstractproperty()
+    ##name
+    ##setting_kwds
+    ##context_kwds
 
     #----------------------------------
     # salt information -- if 'salt' in setting_kwds

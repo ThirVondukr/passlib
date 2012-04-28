@@ -11,7 +11,8 @@ import warnings
 # pkg
 from passlib.apps import django10_context, django14_context
 from passlib.context import CryptContext
-from passlib.utils.compat import iteritems, unicode, method_function_attr
+import passlib.exc as exc
+from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
 from passlib.utils import memoized_property
 from passlib.registry import get_crypt_handler
 # tests
@@ -22,9 +23,14 @@ from passlib.tests.test_handlers import get_handler_case
 #=========================================================
 # configure django settings for testcases
 #=========================================================
+from passlib.ext.django.utils import DJANGO_VERSION
+
+# disable all Django integration tests under py3,
+# since Django doesn't support py3 yet.
+if PY3 and DJANGO_VERSION < (1,5):
+    DJANGO_VERSION = ()
 
 # convert django version to some cheap flags
-from passlib.ext.django.utils import DJANGO_VERSION
 has_django = bool(DJANGO_VERSION)
 has_django0 = has_django and DJANGO_VERSION < (1,0)
 has_django1 = DJANGO_VERSION >= (1,0)
@@ -110,7 +116,7 @@ def iter_patch_candidates():
             if attr.startswith("_"):
                 continue
             value = getattr(obj, attr)
-            value = getattr(value, method_function_attr, value)
+            value = get_method_function(value)
             source = getattr(value, "__module__", None)
             if source:
                 yield obj, attr, source
@@ -128,6 +134,9 @@ def create_mock_setter():
             del state[:]
     setter.popstate = popstate
     return setter
+
+def has_backend(handler):
+    return not hasattr(handler, "has_backend") or handler.has_backend()
 
 #=========================================================
 # sample config used by basic tests
@@ -500,9 +509,9 @@ class DjangoExtensionTest(TestCase, _ExtensionSupport):
                                   "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6")
         self.assertEqual(hasher.safe_summary(encoded),
             {'algorithm': 'sha256_crypt',
-             'salt': u'abcdab**********',
+             'salt': u('abcdab**********'),
              'iterations': 1234,
-             'hash': u'v2RWkZ*************************************',
+             'hash': u('v2RWkZ*************************************'),
              })
 
     #=========================================================
@@ -580,10 +589,13 @@ class DjangoExtensionTest(TestCase, _ExtensionSupport):
         user = FakeUser()
         user.set_password("stub")
         default = context.handler()
-        self.assertTrue(default.verify("stub", user.password))
+        if has_backend(default):
+            self.assertTrue(default.verify("stub", user.password))
+        else:
+            self.assertRaises(exc.MissingBackendError, default.verify, 'stub', user.password)
 
         # test module-level make_password
-        if has_django14:
+        if has_backend(default) and has_django14:
             hash = hashers.make_password('stub')
             self.assertTrue(default.verify('stub', hash))
 
@@ -591,10 +603,17 @@ class DjangoExtensionTest(TestCase, _ExtensionSupport):
         for scheme in context.schemes():
             deprecated = context._is_deprecated_scheme(scheme)
             assert not (deprecated and scheme == default.name)
-            testcase = get_handler_case(scheme)
+            try:
+                testcase = get_handler_case(scheme)
+            except exc.MissingBackendError:
+                assert scheme == "bcrypt"
+                continue
             if testcase.is_disabled_handler:
                 continue
             handler = testcase.handler
+            if not has_backend(handler):
+                assert scheme == "django_bcrypt"
+                continue
             for secret, hash in testcase.iter_known_hashes():
 ##                print [scheme, secret, hash, deprecated, scheme==default.name]
                 other = 'stub'
@@ -621,7 +640,8 @@ class DjangoExtensionTest(TestCase, _ExtensionSupport):
                 self.assertTrue(user.check_password(secret))
 
                 # check if it upgraded the hash
-                if deprecated:
+                needs_update = context.needs_update(hash)
+                if needs_update:
                     self.assertNotEqual(user.password, hash)
                     self.assertFalse(handler.identify(user.password))
                     self.assertTrue(default.identify(user.password))
@@ -629,10 +649,15 @@ class DjangoExtensionTest(TestCase, _ExtensionSupport):
                     self.assertEqual(user.password, hash)
 
                 # test module-level check_password
-                self.assertTrue(check_password(secret, hash, setter=setter))
-                self.assertEqual(setter.popstate(), [secret] if deprecated else [])
-                self.assertFalse(check_password(other, hash, setter=setter))
-                self.assertEqual(setter.popstate(), [])
+                if has_django14 or patched:
+                    self.assertTrue(check_password(secret, hash, setter=setter))
+                    self.assertEqual(setter.popstate(), [secret] if needs_update else [])
+                    self.assertFalse(check_password(other, hash, setter=setter))
+                    self.assertEqual(setter.popstate(), [])
+                elif scheme != "hex_md5":
+                    # django 1.3 never called check_password() for hex_md5
+                    self.assertTrue(check_password(secret, hash))
+                    self.assertFalse(check_password(other, hash))
 
                 # test module-level identify_hasher
                 if has_django14 and patched:

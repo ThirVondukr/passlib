@@ -82,7 +82,7 @@ class RegistryTest(TestCase):
     def test_register_crypt_handler_path(self):
         "test register_crypt_handler_path()"
         #NOTE: this messes w/ internals of registry, shouldn't be used publically.
-        paths = registry._handler_locations
+        paths = registry._locations
 
         #check namespace is clear
         self.assertTrue('dummy_0' not in paths)
@@ -156,7 +156,7 @@ class RegistryTest(TestCase):
             name = "dummy_1"
 
         self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
-        self.asssertIs(get_crypt_handler("dummy_1", None), None)
+        self.assertIs(get_crypt_handler("dummy_1", None), None)
 
         register_crypt_handler(dummy_1)
         self.assertIs(get_crypt_handler("dummy_1"), dummy_1)

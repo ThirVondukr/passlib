@@ -5,6 +5,7 @@
 from __future__ import with_statement
 #core
 import logging; log = logging.getLogger(__name__)
+import warnings
 #site
 #pkg
 from passlib import hosts, hash as hashmod
@@ -48,6 +49,8 @@ class HostsTest(TestCase):
         self.check_unix_disabled(ctx)
 
     def test_bsd_contexts(self):
+        warnings.filterwarnings("ignore",
+                                "SECURITY WARNING: .*pure-python bcrypt.*")
         for ctx in [
             hosts.freebsd_context,
             hosts.openbsd_context,

@@ -75,7 +75,7 @@ def _apply_patch():
             return (encoded is not None and encoded != UNUSABLE_PASSWORD)
 
         def is_valid_secret(secret):
-            return password is not None
+            return secret is not None
 
     else:
         has_hashers = True

@@ -1495,7 +1495,12 @@ class CryptContext(object):
                     for scheme in value:
                         if not isinstance(scheme, str):
                             raise ExpectedTypeError(value, "str", "deprecated element")
-                        if scheme not in schemes and scheme != "auto":
+                        if scheme in schemes:
+                            continue
+                        elif scheme == "auto":
+                            if len(value) > 1:
+                                raise ValueError("cannot list other schemes if ``deprecated=['auto']`` is used")
+                        else:
                             raise KeyError("deprecated scheme not found "
                                        "in policy: %r" % (scheme,))
                     # TODO: make sure there's at least one non-deprecated scheme.

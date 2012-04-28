@@ -285,7 +285,6 @@ import hashlib
 import hmac
 from passlib.utils import pbkdf2
 
-#TODO: should we bother testing hmac_sha1() function? it's verified via sha1_crypt testing.
 class CryptoTest(TestCase):
     "test various crypto functions"
 
@@ -490,8 +489,11 @@ class _Pbkdf2BackendTest(TestCase):
 
     def test_hmac_sha1(self):
         "test independant hmac_sha1() method"
+        # TODO: expand this into a full test of get_prf()
+        hmac_sha1, size = pbkdf2.get_prf("hmac-sha1")
+        self.assertEqual(size, 20)
         self.assertEqual(
-            pbkdf2.hmac_sha1(b("secret"), b("salt")),
+            hmac_sha1(b("secret"), b("salt")),
             b('\xfc\xd4\x0c;]\r\x97\xc6\xf1S\x8d\x93\xb9\xeb\xc6\x00\x04.\x8b\xfe')
             )
 

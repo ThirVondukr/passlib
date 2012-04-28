@@ -18,7 +18,7 @@ from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler, list_crypt_handlers
 from passlib.utils import classproperty
-from passlib.utils.compat import bytes, method_function_attr, iteritems
+from passlib.utils.compat import bytes, get_method_function, iteritems
 # local
 __all__ = [
     "get_preset_config",
@@ -205,7 +205,7 @@ def get_passlib_hasher(handler):
     if hasattr(handler, "django_name"):
         # return native hasher instance
         # XXX: should cache this too.
-        return _get_hasher(handler.django_name)()
+        return _get_hasher(handler.django_name)
     if handler.name == "django_disabled":
         raise ValueError("can't wrap unusable-password handler")
     try:
@@ -359,11 +359,7 @@ class _PatchManager(object):
     @staticmethod
     def _is_same_value(left, right):
         "check if two values are the same (stripping method wrappers, etc)"
-        def resolve(value):
-            if hasattr(value, method_function_attr):
-                return getattr(value, method_function_attr)
-            return value
-        return resolve(left) == resolve(right)
+        return get_method_function(left) == get_method_function(right)
 
     #===================================================================
     # reading

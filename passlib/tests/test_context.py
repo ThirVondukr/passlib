@@ -25,7 +25,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
-from passlib.utils.compat import irange, u
+from passlib.utils.compat import irange, u, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
     gae_env, set_file
@@ -641,7 +641,11 @@ sha512_crypt__min_rounds = 45000
         # name not in schemes
         self.assertRaises(KeyError, ctx.handler, "mysql323")
 
-        # TODO: per-category
+        # check handler() honors category default
+        ctx = CryptContext("sha256_crypt,md5_crypt", admin__context__default="md5_crypt")
+        self.assertEqual(ctx.handler(), hash.sha256_crypt)
+        self.assertEqual(ctx.handler(category="staff"), hash.sha256_crypt)
+        self.assertEqual(ctx.handler(category="admin"), hash.md5_crypt)
 
     def test_33_options(self):
         "test internal _get_record_options() method"
@@ -957,7 +961,50 @@ sha512_crypt__min_rounds = 45000
         self.assertFalse(cc.needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
         self.assertTrue(cc.needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
-        # TODO: check with secret passed in, that _bind_needs_update() is invoked correctly.
+        #--------------------------------------------------------------
+        # test _bind_needs_update() framework
+        #--------------------------------------------------------------
+        bind_state = []
+        check_state = []
+        class dummy(uh.StaticHandler):
+            name = 'dummy'
+            _hash_prefix = '@'
+
+            @classmethod
+            def _bind_needs_update(cls, **settings):
+                bind_state.append(settings)
+                return cls._needs_update
+
+            @classmethod
+            def _needs_update(cls, hash, secret):
+                check_state.append((hash,secret))
+                return secret == "nu"
+
+            def _calc_checksum(self, secret):
+                from hashlib import md5
+                if isinstance(secret, unicode):
+                    secret = secret.encode("utf-8")
+                return str_to_uascii(md5(secret).hexdigest())
+
+        # creating context should call bind function w/ settings
+        ctx = CryptContext([dummy])
+        self.assertEqual(bind_state, [{}])
+
+        # calling needs_update should query callback
+        hash = dummy.encrypt("test")
+        self.assertFalse(ctx.needs_update(hash))
+        self.assertEqual(check_state, [(hash,None)])
+        del check_state[:]
+
+        # now with a password
+        self.assertFalse(ctx.needs_update(hash, secret='bob'))
+        self.assertEqual(check_state, [(hash,'bob')])
+        del check_state[:]
+
+        # now when it returns True
+        self.assertTrue(ctx.needs_update(hash, secret='nu'))
+        self.assertEqual(check_state, [(hash,'nu')])
+        del check_state[:]
 
         #--------------------------------------------------------------
         # border cases

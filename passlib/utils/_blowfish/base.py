@@ -5,6 +5,7 @@
 #core
 import struct
 #pkg
+from passlib.utils.compat import bytes
 from passlib.utils import repeat_string
 #local
 __all__ = [
