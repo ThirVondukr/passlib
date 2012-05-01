@@ -207,7 +207,7 @@ def _remove_patch():
         _patched = False
         log.debug("...finished removing django monkeypatching")
         return True
-    if _manager:
+    if _manager: # pragma: no cover -- sanity check
         log.warning("reverting partial monkeypatching of django...")
         _manager.unpatch_all()
         password_context.load({})
@@ -253,7 +253,7 @@ def _load():
 
     # check if we've been disabled
     if config == "disabled":
-        if _patched:
+        if _patched: # pragma: no cover -- sanity check
             log.error("didn't expect monkeypatching would be applied!")
         _remove_patch()
         return

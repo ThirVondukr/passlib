@@ -844,9 +844,9 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         )
     return _permute(C, CF6464)
 
-def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover
-    warn("mdes_encrypt_int_block() has been deprecated as of Passlib 1.6,"
-         "and will be removed in Passlib 1.8, use des_encrypt_int_block instead.")
+@deprecated_function(deprecated="1.6", removed="1.8",
+                     replacement="des_encrypt_int_block()")
+def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover -- deprecated & unused
     if isinstance(key, bytes):
         if len(key) == 7:
             key = expand_des_key(key)

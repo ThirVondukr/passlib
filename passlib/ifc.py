@@ -22,8 +22,8 @@ else:
     ABCMeta = type
     def abstractmethod(func):
         return func
-    def abstractproperty():
-        return None
+#    def abstractproperty():
+#        return None
 
 def create_with_metaclass(meta):
     "class decorator that re-creates class using metaclass"
@@ -83,13 +83,13 @@ class PasswordHash(object):
     #=====================================================
     @classmethod
     @abstractmethod
-    def encrypt(cls, secret, **setting_and_context_kwds):
+    def encrypt(cls, secret, **setting_and_context_kwds): # pragma: no cover -- abstract method
         "encrypt secret, returning resulting hash"
         raise NotImplementedError("must be implemented by subclass")
 
     @classmethod
     @abstractmethod
-    def verify(cls, secret, hash, **context_kwds):
+    def verify(cls, secret, hash, **context_kwds): # pragma: no cover -- abstract method
         "verify secret against hash, returns True/False"
         raise NotImplementedError("must be implemented by subclass")
 
@@ -98,19 +98,19 @@ class PasswordHash(object):
     #=====================================================
     @classmethod
     @abstractmethod
-    def identify(cls, hash):
+    def identify(cls, hash): # pragma: no cover -- abstract method
         "check if hash belongs to this scheme, returns True/False"
         raise NotImplementedError("must be implemented by subclass")
 
     @classmethod
     @abstractmethod
-    def genconfig(cls, **setting_kwds):
+    def genconfig(cls, **setting_kwds): # pragma: no cover -- abstract method
         "compile settings into a configuration string for genhash()"
         raise NotImplementedError("must be implemented by subclass")
 
     @classmethod
     @abstractmethod
-    def genhash(cls, secret, config, **context_kwds):
+    def genhash(cls, secret, config, **context_kwds): # pragma: no cover -- abstract method
         "generated hash for secret, using settings from config/hash string"
         raise NotImplementedError("must be implemented by subclass")
 

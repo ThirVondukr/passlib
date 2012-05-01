@@ -82,7 +82,7 @@ if has_crypt:
             # only offer disabled handler if there's another scheme in front,
             # as this can't actually hash any passwords
             yield "unix_disabled"
-        else: # pragma: no cover
+        else: # pragma: no cover -- sanity check
             # no idea what OS this could happen on...
             warn("crypt.crypt() function is present, but doesn't support any "
                  "formats known to passlib!", PasslibRuntimeWarning)

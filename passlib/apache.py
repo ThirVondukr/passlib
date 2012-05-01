@@ -270,7 +270,7 @@ class _CommonFile(object):
             if key not in records:
                 records[key] = value
 
-    def _parse_record(cls, record, lineno):
+    def _parse_record(cls, record, lineno): # pragma: no cover - abstract method
         "parse line of file into (key, value) pair"
         raise NotImplementedError("should be implemented in subclass")
 
@@ -304,7 +304,7 @@ class _CommonFile(object):
         "iterator yielding lines of database"
         return (self._render_record(key,value) for key,value in iteritems(self._records))
 
-    def _render_record(cls, key, value):
+    def _render_record(cls, key, value): # pragma: no cover - abstract method
         "given key/value pair, encode as line of file"
         raise NotImplementedError("should be implemented in subclass")
 
@@ -315,7 +315,7 @@ class _CommonFile(object):
         "user-specific wrapper for _encode_field()"
         return self._encode_field(user, "user")
 
-    def _encode_realm(self, realm):
+    def _encode_realm(self, realm): # pragma: no cover - abstract method
         "realm-specific wrapper for _encode_field()"
         return self._encode_field(realm, "realm")
 

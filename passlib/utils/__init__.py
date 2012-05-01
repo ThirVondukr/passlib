@@ -473,7 +473,7 @@ def saslprep(source, param="value"):
     return data
 
 # replace saslprep() with stub when stringprep is missing
-if stringprep is None:
+if stringprep is None: # pragma: no cover -- runtime detection
     def saslprep(source, param="value"):
         "stub for saslprep()"
         raise NotImplementedError("saslprep() support requires the 'stringprep' "
@@ -669,7 +669,7 @@ add_doc(to_native_str,
     """)
 
 @deprecated_function(deprecated="1.6", removed="1.7")
-def to_hash_str(source, encoding="ascii"): # pragma: no cover
+def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & unused
     "deprecated, use to_native_str() instead"
     return to_native_str(source, encoding, param="hash")
 

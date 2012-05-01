@@ -257,7 +257,7 @@ class CryptPolicy(object):
             :meth:`CryptContext.copy` instead.
         """
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "Instead of ``context.policy.replace()``, "
                  "use ``context.update()`` or ``context.copy()``.",
                  DeprecationWarning, stacklevel=2)
@@ -322,7 +322,7 @@ class CryptPolicy(object):
             see :meth:`CryptContext.schemes`.
         """
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "Instead of ``context.policy.has_schemes()``, "
                  "use ``bool(context.schemes())``.",
                  DeprecationWarning, stacklevel=2)
@@ -361,7 +361,7 @@ class CryptPolicy(object):
             applications should use :meth:`CryptContext.schemes` instead.
         """
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "Instead of ``context.policy.schemes()``, "
                  "use ``context.schemes()``.",
                  DeprecationWarning, stacklevel=2)
@@ -429,7 +429,7 @@ class CryptPolicy(object):
         """
         # XXX: might make a public replacement, but need more study of the use cases.
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "``context.policy.get_options()`` will no longer be available.",
                  DeprecationWarning, stacklevel=2)
         else:
@@ -472,7 +472,7 @@ class CryptPolicy(object):
             applications should use :meth:`CryptContext.to_dict` instead.
         """
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "Instead of ``context.policy.iter_config()``, "
                  "use ``context.to_dict().items()``.",
                  DeprecationWarning, stacklevel=2)
@@ -520,7 +520,7 @@ class CryptPolicy(object):
                  DeprecationWarning, stacklevel=2)
         return self._context.to_dict(resolve)
 
-    def to_file(self, stream, section="passlib"):
+    def to_file(self, stream, section="passlib"): # pragma: no cover -- deprecated & unused
         """export policy to file.
 
         .. deprecated:: 1.6
@@ -550,7 +550,7 @@ class CryptPolicy(object):
             applications should use :meth:`CryptContext.to_string` instead.
         """
         if self._stub_policy:
-            warn(_preamble +
+            warn(_preamble + # pragma: no cover -- deprecated & unused
                  "Instead of ``context.policy.to_string()``, "
                  "use ``context.to_string()``.",
                  DeprecationWarning, stacklevel=2)
@@ -655,7 +655,7 @@ class _CryptRecord(object):
         else:
             return "%s config" % (handler.name,)
 
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover -- debugging
         return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
 
     #================================================================
@@ -948,9 +948,9 @@ class _CryptRecord(object):
             hash_obj = self.handler.from_string(hash)
             try:
                 rounds = hash_obj.rounds
-            except AttributeError:
-                # XXX: hash_obj should generally have rounds attr,
-                # so should a warning be raised here?
+            except AttributeError: # pragma: no cover -- sanity check
+                # XXX: all builtin hashes should have rounds attr,
+                #      so should a warning be issues here?
                 pass
             else:
                 mn = self._min_rounds
@@ -1800,7 +1800,7 @@ class CryptContext(object):
             for handler in self._handlers:
                 if handler.name == scheme:
                     return handler
-            raise AssertionError("failed to find matching handler")
+            raise AssertionError("failed to find matching handler") # pragma: no cover -- sanity check
         defaults = self._default_schemes
         if defaults:
             try:

@@ -238,7 +238,7 @@ _builtin_md4 = md4
 import hashlib
 from passlib.utils import PYPY
 
-def _has_native_md4():
+def _has_native_md4(): # pragma: no cover -- runtime detection
     try:
         h = hashlib.new("md4")
     except ValueError:
@@ -250,10 +250,9 @@ def _has_native_md4():
     if PYPY and result == '':
         # workaround for https://bugs.pypy.org/issue957, fixed in PyPy 1.8
         return False
-    #anything else should alert user
+    # anything else and we should alert user
     from passlib.exc import PasslibRuntimeWarning
-    warn("native md4 support disabled, incorrect value returned!",
-         PasslibRuntimeWarning)
+    warn("native md4 support disabled, sanity check failed!", PasslibRuntimeWarning)
     return False
 
 if _has_native_md4():
