@@ -344,16 +344,16 @@ def consteq(left, right):
             result |= ord(l) ^ ord(r)
     return result == 0
 
-@deprecated_function(deprecated="1.6", removed="1.8")
-def splitcomma(source, sep=","): # pragma: no cover
+def splitcomma(source, sep=","):
     """split comma-separated string into list of elements,
-    stripping whitespace and discarding empty elements.
+    stripping whitespace.
     """
-    return [
-        elem.strip()
-        for elem in source.split(sep)
-        if elem.strip()
-    ]
+    source = source.strip()
+    if source.endswith(sep):
+        source = source[:-1]
+    if not source:
+        return []
+    return [ elem.strip() for elem in source.split(sep) ]
 
 def saslprep(source, param="value"):
     """normalizes unicode string using SASLPrep stringprep profile.

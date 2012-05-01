@@ -18,8 +18,8 @@ from warnings import warn
 #libs
 from passlib.exc import PasslibConfigWarning, ExpectedStringError, ExpectedTypeError
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import is_crypt_handler, rng, tick, to_bytes, \
-                          to_unicode
+from passlib.utils import rng, tick, to_bytes, \
+                          to_unicode, splitcomma
 from passlib.utils.compat import bytes, iteritems, num_types, \
                                  PY3, PY_MIN_32, unicode, SafeConfigParser, \
                                  NativeStringIO, BytesIO, base_string_types
@@ -61,15 +61,6 @@ _coerce_scheme_options = dict(
     vary_rounds=_coerce_vary_rounds,
     salt_size=int,
 )
-
-def _splitcomma(source):
-    "split comma-separated string into list of strings"
-    source = source.strip()
-    if source.endswith(","):
-        source = source[:-1]
-    if not source:
-        return []
-    return [ elem.strip() for elem in source.split(",") ]
 
 def _is_handler_registered(handler):
     """detect if handler is registered or a custom handler"""
@@ -1411,7 +1402,7 @@ class CryptContext(object):
         schemes = []
         data = source.get((None,None,"schemes"))
         if isinstance(data, str):
-            data = _splitcomma(data)
+            data = splitcomma(data)
         for elem in data or ():
             # resolve elem -> handler & scheme
             if hasattr(elem, "name"):
@@ -1488,7 +1479,7 @@ class CryptContext(object):
                 self._default_schemes[cat] = value
             elif key == "deprecated":
                 if isinstance(value, str):
-                    value = _splitcomma(value)
+                    value = splitcomma(value)
                 elif not isinstance(value, (list,tuple)):
                     raise ExpectedTypeError(value, "str or seq", "deprecated")
                 if schemes:

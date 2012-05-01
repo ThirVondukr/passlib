@@ -372,6 +372,15 @@ class MiscTest(TestCase):
         self.assertRaises(ValueError, sp, u("\u0627\u0031"))
         self.assertEqual(sp(u("\u0627\u0031\u0628")), u("\u0627\u0031\u0628"))
 
+    def test_splitcomma(self):
+        from passlib.utils import splitcomma
+        self.assertEqual(splitcomma(""), [])
+        self.assertEqual(splitcomma(","), [])
+        self.assertEqual(splitcomma("a"), ['a'])
+        self.assertEqual(splitcomma(" a , "), ['a'])
+        self.assertEqual(splitcomma(" a , b"), ['a', 'b'])
+        self.assertEqual(splitcomma(" a, b, "), ['a', 'b'])
+
 #=========================================================
 #byte/unicode helpers
 #=========================================================

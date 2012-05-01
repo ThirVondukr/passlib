@@ -13,7 +13,7 @@ from warnings import warn
 #libs
 from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
-                          to_native_str, xor_bytes
+                          to_native_str, xor_bytes, splitcomma
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
                                  itervalues, PY3, u, unicode
 from passlib.utils.pbkdf2 import pbkdf2, get_prf, norm_hash_name
@@ -324,7 +324,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         # parse args value
         if isinstance(algs, str):
-            algs = algs.split(",")
+            algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):
             raise ValueError("SCRAM limits alg names to max of 9 characters")
