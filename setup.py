@@ -119,7 +119,7 @@ Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
 """.splitlines()
 
-# TODO: also test releases under ironpython -- "Programming Language :: Python :: Implementation :: IronPython"
+# TODO: "Programming Language :: Python :: Implementation :: IronPython" -- issue 34
 
 is_release = False
 if '.dev' in VERSION:
@@ -166,7 +166,7 @@ setup(
     keywords = KEYWORDS,
     classifiers = CLASSIFIERS,
 
-    tests_require = 'nose >= 1.0',
+    tests_require = 'nose >= 1.1',
     test_suite = 'nose.collector',
 
     #extra opts
