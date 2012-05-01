@@ -571,7 +571,8 @@ class GenericHandler(PasswordHash):
         return consteq(self._calc_checksum(secret), chk)
 
     #=========================================================
-    # experimental methods
+    # experimental - the following methods are not finished or tested,
+    # but way work correctly for some hashes
     #=========================================================
     _unparsed_settings = ("salt_size", "relaxed")
     _unsafe_settings = ("salt", "checksum")
@@ -638,7 +639,7 @@ class GenericHandler(PasswordHash):
             info = super(GenericHandler, cls).bitsize(**kwds)
         except AttributeError:
             info = {}
-        cc = ALL_BYTES if cls._checksum_is_bytes else cls.checksum_chars
+        cc = ALL_BYTE_VALUES if cls._checksum_is_bytes else cls.checksum_chars
         if cls.checksum_size and cc:
             # FIXME: this may overestimate size due to padding bits (e.g. bcrypt)
             # FIXME: this will be off by 1 for case-insensitive hashes.
@@ -710,30 +711,35 @@ class StaticHandler(GenericHandler):
             raise exc.InvalidHashError(cls)
         return cls.encrypt(secret, **context)
 
-    __cc_compat_hack = False
+    # per-subclass: stores dynamically created subclass used by _calc_checksum() stub
+    __cc_compat_hack = None
 
-    def _calc_checksum(self, secret): #pragma: no cover
+    def _calc_checksum(self, secret):
         """given secret; calcuate and return encoded checksum portion of hash
         string, taking config from object state
         """
         # NOTE: prior to 1.6, StaticHandler required classes implement genhash
         # instead of this method. so if we reach here, we try calling genhash.
-        # if that succeeds, we issue deprecation warning; if it fails, we'll
-        # recurse back to here, and error will be thrown instead.
-        if not self.__cc_compat_hack:
-            context = dict((k,getattr(self,k)) for k in self.context_kwds)
-            self.__cc_compat_hack = True
-            hash = self.genhash(secret, None, **context)
-            self.__cc_compat_hack = False
-            warn("%r should be updated to implement StaticHandler._calc_checksum() "
-                 "instead of StaticHandler.genhash(), support for the latter "
-                 "style will be removed in Passlib 1.8" % (self.__class__),
-                 DeprecationWarning)
-            return str_to_uascii(hash)
-        else:
-            # else just require subclass to implement this method.
-            raise NotImplementedError("%s must implement _calc_checksum()" %
-                                      (self.__class__,))
+        # if that succeeds, we issue deprecation warning. if it fails,
+        # we'll just recurse back to here, but in a different instance.
+        # so before we call genhash, we create a subclass which handles
+        # throwing the NotImplementedError.
+        cls = self.__class__
+        assert cls.__module__ != __name__
+        wrapper_cls = cls.__cc_compat_hack
+        if wrapper_cls is None:
+            def inner(self, secret):
+                raise NotImplementedError("%s must implement _calc_checksum()" %
+                                          (cls,))
+            wrapper_cls = cls.__cc_compat_hack = type(cls.__name__ + "_wrapper",
+                  (cls,), dict(_calc_checksum=inner, __module__=cls.__module__))
+        context = dict((k,getattr(self,k)) for k in self.context_kwds)
+        hash = wrapper_cls.genhash(secret, None, **context)
+        warn("%r should be updated to implement StaticHandler._calc_checksum() "
+             "instead of StaticHandler.genhash(), support for the latter "
+             "style will be removed in Passlib 1.8" % (cls),
+             DeprecationWarning)
+        return str_to_uascii(hash)
 
 #=====================================================
 #GenericHandler mixin classes
@@ -1280,12 +1286,12 @@ class HasRounds(GenericHandler):
 #-----------------------------------------------------
 # backend mixin & helpers
 #-----------------------------------------------------
-def _clear_backend(cls):
-    "restore HasManyBackend subclass to unloaded state - used by unittests"
-    assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
-    if cls._backend:
-        del cls._backend
-        del cls._calc_checksum
+##def _clear_backend(cls):
+##    "restore HasManyBackend subclass to unloaded state - used by unittests"
+##    assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
+##    if cls._backend:
+##        del cls._backend
+##        del cls._calc_checksum
 
 class HasManyBackends(GenericHandler):
     """GenericHandler mixin which provides selecting from multiple backends.
@@ -1515,7 +1521,7 @@ class PrefixWrapper(object):
             #TODO: look into way to fix the issues.
             warn("PrefixWrapper: 'orig_prefix' option may not work correctly "
                  "for handlers which have multiple identifiers: %r" %
-                 (handler.name,), PasslibRuntimeWarning)
+                 (handler.name,), exc.PasslibRuntimeWarning)
 
     def _get_wrapped(self):
         handler = self._wrapped_handler

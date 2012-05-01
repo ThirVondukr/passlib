@@ -16,10 +16,10 @@ from passlib.registry import _unload_handler_name as unload_handler_name, \
 from passlib.exc import MissingBackendError, PasslibHashWarning
 from passlib.utils import getrandstr, JYTHON, rng
 from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
-                                 uascii_to_str, unicode, PY_MAX_25
+                                 uascii_to_str, unicode, PY_MAX_25, SUPPORTS_DIR_METHOD
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
-from passlib.utils.compat import u
+from passlib.utils.compat import u, PY3
 #module
 log = getLogger(__name__)
 
@@ -93,6 +93,53 @@ class SkeletonTest(TestCase):
         self.assertEqual(d1.encrypt('s'), '_a')
         self.assertEqual(d1.encrypt('s', flag=True), '_b')
 
+    def test_01_calc_checksum_hack(self):
+        "test StaticHandler legacy attr"
+        # release 1.5 StaticHandler required genhash(),
+        # not _calc_checksum, be implemented. we have backward compat wrapper,
+        # this tests that it works.
+
+        class d1(uh.StaticHandler):
+            name = "d1"
+
+            @classmethod
+            def identify(self, hash):
+                if not hash or len(hash) != 40:
+                    return False
+                try:
+                    int(hash, 16)
+                except ValueError:
+                    return False
+                return True
+
+            @classmethod
+            def genhash(cls, secret, hash):
+                if secret is None:
+                    raise TypeError("no secret provided")
+                if isinstance(secret, unicode):
+                    secret = secret.encode("utf-8")
+                if hash is not None and not cls.identify(hash):
+                    raise ValueError("invalid hash")
+                return hashlib.sha1(b("xyz") + secret).hexdigest()
+
+            @classmethod
+            def verify(cls, secret, hash):
+                if hash is None:
+                    raise ValueError("no hash specified")
+                return cls.genhash(secret, hash) == hash.lower()
+
+        # encrypt should issue api warnings, but everything else should be fine.
+        with self.assertWarningList("d1.*should be updated.*_calc_checksum"):
+            hash = d1.encrypt("test")
+        self.assertEqual(hash, '7c622762588a0e5cc786ad0a143156f9fd38eea3')
+
+        self.assertTrue(d1.verify("test", hash))
+        self.assertFalse(d1.verify("xtest", hash))
+
+        # not defining genhash either, however, should cause NotImplementedError
+        del d1.genhash
+        self.assertRaises(NotImplementedError, d1.encrypt, 'test')
+
     #=========================================================
     #GenericHandler & mixins
     #=========================================================
@@ -160,10 +207,33 @@ class SkeletonTest(TestCase):
         # wrong type
         self.assertRaises(TypeError, norm_checksum, b('xxyx'))
 
+        # relaxed
+        with self.assertWarningList("checksum should be unicode"):
+            self.assertEqual(norm_checksum(b('xxzx'), relaxed=True), u('xxzx'))
+        self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
+
         # test _stub_checksum behavior
         self.assertIs(norm_checksum(u('zzzz')), None)
 
-    # TODO: test HasRawChecksum mixin
+    def test_12_norm_checksum_raw(self):
+        "test GenericHandler + HasRawChecksum mixin"
+        class d1(uh.HasRawChecksum, uh.GenericHandler):
+            name = 'd1'
+            checksum_size = 4
+            _stub_checksum = b('0')*4
+
+        def norm_checksum(*a, **k):
+            return d1(*a, **k).checksum
+
+        # test bytes
+        self.assertEqual(norm_checksum(b('1234')), b('1234'))
+
+        # test unicode
+        self.assertRaises(TypeError, norm_checksum, u('xxyx'))
+        self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
+
+        # test _stub_checksum behavior
+        self.assertIs(norm_checksum(b('0')*4), None)
 
     def test_20_norm_salt(self):
         "test GenericHandler + HasSalt mixin"
@@ -235,10 +305,9 @@ class SkeletonTest(TestCase):
 
         # test with max_salt_size=None
         del d1.max_salt_size
-        with catch_warnings(record=True) as wlog:
+        with self.assertWarningList([]):
             self.assertEqual(len(gen_salt(None)), 3)
             self.assertEqual(len(gen_salt(5)), 5)
-            self.consumeWarningList(wlog)
 
     # TODO: test HasRawSalt mixin
 
@@ -259,6 +328,9 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_rounds)
         self.assertRaises(TypeError, norm_rounds, rounds=None)
         self.assertEqual(norm_rounds(use_defaults=True), 2)
+
+        # check rounds=non int
+        self.assertRaises(TypeError, norm_rounds, rounds=1.5)
 
         # check explicit rounds
         with catch_warnings(record=True) as wlog:
@@ -382,6 +454,91 @@ class SkeletonTest(TestCase):
         self.assertRaises(AssertionError, norm_ident, use_defaults=True)
 
     #=========================================================
+    # experimental - the following methods are not finished or tested,
+    # but way work correctly for some hashes
+    #=========================================================
+    def test_91_parsehash(self):
+        "test parsehash()"
+        # NOTE: this just tests some existing GenericHandler classes
+        from passlib import hash
+
+        #
+        # parsehash()
+        #
+
+        # simple hash w/ salt
+        result = hash.des_crypt.parsehash("OgAwTx2l6NADI")
+        self.assertEqual(result, {'checksum': u('AwTx2l6NADI'), 'salt': u('Og')})
+
+        # parse rounds and extra implicit_rounds flag
+        h = '$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9'
+        s = u('LKO/Ute40T3FNF95')
+        c = u('U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9')
+        result = hash.sha256_crypt.parsehash(h)
+        self.assertEqual(result, dict(salt=s, rounds=5000,
+                                      implicit_rounds=True, checksum=c))
+
+        # omit checksum
+        result = hash.sha256_crypt.parsehash(h, checksum=False)
+        self.assertEqual(result, dict(salt=s, rounds=5000, implicit_rounds=True))
+
+        # sanitize
+        result = hash.sha256_crypt.parsehash(h, sanitize=True)
+        self.assertEqual(result, dict(rounds=5000, implicit_rounds=True,
+            salt=u('LK**************'),
+             checksum=u('U0pr***************************************')))
+
+        # parse w/o implicit rounds flag
+        result = hash.sha256_crypt.parsehash('$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3')
+        self.assertEqual(result, dict(
+            checksum=u('YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3'),
+            salt=u('uy/jIAhCetNCTtb0'),
+            rounds=10428,
+        ))
+
+        # parsing of raw checksums & salts
+        h1 = '$pbkdf2$60000$DoEwpvQeA8B4T.k951yLUQ$O26Y3/NJEiLCVaOVPxGXshyjW8k'
+        result = hash.pbkdf2_sha1.parsehash(h1)
+        self.assertEqual(result, dict(
+            checksum=b(';n\x98\xdf\xf3I\x12"\xc2U\xa3\x95?\x11\x97\xb2\x1c\xa3[\xc9'),
+            rounds=60000,
+            salt=b('\x0e\x810\xa6\xf4\x1e\x03\xc0xO\xe9=\xe7\\\x8bQ'),
+        ))
+
+        # sanitizing of raw checksums & salts
+        result = hash.pbkdf2_sha1.parsehash(h1, sanitize=True)
+        self.assertEqual(result, dict(
+            checksum=u('O26************************'),
+            rounds=60000,
+            salt=u('Do********************'),
+        ))
+
+    def test_92_bitsize(self):
+        "test bitsize()"
+        # NOTE: this just tests some existing GenericHandler classes
+        from passlib import hash
+
+        # no rounds
+        self.assertEqual(hash.des_crypt.bitsize(),
+                         {'checksum': 66, 'salt': 12})
+
+        # log2 rounds
+        self.assertEqual(hash.bcrypt.bitsize(),
+                         {'checksum': 186, 'salt': 132})
+
+        # linear rounds
+        self.assertEqual(hash.sha256_crypt.bitsize(),
+                         {'checksum': 258, 'rounds': 13, 'salt': 96})
+
+        # raw checksum
+        self.assertEqual(hash.pbkdf2_sha1.bitsize(),
+                         {'checksum': 160, 'rounds': 13, 'salt': 128})
+
+        # TODO: handle fshp correctly, and other glitches noted in code.
+        ##self.assertEqual(hash.fshp.bitsize(variant=1),
+        ##                {'checksum': 256, 'rounds': 13, 'salt': 128})
+
+    #=========================================================
     #eoc
     #=========================================================
 
@@ -462,10 +619,10 @@ class PrefixWrapperTest(TestCase):
 
         d2 = uh.PrefixWrapper("d2", "sha256_crypt", "{XXX}")
         self.assertIs(d2.setting_kwds, sha256_crypt.setting_kwds)
-        if PY_MAX_25: # __dir__() support not added until py 2.6
-            self.assertFalse('max_rounds' in dir(d2))
-        else:
+        if SUPPORTS_DIR_METHOD:
             self.assertTrue('max_rounds' in dir(d2))
+        else:
+            self.assertFalse('max_rounds' in dir(d2))
 
     def test_11_wrapped_methods(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
@@ -497,6 +654,11 @@ class PrefixWrapperTest(TestCase):
         self.assertEqual(h.ident, u("{XXX}{MD5}"))
         self.assertIs(h.ident_values, None)
 
+        # test lack of ident means no proxy
+        h = uh.PrefixWrapper("h2", "des_crypt", "{XXX}")
+        self.assertIs(h.ident, None)
+        self.assertIs(h.ident_values, None)
+
         # test orig_prefix disabled ident proxy
         h = uh.PrefixWrapper("h1", "ldap_md5", "{XXX}", "{MD5}")
         self.assertIs(h.ident, None)
@@ -518,6 +680,38 @@ class PrefixWrapperTest(TestCase):
         h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
         self.assertIs(h.ident, None)
         self.assertEqual(h.ident_values, [ u("{XXX}$P$"), u("{XXX}$H$") ])
+
+        # test ident=True means use prefix even if hash has no ident.
+        h = uh.PrefixWrapper("h5", "des_crypt", "{XXX}", ident=True)
+        self.assertEqual(h.ident, u("{XXX}"))
+        self.assertIs(h.ident_values, None)
+
+        # ... but requires prefix
+        self.assertRaises(ValueError, uh.PrefixWrapper, "h6", "des_crypt", ident=True)
+
+        # orig_prefix + HasManyIdent - warning
+        with self.assertWarningList("orig_prefix.*may not work correctly"):
+            h = uh.PrefixWrapper("h7", "phpass", orig_prefix="$", prefix="?")
+        self.assertEqual(h.ident_values, None) # TODO: should output (u("?P$"), u("?H$")))
+        self.assertEqual(h.ident, None)
+
+    def test_13_repr(self):
+        "test repr()"
+        h = uh.PrefixWrapper("h2", "md5_crypt", "{XXX}", orig_prefix="$1$")
+        self.assertRegex(repr(h),
+            r"""(?x)^PrefixWrapper\(
+                ['"]h2['"],\s+
+                ['"]md5_crypt['"],\s+
+                prefix=u?["']{XXX}['"],\s+
+                orig_prefix=u?["']\$1\$['"]
+            \)$""")
+
+    def test_14_bad_hash(self):
+        "test orig_prefix sanity check"
+        # shoudl throw InvalidHashError if wrapped hash doesn't begin
+        # with orig_prefix.
+        h = uh.PrefixWrapper("h2", "md5_crypt", orig_prefix="$6$")
+        self.assertRaises(ValueError, h.encrypt, 'test')
 
 #=========================================================
 #sample algorithms - these serve as known quantities
