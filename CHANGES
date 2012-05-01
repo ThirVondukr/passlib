@@ -59,12 +59,12 @@ New Hashes
 
     :doc:`lmhash <lib/passlib.hash.lmhash>`, :doc:`nthash <lib/passlib.hash.nthash>`
         Microsoft's legacy "Lan Manager" hash, and the replacement
-        "NT password hash". *(the old* ``nthash`` *algorithm in Passlib 1.5 has been renamed to*
+        NT password hash. *(the old* ``nthash`` *algorithm in Passlib 1.5 has been renamed to*
         :class:`~passlib.hash.bsd_nthash` *, to reflect it's lineage)*.
 
     :doc:`msdcc <lib/passlib.hash.msdcc>`, :doc:`msdcc2 <lib/passlib.hash.msdcc2>`
         Microsoft Windows' Domain Cached Credentials, versions 1 and 2.
-        This algorithm also goes by the names "DCC", "MSCache", and "MSCash".
+        These algorithms also go by the names "DCC", "MSCache", and "MSCash".
 
     :doc:`mssql2000 <lib/passlib.hash.mssql2000>`, :doc:`mssql2005 <lib/passlib.hash.mssql2005>`
         Hash algorithms used by MS SQL Server 2000 and later.
@@ -107,11 +107,11 @@ Existing Hashes
         .. [#consteq] "constant time" is a misnomer, it actually takes ``THETA(len(righthand_value))`` time.
 
     :doc:`bcrypt <lib/passlib.hash.bcrypt>`
-        The BCrypt hash now supports the *crypt_blowfish* project's
+        The BCrypt hash now supports the `crypt_blowfish <http://www.openwall.com/crypt/>`_ project's
         ``$2y$`` hash prefix.
 
-        As well, Passlib now offers an (experimental) pure-python BCrypt
-        implementation. Unfortunately, it's still *way too slow* to be
+        As well, Passlib now offers an (experimental) pure-python implementation
+        of BCrypt. Unfortunately, it's still *way too slow* to be
         suitable for production use; and is disabled by default.
         If you really need it, see the BCrypt :ref:`documentation <bcrypt-backends>`
         for how to enable it.
@@ -213,7 +213,6 @@ Other Modules
 
 Bugfixes
 --------
-
     * Handle platform-specific error strings that may be returned by the
       :func:`!crypt` methods of some OSes.
 

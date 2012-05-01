@@ -52,12 +52,12 @@ Interface
     2. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
     3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
        (primarily BSD-derived systems).
-    4. A *slow* pure-python implementation of BCrypt, built into Passlib.
+    4. A pure-python implementation of BCrypt, built into Passlib (disabled by default).
 
     It should be noted that the pure-python implementation (#4) is too slow
     to be useable, given the number of rounds currently required for security.
     Because of this, it is disabled by default, unless the environment variable
-    ``PASSLIB_BUILTIN_BCRYPT="enabled"`` is set before Passlib is first loaded.
+    ``PASSLIB_BUILTIN_BCRYPT="enabled"`` is set.
 
     If the first three backends are not available, and the builtin
     backend has not been enabled, :meth:`encrypt` and :meth:`verify`

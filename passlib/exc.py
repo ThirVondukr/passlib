@@ -9,8 +9,9 @@ class MissingBackendError(RuntimeError):
     :exc:`!MissingBackendError` derives
     from :exc:`RuntimeError`, since this usually indicates
     lack of an external library or OS feature.
-    This is primarily used by handlers which derive
-    from :class:`~passlib.utils.handlers.HasManyBackends`.
+    This is primarily raised by handlers which depend on 
+    external libraries -- which is currently just
+    :class:`~passlib.hash.bcrypt`.
     """
 
 class PasswordSizeError(ValueError):

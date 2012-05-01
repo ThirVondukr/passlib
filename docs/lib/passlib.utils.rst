@@ -128,12 +128,13 @@ Predefined Instances
    the :class:`Base64Engine` class;
    the interface remains mostly unchanged.
 
-..
-    Other
-    -----
-    .. autofunction:: ab64_encode
-    .. autofunction:: ab64_decode
 
+Other
+-----
+.. autofunction:: ab64_encode
+.. autofunction:: ab64_decode
+
+..
     .. data:: AB64_CHARS
 
         Variant of standard Base64 character map used by some

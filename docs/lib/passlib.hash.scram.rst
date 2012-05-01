@@ -57,6 +57,9 @@ This class can be used like any other Passlib hash, as follows::
 
 See the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 for more details on how to use the common hash interface.
+
+----
+
 Additionally, this class provides a number of useful methods for SCRAM-specific actions:
 
 * You can override the default list of digests, and/or the number of iterations::
