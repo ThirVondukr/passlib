@@ -110,7 +110,7 @@ def create_mock_setter():
 if has_django14:
     # have to modify this a little -
     # all but pbkdf2_sha256 will be deprecated here,
-    # whereas stock passlib policy is more permissive
+    # whereas preconfigured passlib policy is more permissive
     stock_config = django14_context.to_dict()
     stock_config['deprecated'] = ["django_pbkdf2_sha1", "django_bcrypt"] + stock_config['deprecated']
 elif has_django1:
@@ -128,27 +128,40 @@ class _ExtensionSupport(object):
     #=========================================================
     # support funcs
     #=========================================================
-    # attrs we're patching in various modules.
-    _patched_attrs = ["set_password", "check_password",
-                      "make_password", "get_hasher", "identify_hasher"]
-
     @classmethod
     def _iter_patch_candidates(cls):
-        "helper to scan for monkeypatches"
+        """helper to scan for monkeypatches.
+
+        returns tuple containing:
+        * object (module or class)
+        * attribute of object
+        * value of attribute
+        * whether it should or should not be patched
+        """
+        # XXX: this and assert_unpatched() could probably be refactored to use
+        #      the PatchManager class to do the heavy lifting.
         from django.contrib.auth import models
-        objs = [models, models.User]
+        user_attrs = ["check_password", "set_password"]
+        model_attrs = ["check_password"]
+        objs = [(models, model_attrs), (models.User, user_attrs)]
         if has_django14:
             from django.contrib.auth import hashers
-            objs.append(hashers)
-        for obj in objs:
+            model_attrs.append("make_password")
+            objs.append((hashers, ["check_password", "make_password",
+                                   "get_hasher", "identify_hasher"]))
+        if has_django0:
+            user_attrs.extend(["has_usable_password", "set_unusable_password"])
+        for obj, patched in objs:
             for attr in dir(obj):
                 if attr.startswith("_"):
                     continue
-                value = getattr(obj, attr)
+                value = obj.__dict__.get(attr, UNSET) # can't use getattr() due to GAE
+                if value is UNSET and attr not in patched:
+                    continue
                 value = get_method_function(value)
                 source = getattr(value, "__module__", None)
                 if source:
-                    yield obj, attr, source
+                    yield obj, attr, source, (attr in patched)
 
     #=========================================================
     # verify current patch state
@@ -160,8 +173,8 @@ class _ExtensionSupport(object):
         self.assertFalse(mod and mod._patched, "patch should not be enabled")
 
         # make sure no objects have been replaced, by checking __module__
-        for obj, attr, source in self._iter_patch_candidates():
-            if attr in self._patched_attrs:
+        for obj, attr, source, patched in self._iter_patch_candidates():
+            if patched:
                 self.assertTrue(source.startswith("django.contrib.auth."),
                                 "obj=%r attr=%r was not reverted: %r" %
                                 (obj, attr, source))
@@ -177,8 +190,8 @@ class _ExtensionSupport(object):
         self.assertTrue(mod and mod._patched, "patch should have been enabled")
 
         # make sure only the expected objects have been patched
-        for obj, attr, source in self._iter_patch_candidates():
-            if attr in self._patched_attrs:
+        for obj, attr, source, patched in self._iter_patch_candidates():
+            if patched:
                 self.assertTrue(source == "passlib.ext.django.models",
                                 "obj=%r attr=%r should have been patched: %r" %
                                 (obj, attr, source))
@@ -261,7 +274,8 @@ class DjangoBehaviorTest(_ExtensionTest):
 
     def assert_unusable_password(self, user):
         self.assertEqual(user.password, "!")
-        self.assertFalse(user.has_usable_password())
+        if has_django1 or self.patched:
+            self.assertFalse(user.has_usable_password())
         self.assertEqual(user.pop_saved_passwords(), [])
 
     def assert_valid_password(self, user, hash=UNSET, saved=None):
@@ -270,7 +284,8 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertNotEqual(user.password, None)
         else:
             self.assertEqual(user.password, hash)
-        self.assertTrue(user.has_usable_password())
+        if has_django1 or self.patched:
+            self.assertTrue(user.has_usable_password())
         self.assertEqual(user.pop_saved_passwords(),
                          [] if saved is None else [saved])
 
@@ -431,7 +446,8 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertFalse(user.check_password(PASS1))
         else:
             self.assertRaises(TypeError, user.check_password, PASS1)
-        self.assertFalse(user.has_usable_password())
+        if has_django1 or patched:
+            self.assertFalse(user.has_usable_password())
 
         # make_password() - n/a
 
@@ -507,7 +523,10 @@ class DjangoBehaviorTest(_ExtensionTest):
             user.password = hash
 
             # check against invalid password
-            self.assertFalse(user.check_password(None))
+            if has_django1 or patched:
+                self.assertFalse(user.check_password(None))
+            else:
+                self.assertRaises(TypeError, user.check_password, None)
             ##self.assertFalse(user.check_password(''))
             self.assertFalse(user.check_password(other))
             self.assert_valid_password(user, hash)

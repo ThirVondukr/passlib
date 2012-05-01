@@ -1396,31 +1396,6 @@ else:
     # On most other platforms the best timer is time.time()
     from time import time as tick
 
-# works but not used
-##def _get_timer_resolution(timer=timer, repeat=3):
-##    best = None
-##    i = 0
-##    while i < repeat:
-##        start = end = timer()
-##        while start == end:
-##            end = timer()
-##        delta = end-start
-##        if delta < 0:
-##            # probably NTP adjust or some such.
-##            log.error("timer jumped backwards! (%r => %r)", start, end)
-##            continue
-##        if delta > 1:
-##            # should have at least this resolution,
-##            # so probably NTP adjust or some such.
-##            log.error("timer jumped too far! (%r => %r)", start, end)
-##            continue
-##        if best is None or delta < best:
-##            best = delta
-##        i += 1
-##    return best
-##
-##timer_resolution = _get_timer_resolution()
-
 #=================================================================================
 # randomness
 #=================================================================================

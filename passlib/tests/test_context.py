@@ -24,7 +24,7 @@ from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, catch_warnings, set_file, get_timer_resolution
+from passlib.tests.utils import TestCase, catch_warnings, set_file, TICK_RESOLUTION, quicksleep
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
@@ -289,7 +289,7 @@ sha512_crypt__min_rounds = 45000
     def test_09_repr(self):
         "test repr()"
         cc1 = CryptContext(**self.sample_1_dict)
-        self.assertRegex(repr(cc1), "^<CryptContext at 0x[0-9a-f]{6,}>$")
+        self.assertRegex(repr(cc1), "^<CryptContext at 0x[0-9a-f]+>$")
 
     #=========================================================
     # modifiers
@@ -1353,8 +1353,8 @@ sha512_crypt__min_rounds = 45000
     #=========================================================
     def test_60_min_verify_time(self):
         "test verify() honors min_verify_time"
-        delta = .01
-        if get_timer_resolution(tick) >= delta:
+        delta = .05
+        if TICK_RESOLUTION >= delta/10:
             raise self.skipTest("timer not accurate enough")
         min_delay = 2*delta
         min_verify_time = 5*delta
@@ -1370,7 +1370,7 @@ sha512_crypt__min_rounds = 45000
                 return True
 
             def _calc_checksum(self, secret):
-                time.sleep(self.delay)
+                quicksleep(self.delay)
                 return to_unicode(secret + 'x')
 
         # check mvt issues a warning, and then filter for remainder of test
@@ -1382,8 +1382,7 @@ sha512_crypt__min_rounds = 45000
         def timecall(func, *args, **kwds):
             start = tick()
             result = func(*args, **kwds)
-            end = tick()
-            return end-start, result
+            return tick()-start, result
 
         # verify genhash delay works
         TimedHash.delay = min_delay

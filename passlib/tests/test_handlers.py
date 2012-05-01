@@ -183,6 +183,7 @@ class _bcrypt_test(HandlerCase):
         freebsd=True,
         openbsd=True,
         netbsd=True,
+        darwin=False,
         # linux - some systems
         # solaris - depends on policy
     )
@@ -461,7 +462,7 @@ class _bsdi_crypt_test(HandlerCase):
         netbsd=True,
         linux=False,
         solaris=False,
-        # darwin ?
+        darwin=True,
     )
 
     def setUp(self):
@@ -690,7 +691,7 @@ class _des_crypt_test(HandlerCase):
         netbsd=True,
         linux=True,
         solaris=True,
-        # darwin?
+        darwin=True,
     )
 
 des_crypt_os_crypt_test, des_crypt_builtin_test = \
@@ -1216,10 +1217,9 @@ class ldap_plaintext_test(HandlerCase):
             pwd = super(ldap_plaintext_test, self).get_fuzz_password()
         return pwd
 
-#NOTE: since the ldap_{crypt} handlers are all wrappers,
-# don't need separate test. have just one for end-to-end testing purposes.
-
 class _ldap_md5_crypt_test(HandlerCase):
+    #NOTE: since the ldap_{crypt} handlers are all wrappers,
+    # don't need separate test. this is just to test the codebase end-to-end
     handler = hash.ldap_md5_crypt
 
     known_correct_hashes = [
@@ -1244,6 +1244,25 @@ class _ldap_md5_crypt_test(HandlerCase):
 
 ldap_md5_crypt_os_crypt_test, ldap_md5_crypt_builtin_test = \
                    _ldap_md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
+
+class _ldap_sha1_crypt_test(HandlerCase):
+    # NOTE: this isn't for testing the hash (see ldap_md5_crypt note)
+    # but as a self-test of the os_crypt patching code in HandlerCase.
+    handler = hash.ldap_sha1_crypt
+
+    known_correct_hashes = [
+        ('password', '{CRYPT}$sha1$10$c.mcTzCw$gF8UeYst9yXX7WNZKc5Fjkq0.au7'),
+        (UPASS_TABLE, '{CRYPT}$sha1$10$rnqXlOsF$aGJf.cdRPewJAXo1Rn1BkbaYh0fP'),
+    ]
+
+    def populate_settings(self, kwds):
+        kwds.setdefault("rounds", 10)
+        super(_ldap_sha1_crypt_test, self).populate_settings(kwds)
+
+    def test_77_fuzz_input(self):
+        raise self.skipTest("unneeded")
+
+ldap_sha1_crypt_os_crypt_test, = _ldap_sha1_crypt_test.create_backend_cases(["os_crypt"])
 
 #=========================================================
 #ldap_pbkdf2_{digest}
@@ -1381,7 +1400,7 @@ class _md5_crypt_test(HandlerCase):
         netbsd=True,
         linux=True,
         solaris=True,
-        # darwin?
+        darwin=False,
     )
 
 md5_crypt_os_crypt_test, md5_crypt_builtin_test = \
@@ -2486,7 +2505,7 @@ class _sha256_crypt_test(HandlerCase):
         netbsd=False,
         linux=True,
         # solaris - depends on policy
-        # darwin ?,
+        darwin=False,
     )
 
 sha256_crypt_os_crypt_test, sha256_crypt_builtin_test = \

@@ -18,7 +18,7 @@ except ImportError:
 #pkg
 #module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode, join_bytes, PYPY
+                                 unicode, join_bytes, PYPY, JYTHON
 from passlib.tests.utils import TestCase, TEST_MODE, catch_warnings, skipUnless, skipIf
 
 #=========================================================
@@ -363,7 +363,7 @@ class Pbkdf1_Test(TestCase):
         (b('password'), b('salt'), 1000, None, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
         (b('password'), b('salt'), 1000, None, 'sha1', hb('4a8fd48e426ed081b535be5769892fa396293efb')),
     ]
-    if not PYPY:
+    if not (PYPY or JYTHON):
         pbkdf1_tests.append(
             (b('password'), b('salt'), 1000, None, 'md4', hb('f7f2e91100a8f96190f2dd177cb26453'))
         )

@@ -4,14 +4,13 @@
 #=========================================================
 from __future__ import with_statement
 #core
-import atexit
 import logging; log = logging.getLogger(__name__)
 import re
 import os
 import sys
 import tempfile
 from passlib.exc import PasslibHashWarning
-from passlib.utils.compat import PY27, PY_MIN_32, PY3
+from passlib.utils.compat import PY27, PY_MIN_32, PY3, JYTHON
 import warnings
 from warnings import warn
 #site
@@ -21,7 +20,7 @@ import passlib.registry as registry
 from passlib.tests.backports import TestCase as _TestCase, catch_warnings, skip, skipIf, skipUnless
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
-                          repeat_string
+                          repeat_string, tick
 from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
                                  base_string_types, exc_err, u, unicode, PY2
 import passlib.utils.handlers as uh
@@ -48,6 +47,17 @@ except ImportError:
     GAE = False
 else:
     GAE = True
+
+HAS_INTEGER_MTIME = JYTHON or sys.platform.startswith("darwin")
+
+def _get_timer_resolution(timer):
+    def sample():
+        start = cur = timer()
+        while start == cur:
+            cur = timer()
+        return cur-start
+    return min(sample() for _ in range(3))
+TICK_RESOLUTION = _get_timer_resolution(tick)
 
 #=========================================================
 # test mode
@@ -176,13 +186,11 @@ def randintgauss(lower, upper, mu, sigma):
     "hack used by fuzz testing"
     return int(limit(rng.normalvariate(mu, sigma), lower, upper))
 
-def get_timer_resolution(timer):
-    def sample():
-        start = cur = timer()
-        while start == cur:
-            cur = timer()
-        return cur-start
-    return min(sample() for _ in range(3))
+def quicksleep(delay):
+    "because time.sleep() doesn't even have 10ms accuracy on some OSes"
+    start = tick()
+    while tick()-start < delay:
+        pass
 
 #=========================================================
 # custom test harness
@@ -702,13 +710,13 @@ class HandlerCase(TestCase):
         if handler.name == "bcrypt" and backend == "builtin" and TEST_MODE("full"):
             # this will be auto-enabled under TEST_MODE 'full'.
             return None
-        if backend == "os_crypt":
-            if cls.find_crypt_replacement() and TEST_MODE("full"):
+        from passlib.utils import has_crypt
+        if backend == "os_crypt" and has_crypt:
+            if TEST_MODE("full") and cls.find_crypt_replacement():
                 #in this case, HandlerCase will monkeypatch os_crypt
                 #to use another backend, just so we can test os_crypt fully.
                 return None
-            from passlib.utils import has_crypt
-            if has_crypt:
+            else:
                 return "hash not supported by os crypt()"
         return "backend not available"
 
@@ -1905,6 +1913,9 @@ class OsCryptMixin(HandlerCase):
         as possible.
         """
         handler = self.handler
+        # resolve wrappers, since we want to return crypt compatible hash.
+        while hasattr(handler, "wrapped"):
+            handler = handler.wrapped
         alt_backend = self.find_crypt_replacement()
         if not alt_backend:
             raise AssertionError("handler has no available backends!")
@@ -1971,6 +1982,8 @@ class OsCryptMixin(HandlerCase):
 
     def test_82_crypt_support(self):
         "test platform-specific crypt() support detection"
+        if hasattr(self.handler, "orig_prefix"):
+            raise self.skipTest("not applicable to wrappers")
         platform = sys.platform
         for name, flag in self.platform_crypt_support.items():
             if not platform.startswith(name):

@@ -1,7 +1,11 @@
 """passlib.utils.compat - python 2/3 compatibility helpers"""
 #=============================================================================
-# figure out what version we're running
+# figure out what we're running
 #=============================================================================
+
+#-----------------------------------------------------
+# python version
+#-----------------------------------------------------
 import sys
 PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
@@ -9,15 +13,18 @@ PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
 PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
 PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 
-# __dir__() added in py2.6
-# NOTE: testing shows pypy1.5 doesn't either; but added somewhere <= 1.8
-SUPPORTS_DIR_METHOD = not PY_MAX_25
-
-#=============================================================================
-# figure out what VM we're running
-#=============================================================================
+#-----------------------------------------------------
+# python implementation
+#-----------------------------------------------------
 PYPY = hasattr(sys, "pypy_version_info")
 JYTHON = sys.platform.startswith('java')
+
+#-----------------------------------------------------
+# capabilities
+#-----------------------------------------------------
+
+# __dir__() added in py2.6
+SUPPORTS_DIR_METHOD = not PY_MAX_25 and not (PYPY and sys.pypy_version_info < (1,6))
 
 #=============================================================================
 # common imports

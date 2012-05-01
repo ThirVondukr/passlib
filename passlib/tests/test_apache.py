@@ -12,7 +12,7 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils.compat import irange, unicode
-from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings
+from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings, HAS_INTEGER_MTIME
 from passlib.utils.compat import b, bytes, u
 #module
 log = getLogger(__name__)
@@ -474,7 +474,7 @@ class HtdigestFileTest(TestCase):
         self.assertEqual(hc.to_string(), self.sample_01)
 
         #change file, test deprecated force=True kwd
-        time.sleep(.1) # pause so mtime changes
+        time.sleep(1 if HAS_INTEGER_MTIME else .1) # pause so mtime changes
         set_file(path, "")
         with self.assertWarningList(r"load\(force=False\) is deprecated"):
             ha.load(force=False)
