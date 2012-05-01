@@ -11,6 +11,9 @@ may be raised by Passlib.
 Exceptions
 ==========
 .. autoexception:: MissingBackendError
+
+.. index:: environmental variable; PASSLIB_MAX_PASSWORD_SIZE
+
 .. autoexception:: PasswordSizeError
 
 Warnings

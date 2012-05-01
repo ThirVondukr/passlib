@@ -50,6 +50,8 @@ To install from a source directory using :command:`setup.py`::
 
     python setup.py install
 
+.. index:: environmental variable; PASSLIB_TEST_MODE
+
 .. rst-class:: html-toggle
 
 Testing

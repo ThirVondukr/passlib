@@ -42,6 +42,8 @@ Interface
 
 .. _bcrypt-backends:
 
+.. index:: environmental variable; PASSLIB_BUILTIN_BCRYPT
+
 .. note::
 
     This class will use the first available of four possible backends:
