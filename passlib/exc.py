@@ -85,9 +85,6 @@ class PasslibRuntimeWarning(PasslibWarning):
 class PasslibSecurityWarning(PasslibWarning):
     """Special warning issued when Passlib encounters something
     that might affect security.
-
-    The main reason this is issued is when Passlib's pure-python bcrypt
-    backend is used, to warn that it's 20x too slow to acheive real security.
     """
 
 #==========================================================================
@@ -104,7 +101,7 @@ def _get_name(handler):
     return handler.name if handler else "<unnamed>"
 
 #----------------------------------------------------------------
-# encrypt/verify parameter errors
+# generic helpers
 #----------------------------------------------------------------
 def type_name(value):
     "return pretty-printed string containing name of value's type"
@@ -126,25 +123,33 @@ def ExpectedStringError(value, param):
     "error message when param was supposed to be unicode or bytes"
     return ExpectedTypeError(value, "unicode or bytes", param)
 
+#----------------------------------------------------------------
+# encrypt/verify parameter errors
+#----------------------------------------------------------------
 def MissingDigestError(handler=None):
     "raised when verify() method gets passed config string instead of hash"
     name = _get_name(handler)
     return ValueError("expected %s hash, got %s config string instead" %
                      (name, name))
 
+def NullPasswordError(handler=None):
+    "raised by OS crypt() supporting hashes, which forbid NULLs in password"
+    name = _get_name(handler)
+    return ValueError("%s does not allow NULL bytes in password" % name)
+
 #----------------------------------------------------------------
 # errors when parsing hashes
 #----------------------------------------------------------------
 def InvalidHashError(handler=None):
     "error raised if unrecognized hash provided to handler"
-    raise ValueError("not a valid %s hash" % _get_name(handler))
+    return ValueError("not a valid %s hash" % _get_name(handler))
 
 def MalformedHashError(handler=None, reason=None):
     "error raised if recognized-but-malformed hash provided to handler"
     text = "malformed %s hash" % _get_name(handler)
     if reason:
         text = "%s (%s)" % (text, reason)
-    raise ValueError(text)
+    return ValueError(text)
 
 def ZeroPaddedRoundsError(handler=None):
     "error raised if hash was recognized but contained zero-padded rounds field"

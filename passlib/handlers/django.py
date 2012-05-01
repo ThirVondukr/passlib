@@ -224,7 +224,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         hash = pbkdf2(secret, self.salt.encode("ascii"), self.rounds,
-                      keylen=-1, prf=self._prf)
+                      keylen=None, prf=self._prf)
         return b64encode(hash).rstrip().decode("ascii")
 
 class django_pbkdf2_sha1(django_pbkdf2_sha256):

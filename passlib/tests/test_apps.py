@@ -23,6 +23,10 @@ class AppsTest(TestCase):
     #      they mainly try to ensure no typos
     #      or dynamic behavior foul-ups.
 
+    def test_master_context(self):
+        ctx = apps.master_context
+        self.assertGreater(len(ctx.schemes()), 50)
+
     def test_custom_app_context(self):
         ctx = apps.custom_app_context
         self.assertEqual(ctx.schemes(), ("sha512_crypt", "sha256_crypt"))

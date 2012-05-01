@@ -12,8 +12,8 @@ import warnings
 #pkg
 #module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode, join_bytes
-from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
+                                 unicode, join_bytes, SUPPORTS_DIR_METHOD
+from passlib.tests.utils import TestCase, catch_warnings
 
 def hb(source):
     return unhexlify(b(source))
@@ -25,6 +25,19 @@ class MiscTest(TestCase):
     "tests various parts of utils module"
 
     #NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
+
+    def test_compat(self):
+        "test compat's lazymodule"
+        from passlib.utils import compat
+        # "<module 'passlib.utils.compat' from 'passlib/utils/compat.pyc'>"
+        self.assertRegex(repr(compat),
+                         r"^<module 'passlib.utils.compat' from '.*?'>$")
+
+        # test synthentic dir()
+        dir(compat)
+        if SUPPORTS_DIR_METHOD:
+            self.assertTrue('UnicodeIO' in dir(compat))
+            self.assertTrue('irange' in dir(compat))
 
     def test_classproperty(self):
         from passlib.utils import classproperty
@@ -50,15 +63,12 @@ class MiscTest(TestCase):
 
         self.assertTrue(".. deprecated::" in test_func.__doc__)
 
-        with catch_warnings(record=True) as wlog:
+        with self.assertWarningList(dict(category=DeprecationWarning,
+                message="the function passlib.tests.test_utils.test_func() "
+                        "is deprecated as of Passlib 1.6, and will be "
+                        "removed in Passlib 1.8."
+                )):
             self.assertEqual(test_func(1,2), (1,2))
-            self.consumeWarningList(wlog,[
-                dict(category=DeprecationWarning,
-                     message="the function passlib.tests.test_utils.test_func() "
-                             "is deprecated as of Passlib 1.6, and will be "
-                             "removed in Passlib 1.8."
-                ),
-            ])
 
     def test_memoized_property(self):
         from passlib.utils import memoized_property

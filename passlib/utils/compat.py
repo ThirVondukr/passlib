@@ -10,6 +10,7 @@ PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
 PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 
 # __dir__() added in py2.6
+# NOTE: testing shows pypy1.5 doesn't either; but added somewhere <= 1.8
 SUPPORTS_DIR_METHOD = not PY_MAX_25
 
 #=============================================================================

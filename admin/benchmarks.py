@@ -166,7 +166,7 @@ def test_context_update():
     "test speed of CryptContext.update()"
     kwds = dict(
         schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
-                    "des_crypt", "unix_fallback" ],
+                    "des_crypt", "unix_disabled" ],
         deprecated = [ "des_crypt" ],
         sha512_crypt__min_rounds=4000,
         )

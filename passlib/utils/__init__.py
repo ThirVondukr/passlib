@@ -12,7 +12,7 @@ import math
 import os
 import sys
 import random
-if JYTHON:
+if JYTHON: # pragma: no cover -- runtime detection
     # Jython 2.5.2 lacks stringprep module -
     # see http://bugs.jython.org/issue1758320
     try:
@@ -31,7 +31,7 @@ from warnings import warn
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, b, bytes, join_bytes, join_byte_values, \
                                  join_byte_elems, exc_err, irange, imap, PY3, u, \
-                                 join_unicode, unicode, byte_elem_value, PY_MIN_32
+                                 join_unicode, unicode, byte_elem_value, PY_MIN_32, next_method_attr
 #local
 __all__ = [
     # constants
@@ -138,9 +138,9 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
-    :kwd deprecated: release where function was first deprecated
-    :kwd removed: release where function will be removed
-    :kwd replacement: name/instructions for replacement function.
+    :kwd deprecated: version when function was first deprecated
+    :kwd removed: version when function will be removed
+    :kwd replacement: alternate name / instructions for replacing this function.
     :kwd updoc: add notice to docstring (default ``True``)
     """
     if msg is None:
@@ -156,31 +156,36 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             msg += ", use %s instead" % replacement
         msg += "."
     def build(func):
-        kwds = dict(
+        opts = dict(
             mod=func.__module__,
             name=func.__name__,
             deprecated=deprecated,
             removed=removed,
             )
         if _is_method:
-            state = [None]
-        else:
-            state = [msg % kwds]
-        def wrapper(*args, **kwds):
-            text = state[0]
-            if text is None:
+            def wrapper(*args, **kwds):
+                tmp = opts.copy()
                 klass = args[0].__class__
-                kwds.update(klass=klass.__name__, mod=klass.__module__)
-                text = state[0] = msg % kwds
-            warn(text, DeprecationWarning, stacklevel=2)
-            return func(*args, **kwds)
+                tmp.update(klass=klass.__name__, mod=klass.__module__)
+                warn(msg % tmp, DeprecationWarning, stacklevel=2)
+                return func(*args, **kwds)
+        else:
+            text = msg % opts
+            def wrapper(*args, **kwds):
+                warn(text, DeprecationWarning, stacklevel=2)
+                return func(*args, **kwds)
         update_wrapper(wrapper, func)
         if updoc and (deprecated or removed) and wrapper.__doc__:
-            txt = "as of Passlib %s" % (deprecated,) if deprecated else ""
-            if removed:
-                if txt:
-                    txt += ", and "
-                txt += "will be removed in Passlib %s" % (removed,)
+            txt = deprecated or ''
+            if removed or replacement:
+                txt += "\n    "
+                if removed:
+                    txt += "and will be removed in version %s" % (removed,)
+                if replacement:
+                    if removed:
+                        txt += ", "
+                    txt += "use %s instead" % replacement
+                txt += "."
             wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
         return wrapper
     return build
@@ -190,58 +195,13 @@ def deprecated_method(msg=None, deprecated=None, removed=None, updoc=True,
     """decorator to deprecate a method.
 
     :arg msg: optional msg, default chosen if omitted
-    :kwd deprecated: release where function was first deprecated
-    :kwd removed: release where function will be removed
-    :kwd replacement: name/instructions for replacement method.
+    :kwd deprecated: version when method was first deprecated
+    :kwd removed: version when method will be removed
+    :kwd replacement: alternate name / instructions for replacing this method.
     :kwd updoc: add notice to docstring (default ``True``)
     """
     return deprecated_function(msg, deprecated, removed, updoc, replacement,
                                _is_method=True)
-
-##def relocated_function(target, msg=None, name=None, deprecated=None, mod=None,
-##                       removed=None, updoc=True):
-##    """constructor to create alias for relocated function.
-##
-##    :arg target: import path to target
-##    :arg msg: optional msg, default chosen if omitted
-##    :kwd deprecated: release where function was first deprecated
-##    :kwd removed: release where function will be removed
-##    :kwd updoc: add notice to docstring (default ``True``)
-##    """
-##    target_mod, target_name = target.rsplit(".",1)
-##    if mod is None:
-##        import inspect
-##        mod = inspect.currentframe(1).f_globals["__name__"]
-##    if not name:
-##        name = target_name
-##    if msg is None:
-##        msg = ("the function %(mod)s.%(name)s() has been moved to "
-##               "%(target_mod)s.%(target_name)s(), the old location is deprecated")
-##        if deprecated:
-##            msg += " as of Passlib %(deprecated)s"
-##        if removed:
-##            msg += ", and will be removed in Passlib %(removed)s"
-##        msg += "."
-##    msg %= dict(
-##        mod=mod,
-##        name=name,
-##        target_mod=target_mod,
-##        target_name=target_name,
-##        deprecated=deprecated,
-##        removed=removed,
-##    )
-##    state = [None]
-##    def wrapper(*args, **kwds):
-##        warn(msg, DeprecationWarning, stacklevel=2)
-##        func = state[0]
-##        if func is None:
-##            module = __import__(target_mod, fromlist=[target_name], level=0)
-##            func = state[0] = getattr(module, target_name)
-##        return func(*args, **kwds)
-##    wrapper.__module__ = mod
-##    wrapper.__name__ = name
-##    wrapper.__doc__ = msg
-##    return wrapper
 
 class memoized_property(object):
     """decorator which invokes method once, then replaces attr with result"""
@@ -908,10 +868,7 @@ class Base64Engine(object):
         if tail == 1:
             #only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
-        if PY3:
-            next_value = imap(self._decode64, source).__next__
-        else:
-            next_value = imap(self._decode64, source).next
+        next_value = getattr(imap(self._decode64, source), next_method_attr)
         try:
             return join_byte_values(self._decode_bytes(next_value, chunks, tail))
         except KeyError:

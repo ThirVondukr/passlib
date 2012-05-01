@@ -15,7 +15,7 @@ from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes, splitcomma
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
-                                 itervalues, PY3, u, unicode
+                                 PY3, u, unicode
 from passlib.utils.pbkdf2 import pbkdf2, get_prf, norm_hash_name
 import passlib.utils.handlers as uh
 #pkg

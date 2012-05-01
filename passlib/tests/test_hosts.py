@@ -49,8 +49,6 @@ class HostsTest(TestCase):
         self.check_unix_disabled(ctx)
 
     def test_bsd_contexts(self):
-        warnings.filterwarnings("ignore",
-                                "SECURITY WARNING: .*pure-python bcrypt.*")
         for ctx in [
             hosts.freebsd_context,
             hosts.openbsd_context,

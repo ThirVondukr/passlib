@@ -16,7 +16,7 @@ from passlib import hash, registry
 from passlib.registry import register_crypt_handler, register_crypt_handler_path, \
     get_crypt_handler, list_crypt_handlers, _unload_handler_name as unload_handler_name
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_warnings
+from passlib.tests.utils import TestCase, catch_warnings
 #module
 log = getLogger(__name__)
 
@@ -88,6 +88,14 @@ class RegistryTest(TestCase):
         self.assertTrue('dummy_0' not in paths)
         self.assertFalse(hasattr(hash, 'dummy_0'))
 
+        # check invalid names are rejected
+        self.assertRaises(ValueError, register_crypt_handler_path,
+                          "dummy_0", ".test_registry")
+        self.assertRaises(ValueError, register_crypt_handler_path,
+                          "dummy_0", __name__ + ":dummy_0:xxx")
+        self.assertRaises(ValueError, register_crypt_handler_path,
+                          "dummy_0", __name__ + ":dummy_0.xxx")
+
         #try lazy load
         register_crypt_handler_path('dummy_0', __name__)
         self.assertTrue('dummy_0' in list_crypt_handlers())
@@ -155,15 +163,23 @@ class RegistryTest(TestCase):
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
 
+        # without available handler
         self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
         self.assertIs(get_crypt_handler("dummy_1", None), None)
 
+        # already loaded handler
         register_crypt_handler(dummy_1)
         self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
         with catch_warnings():
             warnings.filterwarnings("ignore", "handler names should be lower-case, and use underscores instead of hyphens:.*", UserWarning)
+
+            # already loaded handler, using incorrect name
             self.assertIs(get_crypt_handler("DUMMY-1"), dummy_1)
+
+            # lazy load of unloaded handler, using incorrect name
+            register_crypt_handler_path('dummy_0', __name__)
+            self.assertIs(get_crypt_handler("DUMMY-0"), dummy_0)
 
 #=========================================================
 #EOF
