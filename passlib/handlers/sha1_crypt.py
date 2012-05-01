@@ -25,6 +25,7 @@ __all__ = [
 #sha1-crypt
 #=========================================================
 _hmac_sha1 = get_prf("hmac-sha1")[0]
+_BNULL = b('\x00')
 
 class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
@@ -100,10 +101,12 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        if _BNULL in secret:
+            raise uh.exc.NullPasswordError(self)
         rounds = self.rounds
-            #NOTE: this uses a different format than the hash...
-        result = u("%s$sha1$%s") % (self.salt, rounds)
-        result = result.encode("ascii")
+        # NOTE: this seed value is NOT the same as the config string
+        result = (u("%s$sha1$%s") % (self.salt, rounds)).encode("ascii")
+        # NOTE: this algorithm is essentially PBKDF1, modified to use HMAC.
         r = 0
         while r < rounds:
             result = _hmac_sha1(secret, result)

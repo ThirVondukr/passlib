@@ -29,7 +29,7 @@ except ImportError: #pragma: no cover
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
                           classproperty, rng, getrandstr, test_crypt
-from passlib.utils.compat import bytes, u, uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
 #pkg
@@ -52,6 +52,7 @@ IDENT_2 = u("$2$")
 IDENT_2A = u("$2a$")
 IDENT_2X = u("$2x$")
 IDENT_2Y = u("$2y$")
+_BNULL = b('\x00')
 
 #=========================================================
 # handler
@@ -266,6 +267,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         #   py3: not supported (patch submitted)
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        if _BNULL in secret:
+            raise uh.exc.NullPasswordError(self)
         config = self._get_config()
         hash = pybcrypt_hashpw(secret, config)
         assert hash.startswith(config) and len(hash) == len(config)+31
@@ -278,6 +281,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         #   py3: not supported
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        if _BNULL in secret:
+            # NOTE: especially important to forbid NULLs for bcryptor,
+            # since it happily accepts them, and then silently truncates
+            # the password at first one it encounters :(
+            raise uh.exc.NullPasswordError(self)
         if self.ident == IDENT_2:
             # bcryptor doesn't support $2$ hashes; but we can fake $2$ behavior
             # using the $2a$ algorithm, by repeating the password until
@@ -299,6 +307,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
              "Passlib to use instead.", PasslibSecurityWarning)
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        if _BNULL in secret:
+            raise uh.exc.NullPasswordError(self)
         chk = _builtin_bcrypt(secret, self.ident.strip("$"),
                               self.salt.encode("ascii"), self.rounds)
         return chk.decode("ascii")

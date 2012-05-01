@@ -24,6 +24,8 @@ __all__ = [
 #=========================================================
 # pure-python backend for des_crypt family
 #=========================================================
+_BNULL = b('\x00')
+
 def _crypt_secret_to_key(secret):
     """convert secret to 64-bit DES key.
 
@@ -53,9 +55,14 @@ def _raw_des_crypt(secret, salt):
     except ValueError: #pragma: no cover - always caught by class
         raise ValueError("invalid chars in salt")
 
+    # gotta do something - no official policy since this predates unicode
+    if isinstance(secret, unicode):
+        secret = secret.encode("utf-8")
+    assert isinstance(secret, bytes)
+
     # forbidding NULL char because underlying crypt() rejects them too.
-    if b('\x00') in secret:
-        raise ValueError("null char in secret")
+    if _BNULL in secret:
+        raise uh.exc.NullPasswordError(des_crypt)
 
     # convert first 8 bytes of secret string into an integer
     key_value = _crypt_secret_to_key(secret)
@@ -87,9 +94,14 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     except ValueError: #pragma: no cover - always caught by class
         raise ValueError("invalid salt")
 
+    # gotta do something - no official policy since this predates unicode
+    if isinstance(secret, unicode):
+        secret = secret.encode("utf-8")
+    assert isinstance(secret, bytes)
+
     # forbidding NULL char because underlying crypt() rejects them too.
-    if b('\x00') in secret:
-        raise ValueError("secret must be string without null bytes")
+    if _BNULL in secret:
+        raise uh.exc.NullPasswordError(bsdi_crypt)
 
     # convert secret string into an integer
     key_value = _bsdi_secret_to_key(secret)
@@ -162,9 +174,6 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         return test_crypt("test", 'abgOeLfPimXQo')
 
     def _calc_checksum_builtin(self, secret):
-        # gotta do something - no official policy since des-crypt predates unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
@@ -295,8 +304,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return test_crypt("test", '_/...lLDAxARksGCHin.')
 
     def _calc_checksum_builtin(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         return _raw_bsdi_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
 
     def _calc_checksum_os_crypt(self, secret):
@@ -363,7 +370,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     def _norm_checksum(self, value):
         value = super(bigcrypt, self)._norm_checksum(value)
         if value and len(value) % 11:
-            raise uh.exc.InvalidHashError(cls)
+            raise uh.exc.InvalidHashError(self)
         return value
 
     #=========================================================

@@ -11,7 +11,7 @@ from warnings import warn
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
                           repeat_string, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
-                                 uascii_to_str, unicode, lmap
+                                 uascii_to_str, unicode
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -24,6 +24,7 @@ __all__ = [
 # pure-python backend, used by both sha256_crypt & sha512_crypt
 # when crypt.crypt() backend is not available.
 #==============================================================
+_BNULL = b('\x00')
 
 # pre-calculated offsets used to speed up C digest stage (see notes below).
 # sequence generated using the following:
@@ -76,8 +77,9 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     if isinstance(pwd, unicode):
         # XXX: not sure what official unicode policy is, using this as default
         pwd = pwd.encode("utf-8")
-    elif not isinstance(pwd, bytes):
-        raise TypeError("password must be bytes or unicode")
+    assert isinstance(pwd, bytes)
+    if _BNULL in pwd:
+        raise uh.exc.NullPasswordError(sha512_crypt if use_512 else sha256_crypt)
     pwd_len = len(pwd)
 
     # validate rounds

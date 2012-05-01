@@ -22,9 +22,9 @@ __all__ = [
 #=========================================================
 #pure-python backend
 #=========================================================
-B_NULL = b("\x00")
-B_MD5_MAGIC = b("$1$")
-B_APR_MAGIC = b("$apr1$")
+_BNULL = b("\x00")
+_MD5_MAGIC = b("$1$")
+_APR_MAGIC = b("$apr1$")
 
 # pre-calculated offsets used to speed up C digest stage (see notes below).
 # sequence generated using the following:
@@ -72,6 +72,8 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     if isinstance(pwd, unicode):
         pwd = pwd.encode("utf-8")
     assert isinstance(pwd, bytes), "pwd not unicode or bytes"
+    if _BNULL in pwd:
+        raise uh.exc.NullPasswordError(md5_crypt)
     pwd_len = len(pwd)
 
     #validate salt - should have been taken care of by caller
@@ -84,9 +86,9 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
 
     # load APR specific constants
     if use_apr:
-        magic = B_APR_MAGIC
+        magic = _APR_MAGIC
     else:
-        magic = B_MD5_MAGIC
+        magic = _MD5_MAGIC
 
     #=====================================================================
     # digest B - used as subinput to digest A
@@ -111,7 +113,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     i = pwd_len
     evenchar = pwd[:1]
     while i:
-        a_ctx_update(B_NULL if i & 1 else evenchar)
+        a_ctx_update(_BNULL if i & 1 else evenchar)
         i >>= 1
 
     # finish A
