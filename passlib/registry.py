@@ -252,7 +252,6 @@ def register_crypt_handler(handler, force=False, _attr=None):
     """
     # validate handler
     if not is_crypt_handler(handler):
-        # TODO: make an official interface
         raise ExpectedTypeError(handler, "password hash handler", "handler")
     if not handler:
         raise AssertionError("``bool(handler)`` must be True")

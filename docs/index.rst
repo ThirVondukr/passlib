@@ -30,6 +30,10 @@ using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
 Contents
 ========
 
+.. rst-class:: floater
+
+.. seealso:: :ref:`What's new in Passlib 1.6 <whats-new>`
+
 Introductory Materials
 ----------------------
 

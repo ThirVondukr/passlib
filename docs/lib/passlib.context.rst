@@ -147,6 +147,8 @@ Options which directly affect the behavior of the CryptContext instance:
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 
+.. _context-min-verify-time-option:
+
 ``min_verify_time``
 
     If specified, unsuccessful :meth:`~CryptContext.verify`

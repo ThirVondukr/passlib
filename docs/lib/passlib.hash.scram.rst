@@ -136,7 +136,7 @@ any digests. An example would be::
 
 The algorithm used to calculate each digest is::
 
-    pbkdf2(salsprep(password).encode("utf-8"), salt, rounds, -1, alg)
+    pbkdf2(salsprep(password).encode("utf-8"), salt, rounds, alg_digest_size, "hmac-"+alg)
 
 ...as laid out in the SCRAM specification [#scram]_. All digests
 should verify against the same password, or the hash is considered malformed.

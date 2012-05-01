@@ -50,6 +50,8 @@ To install from a source directory using :command:`setup.py`::
 
     python setup.py install
 
+.. rst-class:: html-toggle
+
 Testing
 =======
 Passlib contains a comprehensive set of unittests providing nearly complete coverage.
@@ -59,18 +61,21 @@ and are designed to be run using the
 
 Once Passlib and Nose have been installed, the tests may be run from the source directory::
 
-    # to run the platform-relevant tests...
-    nosetests -v --tests passlib/tests
+    # to run the full passlib test suite...
+    PASSLIB_TEST_MODE="full" nosetests -v --tests passlib/tests
 
-    # to run all tests...
-    PASSLIB_TESTS="all" nosetests -v --tests passlib/tests
+Tests may also be run via ``setup.py test`` or the included ``tox.ini`` file.
 
-    # to run nose with the optional coverage plugin...
-    # (results will be in build/coverage)
-    PASSLIB_TESTS="all" nosetests -v --tests passlib/tests --with-coverage \
-        --cover-package=passlib --cover-html --cover-html-dir build/coverage
+.. note::
 
-(There will be a large proportion of skipped tests, this is normal).
+    Due to the critical nature of password hashing, Passlib's unittest framework
+    is rather extensive, covering the behavior of all the classes, 8-bit
+    test vectors for all supported hashes, and some primitive fuzz testing;
+    it occupies ~38% of the Passlib codebase. Because of this, the full test
+    suite make take some time to run. Setting ``PASSLIB_TEST_MODE`` to
+    ``"quick"`` or ``"default"`` will speed things up.
+
+.. rst-class:: html-toggle
 
 Documentation
 =============

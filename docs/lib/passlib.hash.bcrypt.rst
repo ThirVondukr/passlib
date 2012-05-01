@@ -40,6 +40,8 @@ Interface
 =========
 .. autoclass:: bcrypt()
 
+.. _bcrypt-backends:
+
 .. note::
 
     This class will use the first available of four possible backends:
