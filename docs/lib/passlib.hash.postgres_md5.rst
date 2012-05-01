@@ -35,7 +35,7 @@ That aside, this class can be used directly as follows::
     >>> postgres_md5.verify("password", hash, user="username")
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========

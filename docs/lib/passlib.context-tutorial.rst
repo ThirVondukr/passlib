@@ -12,7 +12,7 @@
 
 Overview
 ========
-The central class in the :mod:`passlib.context` module is the :class:`!CryptContext` class.
+The :mod:`passlib.context` module contains one main class: :class:`!passlib.context.CryptContext`.
 This class is designed to take care of many of the more frequent
 coding patterns which occur in applications that need to handle multiple
 password hashes at once:
@@ -51,38 +51,41 @@ Tutorial / Walkthrough
 Basic Usage
 -----------
 At it's base, the :class:`!CryptContext` class is just a list of
-:class:`!PasswordHash` objects, imported by name
+:class:`~passlib.ifc.PasswordHash` objects, imported by name
 from the :mod:`passlib.hash` module. The following snippet creates
-a new context object which supports three hash algorithms --
-:doc:`sha256_crypt <passlib.hash.sha256_crypt>`,
+a new context object which supports three hash algorithms
+(:doc:`sha256_crypt <passlib.hash.sha256_crypt>`,
 :doc:`md5_crypt <passlib.hash.md5_crypt>`, and
-:doc:`des_crypt <passlib.hash.des_crypt>`::
+:doc:`des_crypt <passlib.hash.des_crypt>`)::
 
     >>> from passlib.context import CryptContext
     >>> myctx = CryptContext(schemes=["sha256_crypt", "md5_crypt", "des_crypt"])
 
 This new object exposes a very similar set of methods to the :class:`!PasswordHash`
-interface. Hashing and verifying passwords is equally straightforward::
+interface, and hashing and verifying passwords is equally as straightforward::
 
-    >>> # loads first algorithm in the list (sha256_crypt),
+    >>> # this loads first algorithm in the schemes list (sha256_crypt),
     >>> # generates a new salt, and hashes the password:
     >>> hash1 = myctx.encrypt("joshua")
     >>> hash1
     '$5$rounds=80000$HFEGd1wnFknpibRl$VZqjyYcTenv7CtOf986hxuE0pRaGXnuLXyfb7m9xL69'
 
-    >>> # alternately, you can explicitly pick one of the configured algorithms,
-    >>> # through this is rarely needed in practice:
-    >>> hash2 = myctx.encrypt("letmein", scheme="md5_crypt")
-    >>> hash2
-    '$1$e2nig/AC$stejMS1ek6W0/UogYKFao/'
-
     >>> # when verifying a password, the algorithm is identified automatically:
-    >>> myctx.verify("socks", hash1)
+    >>> myctx.verify("gtnw", hash1)
     False
     >>> myctx.verify("joshua", hash1)
     True
-    >>> myctx.verify("joshua", hash2)
+
+    >>> # alternately, you can explicitly pick one of the configured algorithms,
+    >>> # through this is rarely needed in practice:
+    >>> hash2 = myctx.encrypt("dogsnamehere", scheme="md5_crypt")
+    >>> hash2
+    '$1$e2nig/AC$stejMS1ek6W0/UogYKFao/'
+
+    >>> myctx.verify("letmein", hash2)
     False
+    >>> myctx.verify("dogsnamehere", hash2)
+    True
 
 If not told otherwise, the context object will use the first algorithm listed
 in ``schemes`` when encrypting new hashes. This default can be changed by
@@ -96,6 +99,10 @@ using the ``default`` keyword::
 
     >>> myctx.identify(hash)
     'des_crypt'
+
+This concludes the basics of how to use a CryptContext object.
+The rest of the sections detail the various features it offers,
+which probably provide a better argument for *why* you'd want to use it.
 
 .. seealso::
 
@@ -506,8 +513,11 @@ the following code in the correct function::
     In the above code, the 'category' kwd can be omitted entirely, *OR*
     set to a string matching a user category specified in the policy file.
     In the latter case, any category-specific policy settings will be enforced.
-    For this example, assume it's ``None`` for most users, and ``"admin"`` for special users.
-    this namespace is entirely application chosen, it just has to match the policy file.
+
+    For the purposes of this example (and the sample config file listed above),
+    it's assumed this value will be ``None`` for most users, and ``"admin"`` for special users.
+    This namespace is entirely up to the application, it just has to match the
+    category names used in the config file.
 
     See :ref:`user-categories` for more details.
 

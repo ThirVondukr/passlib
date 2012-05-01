@@ -54,34 +54,30 @@ To install from a source directory using :command:`setup.py`::
 
 Testing
 =======
-Passlib contains a comprehensive set of unittests providing nearly complete coverage.
+Passlib contains a comprehensive set of unittests (about 38% of the total code),
+which provide nearly complete coverage, and verification of the hash
+algorithms using multiple external sources (if detected at runtime).
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
 `Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
 
-Once Passlib and Nose have been installed, the tests may be run from the source directory::
+Once Passlib and Nose have been installed, the main suite of tests may be run from the source directory::
 
-    # to run the full passlib test suite...
-    PASSLIB_TEST_MODE="full" nosetests -v --tests passlib/tests
+    nosetests --tests passlib/tests
+
+To run the full test suite, which includes internal cross-checks and mock-testing
+of features not provided natively by the host OS::
+
+    PASSLIB_TEST_MODE="full" nosetests --tests passlib/tests
 
 Tests may also be run via ``setup.py test`` or the included ``tox.ini`` file.
 
-.. note::
-
-    Due to the critical nature of password hashing, Passlib's unittest framework
-    is rather extensive, covering the behavior of all the classes, 8-bit
-    test vectors for all supported hashes, and some primitive fuzz testing;
-    it occupies ~38% of the Passlib codebase. Because of this, the full test
-    suite make take some time to run. Setting ``PASSLIB_TEST_MODE`` to
-    ``"quick"`` or ``"default"`` will speed things up.
-
 .. rst-class:: html-toggle
 
-Documentation
-=============
+Building the Documentation
+==========================
 The latest copy of this documentation should always be available
 online at `<http://packages.python.org/passlib>`_.
-
 If you wish to generate your own copy of the documentation,
 you will need to:
 

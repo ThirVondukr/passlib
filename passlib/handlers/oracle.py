@@ -54,7 +54,7 @@ ORACLE10_MAGIC = b("\x01\x23\x45\x67\x89\xAB\xCD\xEF")
 class oracle10(uh.HasUserContext, uh.StaticHandler):
     """This class implements the password hash used by Oracle up to version 10g, and follows the :ref:`password-hash-api`.
 
-    It has no salt and a single fixed round.
+    It does a single round of hashing, and relies on the username as the salt.
 
     The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keywords:

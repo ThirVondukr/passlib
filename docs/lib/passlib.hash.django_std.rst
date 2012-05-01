@@ -52,7 +52,7 @@ These classes can be used directly as follows::
     >>> handler.verify("eville", h)
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 ---------
@@ -130,7 +130,7 @@ These classes can be used directly as follows::
     >>> handler.verify("eville", h)
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 ---------

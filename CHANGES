@@ -15,23 +15,35 @@ Overview
     Welcome to Passlib 1.6.
 
     The main goal of this release was to clean up the codebase, reducing
-    the amount of internally-redundant code, and simplify the publically
-    exposed interface. This release also brings with it
-    a number of other improvements, including: 10 or so new hash algorithms,
-    additional security precautions for the existing ones, numerous
-    execution-time improvements, and reorganized documentation.
+    the amount of internally-redundant code, and to simplify the publically
+    exposed interface. It also brings with it a number of other improvements:
+    10 or so new hash algorithms, additional security precautions
+    for the existing algorithms, a number of speed improvements,
+    and reorganized documentation.
 
-    .. note::
+Deprecated APIs
+...............
+    In order to improve the publically exposed interface,
+    some of the more cumbersome and less-used functions in Passlib
+    have been deprecated / renamed. This should not affect 99% of applications.
+    That said, all the deprecated interfaces are still present, and will continue
+    to be supported for at least one more major release.
+    To help with migration, all deprecated functions should issue an informative
+    :exc:`DeprecationWarning` when they are invoked, detailing their suggested replacement.
+    The following interfaces have changed:
 
-        In order to simplify the publically exposed interface, a number
-        of the more cumbersome and less-used aspects (particularly the
-        semi-internal :class:`!CryptPolicy` class) have been deprecated.
-        This should not affect 99% of the code using Passlib.
+    * The semi-internal :class:`!CryptPolicy` class has been deprecated
+      in it's entirety. All functionality has been rolled into the
+      parent :class:`!CryptContext` class (see :ref:`below <crypt-policy-deprecated>` for more).
 
-        Just the same, *all deprecated interfaces are still supported, and will continue
-        to be supported for at least one more major release*.
-        To help with migration, all deprecated functions will issue an informative :exc:`DeprecationWarning`
-        when they are invoked, detailing their suggested replacement.
+    * The interface of the :mod:`passlib.apache` classes has been improved:
+      some confusing methods and options have been renamed, some new
+      constructors and other functions have been added.
+
+    * The (undocumented) :mod:`!passlib.win32` module has been deprecated,
+      all of it's functionality is now offered through the
+      :doc:`lmhash <lib/passlib.hash.lmhash>` and :doc:`nthash <lib/passlib.hash.nthash>`
+      algorithms.
 
 New Hashes
 ----------
@@ -76,8 +88,7 @@ Existing Hashes
         This limit should be larger than any reasonable password size,
         and prevents various things including DOS abuses, and exploitation
         of OSes with a buggy :func:`!crypt` implementation.
-        See :exc:`!PasswordSizeError` for how to change
-        this limit.
+        See :exc:`~passlib.exc.PasswordSizeError` for how to change this limit.
 
     .. _consteq-issue:
 
@@ -127,6 +138,8 @@ Existing Hashes
 
         This most likely only affects internal Passlib code.
 
+.. _crypt-policy-deprecated:
+
 CryptContext
 ------------
 
@@ -143,7 +156,7 @@ CryptContext
     * All new (and hopefully clearer) :ref:`tutorial <context-tutorial>`
       and :ref:`reference <context-reference>` documentation.
 
-    * The :class:`CryptPolicy` class and the :attr:`!CryptContext.policy` attribute have been deprecated.
+    *   The :class:`CryptPolicy` class and the :attr:`!CryptContext.policy` attribute have been deprecated.
 
         This was a semi-internal class, which most applications
         were not involved with at all, but to be conservative about
@@ -152,14 +165,14 @@ CryptContext
 
         All of the functionality of this class has been rolled into
         :class:`!CryptContext` itself, so there's one less class to remember.
-        Most of the methods exposed by :class:`!CryptPolicy` are now
-        :class:`!CryptContext` methods.
+        Many of the methods provided by :class:`!CryptPolicy` are now
+        :class:`!CryptContext` methods, most with the same name and call syntax.
         Information on migrating existing code can be found in
         the deprecation warnings issued by the class itself,
         and in the :class:`CryptPolicy` documentation.
 
-    * Two new class constructors have been added: :meth:`CryptContext.from_path`
-      and :meth:`CryptContext.from_string`, for loading CryptContext objects
+    * Two new class constructors have been added (:meth:`CryptContext.from_path`
+      and :meth:`CryptContext.from_string`) to aid in loading CryptContext objects
       directly from a configuration file.
 
     * The :ref:`deprecated <context-deprecated-option>` keyword
@@ -194,6 +207,10 @@ Other Modules
       override Django's password hashing framework with a custom Passlib
       policy (an undocumented beta version of this was present in the 1.5 release).
 
+    * **new**: The :func:`passlib.utils.saslprep` function may be useful
+      for applications which need to normalize the unicode representation
+      of passwords before they are hashed.
+
 Bugfixes
 --------
 
@@ -220,6 +237,8 @@ Internal Changes
       even features the addition of some simplistic fuzz testing.
       It will take a bit longer to run though. While not perfect,
       statement coverage is at about 95%.
+      Additionally, the hash test suite has been enhanced with many more
+      test vectors across the board, including 8-bit test vectors.
 
     * The internal framework used to construct the hash classes (:mod:`passlib.utils.handlers`)
       was rewritten drastically. The new version provides stricter input checking,
@@ -409,8 +428,8 @@ Documentation
     * Added quickstart guide to documentation.
     * Various minor improvements.
 
-Internals
----------
+Internal Changes
+----------------
 
     * Added more handler utility functions to reduce code duplication.
     * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
@@ -420,9 +439,6 @@ Internals
       main change is that multi-backend handlers now raise
       :exc:`~passlib.exc.MissingBackendError`
       if no backends are available.
-
-Other
------
 
     * Builtin tests now use :mod:`!unittest2` if available.
     * Setup script no longer requires distribute or setuptools.

@@ -244,7 +244,7 @@ class memoized_property(object):
 #=============================================================================
 
 def consteq(left, right):
-    """check two strings/bytes for equality, taking constant time relative
+    """Check two strings/bytes for equality, taking constant time relative
     to the size of the righthand input.
 
     The purpose of this function is to aid in preventing timing attacks
@@ -316,7 +316,7 @@ def splitcomma(source, sep=","):
     return [ elem.strip() for elem in source.split(sep) ]
 
 def saslprep(source, param="value"):
-    """normalizes unicode string using SASLPrep stringprep profile.
+    """Normalizes unicode string using SASLPrep stringprep profile.
 
     The SASLPrep profile is defined in :rfc:`4013`.
     It provides a uniform scheme for normalizing unicode usernames
@@ -443,18 +443,16 @@ if stringprep is None: # pragma: no cover -- runtime detection
 # bytes helpers
 #=============================================================================
 def render_bytes(source, *args):
-    """helper for using formatting operator with bytes.
+    """Peform ``%`` formating using bytes in a uniform manner across Python 2/3.
 
-    this function is motivated by the fact that
-    :class:`bytes` instances do not support % or {} formatting under python 3.
-    this function is an attempt to provide a replacement
-    that will work uniformly under python 2 & 3.
-
+    This function is motivated by the fact that
+    :class:`bytes` instances do not support ``%`` or ``{}`` formatting under Python 3.
+    This function is an attempt to provide a replacement:
     it converts everything to unicode (decode bytes instances as latin-1),
     performs the required formatting, then encodes the result to latin-1.
 
-    calling ``render_bytes(source, *args)`` should function roughly the same as
-    ``source % args`` under python 2.
+    Calling ``render_bytes(source, *args)`` should function roughly the same as
+    ``source % args`` under Python 2.
     """
     if isinstance(source, bytes):
         source = source.decode("latin-1")
@@ -481,10 +479,10 @@ else:
             return unhexlify(('%%0%dx' % (count<<1)) % value)
 
 add_doc(bytes_to_int, "decode byte string as single big-endian integer")
-add_doc(int_to_bytes, "encode intger as single big-endian byte string")
+add_doc(int_to_bytes, "encode integer as single big-endian byte string")
 
 def xor_bytes(left, right):
-    "perform bitwise-xor of two byte strings"
+    "Perform bitwise-xor of two byte strings (must be same size)"
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 def repeat_string(source, size):
@@ -520,7 +518,7 @@ def is_ascii_codec(codec):
     return _ASCII_TEST_UNICODE.encode(codec) == _ASCII_TEST_BYTES
 
 def is_same_codec(left, right):
-    "check if two codec names are aliases for same codec"
+    "Check if two codec names are aliases for same codec"
     if left == right:
         return True
     if not (left and right):
@@ -530,12 +528,12 @@ def is_same_codec(left, right):
 _B80 = b('\x80')[0]
 _U80 = u('\x80')
 def is_ascii_safe(source):
-    "check if source (bytes or unicode) contains only 7-bit ascii"
+    "Check if string (bytes or unicode) contains only 7-bit ascii"
     r = _B80 if isinstance(source, bytes) else _U80
     return all(c < r for c in source)
 
 def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
-    """helper to normalize input to bytes.
+    """Helper to normalize input to bytes.
 
     :arg source:
         Source bytes/unicode to process.
@@ -571,13 +569,13 @@ def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
     else:
         raise ExpectedStringError(source, param)
 
-def to_unicode(source, source_encoding="utf-8", param="value"):
-    """helper to normalize input to unicode.
+def to_unicode(source, encoding="utf-8", param="value"):
+    """Helper to normalize input to unicode.
 
     :arg source:
         source bytes/unicode to process.
 
-    :arg source_encoding:
+    :arg encoding:
         encoding to use when decoding bytes instances.
 
     :param param:
@@ -587,13 +585,13 @@ def to_unicode(source, source_encoding="utf-8", param="value"):
 
     :returns:
         * returns unicode strings unchanged.
-        * returns bytes strings decoded using *source_encoding*
+        * returns bytes strings decoded using *encoding*
     """
-    assert source_encoding
+    assert encoding
     if isinstance(source, unicode):
         return source
     elif isinstance(source, bytes):
-        return source.decode(source_encoding)
+        return source.decode(encoding)
     else:
         raise ExpectedStringError(source, param)
 
@@ -615,10 +613,10 @@ else:
             raise ExpectedStringError(source, param)
 
 add_doc(to_native_str,
-    """take in unicode or bytes, return native string.
+    """Take in unicode or bytes, return native string.
 
-    python 2: encodes unicode using specified encoding, leaves bytes alone.
-    python 3: leaves unicode alone, decodes bytes using specified encoding.
+    Python 2: encodes unicode using specified encoding, leaves bytes alone.
+    Python 3: leaves unicode alone, decodes bytes using specified encoding.
 
     :raises TypeError: if source is not unicode or bytes.
 
@@ -645,28 +643,42 @@ def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & un
 #=================================================================================
 
 class Base64Engine(object):
-    """provides routines for encoding/decoding base64 data using
+    """Provides routines for encoding/decoding base64 data using
     arbitrary character mappings, selectable endianness, etc.
 
     :arg charmap:
         A string of 64 unique characters,
-        which will be used to encode successive 6-bit chunks.
-        A character's position within the string will correspond
+        which will be used to encode successive 6-bit chunks of data.
+        A character's position within the string should correspond
         to it's 6-bit value.
 
     :param big:
         Whether the encoding should be big-endian (default False).
 
+    .. note::
+        This class does not currently handle base64's padding characters
+        in any way what so ever.
+
     Raw Bytes <-> Encoded Bytes
     ===========================
+    The following methods convert between raw bytes,
+    and strings encoded using the engine's specific base64 variant:
+
     .. automethod:: encode_bytes
     .. automethod:: decode_bytes
     .. automethod:: encode_transposed_bytes
     .. automethod:: decode_transposed_bytes
-    .. automethod:: check_repair_unused
+
+    ..
+        .. automethod:: check_repair_unused
+        .. automethod:: repair_unused
 
     Integers <-> Encoded Bytes
     ==========================
+    The following methods allow encoding and decoding
+    unsigned integers to and from the engine's specific base64 variant.
+    Endianess is determined by the engine's ``big`` constructor keyword.
+
     .. automethod:: encode_int6
     .. automethod:: decode_int6
 
@@ -757,7 +769,7 @@ class Base64Engine(object):
     # encoding byte strings
     #=============================================================
     def encode_bytes(self, source):
-        """encode bytes to engine's specific base64 variant.
+        """encode bytes to base64 string.
 
         :arg source: byte string to encode.
         :returns: byte string containing encoded data.
@@ -860,7 +872,7 @@ class Base64Engine(object):
     #=============================================================
 
     def decode_bytes(self, source):
-        """decode bytes from engine's specific base64 variant.
+        """decode bytes from base64 string.
 
         :arg source: byte string to decode.
         :returns: byte string containing decoded data.
@@ -1060,7 +1072,7 @@ class Base64Engine(object):
     # integer decoding helpers - mainly used by des_crypt family
     #=============================================================
     def _decode_int(self, source, bits):
-        """decode hash64 string -> integer
+        """decode base64 string -> integer
 
         :arg source: base64 string to decode.
         :arg bits: number of bits in resulting integer.
@@ -1114,7 +1126,7 @@ class Base64Engine(object):
             raise ValueError("invalid character")
 
     def decode_int12(self, source):
-        "decodes 2 char string -> 12-bit integer (little-endian order)"
+        "decodes 2 char string -> 12-bit integer"
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         if len(source) != 2:
@@ -1129,7 +1141,7 @@ class Base64Engine(object):
             raise ValueError("invalid character")
 
     def decode_int24(self, source):
-        "decodes 4 char string -> 24-bit integer (little-endian order)"
+        "decodes 4 char string -> 24-bit integer"
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         if len(source) != 4:
@@ -1349,7 +1361,7 @@ else:
                 return None
             return result
 
-add_doc(safe_crypt, """wrapper around stdlib's crypt.
+add_doc(safe_crypt, """Wrapper around stdlib's crypt.
 
     This is a wrapper around stdlib's :func:`!crypt.crypt`, which attempts
     to provide uniform behavior across Python 2 and 3.

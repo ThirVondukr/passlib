@@ -14,7 +14,7 @@
 .. currentmodule:: passlib.hash
 
 This class implements the "Type 7" password encoding used Cisco IOS.
-This is not actually a true hash, but a reversible XOR Cipher encoding of the plaintext
+This is not actually a true hash, but a reversible XOR Cipher encoding the plaintext
 password. Type 7 strings are (and were designed to be) plaintext equivalent;
 the goal was to protect from "over the shoulder" eavesdropping, and
 little else. They can be trivially decoded.
@@ -38,7 +38,7 @@ This class can be used directly as follows::
     >>> cisco_type7.decode(h)
     "password"
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 .. note::
 
@@ -61,13 +61,16 @@ An example encoding (of ``"password"``) is ``044B0A151C36435C0D``.
 This has a salt/offset of 4 (``04`` in the example),
 and encodes password via ``4B0A151C36435C0D``.
 
-The algorithm is a straightforward XOR Cipher (though note the description below
-may not be entirely correct, see `Deviations`_ for details):
+.. note::
+    The following description may not be entirely correct with
+    respect to the official algorithm, see the `Deviations`_ section for details.
+
+The algorithm is a straightforward XOR Cipher:
 
 1. The algorithm relies on the following ``ascii``-encoded 53-byte
-   secret key::
+   constant::
 
-    dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87
+    "dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87"
 
 2. A integer salt should be generated from the range
    0 .. 15. The first two characters of the encoded string are the
@@ -77,11 +80,11 @@ may not be entirely correct, see `Deviations`_ for details):
    For each byte in the password (starting with the 0th byte),
    the :samp:`{i}`'th byte of the password is encoded as follows:
 
-    * let ``j=(i + salt) % keylen``
-    * XOR the :samp:`{i}`'th byte of the password with the :samp:`{j}`'th byte
-      of the secret key.
-    * encode the resulting byte as uppercase hexidecimal,
-      and append to the encoded string.
+    a. let ``j=(i + salt) % 53``
+    b. XOR the :samp:`{i}`'th byte of the password with the :samp:`{j}`'th byte
+       of the magic constant.
+    c. encode the resulting byte as uppercase hexidecimal,
+       and append to the encoded string.
 
 Deviations
 ==========
@@ -98,13 +101,13 @@ It may be updated as more information becomes available.
   different encoding is desired by an application, the password should be
   encoded before handing it to Passlib.
 
-* Magic Key:
+* Magic Constant:
 
-  Some implementations contain a truncated 26-byte key instead of the
-  53-byte key listed above. However, it is likely those implementations have an
-  incomplete copy of the key, as they exhibit other issues as well after
+  Other implementations contain a truncated 26-byte constant instead of the
+  53-byte constant listed above. However, it is likely those implementations
+  were merely incomplete, as they exhibit other issues as well after
   the 26th byte is reached (throwing an error, truncating the password,
-  outputing garbage), instead of wrapping around to the beginning of the key.
+  outputing garbage), and only worked for shorter passwords.
 
 * Salt Range:
 

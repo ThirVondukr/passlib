@@ -26,7 +26,7 @@ __all__ = [
 class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     """This class implements the password hash used by Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
-    It has a single round, and relies on the username
+    It does a single round of hashing, and relies on the username
     as the salt.
 
     The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods

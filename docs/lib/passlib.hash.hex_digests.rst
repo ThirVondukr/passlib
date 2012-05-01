@@ -32,7 +32,7 @@ and can be used directly as follows::
     >>> hex_sha1.verify("secret", h) #verify incorrect password
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========

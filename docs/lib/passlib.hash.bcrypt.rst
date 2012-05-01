@@ -34,7 +34,7 @@ for new applications. This class can be used directly as follows::
     :ref:`py-bcrypt or bcryptor <optional-libraries>`
     if this algorithm is going to be used.
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========

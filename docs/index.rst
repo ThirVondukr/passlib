@@ -27,8 +27,8 @@ using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
     >>> sha256_crypt.verify("joshua", hash)
     False
 
-Contents
-========
+Content Summary
+===============
 
 .. rst-class:: floater
 
@@ -85,13 +85,12 @@ Application Helpers
     :mod:`passlib.ext.django`
         Django plugin which monkeypatches support for (almost) any hash in Passlib.
 
-Support Modules
----------------
-    :mod:`passlib.exc`
-
-        custom warnings and exceptions used by Passlib
-
 ..
+    Support Modules
+    ---------------
+        :mod:`passlib.exc`
+
+            custom warnings and exceptions used by Passlib
     :mod:`passlib.registry`
     :mod:`passlib.utils`
 

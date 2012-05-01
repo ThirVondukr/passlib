@@ -59,18 +59,18 @@ _nhn_hash_names = [
 _nhn_cache = {}
 
 def norm_hash_name(name, format="hashlib"):
-    """normalize hash function name
+    """Normalize hash function name
 
     :arg name:
-        un-normalized hash function name.
+        Original hash function name.
 
-        this name can be a Python :mod:`~hashlib` digest name,
-        a SCRAM mechanism name, IANA assigned hash name, etc;
-        case is ignored, underscores converted to hyphens.
+        This name can be a Python :mod:`~hashlib` digest name,
+        a SCRAM mechanism name, IANA assigned hash name, etc.
+        Case is ignored, and underscores are converted to hyphens.
 
     :param format:
-        naming convention to normalize hash names to.
-        possible values are:
+        Naming convention to normalize to.
+        Possible values are:
 
         * ``"hashlib"`` (the default) - normalizes name to be compatible
           with Python's :mod:`!hashlib`.
@@ -80,7 +80,7 @@ def norm_hash_name(name, format="hashlib"):
           and then uses a heuristic to give a "best guess".
 
     :returns:
-        hash name, returned as native string.
+        Hash name, returned as native :class:`!str`.
     """
     # check cache
     try:
@@ -303,6 +303,7 @@ def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
         # NOTE: if hash unknown, new() will throw ValueError, which we'd just
         #       reraise anyways; so instead of checking, we just let it get
         #       thrown during first use, below
+        # TODO: use builtin md4 class if hashlib doesn't have it.
         def hash_const(msg):
             return hashlib.new(hash, msg)
 
@@ -343,11 +344,11 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     :param rounds: number of rounds to use to generate key
     :arg keylen:
         number of bytes to generate.
-        if set to `None``, will use digest size of selected prf.
+        if set to ``None``, will use digest size of selected prf.
     :param prf:
         psuedo-random family to use for key strengthening.
         this can be any string or callable accepted by :func:`get_prf`.
-        this defaults to ``hmac-sha1`` (the only prf explicitly listed in
+        this defaults to ``"hmac-sha1"`` (the only prf explicitly listed in
         the PBKDF2 specification)
 
     :returns:

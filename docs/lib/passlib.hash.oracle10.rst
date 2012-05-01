@@ -31,7 +31,7 @@ a username for all encrypt/verify operations)::
     >>> oracle10.verify("letmein", hash, user="username")
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 .. warning::
 

@@ -415,7 +415,7 @@ class HtpasswdFile(_CommonFile):
         a new htpasswd file, applications can set ``new=True`` so that
         the existing file (if any) will not be loaded.
 
-        .. versionchanged:: 1.6
+        .. versionadded:: 1.6
             This feature was previously enabled by setting ``autoload=False``.
             That alias has been deprecated, and will be removed in Passlib 1.8
 
@@ -444,7 +444,7 @@ class HtpasswdFile(_CommonFile):
         Must be one of ``"apr_md5_crypt"``, ``"des_crypt"``, ``"ldap_sha1"``,
         ``"plaintext"``. It defaults to ``"apr_md5_crypt"``.
 
-        .. versionchanged:: 1.6
+        .. versionadded:: 1.6
             This keyword was previously named ``default``. That alias
             has been deprecated, and will be removed in Passlib 1.8.
 
@@ -463,6 +463,23 @@ class HtpasswdFile(_CommonFile):
             formats to an htpasswd file. However, the resulting file
             will probably not be usuable by another application,
             and particularly not by Apache.
+
+    :param autoload:
+        Set to ``False`` to prevent the constructor from automatically
+        loaded the file from disk.
+
+        .. deprecated:: 1.6
+            This has been replaced by the *new* keyword.
+            Instead of setting ``autoload=False``, you should use
+            ``new=True``. Support for this keyword will be removed
+            in Passlib 1.8.
+
+    :param default:
+        Change the default algorithm used to encrypt new passwords.
+
+        .. deprecated:: 1.6
+            This has been renamed to *default_scheme* for clarity.
+            Support for this alias will be removed in Passlib 1.8.
 
     Loading & Saving
     ================
@@ -486,6 +503,19 @@ class HtpasswdFile(_CommonFile):
     Alternate Constructors
     ======================
     .. automethod:: from_string
+
+    Attributes
+    ==========
+    .. attribute:: path
+
+        Path to local file that will be used as the default
+        for all :meth:`load` and :meth:`save` operations.
+        May be written to, initialized by the *path* constructor keyword.
+
+    .. attribute:: autosave
+
+        Writeable flag indicating whether changes will be automatically
+        written to *path*.
 
     Errors
     ======
@@ -697,7 +727,7 @@ class HtdigestFile(_CommonFile):
         a new htpasswd file, applications can set ``new=True`` so that
         the existing file (if any) will not be loaded.
 
-        .. versionchanged:: 1.6
+        .. versionadded:: 1.6
             This feature was previously enabled by setting ``autoload=False``.
             That alias has been deprecated, and will be removed in Passlib 1.8
 
@@ -719,6 +749,16 @@ class HtdigestFile(_CommonFile):
         is the only other commonly encountered encoding.
 
         This is also exposed as a readonly instance attribute.
+
+    :param autoload:
+        Set to ``False`` to prevent the constructor from automatically
+        loaded the file from disk.
+
+        .. deprecated:: 1.6
+            This has been replaced by the *new* keyword.
+            Instead of setting ``autoload=False``, you should use
+            ``new=True``. Support for this keyword will be removed
+            in Passlib 1.8.
 
     Loading & Saving
     ================
@@ -744,6 +784,26 @@ class HtdigestFile(_CommonFile):
     Alternate Constructors
     ======================
     .. automethod:: from_string
+
+    Attributes
+    ==========
+    .. attribute:: default_realm
+
+        The default realm that will be used if one is not provided
+        to methods that require it. By default this is ``None``,
+        in which case an explicit realm must be provided for every
+        method call. Can be written to.
+
+    .. attribute:: path
+
+        Path to local file that will be used as the default
+        for all :meth:`load` and :meth:`save` operations.
+        May be written to, initialized by the *path* constructor keyword.
+
+    .. attribute:: autosave
+
+        Writeable flag indicating whether changes will be automatically
+        written to *path*.
 
     Errors
     ======

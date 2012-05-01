@@ -33,7 +33,7 @@ This class can be used directly as follows::
     >>> nthash.verify("secret", h)
     False
 
-.. seealso:: :ref:`password hash usage <password-hash-examples>` for more examples
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========
