@@ -22,18 +22,33 @@ __all__ = [
 #=============================================================================
 # main
 #=============================================================================
+TH_PATH = "passlib/tests/test_handlers.py"
+
+def do_hash_tests(*args):
+    "return list of hash algorithm tests that match regexes"
+    if not args:
+        print(TH_PATH)
+        return
+    suffix = ''
+    args = list(args)
+    while True:
+        if args[0] == "--method":
+            suffix = '.' + args[1]
+            del args[:2]
+        else:
+            break
+    from passlib.tests import test_handlers
+    names = [TH_PATH + ":" + name + suffix for name in dir(test_handlers)
+             if not name.startswith("_") and any(re.match(arg,name) for arg in args)]
+    print_("\n".join(names))
+    return not names
+
 def do_preset_tests(name):
     "return list of preset test names"
     if name == "django" or name == "django-hashes":
-        from passlib.tests import test_handlers
-        names = [
-            "passlib/tests/test_handlers.py:" + name
-            for name in dir(test_handlers)
-            if re.match("^django_.*_test$", name)
-        ] + ["hex_md5_test"]
+        do_hash_tests("django_.*_test", "hex_md5_test")
         if name == "django":
-            names.append("passlib/tests/test_ext_django.py")
-        print_(" ".join(names))
+            print_("passlib/tests/test_ext_django.py")
     else:
         raise ValueError("unknown name: %r" % name)
 
@@ -52,8 +67,7 @@ handlers:
 """ % runtime)
 
 def main(cmd, *args):
-    func = globals()["do_" + cmd]
-    return func(*args)
+    return globals()["do_" + cmd](*args)
 
 if __name__ == "__main__":
     import sys

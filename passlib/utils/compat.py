@@ -9,6 +9,9 @@ PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
 PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
 PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 
+# __dir__() added in py2.6
+SUPPORTS_DIR_METHOD = not PY_MAX_25
+
 #=============================================================================
 # figure out what VM we're running
 #=============================================================================
@@ -137,6 +140,11 @@ if PY3:
         assert isinstance(s, bytes)
         return s
 
+    def iter_byte_chars(s):
+        assert isinstance(s, bytes)
+        # FIXME: there has to be a better way to do this
+        return (bytes([c]) for c in s)
+
 else:
     def uascii_to_str(s):
         assert isinstance(s, unicode)
@@ -165,6 +173,10 @@ else:
         assert isinstance(s, bytes)
         return (ord(c) for c in s)
 
+    def iter_byte_chars(s):
+        assert isinstance(s, bytes)
+        return s
+
 add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
@@ -178,7 +190,8 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
-add_doc(iter_byte_values, "helper to iterate over byte values in byte string")
+add_doc(iter_byte_values, "iterate over byte string as sequence of ints 0-255")
+add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings")
 
 #=============================================================================
 # numeric

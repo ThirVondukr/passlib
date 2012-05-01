@@ -12,32 +12,13 @@ import sys
 import tempfile
 from passlib.exc import PasslibHashWarning
 from passlib.utils.compat import PY27, PY_MIN_32, PY3
-from warnings import warn
-
-try:
-    import unittest2 as unittest
-    ut_version = 2
-except ImportError:
-    import unittest
-    if PY27 or PY_MIN_32:
-        ut_version = 2
-    else:
-        # older versions of python will need to install the unittest2
-        # backport (named unittest2_3k for 3.0/3.1)
-        warn("please install unittest2 for python %d.%d, it will be required "
-             "as of passlib 1.7" % sys.version_info[:2])
-        ut_version = 1
-
 import warnings
 from warnings import warn
-
 #site
-if ut_version < 2:
-    #used to provide replacement skipTest() method
-    from nose.plugins.skip import SkipTest
 #pkg
 from passlib.exc import MissingBackendError
 import passlib.registry as registry
+from passlib.tests.backports import TestCase as _TestCase, catch_warnings, skip, skipIf, skipUnless
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string
@@ -47,81 +28,119 @@ import passlib.utils.handlers as uh
 #local
 __all__ = [
     #util funcs
-    'enable_option',
-    'Params',
+    'TEST_MODE',
     'set_file', 'get_file',
 
     #unit testing
     'TestCase',
     'HandlerCase',
-    'enable_backend_case',
-    'create_backend_case',
-
-    #flags
-    'gae_env',
 ]
 
-#figure out if we're running under GAE...
-#some tests (eg FS related) should be skipped.
-    #XXX: is there better way to do this?
+#=========================================================
+# environment detection
+#=========================================================
+# figure out if we're running under GAE;
+# some tests (e.g. FS writing) should be skipped.
+# XXX: is there better way to do this?
 try:
     import google.appengine
 except ImportError:
-    gae_env = False
+    GAE = False
 else:
-    gae_env = True
+    GAE = True
 
 #=========================================================
-#option flags
+# test mode
 #=========================================================
-DEFAULT_TESTS = ""
+_TEST_MODES = ["quick", "default", "full"]
+_test_mode = _TEST_MODES.index(os.environ.get("PASSLIB_TEST_MODE",
+                                              "default").strip().lower())
 
-tests = set(
-    v.strip()
-    for v
-    in os.environ.get("PASSLIB_TESTS", DEFAULT_TESTS).lower().split(",")
-    )
+def TEST_MODE(min=None, max=None):
+    """check if test for specified mode should be enabled.
 
-def enable_option(*names):
-    """check if a given test should be included based on the env var.
+    ``"quick"``
+        run the bare minimum tests to ensure functionality.
+        variable-cost hashes are tested at their lowest setting.
+        hash algorithms are only tested against the backend that will
+        be used on the current host. no fuzz testing is done.
 
-    test flags:
-        all-backends    test all backends, even the inactive ones
-        cover           enable minor tweaks to maximize coverage testing
-        all             run all tests
+    ``"default"``
+        same as ``"quick"``, except: hash algorithms are tested
+        at default levels, and a brief round of fuzz testing is done
+        for each hash.
+
+    ``"full"``
+        extra regression and internal tests are enabled, hash algorithms are tested
+        against all available backends, unavailable ones are mocked whre possible,
+        additional time is devoted to fuzz testing.
     """
-    return 'all' in tests or any(name in tests for name in names)
+    if min and _test_mode < _TEST_MODES.index(min):
+        return False
+    if max and _test_mode > _TEST_MODES.index(max):
+        return False
+    return True
 
 #=========================================================
-#misc utility funcs
+# hash object inspection
 #=========================================================
-class Params(object):
-    "helper to represent params for function call"
+def has_crypt_support(handler):
+    "check if host's crypt() supports this natively"
+    if hasattr(handler, "orig_prefix"):
+        # ignore wrapper classes
+        return False
+    return 'os_crypt' in getattr(handler, "backends", ()) and handler.has_backend("os_crypt")
 
-    @classmethod
-    def norm(cls, value):
-        if isinstance(value, cls):
-            return value
-        if isinstance(value, (list,tuple)):
-            return cls(*value)
-        return cls(**value)
+def has_relaxed_setting(handler):
+    "check if handler supports 'relaxed' kwd"
+    # FIXME: I've been lazy, should probably just add 'relaxed' kwd
+    # to all handlers that derive from GenericHandler
 
-    def __init__(self, *args, **kwds):
-        self.args = args
-        self.kwds = kwds
+    # ignore wrapper classes for now.. though could introspec.
+    if hasattr(handler, "orig_prefix"):
+        return False
 
-    def render(self, offset=0):
-        """render parenthesized parameters"""
-        txt = ''
-        for a in self.args[offset:]:
-            txt += "%r, " % (a,)
-        kwds = self.kwds
-        for k in sorted(kwds):
-            txt += "%s=%r, " % (k, kwds[k])
-        if txt.endswith(", "):
-            txt = txt[:-2]
-        return txt
+    return 'relaxed' in handler.setting_kwds or issubclass(handler,
+                                                           uh.GenericHandler)
 
+def has_active_backend(handler):
+    "return active backend for handler, if any"
+    if not hasattr(handler, "get_backend"):
+        return "builtin"
+    try:
+        return handler.get_backend()
+    except MissingBackendError:
+        return None
+
+def is_default_backend(handler, backend):
+    "check if backend is the default for source"
+    try:
+        orig = handler.get_backend()
+    except MissingBackendError:
+        return False
+    try:
+        return handler.set_backend("default") == backend
+    finally:
+        handler.set_backend(orig)
+
+class temporary_backend(object):
+    "temporarily set handler to specific backend"
+    def __init__(self, handler, backend=None):
+        self.handler = handler
+        self.backend = backend
+
+    def __enter__(self):
+        orig = self._orig = self.handler.get_backend()
+        if self.backend:
+            self.handler.set_backend(self.backend)
+        return orig
+
+    def __exit__(self, *exc_info):
+        self.handler.set_backend(self._orig)
+
+#=========================================================
+# misc helpers
+#=========================================================
 def set_file(path, content):
     "set file to specified bytes"
     if isinstance(content, unicode):
@@ -146,10 +165,29 @@ def tonn(source):
         except UnicodeDecodeError:
             return source.decode("latin-1")
 
+def limit(value, lower, upper):
+    if value < lower:
+        return lower
+    elif value > upper:
+        return upper
+    return value
+
+def randintgauss(lower, upper, mu, sigma):
+    "hack used by fuzz testing"
+    return int(limit(rng.normalvariate(mu, sigma), lower, upper))
+
+def get_timer_resolution(timer):
+    def sample():
+        start = cur = timer()
+        while start == cur:
+            cur = timer()
+        return cur-start
+    return min(sample() for _ in range(3))
+
 #=========================================================
-#custom test base
+# custom test harness
 #=========================================================
-class TestCase(unittest.TestCase):
+class TestCase(_TestCase):
     """passlib-specific test case class
 
     this class adds a number of features to the standard TestCase...
@@ -157,7 +195,6 @@ class TestCase(unittest.TestCase):
     * resets warnings filter & registry for every test
     * tweaks to message formatting
     * __msg__ kwd added to assertRaises()
-    * backport of a bunch of unittest2 features
     * suite of methods for matching against warnings
     """
     #====================================================================
@@ -205,7 +242,7 @@ class TestCase(unittest.TestCase):
     # reset warning filters & registry before each test
     #----------------------------------------------------------------
 
-    # flag to enable this feature
+    # flag to reset all warning filters & ignore state
     resetWarningState = True
 
     def setUp(self):
@@ -213,6 +250,7 @@ class TestCase(unittest.TestCase):
         self.setUpWarnings()
 
     def setUpWarnings(self):
+        "helper to init warning filters before subclass setUp()"
         if self.resetWarningState:
             ctx = reset_warnings()
             ctx.__enter__()
@@ -248,154 +286,11 @@ class TestCase(unittest.TestCase):
         raise self.failureException(self._formatMessage(msg, std))
 
     #----------------------------------------------------------------
-    # null out a bunch of deprecated aliases so I stop using them
+    # forbid a bunch of deprecated aliases so I stop using them
     #----------------------------------------------------------------
-    assertEquals = assertNotEquals = assertRegexpMatches = None
-
-    #====================================================================
-    # backport some methods from unittest2
-    #====================================================================
-    if ut_version < 2:
-
-        #----------------------------------------------------------------
-        # simplistic backport of addCleanup() framework
-        #----------------------------------------------------------------
-        _cleanups = None
-
-        def addCleanup(self, function, *args, **kwds):
-            queue = self._cleanups
-            if queue is None:
-                queue = self._cleanups = []
-            queue.append((function, args, kwds))
-
-        def doCleanups(self):
-            queue = self._cleanups
-            while queue:
-                func, args, kwds = queue.pop()
-                func(*args, **kwds)
-
-        def tearDown(self):
-            self.doCleanups()
-            unittest.TestCase.tearDown(self)
-
-        #----------------------------------------------------------------
-        # backport skipTest (requires nose to work)
-        #----------------------------------------------------------------
-        def skipTest(self, reason):
-            raise SkipTest(reason)
-
-        #----------------------------------------------------------------
-        # backport various assert tests added in unittest2
-        #----------------------------------------------------------------
-        def assertIs(self, real, correct, msg=None):
-            if real is not correct:
-                std = "got %r, expected would be %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        def assertIsNot(self, real, correct, msg=None):
-            if real is correct:
-                std = "got %r, expected would not be %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        def assertIsInstance(self, obj, klass, msg=None):
-            if not isinstance(obj, klass):
-                std = "got %r, expected instance of %r" % (obj, klass)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        def assertAlmostEqual(self, first, second, places=None, msg=None, delta=None):
-            """Fail if the two objects are unequal as determined by their
-               difference rounded to the given number of decimal places
-               (default 7) and comparing to zero, or by comparing that the
-               between the two objects is more than the given delta.
-
-               Note that decimal places (from zero) are usually not the same
-               as significant digits (measured from the most signficant digit).
-
-               If the two objects compare equal then they will automatically
-               compare almost equal.
-            """
-            if first == second:
-                # shortcut
-                return
-            if delta is not None and places is not None:
-                raise TypeError("specify delta or places not both")
-
-            if delta is not None:
-                if abs(first - second) <= delta:
-                    return
-
-                standardMsg = '%s != %s within %s delta' % (repr(first),
-                                                            repr(second),
-                                                            repr(delta))
-            else:
-                if places is None:
-                    places = 7
-
-                if round(abs(second-first), places) == 0:
-                    return
-
-                standardMsg = '%s != %s within %r places' % (repr(first),
-                                                              repr(second),
-                                                              places)
-            msg = self._formatMessage(msg, standardMsg)
-            raise self.failureException(msg)
-
-        def assertLess(self, left, right, msg=None):
-            if left >= right:
-                std = "%r not less than %r" % (left, right)
-                raise self.failureException(self._formatMessage(msg, std))
-
-        def assertGreaterEqual(self, left, right, msg=None):
-            if left < right:
-                std = "%r less than %r" % (left, right)
-                raise self.failureException(self._formatMessage(msg, std))
-
-        def assertIn(self, elem, container, msg=None):
-            if elem not in container:
-                std = "%r not found in %r" % (elem, container)
-                raise self.failureException(self._formatMessage(msg, std))
-
-        def assertNotIn(self, elem, container, msg=None):
-            if elem in container:
-                std = "%r unexpectedly in %r" % (elem, container)
-                raise self.failureException(self._formatMessage(msg, std))
-
-        #----------------------------------------------------------------
-        # override some unittest1 methods to support _formatMessage
-        #----------------------------------------------------------------
-        def assertEqual(self, real, correct, msg=None):
-            if real != correct:
-                std = "got %r, expected would equal %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-        def assertNotEqual(self, real, correct, msg=None):
-            if real == correct:
-                std = "got %r, expected would not equal %r" % (real, correct)
-                msg = self._formatMessage(msg, std)
-                raise self.failureException(msg)
-
-    #----------------------------------------------------------------
-    # backport assertRegex() alias from 3.2 to 2.7/3.1
-    #----------------------------------------------------------------
-    if not hasattr(unittest.TestCase, "assertRegex"):
-        if hasattr(unittest.TestCase, "assertRegexpMatches"):
-            # was present in 2.7/3.1 under name assertRegexpMatches
-            assertRegex = unittest.TestCase.assertRegexpMatches
-        else:
-            # 3.0 and <= 2.6 didn't have this method at all
-            def assertRegex(self, text, expected_regex, msg=None):
-                """Fail the test unless the text matches the regular expression."""
-                if isinstance(expected_regex, base_string_types):
-                    assert expected_regex, "expected_regex must not be empty."
-                    expected_regex = re.compile(expected_regex)
-                if not expected_regex.search(text):
-                    msg = msg or "Regex didn't match: "
-                    std = '%r not found in %r' % (msg, expected_regex.pattern, text)
-                    raise self.failureException(self._formatMessage(msg, std))
+    def assertEquals(self, *a, **k):
+        raise AssertionError("this alias is deprecated by unittest2")
+    assertNotEquals = assertRegexMatches = assertEquals
 
     #============================================================
     # custom methods for matching warnings
@@ -407,8 +302,10 @@ class TestCase(unittest.TestCase):
                              lineno=None,
                              msg=None,
                              ):
-        "check if WarningMessage instance (as returned by catch_warnings) matches parameters"
-
+        """check if warning matches specified parameters.
+        'warning' is the instance of Warning to match against;
+        can also be instance of WarningMessage (as returned by catch_warnings).
+        """
         # check input type
         if hasattr(warning, "category"):
             # resolve WarningMessage -> Warning, but preserve original
@@ -446,11 +343,31 @@ class TestCase(unittest.TestCase):
                                 "WarningMessage instance")
             self.assertEqual(wmsg.lineno, lineno, msg)
 
-    def assertWarningList(self, wlist, desc=None, msg=None):
+    class _AssertWarningList(catch_warnings):
+        """context manager for assertWarningList()"""
+        def __init__(self, case, **kwds):
+            self.case = case
+            self.kwds = kwds
+            self.__super = super(TestCase._AssertWarningList, self)
+            self.__super.__init__(record=True)
+
+        def __enter__(self):
+            self.log = self.__super.__enter__()
+
+        def __exit__(self, *exc_info):
+            self.__super.__exit__(*exc_info)
+            if not exc_info:
+                self.case.assertWarningList(self.log, **self.kwds)
+
+    def assertWarningList(self, wlist=None, desc=None, msg=None):
         """check that warning list (e.g. from catch_warnings) matches pattern"""
+        if desc is None:
+            assert wlist is not None
+            return self._AssertWarningList(self, desc=wlist, msg=msg)
         # TODO: make this display better diff of *which* warnings did not match
+        assert desc is not None
         if not isinstance(desc, (list,tuple)):
-            desc = [] if desc is None else [desc]
+            desc = [desc]
         for idx, entry in enumerate(desc):
             if isinstance(entry, str):
                 entry = dict(message_re=entry)
@@ -470,9 +387,11 @@ class TestCase(unittest.TestCase):
                 (len(desc), len(wlist), self._formatWarningList(wlist), desc)
         raise self.failureException(self._formatMessage(msg, std))
 
-    def consumeWarningList(self, wlist, *args, **kwds):
-        """assertWarningList() variant that clears list afterwards"""
-        self.assertWarningList(wlist, *args, **kwds)
+    def consumeWarningList(self, wlist, desc=None, *args, **kwds):
+        """[deprecated] assertWarningList() variant that clears list afterwards"""
+        if desc is None:
+            desc = []
+        self.assertWarningList(wlist, desc, *args, **kwds)
         del wlist[:]
 
     def _formatWarning(self, entry):
@@ -491,23 +410,8 @@ class TestCase(unittest.TestCase):
         return "[%s]" % ", ".join(self._formatWarning(entry) for entry in wlist)
 
     #============================================================
-    # misc custom methods
+    # capability tests
     #============================================================
-    def assertFunctionResults(self, func, cases):
-        """helper for running through function calls.
-
-        func should be the function to call.
-        cases should be list of Param instances,
-        where first position argument is expected return value,
-        and remaining args and kwds are passed to function.
-        """
-        for elem in cases:
-            elem = Params.norm(elem)
-            correct = elem.args[0]
-            result = func(*elem.args[1:], **elem.kwds)
-            msg = "error for case %r:" % (elem.render(1),)
-            self.assertEqual(result, correct, msg)
-
     def require_stringprep(self):
         "helper to skip test if stringprep is missing"
         from passlib.utils import stringprep
@@ -515,6 +419,39 @@ class TestCase(unittest.TestCase):
             from passlib.utils import _stringprep_missing_reason
             raise self.skipTest("not available - stringprep module is " +
                                 _stringprep_missing_reason)
+
+    def require_TEST_MODE(self, level):
+        "skip test for all PASSLIB_TEST_MODE values below <level>"
+        if not TEST_MODE(level):
+            raise self.skipTest("requires >= %r test mode" % level)
+
+    def require_writeable_filesystem(self):
+        "skip test if writeable FS not available"
+        if GAE:
+            return self.skipTest("GAE doesn't offer read/write filesystem access")
+
+    #============================================================
+    # other
+    #============================================================
+    _mktemp_queue = None
+
+    def mktemp(self, *args, **kwds):
+        "create temp file that's cleaned up at end of test"
+        self.require_writeable_filesystem()
+        fd, path = tempfile.mkstemp(*args, **kwds)
+        os.close(fd)
+        queue = self._mktemp_queue
+        if queue is None:
+            queue = self._mktemp_queue = []
+            def cleaner():
+                for path in queue:
+                    if os.path.exists(path):
+                        os.remove(path)
+                del queue[:]
+            self.addCleanup(cleaner)
+        queue.append(path)
+        return path
+
     #============================================================
     #eoc
     #============================================================
@@ -542,17 +479,17 @@ class HandlerCase(TestCase):
         (or :class:`unittest2.TestCase` if available).
     """
     #=========================================================
-    # attrs to be filled in by subclass for testing specific handler
+    # class attrs - should be filled in by subclass
     #=========================================================
 
     #--------------------------------------------------
     # handler setup
     #--------------------------------------------------
 
-    # specify handler object here (required)
+    # handler class to test [required]
     handler = None
 
-    # run tests against specific backend (optional, when applicable)
+    # if set, run tests against specified backend
     backend = None
 
     #--------------------------------------------------
@@ -618,34 +555,41 @@ class HandlerCase(TestCase):
     # flag/hack to filter PasslibHashWarning issued by test_72_configs()
     filter_config_warnings = False
 
-    #=========================================================
-    # alg interface helpers - allows subclass to overide how
-    # default tests invoke the handler (eg for context_kwds)
-    #=========================================================
-
-    def do_encrypt(self, secret, **kwds):
-        "call handler's encrypt method with specified options"
-        return self.handler.encrypt(secret, **kwds)
-
-    def do_verify(self, secret, hash, **kwds):
-        "call handler's verify method"
-        return self.handler.verify(secret, hash, **kwds)
-
-    def do_identify(self, hash):
-        "call handler's identify method"
-        return self.handler.identify(hash)
-
-    def do_genconfig(self, **kwds):
-        "call handler's genconfig method with specified options"
-        return self.handler.genconfig(**kwds)
-
-    def do_genhash(self, secret, config, **kwds):
-        "call handler's genhash method with specified options"
-        return self.handler.genhash(secret, config, **kwds)
+    # forbid certain characters in passwords
+    @classproperty
+    def forbidden_characters(cls):
+        # anything that supports crypt() interface should forbid null chars,
+        # since crypt() uses null-terminated strings.
+        if 'os_crypt' in getattr(cls.handler, "backends", ()):
+            return b("\x00")
+        return None
 
     #=========================================================
-    # support
+    # internal class attrs
     #=========================================================
+    __unittest_skip = True
+
+    @property
+    def descriptionPrefix(self):
+        handler = self.handler
+        name = handler.name
+        if hasattr(handler, "get_backend"):
+            name += " (%s backend)" % (handler.get_backend(),)
+        return name
+
+    #=========================================================
+    # internal instance attrs
+    #=========================================================
+    # indicates safe_crypt() has been patched to use another backend of handler.
+    using_patched_crypt = False
+
+    #=========================================================
+    # support methods
+    #=========================================================
+
+    #------------------------------------------------------
+    # configuration helpers
+    #------------------------------------------------------
     @property
     def supports_config_string(self):
         return self.do_genconfig() is not None
@@ -665,6 +609,9 @@ class HandlerCase(TestCase):
         known = list(self.iter_known_hashes())
         return rng.choice(known)
 
+    #------------------------------------------------------
+    # test helpers
+    #------------------------------------------------------
     def check_verify(self, secret, hash, msg=None, negate=False):
         "helper to check verify() outcome, honoring is_disabled_handler"
         result = self.do_verify(secret, hash)
@@ -688,33 +635,118 @@ class HandlerCase(TestCase):
         self.assertIsInstance(result, str,
             "%s() failed to return native string: %r" % (func_name, result,))
 
-    #=========================================================
-    # internal class attrs
-    #=========================================================
-    __unittest_skip = True
-
-    @property
-    def descriptionPrefix(self):
+    #------------------------------------------------------
+    # PasswordHash helpers - wraps all calls to PasswordHash api,
+    # so that subclasses can fill in defaults and account for other specialized behavior
+    #------------------------------------------------------
+    def populate_settings(self, kwds):
+        "subclassable method to populate default settings"
+        # use lower rounds settings for certain test modes
         handler = self.handler
+        if 'rounds' in handler.setting_kwds and 'rounds' not in kwds:
+            mn = handler.min_rounds
+            df = handler.default_rounds
+            if TEST_MODE(max="quick"):
+                # use minimum rounds for quick mode
+                kwds['rounds'] = max(3, mn)
+            else:
+                # use default/16 otherwise
+                factor = 3
+                if getattr(handler, "rounds_cost", None) == "log2":
+                    df -= factor
+                else:
+                    df = df//(1<<factor)
+                kwds['rounds'] = max(3, mn, df)
+
+    def populate_context(self, secret, kwds):
+        "subclassable method allowing 'secret' to be encode context kwds"
+        return secret
+
+    def do_encrypt(self, secret, **kwds):
+        "call handler's encrypt method with specified options"
+        secret = self.populate_context(secret, kwds)
+        self.populate_settings(kwds)
+        return self.handler.encrypt(secret, **kwds)
+
+    def do_verify(self, secret, hash, **kwds):
+        "call handler's verify method"
+        secret = self.populate_context(secret, kwds)
+        return self.handler.verify(secret, hash, **kwds)
+
+    def do_identify(self, hash):
+        "call handler's identify method"
+        return self.handler.identify(hash)
+
+    def do_genconfig(self, **kwds):
+        "call handler's genconfig method with specified options"
+        self.populate_settings(kwds)
+        return self.handler.genconfig(**kwds)
+
+    def do_genhash(self, secret, config, **kwds):
+        "call handler's genhash method with specified options"
+        secret = self.populate_context(secret, kwds)
+        return self.handler.genhash(secret, config, **kwds)
+
+    #------------------------------------------------------
+    # automatically generate subclasses for testing specific backends,
+    # and other backend helpers
+    #------------------------------------------------------
+    @classmethod
+    def _enable_backend_case(cls, backend):
+        "helper for create_backend_cases(); returns reason to skip backend, or None"
+        handler = cls.handler
+        if not is_default_backend(handler, backend) and not TEST_MODE("full"):
+            return "only default backend is being tested"
+        if handler.has_backend(backend):
+            return None
+        if handler.name == "bcrypt" and backend == "builtin" and TEST_MODE("full"):
+            # this will be auto-enabled under TEST_MODE 'full'.
+            return None
+        if backend == "os_crypt":
+            if cls.find_crypt_replacement() and TEST_MODE("full"):
+                #in this case, HandlerCase will monkeypatch os_crypt
+                #to use another backend, just so we can test os_crypt fully.
+                return None
+            from passlib.utils import has_crypt
+            if has_crypt:
+                return "hash not supported by os crypt()"
+        return "backend not available"
+
+    @classmethod
+    def create_backend_cases(cls, backends, module=None):
+        handler = cls.handler
         name = handler.name
-        if hasattr(handler, "get_backend"):
-            name += " (%s backend)" % (handler.get_backend(),)
-        return name
+        assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
+        for backend in backends:
+            assert backend in handler.backends, "unknown backend: %r" % (backend,)
+            bases = (cls,)
+            if backend == "os_crypt":
+                bases += (OsCryptMixin,)
+            subcls = type(
+                "%s_%s_test" % (name, backend),
+                bases,
+                dict(
+                    descriptionPrefix = "%s (%s backend)" % (name, backend),
+                    backend = backend,
+                    __module__= module or cls.__module__,
+                )
+            )
+            skip_reason = cls._enable_backend_case(backend)
+            if skip_reason:
+                subcls = skip(skip_reason)(subcls)
+            yield subcls
+
+    @classmethod
+    def find_crypt_replacement(cls):
+        "find other backend which can be used to mock the os_crypt backend"
+        handler = cls.handler
+        for name in handler.backends:
+            if name != "os_crypt" and handler.has_backend(name):
+                return name
+        return None
 
     #=========================================================
-    # internal instance attrs
-    #=========================================================
-    # indicates safe_crypt() has been patched to use another backend of handler.
-    using_patched_crypt = False
-
-    # backup of original utils.os_crypt before it was patched.
-    _orig_crypt = None
-
-    # backup of original backend before test started
-    _orig_backend = None
-
-    #=========================================================
-    # setup / cleanup
+    # setup
     #=========================================================
     def setUp(self):
         super(HandlerCase, self).setUp()
@@ -1076,7 +1108,7 @@ class HandlerCase(TestCase):
             #
             # should accept too-large salt in relaxed mode
             #
-            if _has_relaxed_setting(handler):
+            if has_relaxed_setting(handler):
                 with catch_warnings(record=True): # issues passlibhandlerwarning
                     c2 = self.do_genconfig(salt=s2, relaxed=True)
                 self.assertEqual(c2, c1)
@@ -1253,7 +1285,7 @@ class HandlerCase(TestCase):
         # check constructor validates ident correctly.
         handler = cls
         hash = self.get_sample_hash()[1]
-        kwds = _hobj_to_dict(handler.from_string(hash))
+        kwds = handler.parsehash(hash)
         del kwds['ident']
 
         # ... accepts good ident
@@ -1359,10 +1391,24 @@ class HandlerCase(TestCase):
         self.assertRaises(PasswordSizeError, self.do_encrypt, secret)
         self.assertRaises(PasswordSizeError, self.do_verify, secret, hash)
 
+    def test_64_forbidden_chars(self):
+        "test forbidden characters not allowed in password"
+        chars = self.forbidden_characters
+        if not chars:
+            raise self.skipTest("none listed")
+        base = u('stub')
+        if isinstance(chars, bytes):
+            from passlib.utils.compat import iter_byte_chars
+            chars = iter_byte_chars(chars)
+            base = base.encode("ascii")
+        for c in chars:
+            self.assertRaises(ValueError, self.do_encrypt, base + c + base)
+
     #==============================================================
     # check identify(), verify(), genhash() against test vectors
     #==============================================================
     def is_secret_8bit(self, secret):
+        secret = self.populate_context(secret, {})
         return not is_ascii_safe(secret)
 
     def test_70_hashes(self):
@@ -1582,13 +1628,13 @@ class HandlerCase(TestCase):
         self.do_identify('\xe2\x82\xac\xc2\xa5$') # utf-8
         self.do_identify('abc\x91\x00') # non-utf8
 
-    #---------------------------------------------------------
+    #=========================================================
     # fuzz testing
-    #---------------------------------------------------------
+    #=========================================================
     """the following attempts to perform some basic fuzz testing
     of the handler, based on whatever information can be found about it.
     it does as much as it can within a fixed amount of time
-    (defaults to 1 second, but can be overridden via $PASSLIB_TESTS_FUZZ_TIME).
+    (defaults to 1 second, but can be overridden via $PASSLIB_TEST_FUZZ_TIME).
     it tests the following:
 
     * randomly generated passwords including extended unicode chars
@@ -1607,7 +1653,13 @@ class HandlerCase(TestCase):
 
     @property
     def max_fuzz_time(self):
-        return float(os.environ.get("PASSLIB_TESTS_FUZZ_TIME") or 1)
+        if TEST_MODE(max="quick"):
+            default = 0
+        elif TEST_MODE(max="default"):
+            default = 1
+        else:
+            default = 5
+        return float(os.environ.get("PASSLIB_TEST_FUZZ_TIME") or default)
 
     def test_77_fuzz_input(self):
         """test random passwords and options"""
@@ -1619,6 +1671,8 @@ class HandlerCase(TestCase):
         handler = self.handler
         disabled = self.is_disabled_handler
         max_time = self.max_fuzz_time
+        if max_time <= 0:
+            raise self.skipTest("disabled for this test mode")
         verifiers = self.get_fuzz_verifiers()
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
@@ -1680,7 +1734,7 @@ class HandlerCase(TestCase):
                     verifiers.append(func)
 
         # create verifiers for any other available backends
-        if hasattr(handler, "backends") and enable_option("all-backends"):
+        if hasattr(handler, "backends") and TEST_MODE("full"):
             def maker(backend):
                 def func(secret, hash):
                     with temporary_backend(handler, backend):
@@ -1710,11 +1764,9 @@ class HandlerCase(TestCase):
         return True
 
     def fuzz_verifier_crypt(self):
-        # test againt OS crypt()
-        # NOTE: skipping this if using_patched_crypt since _has_crypt_support()
-        # will return false positive in that case.
+        "test results against OS crypt()"
         handler = self.handler
-        if self.using_patched_crypt or not _has_crypt_support(handler):
+        if self.using_patched_crypt or not has_crypt_support(handler):
             return None
         from crypt import crypt
         def check_crypt(secret, hash):
@@ -1778,6 +1830,8 @@ class HandlerCase(TestCase):
         else:
             lower = handler.min_rounds #max(default*.5, handler.min_rounds)
             upper = min(default*2, handler.max_rounds)
+        if TEST_MODE(max="quick"):
+            upper = min(2, lower)
         return randintgauss(lower, upper, default, default*.5)
 
     def get_fuzz_salt_size(self):
@@ -1798,11 +1852,12 @@ class HandlerCase(TestCase):
                 return rng.choice(handler.ident_values)
 
     #=========================================================
-    #       test 8x - mixin tests
-    #       test 9x - handler-specific tests
     # eoc
     #=========================================================
 
+#=================================================================
+# HandlerCase mixins providing additional tests for certain hashes
+#=================================================================
 class OsCryptMixin(HandlerCase):
     """helper used by create_backend_case() which adds additional features
     to test the os_crypt backend.
@@ -1850,7 +1905,7 @@ class OsCryptMixin(HandlerCase):
         as possible.
         """
         handler = self.handler
-        alt_backend = _find_alternate_backend(handler, "os_crypt")
+        alt_backend = self.find_crypt_replacement()
         if not alt_backend:
             raise AssertionError("handler has no available backends!")
         import passlib.utils as mod
@@ -1900,7 +1955,7 @@ class OsCryptMixin(HandlerCase):
         # set safe_crypt to return None
         setter = self._use_mock_crypt()
         setter(None)
-        if _find_alternate_backend(self.handler, "os_crypt"):
+        if self.find_crypt_replacement():
             # handler should have a fallback to use
             h1 = self.do_encrypt("stub")
             h2 = self.do_genhash("stub", h1)
@@ -1999,12 +2054,7 @@ class UserHandlerMixin(HandlerCase):
     #=========================================================
     # override test helpers
     #=========================================================
-
-    def is_secret_8bit(self, secret):
-        secret = self._insert_user({}, secret)
-        return not is_ascii_safe(secret)
-
-    def _insert_user(self, kwds, secret):
+    def populate_context(self, secret, kwds):
         "insert username into kwds"
         if isinstance(secret, tuple):
             secret, user = secret
@@ -2015,18 +2065,6 @@ class UserHandlerMixin(HandlerCase):
         if 'user' not in kwds:
             kwds['user'] = user
         return secret
-
-    def do_encrypt(self, secret, **kwds):
-        secret = self._insert_user(kwds, secret)
-        return self.handler.encrypt(secret, **kwds)
-
-    def do_verify(self, secret, hash, **kwds):
-        secret = self._insert_user(kwds, secret)
-        return self.handler.verify(secret, hash, **kwds)
-
-    def do_genhash(self, secret, config, **kwds):
-        secret = self._insert_user(kwds, secret)
-        return self.handler.genhash(secret, config, **kwds)
 
     #=========================================================
     # modify fuzz testing
@@ -2044,251 +2082,44 @@ class UserHandlerMixin(HandlerCase):
     # eoc
     #=========================================================
 
-#=========================================================
-#backend test helpers
-#=========================================================
-def _enable_backend_case(handler, backend):
-    "helper to check if testcase should be enabled for the specified backend"
-    assert backend in handler.backends, "unknown backend: %r" % (backend,)
-    if enable_option("all-backends") or _is_default_backend(handler, backend):
-        if handler.has_backend(backend):
-            return True, None
-        from passlib.utils import has_crypt
-        if backend == "os_crypt" and has_crypt:
-            if enable_option("cover") and _find_alternate_backend(handler, "os_crypt"):
-                #in this case, HandlerCase will monkeypatch os_crypt
-                #to use another backend, just so we can test os_crypt fully.
-                return True, None
-            else:
-                return False, "hash not supported by os crypt()"
-        else:
-            return False, "backend not available"
-    else:
-        return False, "only default backend being tested"
+class EncodingHandlerMixin(HandlerCase):
+    """helper for handlers w/ 'encoding' context kwd; mixin for HandlerCase
 
-def _is_default_backend(handler, name):
-    "check if backend is the default for handler"
-    try:
-        orig = handler.get_backend()
-    except MissingBackendError:
-        return False
-    try:
-        return handler.set_backend("default") == name
-    finally:
-        handler.set_backend(orig)
+    this overrides the HandlerCase test harness methods
+    so that an encoding can be inserted to encrypt/verify
+    calls by passing in a pair of strings as the password
+    will be interpreted as (secret,encoding)
+    """
+    #=========================================================
+    # instance attrs
+    #=========================================================
+    __unittest_skip = True
 
-def _find_alternate_backend(handler, ignore):
-    "helper to check if alternate backend is available"
-    for name in handler.backends:
-        if name != ignore and handler.has_backend(name):
-            return name
-    return None
+    # restrict stock passwords & fuzz alphabet to latin-1,
+    # so different encodings can be tested safely.
+    stock_passwords = [
+        u("test"),
+        b("test"),
+        u("\u00AC\u00BA"),
+    ]
 
-def _has_crypt_support(handler):
-    "check if host OS' crypt() supports this natively"
-    # ignore wrapper classes
-    if hasattr(handler, "orig_prefix"):
-        return False
-    # os crypt support?
-    return hasattr(handler, "backends") and \
-        'os_crypt' in handler.backends and \
-        handler.has_backend("os_crypt")
+    fuzz_password_alphabet = u('qwerty1234<>.@*#! \u00AC')
 
-def _has_relaxed_setting(handler):
-    # FIXME: I've been lazy, should probably just add 'relaxed' kwd
-    # to all handlers that derive from GenericHandler
-
-    # ignore wrapper classes for now.. though could introspec.
-    if hasattr(handler, "orig_prefix"):
-        return False
-
-    return 'relaxed' in handler.setting_kwds or issubclass(handler,
-                                                           uh.GenericHandler)
-
-def _hobj_to_dict(hobj):
-    "hack to convert handler instance to dict"
-    # FIXME: would be good to distinguish config-string keywords
-    # from generation options (e.g. salt size) in programmatic manner.
-    exclude_keys = ["salt_size", "relaxed"]
-    return dict(
-        (key, getattr(hobj, key))
-        for key in hobj.setting_kwds
-        if key not in exclude_keys
-    )
-
-def create_backend_case(base_class, backend, module=None):
-    "create a test case for specific backend of a multi-backend handler"
-    #get handler, figure out if backend should be tested
-    handler = base_class.handler
-    assert hasattr(handler, "backends"), "handler must support uh.HasManyBackends protocol"
-    enable, skip_reason = _enable_backend_case(handler, backend)
-
-    #UT1 doesn't support skipping whole test cases, so we just return None.
-    if not enable and ut_version < 2:
-        return None
-
-    # pick bases
-    bases = (base_class,)
-    if backend == "os_crypt":
-        bases += (OsCryptMixin,)
-
-    # create subclass to test backend
-    backend_class = type(
-        "%s_%s" % (backend, handler.name),
-        bases,
-        dict(
-            descriptionPrefix = "%s (%s backend)" % (handler.name, backend),
-            backend = backend,
-            __module__= module or base_class.__module__,
-        )
-    )
-
-    if not enable:
-        backend_class = unittest.skip(skip_reason)(backend_class)
-
-    return backend_class
-
-#=========================================================
-#misc helpers
-#=========================================================
-def limit(value, lower, upper):
-    if value < lower:
-        return lower
-    elif value > upper:
-        return upper
-    return value
-
-def randintgauss(lower, upper, mu, sigma):
-    "hack used by fuzz testing"
-    return int(limit(rng.normalvariate(mu, sigma), lower, upper))
-
-class temporary_backend(object):
-    "temporarily set handler to specific backend"
-    def __init__(self, handler, backend=None):
-        self.handler = handler
-        self.backend = backend
-
-    def __enter__(self):
-        orig = self._orig = self.handler.get_backend()
-        if self.backend:
-            self.handler.set_backend(self.backend)
-        return orig
-
-    def __exit__(self, *exc_info):
-        self.handler.set_backend(self._orig)
-
-#=========================================================
-#helper for creating temp files - all cleaned up when prog exits
-#=========================================================
-tmp_files = []
-
-def _clean_tmp_files():
-    for path in tmp_files:
-        if os.path.exists(path):
-            os.remove(path)
-atexit.register(_clean_tmp_files)
-
-def mktemp(*args, **kwds):
-    fd, path = tempfile.mkstemp(*args, **kwds)
-    tmp_files.append(path)
-    os.close(fd)
-    return path
+    def populate_context(self, secret, kwds):
+        "insert encoding into kwds"
+        if isinstance(secret, tuple):
+            secret, encoding = secret
+            kwds.setdefault('encoding', encoding)
+        return secret
+    #=========================================================
+    # eoc
+    #=========================================================
 
 #=============================================================================
 # warnings helpers
 #=============================================================================
-
-# make sure catch_warnings() is available
-try:
-    from warnings import catch_warnings
-except ImportError:
-    #catch_warnings wasn't added until py26.
-    #this adds backported copy from py26's stdlib
-    #so we can use it under py25.
-
-    class WarningMessage(object):
-
-        """Holds the result of a single showwarning() call."""
-
-        _WARNING_DETAILS = ("message", "category", "filename", "lineno", "file",
-                            "line")
-
-        def __init__(self, message, category, filename, lineno, file=None,
-                        line=None):
-            local_values = locals()
-            for attr in self._WARNING_DETAILS:
-                setattr(self, attr, local_values[attr])
-            self._category_name = category.__name__ if category else None
-
-        def __str__(self):
-            return ("{message : %r, category : %r, filename : %r, lineno : %s, "
-                        "line : %r}" % (self.message, self._category_name,
-                                        self.filename, self.lineno, self.line))
-
-
-    class catch_warnings(object):
-
-        """A context manager that copies and restores the warnings filter upon
-        exiting the context.
-
-        The 'record' argument specifies whether warnings should be captured by a
-        custom implementation of warnings.showwarning() and be appended to a list
-        returned by the context manager. Otherwise None is returned by the context
-        manager. The objects appended to the list are arguments whose attributes
-        mirror the arguments to showwarning().
-
-        The 'module' argument is to specify an alternative module to the module
-        named 'warnings' and imported under that name. This argument is only useful
-        when testing the warnings module itself.
-
-        """
-
-        def __init__(self, record=False, module=None):
-            """Specify whether to record warnings and if an alternative module
-            should be used other than sys.modules['warnings'].
-
-            For compatibility with Python 3.0, please consider all arguments to be
-            keyword-only.
-
-            """
-            self._record = record
-            self._module = sys.modules['warnings'] if module is None else module
-            self._entered = False
-
-        def __repr__(self):
-            args = []
-            if self._record:
-                args.append("record=True")
-            if self._module is not sys.modules['warnings']:
-                args.append("module=%r" % self._module)
-            name = type(self).__name__
-            return "%s(%s)" % (name, ", ".join(args))
-
-        def __enter__(self):
-            if self._entered:
-                raise RuntimeError("Cannot enter %r twice" % self)
-            self._entered = True
-            self._filters = self._module.filters
-            self._module.filters = self._filters[:]
-            self._showwarning = self._module.showwarning
-            if self._record:
-                log = []
-                def showwarning(*args, **kwargs):
-#                    self._showwarning(*args, **kwargs)
-                    log.append(WarningMessage(*args, **kwargs))
-                self._module.showwarning = showwarning
-                return log
-            else:
-                return None
-
-        def __exit__(self, *exc_info):
-            if not self._entered:
-                raise RuntimeError("Cannot exit %r without entering first" % self)
-            self._module.filters = self._filters
-            self._module.showwarning = self._showwarning
-
 class reset_warnings(catch_warnings):
-    "catch_warnings() wrapper which clears warning registry & filters"
+    """catch_warnings() wrapper which clears warning registry & filters"""
     def __init__(self, reset_filter="always", reset_registry=".*", **kwds):
         super(reset_warnings, self).__init__(**kwds)
         self._reset_filter = reset_filter
