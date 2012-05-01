@@ -90,7 +90,7 @@ class AppsTest(TestCase):
         ]:
             self.assertTrue(ctx.verify("test", hash))
 
-        h1 = '$2a$10$Ljj0Kgu7Ddob9xWoqzn0ae.uNfxPRofowWdksk.6jCUHKTGYLD.QG'
+        h1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
         if hashmod.bcrypt.has_backend():
             self.assertTrue(ctx.verify("test", h1))
             self.assertEqual(ctx.default_scheme(), "bcrypt")

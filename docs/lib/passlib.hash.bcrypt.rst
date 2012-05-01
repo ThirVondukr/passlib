@@ -50,11 +50,10 @@ Interface
        (primarily BSD-derived systems).
     4. A *slow* pure-python implementation of BCrypt, built into Passlib.
 
-    It should be noted that the builtin pure-python implementation is too slow
-    to be both secure and responsive at the same time (except under PyPy > 1.7)
-    Because of this, it is disabled by default, unless
-    the environment variable ``PASSLIB_BUILTIN_BCRYPT="enabled"`` has been set
-    before Passlib is first loaded.
+    It should be noted that the pure-python implementation (#4) is too slow
+    to be useable, given the number of rounds currently required for security.
+    Because of this, it is disabled by default, unless the environment variable
+    ``PASSLIB_BUILTIN_BCRYPT="enabled"`` is set before Passlib is first loaded.
 
     If the first three backends are not available, and the builtin
     backend has not been enabled, :meth:`encrypt` and :meth:`verify`

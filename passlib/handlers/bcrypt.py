@@ -26,7 +26,7 @@ try:
 except ImportError: #pragma: no cover
     bcryptor_engine = None
 #libs
-from passlib.exc import PasslibHashWarning, PasslibSecurityWarning
+from passlib.exc import PasslibHashWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
@@ -189,8 +189,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         assert salt is not None, "HasSalt didn't generate new salt!"
         changed, salt = bcrypt64.check_repair_unused(salt)
         if changed:
+            # FIXME: if salt was provided by user, this message won't be
+            # correct. not sure if we want to throw error, or use different warning.
             warn(
-                "encountered a bcrypt hash with incorrectly set padding bits; "
+                "encountered a bcrypt salt with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
                 "to fix this; see Passlib 1.5.3 changelog.",
                 PasslibHashWarning)
@@ -239,8 +241,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classmethod
     def _no_backends_msg(cls):
-        return "no bcrypt backends available - please install 'py-bcrypt' or " \
-               "'bcryptor' for bcrypt support"
+        return "no bcrypt backends available - please install py-bcrypt"
 
     def _calc_checksum_os_crypt(self, secret):
         config = self._get_config()
@@ -300,11 +301,6 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_builtin(self, secret):
-        # XXX: silence this warnings under pypy1.7? it's almost fast enough.
-        warn("SECURITY WARNING: Passlib is using it's pure-python bcrypt "
-             "implementation, which is TOO SLOW FOR PRODUCTION USE. It is "
-             "strongly recommended that you install py-bcrypt or bcryptor for "
-             "Passlib to use instead.", PasslibSecurityWarning)
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if _BNULL in secret:

@@ -189,25 +189,29 @@ class _bcrypt_test(HandlerCase):
     #===============================================================
     # override some methods
     #===============================================================
-    def setUpWarnings(self):
-        super(_bcrypt_test, self).setUpWarnings()
-        warnings.filterwarnings("ignore",
-                                "SECURITY WARNING: .*pure-python bcrypt.*")
+    def setUp(self):
+        # ensure builtin is enabled for duration of test.
+        if TEST_MODE("full") and self.backend == "builtin":
+            key = "PASSLIB_BUILTIN_BCRYPT"
+            orig = os.environ.get(key)
+            if orig:
+                self.addCleanup(os.environ.__setitem__, key, orig)
+            else:
+                self.addCleanup(os.environ.__delitem__, key)
+            os.environ[key] = "enabled"
+        super(_bcrypt_test, self).setUp()
 
-    def do_genconfig(self, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
+    def populate_settings(self, kwds):
+        # builtin is still just way too slow.
+        if self.backend == "builtin":
+            kwds.setdefault("rounds", 4)
+
+        super(_bcrypt_test, self).populate_settings(kwds)
 
         # correct unused bits in provided salts, to silence some warnings.
-        if 'salt' in kwds:
+        if 'salt' in kwds and len(kwds['salt']) == 22:
             from passlib.utils import bcrypt64
             kwds['salt'] = bcrypt64.repair_unused(kwds['salt'])
-        return self.handler.genconfig(**kwds)
-
-    def do_encrypt(self, secret, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
-        return self.handler.encrypt(secret, **kwds)
 
     #===============================================================
     # fuzz testing
@@ -282,23 +286,30 @@ class _bcrypt_test(HandlerCase):
         # password, bad hash, good hash
 
         # 2 bits of salt padding set
-        ("loppux",
-         "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C",
-         "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"),
+#        ("loppux",                  # \/
+#         "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C",
+#         "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"),
+        ("test",                    # \/
+         '$2a$04$oaQbBqq8JnSM1NHRPQGXORY4Vw3bdHKLIXTecPDRAcJ98cz1ilveO',
+         '$2a$04$oaQbBqq8JnSM1NHRPQGXOOY4Vw3bdHKLIXTecPDRAcJ98cz1ilveO'),
 
         # all 4 bits of salt padding set
-        ("Passlib11",
-         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVcUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK",
-         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVOUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"),
+#        ("Passlib11",               # \/
+#         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVcUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK",
+#         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVOUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"),
+        ("test",                    # \/
+         "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS",
+         "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"),
 
         # bad checksum padding
-        ("test",
+        ("test",                                                   # \/
          "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIV",
          "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"),
     ]
 
     def test_90_bcrypt_padding(self):
         "test passlib correctly handles bcrypt padding bits"
+        self.require_TEST_MODE("full")
         #
         # prevents reccurrence of issue 25 (https://code.google.com/p/passlib/issues/detail?id=25)
         # were some unused bits were incorrectly set in bcrypt salt strings.
@@ -319,42 +330,40 @@ class _bcrypt_test(HandlerCase):
         for i in irange(3):
             check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
 
-        # some things that will raise warnings
-        with catch_warnings(record=True) as wlog:
-            #
-            # test genconfig() corrects invalid salts & issues warning.
-            #
+        #
+        # test genconfig() corrects invalid salts & issues warning.
+        #
+        with self.assertWarningList(["salt too large", corr_desc]):
             hash = bcrypt.genconfig(salt="."*21 + "A.", rounds=5, relaxed=True)
-            self.consumeWarningList(wlog, ["salt too large", corr_desc])
-            self.assertEqual(hash, "$2a$05$" + "." * 22)
+        self.assertEqual(hash, "$2a$05$" + "." * 22)
 
-            #
-            # make sure genhash() corrects input
-            #
-            samples = self.known_incorrect_padding
-            for pwd, bad, good in samples:
+        #
+        # make sure genhash() corrects input
+        #
+        samples = self.known_incorrect_padding
+        for pwd, bad, good in samples:
+            with self.assertWarningList([corr_desc]):
                 self.assertEqual(bcrypt.genhash(pwd, bad), good)
-                self.consumeWarningList(wlog, [corr_desc])
+            with self.assertWarningList([]):
                 self.assertEqual(bcrypt.genhash(pwd, good), good)
-                self.consumeWarningList(wlog)
 
-            #
-            # and that verify() works good & bad
-            #
+        #
+        # and that verify() works good & bad
+        #
+        with self.assertWarningList([corr_desc]):
             self.assertTrue(bcrypt.verify(pwd, bad))
-            self.consumeWarningList(wlog, [corr_desc])
+        with self.assertWarningList([]):
             self.assertTrue(bcrypt.verify(pwd, good))
-            self.consumeWarningList(wlog)
 
-            #
-            # test normhash cleans things up correctly
-            #
-            for pwd, bad, good in samples:
+        #
+        # test normhash cleans things up correctly
+        #
+        for pwd, bad, good in samples:
+            with self.assertWarningList([corr_desc]):
                 self.assertEqual(bcrypt.normhash(bad), good)
-                self.consumeWarningList(wlog, [corr_desc])
+            with self.assertWarningList([]):
                 self.assertEqual(bcrypt.normhash(good), good)
-                self.consumeWarningList(wlog)
-            self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
+        self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
 
 hash.bcrypt._no_backends_msg() #call this for coverage purposes
 
