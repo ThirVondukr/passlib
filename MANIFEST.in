@@ -1,4 +1,3 @@
 recursive-include docs *
-include LICENSE README CHANGES passlib/*.cfg passlib/tests/*.cfg
-prune docs/_build
+include LICENSE README CHANGES passlib/*.cfg passlib/tests/*.cfg tox.ini setup.cfg
 prune *.komodoproject

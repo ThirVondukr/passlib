@@ -22,7 +22,7 @@ __all__ = [
 #=============================================================================
 # main
 #=============================================================================
-TH_PATH = "passlib/tests/test_handlers.py"
+TH_PATH = "passlib.tests.test_handlers"
 
 def do_hash_tests(*args):
     "return list of hash algorithm tests that match regexes"
@@ -48,7 +48,7 @@ def do_preset_tests(name):
     if name == "django" or name == "django-hashes":
         do_hash_tests("django_.*_test", "hex_md5_test")
         if name == "django":
-            print_("passlib/tests/test_ext_django.py")
+            print_("passlib.tests.test_ext_django")
     else:
         raise ValueError("unknown name: %r" % name)
 

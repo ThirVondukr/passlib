@@ -207,13 +207,7 @@ class _bcrypt_test(HandlerCase):
         # builtin is still just way too slow.
         if self.backend == "builtin":
             kwds.setdefault("rounds", 4)
-
         super(_bcrypt_test, self).populate_settings(kwds)
-
-        # correct unused bits in provided salts, to silence some warnings.
-        if 'salt' in kwds and len(kwds['salt']) == 22:
-            from passlib.utils import bcrypt64
-            kwds['salt'] = bcrypt64.repair_unused(kwds['salt'])
 
     #===============================================================
     # fuzz testing
@@ -224,12 +218,14 @@ class _bcrypt_test(HandlerCase):
             return True
         # most OSes won't support 2x/2y
         # XXX: definitely not the BSDs, but what about the linux variants?
-        if hash.startswith("$2x$") or hash.startswith("$2y$"):
+        from passlib.handlers.bcrypt import IDENT_2X, IDENT_2Y
+        if hash.startswith(IDENT_2X) or hash.startswith(IDENT_2Y):
             return False
         return True
 
     def fuzz_verifier_pybcrypt(self):
         # test against py-bcrypt if available
+        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y
         from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw
@@ -238,8 +234,8 @@ class _bcrypt_test(HandlerCase):
         def check_pybcrypt(secret, hash):
             "pybcrypt"
             secret = to_native_str(secret, self.fuzz_password_encoding)
-            if hash.startswith("$2y$"):
-                hash = "$2a$" + hash[4:]
+            if hash.startswith(IDENT_2Y):
+                hash = IDENT_2A + hash[4:]
             try:
                 return hashpw(secret, hash) == hash
             except ValueError:
@@ -248,6 +244,7 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_bcryptor(self):
         # test against bcryptor if available
+        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2Y
         from passlib.utils import to_native_str
         try:
             from bcryptor.engine import Engine
@@ -256,30 +253,35 @@ class _bcrypt_test(HandlerCase):
         def check_bcryptor(secret, hash):
             "bcryptor"
             secret = to_native_str(secret, self.fuzz_password_encoding)
-            if hash.startswith("$2y$"):
-                hash = "$2a$" + hash[4:]
-            elif hash.startswith("$2$"):
+            if hash.startswith(IDENT_2Y):
+                hash = IDENT_2A + hash[4:]
+            elif hash.startswith(IDENT_2):
                 # bcryptor doesn't support $2$ hashes; but we can fake it
                 # using the $2a$ algorithm, by repeating the password until
                 # it's 72 chars in length.
-                hash = "$2a$" + hash[3:]
+                hash = IDENT_2A + hash[3:]
                 if secret:
                     secret = repeat_string(secret, 72)
             return Engine(False).hash_key(secret, hash) == hash
         return check_bcryptor
 
+    def get_fuzz_settings(self):
+        secret, other, kwds = super(_bcrypt_test,self).get_fuzz_settings()
+        from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
+        from passlib.utils import to_bytes
+        ident = kwds.get('ident')
+        if ident == IDENT_2X:
+            # 2x is just recognized, not supported. don't test with it.
+            del kwds['ident']
+        elif ident == IDENT_2 and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
+            # avoid false failure due to flaw in 0-revision bcrypt:
+            # repeated strings like 'abc' and 'abcabc' hash identically.
+            other = self.get_fuzz_password()
+        return secret, other, kwds
+
     def get_fuzz_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.
         return randintgauss(5, 8, 6, 1)
-
-    def get_fuzz_ident(self):
-        ident = super(_bcrypt_test,self).get_fuzz_ident()
-        if ident == u("$2x$"):
-            # just recognized, not currently supported.
-            return None
-        if self.backend == "os_crypt" and not self.using_patched_crypt and not self.os_supports_ident(ident):
-            return None
-        return ident
 
     #===============================================================
     # custom tests
@@ -934,31 +936,18 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
 
     # NOTE: the following have been cloned from _bcrypt_test()
 
-    def do_genconfig(self, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
-
-        # correct unused bits in provided salts, to silence some warnings.
-        if 'salt' in kwds:
-            from passlib.utils import bcrypt64
-            kwds['salt'] = bcrypt64.repair_unused(kwds['salt'])
-        return self.handler.genconfig(**kwds)
-
-    def do_encrypt(self, secret, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
-        return self.handler.encrypt(secret, **kwds)
+    def populate_settings(self, kwds):
+        # speed up test w/ lower rounds
+        kwds.setdefault("rounds", 4)
+        super(django_bcrypt_test, self).populate_settings(kwds)
 
     def get_fuzz_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.
         return randintgauss(5, 8, 6, 1)
 
     def get_fuzz_ident(self):
-        ident = super(django_bcrypt_test,self).get_fuzz_ident()
-        if ident == u("$2x$"):
-            # just recognized, not currently supported.
-            return None
-        return ident
+        # omit multi-ident tests, only $2a$ counts for this class
+        return None
 
 django_bcrypt_test = skipUnless(hash.bcrypt.has_backend(),
                                 "no bcrypt backends available")(django_bcrypt_test)

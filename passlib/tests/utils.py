@@ -1128,6 +1128,13 @@ class HandlerCase(TestCase):
                 c3 = self.do_genconfig(salt=s1[:-1])
                 self.assertNotEqual(c3, c1)
 
+    def prepare_salt(self, salt):
+        "prepare generated salt"
+        if self.handler.name in ["bcrypt", "django_bcrypt"]:
+            from passlib.utils import bcrypt64
+            salt = bcrypt64.repair_unused(salt)
+        return salt
+
     def test_14_salt_chars(self):
         "test genconfig() honors salt_chars"
         self.require_salt_info()
@@ -1144,6 +1151,7 @@ class HandlerCase(TestCase):
             salt = cs[i:i+chunk]
             if len(salt) < mn:
                 salt = (salt*(mn//len(salt)+1))[:chunk]
+            salt = self.prepare_salt(salt)
             self.do_genconfig(salt=salt)
 
         # check some invalid salt chars, make sure they're rejected
@@ -1680,7 +1688,7 @@ class HandlerCase(TestCase):
         disabled = self.is_disabled_handler
         max_time = self.max_fuzz_time
         if max_time <= 0:
-            raise self.skipTest("disabled for this test mode")
+            raise self.skipTest("disabled by test mode")
         verifiers = self.get_fuzz_verifiers()
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
@@ -1690,8 +1698,7 @@ class HandlerCase(TestCase):
         count = 0
         while tick() <= stop:
             # generate random password & options
-            secret, other = self.get_fuzz_password_pair()
-            kwds = self.get_fuzz_settings()
+            secret, other, kwds = self.get_fuzz_settings()
             ctx = dict((k,kwds[k]) for k in handler.context_kwds if k in kwds)
 
             # create new hash
@@ -1712,10 +1719,12 @@ class HandlerCase(TestCase):
                                                 (name, secret, kwds, hash))
                 # occasionally check that some other secrets WON'T verify
                 # against this hash.
-                if rng.random() < .1 and verify(other, hash, **ctx):
-                    raise self.failureException("was able to verify wrong "
-                        "password using %s: wrong_secret=%r real_secret=%r "
-                        "config=%r hash=%r" % (name, other, secret, kwds, hash))
+                if rng.random() < .1:
+                    result = verify(other, hash, **ctx)
+                    if result and result != "skip":
+                        raise self.failureException("was able to verify wrong "
+                            "password using %s: wrong_secret=%r real_secret=%r "
+                            "config=%r hash=%r" % (name, other, secret, kwds, hash))
             count +=1
 
         log.debug("fuzz test: %r checked %d passwords against %d verifiers (%s)",
@@ -1818,28 +1827,26 @@ class HandlerCase(TestCase):
         return secret, other
 
     def get_fuzz_settings(self):
-        "generate random settings (for fuzz testing)"
+        "generate random password and options for fuzz testing"
         kwds = {}
         for name in self.fuzz_settings:
             func = getattr(self, "get_fuzz_" + name)
             value = func()
             if value is not None:
                 kwds[name] = value
-        return kwds
+        secret, other = self.get_fuzz_password_pair()
+        return secret, other, kwds
 
     def get_fuzz_rounds(self):
         handler = self.handler
         if not has_rounds_info(handler):
             return None
         default = handler.default_rounds or handler.min_rounds
+        lower = handler.min_rounds
         if handler.rounds_cost == "log2":
-            lower = max(default-1, handler.min_rounds)
             upper = default
         else:
-            lower = handler.min_rounds #max(default*.5, handler.min_rounds)
             upper = min(default*2, handler.max_rounds)
-        if TEST_MODE(max="quick"):
-            upper = min(2, lower)
         return randintgauss(lower, upper, default, default*.5)
 
     def get_fuzz_salt_size(self):
@@ -1853,11 +1860,16 @@ class HandlerCase(TestCase):
 
     def get_fuzz_ident(self):
         handler = self.handler
-        if 'ident' in handler.setting_kwds and hasattr(handler, "ident_values"):
-            if rng.random() < .5:
-                # resolve wrappers before reading values
-                handler = getattr(handler, "wrapped", handler)
-                return rng.choice(handler.ident_values)
+        if 'ident' not in handler.setting_kwds or not hasattr(handler, "ident_values"):
+            return None
+        if rng.random() < .5:
+            return None
+        # resolve wrappers before reading values
+        handler = getattr(handler, "wrapped", handler)
+        ident = rng.choice(handler.ident_values)
+        if self.backend == "os_crypt" and not self.using_patched_crypt and not self.os_supports_ident(ident):
+            return None
+        return ident
 
     #=========================================================
     # eoc
