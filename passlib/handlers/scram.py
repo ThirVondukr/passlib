@@ -216,7 +216,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if rounds < 1:
             raise ValueError("rounds must be >= 1")
         alg = norm_hash_name(alg, "hashlib")
-        return pbkdf2(password, salt, rounds, -1, "hmac-" + alg)
+        return pbkdf2(password, salt, rounds, None, "hmac-" + alg)
 
     #=========================================================
     # serialization

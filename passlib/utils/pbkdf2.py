@@ -18,7 +18,7 @@ try:
 except ImportError:
     _EVP = None
 #pkg
-from passlib.exc import PasslibRuntimeWarning
+from passlib.exc import PasslibRuntimeWarning, ExpectedTypeError
 from passlib.utils import join_bytes, to_native_str, bytes_to_int, int_to_bytes, join_byte_values
 from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
 #local
@@ -130,6 +130,8 @@ def norm_hash_name(name, format="hashlib"):
     row = _nhn_cache[orig] = (name2, name)
     return row[idx]
 
+# TODO: get_hash() func which wraps norm_hash_name(), hashlib.<attr>, and hashlib.new
+
 #=================================================================================
 #general prf lookup
 #=================================================================================
@@ -156,9 +158,8 @@ def _get_hmac_prf(digest):
         else:
             if result == _XY_DIGEST:
                 return _EVP.hmac, 20
-        # pragma: no cover
         # don't expect to ever get here, but will fall back to pure-python if we do.
-        warn("M2Crypto.EVP.HMAC() returned unexpected result "
+        warn("M2Crypto.EVP.HMAC() returned unexpected result " # pragma: no cover -- sanity check
              "during Passlib self-test!", PasslibRuntimeWarning)
     elif _EVP:
         # use m2crypto if it's present and supports requested digest
@@ -255,74 +256,73 @@ def get_prf(name):
         digest_size = len(name(b('x'),b('y')))
         retval = (name, digest_size)
     else:
-        raise TypeError("prf must be string or callable")
+        raise ExpectedTypeError(name, "str or callable", "prf name")
     _prf_cache[name] = retval
     return retval
 
 #=================================================================================
 #pbkdf1 support
 #=================================================================================
-def pbkdf1(secret, salt, rounds, keylen, hash="sha1"):
+def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     """pkcs#5 password-based key derivation v1.5
 
     :arg secret: passphrase to use to generate key
     :arg salt: salt string to use when generating key
     :param rounds: number of rounds to use to generate key
-    :arg keylen: number of bytes to generate.
+    :arg keylen: number of bytes to generate (if ``None``, uses digest's native size)
     :param hash:
-        hash function to use.
-        if specified, it must be one of the following:
-
-        * a callable with the prototype ``hash(message) -> raw digest``
-        * a string matching one of the hashes recognized by hashlib
+        hash function to use. must be name of a hash recognized by hashlib.
 
     :returns:
         raw bytes of generated key
 
     .. note::
 
-        This algorithm is deprecated, new code should use PBKDF2.
-        Among other reasons, ``keylen`` cannot be larger
+        This algorithm has been deprecated, new code should use PBKDF2.
+        Among other limitations, ``keylen`` cannot be larger
         than the digest size of the specified hash.
 
     """
-    #prepare secret & salt
+    # validate secret & salt
     if not isinstance(secret, bytes):
-        raise TypeError("secret must be bytes, not %s" % (type(secret),))
+        raise ExpectedTypeError(secret, "bytes", "secret")
     if not isinstance(salt, bytes):
-        raise TypeError("salt must be bytes, not %s" % (type(salt),))
+        raise ExpectedTypeError(salt, "bytes", "salt")
 
-    #prepare rounds
+    # validate rounds
     if not isinstance(rounds, int_types):
-        raise TypeError("rounds must be an integer")
+        raise ExpectedTypeError(rounds, "int", "rounds")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
 
-    #prep keylen
-    if keylen < 0:
+    # resolve hash
+    try:
+        hash_const = getattr(hashlib, hash)
+    except AttributeError:
+        # check for ssl hash
+        # NOTE: if hash unknown, new() will throw ValueError, which we'd just
+        #       reraise anyways; so instead of checking, we just let it get
+        #       thrown during first use, below
+        def hash_const(msg):
+            return hashlib.new(hash, msg)
+
+    # prime pbkdf1 loop, get block size
+    block = hash_const(secret + salt).digest()
+
+    # validate keylen
+    if keylen is None:
+        keylen = len(block)
+    elif not isinstance(keylen, int_types):
+        raise ExpectedTypeError(keylen, "int or None", "keylen")
+    elif keylen < 0:
         raise ValueError("keylen must be at least 0")
-
-    #resolve hash
-    if isinstance(hash, str):
-        #check for builtin hash
-        hf = getattr(hashlib, hash, None)
-        if hf is None:
-            #check for ssl hash
-            #NOTE: if hash unknown, will throw ValueError, which we'd just
-            # reraise anyways; so instead of checking, we just let it get
-            # thrown during first use, below
-            def hf(msg):
-                return hashlib.new(hash, msg)
-
-    #run pbkdf1
-    block = hf(secret + salt).digest()
-    if keylen > len(block):
+    elif keylen > len(block):
         raise ValueError("keylength too large for digest: %r > %r" %
                          (keylen, len(block)))
-    r = 1
-    while r < rounds:
-        block = hf(block).digest()
-        r += 1
+
+    # main pbkdf1 loop
+    for _ in irange(rounds-1):
+        block = hash_const(block).digest()
     return block[:keylen]
 
 #=================================================================================
@@ -335,7 +335,7 @@ MAX_HMAC_SHA1_KEYLEN = MAX_BLOCKS*20
 #       at the 32-bit limit, just for sanity. once realistic pbkdf2 rounds
 #       start approaching 24 bits, this limit will be raised.
 
-def pbkdf2(secret, salt, rounds, keylen=-1, prf="hmac-sha1"):
+def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
 
     :arg secret: passphrase to use to generate key
@@ -343,7 +343,7 @@ def pbkdf2(secret, salt, rounds, keylen=-1, prf="hmac-sha1"):
     :param rounds: number of rounds to use to generate key
     :arg keylen:
         number of bytes to generate.
-        if set to ``-1``, will use digest size of selected prf.
+        if set to `None``, will use digest size of selected prf.
     :param prf:
         psuedo-random family to use for key strengthening.
         this can be any string or callable accepted by :func:`get_prf`.
@@ -353,26 +353,33 @@ def pbkdf2(secret, salt, rounds, keylen=-1, prf="hmac-sha1"):
     :returns:
         raw bytes of generated key
     """
-    #prepare secret & salt
+    # validate secret & salt
     if not isinstance(secret, bytes):
-        raise TypeError("secret must be bytes, not %s" % (type(secret),))
+        raise ExpectedTypeError(secret, "bytes", "secret")
     if not isinstance(salt, bytes):
-        raise TypeError("salt must be bytes, not %s" % (type(salt),))
+        raise ExpectedTypeError(salt, "bytes", "salt")
 
-    #prepare rounds
+    # validate rounds
     if not isinstance(rounds, int_types):
-        raise TypeError("rounds must be an integer")
+        raise ExpectedTypeError(rounds, "int", "rounds")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
 
-    #special case for m2crypto + hmac-sha1
+    # validate keylen
+    if keylen is not None:
+        if not isinstance(keylen, int_types):
+            raise ExpectedTypeError(keylen, "int or None", "keylen")
+        elif keylen < 0:
+            raise ValueError("keylen must be at least 0")
+
+    # special case for m2crypto + hmac-sha1
     if prf == "hmac-sha1" and _EVP:
-        if keylen == -1:
+        if keylen is None:
             keylen = 20
         # NOTE: doing check here, because M2crypto won't take 'long' instances
         # (which this is when running under 32bit)
         if keylen > MAX_HMAC_SHA1_KEYLEN:
-            raise ValueError("key length too long")
+            raise ValueError("key length too long for digest")
 
         # NOTE: as of 2012-4-4, m2crypto has buffer overflow issue
         # which may cause segfaults if keylen > 32 (EVP_MAX_KEY_LENGTH).
@@ -381,15 +388,15 @@ def pbkdf2(secret, salt, rounds, keylen=-1, prf="hmac-sha1"):
         if keylen < 32:
             return _EVP.pbkdf2(secret, salt, rounds, keylen)
 
-    #resolve prf
+    # resolve prf
     prf_func, digest_size = get_prf(prf)
-    if keylen == -1:
+    if keylen is None:
         keylen = digest_size
 
-    #figure out how many blocks we'll need
+    # figure out how many blocks we'll need
     block_count = (keylen+digest_size-1)//digest_size
     if block_count >= MAX_BLOCKS:
-        raise ValueError("key length too long")
+        raise ValueError("key length too long for digest")
 
     #build up result from blocks
     def gen():
