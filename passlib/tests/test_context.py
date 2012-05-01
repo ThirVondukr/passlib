@@ -2,40 +2,35 @@
 #=========================================================
 #imports
 #=========================================================
+# core
 from __future__ import with_statement
 from passlib.utils.compat import PY3
-#core
 if PY3:
     from configparser import NoSectionError
 else:
     from ConfigParser import NoSectionError
 import hashlib
-from logging import getLogger
+import logging; log = logging.getLogger(__name__)
+import re
 import os
 import time
 import warnings
 import sys
-#site
-try:
-    from pkg_resources import resource_filename
-except ImportError:
-    resource_filename = None
-#pkg
+# site
+# pkg
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
-    gae_env, set_file
+from passlib.tests.utils import TestCase, catch_warnings, set_file, get_timer_resolution
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
                         get_crypt_handler,
                         )
-#module
-log = getLogger(__name__)
+# local
 #=========================================================
 # support
 #=========================================================
@@ -291,6 +286,11 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(cc1.to_dict(), self.sample_1_dict)
         self.assertEqual(cc4.to_dict(), self.sample_12_dict)
 
+    def test_09_repr(self):
+        "test repr()"
+        cc1 = CryptContext(**self.sample_1_dict)
+        self.assertRegex(repr(cc1), "^<CryptContext at 0x[0-9a-f]{6,}>$")
+
     #=========================================================
     # modifiers
     #=========================================================
@@ -325,6 +325,11 @@ sha512_crypt__min_rounds = 45000
         # update flag - tested by update() method tests
         # encoding keyword - tested by from_string() & from_path()
         # section keyword - tested by from_string() & from_path()
+
+        # test load empty
+        ctx = CryptContext(**self.sample_1_dict)
+        ctx.load({}, update=True)
+        self.assertEqual(ctx.to_dict(), self.sample_1_dict)
 
         # multiple loads should clear the state
         ctx = CryptContext()
@@ -402,13 +407,19 @@ sha512_crypt__min_rounds = 45000
         # common option parsing tests
         #
 
-        # test key with blank separators is rejected
+        # test keys with blank fields are rejected
+            # blank option
         self.assertRaises(TypeError, CryptContext, __=0.1)
-        self.assertRaises(TypeError, CryptContext, __default='x')
-        self.assertRaises(TypeError, CryptContext, default____default='x')
-        self.assertRaises(TypeError, CryptContext, __default____default='x')
+        self.assertRaises(TypeError, CryptContext, default__scheme__='x')
 
-        # test key with too many separators is rejected
+            # blank scheme
+        self.assertRaises(TypeError, CryptContext, __option='x')
+        self.assertRaises(TypeError, CryptContext, default____option='x')
+
+            # blank category
+        self.assertRaises(TypeError, CryptContext, __scheme__option='x')
+
+        # test keys with too many field are rejected
         self.assertRaises(TypeError, CryptContext,
                           category__scheme__option__invalid = 30000)
 
@@ -630,6 +641,7 @@ sha512_crypt__min_rounds = 45000
         # default for empty
         ctx = CryptContext()
         self.assertRaises(KeyError, ctx.handler)
+        self.assertRaises(KeyError, ctx.handler, "md5_crypt")
 
         # default for sample 1
         ctx = CryptContext(**self.sample_1_dict)
@@ -748,8 +760,17 @@ sha512_crypt__min_rounds = 45000
         ctx2 = CryptContext.from_string(dump)
         self.assertEqual(ctx2.to_dict(), self.sample_1_dict)
 
-        # TODO: test other features, like the unmanaged handler warning.
-        # TODO: test compact mode, section
+        # test section kwd is honored
+        other = ctx.to_string(section="password-security")
+        self.assertEqual(other, dump.replace("[passlib]","[password-security]"))
+
+        # test unmanaged handler warning
+        from passlib import hash
+        from passlib.tests.test_utils_handlers import UnsaltedHash
+        ctx3 = CryptContext([UnsaltedHash, "md5_crypt"])
+        dump = ctx3.to_string()
+        self.assertRegex(dump, r"# NOTE: the 'unsalted_test_hash' handler\(s\)"
+                               r" are not registered with Passlib")
 
     #=========================================================
     # password hash api
@@ -764,7 +785,7 @@ sha512_crypt__min_rounds = 45000
     def test_40_basic(self):
         "test basic encrypt/identify/verify functionality"
         handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
-        cc = CryptContext(handlers)
+        cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
         #run through handlers
         for crypt in handlers:
@@ -772,7 +793,7 @@ sha512_crypt__min_rounds = 45000
             self.assertEqual(cc.identify(h), crypt.name)
             self.assertEqual(cc.identify(h, resolve=True), crypt)
             self.assertTrue(cc.verify('test', h))
-            self.assertTrue(not cc.verify('notest', h))
+            self.assertFalse(cc.verify('notest', h))
 
         #test default
         h = cc.encrypt("test")
@@ -792,6 +813,7 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(schemes=["md5_crypt", "phpass"],
                           phpass__ident="H",
                           phpass__default_rounds=7,
+                          admin__phpass__ident="P",
                          )
 
         # uses default scheme
@@ -799,6 +821,10 @@ sha512_crypt__min_rounds = 45000
 
         # override scheme
         self.assertTrue(cc.genconfig(scheme="phpass").startswith("$H$5"))
+
+        # category override
+        self.assertTrue(cc.genconfig(scheme="phpass", category="admin").startswith("$P$5"))
+        self.assertTrue(cc.genconfig(scheme="phpass", category="staff").startswith("$H$5"))
 
         # override scheme & custom settings
         self.assertEqual(
@@ -812,6 +838,16 @@ sha512_crypt__min_rounds = 45000
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genconfig)
+        self.assertRaises(KeyError, CryptContext().genconfig, scheme='md5_crypt')
+
+        # bad scheme values
+        self.assertRaises(KeyError, cc.genconfig, scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.genconfig, scheme=1, category='staff')
+        self.assertRaises(TypeError, cc.genconfig, scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.genconfig, category=1)
+
 
     def test_42_genhash(self):
         "test genhash() method"
@@ -838,6 +874,14 @@ sha512_crypt__min_rounds = 45000
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genhash, 'secret', 'hash')
 
+        # bad scheme values
+        self.assertRaises(KeyError, cc.genhash, 'secret', hash, scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.genhash, 'secret', hash, scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.genconfig, 'secret', hash, category=1)
+
+
     def test_43_encrypt(self):
         "test encrypt() method"
         cc = CryptContext(**self.sample_4_dict)
@@ -855,18 +899,17 @@ sha512_crypt__min_rounds = 45000
         # NOTE: more thorough job of rounds limits done below.
 
         # min rounds
-        with catch_warnings(record=True) as wlog:
+        with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.encrypt("password", rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
                 )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
 
+        with self.assertWarningList([]):
             self.assertEqual(
                 cc.encrypt("password", rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
                 )
-            self.consumeWarningList(wlog)
 
         # NOTE: max rounds, etc tested in genconfig()
 
@@ -886,10 +929,18 @@ sha512_crypt__min_rounds = 45000
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().encrypt, 'secret')
 
+        # bad scheme values
+        self.assertRaises(KeyError, cc.encrypt, 'secret', scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.encrypt, 'secret', scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.encrypt, 'secret', category=1)
+
+
     def test_44_identify(self):
         "test identify() border cases"
         handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
-        cc = CryptContext(handlers)
+        cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
         #check unknown hash
         self.assertEqual(cc.identify('$9$232323123$1287319827'), None)
@@ -909,10 +960,13 @@ sha512_crypt__min_rounds = 45000
         self.assertIs(cc.identify('hash'), None)
         self.assertRaises(KeyError, cc.identify, 'hash', required=True)
 
+        # bad category values
+        self.assertRaises(TypeError, cc.identify, None, category=1)
+
     def test_45_verify(self):
         "test verify() scheme kwd"
         handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
-        cc = CryptContext(handlers)
+        cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
         h = hash.md5_crypt.encrypt("test")
 
@@ -933,7 +987,7 @@ sha512_crypt__min_rounds = 45000
 
         # rejects non-string secrets
         cc = CryptContext(["des_crypt"])
-        h = cc.encrypt('stub')
+        h = refhash = cc.encrypt('stub')
         for secret, kwds in self.nonstring_vectors:
             self.assertRaises(TypeError, cc.verify, secret, h, **kwds)
 
@@ -944,6 +998,13 @@ sha512_crypt__min_rounds = 45000
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().verify, 'secret', 'hash')
+
+        # bad scheme values
+        self.assertRaises(KeyError, cc.verify, 'secret', refhash, scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.verify, 'secret', refhash, scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.verify, 'secret', refhash, category=1)
 
     def test_46_needs_update(self):
         "test needs_update() method"
@@ -991,7 +1052,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(bind_state, [{}])
 
         # calling needs_update should query callback
-        hash = dummy.encrypt("test")
+        hash = refhash = dummy.encrypt("test")
         self.assertFalse(ctx.needs_update(hash))
         self.assertEqual(check_state, [(hash,None)])
         del check_state[:]
@@ -1017,6 +1078,13 @@ sha512_crypt__min_rounds = 45000
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().needs_update, 'hash')
+
+        # bad scheme values
+        self.assertRaises(KeyError, cc.needs_update, refhash, scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.needs_update, refhash, scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.needs_update, refhash, category=1)
 
     def test_47_verify_and_update(self):
         "test verify_and_update()"
@@ -1052,7 +1120,7 @@ sha512_crypt__min_rounds = 45000
 
         # rejects non-string secrets
         cc = CryptContext(["des_crypt"])
-        hash = cc.encrypt('stub')
+        hash = refhash = cc.encrypt('stub')
         for secret, kwds in self.nonstring_vectors:
             self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
 
@@ -1063,6 +1131,13 @@ sha512_crypt__min_rounds = 45000
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().verify_and_update, 'secret', 'hash')
+
+        # bad scheme values
+        self.assertRaises(KeyError, cc.verify_and_update, 'secret', refhash, scheme="fake") # XXX: should this be ValueError?
+        self.assertRaises(TypeError, cc.verify_and_update, 'secret', refhash, scheme=1)
+
+        # bad category values
+        self.assertRaises(TypeError, cc.verify_and_update, 'secret', refhash, category=1)
 
     #=========================================================
     # rounds options
@@ -1079,67 +1154,69 @@ sha512_crypt__min_rounds = 45000
                           all__default_rounds=2500,
                           )
 
-        # min rounds
-        with catch_warnings(record=True) as wlog:
+        #--------------------------------------------------
+        # min_rounds
+        #--------------------------------------------------
 
-            # set below handler min
+        # set below handler minimum
+        with self.assertWarningList([PasslibConfigWarning]*2):
             c2 = cc.copy(all__min_rounds=500, all__max_rounds=None,
                             all__default_rounds=500)
-            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
-            self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
-            self.consumeWarningList(wlog)
+        self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
 
-            # below
+        # below policy minimum
+        with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.genconfig(rounds=1999, salt="nacl"),
                 '$5$rounds=2000$nacl$',
                 )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
 
-            # equal
-            self.assertEqual(
-                cc.genconfig(rounds=2000, salt="nacl"),
-                '$5$rounds=2000$nacl$',
-                )
-            self.consumeWarningList(wlog)
+        # equal to policy minimum
+        self.assertEqual(
+            cc.genconfig(rounds=2000, salt="nacl"),
+            '$5$rounds=2000$nacl$',
+            )
 
-            # above
-            self.assertEqual(
-                cc.genconfig(rounds=2001, salt="nacl"),
-                '$5$rounds=2001$nacl$'
-                )
-            self.consumeWarningList(wlog)
+        # above policy minimum
+        self.assertEqual(
+            cc.genconfig(rounds=2001, salt="nacl"),
+            '$5$rounds=2001$nacl$'
+            )
 
+        #--------------------------------------------------
         # max rounds
-        with catch_warnings(record=True) as wlog:
-            # set above handler max
+        #--------------------------------------------------
+
+        # set above handler max
+        with self.assertWarningList([PasslibConfigWarning]*2):
             c2 = cc.copy(all__max_rounds=int(1e9)+500, all__min_rounds=None,
                             all__default_rounds=int(1e9)+500)
-            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
-            self.assertEqual(c2.genconfig(salt="nacl"),
-                             "$5$rounds=999999999$nacl$")
-            self.consumeWarningList(wlog)
 
-            # above
+        self.assertEqual(c2.genconfig(salt="nacl"),
+                         "$5$rounds=999999999$nacl$")
+
+        # above policy max
+        with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.genconfig(rounds=3001, salt="nacl"),
                 '$5$rounds=3000$nacl$'
                 )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
 
-            # equal
-            self.assertEqual(
-                cc.genconfig(rounds=3000, salt="nacl"),
-                '$5$rounds=3000$nacl$'
-                )
-            self.consumeWarningList(wlog)
+        # equal policy max
+        self.assertEqual(
+            cc.genconfig(rounds=3000, salt="nacl"),
+            '$5$rounds=3000$nacl$'
+            )
 
-            # below
-            self.assertEqual(
-                cc.genconfig(rounds=2999, salt="nacl"),
-                '$5$rounds=2999$nacl$',
-                )
-            self.consumeWarningList(wlog)
+        # below policy max
+        self.assertEqual(
+            cc.genconfig(rounds=2999, salt="nacl"),
+            '$5$rounds=2999$nacl$',
+            )
+
+        #--------------------------------------------------
+        # default_rounds
+        #--------------------------------------------------
 
         # explicit default rounds
         self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
@@ -1156,11 +1233,15 @@ sha512_crypt__min_rounds = 45000
 
         # TODO: test default falls back to mx / mn if handler has no default.
 
-        #default rounds - out of bounds
+        # default rounds - out of bounds
         self.assertRaises(ValueError, cc.copy, all__default_rounds=1999)
         cc.copy(all__default_rounds=2000)
         cc.copy(all__default_rounds=3000)
         self.assertRaises(ValueError, cc.copy, all__default_rounds=3001)
+
+        #--------------------------------------------------
+        # border cases
+        #--------------------------------------------------
 
         # invalid min/max bounds
         c2 = CryptContext(schemes=["sha256_crypt"])
@@ -1168,6 +1249,19 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(ValueError, c2.copy, all__max_rounds=-1)
         self.assertRaises(ValueError, c2.copy, all__min_rounds=2000,
                           all__max_rounds=1999)
+
+        # test bad values
+        self.assertRaises(ValueError, CryptContext, all__min_rounds='x')
+        self.assertRaises(ValueError, CryptContext, all__max_rounds='x')
+        self.assertRaises(ValueError, CryptContext, all__vary_rounds='x')
+        self.assertRaises(ValueError, CryptContext, all__default_rounds='x')
+
+        # test bad types rejected
+        bad = NotImplemented
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__min_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__max_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__vary_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__default_rounds=bad)
 
     def test_51_linear_vary_rounds(self):
         "test linear vary rounds"
@@ -1259,9 +1353,9 @@ sha512_crypt__min_rounds = 45000
     #=========================================================
     def test_60_min_verify_time(self):
         "test verify() honors min_verify_time"
-        #NOTE: this whole test assumes time.sleep() and tick()
-        #      have better than 100ms accuracy - set via delta.
-        delta = .05
+        delta = .01
+        if get_timer_resolution(tick) >= delta:
+            raise self.skipTest("timer not accurate enough")
         min_delay = 2*delta
         min_verify_time = 5*delta
         max_delay = 8*delta
@@ -1279,10 +1373,11 @@ sha512_crypt__min_rounds = 45000
                 time.sleep(self.delay)
                 return to_unicode(secret + 'x')
 
-        # silence deprecation warnings for min verify time
-        with catch_warnings(record=True) as wlog:
-            cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
-        self.consumeWarningList(wlog, DeprecationWarning)
+        # check mvt issues a warning, and then filter for remainder of test
+        with self.assertWarningList(["'min_verify_time' is deprecated"]*2):
+            cc = CryptContext([TimedHash], min_verify_time=min_verify_time,
+                admin__context__min_verify_time=min_verify_time*2)
+        warnings.filterwarnings("ignore", "'min_verify_time' is deprecated")
 
         def timecall(func, *args, **kwds):
             start = tick()
@@ -1290,28 +1385,38 @@ sha512_crypt__min_rounds = 45000
             end = tick()
             return end-start, result
 
-        #verify genhash delay works
+        # verify genhash delay works
         TimedHash.delay = min_delay
         elapsed, result = timecall(TimedHash.genhash, 'stub', None)
         self.assertEqual(result, 'stubx')
         self.assertAlmostEqual(elapsed, min_delay, delta=delta)
 
-        #ensure min verify time is honored
+        # ensure min verify time is honored
+
+            # correct password
         elapsed, result = timecall(cc.verify, "stub", "stubx")
         self.assertTrue(result)
         self.assertAlmostEqual(elapsed, min_delay, delta=delta)
 
+            # incorrect password
         elapsed, result = timecall(cc.verify, "blob", "stubx")
         self.assertFalse(result)
         self.assertAlmostEqual(elapsed, min_verify_time, delta=delta)
 
-        #ensure taking longer emits a warning.
+            # incorrect password w/ special category setting
+        elapsed, result = timecall(cc.verify, "blob", "stubx", category="admin")
+        self.assertFalse(result)
+        self.assertAlmostEqual(elapsed, min_verify_time*2, delta=delta)
+
+        # ensure taking longer emits a warning.
         TimedHash.delay = max_delay
-        with catch_warnings(record=True) as wlog:
+        with self.assertWarningList(".*verify exceeded min_verify_time"):
             elapsed, result = timecall(cc.verify, "blob", "stubx")
         self.assertFalse(result)
         self.assertAlmostEqual(elapsed, max_delay, delta=delta)
-        self.consumeWarningList(wlog, ".*verify exceeded min_verify_time")
+
+        # reject values < 0
+        self.assertRaises(ValueError, CryptContext, min_verify_time=-1)
 
     def test_61_autodeprecate(self):
         "test deprecated='auto' is handled correctly"
@@ -1353,28 +1458,28 @@ sha512_crypt__min_rounds = 45000
         # see issue 25.
         bcrypt = hash.bcrypt
 
-        PASS1 = "loppux"
-        BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
-        GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
-        ctx = CryptContext(["bcrypt"])
+        PASS1 = "test"
+        BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+        GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+        ctx = CryptContext(["bcrypt"], bcrypt__rounds=4)
 
-        with catch_warnings(record=True) as wlog:
-            self.assertTrue(ctx.needs_update(BAD1))
-            self.assertFalse(ctx.needs_update(GOOD1))
+        self.assertTrue(ctx.needs_update(BAD1))
+        self.assertFalse(ctx.needs_update(GOOD1))
 
-            if bcrypt.has_backend():
-                self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
+        if bcrypt.has_backend():
+            self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
+            with self.assertWarningList(["incorrect.*padding bits"]*2):
                 self.assertEqual(ctx.verify_and_update("x",BAD1), (False,None))
                 ok, new_hash = ctx.verify_and_update(PASS1, BAD1)
-                self.assertTrue(ok)
-                self.assertTrue(new_hash and new_hash != BAD1)
+            self.assertTrue(ok)
+            self.assertTrue(new_hash and new_hash != BAD1)
 
     def test_63_bsdi_crypt_update(self):
         "test verify_and_update / needs_update corrects bsdi even rounds"
         even_hash = '_Y/../cG0zkJa6LY6k4c'
         odd_hash = '_Z/..TgFg0/ptQtpAgws'
         secret = 'test'
-        ctx = CryptContext(['bsdi_crypt'])
+        ctx = CryptContext(['bsdi_crypt'], bsdi_crypt__min_rounds=5)
 
         self.assertTrue(ctx.needs_update(even_hash))
         self.assertFalse(ctx.needs_update(odd_hash))

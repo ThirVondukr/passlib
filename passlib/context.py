@@ -1183,21 +1183,15 @@ class CryptContext(object):
         else:
             assert not kwds, "_autoload=False and kwds are mutually exclusive"
 
-    def __str__(self):
-        if PY3:
-            return self.to_string()
-        else:
-            return self.to_string().encode("utf-8")
+    # XXX: would this be useful?
+    ##def __str__(self):
+    ##    if PY3:
+    ##        return self.to_string()
+    ##    else:
+    ##        return self.to_string().encode("utf-8")
 
     def __repr__(self):
-        return "<CryptContext 0x%0x>" % id(self)
-
-        # XXX: not sure if this would be helpful, or confusing...
-        ### let repr output string required to recreate the CryptContext
-        ##data = self.to_string(compact=True)
-        ##if not PY3:
-        ##    data = data.encode("utf-8")
-        ##return "CryptContext.from_string(%r)" % (data,)
+        return "<CryptContext at 0x%0x>" % id(self)
 
     #===================================================================
     # deprecated policy object
@@ -1590,46 +1584,46 @@ class CryptContext(object):
         elif kwds:
             self.load(kwds, update=True)
 
-    # XXX: make this public?
-    def _simplify(self):
-        "helper to remove redundant/unused options"
-        # don't do anything if no schemes are defined
-        if not self._schemes:
-            return
-
-        def strip_items(target, filter):
-            keys = [key for key,value in iteritems(target)
-                    if filter(key,value)]
-            for key in keys:
-                del target[key]
-
-        # remove redundant default.
-        defaults = self._default_schemes
-        if defaults.get(None) == self._schemes[0]:
-            del defaults[None]
-
-        # remove options for unused schemes.
-        scheme_options = self._scheme_options
-        schemes = self._schemes + ("all",)
-        strip_items(scheme_options, lambda k,v: k not in schemes)
-
-        # remove rendundant cat defaults.
-        cur = self.default_scheme()
-        strip_items(defaults, lambda k,v: k and v==cur)
-
-        # remove redundant category deprecations.
-        # TODO: this should work w/ 'auto', but needs closer inspection
-        deprecated = self._deprecated_schemes
-        cur = self._deprecated_schemes.get(None)
-        strip_items(deprecated, lambda k,v: k and v==cur)
-
-        # remove redundant category options.
-        for scheme, config in iteritems(scheme_options):
-            if None in config:
-                cur = config[None]
-                strip_items(config, lambda k,v: k and v==cur)
-
-        # XXX: anything else?
+    # XXX: make this public? even just as flag to load?
+    ##def _simplify(self):
+    ##    "helper to remove redundant/unused options"
+    ##    # don't do anything if no schemes are defined
+    ##    if not self._schemes:
+    ##        return
+    ##
+    ##    def strip_items(target, filter):
+    ##        keys = [key for key,value in iteritems(target)
+    ##                if filter(key,value)]
+    ##        for key in keys:
+    ##            del target[key]
+    ##
+    ##    # remove redundant default.
+    ##    defaults = self._default_schemes
+    ##    if defaults.get(None) == self._schemes[0]:
+    ##        del defaults[None]
+    ##
+    ##    # remove options for unused schemes.
+    ##    scheme_options = self._scheme_options
+    ##    schemes = self._schemes + ("all",)
+    ##    strip_items(scheme_options, lambda k,v: k not in schemes)
+    ##
+    ##    # remove rendundant cat defaults.
+    ##    cur = self.default_scheme()
+    ##    strip_items(defaults, lambda k,v: k and v==cur)
+    ##
+    ##    # remove redundant category deprecations.
+    ##    # TODO: this should work w/ 'auto', but needs closer inspection
+    ##    deprecated = self._deprecated_schemes
+    ##    cur = self._deprecated_schemes.get(None)
+    ##    strip_items(deprecated, lambda k,v: k and v==cur)
+    ##
+    ##    # remove redundant category options.
+    ##    for scheme, config in iteritems(scheme_options):
+    ##        if None in config:
+    ##            cur = config[None]
+    ##            strip_items(config, lambda k,v: k and v==cur)
+    ##
+    ##    # XXX: anything else?
 
     #===================================================================
     # reading configuration
@@ -1871,10 +1865,10 @@ class CryptContext(object):
             raise KeyError("no crypt algorithms loaded in this "
                            "CryptContext instance")
 
-    def _has_unregistered(self):
+    def _get_unregistered_handlers(self):
         "check if any handlers in this context aren't in the global registry"
-        return not all(_is_handler_registered(handler)
-                       for handler in self._handlers)
+        return tuple(handler for handler in self._handlers
+                     if not _is_handler_registered(handler))
 
     #===================================================================
     # exporting config
@@ -1933,15 +1927,13 @@ class CryptContext(object):
                         yield (cat, scheme, key), kwds[key]
 
     @staticmethod
-    def _render_config_key(key, compact=False):
+    def _render_config_key(key):
         "convert 3-part config key to single string"
         cat, scheme, option = key
         if cat:
-            fmt = "%s.%s.%s" if compact else "%s__%s__%s"
-            return fmt % (cat, scheme or "context", option)
+            return "%s__%s__%s" % (cat, scheme or "context", option)
         elif scheme:
-            fmt = "%s.%s" if compact else "%s__%s"
-            return fmt % (scheme, option)
+            return "%s__%s" % (scheme, option)
         else:
             return option
 
@@ -2001,25 +1993,21 @@ class CryptContext(object):
         return dict((render_key(key), value)
                     for key, value in self._iter_config(resolve))
 
-    def _write_to_parser(self, parser, section, compact=False):
+    def _write_to_parser(self, parser, section):
         "helper to write to ConfigParser instance"
         render_key = self._render_config_key
         render_value = self._render_ini_value
         parser.add_section(section)
         for k,v in self._iter_config():
             v = render_value(k, v)
-            k = render_key(k, compact)
+            k = render_key(k)
             parser.set(section, k, v)
 
-    def to_string(self, section="passlib", compact=False):
+    def to_string(self, section="passlib"):
         """serialize to INI format and return as unicode string.
 
         :param section:
             name of INI section to output, defaults to ``"passlib"``.
-
-        :param compact:
-            if ``True``, this will attempt to return as short a string
-            as possible, rather than a readable one.
 
         :returns:
             CryptContext configuration, serialized to a INI unicode string.
@@ -2042,20 +2030,16 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-serialization-example` example in the tutorial.
         """
         parser = SafeConfigParser()
-        self._write_to_parser(parser, section, compact)
+        self._write_to_parser(parser, section)
         buf = NativeStringIO()
         parser.write(buf)
+        unregistered = self._get_unregistered_handlers()
+        if unregistered:
+            buf.write((
+                "# NOTE: the %s handler(s) are not registered with Passlib,\n"
+                "# this string may not correctly reproduce the current configuration.\n\n"
+                ) % ", ".join(repr(handler.name) for handler in unregistered))
         out = buf.getvalue()
-        if compact:
-            out = out.replace(", ", ",").rstrip() + "\n"
-            out = re.sub(r"(?m)^([\w.]+)\s+=\s*", r"\1=", out)
-        else:
-            names = [ handler.name for handler in self._handlers
-                     if not _is_handler_registered(handler) ]
-            if names:
-                names = ", ".join(repr(name) for name in names)
-                out += "# NOTE: the %s handler(s) are not registered with Passlib,\n" % names
-                out += "# so this string may not correctly reproduce the current configuration.\n\n"
         if not PY3:
             out = out.decode("utf-8")
         return out
@@ -2126,12 +2110,7 @@ class CryptContext(object):
                 pass
 
         # scheme not found in configuration for default category
-        if scheme:
-            raise KeyError("crypt algorithm not found in policy: %r" %
-                           (scheme,))
-        else:
-            assert not self._schemes, "somehow lost default scheme!"
-            raise KeyError("no crypt algorithms supported")
+        raise KeyError("crypt algorithm not found in policy: %r" % (scheme,))
 
     def _get_record_list(self, category=None):
         "return list of records for category (cached)"

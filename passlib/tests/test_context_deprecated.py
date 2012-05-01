@@ -26,10 +26,9 @@ from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
-from passlib.utils.compat import irange, u
+from passlib.utils.compat import irange, u, bytes
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, mktemp, catch_warnings, \
-    gae_env, set_file
+from passlib.tests.utils import TestCase, catch_warnings, set_file
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
@@ -223,6 +222,12 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         policy = CryptPolicy(**self.sample_config_1pd)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
+        policy = CryptPolicy(self.sample_config_1pd)
+        self.assertEqual(policy.to_dict(), self.sample_config_1pd)
+
+        self.assertRaises(TypeError, CryptPolicy, {}, {})
+        self.assertRaises(TypeError, CryptPolicy, {}, dummy=1)
+
         #check key with too many separators is rejected
         self.assertRaises(TypeError, CryptPolicy,
             schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"],
@@ -266,10 +271,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 
     def test_01_from_path(self):
         "test CryptPolicy.from_path() constructor with encodings"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
-        path = mktemp()
+        path = self.mktemp()
 
         #test "\n" linesep
         set_file(path, self.sample_config_1s)
@@ -539,6 +541,9 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         pb = CryptPolicy.from_string(s)
         self.assertEqual(pb.to_dict(), self.sample_config_5pd)
 
+        s = pa.to_string(encoding="latin-1")
+        self.assertIsInstance(s, bytes)
+
     #=========================================================
     #
     #=========================================================
@@ -577,7 +582,18 @@ class CryptContextTest(TestCase):
         self.assertIs(b, hash.bsdi_crypt)
         self.assertIs(c, hash.md5_crypt)
 
-        #TODO: test policy & other options
+        # policy kwd
+        policy = cc.policy
+        cc = CryptContext(policy=policy)
+        self.assertEqual(cc.to_dict(), policy.to_dict())
+
+        cc = CryptContext(policy=policy, default="bsdi_crypt")
+        self.assertNotEqual(cc.to_dict(), policy.to_dict())
+        self.assertEqual(cc.to_dict(), dict(schemes=["md5_crypt","bsdi_crypt","des_crypt"],
+                                            default="bsdi_crypt"))
+
+        self.assertRaises(TypeError, setattr, cc, 'policy', None)
+        self.assertRaises(TypeError, CryptContext, policy='x')
 
     def test_01_replace(self):
         "test replace()"
@@ -632,251 +648,6 @@ class CryptContextTest(TestCase):
             phpass__default_rounds = 7,
     )
 
-    def test_10_01_genconfig_settings(self):
-        "test genconfig() settings"
-        cc = CryptContext(policy=None,
-                          schemes=["md5_crypt", "phpass"],
-                          phpass__ident="H",
-                          phpass__default_rounds=7,
-                         )
-
-        # hash specific settings
-        self.assertTrue(cc.genconfig().startswith("$1$"))
-        self.assertEqual(
-            cc.genconfig(scheme="phpass", salt='.'*8),
-            '$H$5........',
-            )
-        self.assertEqual(
-            cc.genconfig(scheme="phpass", salt='.'*8, rounds=8, ident='P'),
-            '$P$6........',
-            )
-
-        # unsupported hash settings should be rejected
-        self.assertRaises(KeyError, cc.replace, md5_crypt__ident="P")
-
-    def test_10_02_genconfig_rounds_limits(self):
-        "test genconfig() policy rounds limits"
-        cc = CryptContext(policy=None,
-                          schemes=["sha256_crypt"],
-                          all__min_rounds=2000,
-                          all__max_rounds=3000,
-                          all__default_rounds=2500,
-                          )
-
-        # min rounds
-        with catch_warnings(record=True) as wlog:
-
-            # set below handler min
-            c2 = cc.replace(all__min_rounds=500, all__max_rounds=None,
-                            all__default_rounds=500)
-            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
-            self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
-            self.consumeWarningList(wlog)
-
-            # below
-            self.assertEqual(
-                cc.genconfig(rounds=1999, salt="nacl"),
-                '$5$rounds=2000$nacl$',
-                )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
-
-            # equal
-            self.assertEqual(
-                cc.genconfig(rounds=2000, salt="nacl"),
-                '$5$rounds=2000$nacl$',
-                )
-            self.consumeWarningList(wlog)
-
-            # above
-            self.assertEqual(
-                cc.genconfig(rounds=2001, salt="nacl"),
-                '$5$rounds=2001$nacl$'
-                )
-            self.consumeWarningList(wlog)
-
-        # max rounds
-        with catch_warnings(record=True) as wlog:
-            # set above handler max
-            c2 = cc.replace(all__max_rounds=int(1e9)+500, all__min_rounds=None,
-                            all__default_rounds=int(1e9)+500)
-            self.consumeWarningList(wlog, [PasslibConfigWarning]*2)
-            self.assertEqual(c2.genconfig(salt="nacl"),
-                             "$5$rounds=999999999$nacl$")
-            self.consumeWarningList(wlog)
-
-            # above
-            self.assertEqual(
-                cc.genconfig(rounds=3001, salt="nacl"),
-                '$5$rounds=3000$nacl$'
-                )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
-
-            # equal
-            self.assertEqual(
-                cc.genconfig(rounds=3000, salt="nacl"),
-                '$5$rounds=3000$nacl$'
-                )
-            self.consumeWarningList(wlog)
-
-            # below
-            self.assertEqual(
-                cc.genconfig(rounds=2999, salt="nacl"),
-                '$5$rounds=2999$nacl$',
-                )
-            self.consumeWarningList(wlog)
-
-        # explicit default rounds
-        self.assertEqual(cc.genconfig(salt="nacl"), '$5$rounds=2500$nacl$')
-
-        # fallback default rounds - use handler's default
-        df = hash.sha256_crypt.default_rounds
-        c2 = cc.copy(all__default_rounds=None, all__max_rounds=df<<1)
-        self.assertEqual(c2.genconfig(salt="nacl"),
-                         '$5$rounds=%d$nacl$' % df)
-
-        # fallback default rounds - use handler's, but clipped to max rounds
-        c2 = cc.replace(all__default_rounds=None, all__max_rounds=3000)
-        self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=3000$nacl$')
-
-        # TODO: test default falls back to mx / mn if handler has no default.
-
-        #default rounds - out of bounds
-        self.assertRaises(ValueError, cc.replace, all__default_rounds=1999)
-        cc.policy.replace(all__default_rounds=2000)
-        cc.policy.replace(all__default_rounds=3000)
-        self.assertRaises(ValueError, cc.replace, all__default_rounds=3001)
-
-        # invalid min/max bounds
-        c2 = CryptContext(policy=None, schemes=["sha256_crypt"])
-        self.assertRaises(ValueError, c2.replace, all__min_rounds=-1)
-        self.assertRaises(ValueError, c2.replace, all__max_rounds=-1)
-        self.assertRaises(ValueError, c2.replace, all__min_rounds=2000,
-                          all__max_rounds=1999)
-
-    def test_10_03_genconfig_linear_vary_rounds(self):
-        "test genconfig() linear vary rounds"
-        cc = CryptContext(policy=None,
-                          schemes=["sha256_crypt"],
-                          all__min_rounds=1995,
-                          all__max_rounds=2005,
-                          all__default_rounds=2000,
-                          )
-
-        # test negative
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds=-1)
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds="-1%")
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds="101%")
-
-        # test static
-        c2 = cc.replace(all__vary_rounds=0)
-        self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
-
-        c2 = cc.replace(all__vary_rounds="0%")
-        self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
-
-        # test absolute
-        c2 = cc.replace(all__vary_rounds=1)
-        self.assert_rounds_range(c2, "sha256_crypt", 1999, 2001)
-        c2 = cc.replace(all__vary_rounds=100)
-        self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
-
-        # test relative
-        c2 = cc.replace(all__vary_rounds="0.1%")
-        self.assert_rounds_range(c2, "sha256_crypt", 1998, 2002)
-        c2 = cc.replace(all__vary_rounds="100%")
-        self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
-
-    def test_10_03_genconfig_log2_vary_rounds(self):
-        "test genconfig() log2 vary rounds"
-        cc = CryptContext(policy=None,
-                          schemes=["bcrypt"],
-                          all__min_rounds=15,
-                          all__max_rounds=25,
-                          all__default_rounds=20,
-                          )
-
-        # test negative
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds=-1)
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds="-1%")
-        self.assertRaises(ValueError, cc.replace, all__vary_rounds="101%")
-
-        # test static
-        c2 = cc.replace(all__vary_rounds=0)
-        self.assert_rounds_range(c2, "bcrypt", 20, 20)
-
-        c2 = cc.replace(all__vary_rounds="0%")
-        self.assert_rounds_range(c2, "bcrypt", 20, 20)
-
-        # test absolute
-        c2 = cc.replace(all__vary_rounds=1)
-        self.assert_rounds_range(c2, "bcrypt", 19, 21)
-        c2 = cc.replace(all__vary_rounds=100)
-        self.assert_rounds_range(c2, "bcrypt", 15, 25)
-
-        # test relative - should shift over at 50% mark
-        c2 = cc.replace(all__vary_rounds="1%")
-        self.assert_rounds_range(c2, "bcrypt", 20, 20)
-
-        c2 = cc.replace(all__vary_rounds="49%")
-        self.assert_rounds_range(c2, "bcrypt", 20, 20)
-
-        c2 = cc.replace(all__vary_rounds="50%")
-        self.assert_rounds_range(c2, "bcrypt", 19, 20)
-
-        c2 = cc.replace(all__vary_rounds="100%")
-        self.assert_rounds_range(c2, "bcrypt", 15, 21)
-
-    def assert_rounds_range(self, context, scheme, lower, upper):
-        "helper to check vary_rounds covers specified range"
-        # NOTE: this runs enough times the min and max *should* be hit,
-        # though there's a faint chance it will randomly fail.
-        handler = context.policy.get_handler(scheme)
-        salt = handler.default_salt_chars[0:1] * handler.max_salt_size
-        seen = set()
-        for i in irange(300):
-            h = context.genconfig(scheme, salt=salt)
-            r = handler.from_string(h).rounds
-            seen.add(r)
-        self.assertEqual(min(seen), lower, "vary_rounds had wrong lower limit:")
-        self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
-
-    def test_11_encrypt_settings(self):
-        "test encrypt() honors policy settings"
-        cc = CryptContext(**self.sample_policy_1)
-
-        # hash specific settings
-        self.assertEqual(
-            cc.encrypt("password", scheme="phpass", salt='.'*8),
-            '$H$5........De04R5Egz0aq8Tf.1eVhY/',
-            )
-        self.assertEqual(
-            cc.encrypt("password", scheme="phpass", salt='.'*8, ident="P"),
-            '$P$5........De04R5Egz0aq8Tf.1eVhY/',
-            )
-
-        # NOTE: more thorough job of rounds limits done in genconfig() test,
-        # which is much cheaper, and shares the same codebase.
-
-        # min rounds
-        with catch_warnings(record=True) as wlog:
-            self.assertEqual(
-                cc.encrypt("password", rounds=1999, salt="nacl"),
-                '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
-                )
-            self.consumeWarningList(wlog, PasslibConfigWarning)
-
-            self.assertEqual(
-                cc.encrypt("password", rounds=2001, salt="nacl"),
-                '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
-                )
-            self.consumeWarningList(wlog)
-
-        # max rounds, etc tested in genconfig()
-
-        # make default > max throws error if attempted
-        self.assertRaises(ValueError, cc.replace,
-                          sha256_crypt__default_rounds=4000)
-
     def test_12_hash_needs_update(self):
         "test hash_needs_update() method"
         cc = CryptContext(**self.sample_policy_1)
@@ -892,146 +663,6 @@ class CryptContextTest(TestCase):
         #check max rounds
         self.assertFalse(cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
         self.assertTrue(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
-
-    #=========================================================
-    #identify
-    #=========================================================
-    def test_20_basic(self):
-        "test basic encrypt/identify/verify functionality"
-        handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
-        cc = CryptContext(handlers, policy=None)
-
-        #run through handlers
-        for crypt in handlers:
-            h = cc.encrypt("test", scheme=crypt.name)
-            self.assertEqual(cc.identify(h), crypt.name)
-            self.assertEqual(cc.identify(h, resolve=True), crypt)
-            self.assertTrue(cc.verify('test', h))
-            self.assertTrue(not cc.verify('notest', h))
-
-        #test default
-        h = cc.encrypt("test")
-        self.assertEqual(cc.identify(h), "md5_crypt")
-
-        #test genhash
-        h = cc.genhash('secret', cc.genconfig())
-        self.assertEqual(cc.identify(h), 'md5_crypt')
-
-        h = cc.genhash('secret', cc.genconfig(), scheme='md5_crypt')
-        self.assertEqual(cc.identify(h), 'md5_crypt')
-
-        self.assertRaises(ValueError, cc.genhash, 'secret', cc.genconfig(), scheme="des_crypt")
-
-    def test_21_identify(self):
-        "test identify() border cases"
-        handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
-        cc = CryptContext(handlers, policy=None)
-
-        #check unknown hash
-        self.assertEqual(cc.identify('$9$232323123$1287319827'), None)
-        self.assertRaises(ValueError, cc.identify, '$9$232323123$1287319827', required=True)
-
-    def test_22_verify(self):
-        "test verify() scheme kwd"
-        handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
-        cc = CryptContext(handlers, policy=None)
-
-        h = hash.md5_crypt.encrypt("test")
-
-        #check base verify
-        self.assertTrue(cc.verify("test", h))
-        self.assertTrue(not cc.verify("notest", h))
-
-        #check verify using right alg
-        self.assertTrue(cc.verify('test', h, scheme='md5_crypt'))
-        self.assertTrue(not cc.verify('notest', h, scheme='md5_crypt'))
-
-        #check verify using wrong alg
-        self.assertRaises(ValueError, cc.verify, 'test', h, scheme='bsdi_crypt')
-
-    def test_24_min_verify_time(self):
-        "test verify() honors min_verify_time"
-        #NOTE: this whole test assumes time.sleep() and tick()
-        #      have better than 100ms accuracy - set via delta.
-        delta = .05
-        min_delay = 2*delta
-        min_verify_time = 5*delta
-        max_delay = 8*delta
-
-        class TimedHash(uh.StaticHandler):
-            "psuedo hash that takes specified amount of time"
-            name = "timed_hash"
-            delay = 0
-
-            @classmethod
-            def identify(cls, hash):
-                return True
-
-            def _calc_checksum(self, secret):
-                time.sleep(self.delay)
-                return to_unicode(secret + 'x')
-
-        # silence deprecation warnings for min verify time
-        with catch_warnings(record=True) as wlog:
-            cc = CryptContext([TimedHash], min_verify_time=min_verify_time)
-        self.consumeWarningList(wlog, DeprecationWarning)
-
-        def timecall(func, *args, **kwds):
-            start = tick()
-            result = func(*args, **kwds)
-            end = tick()
-            return end-start, result
-
-        #verify genhash delay works
-        TimedHash.delay = min_delay
-        elapsed, result = timecall(TimedHash.genhash, 'stub', None)
-        self.assertEqual(result, 'stubx')
-        self.assertAlmostEqual(elapsed, min_delay, delta=delta)
-
-        #ensure min verify time is honored
-        elapsed, result = timecall(cc.verify, "stub", "stubx")
-        self.assertTrue(result)
-        self.assertAlmostEqual(elapsed, min_delay, delta=delta)
-
-        elapsed, result = timecall(cc.verify, "blob", "stubx")
-        self.assertFalse(result)
-        self.assertAlmostEqual(elapsed, min_verify_time, delta=delta)
-
-        #ensure taking longer emits a warning.
-        TimedHash.delay = max_delay
-        with catch_warnings(record=True) as wlog:
-            elapsed, result = timecall(cc.verify, "blob", "stubx")
-        self.assertFalse(result)
-        self.assertAlmostEqual(elapsed, max_delay, delta=delta)
-        self.consumeWarningList(wlog, ".*verify exceeded min_verify_time")
-
-    def test_25_verify_and_update(self):
-        "test verify_and_update()"
-        cc = CryptContext(**self.sample_policy_1)
-
-        #create some hashes
-        h1 = cc.encrypt("password", scheme="des_crypt")
-        h2 = cc.encrypt("password", scheme="sha256_crypt")
-
-        #check bad password, deprecated hash
-        ok, new_hash = cc.verify_and_update("wrongpass", h1)
-        self.assertFalse(ok)
-        self.assertIs(new_hash, None)
-
-        #check bad password, good hash
-        ok, new_hash = cc.verify_and_update("wrongpass", h2)
-        self.assertFalse(ok)
-        self.assertIs(new_hash, None)
-
-        #check right password, deprecated hash
-        ok, new_hash = cc.verify_and_update("password", h1)
-        self.assertTrue(ok)
-        self.assertTrue(cc.identify(new_hash), "sha256_crypt")
-
-        #check right password, good hash
-        ok, new_hash = cc.verify_and_update("password", h2)
-        self.assertTrue(ok)
-        self.assertIs(new_hash, None)
 
     #=========================================================
     # border cases
@@ -1050,63 +681,10 @@ class CryptContextTest(TestCase):
                 ((), {}),
                 ]:
 
-            self.assertRaises(TypeError, cc.identify, hash, **kwds)
-            self.assertRaises(TypeError, cc.genhash, 'stub', hash, **kwds)
-            self.assertRaises(TypeError, cc.verify, 'stub', hash, **kwds)
-            self.assertRaises(TypeError, cc.verify_and_update, 'stub', hash, **kwds)
             self.assertRaises(TypeError, cc.hash_needs_update, hash, **kwds)
 
-        #
-        # but genhash *should* accept None if default scheme lacks config string.
-        #
         cc2 = CryptContext(["mysql323"])
-        self.assertRaises(TypeError, cc2.identify, None)
-        self.assertIsInstance(cc2.genhash("stub", None), str)
-        self.assertRaises(TypeError, cc2.verify, 'stub', None)
-        self.assertRaises(TypeError, cc2.verify_and_update, 'stub', None)
         self.assertRaises(TypeError, cc2.hash_needs_update, None)
-
-
-    def test_31_nonstring_secret(self):
-        "test non-string password values cause error"
-        cc = CryptContext(["des_crypt"])
-        hash = cc.encrypt("stub")
-        #
-        # test secret=None, or some other non-string causes TypeError
-        #
-        for secret, kwds in [
-                (None, {}),
-                (None, {"scheme": "des_crypt"}),
-                (1, {}),
-                ((), {}),
-                ]:
-            self.assertRaises(TypeError, cc.encrypt, secret, **kwds)
-            self.assertRaises(TypeError, cc.genhash, secret, hash, **kwds)
-            self.assertRaises(TypeError, cc.verify, secret, hash, **kwds)
-            self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
-
-    #=========================================================
-    # other
-    #=========================================================
-    def test_90_bcrypt_normhash(self):
-        "teset verify_and_update / hash_needs_update corrects bcrypt padding"
-        # see issue 25.
-        bcrypt = hash.bcrypt
-
-        PASS1 = "loppux"
-        BAD1  = "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
-        GOOD1 = "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"
-        ctx = CryptContext(["bcrypt"])
-
-        with catch_warnings(record=True) as wlog:
-            self.assertTrue(ctx.hash_needs_update(BAD1))
-            self.assertFalse(ctx.hash_needs_update(GOOD1))
-
-            if bcrypt.has_backend():
-                self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
-                self.assertEqual(ctx.verify_and_update("x",BAD1), (False,None))
-                res = ctx.verify_and_update(PASS1, BAD1)
-                self.assertTrue(res[0] and res[1] and res[1] != BAD1)
 
     #=========================================================
     #eoc
