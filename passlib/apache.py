@@ -15,7 +15,7 @@ from warnings import warn
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
-from passlib.utils import consteq, render_bytes, to_bytes, deprecated_method
+from passlib.utils import consteq, render_bytes, to_bytes, deprecated_method, is_ascii_codec
 from passlib.utils.compat import b, bytes, join_bytes, str_to_bascii, u, \
                                  unicode, BytesIO, iteritems, imap, PY3
 #pkg
@@ -34,14 +34,6 @@ _BCOLON = b(":")
 
 # byte values that aren't allowed in fields.
 _INVALID_FIELD_CHARS = b(":\n\r\t\x00")
-
-# helpers to detect non-ascii codecs
-_ASCII_TEST_BYTES = b("\x00\n aA:#!\x7f")
-_ASCII_TEST_UNICODE = _ASCII_TEST_BYTES.decode("ascii")
-
-def is_ascii_codec(codec):
-    "test if codec is 7-bit ascii safe (e.g. latin-1, utf-8; but not utf-16)"
-    return _ASCII_TEST_UNICODE.encode(codec) == _ASCII_TEST_BYTES
 
 #=========================================================
 # backport of OrderedDict for PY2.5

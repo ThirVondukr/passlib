@@ -512,6 +512,13 @@ def right_pad_string(source, size, pad=None):
 #=============================================================================
 # encoding helpers
 #=============================================================================
+_ASCII_TEST_BYTES = b("\x00\n aA:#!\x7f")
+_ASCII_TEST_UNICODE = _ASCII_TEST_BYTES.decode("ascii")
+
+def is_ascii_codec(codec):
+    "Test if codec is compatible with 7-bit ascii (e.g. latin-1, utf-8; but not utf-16)"
+    return _ASCII_TEST_UNICODE.encode(codec) == _ASCII_TEST_BYTES
+
 def is_same_codec(left, right):
     "check if two codec names are aliases for same codec"
     if left == right:

@@ -65,6 +65,7 @@ Bytes Helpers
 Encoding Helpers
 ================
 .. autofunction:: is_same_codec
+.. autofunction:: is_ascii_codec
 .. autofunction:: is_ascii_safe
 .. autofunction:: to_bytes
 .. autofunction:: to_unicode
