@@ -10,7 +10,7 @@ from warnings import warn
 #site
 #libs
 from passlib.utils import to_native_str, consteq
-from passlib.utils.compat import bytes, unicode, u, base_string_types
+from passlib.utils.compat import bytes, unicode, u, b, base_string_types
 import passlib.utils.handlers as uh
 #pkg
 #local
@@ -59,6 +59,17 @@ class unix_fallback(uh.StaticHandler):
         super(unix_fallback, self).__init__(**kwds)
         self.enable_wildcard = enable_wildcard
 
+    @classmethod
+    def genhash(cls, secret, config):
+        # override default to preserve checksum
+        if config is None:
+            return cls.encrypt(secret)
+        else:
+            uh.validate_secret(secret)
+            self = cls.from_string(config)
+            self.checksum = self._calc_checksum(secret)
+            return self.to_string()
+
     def _calc_checksum(self, secret):
         if self.checksum:
             # NOTE: hash will generally be "!", but we want to preserve
@@ -77,27 +88,27 @@ class unix_fallback(uh.StaticHandler):
         else:
             return enable_wildcard
 
+_MARKER_CHARS = u("*!")
+_MARKER_BYTES = b("*!")
+
 class unix_disabled(uh.PasswordHash):
     """This class provides disabled password behavior for unix shadow files,
-    and follows the :ref:`password-hash-api`. This class does not implement a
-    hash, but instead provides disabled account behavior as found in
-    ``/etc/shadow`` on most unix variants.
+    and follows the :ref:`password-hash-api`.
 
-    * this class will positively identify all hash strings.
-      because of this it should be checked last.
-    * "encrypting" a password will simply return the disabled account marker.
-    * it will reject all passwords, no matter the hash.
-
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` method supports one optional keyword:
+    This class does not implement a hash, but instead matches the "disabled account"
+    strings found in ``/etc/shadow`` on most Unix variants. "encrypting" a password
+    will simply return the disabled account marker. It will reject all passwords,
+    no matter the hash string. The :meth:`~passlib.ifc.PasswordHash.encrypt`
+    method supports one optional keyword:
 
     :type marker: str
     :param marker:
         Optional marker string which overrides the platform default
         used to indicate a disabled account.
 
-        If not specified, this will default to ``*`` on BSD systems,
-        and use the Linux default ``!`` for all other platforms.
-        (:attr:`!unix_disabled.marker` will contain the default value)
+        If not specified, this will default to ``"*"`` on BSD systems,
+        and use the Linux default ``"!"`` for all other platforms.
+        (:attr:`!unix_disabled.default_marker` will contain the default value)
 
     .. versionadded:: 1.6
         This class was added as a replacement for the now-deprecated
@@ -107,20 +118,36 @@ class unix_disabled(uh.PasswordHash):
     setting_kwds = ("marker",)
     context_kwds = ()
 
-    if 'bsd' in sys.platform:
-        marker = u("*")
+    if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
+        default_marker = u("*")
     else:
         # use the linux default for other systems
         # (glibc also supports adding old hash after the marker
         # so it can be restored later).
-        marker = u("!")
+        default_marker = u("!")
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, base_string_types):
-            return True
+        # NOTE: technically, anything in the /etc/shadow password field
+        #       which isn't valid crypt() output counts as "disabled".
+        #       but that's rather ambiguous, and it's hard to predict what
+        #       valid output is for unknown crypt() implementations.
+        #       so to be on the safe side, we only match things *known*
+        #       to be disabled field indicators, and will add others
+        #       as they are found. things beginning w/ "$" should *never* match.
+        #
+        # things currently matched:
+        #       * linux uses "!"
+        #       * bsd uses "*"
+        #       * linux may use "!" + hash to disable but preserve original hash
+        #       * linux counts empty string as "any password"
+        if isinstance(hash, unicode):
+            start = _MARKER_CHARS
+        elif isinstance(hash, bytes):
+            start = _MARKER_BYTES
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")
+        return not hash or hash[0] in start
 
     @classmethod
     def encrypt(cls, secret, marker=None):
@@ -129,8 +156,8 @@ class unix_disabled(uh.PasswordHash):
     @classmethod
     def verify(cls, secret, hash):
         uh.validate_secret(secret)
-        if not isinstance(hash, base_string_types):
-            raise uh.exc.ExpectedStringError(hash, "hash")
+        if not cls.identify(hash): # handles typecheck
+            raise uh.exc.InvalidHashError(cls)
         return False
 
     @classmethod
@@ -140,15 +167,20 @@ class unix_disabled(uh.PasswordHash):
     @classmethod
     def genhash(cls, secret, config, marker=None):
         uh.validate_secret(secret)
-        if config is not None:
-            # NOTE: config/hash will generally be "!" or "*",
-            # but we want to preserve it in case it has some other content,
-            # such as ``"!"  + original hash``, which glibc uses.
-            # XXX: should this detect mcf header, or other things re:
-            # local system policy?
+        if config is not None and not cls.identify(config): # handles typecheck
+            raise uh.exc.InvalidHashError(cls)
+        if config:
+            # we want to preserve the existing str,
+            # since it might contain a disabled password hash ("!" + hash)
             return to_native_str(config, param="config")
+        # if None or empty string, replace with marker
+        if marker:
+            if not cls.identify(marker):
+                raise ValueError("invalid marker: %r" % marker)
         else:
-            return to_native_str(marker or cls.marker, param="marker")
+            marker = cls.default_marker
+            assert marker and cls.identify(marker)
+        return to_native_str(marker, param="marker")
 
 class plaintext(uh.PasswordHash):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

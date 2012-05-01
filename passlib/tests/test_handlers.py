@@ -2635,7 +2635,7 @@ class sun_md5_crypt_test(HandlerCase):
 #=========================================================
 class unix_disabled_test(HandlerCase):
     handler = hash.unix_disabled
-    accepts_all_hashes = True
+#    accepts_all_hashes = True # TODO: turn this off.
     is_disabled_handler = True
 
     known_correct_hashes = [
@@ -2645,18 +2645,34 @@ class unix_disabled_test(HandlerCase):
         (UPASS_TABLE, "*"),
     ]
 
-    # TODO: test custom marker support
-    # TODO: test default marker selection
+    known_unidentified_hashes = [
+        # should never identify anything crypt() could return...
+        "$1$xxx",
+        "abc",
+        "./az",
+        "{SHA}xxx",
+    ]
 
-    def test_90_preserves_existing(self):
-        "test preserves existing disabled hash"
+    def test_76_hash_border(self):
+        # so empty strings pass
+        self.accepts_all_hashes = True
+        super(unix_disabled_test, self).test_76_hash_border()
+
+    def test_90_special(self):
+        "test marker option & special behavior"
         handler = self.handler
 
-        # use marker if no hash
-        self.assertEqual(handler.genhash("stub", None), handler.marker)
-
-        # use hash if provided and valid
+        # preserve hash if provided
         self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
+
+        # use marker if no hash
+        self.assertEqual(handler.genhash("stub", None), handler.default_marker)
+
+        # custom marker
+        self.assertEqual(handler.genhash("stub", None, marker="*xxx"), "*xxx")
+
+        # reject invalid marker
+        self.assertRaises(ValueError, handler.genhash, 'stub', None, marker='abc')
 
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback
@@ -2682,6 +2698,16 @@ class unix_fallback_test(HandlerCase):
         for c in ("!*x"):
             self.assertFalse(h.verify('password',c, enable_wildcard=True))
             self.assertFalse(h.verify('password',c))
+
+    def test_91_preserves_existing(self):
+        "test preserves existing disabled hash"
+        handler = self.handler
+
+        # use marker if no hash
+        self.assertEqual(handler.genhash("stub", None), "!")
+
+        # use hash if provided and valid
+        self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
 
 #=========================================================
 # eof
