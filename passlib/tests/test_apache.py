@@ -12,7 +12,7 @@ import time
 #pkg
 from passlib import apache
 from passlib.utils.compat import irange, unicode
-from passlib.tests.utils import TestCase, mktemp, gae_env, get_file, set_file
+from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings
 from passlib.utils.compat import b, bytes, u
 #module
 log = getLogger(__name__)
@@ -56,24 +56,45 @@ class HtpasswdFileTest(TestCase):
 
     def test_00_constructor_autoload(self):
         "test constructor autoload"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
         # check with existing file
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path)
         self.assertEqual(ht.to_string(), self.sample_01)
+        self.assertEqual(ht.path, path)
+        self.assertTrue(ht.mtime)
 
-        # check without autoload
+        # check changing path
+        ht.path = path + "x"
+        self.assertEqual(ht.path, path + "x")
+        self.assertFalse(ht.mtime)
+
+        # check new=True
         ht = apache.HtpasswdFile(path, new=True)
         self.assertEqual(ht.to_string(), b(""))
+        self.assertEqual(ht.path, path)
+        self.assertFalse(ht.mtime)
+
+        # check autoload=False (deprecated alias for new=True)
+        with self.assertWarningList("``autoload=False`` is deprecated"):
+            ht = apache.HtpasswdFile(path, autoload=False)
+        self.assertEqual(ht.to_string(), b(""))
+        self.assertEqual(ht.path, path)
+        self.assertFalse(ht.mtime)
 
         # check missing file
         os.remove(path)
         self.assertRaises(IOError, apache.HtpasswdFile, path)
 
         #NOTE: "default_scheme" option checked via set_password() test, among others
+
+    def test_00_from_path(self):
+        path = self.mktemp()
+        set_file(path, self.sample_01)
+        ht = apache.HtpasswdFile.from_path(path)
+        self.assertEqual(ht.to_string(), self.sample_01)
+        self.assertEqual(ht.path, None)
+        self.assertFalse(ht.mtime)
 
     def test_01_delete(self):
         "test delete()"
@@ -87,9 +108,7 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(ValueError, ht.delete, "user:")
 
     def test_01_delete_autosave(self):
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-        path = mktemp()
+        path = self.mktemp()
         sample = b('user1:pass1\nuser2:pass2\n')
         set_file(path, sample)
 
@@ -109,13 +128,23 @@ class HtpasswdFileTest(TestCase):
         self.assertFalse(ht.set_password("user5", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
 
+        # test legacy default kwd
+        with self.assertWarningList("``default`` is deprecated"):
+            ht = apache.HtpasswdFile.from_string(self.sample_01, default="plaintext")
+        self.assertTrue(ht.set_password("user2", "pass2x"))
+        self.assertFalse(ht.set_password("user5", "pass5"))
+        self.assertEqual(ht.to_string(), self.sample_03)
+
         # invalid user
         self.assertRaises(ValueError, ht.set_password, "user:", "pass")
 
+        # test that legacy update() still works
+        with self.assertWarningList("update\(\) is deprecated"):
+            ht.update("user2", "test")
+        self.assertTrue(ht.check_password("user2", "test"))
+
     def test_02_set_password_autosave(self):
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-        path = mktemp()
+        path = self.mktemp()
         sample = b('user1:pass1\n')
         set_file(path, sample)
 
@@ -139,6 +168,7 @@ class HtpasswdFileTest(TestCase):
     def test_04_check_password(self):
         "test check_password()"
         ht = apache.HtpasswdFile.from_string(self.sample_01)
+        self.assertRaises(TypeError, ht.check_password, 1, 'pass5')
         self.assertTrue(ht.check_password("user5","pass5") is None)
         for i in irange(1,5):
             i = str(i)
@@ -147,39 +177,41 @@ class HtpasswdFileTest(TestCase):
 
         self.assertRaises(ValueError, ht.check_password, "user:", "pass")
 
+        # test that legacy verify() still works
+        with self.assertWarningList(["verify\(\) is deprecated"]*2):
+            self.assertTrue(ht.verify("user1", "pass1"))
+            self.assertFalse(ht.verify("user1", "pass2"))
+
     def test_05_load(self):
         "test load()"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
-        #setup empty file
-        path = mktemp()
+        # setup empty file
+        path = self.mktemp()
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtpasswdFile(path, default_scheme="plaintext")
         self.assertEqual(ha.to_string(), b(""))
 
-        #make changes, check load_if_changed() does nothing
+        # make changes, check load_if_changed() does nothing
         ha.set_password("user1", "pass1")
         ha.load_if_changed()
         self.assertEqual(ha.to_string(), b("user1:pass1\n"))
 
-        #change file
+        # change file
         set_file(path, self.sample_01)
         ha.load_if_changed()
         self.assertEqual(ha.to_string(), self.sample_01)
 
-        #make changes, check load() overwrites them
+        # make changes, check load() overwrites them
         ha.set_password("user5", "pass5")
         ha.load()
         self.assertEqual(ha.to_string(), self.sample_01)
 
-        #test load w/ no path
+        # test load w/ no path
         hb = apache.HtpasswdFile()
         self.assertRaises(RuntimeError, hb.load)
         self.assertRaises(RuntimeError, hb.load_if_changed)
 
-        #test load w/ dups and explicit path
+        # test load w/ dups and explicit path
         set_file(path, self.sample_dup)
         hc = apache.HtpasswdFile()
         hc.load(path)
@@ -189,11 +221,8 @@ class HtpasswdFileTest(TestCase):
 
     def test_06_save(self):
         "test save()"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
         #load from file
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path)
 
@@ -222,12 +251,27 @@ class HtpasswdFileTest(TestCase):
                                              return_unicode=True)
         self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
+        # test deprecated encoding=None
+        with self.assertWarningList("``encoding=None`` is deprecated"):
+            ht = apache.HtpasswdFile.from_string(self.sample_04_utf8, encoding=None)
+        self.assertEqual(ht.users(), [ b('user\xc3\xa6') ])
+
         # check sample latin-1
         ht = apache.HtpasswdFile.from_string(self.sample_04_latin1,
                                               encoding="latin-1", return_unicode=True)
         self.assertEqual(ht.users(), [ u("user\u00e6") ])
 
-    def test_08_to_string(self):
+    def test_08_get_hash(self):
+        "test get_hash()"
+        ht = apache.HtpasswdFile.from_string(self.sample_01)
+        self.assertEqual(ht.get_hash("user3"), b("{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo="))
+        self.assertEqual(ht.get_hash("user4"), b("pass4"))
+        self.assertEqual(ht.get_hash("user5"), None)
+
+        with self.assertWarningList("find\(\) is deprecated"):
+            self.assertEqual(ht.find("user4"), b("pass4"))
+
+    def test_09_to_string(self):
         "test to_string"
 
         # check with known sample
@@ -237,6 +281,21 @@ class HtpasswdFileTest(TestCase):
         # test blank
         ht = apache.HtpasswdFile()
         self.assertEqual(ht.to_string(), b(""))
+
+    def test_10_repr(self):
+        ht = apache.HtpasswdFile("fakepath", autosave=True, new=True, encoding="latin-1")
+        repr(ht)
+
+    def test_11_malformed(self):
+        self.assertRaises(ValueError, apache.HtpasswdFile.from_string,
+            b('realm:user1:pass1\n'))
+        self.assertRaises(ValueError, apache.HtpasswdFile.from_string,
+            b('pass1\n'))
+
+    def test_12_from_string(self):
+        # forbid path kwd
+        self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
+                          b(''), path=None)
 
     #=========================================================
     #eoc
@@ -272,11 +331,8 @@ class HtdigestFileTest(TestCase):
 
     def test_00_constructor_autoload(self):
         "test constructor autoload"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
         # check with existing file
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
         self.assertEqual(ht.to_string(), self.sample_01)
@@ -307,9 +363,7 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(ValueError, ht.delete, "user", "realm:")
 
     def test_01_delete_autosave(self):
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, self.sample_01)
 
         ht = apache.HtdigestFile(path)
@@ -343,6 +397,11 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(ValueError, ht.set_password, "user", "realm:", "pass")
         self.assertRaises(ValueError, ht.set_password, "user", "r"*256, "pass")
 
+        # test that legacy update() still works
+        with self.assertWarningList("update\(\) is deprecated"):
+            ht.update("user2", "realm2", "test")
+        self.assertTrue(ht.check_password("user2", "test"))
+
     # TODO: test set_password autosave
 
     def test_03_users(self):
@@ -353,9 +412,13 @@ class HtdigestFileTest(TestCase):
         ht.set_password("user3", "realm", "pass3")
         self.assertEqual(ht.users("realm"), ["user2", "user4", "user1", "user5", "user3"])
 
+        self.assertRaises(TypeError, ht.users, 1)
+
     def test_04_check_password(self):
         "test check_password()"
         ht = apache.HtdigestFile.from_string(self.sample_01)
+        self.assertRaises(TypeError, ht.check_password, 1, 'realm', 'pass5')
+        self.assertRaises(TypeError, ht.check_password, 'user', 1, 'pass5')
         self.assertIs(ht.check_password("user5", "realm","pass5"), None)
         for i in irange(1,5):
             i = str(i)
@@ -368,16 +431,18 @@ class HtdigestFileTest(TestCase):
         self.assertTrue(ht.check_password("user1", "pass1"))
         self.assertIs(ht.check_password("user5", "pass5"), None)
 
+        # test that legacy verify() still works
+        with self.assertWarningList(["verify\(\) is deprecated"]*2):
+            self.assertTrue(ht.verify("user1", "realm", "pass1"))
+            self.assertFalse(ht.verify("user1", "realm", "pass2"))
+
         # invalid user
         self.assertRaises(ValueError, ht.check_password, "user:", "realm", "pass")
 
     def test_05_load(self):
         "test load()"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
         #setup empty file
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtdigestFile(path)
@@ -393,7 +458,7 @@ class HtdigestFileTest(TestCase):
         ha.load_if_changed()
         self.assertEqual(ha.to_string(), self.sample_01)
 
-        #make changes, check force=True overwrites them
+        #make changes, check load_if_changed overwrites them
         ha.set_password("user5", "realm", "pass5")
         ha.load()
         self.assertEqual(ha.to_string(), self.sample_01)
@@ -408,13 +473,17 @@ class HtdigestFileTest(TestCase):
         hc.load(path)
         self.assertEqual(hc.to_string(), self.sample_01)
 
+        #change file, test deprecated force=True kwd
+        time.sleep(.1) # pause so mtime changes
+        set_file(path, "")
+        with self.assertWarningList(r"load\(force=False\) is deprecated"):
+            ha.load(force=False)
+        self.assertEqual(ha.to_string(), b(""))
+
     def test_06_save(self):
         "test save()"
-        if gae_env:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
         #load from file
-        path = mktemp()
+        path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
 
@@ -451,6 +520,9 @@ class HtdigestFileTest(TestCase):
         self.assertEqual(ht.get_hash("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
         self.assertEqual(ht.get_hash("user5", "realm"), None)
 
+        with self.assertWarningList("find\(\) is deprecated"):
+            self.assertEqual(ht.find("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
+
     def test_09_encodings(self):
         "test encoding parameter"
         # test bad encodings cause failure in constructor
@@ -476,6 +548,12 @@ class HtdigestFileTest(TestCase):
         # check blank
         ht = apache.HtdigestFile()
         self.assertEqual(ht.to_string(), b(""))
+
+    def test_11_malformed(self):
+        self.assertRaises(ValueError, apache.HtdigestFile.from_string,
+            b('realm:user1:pass1:other\n'))
+        self.assertRaises(ValueError, apache.HtdigestFile.from_string,
+            b('user1:pass1\n'))
 
     #=========================================================
     #eoc

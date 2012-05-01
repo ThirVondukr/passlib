@@ -9,6 +9,7 @@ from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 import os
 import sys
+from warnings import warn
 #site
 #libs
 from passlib.context import CryptContext
@@ -235,7 +236,7 @@ class _CommonFile(object):
             warn("%(name)s.load(force=False) is deprecated as of Passlib 1.6,"
                  "and will be removed in Passlib 1.8; "
                  "use %(name)s.load_if_changed() instead." %
-                 self.__class__.__name__,
+                 dict(name=self.__class__.__name__),
                  DeprecationWarning, stacklevel=2)
             return self.load_if_changed()
         elif self._path:
