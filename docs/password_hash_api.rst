@@ -480,14 +480,16 @@ the hashes in passlib:
         offer the same level of security.
 
     ``relaxed``
-        If supported, ``relaxed=True`` will cause the handler to
-        be more forgiving about invalid input. Instead of immediately throwing
-        a :exc:`ValueError`, it will first attempt to correct the input,
-        and issue a :exc:`~passlib.exc.PasslibHashWarning` if successful.
-        This includes actions like clamping out-of-range rounds values,
-        and truncating salts that are too long.
+        By default, passing :meth:`~PasswordHash.encrypt` an invalid
+        value will result in a :exc:`ValueError`. However, if ``relaxed=True``,
+        Passlib will attempt to correct the error, and if successful,
+        issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
+        This warning may then be filtered if desired.
+        Correctable errors include (but aren not limited to): ``rounds``
+        and ``salt_size`` values that are too low or too high, ``salt``
+        strings that are too large, etc.
 
-        Many of the hashes in Passlib support this option, even if it's not listed.
+        This option is supported by most of the hashes in Passlib.
 
 .. attribute:: PasswordHash.context_kwds
 

@@ -385,6 +385,16 @@ class sha256_crypt(_SHA2_Common):
         when encoding it to a string; this is only permitted by the spec for rounds=5000,
         and the flag is ignored otherwise. the spec requires the two different
         encodings be preserved as they are, instead of normalizing them.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
     #=========================================================
     # class attrs
@@ -435,6 +445,16 @@ class sha512_crypt(_SHA2_Common):
         when encoding it to a string; this is only permitted by the spec for rounds=5000,
         and the flag is ignored otherwise. the spec requires the two different
         encodings be preserved as they are, instead of normalizing them.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
 
     #=========================================================
