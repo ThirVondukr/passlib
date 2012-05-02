@@ -435,6 +435,9 @@ the hashes in passlib:
     the specific settings the hash uses, the following keywords should have
     roughly the same behavior for all the hashes that support them:
 
+    .. index:: 
+        single: salt; PasswordHash keyword
+
     ``salt``
         Specifies a fixed salt string to use, rather than randomly
         generating one.
@@ -447,6 +450,9 @@ the hashes in passlib:
         :class:`!bytes` instance, with additional constraints
         appropriate to the algorithm.
 
+    .. index:: 
+        single: salt_size; PasswordHash keyword
+
     ``salt_size``
 
         Most algorithms which support the ``salt`` setting will
@@ -454,6 +460,9 @@ the hashes in passlib:
         will also offer this option, which allows the caller to specify
         the size of salt which should be generated. If omitted,
         the hash's default salt size will be used.
+
+    .. index:: 
+        single: rounds; PasswordHash keyword
 
     ``rounds``
         If present, this means the hash can vary the number
@@ -470,6 +479,9 @@ the hashes in passlib:
         are periodically retuned to strike a balance between
         security and responsiveness.
 
+    .. index:: 
+        single: ident; PasswordHash keyword
+
     ``ident``
         If present, the class supports multiple formats for encoding
         the same hash. The class's documentation will generally list
@@ -478,6 +490,9 @@ the hashes in passlib:
         Note that these values will typically correspond to different
         revision of the hash algorithm itself, and they may not all
         offer the same level of security.
+
+    .. index:: 
+        single: relaxed; PasswordHash keyword
 
     ``relaxed``
         By default, passing :meth:`~PasswordHash.encrypt` an invalid
@@ -508,12 +523,18 @@ the hashes in passlib:
     the following keywords should have roughly the same behavior
     for all the hashes that support them:
 
+    .. index:: 
+        single: user; PasswordHash keyword
+
     ``user``
 
         If present, the class requires a username be specified whenever
         performing a hash calculation (e.g.
         :class:`~passlib.hash.postgres_md5` and
         :class:`~passlib.hash.oracle10`).
+
+    .. index:: 
+        single: encoding; PasswordHash keyword
 
     ``encoding``
 

@@ -126,8 +126,8 @@ Existing Hashes
         The BCrypt hash now supports the `crypt_blowfish <http://www.openwall.com/crypt/>`_ project's
         ``$2y$`` hash prefix.
 
-        As well, Passlib now offers an (experimental) pure-python implementation
-        of BCrypt. Unfortunately, it's still *way too slow* to be
+        On an unrelated note, Passlib now offers an (experimental) pure-python
+        implementation of BCrypt. Unfortunately, it's still *WAY* too slow to be
         suitable for production use; and is disabled by default.
         If you really need it, see the BCrypt :ref:`documentation <bcrypt-backends>`
         for how to enable it.

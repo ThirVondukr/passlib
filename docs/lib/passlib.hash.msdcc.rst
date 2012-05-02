@@ -1,4 +1,7 @@
-.. index:: msdcc; Windows; Domain Cached Credentials
+.. index:: 
+    single: Windows; Domain Cached Credentials
+    see: mscash; msdcc
+    see: mscache; msdcc
 
 ======================================================================
 :class:`passlib.hash.msdcc` - Windows' Domain Cached Credentials

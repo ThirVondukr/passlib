@@ -1,4 +1,4 @@
-.. index:: solaris; sun_md5_crypt
+.. index:: Solaris; sun_md5_crypt
 
 =================================================================
 :class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt

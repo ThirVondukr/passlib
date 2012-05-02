@@ -1,4 +1,4 @@
-.. index:: mysql; PASSWORD()
+.. index:: MySQL; PASSWORD()
 
 =====================================================================
 :class:`passlib.hash.mysql41` - MySQL 4.1 password hash

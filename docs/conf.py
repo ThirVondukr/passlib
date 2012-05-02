@@ -150,6 +150,7 @@ if html_theme in ['cloud', 'redcloud']:
         html_theme_options['googleanalytics_path'] = '/passlib/'
 else:
     html_theme_options = {}
+html_theme_options.update(issueicon=r'"\21D7"')
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = [csp.get_theme_dir()]

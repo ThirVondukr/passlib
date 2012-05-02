@@ -1,4 +1,4 @@
-.. index:: windows; nt hash
+.. index:: Windows; NT hash
 
 ==================================================================
 :class:`passlib.hash.nthash` - Windows' NT-HASH

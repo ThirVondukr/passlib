@@ -159,7 +159,7 @@ standard format for encoding password hashes using this algorithm
     the external M2Crypto package to speed up PBKDF2 calculations,
     though this is not required.
 
-.. index:: scrypt; status of
+.. index:: SCrypt; status of
 
 What about SCrypt?
 ..................

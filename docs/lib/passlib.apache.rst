@@ -16,7 +16,7 @@ htpasswd and htdigest files; though the use of two helper classes.
     No more backwards-incompatible changes are currently planned
     for these classes.
 
-.. index:: apache; htpasswd
+.. index:: Apache; htpasswd
 
 Htpasswd Files
 ==============
@@ -54,7 +54,7 @@ A quick summary of it's usage::
 
 .. autoclass:: HtpasswdFile(path=None, new=False, autosave=False, ...)
 
-.. index:: apache; htdigest
+.. index:: Apache; htdigest
 
 Htdigest Files
 ==============

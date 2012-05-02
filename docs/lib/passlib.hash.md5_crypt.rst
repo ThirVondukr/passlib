@@ -1,4 +1,4 @@
-.. index:: cisco; type 5 hash
+.. index:: Cisco; Type 5 hash
 
 ==================================================================
 :class:`passlib.hash.md5_crypt` - MD5 Crypt

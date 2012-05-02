@@ -3,7 +3,7 @@
 ===========================================================================
 
 .. index::
-    pair: atlassian; pbkdf2 hash
+    pair: Atlassian; pbkdf2 hash
 
 .. currentmodule:: passlib.hash
 

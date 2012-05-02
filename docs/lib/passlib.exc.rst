@@ -12,7 +12,8 @@ Exceptions
 ==========
 .. autoexception:: MissingBackendError
 
-.. index:: environmental variable; PASSLIB_MAX_PASSWORD_SIZE
+.. index::
+    pair: environmental variable; PASSLIB_MAX_PASSWORD_SIZE
 
 .. autoexception:: PasswordSizeError
 

@@ -7,9 +7,9 @@ class MissingBackendError(RuntimeError):
     or if specifically requested backend is not available.
 
     :exc:`!MissingBackendError` derives
-    from :exc:`RuntimeError`, since this usually indicates
+    from :exc:`RuntimeError`, since it usually indicates
     lack of an external library or OS feature.
-    This is primarily raised by handlers which depend on 
+    This is primarily raised by handlers which depend on
     external libraries -- which is currently just
     :class:`~passlib.hash.bcrypt`.
     """
@@ -23,7 +23,8 @@ class PasswordSizeError(ValueError):
     a potential denial of service (DOS) situation if a maliciously large
     password is provided to an application. Because of this, Passlib enforces
     a maximum size limit, but one which should be *much* larger
-    than any legitimate password.
+    than any legitimate password. :exc:`!PasswordSizeError` derives
+    from :exc:`!ValueError`. 
 
     .. note::
         Applications wishing to use a different limit should set the

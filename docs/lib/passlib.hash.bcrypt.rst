@@ -42,7 +42,8 @@ Interface
 
 .. _bcrypt-backends:
 
-.. index:: environmental variable; PASSLIB_BUILTIN_BCRYPT
+.. index::
+    pair: environmental variable; PASSLIB_BUILTIN_BCRYPT
 
 .. note::
 
