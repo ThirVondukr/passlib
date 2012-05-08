@@ -14,12 +14,11 @@ Overview
 
     Welcome to Passlib 1.6.
 
-    The main goal of this release was to clean up the codebase, reducing
-    the amount of internally-redundant code, and to simplify the publically
-    exposed interface. It also brings with it a number of other improvements:
-    10 or so new hash algorithms, additional security precautions
-    for the existing algorithms, a number of speed improvements,
-    and reorganized documentation.
+    The main goals of this release were to clean up the codebase, tighten input 
+    validation, and simplify the publically exposed interfaces. This release also 
+    brings with it a number of other improvements: 10 or so new hash algorithms, 
+    additional security precautions for the existing algorithms, 
+    a number of speed improvements, and updated documentation.
 
 Deprecated APIs
 ...............
@@ -101,7 +100,7 @@ Existing Hashes
         which exploits short-circuit string comparisons.
         While this attack is not currently feasible against
         most password hashes, some of the weaker unsalted
-        hashes supported Passlib may be vulnerable; and this
+        hashes supported by Passlib may be vulnerable; and this
         change has been made preventatively to all of them.
 
         .. [#consteq] "constant time" is a misnomer, it actually takes ``THETA(len(righthand_value))`` time.

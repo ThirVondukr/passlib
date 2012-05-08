@@ -23,14 +23,14 @@ It can be used directly as follows::
     >>> unix_disabled.verify("letmein", "*NOPASSWORD*")
     False
 
-    >>> # this class will positively identify all strings - so if it's used
-    >>> # in conjunction with other hashes, this should be the last one checked.
+    >>> # this class should identify all strings which aren't
+    >>> # valid Unix crypt() output, while leaving MCF hashes alone
     >>> unix_disabled.identify('!')
-    True
-    >>> unix_disabled.identify('*')
     True
     >>> unix_disabled.identify('')
     True
+    >>> unix_disabled.identify("$1$somehash")
+    False
 
 Interface
 =========

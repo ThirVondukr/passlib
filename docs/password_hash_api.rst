@@ -259,10 +259,10 @@ and hash comparison.
       otherwise non-ASCII passwords may not :meth:`!verify` successfully.
 
     * For historical reasons, :class:`~passlib.hash.lmhash` uses ``cp437``
-      as it's default encoding. It will handle :class:`!unicode` correctly,
-      but non-``ascii`` passwords provided as :class:`!bytes` must be encoded
-      using ``"cp437"``, or the correct encoding must be specified via :class:`!lmhash`'s
-      ``encoding`` keyword.
+      as it's default encoding. It will handle :class:`!unicode` correctly;
+      but non-ASCII passwords provided as :class:`!bytes` must either be encoded
+      using ``"cp437"``, or :class:`!lmhash`'s ``encoding`` keyword must
+      be set to indicate which encoding was used.
 
 .. _crypt-methods:
 
@@ -272,7 +272,7 @@ Taken together, the :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.gen
 are two tightly-coupled methods that mimic the standard Unix
 "crypt" interface. The first method generates salt / configuration
 strings from a set of settings, and the second hashes the password
-using the provided configuration string.
+using the provided configuration string. 
 
 .. seealso::
 
@@ -377,13 +377,16 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
     :returns:
         * ``True`` if the input is a configuration string or hash string
            identifiable as belonging to this scheme (even if it's malformed).
-        * ``False`` if the input does *not* belong to this scheme.
-        * Hashes which lack a reliable method of identification may incorrectly
-          identify each-other's hashes (e.g. both :class:`~passlib.hash.lmhash`
-          and :class:`~passlib.hash.nthash` hash consist 32 hexidecimal characters).
+        * ``False`` if the input does not belong to this scheme.
 
     :raises TypeError:
         if :samp:`{hash}` is not a unicode or bytes instance.
+
+    .. note::
+
+        Hashes which lack a reliable method of identification may incorrectly
+        identify each-other's hashes (e.g. both :class:`~passlib.hash.lmhash`
+        and :class:`~passlib.hash.nthash` hash consist 32 hexidecimal characters).
 
     .. seealso::
 
@@ -456,10 +459,12 @@ the hashes in passlib:
     ``salt_size``
 
         Most algorithms which support the ``salt`` setting will
-        autogenerate a salt when none is provided. Many of those
+        autogenerate a salt when none is provided. Most of those hashes
         will also offer this option, which allows the caller to specify
         the size of salt which should be generated. If omitted,
         the hash's default salt size will be used.
+
+        .. seealso:: the :ref:`salt info <salt-attributes>` attributes (below)
 
     .. index:: 
         single: rounds; PasswordHash keyword
@@ -478,6 +483,8 @@ the hashes in passlib:
         value will be used. The defaults for all the hashes in Passlib
         are periodically retuned to strike a balance between
         security and responsiveness.
+
+        .. seealso:: the :ref:`rounds info <rounds-attributes>` attributes (below)
 
     .. index:: 
         single: ident; PasswordHash keyword
@@ -539,8 +546,8 @@ the hashes in passlib:
     ``encoding``
 
         Some hashes have poorly-defined or host-dependant unicode behavior,
-        and properly hashing a unique password requires providing
-        the correct encoding (e.g. :class:`~passlib.hash.lmhash`).
+        and properly hashing a non-ASCII password requires providing
+        the correct encoding (:class:`~passlib.hash.lmhash` is perhaps the worst offender).
         Hashes which provide this keyword will always expose
         their default encoding programmatically via the
         :attr:`~PasswordHash.default_encoding` attribute.
@@ -574,9 +581,10 @@ and the following attributes should be defined:
 .. attribute:: PasswordHash.salt_chars
 
     A unicode string containing all the characters permitted
-    in a salt string. For most :ref:`MCF <modular-crypt-format>` hashes,
-    this is equal to :data:`passlib.utils.HASH64_CHARS`.
+    in a salt string. 
 
+    For most :ref:`modular-crypt-format` hashes,
+    this is equal to :data:`passlib.utils.HASH64_CHARS`.
     For the rare hashes where the ``salt`` parameter must be specified
     in bytes, this will be a placeholder :class:`!bytes` object containing
     all 256 possible byte values.

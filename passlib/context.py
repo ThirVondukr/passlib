@@ -1830,7 +1830,7 @@ class CryptContext(object):
     ##    return kwds
 
     def handler(self, scheme=None, category=None):
-        """helper to resolve name of scheme -> handler object.
+        """helper to resolve name of scheme -> :class:`~passlib.ifc.PasswordHash` object used by scheme.
 
         :arg scheme:
             This should identify the scheme to lookup.
