@@ -50,6 +50,16 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         * ``1`` - uses SHA-2/256 digest (default).
         * ``2`` - uses SHA-2/384 digest.
         * ``3`` - uses SHA-2/512 digest.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
 
     #=========================================================

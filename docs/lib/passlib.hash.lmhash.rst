@@ -1,4 +1,4 @@
-.. index:: lan manager; hash, windows; lan manager hash
+.. index:: LAN Manager hash, Windows; LAN Manager hash
 
 ==================================================================
 :class:`passlib.hash.lmhash` - LanManager Hash

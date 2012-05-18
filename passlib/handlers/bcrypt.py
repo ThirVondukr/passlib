@@ -78,14 +78,28 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     :type ident: str
     :param ident:
-        selects specific version of BCrypt hash that will be used.
-        Typically you want to leave this alone, and let it default to ``2a``,
-        but it can be set to ``2`` to use the older (and less secure)
-        version of the BCrypt algorithm.
+        Specifies which version of the BCrypt algorithm will be used when creating a new hash. 
+        Typically this option is not needed, as the default (``"2a"``) is usually the correct choice.
+        If specified, it must be one of the following: 
+           
+        * ``"2"`` - the first revision of BCrypt, which suffers from a minor security flaw and is generally not used anymore.
+        * ``"2a"`` - latest revision of the official BCrypt algorithm, and the current default.
+        * ``"2y"`` - format specific to the *crypt_blowfish* BCrypt implementation,
+          identical to ``"2a"`` in all but name.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
 
     .. versionchanged:: 1.6
-        This class now supports ``2y`` hashes, and recognizes
-        (but does not support) the broken ``2x`` hashes.
+        This class now supports ``"2y"`` hashes, and recognizes
+        (but does not support) the broken ``"2x"`` hashes.
         (see the :ref:`crypt_blowfish bug <crypt-blowfish-bug>`
         for details).
     """

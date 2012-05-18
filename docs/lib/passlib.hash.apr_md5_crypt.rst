@@ -1,4 +1,4 @@
-.. index:: apache; md5 password hash
+.. index:: Apache; md5 password hash
 
 ======================================================================
 :class:`passlib.hash.apr_md5_crypt` - Apache's MD5-Crypt variant

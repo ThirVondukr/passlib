@@ -259,10 +259,10 @@ and hash comparison.
       otherwise non-ASCII passwords may not :meth:`!verify` successfully.
 
     * For historical reasons, :class:`~passlib.hash.lmhash` uses ``cp437``
-      as it's default encoding. It will handle :class:`!unicode` correctly,
-      but non-``ascii`` passwords provided as :class:`!bytes` must be encoded
-      using ``"cp437"``, or the correct encoding must be specified via :class:`!lmhash`'s
-      ``encoding`` keyword.
+      as it's default encoding. It will handle :class:`!unicode` correctly;
+      but non-ASCII passwords provided as :class:`!bytes` must either be encoded
+      using ``"cp437"``, or :class:`!lmhash`'s ``encoding`` keyword must
+      be set to indicate which encoding was used.
 
 .. _crypt-methods:
 
@@ -272,7 +272,7 @@ Taken together, the :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.gen
 are two tightly-coupled methods that mimic the standard Unix
 "crypt" interface. The first method generates salt / configuration
 strings from a set of settings, and the second hashes the password
-using the provided configuration string.
+using the provided configuration string. 
 
 .. seealso::
 
@@ -377,13 +377,16 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
     :returns:
         * ``True`` if the input is a configuration string or hash string
            identifiable as belonging to this scheme (even if it's malformed).
-        * ``False`` if the input does *not* belong to this scheme.
-        * Hashes which lack a reliable method of identification may incorrectly
-          identify each-other's hashes (e.g. both :class:`~passlib.hash.lmhash`
-          and :class:`~passlib.hash.nthash` hash consist 32 hexidecimal characters).
+        * ``False`` if the input does not belong to this scheme.
 
     :raises TypeError:
         if :samp:`{hash}` is not a unicode or bytes instance.
+
+    .. note::
+
+        Hashes which lack a reliable method of identification may incorrectly
+        identify each-other's hashes (e.g. both :class:`~passlib.hash.lmhash`
+        and :class:`~passlib.hash.nthash` hash consist 32 hexidecimal characters).
 
     .. seealso::
 
@@ -435,6 +438,9 @@ the hashes in passlib:
     the specific settings the hash uses, the following keywords should have
     roughly the same behavior for all the hashes that support them:
 
+    .. index:: 
+        single: salt; PasswordHash keyword
+
     ``salt``
         Specifies a fixed salt string to use, rather than randomly
         generating one.
@@ -447,13 +453,21 @@ the hashes in passlib:
         :class:`!bytes` instance, with additional constraints
         appropriate to the algorithm.
 
+    .. index:: 
+        single: salt_size; PasswordHash keyword
+
     ``salt_size``
 
         Most algorithms which support the ``salt`` setting will
-        autogenerate a salt when none is provided. Many of those
+        autogenerate a salt when none is provided. Most of those hashes
         will also offer this option, which allows the caller to specify
         the size of salt which should be generated. If omitted,
         the hash's default salt size will be used.
+
+        .. seealso:: the :ref:`salt info <salt-attributes>` attributes (below)
+
+    .. index:: 
+        single: rounds; PasswordHash keyword
 
     ``rounds``
         If present, this means the hash can vary the number
@@ -470,6 +484,11 @@ the hashes in passlib:
         are periodically retuned to strike a balance between
         security and responsiveness.
 
+        .. seealso:: the :ref:`rounds info <rounds-attributes>` attributes (below)
+
+    .. index:: 
+        single: ident; PasswordHash keyword
+
     ``ident``
         If present, the class supports multiple formats for encoding
         the same hash. The class's documentation will generally list
@@ -479,15 +498,20 @@ the hashes in passlib:
         revision of the hash algorithm itself, and they may not all
         offer the same level of security.
 
-    ``relaxed``
-        If supported, ``relaxed=True`` will cause the handler to
-        be more forgiving about invalid input. Instead of immediately throwing
-        a :exc:`ValueError`, it will first attempt to correct the input,
-        and issue a :exc:`~passlib.exc.PasslibHashWarning` if successful.
-        This includes actions like clamping out-of-range rounds values,
-        and truncating salts that are too long.
+    .. index:: 
+        single: relaxed; PasswordHash keyword
 
-        Many of the hashes in Passlib support this option, even if it's not listed.
+    ``relaxed``
+        By default, passing :meth:`~PasswordHash.encrypt` an invalid
+        value will result in a :exc:`ValueError`. However, if ``relaxed=True``,
+        Passlib will attempt to correct the error, and if successful,
+        issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
+        This warning may then be filtered if desired.
+        Correctable errors include (but aren not limited to): ``rounds``
+        and ``salt_size`` values that are too low or too high, ``salt``
+        strings that are too large, etc.
+
+        This option is supported by most of the hashes in Passlib.
 
 .. attribute:: PasswordHash.context_kwds
 
@@ -506,6 +530,9 @@ the hashes in passlib:
     the following keywords should have roughly the same behavior
     for all the hashes that support them:
 
+    .. index:: 
+        single: user; PasswordHash keyword
+
     ``user``
 
         If present, the class requires a username be specified whenever
@@ -513,11 +540,14 @@ the hashes in passlib:
         :class:`~passlib.hash.postgres_md5` and
         :class:`~passlib.hash.oracle10`).
 
+    .. index:: 
+        single: encoding; PasswordHash keyword
+
     ``encoding``
 
         Some hashes have poorly-defined or host-dependant unicode behavior,
-        and properly hashing a unique password requires providing
-        the correct encoding (e.g. :class:`~passlib.hash.lmhash`).
+        and properly hashing a non-ASCII password requires providing
+        the correct encoding (:class:`~passlib.hash.lmhash` is perhaps the worst offender).
         Hashes which provide this keyword will always expose
         their default encoding programmatically via the
         :attr:`~PasswordHash.default_encoding` attribute.
@@ -551,9 +581,10 @@ and the following attributes should be defined:
 .. attribute:: PasswordHash.salt_chars
 
     A unicode string containing all the characters permitted
-    in a salt string. For most :ref:`MCF <modular-crypt-format>` hashes,
-    this is equal to :data:`passlib.utils.HASH64_CHARS`.
+    in a salt string. 
 
+    For most :ref:`modular-crypt-format` hashes,
+    this is equal to :data:`passlib.utils.HASH64_CHARS`.
     For the rare hashes where the ``salt`` parameter must be specified
     in bytes, this will be a placeholder :class:`!bytes` object containing
     all 256 possible byte values.

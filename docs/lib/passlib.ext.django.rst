@@ -1,4 +1,4 @@
-.. index:: django; password hashing plugin
+.. index:: Django; password hashing plugin
 
 .. module:: passlib.ext.django
 

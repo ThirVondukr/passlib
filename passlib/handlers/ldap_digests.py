@@ -148,6 +148,16 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
         but some systems use larger salts, and Passlib supports
         any value between 4-16.
 
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
+
     .. versionchanged:: 1.6
         This format now supports variable length salts, instead of a fix 4 bytes.
     """
@@ -177,6 +187,16 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
         Defaults to 4 bytes for compatibility with the LDAP spec,
         but some systems use larger salts, and Passlib supports
         any value between 4-16.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
 
     .. versionchanged:: 1.6
         This format now supports variable length salts, instead of a fix 4 bytes.

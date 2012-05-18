@@ -63,6 +63,16 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         use :mod:`!hashlib` or `IANA <http://www.iana.org/assignments/hash-function-text-names>`_
         hash names.
 
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
+
     In addition to the standard :ref:`password-hash-api` methods,
     this class also provides the following methods for manipulating Passlib
     scram hashes in ways useful for pluging into a SCRAM protocol stack:
@@ -394,6 +404,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             else:
                 return correct
         else:
+            # XXX: should this just always use sha1 hash? would be faster.
             # otherwise only verify against one hash, pick one w/ best security.
             for alg in self._verify_algs:
                 if alg in chkmap:

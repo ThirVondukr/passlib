@@ -1,4 +1,4 @@
-.. index:: cisco; pix hash
+.. index:: Cisco; PIX hash
 
 ==================================================================
 :class:`passlib.hash.cisco_pix` - Cisco PIX hash

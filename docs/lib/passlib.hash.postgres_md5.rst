@@ -1,4 +1,4 @@
-.. index:: postgres; md5 hash
+.. index:: Postgres; md5 hash
 
 ==================================================================
 :class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash

@@ -40,7 +40,7 @@ Verifying a password against an existing hash is just as quick::
     and :ref:`CryptContext Reference <context-reference>`
     for more information about the CryptContext class.
 
-.. index:: django; crypt context
+.. index:: Django; crypt context
 
 .. _django-contexts:
 
@@ -116,7 +116,7 @@ Passlib provides two contexts related to ldap hashes:
     This object recognizes all the standard ldap schemes that :data:`!ldap_context`
     does, *except* for the ``{CRYPT}``-based schemes.
 
-.. index:: mysql; crypt context
+.. index:: MySQL; crypt context
 
 .. _mysql-contexts:
 
@@ -141,7 +141,7 @@ for handling MySQL user passwords:
 
     This should be used only with MySQL version 3.2.3 - 4.0.
 
-.. index:: drupal; crypt context, wordpress; crypt context, phpbb3; crypt context, phpass; crypt context
+.. index:: Drupal; crypt context, Wordpress; crypt context, phpBB3; crypt context, PHPass; crypt context
 
 PHPass
 ======
@@ -168,7 +168,7 @@ It is found in a wide range of PHP applications, including Drupal and Wordpress.
 
     This object supports phpbb3 password hashes, which use a variant of :class:`~passlib.hash.phpass`.
 
-.. index:: postgres; crypt context
+.. index:: Postgres; crypt context
 
 PostgreSQL
 ==========
@@ -197,7 +197,7 @@ PostgreSQL
             <traceback omitted>
         TypeError: user must be unicode or bytes, not None
 
-.. index:: roundup; crypt context
+.. index:: Roundup; crypt context
 
 Roundup
 =======

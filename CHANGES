@@ -14,12 +14,11 @@ Overview
 
     Welcome to Passlib 1.6.
 
-    The main goal of this release was to clean up the codebase, reducing
-    the amount of internally-redundant code, and to simplify the publically
-    exposed interface. It also brings with it a number of other improvements:
-    10 or so new hash algorithms, additional security precautions
-    for the existing algorithms, a number of speed improvements,
-    and reorganized documentation.
+    The main goal of this release was to clean up the codebase, tighten input 
+    validation, and simplify the publically exposed interfaces. This release also 
+    brings a number of other improvements: 10 or so new hash algorithms, 
+    additional security precautions for the existing algorithms, 
+    a number of speed improvements, and updated documentation.
 
 Deprecated APIs
 ...............
@@ -101,17 +100,33 @@ Existing Hashes
         which exploits short-circuit string comparisons.
         While this attack is not currently feasible against
         most password hashes, some of the weaker unsalted
-        hashes supported Passlib may be vulnerable; and this
+        hashes supported by Passlib may be vulnerable; and this
         change has been made preventatively to all of them.
 
         .. [#consteq] "constant time" is a misnomer, it actually takes ``THETA(len(righthand_value))`` time.
+
+    .. _strict-parameters:
+
+    *Strict Parameters*
+        Previous releases of Passlib would silently correct any invalid values
+        (such as ``rounds`` parameters that were out of range). This is was deemed
+        undesirable, as it leaves developers unaware they are requesting
+        an incorrect (and potentially insecure) value.
+
+        Starting with this release, providing invalid values to
+        :meth:`PasswordHash.encrypt <passlib.ifc.PasswordHash.encrypt>`
+        will result in a :exc:`ValueError`. However, most hashes now accept
+        an optional ``relaxed=True`` keyword, which causes Passlib
+        to try and correct invalid values, and if successful,
+        issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
+        These warnings can then be filtered if desired.
 
     :doc:`bcrypt <lib/passlib.hash.bcrypt>`
         The BCrypt hash now supports the `crypt_blowfish <http://www.openwall.com/crypt/>`_ project's
         ``$2y$`` hash prefix.
 
-        As well, Passlib now offers an (experimental) pure-python implementation
-        of BCrypt. Unfortunately, it's still *way too slow* to be
+        On an unrelated note, Passlib now offers an (experimental) pure-python
+        implementation of BCrypt. Unfortunately, it's still *WAY* too slow to be
         suitable for production use; and is disabled by default.
         If you really need it, see the BCrypt :ref:`documentation <bcrypt-backends>`
         for how to enable it.
@@ -124,7 +139,7 @@ Existing Hashes
 
     :doc:`ldap_salted_{digest} </lib/passlib.hash.ldap_std>`
         The LDAP salted digests now support salts of any size
-        from 4-16 bytes, though they still default to 8 (:issue:`30`).
+        from 4-16 bytes, though they still default to 4 (:issue:`30`).
 
     :doc:`md5_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha256_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha512_crypt </lib/passlib.hash.md5_crypt>`
         The builtin implementation of these hashes has been

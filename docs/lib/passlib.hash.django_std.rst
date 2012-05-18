@@ -1,4 +1,4 @@
-.. index:: django; hash formats
+.. index:: Django; hash formats
 
 =============================================================
 :samp:`passlib.hash.django_{digest}` - Django-specific Hashes

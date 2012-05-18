@@ -1,4 +1,4 @@
-.. index:: phpass; portable hash, phpbb3; phpass hash
+.. index:: PHPass; portable hash, phpBB3; PHPass hash
 
 ==================================================================
 :class:`passlib.hash.phpass` - PHPass' Portable Hash

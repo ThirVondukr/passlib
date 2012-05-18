@@ -95,12 +95,22 @@ class cisco_type7(uh.GenericHandler):
     instead of a real hash.
 
     The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
-    have the following optional keyword:
+    have the following optional keywords:
 
     :type salt: int
     :param salt:
         This may be an optional salt integer drawn from ``range(0,16)``.
         If omitted, one will be chosen at random.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` values that are out of range.
+        
+        .. versionadded:: 1.6
 
     Note that while this class outputs digests in upper-case hexidecimal,
     it will accept lower-case as well.

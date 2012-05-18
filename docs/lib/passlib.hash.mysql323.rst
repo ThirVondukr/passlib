@@ -1,4 +1,4 @@
-.. index:: mysql; OLD_PASSWORD()
+.. index:: MySQL; OLD_PASSWORD()
 
 ========================================================================
 :class:`passlib.hash.mysql323` - MySQL 3.2.3 password hash

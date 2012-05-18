@@ -2,7 +2,7 @@
 :class:`passlib.hash.cta_pbkdf2_sha1` - Cryptacular's PBKDF2 hash
 =================================================================
 
-.. index:: pbkdf2 hash; cryptacular
+.. index:: pbkdf2 hash; Cryptacular
 
 .. currentmodule:: passlib.hash
 

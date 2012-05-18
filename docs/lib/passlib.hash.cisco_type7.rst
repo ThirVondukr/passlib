@@ -1,4 +1,4 @@
-.. index:: cisco; type 7 hash
+.. index:: Cisco; Type 7 hash
 
 ==================================================================
 :class:`passlib.hash.cisco_type7` - Cisco "Type 7" hash
