@@ -125,16 +125,16 @@ This implementation of bcrypt differs from others in a few ways:
   (This behavior will eventually be deprecated and such hashes
   will throw a :exc:`ValueError` instead).
 
-* the crypt_blowfish bug, and the 2x/2y hashes
+* The *crypt_blowfish* 8-bit bug
 
   .. _crypt-blowfish-bug:
 
   Pre-1.1 versions of the `crypt_blowfish <http://www.openwall.com/crypt/>`_
   bcrypt implementation suffered from a serious flaw [#eight]_
   in how they handled 8-bit passwords. The manner in which the flaw was fixed resulted
-  in two new bcrypt hash identifiers:
+  in *crypt_blowfish* adding support for two new BCrypt hash identifiers:
 
-  ``$2x$``, allowing sysadmins to mark ``$2a$`` hashes which potentially were
+  ``$2x$``, allowing sysadmins to mark any ``$2a$`` hashes which were potentially
   generated with the buggy algorithm. Passlib 1.6 recognizes, but does not
   currently support generating or verifying these hashes.
 

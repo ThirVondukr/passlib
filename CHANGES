@@ -14,9 +14,9 @@ Overview
 
     Welcome to Passlib 1.6.
 
-    The main goals of this release were to clean up the codebase, tighten input 
+    The main goal of this release was to clean up the codebase, tighten input 
     validation, and simplify the publically exposed interfaces. This release also 
-    brings with it a number of other improvements: 10 or so new hash algorithms, 
+    brings a number of other improvements: 10 or so new hash algorithms, 
     additional security precautions for the existing algorithms, 
     a number of speed improvements, and updated documentation.
 
@@ -139,7 +139,7 @@ Existing Hashes
 
     :doc:`ldap_salted_{digest} </lib/passlib.hash.ldap_std>`
         The LDAP salted digests now support salts of any size
-        from 4-16 bytes, though they still default to 8 (:issue:`30`).
+        from 4-16 bytes, though they still default to 4 (:issue:`30`).
 
     :doc:`md5_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha256_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha512_crypt </lib/passlib.hash.md5_crypt>`
         The builtin implementation of these hashes has been
