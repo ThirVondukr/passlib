@@ -372,7 +372,11 @@ class _CommonFile(object):
 #=========================================================
 
 # FIXME: apr_md5_crypt technically the default only for windows, netware and tpf.
-# TODO: find out if htpasswd's "crypt" mode is crypt *call* or just des_crypt implementation.
+# TODO: find out if htpasswd's "crypt" mode is a crypt() *call* or just des_crypt implementation.
+#       if the former, we can support anything supported by passlib.hosts.host_context,
+#       allowing more secure hashes than apr_md5_crypt to be used.
+#       could perhaps add this behavior as an option to the constructor.
+#       c.f. http://httpd.apache.org/docs/2.2/programs/htpasswd.html
 htpasswd_context = CryptContext([
     "apr_md5_crypt", # man page notes supported everywhere, default on Windows, Netware, TPF
     "des_crypt", # man page notes server does NOT support this on Windows, Netware, TPF

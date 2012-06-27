@@ -15,6 +15,8 @@ Release History
     * Fixed bug in passlib.apache unittest which caused test to fail
       if filesystem had mtime resolution >= 1 second (:issue:`35`). 
       
+    * Various documentation updates and corrections.
+      
 **1.6** (2012-05-01)
 ====================
 
