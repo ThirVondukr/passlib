@@ -9,6 +9,11 @@ Release History
 
     Minor bugfix release
     
+    * Various :meth:`~passlib.context.CryptContext` methods
+      would incorrectly raise :exc:`TypeError` if passed a :class:`!unicode`
+      user category under Python 2; for compatibility
+      they will now be treated the same as the equivalent ``utf-8`` :class:`bytes`.
+      
     * *bugfix*: FreeBSD 8.3 added native support for SHA512-Crypt,
       updated unittests and documentation accordingly (:issue:`35`).
       

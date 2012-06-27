@@ -21,7 +21,7 @@ from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import rng, tick, to_bytes, \
                           to_unicode, splitcomma
 from passlib.utils.compat import bytes, iteritems, num_types, \
-                                 PY3, PY_MIN_32, unicode, SafeConfigParser, \
+                                 PY2, PY3, PY_MIN_32, unicode, SafeConfigParser, \
                                  NativeStringIO, BytesIO, base_string_types
 #pkg
 #local
@@ -2087,9 +2087,12 @@ class CryptContext(object):
 
         # type check
         if category is not None and not isinstance(category, str):
-            raise ExpectedTypeError(category, "str|None", "category")
+            if PY2 and isinstance(category, unicode):
+                # for compatibility with unicode-centric py2 apps
+                return self._get_record(scheme, category.encode("utf-8"))
+            raise ExpectedTypeError(category, "str or None", "category")
         if scheme is not None and not isinstance(scheme, str):
-            raise ExpectedTypeError(scheme, "str|None", "scheme")
+            raise ExpectedTypeError(scheme, "str or None", "scheme")
 
         # if scheme=None, use category's default scheme, and cache result.
         if not scheme:

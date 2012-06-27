@@ -22,7 +22,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_bytes, to_unicode
-from passlib.utils.compat import irange, u, unicode, str_to_uascii
+from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, catch_warnings, set_file, TICK_RESOLUTION, quicksleep
 from passlib.registry import (register_crypt_handler_path,
@@ -659,6 +659,11 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(ctx.handler(category="staff"), hash.sha256_crypt)
         self.assertEqual(ctx.handler(category="admin"), hash.md5_crypt)
 
+        # test unicode category strings are accepted under py2
+        if PY2:
+            self.assertEqual(ctx.handler(category=u("staff")), hash.sha256_crypt)
+            self.assertEqual(ctx.handler(category=u("admin")), hash.md5_crypt)
+
     def test_33_options(self):
         "test internal _get_record_options() method"
         def options(ctx, scheme, category=None):
@@ -835,6 +840,14 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------------------
         # border cases
         #--------------------------------------------------------------
+
+        # test unicode category strings are accepted under py2
+        # this tests basic _get_record() used by encrypt/genhash/verify.
+        # we have to omit scheme=xxx so codepath is tested fully
+        if PY2:
+            c2 = cc.copy(default="phpass")
+            self.assertTrue(c2.genconfig(category=u("admin")).startswith("$P$5"))
+            self.assertTrue(c2.genconfig(category=u("staff")).startswith("$H$5"))
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genconfig)
