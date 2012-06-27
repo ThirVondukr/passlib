@@ -622,11 +622,11 @@ def expand_des_key(key):
     else:
         raise exc.ExpectedTypeError(key, "bytes or int", "key")
     key = _unpack56(key)
-    # NOTE: this function would insert correctly-valued parity bits in each key,
+    # NOTE: the following would insert correctly-valued parity bits in each key,
     # but the parity bit would just be ignored in des_encrypt_block(),
     # so not bothering to use it.
     ##return join_byte_values(expand_7bit((key >> shift) & 0x7f)
-    #                         for shift in _EXPAND_ITER)
+    ##                        for shift in _EXPAND_ITER)
     return join_byte_values(((key>>shift) & 0x7f)<<1 for shift in _EXPAND_ITER)
 
 def shrink_des_key(key):

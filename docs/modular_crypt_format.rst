@@ -128,7 +128,7 @@ and indicates which operating systems offer native support for them [#gae]_.
 ==================================== ==================== =========== =========== =========== =========== ======= =======
 Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris MacOSX
 ==================================== ==================== =========== =========== =========== =========== ======= =======
-:class:`~passlib.hash.des_crypt`     none                 y           y           y           y           y       y
+:class:`~passlib.hash.des_crypt`                          y           y           y           y           y       y
 :class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y           y                   y
 :class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
 :class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                 y

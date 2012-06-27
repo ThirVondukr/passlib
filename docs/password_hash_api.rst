@@ -67,6 +67,7 @@ using the :class:`~passlib.hash.sha256_crypt` hash as an example::
     >>> # you can override the default value via the 'rounds' keyword:
     >>> sha256_crypt.encrypt("password", rounds=12345)
     '$5$rounds=12345$UeVpHaN2YFDwBoeJ$NJN8DwVZ4UfQw6.ijJZNWoZtk1Ivi5YfKCDsI2HzSq2'
+               ^^^^^
 
     >>> # on the other end of things, the verify() method takes care of
     >>> # checking if a password matches an existing hash string:
@@ -146,8 +147,13 @@ and hash comparison.
 
 .. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
 
-    Encrypt password, returning resulting hash string.
-
+    Digest password using format-specific algorithm,
+    returning resulting hash string.
+    
+    For most hashes supported by Passlib, this string will include
+    an algorithm identifier, a copy of the salt (if applicable),
+    and any other configuration information required to verify the password later.
+    
     :type secret: unicode or bytes
     :arg secret: string containing the password to encode.
 
@@ -157,27 +163,31 @@ and hash comparison.
         in that hash's documentation; though many of the more common keywords
         are listed under :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
-        Examples of common keywords include ``salt`` and ``rounds``.
+        Examples of common keywords include ``rounds`` and ``salt_size``.
 
     :returns:
-        resulting hash, using an algorithm-specific format.
+        Resulting hash of password, using an algorithm-specific format.
 
-        this will use the native :class:`!str` type
-        (unicode under Python 3, ``ascii``-encoded bytes under Python 2).
+        This will always be an instance of :class:`!str`
+        (i.e. :class:`unicode` under Python 3, ``ascii``-encoded :class:`bytes` under Python 2).
 
     :raises ValueError:
 
         * If a keyword's value is invalid (e.g. if a ``salt`` string
           is too small, or a ``rounds`` value is out of range).
 
-        * If the *secret* contains characters forbidden by the handler
+        * If the ``secret`` contains characters forbidden by the handler
           (e.g. :class:`!des_crypt` forbids NULL characters).
 
     :raises TypeError:
 
-        * if :samp:`{secret}` is not unicode or bytes.
+        * if ``secret`` is not unicode or bytes.
         * if a keyword argument had an incorrect type.
         * if a required keyword was not provided.
+
+    *(Note that the name of this method is a misnomer, password hashes
+    are typically based on irreversible cryptographic operations,
+    see* :issue:`21` *).*
 
     .. versionchanged:: 1.6
         Hashes now raise :exc:`TypeError` if a required keyword is missing,
@@ -187,7 +197,8 @@ and hash comparison.
     .. versionchanged:: 1.6
         Passlib is now much stricter about input validation: for example,
         out-of-range ``rounds`` values now cause an error instead of being
-        clipped (though applications may set ``relaxed=True`` to restore the old behavior).
+        clipped (though applications may set :ref:`relaxed=True <relaxed-keyword>`
+        to restore the old behavior).
 
 .. classmethod:: PasswordHash.verify(secret, hash, \*\*context_kwds)
 
@@ -202,7 +213,8 @@ and hash comparison.
 
     :type secret: unicode or bytes
     :param hash:
-        A string containing the hash to check against.
+        A string containing the hash to check against,
+        such as returned by :meth:`~encrypt`.
 
         Hashes may be specified as :class:`!unicode` or
         ``ascii``-encoded :class:`!bytes`.
@@ -265,6 +277,8 @@ and hash comparison.
       be set to indicate which encoding was used.
 
 .. _crypt-methods:
+
+.. rst-class:: html-toggle
 
 Crypt Methods
 =============
@@ -500,6 +514,8 @@ the hashes in passlib:
 
     .. index:: 
         single: relaxed; PasswordHash keyword
+        
+    .. _relaxed-keyword:
 
     ``relaxed``
         By default, passing :meth:`~PasswordHash.encrypt` an invalid

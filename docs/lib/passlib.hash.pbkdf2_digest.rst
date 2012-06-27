@@ -73,7 +73,7 @@ An example :class:`!pbkdf2_sha256` hash (of ``password``)::
 All of the pbkdf2 hashes defined by passlib
 follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
-* :samp:`$pbkdf2-{digest}$`` is used as the :ref:`modular-crypt-format` identifier
+* :samp:`$pbkdf2-{digest}$` is used as the :ref:`modular-crypt-format` identifier
   (``$pbkdf2-sha256$`` in the example).
 
 * :samp:`{digest}` - this specifies the particular cryptographic hash
@@ -96,7 +96,7 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
 The algorithm used by all of these schemes is deliberately identical and simple:
 The password is encoded into UTF-8 if not already encoded,
-and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
+and run through :func:`~passlib.utils.pbkdf2.pbkdf2`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
 The result is then encoded using :func:`~passlib.utils.ab64_encode`.
