@@ -12,6 +12,9 @@ Release History
     * FreeBSD 8.3+ has native support for SHA512-Crypt,
       updated unittests and documentation accordingly (:issue:`35`)
       
+    * Fixed bug in passlib.apache unittest which caused test to fail
+      if filesystem had mtime resolution >= 1 second (:issue:`35`). 
+      
 **1.6** (2012-05-01)
 ====================
 

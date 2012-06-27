@@ -9,6 +9,7 @@ import re
 import os
 import sys
 import tempfile
+import time
 from passlib.exc import PasslibHashWarning
 from passlib.utils.compat import PY27, PY_MIN_32, PY3, JYTHON
 import warnings
@@ -48,7 +49,14 @@ except ImportError:
 else:
     GAE = True
 
-HAS_INTEGER_MTIME = JYTHON or sys.platform.startswith("darwin")
+def ensure_mtime_changed(path):
+    "ensure file's mtime has changed"
+    # NOTE: this is hack to deal w/ filesystems whose mtime resolution is >= 1s,
+    #       when a test needs to be sure the mtime changed after writing to the file.
+    last = os.path.getmtime(path)
+    while os.path.getmtime(path) == last:
+        time.sleep(0.1)
+        os.utime(path, None)
 
 def _get_timer_resolution(timer):
     def sample():
