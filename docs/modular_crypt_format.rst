@@ -135,8 +135,8 @@ Scheme                               Prefix               Linux       FreeBSD   
 :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``,
                                      ``$2x$``, ``$2y$``               y           y           y           y
 :class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
-:class:`~passlib.hash.sha256_crypt`  ``$5$``              y                                               y
-:class:`~passlib.hash.sha512_crypt`  ``$6$``              y                                               y
+:class:`~passlib.hash.sha256_crypt`  ``$5$``              y           8.3+                                y
+:class:`~passlib.hash.sha512_crypt`  ``$6$``              y           8.3+                                y
 :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
 ==================================== ==================== =========== =========== =========== =========== ======= =======
 

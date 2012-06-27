@@ -1894,8 +1894,8 @@ class OsCryptMixin(HandlerCase):
     # option flags
     #=========================================================
     # platforms that are known to support / not support this hash natively.
-    # encodeds as os.platform prefixes.
-    platform_crypt_support = dict()
+    # list of (platform_regex, True|False|None) entries.
+    platform_crypt_support = []
 
     #=========================================================
     # instance attrs
@@ -1994,21 +1994,28 @@ class OsCryptMixin(HandlerCase):
 
     def test_82_crypt_support(self):
         "test platform-specific crypt() support detection"
+        # NOTE: this is mainly just a sanity check to ensure the runtime
+        #       detection is functioning correctly on some known platforms,
+        #       so that I can feel more confident it'll work right on unknown ones.
         if hasattr(self.handler, "orig_prefix"):
             raise self.skipTest("not applicable to wrappers")
         platform = sys.platform
-        for name, flag in self.platform_crypt_support.items():
-            if not platform.startswith(name):
-                continue
-            if flag != self.using_patched_crypt:
-                return
-            if flag:
-                self.fail("expected %r platform would have native support "
-                          "for %r" % (platform, self.handler.name))
-            else:
-                self.fail("expected %r platform would NOT have native support "
-                          "for %r" % (platform, self.handler.name))
-        raise self.skipTest("no data for %r platform" % platform)
+        for pattern, state in self.platform_crypt_support:
+            if re.match(pattern, platform):
+                break
+        else:
+            raise self.skipTest("no data for %r platform" % platform)
+        if state is None:
+            # e.g. platform='freebsd8' ... sha256_crypt not added until 8.3
+            raise self.skipTest("varied support on %r platform" % platform)
+        elif state != self.using_patched_crypt:
+            return        
+        elif state:
+            self.fail("expected %r platform would have native support "
+                      "for %r" % (platform, self.handler.name))
+        else:
+            self.fail("did not expect %r platform would have native support "
+                      "for %r" % (platform, self.handler.name))
 
     #=========================================================
     # eoc

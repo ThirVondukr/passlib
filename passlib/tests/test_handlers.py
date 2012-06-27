@@ -179,14 +179,12 @@ class _bcrypt_test(HandlerCase):
         #      but we can reliably correct & issue a warning for that.
         ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        darwin=False,
-        # linux - some systems
+    platform_crypt_support = [
+        ("freedbsd|openbsd|netbsd", True),
+        ("darwin", False),        
+        # linux - may be present via addon, e.g. debian's libpam-unix2
         # solaris - depends on policy
-    )
+    ]
 
     #===============================================================
     # override some methods
@@ -458,14 +456,10 @@ class _bsdi_crypt_test(HandlerCase):
         "_K1.!crsmZxOLzfJH8iw"
     ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=False,
-        solaris=False,
-        darwin=True,
-    )
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|darwin", True),
+        ("linux|solaris", False),
+    ]
 
     def setUp(self):
         super(_bsdi_crypt_test, self).setUp()
@@ -687,14 +681,9 @@ class _des_crypt_test(HandlerCase):
         'OgAwTx2l6NADIj',
         ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=True,
-        solaris=True,
-        darwin=True,
-    )
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|linux|solaris|darwin", True),
+    ]
 
 des_crypt_os_crypt_test, des_crypt_builtin_test = \
                     _des_crypt_test.create_backend_cases(["os_crypt","builtin"])
@@ -1383,14 +1372,10 @@ class _md5_crypt_test(HandlerCase):
         '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.$',
         ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=True,
-        solaris=True,
-        darwin=False,
-    )
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|linux|solaris", True),
+        ("darwin", False),
+    ]
 
 md5_crypt_os_crypt_test, md5_crypt_builtin_test = \
                    _md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
@@ -2348,14 +2333,10 @@ class _sha1_crypt_test(HandlerCase):
         '$sha1$$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH$',
     ]
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=True,
-        linux=False,
-        solaris=False,
-        darwin=False,
-    )
+    platform_crypt_support = [
+        ("netbsd", True),
+        ("freebsd|openbsd|linux|solaris|darwin", False),
+    ]
 
 sha1_crypt_os_crypt_test, sha1_crypt_builtin_test = \
                    _sha1_crypt_test.create_backend_cases(["os_crypt","builtin"])
@@ -2488,14 +2469,12 @@ class _sha256_crypt_test(HandlerCase):
 
     filter_config_warnings = True # rounds too low, salt too small
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=False,
-        linux=True,
+    platform_crypt_support = [
+        ("freebsd(9|1\d)|linux", True), 
+        ("freebsd8", None), # added in freebsd 8.3
+        ("freebsd|openbsd|netbsd|darwin", False),
         # solaris - depends on policy
-        darwin=False,
-    )
+    ]
 
 sha256_crypt_os_crypt_test, sha256_crypt_builtin_test = \
                    _sha256_crypt_test.create_backend_cases(["os_crypt","builtin"])
@@ -2687,14 +2666,10 @@ class sun_md5_crypt_test(HandlerCase):
 
         ]
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=False,
-        linux=False,
-        solaris=True,
-        darwin=False,
-    )
+     platform_crypt_support = [
+        ("solaris", True),
+        ("freebsd|openbsd|netbsd|linux|darwin", False),
+    ]
 
     def do_verify(self, secret, hash):
         # override to fake error for "$..." hash strings listed in known_config.

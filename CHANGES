@@ -4,6 +4,14 @@
 Release History
 ===============
 
+**1.6.1** (NOT YET RELEASED)
+============================
+
+    Minor bugfix release
+    
+    * FreeBSD 8.3+ has native support for SHA512-Crypt,
+      updated unittests and documentation accordingly (:issue:`35`)
+      
 **1.6** (2012-05-01)
 ====================
 
