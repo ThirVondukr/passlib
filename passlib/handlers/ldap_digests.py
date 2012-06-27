@@ -110,8 +110,6 @@ class ldap_md5(_Base64DigestHelper):
     The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_md5"
-    setting_kwds = ()
-
     ident = u("{MD5}")
     _hash_func = md5
     _hash_regex = re.compile(u(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$"))
@@ -122,8 +120,6 @@ class ldap_sha1(_Base64DigestHelper):
     The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_sha1"
-    setting_kwds = ()
-
     ident = u("{SHA}")
     _hash_func = sha1
     _hash_regex = re.compile(u(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$"))
@@ -241,17 +237,15 @@ class ldap_plaintext(plaintext):
         return bool(hash) and cls._2307_pat.match(hash) is None
 
 #=========================================================
-#{CRYPT} wrappers
-#=========================================================
-
+# {CRYPT} wrappers
 # the following are wrappers around the base crypt algorithms,
 # which add the ldap required {CRYPT} prefix
-
+#=========================================================
 ldap_crypt_schemes = [ 'ldap_' + name for name in unix_crypt_schemes ]
 
 def _init_ldap_crypt_handlers():
-    #XXX: it's not nice to play in globals like this,
-    # but don't want to write all all these handlers
+    # NOTE: I don't like to implicitly modify globals() like this,
+    #       but don't want to write out all these handlers out either :)
     g = globals()
     for wname in unix_crypt_schemes:
         name = 'ldap_' + wname
