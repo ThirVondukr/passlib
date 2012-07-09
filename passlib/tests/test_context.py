@@ -667,7 +667,7 @@ sha512_crypt__min_rounds = 45000
     def test_33_options(self):
         "test internal _get_record_options() method"
         def options(ctx, scheme, category=None):
-            return ctx._get_record_options(scheme, category)[0]
+            return ctx._config._get_record_options_with_flag(scheme, category)[0]
 
         # this checks that (3 schemes, 3 categories) inherit options correctly.
         # the 'user' category is not present in the options.
@@ -682,7 +682,7 @@ sha512_crypt__min_rounds = 45000
             admin__bsdi_crypt__vary_rounds=0.3,
             admin__sha512_crypt__max_rounds = 40000,
         )
-        self.assertEqual(cc4._categories, ("admin",))
+        self.assertEqual(cc4._config.categories, ("admin",))
 
         #
         # sha512_crypt
