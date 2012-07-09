@@ -9,17 +9,26 @@ Release History
 
     Minor bugfix release
     
-    * Various :meth:`~passlib.context.CryptContext` methods
+    * *bugfix*: Various :class:`~passlib.context.CryptContext` methods
       would incorrectly raise :exc:`TypeError` if passed a :class:`!unicode`
-      user category under Python 2; for compatibility
+      user category under Python 2. For consistency
       they will now be treated the same as the equivalent ``utf-8`` :class:`bytes`.
 
-    * Reworked the internals of :class:`CryptContext`'s config compiler.
+    * *bugfix*: Reworked internals of the :class:`CryptContext` config compiler
+      to fix a couple of border cases (:issue:`39`):
       
-    * *bugfix*: FreeBSD 8.3 added native support for SHA512-Crypt,
+        - It will now throw a :exc:`ValueError`
+          if the :ref:`default <context-default-option>` scheme is marked as
+          :ref:`deprecated <context-deprecated-option>`.
+        - If no default scheme is specified, it will use the first 
+          *non-deprecated* scheme.
+        - Finally, it will now throw a :exc:`ValueError` if all schemes 
+          are marked as deprecated.
+                
+    * *bugfix*: FreeBSD 8.3 added native support for :class:`~passlib.hash.sha256_crypt`,
       updated unittests and documentation accordingly (:issue:`35`).
       
-    * *bugfix:* Fixed bug in passlib.apache unittest which caused test to fail
+    * *bugfix:* Fixed bug which caused passlib.apache unittest to fail
       if filesystem had mtime resolution >= 1 second (:issue:`35`). 
       
     * Various documentation updates and corrections.

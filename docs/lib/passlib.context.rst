@@ -102,7 +102,7 @@ Options which directly affect the behavior of the CryptContext instance:
     This option controls which of the configured
     schemes will be used as the default when encrypting
     new hashes. This parameter is optional; if omitted,
-    the first algorithm in ``schemes`` will be used.
+    the first non-deprecated algorithm in ``schemes`` will be used.
     You can use the :meth:`~CryptContext.default_scheme` method
     to retreive the name of the current default scheme.
     As an example, the following demonstrates the effect
@@ -143,7 +143,7 @@ Options which directly affect the behavior of the CryptContext instance:
 
     This may also contain a single special value,
     ``["auto"]``, which will configure the CryptContext instance
-    to deprecate *all* supported schemes except for the default.
+    to deprecate *all* supported schemes except for the default scheme.
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 

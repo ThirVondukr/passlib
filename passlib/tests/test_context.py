@@ -525,12 +525,53 @@ sha512_crypt__min_rounds = 45000
 ##        self.assertEqual(getdep(cc), ["md5_crypt"])
 
         # comma sep list
-        cc = CryptContext(deprecated="md5_crypt,des_crypt", schemes=["md5_crypt", "des_crypt"])
+        cc = CryptContext(deprecated="md5_crypt,des_crypt", schemes=["md5_crypt", "des_crypt", "sha256_crypt"])
         self.assertEqual(getdep(cc), ["md5_crypt", "des_crypt"])
 
         # values outside of schemes not allowed
         self.assertRaises(KeyError, CryptContext, schemes=['des_crypt'],
                                                   deprecated=['md5_crypt'])
+
+        # deprecating ALL schemes should cause ValueError
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt'],
+                          deprecated=['des_crypt'])
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt', 'md5_crypt'],
+                          admin__context__deprecated=['des_crypt', 'md5_crypt'])
+
+        # deprecating explicit default scheme should cause ValueError
+        
+            # ... default listed as deprecated
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt', 'md5_crypt'],
+                          default="md5_crypt",
+                          deprecated="md5_crypt")
+
+            # ... global default deprecated per-category
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt', 'md5_crypt'],
+                          default="md5_crypt",
+                          admin__context__deprecated="md5_crypt")
+
+            # ... category default deprecated globally
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt', 'md5_crypt'],
+                          admin__context__default="md5_crypt",
+                          deprecated="md5_crypt")
+
+            # ... category default deprecated in category
+        self.assertRaises(ValueError, CryptContext,
+                          schemes=['des_crypt', 'md5_crypt'],
+                          admin__context__default="md5_crypt",
+                          admin__context__deprecated="md5_crypt")
+
+        # category deplist should shadow default deplist
+        CryptContext(
+                          schemes=['des_crypt', 'md5_crypt'],
+                          deprecated="md5_crypt",
+                          admin__context__default="md5_crypt",
+                          admin__context__deprecated=[])
 
         # wrong type
         self.assertRaises(TypeError, CryptContext, deprecated=123)
@@ -544,6 +585,15 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(getdep(cc, "user"), ["md5_crypt"])
         self.assertEqual(getdep(cc, "admin"), ["des_crypt"])
 
+        # blank per-category deprecated list, shadowing default list
+        cc = CryptContext(deprecated=["md5_crypt"],
+                          schemes=["md5_crypt", "des_crypt"],
+                          admin__context__deprecated=[],
+                          )
+        self.assertEqual(getdep(cc), ["md5_crypt"])
+        self.assertEqual(getdep(cc, "user"), ["md5_crypt"])
+        self.assertEqual(getdep(cc, "admin"), [])
+        
     def test_23_default(self):
         "test 'default' context option parsing"
 
@@ -558,6 +608,12 @@ sha512_crypt__min_rounds = 45000
         # default can be handler
         # XXX: sure we want to allow this ? maybe deprecate in future.
         ctx = CryptContext(default=hash.md5_crypt, schemes=["des_crypt", "md5_crypt"])
+        self.assertEqual(ctx.default_scheme(), "md5_crypt")
+
+        # implicit default should be first non-deprecated scheme
+        ctx = CryptContext(schemes=["des_crypt", "md5_crypt"])
+        self.assertEqual(ctx.default_scheme(), "des_crypt")
+        ctx.update(deprecated="des_crypt")
         self.assertEqual(ctx.default_scheme(), "md5_crypt")
 
         # error if not in scheme list
@@ -997,6 +1053,9 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------------------
         # border cases
         #--------------------------------------------------------------
+
+        # unknown hash should throw error
+        self.assertRaises(ValueError, cc.verify, 'stub', '$6$232323123$1287319827')
 
         # rejects non-string secrets
         cc = CryptContext(["des_crypt"])

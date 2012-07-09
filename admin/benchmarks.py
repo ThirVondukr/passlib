@@ -6,6 +6,7 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 # init script env
 #=============================================================================
+import re
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 sys.path.insert(0, os.curdir)
@@ -266,7 +267,8 @@ def main(*args):
     source = globals()
     if args:
        orig = source
-       source = dict((k,orig[k]) for k in orig if k in args)
+       source = dict((k,orig[k]) for k in orig
+                     if any(re.match(arg, k) for arg in args))
     helper = benchmark.run(source, maxtime=2, bestof=3)
     for name, secs, precision in helper:
         print_("%-50s %9s (%d)" % (name, benchmark.pptime(secs), precision))

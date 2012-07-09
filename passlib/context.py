@@ -996,6 +996,9 @@ class _CryptConfig(object):
     # tuple of categories in alphabetical order (not including None)
     categories = None
     
+    # dict mapping category -> default scheme
+    _default_schemes = None
+
     # dict mapping (scheme, category) -> _CryptRecord
     _records = None
 
@@ -1009,6 +1012,7 @@ class _CryptConfig(object):
     def __init__(self, source):
         self._init_scheme_list(source.get((None,None,"schemes")))
         self._init_options(source)
+        self._init_default_schemes()
         self._init_records()
                        
     def _init_scheme_list(self, data):
@@ -1226,11 +1230,54 @@ class _CryptConfig(object):
         return kwds, has_cat_options
                 
     #===================================================================
-    # deprecated & default maps
+    # deprecated & default schemes
     #===================================================================
+    def _init_default_schemes(self):
+        """initialize maps containing default scheme for each category.
+        
+        have to do this after _init_options(), since the default scheme
+        is affected by the list of deprecated schemes.
+        """
+        # init maps & locals
+        get_optionmap = self.get_context_optionmap
+        default_map = self._default_schemes = get_optionmap("default").copy()
+        dep_map = get_optionmap("deprecated")
+        schemes = self.schemes
+        if not schemes:
+            return
+
+        # figure out default scheme
+        deps = dep_map.get(None) or ()
+        default = default_map.get(None)
+        if not default:
+            for scheme in schemes:
+                if scheme not in deps:
+                    default_map[None] = scheme
+                    break
+            else:
+                raise ValueError("must have at least one non-deprecated scheme")
+        elif default in deps:
+            raise ValueError("default scheme cannot be deprecated")
+    
+        # figure out per-category default schemes,
+        for cat in self.categories:
+            cdeps = dep_map.get(cat, deps)
+            cdefault = default_map.get(cat, default)
+            if not cdefault:
+                for scheme in schemes:
+                    if scheme not in cdeps:
+                        default_map[cat] = scheme
+                        break
+                else:
+                    raise ValueError("must have at least one non-deprecated "
+                                     "scheme for %r category" % cat)                    
+            elif cdefault in cdeps:
+                raise ValueError("default scheme for %r category "
+                                 "cannot be deprecated" % cat)
+
     def default_scheme(self, category):
-        "return default scheme for specific category"        
-        defaults = self.get_context_optionmap("default")
+        "return default scheme for specific category"
+        defaults = self._default_schemes
         try:
             return defaults[category]
         except KeyError:
@@ -1238,8 +1285,8 @@ class _CryptConfig(object):
         if not self.schemes:
             raise KeyError("no hash schemes configured for this "
                            "CryptContext instance")
-        return defaults.get(None, self.schemes[0])
-                
+        return defaults[None]
+                                
     def is_deprecated_with_flag(self, scheme, category):
         "is scheme deprecated under particular category?"
         depmap = self.get_context_optionmap("deprecated")
@@ -1251,12 +1298,12 @@ class _CryptConfig(object):
                 return scheme != self.default_scheme(cat)
             else:
                 return scheme in source
-        value = test(None)
+        value = test(None) or False
         if category:
             alt = test(category)
             if alt is not None and value != alt:
                 return alt, True
-        return (value or False), False
+        return value, False
 
     #===================================================================
     # CryptRecord objects
