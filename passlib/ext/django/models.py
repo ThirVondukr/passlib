@@ -111,6 +111,7 @@ def _apply_patch():
     def set_password(user, password):
         "passlib replacement for User.set_password()"
         if is_valid_secret(password):
+            # NOTE: pulls _get_category from module globals
             cat = _get_category(user)
             user.password = password_context.encrypt(password, category=cat)
         else:
@@ -122,6 +123,7 @@ def _apply_patch():
         hash = user.password
         if not is_valid_secret(password) or not is_password_usable(hash):
             return False
+        # NOTE: pulls _get_category from module globals
         cat = _get_category(user)
         ok, new_hash = password_context.verify_and_update(password, hash,
                                                           category=cat)
@@ -266,6 +268,8 @@ def _load():
     _apply_patch()
     password_context.load(config)
     if get_category:
+        # NOTE: _get_category is module global which is read by
+        #       monkeypatched functions constructed by _apply_patch()
         _get_category = get_category
     log.debug("passlib.ext.django loaded")
 

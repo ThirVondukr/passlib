@@ -37,6 +37,8 @@ and can be used directly as follows::
 
 .. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
+.. index:: virtualbox; passwordhash
+
 Interface
 =========
 .. class:: hex_md4()
@@ -50,6 +52,11 @@ Interface
     and following the :ref:`password-hash-api`.
 
     They support no settings or other keywords.
+
+.. note::
+
+   Oracle VirtualBox's :cmd:`VBoxManager internalcommands passwordhash` command
+   uses :class:`hex_sha256`.
 
 Format & Algorithm
 ==================

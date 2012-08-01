@@ -96,12 +96,12 @@ superuser__django_pbkdf2_sha256__default_rounds = 15000
 # translating passlib names <-> hasher names
 #=============================================================================
 
-# prefix used to shoehorn passlib's handler names into hasher namespace
-# (allows get_hasher() to be meaningfully called even if passlib handler
-# is the one being used)
+# prefix used to shoehorn passlib's handler names into django hasher namespace;
+# allows get_hasher() to be meaningfully called even if passlib handler
+# is the one being used.
 PASSLIB_HASHER_PREFIX = "passlib_"
 
-# prefix all the django-specific hash formats are stored under.
+# prefix all the django-specific hash formats are stored under w/in passlib;
 # all of these hashes should expose their hasher name via ``.django_name``.
 DJANGO_PASSLIB_PREFIX = "django_"
 
@@ -125,7 +125,7 @@ def hasher_to_passlib_name(hasher_name):
             if getattr(handler, "django_name", None) == hasher_name:
                 return name
     # XXX: this should only happen for custom hashers that have been registered.
-    #      work in progress (below) that would take care of those.
+    #      _HasherHandler (below) is work in progress that would fix this.
     raise ValueError("can't translate hasher name to passlib name: %r" %
                      hasher_name)
 
@@ -147,7 +147,7 @@ class _HasherWrapper(object):
 
     def salt(self):
         # XXX: our encode wrapper generates a new salt each time it's called,
-        #      so just returning an 'no value' flag here.
+        #      so just returning a 'no value' flag here.
         return _FAKE_SALT
 
     def verify(self, password, encoded):

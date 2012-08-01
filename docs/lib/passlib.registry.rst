@@ -10,7 +10,7 @@ that it knows about. While custom handlers can be used directly within an applic
 or even handed to a :class:`!CryptContext`; it is frequently useful to register
 them globally within a process and then refer to them by name.
 This module provides facilities for that, as well as programmatically
-querying passlib to detect what algorithms are available.
+querying Passlib to detect what algorithms are available.
 
 .. warning::
 

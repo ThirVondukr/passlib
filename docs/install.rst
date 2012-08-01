@@ -2,6 +2,8 @@
 Installation
 ============
 
+.. index:: Google App Engine; compatibility
+
 Supported Platforms
 ===================
 Passlib requires Python 2 (>= 2.5) or Python 3.
@@ -38,15 +40,15 @@ Optional Libraries
 
 Installation Instructions
 =========================
-To download and install using :command:`easy_install`::
-
-    easy_install passlib
-
-To download and install using :command:`pip`::
+To install from PyPi using :command:`pip`::
 
     pip install passlib
 
-To install from a source directory using :command:`setup.py`::
+To install from PyPi using :command:`easy_install`::
+
+    easy_install passlib
+
+To install from the source using :command:`setup.py`::
 
     python setup.py install
 
@@ -84,11 +86,11 @@ online at `<http://packages.python.org/passlib>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
+1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.1 or newer)
+2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.4 or newer).
 3. Download the Passlib source
 4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
-5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/build/sphinx/html/index.html`
+5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
    to access the Passlib documentation in html format.
 6. Alternately, steps 4 & 5 can be replaced by running :samp:`python setup.py docdist`,
-   which will build a zip file of the documentation in :samp:`{$SOURCE}/dist`.
+   which will build a zip file of the documentation in :samp:`{SOURCE}/dist`.

@@ -13,7 +13,7 @@ This class implements the DCC2 (Domain Cached Credentials version 2) hash, used
 by Windows Vista and newer to cache and verify remote credentials when the relevant
 server is unavailable. It is known by a number of other names,
 including "mscache2" and "mscash2" (Microsoft CAched haSH). It replaces
-the weaker :doc:`msdcc (v1)<passlib.hash.msdcc>` hash used by previous releases
+the weaker :doc:`msdcc v1<passlib.hash.msdcc>` hash used by previous releases
 of Windows. Security wise it is not particularly weak, but due to it's
 use of the username as a salt, it should probably not be used for anything
 but verifying existing cached credentials.
@@ -77,12 +77,28 @@ The digest is calculated as follows:
 
 Security Issues
 ===============
-This hash is essentially DCC v1 with a fixed-round PBKDF2 function
+This hash is essentially :doc:`msdcc v1 <passlib.hash.msdcc>` with a fixed-round PBKDF2 function
 wrapped around it. The number of rounds of PBKDF2 is currently
 sufficient to make this a semi-reasonable way to store passwords,
 but the use of the lowercase username as a salt, and the fact
 that the rounds can't be increased, means this hash is not particularly
 future-proof, and should not be used for new applications.
+
+Deviations
+==========
+
+* Max Password Size
+
+  Windows appears to enforce a maximum password size,
+  but the actual value of this limit is unclear; sources
+  report it to be set at assorted values from 26 to 128 characters,
+  and it may in fact vary between Windows releases. 
+  The one consistent peice of information is that
+  passwords above the limit are simply not allowed (rather
+  than truncated ala :class:`~passlib.hash.des_crypt`).  
+  Because of this, Passlib does not currently enforce a size limit:
+  any hashes this class generates should be correct, provided Windows
+  is willing to accept a password of that size.
 
 .. rubric:: Footnotes
 

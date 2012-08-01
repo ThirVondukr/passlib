@@ -8,31 +8,31 @@ Release History
 ============================
 
     Minor bugfix release
-    
+
     * *bugfix*: Various :class:`~passlib.context.CryptContext` methods
       would incorrectly raise :exc:`TypeError` if passed a :class:`!unicode`
-      user category under Python 2. For consistency
-      they will now be treated the same as the equivalent ``utf-8`` :class:`bytes`.
+      user category under Python 2. For consistency,
+      :class:`!unicode` user category values are now encoded to ``utf-8`` :class:`bytes` under Python 2.
 
     * *bugfix*: Reworked internals of the :class:`CryptContext` config compiler
       to fix a couple of border cases (:issue:`39`):
-      
+
         - It will now throw a :exc:`ValueError`
           if the :ref:`default <context-default-option>` scheme is marked as
           :ref:`deprecated <context-deprecated-option>`.
-        - If no default scheme is specified, it will use the first 
+        - If no default scheme is specified, it will use the first
           *non-deprecated* scheme.
-        - Finally, it will now throw a :exc:`ValueError` if all schemes 
+        - Finally, it will now throw a :exc:`ValueError` if all schemes
           are marked as deprecated.
-                
-    * *bugfix*: FreeBSD 8.3 added native support for :class:`~passlib.hash.sha256_crypt`,
-      updated unittests and documentation accordingly (:issue:`35`).
-      
+
+    * *bugfix*: FreeBSD 8.3 added native support for :class:`~passlib.hash.sha256_crypt` --
+      updated Passlib's unittests and documentation accordingly (:issue:`35`).
+
     * *bugfix:* Fixed bug which caused passlib.apache unittest to fail
-      if filesystem had mtime resolution >= 1 second (:issue:`35`). 
-      
+      if mtime resolution >= 1 second (:issue:`35`).
+
     * Various documentation updates and corrections.
-      
+
 **1.6** (2012-05-01)
 ====================
 
@@ -43,10 +43,10 @@ Overview
 
     Welcome to Passlib 1.6.
 
-    The main goal of this release was to clean up the codebase, tighten input 
-    validation, and simplify the publically exposed interfaces. This release also 
-    brings a number of other improvements: 10 or so new hash algorithms, 
-    additional security precautions for the existing algorithms, 
+    The main goal of this release was to clean up the codebase, tighten input
+    validation, and simplify the publically exposed interfaces. This release also
+    brings a number of other improvements: 10 or so new hash algorithms,
+    additional security precautions for the existing algorithms,
     a number of speed improvements, and updated documentation.
 
 Deprecated APIs
@@ -121,8 +121,8 @@ Existing Hashes
     .. _consteq-issue:
 
     *Constant Time Comparison*
-        All hash comparisons in Passlib now use a "constant time" [#consteq]_
-        comparison function :func:`~passlib.utils.consteq` instead
+        All hash comparisons in Passlib now use the "constant time" [#consteq]_
+        comparison function :func:`~passlib.utils.consteq`, instead
         of ``==``.
 
         This change is motivated a well-known `hmac timing attack <http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/>`_
@@ -322,7 +322,7 @@ Internal Changes
 **1.5.3** (2011-10-08)
 ======================
 
-    Bugfix release -- fixes BCrypt padding/verification issue
+    Bugfix release -- fixes BCrypt padding/verification issue (:issue:`25`)
 
     .. _bcrypt-padding-issue:
 
@@ -375,7 +375,7 @@ Internal Changes
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
           :data:`hash64 <passlib.utils.h64>` characters in it's salts;
-          previously it accepted only lower-case hexidecimal characters :issue:`22`.
+          previously it accepted only lower-case hexidecimal characters (:issue:`22`).
 
         * Additional unittests added for all
           standard :doc:`Django hashes </lib/passlib.hash.django_std>`.

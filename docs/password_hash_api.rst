@@ -149,11 +149,11 @@ and hash comparison.
 
     Digest password using format-specific algorithm,
     returning resulting hash string.
-    
+
     For most hashes supported by Passlib, this string will include
     an algorithm identifier, a copy of the salt (if applicable),
     and any other configuration information required to verify the password later.
-    
+
     :type secret: unicode or bytes
     :arg secret: string containing the password to encode.
 
@@ -286,7 +286,7 @@ Taken together, the :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.gen
 are two tightly-coupled methods that mimic the standard Unix
 "crypt" interface. The first method generates salt / configuration
 strings from a set of settings, and the second hashes the password
-using the provided configuration string. 
+using the provided configuration string.
 
 .. seealso::
 
@@ -452,7 +452,7 @@ the hashes in passlib:
     the specific settings the hash uses, the following keywords should have
     roughly the same behavior for all the hashes that support them:
 
-    .. index:: 
+    .. index::
         single: salt; PasswordHash keyword
 
     ``salt``
@@ -467,7 +467,7 @@ the hashes in passlib:
         :class:`!bytes` instance, with additional constraints
         appropriate to the algorithm.
 
-    .. index:: 
+    .. index::
         single: salt_size; PasswordHash keyword
 
     ``salt_size``
@@ -480,7 +480,7 @@ the hashes in passlib:
 
         .. seealso:: the :ref:`salt info <salt-attributes>` attributes (below)
 
-    .. index:: 
+    .. index::
         single: rounds; PasswordHash keyword
 
     ``rounds``
@@ -500,7 +500,7 @@ the hashes in passlib:
 
         .. seealso:: the :ref:`rounds info <rounds-attributes>` attributes (below)
 
-    .. index:: 
+    .. index::
         single: ident; PasswordHash keyword
 
     ``ident``
@@ -512,9 +512,9 @@ the hashes in passlib:
         revision of the hash algorithm itself, and they may not all
         offer the same level of security.
 
-    .. index:: 
+    .. index::
         single: relaxed; PasswordHash keyword
-        
+
     .. _relaxed-keyword:
 
     ``relaxed``
@@ -546,7 +546,7 @@ the hashes in passlib:
     the following keywords should have roughly the same behavior
     for all the hashes that support them:
 
-    .. index:: 
+    .. index::
         single: user; PasswordHash keyword
 
     ``user``
@@ -556,7 +556,7 @@ the hashes in passlib:
         :class:`~passlib.hash.postgres_md5` and
         :class:`~passlib.hash.oracle10`).
 
-    .. index:: 
+    .. index::
         single: encoding; PasswordHash keyword
 
     ``encoding``
@@ -597,7 +597,7 @@ and the following attributes should be defined:
 .. attribute:: PasswordHash.salt_chars
 
     A unicode string containing all the characters permitted
-    in a salt string. 
+    in a salt string.
 
     For most :ref:`modular-crypt-format` hashes,
     this is equal to :data:`passlib.utils.HASH64_CHARS`.
@@ -653,16 +653,6 @@ and the following attributes should be defined:
       (e.g. :class:`~passlib.hash.sha512_crypt`)
     * ``"log2"`` - time taken scales exponentially with rounds value
       (e.g. :class:`~passlib.hash.bcrypt`)
-
-.. todo::
-
-    Add notes about when/how the default rounds are retuned.
-    For the 1.6 release, all hashes were retuned to take ~250ms
-    on a single 3 ghz cpu core, or more rounds if that was felt
-    to not provide a minimum level of security. Also, there are
-    so many variables affecting relative system performance,
-    that this policy is more of an informed heuristic than a
-    rigid algorithm.
 
 ..
     todo: haven't decided if this is how I want the api look before
@@ -720,3 +710,29 @@ and the following attributes should be defined:
 
         :raises passlib.exc.MissingBackendError:
             if the specified backend is not available.
+
+.. index:: rounds; choosing the right value
+
+Choosing the right ``rounds`` value
+===================================
+Passlib's default rounds settings attempt to be secure enough for
+the average [#avgsys]_ system. But the "right" value for a given hash
+is dependant on the server, it's cpu, it's expected load, and it's users.
+Since larger values mean increased work for an attacker,
+**the right** ``rounds`` **value for a given server should be the largest
+possible value that doesn't cause intolerable delay for your users**.
+For most public facing services, you can generally have signin
+take upwards of 250ms - 400ms before users start getting annoyed.
+For superuser accounts, it should take as much time as the admin can stand
+(usually ~4x more delay than a regular account).
+
+Passlib's ``default_rounds`` values are retuned every major release (at a minimum)
+by taking a rough estimate of what an "average" system is capable of,
+and setting all the ``default_rounds`` values to take ~300ms on such a system.
+However, some older algorithms (e.g. :class:`~passlib.hash.bsdi_crypt`) are weak enough that
+a tradeoff must be made, choosing "secure but intolerably slow" over "fast but unacceptably insecure".
+For this reason, it is strongly recommended to not use a value lower than Passlib's default.
+
+.. [#avgsys] For Passlib 1.6, all hashes were retuned to take ~250ms on a
+   system with a 3 ghz 64 bit CPU.
+

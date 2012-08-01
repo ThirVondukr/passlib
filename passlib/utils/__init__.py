@@ -244,28 +244,40 @@ class memoized_property(object):
 #=============================================================================
 
 def consteq(left, right):
-    """Check two strings/bytes for equality, taking constant time relative
-    to the size of the righthand input.
+    """Check two strings/bytes for equality.
+    This is functionally equivalent to ``left == right``,
+    but attempts to take constant time relative to the size of the righthand input.
 
-    The purpose of this function is to aid in preventing timing attacks
-    during digest comparisons (see the 1.6 changelog
-    :ref:`entry <consteq-issue>` for more details).
+    The purpose of this function is to help prevent timing attacks
+    during digest comparisons: the standard ``==`` operator aborts
+    after the first mismatched character, causing it's runtime to be
+    proportional to the longest prefix shared by the two inputs.
+    If an attacker is able to predict and control one of the two
+    inputs, repeated queries can be leveraged to reveal information about
+    the content of the second argument. To minimize this risk, :func:`!consteq`
+    is designed to take ``THETA(len(right))`` time, regardless
+    of the contents of the two strings.
+    It is recommended that the attacker-controlled input
+    be passed in as the left-hand value.
+
+    .. warning::
+
+        This function is *not* perfect. Various VM-dependant issues
+        (e.g. the VM's integer object instantiation algorithm, internal unicode representation, etc),
+        may still cause the function's run time to be affected by the inputs,
+        though in a less predictable manner.
+        *To minimize such risks, this function should not be passed* :class:`unicode`
+        *inputs that might contain non-* ``ASCII`` *characters*.
+
+    .. versionadded:: 1.6
     """
     # NOTE:
-    # This function attempts to take an amount of time proportional
-    # to ``THETA(len(right))``. The main loop is designed so that timing attacks
-    # against this function should reveal nothing about how much (or which
-    # parts) of the two inputs match.
-    #
-    # Why ``THETA(len(right))``?
-    # Assuming the attacker controls one of the two inputs, padding to
-    # the largest input or trimming to the smallest input both allow
-    # a timing attack to reveal the length of the other input.
-    # However, by fixing the runtime to be proportional to the right input:
-    # * If the right value is attacker controlled, the runtime is proportional
-    #   to their input, giving nothing away about the left value's size.
-    # * If the left value is attacker controlled, the runtime is constant
-    #   relative to their input, giving nothing away about the right value's size.
+    # resources & discussions considered in the design of this function:
+    #   hmac timing attack --
+    #       http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
+    #   python developer discussion surrounding similar function --
+    #       http://bugs.python.org/issue15061
+    #       http://bugs.python.org/issue14955
 
     # validate types
     if isinstance(left, unicode):
@@ -329,8 +341,8 @@ def saslprep(source, param="value"):
         unicode string to normalize & validate
 
     :param param:
-        optionally override noun used to refer to source in error messages,
-        defaults to ``value``; mainly useful to make caller's error
+        Optional noun used to refer to identify source parameter in error messages
+        (Defaults to the string ``"value"``). This is mainly useful to make the caller's error
         messages make more sense.
 
     :raises ValueError:
@@ -341,8 +353,9 @@ def saslprep(source, param="value"):
 
     .. note::
 
-        Due to a missing :mod:`!stringprep` module, this feature
-        is not available on Jython.
+        This function is not available under Jython,
+        as the Jython stdlib is missing the :mod:`!stringprep` module
+        (`Jython issue 1758320 <http://bugs.jython.org/issue1758320>`_).
     """
     # saslprep - http://tools.ietf.org/html/rfc4013
     # stringprep - http://tools.ietf.org/html/rfc3454
@@ -448,8 +461,8 @@ def render_bytes(source, *args):
     This function is motivated by the fact that
     :class:`bytes` instances do not support ``%`` or ``{}`` formatting under Python 3.
     This function is an attempt to provide a replacement:
-    it converts everything to unicode (decode bytes instances as latin-1),
-    performs the required formatting, then encodes the result to latin-1.
+    it converts everything to unicode (decoding bytes instances as ``latin-1``),
+    performs the required formatting, then encodes the result to ``latin-1``.
 
     Calling ``render_bytes(source, *args)`` should function roughly the same as
     ``source % args`` under Python 2.
@@ -1518,7 +1531,7 @@ def getrandstr(rng, charset, count):
 _52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 
 def generate_password(size=10, charset=_52charset):
-    """generate random password using given length & chars
+    """generate random password using given length & charset
 
     :param size:
         size of password.
@@ -1530,7 +1543,12 @@ def generate_password(size=10, charset=_52charset):
         except for the characters ``1IiLl0OoS5``, which were omitted
         due to their visual similarity.
 
-    :returns: randomly generated password.
+    :returns: :class:`!str` containing randomly generated password.
+
+    .. note::
+
+        Using the default character set, on a OS with :class:`!SystemRandom` support,
+        this function should generate passwords with 5.7 bits of entropy per character.
     """
     return getrandstr(rng, charset, size)
 

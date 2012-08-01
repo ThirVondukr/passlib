@@ -937,6 +937,12 @@ class _CryptRecord(object):
         if check and check(hash, secret):
             return True
 
+        # XXX: should we use from_string() call below to check
+        #      for config strings, and flag them as needing update?
+        #      or throw an error?
+        #      or leave that as an explicitly undefined border case,
+        #      to keep the codepath simpler & faster?
+
         # if we can parse rounds parameter, check if it's w/in bounds.
         if self._has_rounds_introspection:
             # XXX: this might be a good place to use parsehash()
@@ -2608,12 +2614,12 @@ class LazyCryptContext(CryptContext):
     the first time one of it's methods is accessed.
 
     :arg schemes:
-        the first positional argument can be a list of schemes, or omitted,
+        The first positional argument can be a list of schemes, or omitted,
         just like CryptContext.
 
     :param onload:
 
-        if a callable is passed in via this keyword,
+        If a callable is passed in via this keyword,
         it will be invoked at lazy-load time
         with the following signature:
         ``onload(**kwds) -> kwds``;
@@ -2626,8 +2632,8 @@ class LazyCryptContext(CryptContext):
     :param create_policy:
 
         .. deprecated:: 1.6
-            This option will be removed in Passlib 1.8.
-            Applications should use *onload* instead.
+            This option will be removed in Passlib 1.8,
+            applications should use ``onload`` instead.
 
     :param kwds:
 

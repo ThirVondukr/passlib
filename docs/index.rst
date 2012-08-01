@@ -107,8 +107,6 @@ Other Documents
 Online Resources
 ================
 
-    .. rst-class:: html-plain-table
-
     ================ ===================================================
     Homepage:        `<http://passlib.googlecode.com>`_
     Online Docs:     `<http://packages.python.org/passlib>`_

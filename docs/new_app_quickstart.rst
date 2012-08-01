@@ -35,6 +35,8 @@ For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
 instance; see below for more...
 
+.. index:: Passlib; recommended hash algorithms
+
 .. _recommended-hashes:
 
 Choosing a Hash
@@ -121,7 +123,9 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
-This algorithm is probably the best choice for Google App Engine,
+.. index:: Google App Engine; recommended hash algorithm
+
+:class:`~passlib.hash.sha512_crypt` is probably the best choice for Google App Engine,
 as Google's production servers appear to provide native support
 via :mod:`crypt`, which will be used by Passlib.
 
@@ -233,7 +237,7 @@ To start using your CryptContext, import the context you created wherever it's n
 .. rubric:: Footnotes
 
 .. [#choices] BCrypt, SHA-512 Crypt, and PBKDF2 are the most commonly
-              used password hashes as of May 2011, when this document
-              was written. You should make sure you are reading a current
-              copy of the passlib documentation, in case the state
+              used password hashes as of Aug 2012, when this document
+              last updated. You should make sure you are reading a current
+              copy of the Passlib documentation, in case the state
               of things has changed.

@@ -62,7 +62,7 @@ but verifying existing MySQL 3.2.3 - 4.0 password hashes.
 
 .. rubric:: Footnotes
 
-.. [#f1] Source of implementation used by passlib -
+.. [#f1] Source of implementation used by Passlib -
          `<http://djangosnippets.org/snippets/1508/>`_
 
 .. [#f2] Mysql document describing transition -

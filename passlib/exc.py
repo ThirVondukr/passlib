@@ -10,8 +10,8 @@ class MissingBackendError(RuntimeError):
     from :exc:`RuntimeError`, since it usually indicates
     lack of an external library or OS feature.
     This is primarily raised by handlers which depend on
-    external libraries -- which is currently just
-    :class:`~passlib.hash.bcrypt`.
+    external libraries (which is currently just
+    :class:`~passlib.hash.bcrypt`).
     """
 
 class PasswordSizeError(ValueError):
@@ -54,9 +54,9 @@ class PasslibConfigWarning(PasslibWarning):
 
     This occurs primarily in one of two cases:
 
-    * the CryptContext contains rounds limits which exceed the hard limits
+    * The CryptContext contains rounds limits which exceed the hard limits
       imposed by the underlying algorithm.
-    * an explicit rounds value was provided which exceeds the limits
+    * An explicit rounds value was provided which exceeds the limits
       imposed by the CryptContext.
 
     In both of these cases, the code will perform correctly & securely;
@@ -69,10 +69,11 @@ class PasslibHashWarning(PasslibWarning):
 
     This occurs primarily in one of two cases:
 
-    * a rounds value or other setting was explicitly provided which
-      exceeded the handler's limits (and has been clamped).
+    * A rounds value or other setting was explicitly provided which
+      exceeded the handler's limits (and has been clamped
+      by the :ref:`relaxed<relaxed-keyword>` flag).
 
-    * a hash malformed hash string was encountered, which while parsable,
+    * A malformed hash string was encountered which (while parsable)
       should be re-encoded.
     """
 

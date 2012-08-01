@@ -665,15 +665,15 @@ def des_encrypt_block(key, input, salt=0, rounds=1):
         plaintext block to encrypt, as 8 byte string.
 
     :arg salt:
-        optional 24-bit integer used to mutate the base DES algorithm in a
-        manner specific to :class:`~passlib.hash.des_crypt` and it's variants:
-
-        for each bit ``i`` which is set in the salt value,
+        Optional 24-bit integer used to mutate the base DES algorithm in a
+        manner specific to :class:`~passlib.hash.des_crypt` and it's variants.
+        The default value ``0`` provides the normal (unsalted) DES behavior.
+        The salt functions as follows:
+        if the ``i``'th bit of ``salt`` is set,
         bits ``i`` and ``i+24`` are swapped in the DES E-box output.
-        the default (``salt=0``) provides the normal DES behavior.
 
     :arg rounds:
-        optional number of rounds of to apply the DES key schedule.
+        Optional number of rounds of to apply the DES key schedule.
         the default (``rounds=1``) provides the normal DES behavior,
         but :class:`~passlib.hash.des_crypt` and it's variants use
         alternate rounds values.

@@ -90,7 +90,7 @@ providing full-strength password hashing for multi-user application.
 * See the `online documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `passlib homepage <http://passlib.googlecode.com>`_
+* See the `Passlib homepage <http://passlib.googlecode.com>`_
   for the latest news, more information, and additional downloads.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
