@@ -7,8 +7,8 @@
 # and make it more failure-proof
 #
 
-#TODO: run through all builds *first*, to make sure they work.
-#      re-clean, run pypi upload, gc upload
+# TODO: run through all builds *first*, to make sure they work.
+#       re-clean, run pypi upload, gc upload
 
 # clean dir
 rm -rf build dist

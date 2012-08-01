@@ -1,35 +1,35 @@
 """tests for passlib.utils.(des|pbkdf2|md4)"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 from binascii import hexlify, unhexlify
 import hashlib
 import hmac
 import sys
 import random
 import warnings
-#site
+# site
 try:
     import M2Crypto
 except ImportError:
     M2Crypto = None
-#pkg
-#module
+# pkg
+# module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
                                  unicode, join_bytes, PYPY, JYTHON
 from passlib.tests.utils import TestCase, TEST_MODE, catch_warnings, skipUnless, skipIf
 
-#=========================================================
+#=============================================================================
 # support
-#=========================================================
+#=============================================================================
 def hb(source):
     return unhexlify(b(source))
 
-#=========================================================
+#=============================================================================
 # test assorted crypto helpers
-#=========================================================
+#=============================================================================
 class CryptoTest(TestCase):
     "test various crypto functions"
 
@@ -77,9 +77,9 @@ class CryptoTest(TestCase):
 
     # TODO: write full test of get_prf(), currently relying on pbkdf2 testing
 
-#=========================================================
-#test DES routines
-#=========================================================
+#=============================================================================
+# test DES routines
+#=============================================================================
 class DesTest(TestCase):
     descriptionPrefix = "DES"
 
@@ -128,7 +128,7 @@ class DesTest(TestCase):
                                       _KDATA_MASK, INT_56_MASK
 
         # make sure test vectors are preserved (sans parity bits)
-        # uses ints, bytes are tested under #02
+        # uses ints, bytes are tested under # 02
         for key1, _, _ in self.des_test_vectors:
             key2 = shrink_des_key(key1)
             key3 = expand_des_key(key2)
@@ -153,7 +153,7 @@ class DesTest(TestCase):
         from passlib.utils import random, getrandbytes
 
         # make sure reverse works for some random keys
-        # uses bytes, ints are tested under #01
+        # uses bytes, ints are tested under # 01
         for i in range(20):
             key1 = getrandbytes(random, 7)
             key2 = expand_des_key(key1)
@@ -256,9 +256,9 @@ class DesTest(TestCase):
         # check invalid rounds
         self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, 0, rounds=0)
 
-#=========================================================
+#=============================================================================
 # test pure-python MD4 implementation
-#=========================================================
+#=============================================================================
 from passlib.utils.md4 import _has_native_md4
 has_native_md4 = _has_native_md4()
 
@@ -274,7 +274,7 @@ class _MD4_Test(TestCase):
 
     vectors = [
         # input -> hex digest
-        #test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
+        # test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
         (b(""), "31d6cfe0d16ae931b73c59d7e0c089c0"),
         (b("a"), "bde52cb31de33e46245e05fbdbd6fb24"),
         (b("abc"), "a448017aaf21d8525fc10ae87aa6729d"),
@@ -290,8 +290,8 @@ class _MD4_Test(TestCase):
         h = md4(b(''))
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 
-        #NOTE: under py2, hashlib methods try to encode to ascii,
-        #      though shouldn't rely on that.
+        # NOTE: under py2, hashlib methods try to encode to ascii,
+        #       though shouldn't rely on that.
         if PY3 or self._disable_native:
             self.assertRaises(TypeError, h.update, u('x'))
 
@@ -338,9 +338,9 @@ class MD4_Builtin_Test(_MD4_Test):
 MD4_Builtin_Test = skipUnless(TEST_MODE("full") or not has_native_md4,
                               "skipped under current test mode")(MD4_Builtin_Test)
 
-#=========================================================
+#=============================================================================
 # test PBKDF1 support
-#=========================================================
+#=============================================================================
 class Pbkdf1_Test(TestCase):
     "test kdf helpers"
     descriptionPrefix = "pbkdf1"
@@ -398,9 +398,9 @@ class Pbkdf1_Test(TestCase):
         self.assertRaises(ValueError, helper, keylen=17, hash='md5')
         self.assertRaises(TypeError, helper, keylen='1')
 
-#=========================================================
+#=============================================================================
 # test PBKDF2 support
-#=========================================================
+#=============================================================================
 class _Pbkdf2_Test(TestCase):
     "test pbkdf2() support"
     _disable_m2crypto = False
@@ -425,43 +425,43 @@ class _Pbkdf2_Test(TestCase):
         # from rfc 3962
         #
 
-            #test case 1 / 128 bit
+            # test case 1 / 128 bit
             (
                 hb("cdedb5281bb2f801565a1122b2563515"),
                 b("password"), b("ATHENA.MIT.EDUraeburn"), 1, 16
             ),
 
-            #test case 2 / 128 bit
+            # test case 2 / 128 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935d"),
                 b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 16
             ),
 
-            #test case 2 / 256 bit
+            # test case 2 / 256 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935da05378b93244ec8f48a99e61ad799d86"),
                 b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 32
             ),
 
-            #test case 3 / 256 bit
+            # test case 3 / 256 bit
             (
                 hb("5c08eb61fdf71e4e4ec3cf6ba1f5512ba7e52ddbc5e5142f708a31e2e62b1e13"),
                 b("password"), b("ATHENA.MIT.EDUraeburn"), 1200, 32
             ),
 
-            #test case 4 / 256 bit
+            # test case 4 / 256 bit
             (
                 hb("d1daa78615f287e6a1c8b120d7062a493f98d203e6be49a6adf4fa574b6e64ee"),
                 b("password"), b('\x12\x34\x56\x78\x78\x56\x34\x12'), 5, 32
             ),
 
-            #test case 5 / 256 bit
+            # test case 5 / 256 bit
             (
                 hb("139c30c0966bc32ba55fdbf212530ac9c5ec59f1a452f5cc9ad940fea0598ed1"),
                 b("X"*64), b("pass phrase equals block size"), 1200, 32
             ),
 
-            #test case 6 / 256 bit
+            # test case 6 / 256 bit
             (
                 hb("9ccad6d468770cd51b10e6a68721be611a8b4d282601db3b36be9246915ec82a"),
                 b("X"*65), b("pass phrase exceeds block size"), 1200, 32
@@ -485,7 +485,7 @@ class _Pbkdf2_Test(TestCase):
                 b("password"), b("salt"), 4096, 20,
             ),
 
-            #just runs too long - could enable if ALL option is set
+            # just runs too long - could enable if ALL option is set
             ##(
             ##
             ##    unhexlify("eefe3d61cd4da4e4e9945b3d6ba2158c2634e984"),
@@ -548,7 +548,7 @@ class _Pbkdf2_Test(TestCase):
             return pbkdf2(secret, salt, rounds, keylen, prf)
         helper()
 
-        #invalid rounds
+        # invalid rounds
         self.assertRaises(ValueError, helper, rounds=0)
         self.assertRaises(TypeError, helper, rounds='x')
 
@@ -594,6 +594,6 @@ class Pbkdf2_Builtin_Test(_Pbkdf2_Test):
 Pbkdf2_Builtin_Test = skipUnless(TEST_MODE("full") or not M2Crypto,
                                  "skipped under current test mode")(Pbkdf2_Builtin_Test)
 
-#=========================================================
-# EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

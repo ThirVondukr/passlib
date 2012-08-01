@@ -56,7 +56,7 @@ Interface
 .. class:: ldap_sha512_crypt()
 
     All of these classes have the same interface as their corresponding
-    underlying hash (eg :class:`des_crypt`, :class:`md5_crypt`, etc).
+    underlying hash (e.g. :class:`des_crypt`, :class:`md5_crypt`, etc).
 
 .. rubric:: Footnotes
 

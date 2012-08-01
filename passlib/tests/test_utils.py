@@ -1,16 +1,16 @@
 """tests for passlib.util"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 from binascii import hexlify, unhexlify
 import sys
 import random
 import warnings
-#site
-#pkg
-#module
+# site
+# pkg
+# module
 from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
                                  unicode, join_bytes, SUPPORTS_DIR_METHOD
 from passlib.tests.utils import TestCase, catch_warnings
@@ -18,13 +18,13 @@ from passlib.tests.utils import TestCase, catch_warnings
 def hb(source):
     return unhexlify(b(source))
 
-#=========================================================
-#byte funcs
-#=========================================================
+#=============================================================================
+# byte funcs
+#=============================================================================
 class MiscTest(TestCase):
     "tests various parts of utils module"
 
-    #NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
+    # NOTE: could test xor_bytes(), but it's exercised well enough by pbkdf2 test
 
     def test_compat(self):
         "test compat's lazymodule"
@@ -109,34 +109,34 @@ class MiscTest(TestCase):
         def f(*a,**k):
             return getrandstr(rng, *a, **k)
 
-        #count 0
+        # count 0
         self.assertEqual(f('abc',0), '')
 
-        #count <0
+        # count <0
         self.assertRaises(ValueError, f, 'abc', -1)
 
-        #letters 0
+        # letters 0
         self.assertRaises(ValueError, f, '', 0)
 
-        #letters 1
+        # letters 1
         self.assertEqual(f('a',5), 'aaaaa')
 
-        #letters
+        # letters
         x = f(u('abc'), 16)
         y = f(u('abc'), 16)
         self.assertIsInstance(x, unicode)
         self.assertNotEqual(x,y)
         self.assertEqual(sorted(set(x)), [u('a'),u('b'),u('c')])
 
-        #bytes
+        # bytes
         x = f(b('abc'), 16)
         y = f(b('abc'), 16)
         self.assertIsInstance(x, bytes)
         self.assertNotEqual(x,y)
-        #NOTE: decoding this due to py3 bytes
+        # NOTE: decoding this due to py3 bytes
         self.assertEqual(sorted(set(x.decode("ascii"))), [u('a'),u('b'),u('c')])
 
-        #generate_password
+        # generate_password
         from passlib.utils import generate_password
         self.assertEqual(len(generate_password(15)), 15)
 
@@ -289,7 +289,7 @@ class MiscTest(TestCase):
         ##        supplied = incorrect * m
         ##        def test():
         ##            self.assertFalse(consteq(supplied,correct))
-        ##            #self.assertFalse(supplied == correct)
+        ##            ##self.assertFalse(supplied == correct)
         ##        times.append(timeit.timeit(test, number=100000))
         ##        chars.append(len(supplied))
         ##    # output for wolfram alpha
@@ -391,9 +391,9 @@ class MiscTest(TestCase):
         self.assertEqual(splitcomma(" a , b"), ['a', 'b'])
         self.assertEqual(splitcomma(" a, b, "), ['a', 'b'])
 
-#=========================================================
-#byte/unicode helpers
-#=========================================================
+#=============================================================================
+# byte/unicode helpers
+#=============================================================================
 class CodecTest(TestCase):
     "tests bytes/unicode helpers in passlib.utils"
 
@@ -417,28 +417,28 @@ class CodecTest(TestCase):
         "test to_bytes()"
         from passlib.utils import to_bytes
 
-        #check unicode inputs
+        # check unicode inputs
         self.assertEqual(to_bytes(u('abc')),                  b('abc'))
         self.assertEqual(to_bytes(u('\x00\xff')),             b('\x00\xc3\xbf'))
 
-        #check unicode w/ encodings
+        # check unicode w/ encodings
         self.assertEqual(to_bytes(u('\x00\xff'), 'latin-1'),  b('\x00\xff'))
         self.assertRaises(ValueError, to_bytes, u('\x00\xff'), 'ascii')
 
-        #check bytes inputs
+        # check bytes inputs
         self.assertEqual(to_bytes(b('abc')),                b('abc'))
         self.assertEqual(to_bytes(b('\x00\xff')),           b('\x00\xff'))
         self.assertEqual(to_bytes(b('\x00\xc3\xbf')),       b('\x00\xc3\xbf'))
 
-        #check byte inputs ignores enocding
+        # check byte inputs ignores enocding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1"),
                                                             b('\x00\xc3\xbf'))
 
-        #check bytes transcoding
+        # check bytes transcoding
         self.assertEqual(to_bytes(b('\x00\xc3\xbf'), "latin-1", "", "utf-8"),
                                                             b('\x00\xff'))
 
-        #check other
+        # check other
         self.assertRaises(AssertionError, to_bytes, 'abc', None)
         self.assertRaises(TypeError, to_bytes, None)
 
@@ -446,21 +446,21 @@ class CodecTest(TestCase):
         "test to_unicode()"
         from passlib.utils import to_unicode
 
-        #check unicode inputs
+        # check unicode inputs
         self.assertEqual(to_unicode(u('abc')),                u('abc'))
         self.assertEqual(to_unicode(u('\x00\xff')),           u('\x00\xff'))
 
-        #check unicode input ignores encoding
+        # check unicode input ignores encoding
         self.assertEqual(to_unicode(u('\x00\xff'), "ascii"),  u('\x00\xff'))
 
-        #check bytes input
+        # check bytes input
         self.assertEqual(to_unicode(b('abc')),              u('abc'))
         self.assertEqual(to_unicode(b('\x00\xc3\xbf')),     u('\x00\xff'))
         self.assertEqual(to_unicode(b('\x00\xff'), 'latin-1'),
                                                             u('\x00\xff'))
         self.assertRaises(ValueError, to_unicode, b('\x00\xff'))
 
-        #check other
+        # check other
         self.assertRaises(AssertionError, to_unicode, 'abc', None)
         self.assertRaises(TypeError, to_unicode, None)
 
@@ -519,9 +519,9 @@ class CodecTest(TestCase):
 
         self.assertFalse(is_same_codec("ascii", "utf-8"))
 
-#=========================================================
+#=============================================================================
 # base64engine
-#=========================================================
+#=============================================================================
 class Base64EngineTest(TestCase):
     "test standalone parts of Base64Engine"
     # NOTE: most Base64Engine testing done via _Base64Test subclasses below.
@@ -548,9 +548,9 @@ class Base64EngineTest(TestCase):
 
 class _Base64Test(TestCase):
     "common tests for all Base64Engine instances"
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
 
     # Base64Engine instance to test
     engine = None
@@ -569,9 +569,9 @@ class _Base64Test(TestCase):
         "generate byte string from offsets"
         return join_bytes(self.engine.bytemap[o:o+1] for o in offsets)
 
-    #=========================================================
+    #===================================================================
     # test encode_bytes
-    #=========================================================
+    #===================================================================
     def test_encode_bytes(self):
         "test encode_bytes() against reference inputs"
         engine = self.engine
@@ -587,9 +587,9 @@ class _Base64Test(TestCase):
         self.assertRaises(TypeError, encode, u('\x00'))
         self.assertRaises(TypeError, encode, None)
 
-    #=========================================================
+    #===================================================================
     # test decode_bytes
-    #=========================================================
+    #===================================================================
     def test_decode_bytes(self):
         "test decode_bytes() against reference inputs"
         engine = self.engine
@@ -641,9 +641,9 @@ class _Base64Test(TestCase):
         self.assertRaises(TypeError, decode, engine.charmap[:4])
         self.assertRaises(TypeError, decode, None)
 
-    #=========================================================
+    #===================================================================
     # encode_bytes+decode_bytes
-    #=========================================================
+    #===================================================================
     def test_codec(self):
         "test encode_bytes/decode_bytes against random data"
         engine = self.engine
@@ -722,9 +722,9 @@ class _Base64Test(TestCase):
                 self.assertEqual(result, rdata)
             i += 1
 
-    #=========================================================
+    #===================================================================
     # test transposed encode/decode - encoding independant
-    #=========================================================
+    #===================================================================
     # NOTE: these tests assume normal encode/decode has been tested elsewhere.
 
     transposed = [
@@ -764,9 +764,9 @@ class _Base64Test(TestCase):
             self.assertRaises(TypeError, engine.decode_transposed_bytes, tmp,
                               offsets)
 
-    #=========================================================
+    #===================================================================
     # test 6bit handling
-    #=========================================================
+    #===================================================================
     def check_int_pair(self, bits, encoded_pairs):
         "helper to check encode_intXX & decode_intXX functions"
         engine = self.engine
@@ -854,9 +854,9 @@ class _Base64Test(TestCase):
             self.assertEqual(encode(value), data)
             self.assertEqual(decode(data), value)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 # NOTE: testing H64 & H64Big should be sufficient to verify
 # that Base64Engine() works in general.
@@ -868,7 +868,7 @@ class H64_Test(_Base64Test):
     descriptionPrefix = "h64 codec"
 
     encoded_data = [
-        #test lengths 0..6 to ensure tail is encoded properly
+        # test lengths 0..6 to ensure tail is encoded properly
         (b(""),b("")),
         (b("\x55"),b("J/")),
         (b("\x55\xaa"),b("Jd8")),
@@ -877,7 +877,7 @@ class H64_Test(_Base64Test):
         (b("\x55\xaa\x55\xaa\x55"),b("JdOJeK3")),
         (b("\x55\xaa\x55\xaa\x55\xaa"),b("JdOJeKZe")),
 
-        #test padding bits are null
+        # test padding bits are null
         (b("\x55\xaa\x55\xaf"),b("JdOJj0")), # len = 1 mod 3
         (b("\x55\xaa\x55\xaa\x5f"),b("JdOJey3")), # len = 2 mod 3
     ]
@@ -893,7 +893,7 @@ class H64Big_Test(_Base64Test):
     descriptionPrefix = "h64big codec"
 
     encoded_data = [
-        #test lengths 0..6 to ensure tail is encoded properly
+        # test lengths 0..6 to ensure tail is encoded properly
         (b(""),b("")),
         (b("\x55"),b("JE")),
         (b("\x55\xaa"),b("JOc")),
@@ -902,7 +902,7 @@ class H64Big_Test(_Base64Test):
         (b("\x55\xaa\x55\xaa\x55"),b("JOdJeZI")),
         (b("\x55\xaa\x55\xaa\x55\xaa"),b("JOdJeZKe")),
 
-        #test padding bits are null
+        # test padding bits are null
         (b("\x55\xaa\x55\xaf"),b("JOdJfk")), # len = 1 mod 3
         (b("\x55\xaa\x55\xaa\x5f"),b("JOdJeZw")), # len = 2 mod 3
     ]
@@ -912,6 +912,6 @@ class H64Big_Test(_Base64Test):
         (b("z."), 4032, 12),
     ]
 
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

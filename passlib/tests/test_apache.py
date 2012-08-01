@@ -1,33 +1,33 @@
 """tests for passlib.apache -- (c) Assurance Technologies 2008-2011"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import hashlib
 from logging import getLogger
 import os
 import time
-#site
-#pkg
+# site
+# pkg
 from passlib import apache
 from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings, ensure_mtime_changed
 from passlib.utils.compat import b, bytes, u
-#module
+# module
 log = getLogger(__name__)
 
 def backdate_file_mtime(path, offset=10):
     "backdate file's mtime by specified amount"
-    #NOTE: this is used so we can test code which detects mtime changes,
-    # without having to actually *pause* for that long.
+    # NOTE: this is used so we can test code which detects mtime changes,
+    #       without having to actually *pause* for that long.
     atime = os.path.getatime(path)
     mtime = os.path.getmtime(path)-offset
     os.utime(path, (atime, mtime))
 
-#=========================================================
-#htpasswd
-#=========================================================
+#=============================================================================
+# htpasswd
+#=============================================================================
 class HtpasswdFileTest(TestCase):
     "test HtpasswdFile class"
     descriptionPrefix = "HtpasswdFile"
@@ -86,7 +86,7 @@ class HtpasswdFileTest(TestCase):
         os.remove(path)
         self.assertRaises(IOError, apache.HtpasswdFile, path)
 
-        #NOTE: "default_scheme" option checked via set_password() test, among others
+        # NOTE: "default_scheme" option checked via set_password() test, among others
 
     def test_00_from_path(self):
         path = self.mktemp()
@@ -221,18 +221,18 @@ class HtpasswdFileTest(TestCase):
 
     def test_06_save(self):
         "test save()"
-        #load from file
+        # load from file
         path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtpasswdFile(path)
 
-        #make changes, check they saved
+        # make changes, check they saved
         ht.delete("user1")
         ht.delete("user2")
         ht.save()
         self.assertEqual(get_file(path), self.sample_02)
 
-        #test save w/ no path
+        # test save w/ no path
         hb = apache.HtpasswdFile(default_scheme="plaintext")
         hb.set_password("user1", "pass1")
         self.assertRaises(RuntimeError, hb.save)
@@ -297,13 +297,13 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
                           b(''), path=None)
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#htdigest
-#=========================================================
+#=============================================================================
+# htdigest
+#=============================================================================
 class HtdigestFileTest(TestCase):
     "test HtdigestFile class"
     descriptionPrefix = "HtdigestFile"
@@ -441,29 +441,29 @@ class HtdigestFileTest(TestCase):
 
     def test_05_load(self):
         "test load()"
-        #setup empty file
+        # setup empty file
         path = self.mktemp()
         set_file(path, "")
         backdate_file_mtime(path, 5)
         ha = apache.HtdigestFile(path)
         self.assertEqual(ha.to_string(), b(""))
 
-        #make changes, check load_if_changed() does nothing
+        # make changes, check load_if_changed() does nothing
         ha.set_password("user1", "realm", "pass1")
         ha.load_if_changed()
         self.assertEqual(ha.to_string(), b('user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n'))
 
-        #change file
+        # change file
         set_file(path, self.sample_01)
         ha.load_if_changed()
         self.assertEqual(ha.to_string(), self.sample_01)
 
-        #make changes, check load_if_changed overwrites them
+        # make changes, check load_if_changed overwrites them
         ha.set_password("user5", "realm", "pass5")
         ha.load()
         self.assertEqual(ha.to_string(), self.sample_01)
 
-        #test load w/ no path
+        # test load w/ no path
         hb = apache.HtdigestFile()
         self.assertRaises(RuntimeError, hb.load)
         self.assertRaises(RuntimeError, hb.load_if_changed)
@@ -473,7 +473,7 @@ class HtdigestFileTest(TestCase):
         hc.load(path)
         self.assertEqual(hc.to_string(), self.sample_01)
 
-        #change file, test deprecated force=False kwd
+        # change file, test deprecated force=False kwd
         ensure_mtime_changed(path)
         set_file(path, "")
         with self.assertWarningList(r"load\(force=False\) is deprecated"):
@@ -482,18 +482,18 @@ class HtdigestFileTest(TestCase):
 
     def test_06_save(self):
         "test save()"
-        #load from file
+        # load from file
         path = self.mktemp()
         set_file(path, self.sample_01)
         ht = apache.HtdigestFile(path)
 
-        #make changes, check they saved
+        # make changes, check they saved
         ht.delete("user1", "realm")
         ht.delete("user2", "realm")
         ht.save()
         self.assertEqual(get_file(path), self.sample_02)
 
-        #test save w/ no path
+        # test save w/ no path
         hb = apache.HtdigestFile()
         hb.set_password("user1", "realm", "pass1")
         self.assertRaises(RuntimeError, hb.save)
@@ -555,10 +555,10 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(ValueError, apache.HtdigestFile.from_string,
             b('user1:pass1\n'))
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

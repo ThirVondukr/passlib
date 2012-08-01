@@ -22,7 +22,7 @@ for new applications. This class can be used directly as follows::
     >>> bcrypt.encrypt("password", rounds=8)
     '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
 
-    >>> #verify password
+    >>> # verify password
     >>> bcrypt.verify("password", h)
     True
     >>> bcrypt.verify("wrong", h)

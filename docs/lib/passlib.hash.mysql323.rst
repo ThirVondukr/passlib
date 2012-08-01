@@ -27,7 +27,7 @@ That aside, this class can be used as follows::
     >>> mysql323.encrypt("password")
     '5d2e19393cc5ef67'
 
-    >>> #verify correct password
+    >>> # verify correct password
     >>> mysql323.verify("password", '5d2e19393cc5ef67')
     True
     >>> mysql323.verify("secret", '5d2e19393cc5ef67')

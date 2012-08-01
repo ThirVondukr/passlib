@@ -41,19 +41,19 @@ Usage
 =====
 Example showing how to use :func:`!registry_crypt_handler_path`::
 
-        >>> #register the location of a handler without loading it
+        >>> # register the location of a handler without loading it
         >>> from passlib.registry import register_crypt_handler_path
         >>> register_crypt_handler_path("myhash", "myapp.support.hashes")
 
-        >>> #even before being loaded, it's name will show up as available
+        >>> # even before being loaded, it's name will show up as available
         >>> from passlib.registry import list_crypt_handlers
         >>> 'myhash' in list_crypt_handlers()
         True
         >>> 'myhash' in list_crypt_handlers(loaded_only=True)
         False
 
-        >>> #when the name "myhash" is next referenced,
-        >>> #the class "myhash" will be imported from the module "myapp.support.hashes"
+        >>> # when the name "myhash" is next referenced,
+        >>> # the class "myhash" will be imported from the module "myapp.support.hashes"
         >>> from passlib.context import CryptContext
         >>> cc = CryptContext(schemes=["myhash"]) #<-- this will cause autoimport
 

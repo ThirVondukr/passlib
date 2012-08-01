@@ -1,9 +1,9 @@
 """passlib.utils -- helpers for writing password hashes"""
 #=============================================================================
-#imports
+# imports
 #=============================================================================
 from passlib.utils.compat import PYPY, JYTHON
-#core
+# core
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
@@ -26,13 +26,13 @@ import time
 if stringprep:
     import unicodedata
 from warnings import warn
-#site
-#pkg
+# site
+# pkg
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, b, bytes, join_bytes, join_byte_values, \
                                  join_byte_elems, exc_err, irange, imap, PY3, u, \
                                  join_unicode, unicode, byte_elem_value, PY_MIN_32, next_method_attr
-#local
+# local
 __all__ = [
     # constants
     'PYPY',
@@ -86,9 +86,9 @@ __all__ = [
     'has_salt_info',
 ]
 
-#=================================================================================
+#=============================================================================
 # constants
-#=================================================================================
+#=============================================================================
 
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
@@ -116,9 +116,9 @@ _USPACE = u(" ")
 # maximum password size which passlib will allow; see exc.PasswordSizeError
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
 
-#=================================================================================
-#decorators and meta helpers
-#=================================================================================
+#=============================================================================
+# decorators and meta helpers
+#=============================================================================
 class classproperty(object):
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
 
@@ -221,7 +221,7 @@ class memoized_property(object):
         "py3 alias"
         return self.im_func
 
-#works but not used
+# works but not used
 ##class memoized_class_property(object):
 ##    """function decorator which calls function as classmethod,
 ##    and replaces itself with result for current and all future invocations.
@@ -638,9 +638,9 @@ def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & un
     "deprecated, use to_native_str() instead"
     return to_native_str(source, encoding, param="hash")
 
-#=================================================================================
+#=============================================================================
 # base64-variant encoding
-#=================================================================================
+#=============================================================================
 
 class Base64Engine(object):
     """Provides routines for encoding/decoding base64 data using
@@ -707,9 +707,9 @@ class Base64Engine(object):
         boolean flag indicating this using big-endian encoding.
     """
 
-    #=============================================================
+    #===================================================================
     # instance attrs
-    #=============================================================
+    #===================================================================
     # public config
     bytemap = None # charmap as bytes
     big = None # little or big endian
@@ -723,9 +723,9 @@ class Base64Engine(object):
     _encode_bytes = None # throws IndexError if bad value (shouldn't happen)
     _decode_bytes = None # throws KeyError if bad char.
 
-    #=============================================================
+    #===================================================================
     # init
-    #=============================================================
+    #===================================================================
     def __init__(self, charmap, big=False):
         # validate charmap, generate encode64/decode64 helper functions.
         if isinstance(charmap, unicode):
@@ -765,9 +765,9 @@ class Base64Engine(object):
         "charmap as unicode"
         return self.bytemap.decode("latin-1")
 
-    #=============================================================
+    #===================================================================
     # encoding byte strings
-    #=============================================================
+    #===================================================================
     def encode_bytes(self, source):
         """encode bytes to base64 string.
 
@@ -867,9 +867,9 @@ class Base64Engine(object):
                 yield ((v1&0x03)<<4)|(v2>>4)
                 yield ((v2&0x0f)<<2)
 
-    #=============================================================
+    #===================================================================
     # decoding byte strings
-    #=============================================================
+    #===================================================================
 
     def decode_bytes(self, source):
         """decode bytes from base64 string.
@@ -885,7 +885,7 @@ class Base64Engine(object):
         ##    source = source.rstrip(padding)
         chunks, tail = divmod(len(source), 4)
         if tail == 1:
-            #only 6 bits left, can't encode a whole byte!
+            # only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
         next_value = getattr(imap(self._decode64, source), next_method_attr)
         try:
@@ -923,9 +923,9 @@ class Base64Engine(object):
             v1 = next_value()
             v2 = next_value()
             yield v1 | ((v2 & 0x3) << 6)
-            #NOTE: if tail == 2, 4 msb of v2 are ignored (should be 0)
+            # NOTE: if tail == 2, 4 msb of v2 are ignored (should be 0)
             if tail == 3:
-                #NOTE: 2 msb of v3 are ignored (should be 0)
+                # NOTE: 2 msb of v3 are ignored (should be 0)
                 v3 = next_value()
                 yield (v2>>2) | ((v3 & 0xF) << 4)
 
@@ -958,15 +958,15 @@ class Base64Engine(object):
             v1 = next_value()
             v2 = next_value()
             yield (v1<<2) | (v2>>4)
-            #NOTE: if tail == 2, 4 lsb of v2 are ignored (should be 0)
+            # NOTE: if tail == 2, 4 lsb of v2 are ignored (should be 0)
             if tail == 3:
-                #NOTE: 2 lsb of v3 are ignored (should be 0)
+                # NOTE: 2 lsb of v3 are ignored (should be 0)
                 v3 = next_value()
                 yield ((v2&0xF)<<4) | (v3>>2)
 
-    #=============================================================
+    #===================================================================
     # encode/decode helpers
-    #=============================================================
+    #===================================================================
 
     # padmap2/3 - dict mapping last char of string ->
     # equivalent char with no padding bits set.
@@ -1047,9 +1047,9 @@ class Base64Engine(object):
     ##                      self.charmap if unicode else self.bytemap, size)
     ##    return self.repair_unused(data)
 
-    #=============================================================
+    #===================================================================
     # transposed encoding/decoding
-    #=============================================================
+    #===================================================================
     def encode_transposed_bytes(self, source, offsets):
         "encode byte string, first transposing source using offset list"
         if not isinstance(source, bytes):
@@ -1068,9 +1068,9 @@ class Base64Engine(object):
             buf[off] = char
         return join_byte_elems(buf)
 
-    #=============================================================
+    #===================================================================
     # integer decoding helpers - mainly used by des_crypt family
-    #=============================================================
+    #===================================================================
     def _decode_int(self, source, bits):
         """decode base64 string -> integer
 
@@ -1107,9 +1107,9 @@ class Base64Engine(object):
                 out &= (1<<bits)-1
         return out
 
-    #---------------------------------------------
+    #---------------------------------------------------------------
     # optimized versions for common integer sizes
-    #---------------------------------------------
+    #---------------------------------------------------------------
 
     def decode_int6(self, source):
         "decode single character -> 6 bit integer"
@@ -1165,9 +1165,9 @@ class Base64Engine(object):
         """
         return self._decode_int(source, 64)
 
-    #=============================================================
+    #===================================================================
     # integer encoding helpers - mainly used by des_crypt family
-    #=============================================================
+    #===================================================================
     def _encode_int(self, value, bits):
         """encode integer into base64 format
 
@@ -1190,9 +1190,9 @@ class Base64Engine(object):
         return join_byte_elems(imap(self._encode64,
                                 ((value>>off) & 0x3f for off in itr)))
 
-    #---------------------------------------------
+    #---------------------------------------------------------------
     # optimized versions for common integer sizes
-    #---------------------------------------------
+    #---------------------------------------------------------------
 
     def encode_int6(self, value):
         "encodes 6-bit integer -> single hash64 character"
@@ -1232,9 +1232,9 @@ class Base64Engine(object):
             raise ValueError("value out of range")
         return self._encode_int(value, 64)
 
-    #=============================================================
+    #===================================================================
     # eof
-    #=============================================================
+    #===================================================================
 
 class LazyBase64Engine(Base64Engine):
     "Base64Engine which delays initialization until it's accessed"
@@ -1303,13 +1303,13 @@ def ab64_decode(data):
     else: # off == 1
         raise ValueError("invalid base64 input")
 
-#=================================================================================
+#=============================================================================
 # host OS helpers
-#=================================================================================
+#=============================================================================
 
 try:
     from crypt import crypt as _crypt
-except ImportError: #pragma: no cover
+except ImportError: # pragma: no cover
     has_crypt = False
     def safe_crypt(secret, hash):
         return None
@@ -1408,16 +1408,16 @@ else:
     # On most other platforms the best timer is time.time()
     from time import time as tick
 
-#=================================================================================
+#=============================================================================
 # randomness
-#=================================================================================
+#=============================================================================
 
-#-----------------------------------------------------------------------
+#------------------------------------------------------------------------
 # setup rng for generating salts
-#-----------------------------------------------------------------------
+#------------------------------------------------------------------------
 
-#NOTE:
-# generating salts (eg h64_gensalt, below) doesn't require cryptographically
+# NOTE:
+# generating salts (e.g. h64_gensalt, below) doesn't require cryptographically
 # strong randomness. it just requires enough range of possible outputs
 # that making a rainbow table is too costly.
 # so python's builtin merseen twister prng is used, but seeded each time
@@ -1426,48 +1426,48 @@ else:
 try:
     os.urandom(1)
     has_urandom = True
-except NotImplementedError: #pragma: no cover
+except NotImplementedError: # pragma: no cover
     has_urandom = False
 
 def genseed(value=None):
     "generate prng seed value from system resources"
-    #if value is rng, extract a bunch of bits from it's state
+    # if value is rng, extract a bunch of bits from it's state
     from hashlib import sha256
     if hasattr(value, "getrandbits"):
         value = value.getrandbits(256)
     text = u("%s %s %s %.15f %s") % (
         value,
-            #if user specified a seed value (eg current rng state), mix it in
+            # if user specified a seed value (e.g. current rng state), mix it in
 
         os.getpid() if hasattr(os, "getpid") else None,
-            #add current process id
-            #NOTE: not available in some environments, eg GAE
+            # add current process id
+            # NOTE: not available in some environments, e.g. GAE
 
         id(object()),
-            #id of a freshly created object.
-            #(at least 2 bytes of which should be hard to predict)
+            # id of a freshly created object.
+            # (at least 2 bytes of which should be hard to predict)
 
         time.time(),
-            #the current time, to whatever precision os uses
+            # the current time, to whatever precision os uses
 
         os.urandom(16).decode("latin-1") if has_urandom else 0,
-            #if urandom available, might as well mix some bytes in.
+            # if urandom available, might as well mix some bytes in.
         )
-    #hash it all up and return it as int/long
+    # hash it all up and return it as int/long
     return int(sha256(text.encode("utf-8")).hexdigest(), 16)
 
 if has_urandom:
     rng = random.SystemRandom()
-else: #pragma: no cover
-    #NOTE: to reseed - rng.seed(genseed(rng))
+else: # pragma: no cover
+    # NOTE: to reseed - rng.seed(genseed(rng))
     rng = random.Random(genseed())
 
-#-----------------------------------------------------------------------
+#------------------------------------------------------------------------
 # some rng helpers
-#-----------------------------------------------------------------------
+#------------------------------------------------------------------------
 def getrandbytes(rng, count):
     """return byte-string containing *count* number of randomly generated bytes, using specified rng"""
-    #NOTE: would be nice if this was present in stdlib Random class
+    # NOTE: would be nice if this was present in stdlib Random class
 
     ###just in case rng provides this...
     ##meth = getattr(rng, "getrandbytes", None)
@@ -1477,7 +1477,7 @@ def getrandbytes(rng, count):
     if not count:
         return _BEMPTY
     def helper():
-        #XXX: break into chunks for large number of bits?
+        # XXX: break into chunks for large number of bits?
         value = rng.getrandbits(count<<3)
         i = 0
         while i < count:
@@ -1491,7 +1491,7 @@ def getrandstr(rng, charset, count):
     # NOTE: tests determined this is 4x faster than rng.sample(),
     # which is why that's not being used here.
 
-    #check alphabet & count
+    # check alphabet & count
     if count < 0:
         raise ValueError("count must be >= 0")
     letters = len(charset)
@@ -1500,9 +1500,9 @@ def getrandstr(rng, charset, count):
     if letters == 1:
         return charset * count
 
-    #get random value, and write out to buffer
+    # get random value, and write out to buffer
     def helper():
-        #XXX: break into chunks for large number of letters?
+        # XXX: break into chunks for large number of letters?
         value = rng.randrange(0, letters**count)
         i = 0
         while i < count:
@@ -1534,9 +1534,9 @@ def generate_password(size=10, charset=_52charset):
     """
     return getrandstr(rng, charset, size)
 
-#==========================================================
+#=============================================================================
 # object type / interface tests
-#==========================================================
+#=============================================================================
 _handler_attrs = (
         "name",
         "setting_kwds", "context_kwds",
@@ -1562,7 +1562,7 @@ def is_crypt_context(obj):
 
 ##def has_many_backends(handler):
 ##    "check if handler provides multiple baceknds"
-##    #NOTE: should also provide get_backend(), .has_backend(), and .backends attr
+##    # NOTE: should also provide get_backend(), .has_backend(), and .backends attr
 ##    return hasattr(handler, "set_backend")
 
 def has_rounds_info(handler):
@@ -1587,6 +1587,6 @@ def has_salt_info(handler):
 ##    else:
 ##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
 
-#=================================================================================
+#=============================================================================
 # eof
-#=================================================================================
+#=============================================================================

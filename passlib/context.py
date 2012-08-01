@@ -1,9 +1,9 @@
 """passlib.context - CryptContext implementation"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 from functools import update_wrapper
 import inspect
 import re
@@ -14,8 +14,8 @@ import os
 import re
 from time import sleep
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.exc import PasslibConfigWarning, ExpectedStringError, ExpectedTypeError
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import rng, tick, to_bytes, \
@@ -23,17 +23,16 @@ from passlib.utils import rng, tick, to_bytes, \
 from passlib.utils.compat import bytes, iteritems, num_types, \
                                  PY2, PY3, PY_MIN_32, unicode, SafeConfigParser, \
                                  NativeStringIO, BytesIO, base_string_types
-#pkg
-#local
+# local
 __all__ = [
     'CryptContext',
     'LazyCryptContext',
     'CryptPolicy',
 ]
 
-#=========================================================
+#=============================================================================
 # support
-#=========================================================
+#=============================================================================
 
 # private object to detect unset params
 _UNSET = object()
@@ -68,9 +67,9 @@ def _is_handler_registered(handler):
     """detect if handler is registered or a custom handler"""
     return get_crypt_handler(handler.name, None) is handler
 
-#=========================================================
+#=============================================================================
 # crypt policy
-#=========================================================
+#=============================================================================
 _preamble = ("The CryptPolicy class has been deprecated as of "
              "Passlib 1.6, and will be removed in Passlib 1.8. ")
 
@@ -132,9 +131,9 @@ class CryptPolicy(object):
 
     .. deprecated:: 1.6
     """
-    #=========================================================
-    #class methods
-    #=========================================================
+    #===================================================================
+    # class methods
+    #===================================================================
     @classmethod
     def from_path(cls, path, section="passlib", encoding="utf-8"):
         """create a CryptPolicy instance from a local file.
@@ -276,9 +275,9 @@ class CryptPolicy(object):
             sources.append(kwds)
         return CryptPolicy.from_sources(sources, _warn=False)
 
-    #=========================================================
-    #instance attrs
-    #=========================================================
+    #===================================================================
+    # instance attrs
+    #===================================================================
 
     # internal CryptContext we're wrapping to handle everything
     # until this class is removed.
@@ -288,9 +287,9 @@ class CryptPolicy(object):
     # attribute, rather than one created independantly by the application.
     _stub_policy = False
 
-    #=========================================================
+    #===================================================================
     # init
-    #=========================================================
+    #===================================================================
     def __init__(self, *args, **kwds):
         context = kwds.pop("_internal_context", None)
         if context:
@@ -313,9 +312,9 @@ class CryptPolicy(object):
                  DeprecationWarning, stacklevel=2)
             self._context = CryptContext(**kwds)
 
-    #=========================================================
+    #===================================================================
     # public interface for examining options
-    #=========================================================
+    #===================================================================
     def has_schemes(self):
         """return True if policy defines *any* schemes for use.
 
@@ -457,9 +456,9 @@ class CryptPolicy(object):
             name = name.name
         return self._context._is_deprecated_scheme(name, category)
 
-    #=========================================================
+    #===================================================================
     # serialization
-    #=========================================================
+    #===================================================================
 
     def iter_config(self, ini=False, resolve=False):
         """iterate over key/value pairs representing the policy object.
@@ -561,13 +560,13 @@ class CryptPolicy(object):
             out = out.encode(encoding)
         return out
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # _CryptRecord helper class
-#=========================================================
+#=============================================================================
 class _CryptRecord(object):
     """wraps a handler and automatically applies various options.
 
@@ -578,9 +577,9 @@ class _CryptRecord(object):
     the particular configuration.
     """
 
-    #================================================================
+    #===================================================================
     # instance attrs
-    #================================================================
+    #===================================================================
 
     # informational attrs
     handler = None # handler instance this is wrapping
@@ -590,8 +589,8 @@ class _CryptRecord(object):
     # rounds management - filled in by _init_rounds_options()
     _has_rounds_options = False # if _has_rounds_bounds OR _generate_rounds is set
     _has_rounds_bounds = False # if either min_rounds or max_rounds set
-    _min_rounds = None #: minimum rounds allowed by policy, or None
-    _max_rounds = None #: maximum rounds allowed by policy, or None
+    _min_rounds = None # minimum rounds allowed by policy, or None
+    _max_rounds = None # maximum rounds allowed by policy, or None
     _generate_rounds = None # rounds generation function, or None
 
     # encrypt()/genconfig() attrs
@@ -608,9 +607,9 @@ class _CryptRecord(object):
     identify = None
     genhash = None
 
-    #================================================================
+    #===================================================================
     # init
-    #================================================================
+    #===================================================================
     def __init__(self, handler, category=None, deprecated=False,
                  min_rounds=None, max_rounds=None, default_rounds=None,
                  vary_rounds=None, min_verify_time=None,
@@ -634,9 +633,9 @@ class _CryptRecord(object):
         self.identify = handler.identify
         self.genhash = handler.genhash
 
-    #================================================================
+    #===================================================================
     # virtual attrs
-    #================================================================
+    #===================================================================
     @property
     def scheme(self):
         return self.handler.name
@@ -654,9 +653,9 @@ class _CryptRecord(object):
     def __repr__(self): # pragma: no cover -- debugging
         return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
 
-    #================================================================
+    #===================================================================
     # rounds generation & limits - used by encrypt & deprecation code
-    #================================================================
+    #===================================================================
     def _init_rounds_options(self, mn, mx, df, vr):
         "parse options and compile efficient generate_rounds function"
         #----------------------------------------------------
@@ -796,9 +795,9 @@ class _CryptRecord(object):
 
         self._has_rounds_options = True
 
-    #================================================================
+    #===================================================================
     # encrypt() / genconfig()
-    #================================================================
+    #===================================================================
     def _init_encrypt_and_genconfig(self):
         "initialize genconfig/encrypt wrapper methods"
         settings = self.settings
@@ -829,7 +828,7 @@ class _CryptRecord(object):
 
     def _prepare_settings(self, kwds):
         "add default values to settings for encrypt & genconfig"
-        #load in default values for any settings
+        # load in default values for any settings
         if kwds:
             for k,v in iteritems(self.settings):
                 if k not in kwds:
@@ -863,9 +862,9 @@ class _CryptRecord(object):
                     rounds = mx
                 kwds['rounds'] = rounds
 
-    #================================================================
+    #===================================================================
     # verify()
-    #================================================================
+    #===================================================================
     # TODO: once min_verify_time is removed, this will just be a clone
     # of handler.verify()
 
@@ -897,9 +896,9 @@ class _CryptRecord(object):
                  (self.scheme, mvt, end-start), PasslibConfigWarning)
         return False
 
-    #================================================================
+    #===================================================================
     # needs_update()
-    #================================================================
+    #===================================================================
     def _init_needs_update(self):
         """initialize state for needs_update()"""
         # if handler has been deprecated, replace wrapper and skip other checks
@@ -958,44 +957,44 @@ class _CryptRecord(object):
 
         return False
 
-    #================================================================
+    #===================================================================
     # eoc
-    #================================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # _CryptConfig helper class
-#=========================================================
+#=============================================================================
 class _CryptConfig(object):
     """parses, validates, and stores CryptContext config
-    
+
     this is a helper used internally by CryptContext to handle
     parsing, validation, and serialization of it's config options.
     split out from the main class, but not made public since
     that just complicates interface too much (c.f. CryptPolicy)
-    
+
     :arg source: config as dict mapping ``(cat,scheme,option) -> value``
-    """    
+    """
     #===================================================================
     # instance attrs
     #===================================================================
-        
+
     # triple-nested dict which maps scheme -> category -> key -> value,
     # storing all hash-specific options
     _scheme_options = None
-    
+
     # double-nested dict which maps key -> category -> value
     # storing all CryptContext options
     _context_options = None
 
     # tuple of handler objects
     handlers = None
-    
+
     # tuple of scheme objects in same order as handlers
     schemes = None
-        
+
     # tuple of categories in alphabetical order (not including None)
     categories = None
-    
+
     # dict mapping category -> default scheme
     _default_schemes = None
 
@@ -1008,13 +1007,13 @@ class _CryptConfig(object):
 
     #===================================================================
     # constructor
-    #===================================================================    
+    #===================================================================
     def __init__(self, source):
         self._init_scheme_list(source.get((None,None,"schemes")))
         self._init_options(source)
         self._init_default_schemes()
         self._init_records()
-                       
+
     def _init_scheme_list(self, data):
         """initialize .handlers and .schemes attributes"""
         handlers  = []
@@ -1049,11 +1048,11 @@ class _CryptConfig(object):
     #===================================================================
     # lowlevel options
     #===================================================================
-    
-    #-------------------------------------------------------------------
+
+    #---------------------------------------------------------------
     # init lowlevel option storage
-    #-------------------------------------------------------------------
-    def _init_options(self, source):        
+    #---------------------------------------------------------------
+    def _init_options(self, source):
         """load config dict into internal representation,
         and init .categories attr
         """
@@ -1063,14 +1062,14 @@ class _CryptConfig(object):
         self._scheme_options = scheme_options = {}
         self._context_options = context_options = {}
         categories = set()
-        
+
         # load source config into internal storage
         for (cat, scheme, key), value in iteritems(source):
             categories.add(cat)
             if scheme:
                 # normalize scheme option
                 key, value = norm_scheme_option(key, value)
-                
+
                 # store in scheme_options
                 # map structure: scheme_options[scheme][category][key] = value
                 try:
@@ -1088,9 +1087,9 @@ class _CryptConfig(object):
                 # normalize context option
                 if cat and key == "schemes":
                     raise KeyError("'schemes' context option is not allowed "
-                                   "per category")           
+                                   "per category")
                 key, value = norm_context_option(key, value)
-                
+
                 # store in context_options
                 # map structure: context_options[key][category] = value
                 try:
@@ -1100,7 +1099,7 @@ class _CryptConfig(object):
                 else:
                     category_map[cat] = value
 
-        # store list of configured categories                
+        # store list of configured categories
         categories.discard(None)
         self.categories = tuple(sorted(categories))
 
@@ -1120,7 +1119,7 @@ class _CryptConfig(object):
             if func:
                 value = func(value)
         return key, value
-        
+
     def _norm_context_option(self, key, value):
         schemes = self.schemes
         if key == "default":
@@ -1156,10 +1155,10 @@ class _CryptConfig(object):
         elif key != "schemes":
             raise KeyError("unknown CryptContext keyword: %r" % (key,))
         return key, value
-        
-    #-------------------------------------------------------------------
+
+    #---------------------------------------------------------------
     # reading context options
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     def get_context_optionmap(self, key, _default={}):
         """return dict mapping category->value for specific context option.
         (treat retval as readonly).
@@ -1184,10 +1183,10 @@ class _CryptConfig(object):
                 if value is None or alt != value:
                     return alt, True
         return value, False
-                
-    #-------------------------------------------------------------------
+
+    #---------------------------------------------------------------
     # reading scheme options
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     def _get_scheme_optionmap(self, scheme, category, default={}):
         """return all options for (scheme,category) combination
         (treat return as readonly)
@@ -1196,45 +1195,45 @@ class _CryptConfig(object):
             return self._scheme_options[scheme][category]
         except KeyError:
             return default
-        
+
     def get_scheme_options_with_flag(self, scheme, category):
         """return composite dict of all options set for scheme.
         includes options inherited from 'all' and from default category.
         result can be modified.
         returns (kwds, has_cat_specific_options)
-        """        
+        """
         # start out with copy of global options
         get_optionmap = self._get_scheme_optionmap
         kwds = get_optionmap("all", None).copy()
         has_cat_options = False
-        
+
         # add in category-specific global options
         if category:
             defkwds = kwds.copy() # <-- used to detect category-specific options
             kwds.update(get_optionmap("all", category))
-                
+
         # add in default options for scheme
         other = get_optionmap(scheme, None)
         kwds.update(other)
-        
+
         # load category-specific options for scheme
         if category:
             defkwds.update(other)
             kwds.update(get_optionmap(scheme, category))
-                
+
             # compare default category options to see if there's anything
             # category-specific
             if kwds != defkwds:
                 has_cat_options = True
-        
+
         return kwds, has_cat_options
-                
+
     #===================================================================
     # deprecated & default schemes
     #===================================================================
     def _init_default_schemes(self):
         """initialize maps containing default scheme for each category.
-        
+
         have to do this after _init_options(), since the default scheme
         is affected by the list of deprecated schemes.
         """
@@ -1258,7 +1257,7 @@ class _CryptConfig(object):
                 raise ValueError("must have at least one non-deprecated scheme")
         elif default in deps:
             raise ValueError("default scheme cannot be deprecated")
-    
+
         # figure out per-category default schemes,
         for cat in self.categories:
             cdeps = dep_map.get(cat, deps)
@@ -1270,7 +1269,7 @@ class _CryptConfig(object):
                         break
                 else:
                     raise ValueError("must have at least one non-deprecated "
-                                     "scheme for %r category" % cat)                    
+                                     "scheme for %r category" % cat)
             elif cdefault in cdeps:
                 raise ValueError("default scheme for %r category "
                                  "cannot be deprecated" % cat)
@@ -1286,7 +1285,7 @@ class _CryptConfig(object):
             raise KeyError("no hash schemes configured for this "
                            "CryptContext instance")
         return defaults[None]
-                                
+
     def is_deprecated_with_flag(self, scheme, category):
         "is scheme deprecated under particular category?"
         depmap = self.get_context_optionmap("deprecated")
@@ -1311,7 +1310,7 @@ class _CryptConfig(object):
     def _init_records(self):
         # NOTE: this step handles final validation of settings,
         #       checking for violatiions against handler's internal invariants.
-        #       this is why we create all the records now, 
+        #       this is why we create all the records now,
         #       so CryptContext throws error immediately rather than later.
         self._record_lists = {}
         records = self._records = {}
@@ -1329,7 +1328,7 @@ class _CryptConfig(object):
                 # will automatically use the default category's record.
         # NOTE: default records for specific category stored under the
         # key (None,category); these are populated on-demand by get_record().
-    
+
     def _get_record_options_with_flag(self, scheme, category):
         """return composite dict of options for given scheme + category.
 
@@ -1345,31 +1344,31 @@ class _CryptConfig(object):
         the options dict includes all the scheme-specific settings,
         as well as optional *deprecated* and *min_verify_time* keywords.
         """
-        # get scheme options 
+        # get scheme options
         kwds, has_cat_options = self.get_scheme_options_with_flag(scheme, category)
-                        
+
         # throw in deprecated flag
         value, not_inherited = self.is_deprecated_with_flag(scheme, category)
         if value:
             kwds['deprecated'] = True
         if not_inherited:
             has_cat_options = True
-        
+
         # add in min_verify_time setting from context
         value, not_inherited = self.get_context_option_with_flag(category, "min_verify_time")
         if value:
             kwds['min_verify_time'] = value
         if not_inherited:
             has_cat_options = True
-        
+
         return kwds, has_cat_options
-        
+
     def get_record(self, scheme, category):
         "return record for specific scheme & category (cached)"
         # NOTE: this is part of the critical path shared by
         #       all of CryptContext's PasswordHash methods,
         #       hence all the caching and error checking.
-        
+
         # quick lookup in cache
         try:
             return self._records[scheme, category]
@@ -1409,7 +1408,7 @@ class _CryptConfig(object):
 
     def _get_record_list(self, category=None):
         """return list of records for category (cached)
-        
+
         this is an internal helper used only by identify_record()
         """
         # type check of category - handled by _get_record()
@@ -1417,7 +1416,7 @@ class _CryptConfig(object):
         try:
             return self._record_lists[category]
         except KeyError:
-            pass        
+            pass
         # cache miss - build list from scratch
         value = self._record_lists[category] = [
             self.get_record(scheme, category)
@@ -1435,7 +1434,7 @@ class _CryptConfig(object):
         #        about this in future, but for now only hashes with
         #        unique identifiers will work properly in a CryptContext.
         # XXX: if all handlers have a unique prefix (e.g. all are MCF / LDAP),
-        #      could use dict-lookup to speed up this search. 
+        #      could use dict-lookup to speed up this search.
         if not isinstance(hash, base_string_types):
             raise ExpectedStringError(hash, "hash")
         # type check of category - handled by _get_record_list()
@@ -1499,14 +1498,14 @@ class _CryptConfig(object):
                 else:
                     for key in sorted(kwds):
                         yield (cat, scheme, key), kwds[key]
-                
+
     #===================================================================
     # eoc
     #===================================================================
-                
-#=========================================================
+
+#=============================================================================
 # main CryptContext class
-#=========================================================
+#=============================================================================
 class CryptContext(object):
     """Helper for encrypting passwords using different algorithms.
 
@@ -1530,12 +1529,12 @@ class CryptContext(object):
     # to restrict what the app OR the config can use.
 
     #===================================================================
-    #instance attrs
+    # instance attrs
     #===================================================================
 
     # _CryptConfig instance holding current parsed config
     _config = None
-    
+
     # copy of _config methods, stored in CryptContext instance for speed.
     _get_record = None
     _identify_record = None
@@ -1656,7 +1655,7 @@ class CryptContext(object):
         """
         # XXX: it would be faster to store ref to self._config,
         #      but don't want to share config objects til sure
-        #      can rely on them being immutable. 
+        #      can rely on them being immutable.
         other = CryptContext(_autoload=False)
         other.load(self)
         if kwds:
@@ -1672,7 +1671,7 @@ class CryptContext(object):
         return self.copy(**kwds)
 
     #===================================================================
-    #init
+    # init
     #===================================================================
     def __init__(self, schemes=None,
                  # keyword only...
@@ -1881,7 +1880,7 @@ class CryptContext(object):
             # otherwise overlay source on top of existing config
             tmp = source
             source = dict(self._config.iter_config(resolve=True))
-            source.update(tmp)        
+            source.update(tmp)
 
         #-----------------------------------------------------------
         # compile into _CryptConfig instance, and update state
@@ -1890,7 +1889,7 @@ class CryptContext(object):
         self._config = config
         self._get_record = config.get_record
         self._identify_record = config.identify_record
-        
+
     @staticmethod
     def _parse_config_key(ckey):
         """helper used to parse ``cat__scheme__option`` keys into a tuple"""
@@ -1946,7 +1945,7 @@ class CryptContext(object):
 
     # XXX: make this public? even just as flag to load?
     # FIXME: this function suffered some bitrot in 1.6.1,
-    #        will need to be updated before works again. 
+    #        will need to be updated before works again.
     ##def _simplify(self):
     ##    "helper to remove redundant/unused options"
     ##    # don't do anything if no schemes are defined
@@ -2040,7 +2039,7 @@ class CryptContext(object):
         # type check of category - handled by _get_record()
         record = self._get_record(None, category)
         return record.handler if resolve else record.scheme
-            
+
     # XXX: need to decide if exposing this would be useful in any way
     ##def categories(self):
     ##    """return user-categories with algorithm-specific options in this CryptContext.
@@ -2123,7 +2122,7 @@ class CryptContext(object):
         assert isinstance(value, str), \
                "expected string for key: %r %r" % (key, value)
 
-        #escape any percent signs.
+        # escape any percent signs.
         return value.replace("%", "%%")
 
     def to_dict(self, resolve=False):
@@ -2237,11 +2236,11 @@ class CryptContext(object):
     #       The record objects are cached inside the _CryptConfig
     #       instance stored in self._config, and are retreived
     #       via get_record() and identify_record().
-    #     
+    #
     #       _get_record() and _identify_record() are references
     #       to _config methods of the same name,
     #       stored in CryptContext for speed.
-    
+
     def _get_or_identify_record(self, hash, scheme=None, category=None):
         "return record based on scheme, or failing that, by identifying hash"
         if scheme:
@@ -2310,7 +2309,7 @@ class CryptContext(object):
         .. deprecated:: 1.6
             use :meth:`needs_update` instead.
         """
-        # FIXME: needs deprecation warning. 
+        # FIXME: needs deprecation warning.
         return self.needs_update(hash, scheme, category)
 
     def genconfig(self, scheme=None, category=None, **settings):
@@ -2596,9 +2595,9 @@ class CryptContext(object):
         else:
             return True, None
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
 class LazyCryptContext(CryptContext):
     """CryptContext subclass which doesn't load handlers until needed.
@@ -2681,6 +2680,6 @@ class LazyCryptContext(CryptContext):
                 self._lazy_init()
         return object.__getattribute__(self, attr)
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

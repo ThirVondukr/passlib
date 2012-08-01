@@ -1,7 +1,7 @@
 """tests for passlib.context"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 from __future__ import with_statement
 from passlib.utils.compat import PY3
@@ -31,9 +31,9 @@ from passlib.registry import (register_crypt_handler_path,
                         get_crypt_handler,
                         )
 # local
-#=========================================================
+#=============================================================================
 # support
-#=========================================================
+#=============================================================================
 here = os.path.abspath(os.path.dirname(__file__))
 
 def merge_dicts(first, *args, **kwds):
@@ -44,22 +44,22 @@ def merge_dicts(first, *args, **kwds):
         target.update(kwds)
     return target
 
-#=========================================================
+#=============================================================================
 #
-#=========================================================
+#=============================================================================
 class CryptContextTest(TestCase):
     descriptionPrefix = "CryptContext"
 
     # TODO: these unittests could really use a good cleanup
     # and reorganizing, to ensure they're getting everything.
 
-    #=========================================================
+    #===================================================================
     # sample configurations used in tests
-    #=========================================================
+    #===================================================================
 
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     # sample 1 - typical configuration
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     sample_1_schemes = ["des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"]
     sample_1_handlers = [get_crypt_handler(name) for name in sample_1_schemes]
 
@@ -101,9 +101,9 @@ sha512_crypt__min_rounds = 40000
 
 """)
 
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     # sample 1 external files
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
 
     # sample 1 string with '\n' linesep
     sample_1_path = os.path.join(here, "sample1.cfg")
@@ -123,15 +123,15 @@ sha512_crypt__min_rounds = 40000
         set_file(sample_1b_path, sample_1b_unicode)
         set_file(sample_1c_path, sample_1c_bytes)
 
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     # sample 2 & 12 - options patch
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     sample_2_dict = dict(
-        #using this to test full replacement of existing options
+        # using this to test full replacement of existing options
         bsdi_crypt__min_rounds = 29000,
         bsdi_crypt__max_rounds = 35000,
         bsdi_crypt__default_rounds = 31000,
-        #using this to test partial replacement of existing options
+        # using this to test partial replacement of existing options
         sha512_crypt__min_rounds=45000,
     )
 
@@ -146,9 +146,9 @@ sha512_crypt__min_rounds = 45000
     # sample 2 overlayed on top of sample 1
     sample_12_dict = merge_dicts(sample_1_dict, sample_2_dict)
 
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     # sample 3 & 123 - just changing default from sample 1
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     sample_3_dict = dict(
         default="sha512_crypt",
     )
@@ -156,9 +156,9 @@ sha512_crypt__min_rounds = 45000
     # sample 3 overlayed on 2 overlayed on 1
     sample_123_dict = merge_dicts(sample_12_dict, sample_3_dict)
 
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     # sample 4 - used by api tests
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
     sample_4_dict = dict(
         schemes = [ "des_crypt", "md5_crypt", "phpass", "bsdi_crypt",
                    "sha256_crypt"],
@@ -174,9 +174,9 @@ sha512_crypt__min_rounds = 45000
         phpass__default_rounds = 7,
     )
 
-    #=========================================================
+    #===================================================================
     # constructors
-    #=========================================================
+    #===================================================================
     def test_01_constructor(self):
         "test class constructor"
 
@@ -291,9 +291,9 @@ sha512_crypt__min_rounds = 45000
         cc1 = CryptContext(**self.sample_1_dict)
         self.assertRegex(repr(cc1), "^<CryptContext at 0x[0-9a-f]+>$")
 
-    #=========================================================
+    #===================================================================
     # modifiers
-    #=========================================================
+    #===================================================================
     def test_10_load(self):
         "test load() / load_path() method"
         # NOTE: load() is the workhorse that handles all policy parsing,
@@ -395,9 +395,9 @@ sha512_crypt__min_rounds = 45000
         # wrong arg type
         self.assertRaises(TypeError, ctx.update, None)
 
-    #=========================================================
+    #===================================================================
     # option parsing
-    #=========================================================
+    #===================================================================
     def test_20_options(self):
         "test basic option parsing"
         def parse(**kwds):
@@ -541,7 +541,7 @@ sha512_crypt__min_rounds = 45000
                           admin__context__deprecated=['des_crypt', 'md5_crypt'])
 
         # deprecating explicit default scheme should cause ValueError
-        
+
             # ... default listed as deprecated
         self.assertRaises(ValueError, CryptContext,
                           schemes=['des_crypt', 'md5_crypt'],
@@ -593,7 +593,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(getdep(cc), ["md5_crypt"])
         self.assertEqual(getdep(cc, "user"), ["md5_crypt"])
         self.assertEqual(getdep(cc, "admin"), [])
-        
+
     def test_23_default(self):
         "test 'default' context option parsing"
 
@@ -647,9 +647,9 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(parse(1000), 1000)
         self.assertEqual(parse('1000'), 1000)
 
-    #=========================================================
+    #===================================================================
     # inspection & serialization
-    #=========================================================
+    #===================================================================
     def test_30_schemes(self):
         "test schemes() method"
         # NOTE: also checked under test_21
@@ -833,9 +833,9 @@ sha512_crypt__min_rounds = 45000
         self.assertRegex(dump, r"# NOTE: the 'unsalted_test_hash' handler\(s\)"
                                r" are not registered with Passlib")
 
-    #=========================================================
+    #===================================================================
     # password hash api
-    #=========================================================
+    #===================================================================
     nonstring_vectors =  [
         (None, {}),
         (None, {"scheme": "des_crypt"}),
@@ -848,7 +848,7 @@ sha512_crypt__min_rounds = 45000
         handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
-        #run through handlers
+        # run through handlers
         for crypt in handlers:
             h = cc.encrypt("test", scheme=crypt.name)
             self.assertEqual(cc.identify(h), crypt.name)
@@ -856,11 +856,11 @@ sha512_crypt__min_rounds = 45000
             self.assertTrue(cc.verify('test', h))
             self.assertFalse(cc.verify('notest', h))
 
-        #test default
+        # test default
         h = cc.encrypt("test")
         self.assertEqual(cc.identify(h), "md5_crypt")
 
-        #test genhash
+        # test genhash
         h = cc.genhash('secret', cc.genconfig())
         self.assertEqual(cc.identify(h), 'md5_crypt')
 
@@ -1011,7 +1011,7 @@ sha512_crypt__min_rounds = 45000
         handlers = ["md5_crypt", "des_crypt", "bsdi_crypt"]
         cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
-        #check unknown hash
+        # check unknown hash
         self.assertEqual(cc.identify('$9$232323123$1287319827'), None)
         self.assertRaises(ValueError, cc.identify, '$9$232323123$1287319827', required=True)
 
@@ -1039,15 +1039,15 @@ sha512_crypt__min_rounds = 45000
 
         h = hash.md5_crypt.encrypt("test")
 
-        #check base verify
+        # check base verify
         self.assertTrue(cc.verify("test", h))
         self.assertTrue(not cc.verify("notest", h))
 
-        #check verify using right alg
+        # check verify using right alg
         self.assertTrue(cc.verify('test', h, scheme='md5_crypt'))
         self.assertTrue(not cc.verify('notest', h, scheme='md5_crypt'))
 
-        #check verify using wrong alg
+        # check verify using wrong alg
         self.assertRaises(ValueError, cc.verify, 'test', h, scheme='bsdi_crypt')
 
         #--------------------------------------------------------------
@@ -1082,15 +1082,15 @@ sha512_crypt__min_rounds = 45000
         "test needs_update() method"
         cc = CryptContext(**self.sample_4_dict)
 
-        #check deprecated scheme
+        # check deprecated scheme
         self.assertTrue(cc.needs_update('9XXD4trGYeGJA'))
         self.assertFalse(cc.needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
 
-        #check min rounds
+        # check min rounds
         self.assertTrue(cc.needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
         self.assertFalse(cc.needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
 
-        #check max rounds
+        # check max rounds
         self.assertFalse(cc.needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
         self.assertTrue(cc.needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
@@ -1162,26 +1162,26 @@ sha512_crypt__min_rounds = 45000
         "test verify_and_update()"
         cc = CryptContext(**self.sample_4_dict)
 
-        #create some hashes
+        # create some hashes
         h1 = cc.encrypt("password", scheme="des_crypt")
         h2 = cc.encrypt("password", scheme="sha256_crypt")
 
-        #check bad password, deprecated hash
+        # check bad password, deprecated hash
         ok, new_hash = cc.verify_and_update("wrongpass", h1)
         self.assertFalse(ok)
         self.assertIs(new_hash, None)
 
-        #check bad password, good hash
+        # check bad password, good hash
         ok, new_hash = cc.verify_and_update("wrongpass", h2)
         self.assertFalse(ok)
         self.assertIs(new_hash, None)
 
-        #check right password, deprecated hash
+        # check right password, deprecated hash
         ok, new_hash = cc.verify_and_update("password", h1)
         self.assertTrue(ok)
         self.assertTrue(cc.identify(new_hash), "sha256_crypt")
 
-        #check right password, good hash
+        # check right password, good hash
         ok, new_hash = cc.verify_and_update("password", h2)
         self.assertTrue(ok)
         self.assertIs(new_hash, None)
@@ -1211,9 +1211,9 @@ sha512_crypt__min_rounds = 45000
         # bad category values
         self.assertRaises(TypeError, cc.verify_and_update, 'secret', refhash, category=1)
 
-    #=========================================================
+    #===================================================================
     # rounds options
-    #=========================================================
+    #===================================================================
     # NOTE: the follow tests check how _CryptRecord handles
     # the min/max/default/vary_rounds options, via the output of
     # genconfig(). it's assumed encrypt() takes the same codepath.
@@ -1420,9 +1420,9 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(min(seen), lower, "vary_rounds had wrong lower limit:")
         self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
 
-    #=========================================================
+    #===================================================================
     # feature tests
-    #=========================================================
+    #===================================================================
     def test_60_min_verify_time(self):
         "test verify() honors min_verify_time"
         delta = .05
@@ -1521,9 +1521,9 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(ValueError, CryptContext, "sha256_crypt,md5_crypt",
                           deprecated="md5_crypt,auto")
 
-    #=========================================================
+    #===================================================================
     # handler deprecation detectors
-    #=========================================================
+    #===================================================================
     def test_62_bcrypt_update(self):
         "test verify_and_update / needs_update corrects bcrypt padding"
         # see issue 25.
@@ -1561,13 +1561,13 @@ sha512_crypt__min_rounds = 45000
         self.assertTrue(ok)
         self.assertTrue(new_hash and new_hash != even_hash)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
-#LazyCryptContext
-#=========================================================
+#=============================================================================
+# LazyCryptContext
+#=============================================================================
 class dummy_2(uh.StaticHandler):
     name = "dummy_2"
 
@@ -1610,6 +1610,6 @@ class LazyCryptContextTest(TestCase):
 
         self.assertTrue(has_crypt_handler("dummy_2", True))
 
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

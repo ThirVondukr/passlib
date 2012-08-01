@@ -107,7 +107,7 @@ Passlib provides two contexts related to ldap hashes:
         >>> from passlib.apps import ldap_context
         >>> ldap_context = ldap_context.replace(default="ldap_salted_md5")
 
-        >>> #the new context object will now default to {SMD5}:
+        >>> # the new context object will now default to {SMD5}:
         >>> ldap_context.encrypt("password")
         '{SMD5}T9f89F591P3fFh1jz/YtW4aWD5s='
 

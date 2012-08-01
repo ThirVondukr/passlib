@@ -1,7 +1,7 @@
 """passlib.registry - registry for password hash handlers"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 import re
 import logging; log = logging.getLogger(__name__)
@@ -17,9 +17,9 @@ __all__ = [
     "list_crypt_handlers",
 ]
 
-#=========================================================
+#=============================================================================
 # proxy object used in place of 'passlib.hash' module
-#=========================================================
+#=============================================================================
 class _PasslibRegistryProxy(object):
     """proxy module passlib.hash
 
@@ -63,9 +63,9 @@ class _PasslibRegistryProxy(object):
 # create single instance - available publically as 'passlib.hash'
 _proxy = _PasslibRegistryProxy()
 
-#=========================================================
+#=============================================================================
 # internal registry state
-#=========================================================
+#=============================================================================
 
 # singleton uses to detect omitted keywords
 _UNSET = object()
@@ -158,9 +158,9 @@ _name_re = re.compile("^[a-z][a-z0-9_]+[a-z0-9]$")
 _forbidden_names = frozenset(["onload", "policy", "context", "all",
                               "default", "none", "auto"])
 
-#=========================================================
+#=============================================================================
 # registry frontend functions
-#=========================================================
+#=============================================================================
 def _validate_handler_name(name):
     """helper to validate handler name
 
@@ -358,7 +358,7 @@ def list_crypt_handlers(loaded_only=False):
         names.update(_locations)
     return sorted(names)
 
-#NOTE: these two functions mainly exist just for the unittests...
+# NOTE: these two functions mainly exist just for the unittests...
 
 def _has_crypt_handler(name, loaded_only=False):
     """check if handler name is known.
@@ -394,6 +394,6 @@ def _unload_handler_name(name, locations=True):
     if locations and name in _locations:
         del _locations[name]
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

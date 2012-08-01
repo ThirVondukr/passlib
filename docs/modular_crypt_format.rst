@@ -46,7 +46,7 @@ by the modular crypt format hashes found in passlib:
 1. Hash strings must use only 7-bit ascii characters.
 
    No known OS or application generates hashes which violate this rule.
-   However, some systems (eg Linux's shadow routines) will happily
+   However, some systems (e.g. Linux's shadow routines) will happily
    and correctly accept hashes which contain 8-bit characters in their salt.
    This is probably a case of "permissive in what you accept,
    strict in what you generate".
@@ -58,13 +58,13 @@ by the modular crypt format hashes found in passlib:
 
    Initially, most schemes adhereing to this format
    only used a single digit to identify the hash
-   (eg ``$1$`` for :class:`!md5_crypt`).
+   (e.g. ``$1$`` for :class:`!md5_crypt`).
    Because of this, many systems only look at the first
    character when attempting to distinguish hashes.
 
    Despite this, as Unix systems have branched off,
    new hashes have been developed which used larger
-   identifying strings (eg ``$sha1$`` for :class:`~passlib.hash.sha1_crypt`);
+   identifying strings (e.g. ``$sha1$`` for :class:`~passlib.hash.sha1_crypt`);
    so in general identifier strings should not be assumed to use a single character.
 
 3. Hashes should contain only ascii letters ``a``-``z`` and ``A``-``Z``,

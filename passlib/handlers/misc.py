@@ -1,28 +1,27 @@
 """passlib.handlers.misc - misc generic handlers
 """
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import sys
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import to_native_str, consteq
 from passlib.utils.compat import bytes, unicode, u, b, base_string_types
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "unix_disabled",
     "unix_fallback",
     "plaintext",
 ]
 
-#=========================================================
-#handler
-#=========================================================
+#=============================================================================
+# handler
+#=============================================================================
 class unix_fallback(uh.StaticHandler):
     """This class provides the fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
@@ -238,6 +237,6 @@ class plaintext(uh.PasswordHash):
             raise uh.exc.InvalidHashError(cls)
         return cls.encrypt(secret, encoding)
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

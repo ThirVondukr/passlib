@@ -16,19 +16,19 @@ and defaults to 40000 hash iterations for increased strength.
 For applications which want to quickly add password hashing,
 all they need to do is the following::
 
-    >>> #import the context under an app-specific name (so it can easily be replaced later)
+    >>> # import the context under an app-specific name (so it can easily be replaced later)
     >>> from passlib.apps import custom_app_context as pwd_context
 
-    >>> #encrypting a password...
+    >>> # encrypting a password...
     >>> hash = pwd_context.encrypt("somepass")
 
-    >>> #verifying a password...
+    >>> # verifying a password...
     >>> ok = pwd_context.verify("somepass", hash)
 
-    >>> #[optional] encrypting a password for an admin account...
-    >>> #           the custom_app_context is preconfigured so that
-    >>> #           if the category is set to "admin" instead of None,
-    >>> #           it uses a stronger setting of 80000 rounds:
+    >>> # [optional] encrypting a password for an admin account...
+    >>> #            the custom_app_context is preconfigured so that
+    >>> #            if the category is set to "admin" instead of None,
+    >>> #            it uses a stronger setting of 80000 rounds:
     >>> hash = pwd_context.encrypt("somepass", category="admin")
 
 For applications which started using this preset, but whose needs
@@ -89,7 +89,7 @@ this matter of concern is what motivated the development of SHA512-Crypt.
 As well, its rounds parameter is logarithmically scaled,
 making it hard to fine-tune the amount of time taken to verify passwords;
 which can be an issue for applications that handle a large number
-of simultaneous logon attempts (eg web apps).
+of simultaneous logon attempts (e.g. web apps).
 
 .. note::
 
@@ -185,12 +185,12 @@ to manage your hashes, and relating configuration information.
 Insert the following code into your application::
 
     #
-    #import the CryptContext class, used to handle all hashing...
+    # import the CryptContext class, used to handle all hashing...
     #
     from passlib.context import CryptContext
 
     #
-    #create a single global instance for your app...
+    # create a single global instance for your app...
     #
     pwd_context = CryptContext(
         # replace this list with the hash(es) you wish to support.
