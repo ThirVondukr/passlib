@@ -240,7 +240,7 @@ def _load():
     if config is _UNSET:
         config = "passlib-default"
     if config is None:
-        warn("PASSLIB_CONFIG=None is deprecated, "
+        warn("setting PASSLIB_CONFIG=None is deprecated, "
              "and support will be removed in Passlib 1.8, "
              "use PASSLIB_CONFIG='disabled' instead.",
              DeprecationWarning)

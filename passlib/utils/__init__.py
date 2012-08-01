@@ -186,6 +186,8 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
                         txt += ", "
                     txt += "use %s instead" % replacement
                 txt += "."
+            if not wrapper.__doc__.strip(" ").endswith("\n"):
+                wrapper.__doc__ += "\n"
             wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
         return wrapper
     return build
@@ -295,12 +297,12 @@ def consteq(left, right):
     # NOTE: the double-if construction below is done deliberately, to ensure
     # the same number of operations (including branches) is performed regardless
     # of whether left & right are the same size.
-    same = (len(left) == len(right))
-    if same:
+    same_size = (len(left) == len(right))
+    if same_size:
         # if sizes are the same, setup loop to perform actual check of contents.
         tmp = left
         result = 0
-    if not same:
+    if not same_size:
         # if sizes aren't the same, set 'result' so equality will fail regardless
         # of contents. then, to ensure we do exactly 'len(right)' iterations
         # of the loop, just compare 'right' against itself.
@@ -1432,8 +1434,8 @@ else:
 # NOTE:
 # generating salts (e.g. h64_gensalt, below) doesn't require cryptographically
 # strong randomness. it just requires enough range of possible outputs
-# that making a rainbow table is too costly.
-# so python's builtin merseen twister prng is used, but seeded each time
+# that making a rainbow table is too costly. so it should be ok to
+# fall back on python's builtin mersenne twister prng, as long as it's seeded each time
 # this module is imported, using a couple of minor entropy sources.
 
 try:
@@ -1445,34 +1447,35 @@ except NotImplementedError: # pragma: no cover
 def genseed(value=None):
     "generate prng seed value from system resources"
     # if value is rng, extract a bunch of bits from it's state
-    from hashlib import sha256
+    from hashlib import sha512
     if hasattr(value, "getrandbits"):
-        value = value.getrandbits(256)
-    text = u("%s %s %s %.15f %s") % (
+        value = value.getrandbits(1<<15)
+    text = u("%s %s %s %.15f %.15f %s") % (
+        # if caller specified a seed value (e.g. current rng state), mix it in
         value,
-            # if user specified a seed value (e.g. current rng state), mix it in
 
+        # add current process id
+        # NOTE: not available in some environments, e.g. GAE
         os.getpid() if hasattr(os, "getpid") else None,
-            # add current process id
-            # NOTE: not available in some environments, e.g. GAE
 
+        # id of a freshly created object.
+        # (at least 1 byte of which should be hard to predict)
         id(object()),
-            # id of a freshly created object.
-            # (at least 2 bytes of which should be hard to predict)
 
+        # the current time, to whatever precision os uses
         time.time(),
-            # the current time, to whatever precision os uses
+        time.clock(),
 
-        os.urandom(16).decode("latin-1") if has_urandom else 0,
-            # if urandom available, might as well mix some bytes in.
+        # if urandom available, might as well mix some bytes in.
+        os.urandom(32).decode("latin-1") if has_urandom else 0,
         )
     # hash it all up and return it as int/long
-    return int(sha256(text.encode("utf-8")).hexdigest(), 16)
+    return int(sha512(text.encode("utf-8")).hexdigest(), 16)
 
 if has_urandom:
     rng = random.SystemRandom()
-else: # pragma: no cover
-    # NOTE: to reseed - rng.seed(genseed(rng))
+else: # pragma: no cover -- runtime detection
+    # NOTE: to reseed use ``rng.seed(genseed(rng))``
     rng = random.Random(genseed())
 
 #------------------------------------------------------------------------

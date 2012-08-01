@@ -18,7 +18,7 @@ from warnings import warn
 # pkg
 from passlib.exc import PasslibConfigWarning, ExpectedStringError, ExpectedTypeError
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import rng, tick, to_bytes, \
+from passlib.utils import rng, tick, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
 from passlib.utils.compat import bytes, iteritems, num_types, \
                                  PY2, PY3, PY_MIN_32, unicode, SafeConfigParser, \
@@ -2309,13 +2309,9 @@ class CryptContext(object):
         record = self._get_or_identify_record(hash, scheme, category)
         return record.needs_update(hash, secret)
 
+    @deprecated_method(deprecated="1.6", removed="1.8", replacement="CryptContext.needs_update()")
     def hash_needs_update(self, hash, scheme=None, category=None):
-        """legacy alias for :meth:`needs_update`.
-
-        .. deprecated:: 1.6
-            use :meth:`needs_update` instead.
-        """
-        # FIXME: needs deprecation warning.
+        """legacy alias for :meth:`needs_update`"""
         return self.needs_update(hash, scheme, category)
 
     def genconfig(self, scheme=None, category=None, **settings):
