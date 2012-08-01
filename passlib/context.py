@@ -1901,7 +1901,7 @@ class CryptContext(object):
         """helper used to parse ``cat__scheme__option`` keys into a tuple"""
         # split string into 1-3 parts
         assert isinstance(ckey, str)
-        parts = ckey.split("." if "." in ckey else "__")
+        parts = ckey.replace(".","__").split("__")
         count = len(parts)
         if count == 1:
             cat, scheme, key = None, None, parts[0]

@@ -423,6 +423,14 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(TypeError, CryptContext,
                           category__scheme__option__invalid = 30000)
 
+        # keys with mixed separators should be handled correctly.
+        # (testing actual data, not to_dict(), since re-render hid original bug)
+        self.assertRaises(KeyError, parse,
+                          **{"admin.context__schemes":"md5_crypt"})
+        ctx = CryptContext(**{"schemes":"md5_crypt,des_crypt",
+                              "admin.context__default":"des_crypt"})
+        self.assertEqual(ctx.default_scheme("admin"), "des_crypt")
+
         #
         # context option -specific tests
         #
