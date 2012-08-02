@@ -73,7 +73,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     :param rounds:
         Optional number of rounds to use.
         Defaults to 12, must be between 4 and 31, inclusive.
-        This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`.
+        This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`
+        -- increasing the rounds by +1 will double the amount of time taken.
 
     :type ident: str
     :param ident:
@@ -101,6 +102,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         (but does not support) the broken ``"2x"`` hashes.
         (see the :ref:`crypt_blowfish bug <crypt-blowfish-bug>`
         for details).
+
+    .. versionchanged:: 1.6
+        Added a pure-python backend.
     """
 
     #===================================================================

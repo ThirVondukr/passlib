@@ -96,10 +96,9 @@ of simultaneous logon attempts (e.g. web apps).
 .. note::
 
     For BCrypt support on non-BSD systems,
-    Passlib requires a C-extension module
-    provided by the external
-    :ref:`py-bcrypt or bcryptor <optional-libraries>`  packages.
-    Neither of these currently supports Python 3.
+    Passlib requires the C-extension provided by
+    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_.
+    (py-bcrypt does not currently support Python 3).
 
 SHA512-Crypt
 ............

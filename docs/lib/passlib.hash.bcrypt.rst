@@ -30,9 +30,9 @@ for new applications. This class can be used directly as follows::
 
 .. note::
 
-    It is strongly recommended to install
-    :ref:`py-bcrypt or bcryptor <optional-libraries>`
-    if this algorithm is going to be used.
+    It is strongly recommended that you install
+    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_
+    when using this hash.
 
 .. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
@@ -49,38 +49,43 @@ Interface
 
     This class will use the first available of four possible backends:
 
-    1. `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_, if installed.
+    1. `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_, if installed.
     2. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
     3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
        (primarily BSD-derived systems).
-    4. A pure-python implementation of BCrypt, built into Passlib (disabled by default).
+    4. A pure-python implementation of BCrypt, built into Passlib.
 
-    It should be noted that the pure-python implementation (#4) is too slow
-    to be useable, given the number of rounds currently required for security.
-    Because of this, it is disabled by default, unless the environment variable
-    ``PASSLIB_BUILTIN_BCRYPT="enabled"`` is set.
+    If no backends are available, :meth:`encrypt` and :meth:`verify`
+    will throw :exc:`~passlib.exc.MissingBackendError` when they are invoked.
+    You can check which backend is in use by calling :meth:`!bcrypt.get_backend()`.
 
-    If the first three backends are not available, and the builtin
-    backend has not been enabled, :meth:`encrypt` and :meth:`verify`
-    will throw a :exc:`~passlib.exc.MissingBackendError` when they are called.
+.. warning::
+    The pure-python backend (#4) is disabled by default!
 
-    You can see which backend is in use by calling the :meth:`get_backend()` method.
+    This backend is currently too slow to be usuable given the number of rounds required
+    for security. That said, if you have no other alternative and need to use it,
+    set the environmental variable ``PASSLIB_BUILTIN_BCRYPT="enabled"``
+    before importing Passlib.
 
-.. versionchanged:: 1.6
-    The pure-python backend was added, though it's disabled by default
-    for security. (speedups are welcome!)
+    In detail: Passlib's :ref:`rounds selection guidelines <rounds-selection-guidelines>`
+    currently require BCrypt be able to do >= 12 cost in <= 300ms. By this standard
+    the pure-python backend is 128x too slow under CPython 2.7, and 16x too slow under PyPy 1.8.
+    (speedups are welcome!)
 
 Format & Algorithm
 ==================
 Bcrypt is compatible with the :ref:`modular-crypt-format`, and uses ``$2$`` and ``$2a$`` as the identifying prefix
 for all it's strings (``$2$`` is seen only for legacy hashes which used an older version of Bcrypt).
-An example hash (of ``password``) is ``$2a$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``.
+An example hash (of ``password``) is:
+
+  ``$2a$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``
+
 Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 
-* :samp:`{rounds}` is the cost parameter, encoded as 2 zero-padded decimal digits,
+* :samp:`{rounds}` is a cost parameter, encoded as 2 zero-padded decimal digits,
   which determines the number of iterations used via :samp:`{iterations}=2**{rounds}` (rounds is 12 in the example).
-* :samp:`{salt}` is the 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
-* :samp:`{checksum}` is the 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
+* :samp:`{salt}` is a 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
+* :samp:`{checksum}` is a 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
 While BCrypt's basic algorithm is described in it's design document [#f1]_,
 the OpenBSD implementation [#f2]_ is considered the canonical reference, even
@@ -95,7 +100,7 @@ This implementation of bcrypt differs from others in a few ways:
   BCrypt does not specify what the behavior should be when
   passed a salt string outside of the regexp range ``[./A-Za-z0-9]``.
   In order to avoid this situtation, Passlib strictly limits salts to the
-  allowed character set, and will throw a ValueError if an invalid
+  allowed character set, and will throw a :exc:`ValueError` if an invalid
   salt character is encountered.
 
 * Unicode Policy:
@@ -118,10 +123,10 @@ This implementation of bcrypt differs from others in a few ways:
   encoding only 2 bits of data, the remaining 4 are "padding" bits.
   Similarly, the last character of the digest contains 4 bits of data,
   and 2 padding bits. Because of the way they are coded, many BCrypt implementations
-  will reject all passwords if these padding bits are not set to 0.
-  Due to a legacy issue with Passlib <= 1.5.2,
-  Passlib instead prints a warning if it encounters hashes with any padding bits set,
-  and will then validate them correctly.
+  will reject *all* passwords if these padding bits are not set to 0.
+  Due to a legacy :ref:`issue <bcrypt-padding-issue>` with Passlib <= 1.5.2,
+  Passlib will print a warning if it encounters hashes with any padding bits set,
+  and then validate the hash as if the padding bits were cleared.
   (This behavior will eventually be deprecated and such hashes
   will throw a :exc:`ValueError` instead).
 
@@ -135,8 +140,8 @@ This implementation of bcrypt differs from others in a few ways:
   in *crypt_blowfish* adding support for two new BCrypt hash identifiers:
 
   ``$2x$``, allowing sysadmins to mark any ``$2a$`` hashes which were potentially
-  generated with the buggy algorithm. Passlib 1.6 recognizes, but does not
-  currently support generating or verifying these hashes.
+  generated with the buggy algorithm. Passlib 1.6 recognizes (but does not
+  currently support generating or verifying) these hashes.
 
   ``$2y$``, the default for crypt_blowfish 1.1 and newer, indicates
   the hash was generated with the canonical OpenBSD-compatible algorithm,
@@ -146,7 +151,8 @@ This implementation of bcrypt differs from others in a few ways:
   As well, crypt_blowfish 1.2 modified the way it generates ``$2a$`` hashes,
   so that passwords containing the byte value 0xFF are hashed in a manner
   incompatible with either the buggy or canonical algorithms. Passlib
-  does not support this variant either, though it should rarely be needed.
+  does not support this algorithmic variant either, though it should
+  be *very* rarely encountered in practice.
 
 .. rubric:: Footnotes
 

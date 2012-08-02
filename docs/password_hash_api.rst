@@ -713,8 +713,10 @@ and the following attributes should be defined:
 
 .. index:: rounds; choosing the right value
 
-Choosing the right ``rounds`` value
-===================================
+.. _rounds-selection-guidelines:
+
+Choosing the right rounds value
+===============================
 Passlib's default rounds settings attempt to be secure enough for
 the average [#avgsys]_ system. But the "right" value for a given hash
 is dependant on the server, it's cpu, it's expected load, and it's users.
@@ -735,4 +737,3 @@ For this reason, it is strongly recommended to not use a value lower than Passli
 
 .. [#avgsys] For Passlib 1.6, all hashes were retuned to take ~250ms on a
    system with a 3 ghz 64 bit CPU.
-
