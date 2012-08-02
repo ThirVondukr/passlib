@@ -1688,6 +1688,10 @@ class mysql323_test(HandlerCase):
         h2 = self.do_encrypt("my pass")
         self.assertEqual(h, h2)
 
+    def accept_fuzz_pair(self, secret, other):
+        # override to handle whitespace
+        return secret.replace(" ","") != other.replace(" ","")
+
 class mysql41_test(HandlerCase):
     handler = hash.mysql41
     known_correct_hashes = [
@@ -2666,7 +2670,7 @@ class sun_md5_crypt_test(HandlerCase):
 
         ]
 
-     platform_crypt_support = [
+    platform_crypt_support = [
         ("solaris", True),
         ("freebsd|openbsd|netbsd|linux|darwin", False),
     ]
