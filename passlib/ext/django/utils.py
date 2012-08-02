@@ -1,7 +1,7 @@
 """passlib.ext.django.utils - helper functions used by this plugin"""
-#===================================================================
-#imports
-#===================================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 import logging; log = logging.getLogger(__name__)
 from weakref import WeakKeyDictionary
@@ -25,9 +25,9 @@ __all__ = [
     "get_passlib_hasher",
 ]
 
-#===================================================================
+#=============================================================================
 # default policies
-#===================================================================
+#=============================================================================
 def get_preset_config(name):
     """Returns configuration string for one of the preset strings
     supported by the ``PASSLIB_CONFIG`` setting.
@@ -92,16 +92,16 @@ superuser__sha512_crypt__default_rounds = 120000
 superuser__django_pbkdf2_sha256__default_rounds = 15000
 """
 
-#===================================================================
+#=============================================================================
 # translating passlib names <-> hasher names
-#===================================================================
+#=============================================================================
 
-# prefix used to shoehorn passlib's handler names into hasher namespace
-# (allows get_hasher() to be meaningfully called even if passlib handler
-# is the one being used)
+# prefix used to shoehorn passlib's handler names into django hasher namespace;
+# allows get_hasher() to be meaningfully called even if passlib handler
+# is the one being used.
 PASSLIB_HASHER_PREFIX = "passlib_"
 
-# prefix all the django-specific hash formats are stored under.
+# prefix all the django-specific hash formats are stored under w/in passlib;
 # all of these hashes should expose their hasher name via ``.django_name``.
 DJANGO_PASSLIB_PREFIX = "django_"
 
@@ -125,13 +125,13 @@ def hasher_to_passlib_name(hasher_name):
             if getattr(handler, "django_name", None) == hasher_name:
                 return name
     # XXX: this should only happen for custom hashers that have been registered.
-    #      work in progress (below) that would take care of those.
+    #      _HasherHandler (below) is work in progress that would fix this.
     raise ValueError("can't translate hasher name to passlib name: %r" %
                      hasher_name)
 
-#===================================================================
+#=============================================================================
 # wrapping passlib handlers as django hashers
-#===================================================================
+#=============================================================================
 _FAKE_SALT = "--fake-salt--"
 
 class _HasherWrapper(object):
@@ -147,7 +147,7 @@ class _HasherWrapper(object):
 
     def salt(self):
         # XXX: our encode wrapper generates a new salt each time it's called,
-        #      so just returning an 'no value' flag here.
+        #      so just returning a 'no value' flag here.
         return _FAKE_SALT
 
     def verify(self, password, encoded):
@@ -229,9 +229,9 @@ def _get_hasher(algorithm):
         get_hasher = module._manager.getorig("django.contrib.auth.hashers:get_hasher")
     return get_hasher(algorithm)
 
-#===================================================================
+#=============================================================================
 # adapting django hashers -> passlib handlers
-#===================================================================
+#=============================================================================
 # TODO: this code probably halfway works, mainly just needs
 #       a routine to read HASHERS and PREFERRED_HASHER.
 
@@ -322,9 +322,9 @@ def _get_hasher(algorithm):
 ##    register_crypt_handler(handler)
 ##    return handler
 
-#===================================================================
+#=============================================================================
 # monkeypatch helpers
-#===================================================================
+#=============================================================================
 # private singleton indicating lack-of-value
 _UNSET = object()
 
@@ -465,6 +465,6 @@ class _PatchManager(object):
     # eoc
     #===================================================================
 
-#===================================================================
-#eof
-#===================================================================
+#=============================================================================
+# eof
+#=============================================================================

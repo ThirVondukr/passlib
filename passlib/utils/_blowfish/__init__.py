@@ -47,25 +47,25 @@ released under the BSD license::
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 """
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from itertools import chain
 import struct
-#pkg
+# pkg
 from passlib.utils import bcrypt64, getrandbytes, rng
 from passlib.utils.compat import b, bytes, BytesIO, unicode, u
 from passlib.utils._blowfish.unrolled import BlowfishEngine
-#local
+# local
 __all__ = [
     'BlowfishEngine',
     'raw_bcrypt',
 ]
 
-#=========================================================
+#=============================================================================
 # bcrypt constants
-#=========================================================
+#=============================================================================
 
 # bcrypt constant data "OrpheanBeholderScryDoubt" as 6 integers
 BCRYPT_CDATA = [
@@ -76,26 +76,26 @@ BCRYPT_CDATA = [
 # struct used to encode ciphertext as digest (last output byte discarded)
 digest_struct = struct.Struct(">6I")
 
-#=========================================================
-#base bcrypt helper
+#=============================================================================
+# base bcrypt helper
 #
-#interface designed only for use by passlib.handlers.bcrypt:BCrypt
-#probably not suitable for other purposes
-#=========================================================
+# interface designed only for use by passlib.handlers.bcrypt:BCrypt
+# probably not suitable for other purposes
+#=============================================================================
 BNULL = b('\x00')
 
 def raw_bcrypt(password, ident, salt, log_rounds):
     """perform central password hashing step in bcrypt scheme.
 
     :param password: the password to hash
-    :param ident: identifier w/ minor version (eg 2, 2a)
+    :param ident: identifier w/ minor version (e.g. 2, 2a)
     :param salt: the binary salt to use (encoded in bcrypt-base64)
     :param rounds: the log2 of the number of rounds (as int)
     :returns: bcrypt-base64 encoded checksum
     """
-    #===========================================================
+    #===================================================================
     # parse inputs
-    #===========================================================
+    #===================================================================
 
     # parse ident
     assert isinstance(ident, unicode)
@@ -131,15 +131,15 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     if log_rounds < 4 or log_rounds > 31:
         raise ValueError("Bad number of rounds")
 
-    #===========================================================
+    #===================================================================
     #
     # run EKS-Blowfish algorithm
     #
     # This uses the "enhanced key schedule" step described by
     # Provos and Mazieres in "A Future-Adaptable Password Scheme"
-    # http:#www.openbsd.org/papers/bcrypt-paper.ps
+    # http://www.openbsd.org/papers/bcrypt-paper.ps
     #
-    #===========================================================
+    #===================================================================
 
     engine = BlowfishEngine()
 
@@ -156,7 +156,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     rounds = 1<<log_rounds
     engine.eks_rounds_expand0(pass_words, salt_words, rounds)
 
-    #encipher constant data, and encode to bytes as digest.
+    # encipher constant data, and encode to bytes as digest.
     data = list(BCRYPT_CDATA)
     i = 0
     while i < 6:
@@ -165,6 +165,6 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     raw = digest_struct.pack(*data)[:-1]
     return bcrypt64.encode_bytes(raw)
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

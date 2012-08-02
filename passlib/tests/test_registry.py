@@ -1,32 +1,32 @@
 """tests for passlib.pwhash -- (c) Assurance Technologies 2003-2009"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import hashlib
 from logging import getLogger
 import os
 import time
 import warnings
 import sys
-#site
-#pkg
+# site
+# pkg
 from passlib import hash, registry
 from passlib.registry import register_crypt_handler, register_crypt_handler_path, \
     get_crypt_handler, list_crypt_handlers, _unload_handler_name as unload_handler_name
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, catch_warnings
-#module
+# module
 log = getLogger(__name__)
 
-#=========================================================
-#dummy handlers
+#=============================================================================
+# dummy handlers
 #
-#NOTE: these are defined outside of test case
-#      since they're used by test_register_crypt_handler_path(),
-#      which needs them to be available as module globals.
-#=========================================================
+# NOTE: these are defined outside of test case
+#       since they're used by test_register_crypt_handler_path(),
+#       which needs them to be available as module globals.
+#=============================================================================
 class dummy_0(uh.StaticHandler):
     name = "dummy_0"
 
@@ -35,9 +35,9 @@ class alt_dummy_0(uh.StaticHandler):
 
 dummy_x = 1
 
-#=========================================================
-#test registry
-#=========================================================
+#=============================================================================
+# test registry
+#=============================================================================
 class RegistryTest(TestCase):
 
     descriptionPrefix = "passlib registry"
@@ -48,17 +48,17 @@ class RegistryTest(TestCase):
 
     def test_hash_proxy(self):
         "test passlib.hash proxy object"
-        #check dir works
+        # check dir works
         dir(hash)
 
-        #check repr works
+        # check repr works
         repr(hash)
 
-        #check non-existent attrs raise error
+        # check non-existent attrs raise error
         self.assertRaises(AttributeError, getattr, hash, 'fooey')
 
-        #GAE tries to set __loader__,
-        #make sure that doesn't call register_crypt_handler.
+        # GAE tries to set __loader__,
+        # make sure that doesn't call register_crypt_handler.
         old = getattr(hash, "__loader__", None)
         test = object()
         hash.__loader__ = test
@@ -70,21 +70,21 @@ class RegistryTest(TestCase):
             hash.__loader__ = old
             self.assertIs(hash.__loader__, old)
 
-        #check storing attr calls register_crypt_handler
+        # check storing attr calls register_crypt_handler
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
         hash.dummy_1 = dummy_1
         self.assertIs(get_crypt_handler("dummy_1"), dummy_1)
 
-        #check storing under wrong name results in error
+        # check storing under wrong name results in error
         self.assertRaises(ValueError, setattr, hash, "dummy_1x", dummy_1)
 
     def test_register_crypt_handler_path(self):
         "test register_crypt_handler_path()"
-        #NOTE: this messes w/ internals of registry, shouldn't be used publically.
+        # NOTE: this messes w/ internals of registry, shouldn't be used publically.
         paths = registry._locations
 
-        #check namespace is clear
+        # check namespace is clear
         self.assertTrue('dummy_0' not in paths)
         self.assertFalse(hasattr(hash, 'dummy_0'))
 
@@ -96,7 +96,7 @@ class RegistryTest(TestCase):
         self.assertRaises(ValueError, register_crypt_handler_path,
                           "dummy_0", __name__ + ":dummy_0.xxx")
 
-        #try lazy load
+        # try lazy load
         register_crypt_handler_path('dummy_0', __name__)
         self.assertTrue('dummy_0' in list_crypt_handlers())
         self.assertTrue('dummy_0' not in list_crypt_handlers(loaded_only=True))
@@ -104,20 +104,20 @@ class RegistryTest(TestCase):
         self.assertTrue('dummy_0' in list_crypt_handlers(loaded_only=True))
         unload_handler_name('dummy_0')
 
-        #try lazy load w/ alt
+        # try lazy load w/ alt
         register_crypt_handler_path('dummy_0', __name__ + ':alt_dummy_0')
         self.assertIs(hash.dummy_0, alt_dummy_0)
         unload_handler_name('dummy_0')
 
-        #check lazy load w/ wrong type fails
+        # check lazy load w/ wrong type fails
         register_crypt_handler_path('dummy_x', __name__)
         self.assertRaises(TypeError, get_crypt_handler, 'dummy_x')
 
-        #check lazy load w/ wrong name fails
+        # check lazy load w/ wrong name fails
         register_crypt_handler_path('alt_dummy_0', __name__)
         self.assertRaises(ValueError, get_crypt_handler, "alt_dummy_0")
 
-        #TODO: check lazy load which calls register_crypt_handler (warning should be issued)
+        # TODO: check lazy load which calls register_crypt_handler (warning should be issued)
         sys.modules.pop("passlib.tests._test_bad_register", None)
         register_crypt_handler_path("dummy_bad", "passlib.tests._test_bad_register")
         with catch_warnings():
@@ -181,6 +181,23 @@ class RegistryTest(TestCase):
             register_crypt_handler_path('dummy_0', __name__)
             self.assertIs(get_crypt_handler("DUMMY-0"), dummy_0)
 
-#=========================================================
-#EOF
-#=========================================================
+        # check system & private names aren't returned
+        import passlib.hash # ensure module imported, so py3.3 sets __package__
+        passlib.hash.__dict__["_fake"] = "dummy" # so behavior seen under py2x also
+        for name in ["_fake", "__package__"]:
+            self.assertRaises(KeyError, get_crypt_handler, name)
+            self.assertIs(get_crypt_handler(name, None), None)
+
+    def test_list_crypt_handlers(self):
+        "test list_crypt_handlers()"
+        from passlib.registry import list_crypt_handlers
+
+        # check system & private names aren't returned
+        import passlib.hash # ensure module imported, so py3.3 sets __package__
+        passlib.hash.__dict__["_fake"] = "dummy" # so behavior seen under py2x also
+        for name in list_crypt_handlers():
+            self.assertFalse(name.startswith("_"), "%r: " % name)
+
+#=============================================================================
+# eof
+#=============================================================================

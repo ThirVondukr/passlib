@@ -16,18 +16,18 @@ a username for all encrypt/verify operations)::
 
     >>> from passlib.hash import oracle10 as oracle10
 
-    >>> #encrypt password using specified username
+    >>> # encrypt password using specified username
     >>> hash = oracle10.encrypt("password", user="username")
     >>> hash
     '872805F3F4C83365'
 
-    >>> #verify correct password
+    >>> # verify correct password
     >>> oracle10.verify("password", hash, user="username")
     True
-    >>> #verify correct password w/ wrong username
+    >>> # verify correct password w/ wrong username
     >>> oracle10.verify("password", hash, user="somebody")
     False
-    >>> #verify incorrect password
+    >>> # verify incorrect password
     >>> oracle10.verify("letmein", hash, user="username")
     False
 
@@ -75,7 +75,7 @@ This algorithm it not suitable for *any* use besides manipulating existing
 Oracle10 account passwords, due to the following flaws [#flaws]_:
 
 * It's use of the username as a salt value means that common usernames
-  (eg ``system``) will occur more frequently as salts,
+  (e.g. ``system``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * The fact that it is case insensitive, and simply concatenates the username

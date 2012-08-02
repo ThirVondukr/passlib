@@ -5,28 +5,27 @@ algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
 
 phpass context - blowfish, bsdi_crypt, phpass
 """
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from hashlib import md5
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import h64
 from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "phpass",
 ]
 
-#=========================================================
-#phpass
-#=========================================================
+#=============================================================================
+# phpass
+#=============================================================================
 class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the PHPass Portable Hash, and follows the :ref:`password-hash-api`.
 
@@ -63,9 +62,9 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    #=========================================================
-    #class attrs
-    #=========================================================
+    #===================================================================
+    # class attrs
+    #===================================================================
     #--GenericHandler--
     name = "phpass"
     setting_kwds = ("salt", "rounds", "ident")
@@ -86,9 +85,9 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     ident_values = [u("$P$"), u("$H$")]
     ident_aliases = {u("P"):u("$P$"), u("H"):u("$H$")}
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     #$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0
     # $P$
@@ -114,11 +113,11 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                               self.checksum or u(''))
         return uascii_to_str(hash)
 
-    #=========================================================
-    #backend
-    #=========================================================
+    #===================================================================
+    # backend
+    #===================================================================
     def _calc_checksum(self, secret):
-        #FIXME: can't find definitive policy on how phpass handles non-ascii.
+        # FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         real_rounds = 1<<self.rounds
@@ -129,10 +128,10 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             r += 1
         return h64.encode_bytes(result).decode("ascii")
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

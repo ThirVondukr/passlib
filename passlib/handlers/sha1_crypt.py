@@ -1,29 +1,28 @@
 """passlib.handlers.sha1_crypt
 """
 
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 
-#core
+# core
 from hmac import new as hmac
 from hashlib import sha1
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt
 from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import get_prf
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
 ]
-#=========================================================
-#sha1-crypt
-#=========================================================
+#=============================================================================
+# sha1-crypt
+#=============================================================================
 _hmac_sha1 = get_prf("hmac-sha1")[0]
 _BNULL = b('\x00')
 
@@ -61,9 +60,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         .. versionadded:: 1.6
     """
 
-    #=========================================================
-    #class attrs
-    #=========================================================
+    #===================================================================
+    # class attrs
+    #===================================================================
     #--GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -78,14 +77,14 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
-    default_rounds = 40000 #current passlib default
-    min_rounds = 1 #really, this should be higher.
+    default_rounds = 40000 # current passlib default
+    min_rounds = 1 # really, this should be higher.
     max_rounds = 4294967295 # 32-bit integer limit
     rounds_cost = "linear"
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -96,9 +95,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         chk = None if config else self.checksum
         return uh.render_mc3(self.ident, self.rounds, self.salt, chk)
 
-    #=========================================================
-    #backend
-    #=========================================================
+    #===================================================================
+    # backend
+    #===================================================================
     backends = ("os_crypt", "builtin")
 
     _has_backend_builtin = True
@@ -142,10 +141,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         else:
             return self._calc_checksum_builtin(secret)
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

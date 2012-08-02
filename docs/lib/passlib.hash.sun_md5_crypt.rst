@@ -134,7 +134,7 @@ The documentation hints that this stems from a bug within the production
 implementation's parser. This bug causes the implementation to return
 ``$$``-format hashes when passed a configuration string that ends with ``$``.
 It returns the intended original format & checksum
-only if there is at least one letter after the ``$``, eg :samp:`$md5${salt}$x`.
+only if there is at least one letter after the ``$``, e.g. :samp:`$md5${salt}$x`.
 
 Passlib attempts to accomodate both formats using the special ``bare_salt``
 keyword. It is set to ``True`` to indicate a configuration or hash string which
@@ -164,12 +164,12 @@ deviates from the official implementation in the following ways:
 
 * Rounds encoding
 
-  The underlying scheme implicitly allows rounds to have zero padding (eg ``$md5,rounds=001$abc$``),
+  The underlying scheme implicitly allows rounds to have zero padding (e.g. ``$md5,rounds=001$abc$``),
   and also allows 0 rounds to be specified two ways (``$md5$abc$`` and ``$md5,rounds=0$abc$``).
   Allowing either of these would result in multiple possible checksums
   for the same password & salt. To prevent ambiguity,
   Passlib will throw a :exc:`ValueError` if the rounds value is zero-padded,
-  or specified explicitly as 0 (eg ``$md5,rounds=0$abc$``).
+  or specified explicitly as 0 (e.g. ``$md5,rounds=0$abc$``).
 
 .. _smc-quirks:
 

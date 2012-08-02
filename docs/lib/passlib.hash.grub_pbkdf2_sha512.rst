@@ -56,16 +56,16 @@ The result is then encoded into hexidecimal.
 
         >>> from passlib.hash import pbkdf2_sha512, grub_pbkdf2_sha512
 
-        >>> #given a pbkdf2_sha512 hash...
+        >>> # given a pbkdf2_sha512 hash...
         >>> h = pbkdf2_sha512.encrypt("password")
         >>> h
         '$pbkdf2-sha512$6400$y6vYff3SihJiqumIrNXwGw$NobVwyUlVI52/Cvrguwli5fX6XgKHNUf7fWWS2VgoWEevaTCiZx4OCYhwGFwzUAuz/g1zQVSIf.9JEb0BEVEEA'
 
-        >>> #it can be parsed into options
+        >>> # it can be parsed into options
         >>> hobj = pbkdf2_sha512.from_string(h)
         >>> rounds, salt, chk = hobj.rounds, hobj.salt, hobj.checksum
 
-        >>> #and a new grub hash can be created
+        >>> # and a new grub hash can be created
         >>> gobj = grub_pbkdf2_sha512(rounds=rounds, salt=salt, checksum=chk)
         >>> g = gobj.to_string()
         >>> g

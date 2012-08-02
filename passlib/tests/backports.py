@@ -1,26 +1,26 @@
 """backports of needed unittest2 features"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import logging; log = logging.getLogger(__name__)
 import re
 import sys
 ##from warnings import warn
-#site
-#pkg
+# site
+# pkg
 from passlib.utils.compat import base_string_types
-#local
+# local
 __all__ = [
     "TestCase",
     "skip", "skipIf", "skipUnless"
     "catch_warnings",
 ]
 
-#=========================================================
+#=============================================================================
 # import latest unittest module available
-#=========================================================
+#=============================================================================
 try:
     import unittest2 as unittest
     ut_version = 2
@@ -35,9 +35,9 @@ except ImportError:
     else:
         ut_version = 2
 
-#=========================================================
+#=============================================================================
 # backport SkipTest support using nose
-#=========================================================
+#=============================================================================
 if ut_version < 2:
     # used to provide replacement SkipTest() error
     from nose.plugins.skip import SkipTest
@@ -74,14 +74,14 @@ else:
     skipIf = unittest.skipIf
     skipUnless = unittest.skipUnless
 
-#=========================================================
+#=============================================================================
 # custom test harness
-#=========================================================
+#=============================================================================
 class TestCase(unittest.TestCase):
     """backports a number of unittest2 features in TestCase"""
-    #====================================================================
+    #===================================================================
     # backport some methods from unittest2
-    #====================================================================
+    #===================================================================
     if ut_version < 2:
 
         #----------------------------------------------------------------
@@ -210,9 +210,9 @@ class TestCase(unittest.TestCase):
                 msg = self._formatMessage(msg, std)
                 raise self.failureException(msg)
 
-    #----------------------------------------------------------------
+    #---------------------------------------------------------------
     # backport assertRegex() alias from 3.2 to 2.7/3.1
-    #----------------------------------------------------------------
+    #---------------------------------------------------------------
     if not hasattr(unittest.TestCase, "assertRegex"):
         if hasattr(unittest.TestCase, "assertRegexpMatches"):
             # was present in 2.7/3.1 under name assertRegexpMatches
@@ -229,9 +229,9 @@ class TestCase(unittest.TestCase):
                     std = '%r not found in %r' % (msg, expected_regex.pattern, text)
                     raise self.failureException(self._formatMessage(msg, std))
 
-    #============================================================
-    #eoc
-    #============================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
 #=============================================================================
 # backport catch_warnings

@@ -1,28 +1,27 @@
 """passlib.handlers.cisco - Cisco password hashes"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from binascii import hexlify, unhexlify
 from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
-#pkg
+# site
+# pkg
 from passlib.utils import h64, right_pad_string, to_unicode
 from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
              join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
-#local
+# local
 __all__ = [
     "cisco_pix",
     "cisco_type7",
 ]
 
-#=========================================================
+#=============================================================================
 # cisco pix firewall hash
-#=========================================================
+#=============================================================================
 class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     """This class implements the password hash used by Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
@@ -44,16 +43,16 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         hash passwords which don't have an associated user account
         (such as the "enable" password).
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "cisco_pix"
     checksum_size = 16
     checksum_chars = uh.HASH64_CHARS
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             # XXX: no idea what unicode policy is, but all examples are
@@ -81,13 +80,13 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         # encode using Hash64
         return h64.encode_bytes(hash).decode("ascii")
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # type 7
-#=========================================================
+#=============================================================================
 class cisco_type7(uh.GenericHandler):
     """This class implements the Type 7 password encoding used by Cisco IOS,
     and follows the :ref:`password-hash-api`.
@@ -109,8 +108,6 @@ class cisco_type7(uh.GenericHandler):
         and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
         will be issued instead. Correctable errors include
         ``salt`` values that are out of range.
-        
-        .. versionadded:: 1.6
 
     Note that while this class outputs digests in upper-case hexidecimal,
     it will accept lower-case as well.
@@ -119,9 +116,9 @@ class cisco_type7(uh.GenericHandler):
 
     .. automethod:: decode
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "cisco_type7"
     setting_kwds = ("salt",)
     checksum_chars = uh.UPPER_HEX_CHARS
@@ -129,9 +126,9 @@ class cisco_type7(uh.GenericHandler):
     min_salt_value = 0
     max_salt_value = 52
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
     @classmethod
     def genconfig(cls):
         return None
@@ -215,6 +212,6 @@ class cisco_type7(uh.GenericHandler):
             for idx, value in enumerate(iter_byte_values(data))
         )
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

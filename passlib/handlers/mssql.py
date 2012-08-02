@@ -31,30 +31,29 @@ http://us.generation-nt.com/securing-passwords-hash-help-35429432.html
 http://forum.md5decrypter.co.uk/topic230-mysql-and-mssql-get-password-hashes.aspx
 http://www.theregister.co.uk/2002/07/08/cracking_ms_sql_server_passwords/
 """
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
-#pkg
+# site
+# pkg
 from passlib.utils import consteq
 from passlib.utils.compat import b, bytes, bascii_to_str, unicode, u
 import passlib.utils.handlers as uh
-#local
+# local
 __all__ = [
     "mssql2000",
     "mssql2005",
 ]
 
-#=========================================================
+#=============================================================================
 # mssql 2000
-#=========================================================
+#=============================================================================
 def _raw_mssql(secret, salt):
     assert isinstance(secret, unicode)
     assert isinstance(salt, bytes)
@@ -121,18 +120,18 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-    #=========================================================
-    #algorithm information
-    #=========================================================
+    #===================================================================
+    # algorithm information
+    #===================================================================
     name = "mssql2000"
     setting_kwds = ("salt",)
     checksum_size = 40
     min_salt_size = max_salt_size = 4
     _stub_checksum = b("\x00") * 40
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     # 0100 - 2 byte identifier
     # 4 byte salt
@@ -175,9 +174,9 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         result = _raw_mssql(secret.upper(), self.salt)
         return consteq(result, chk[20:])
 
-#=========================================================
-#handler
-#=========================================================
+#=============================================================================
+# handler
+#=============================================================================
 class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the password hash used by MS-SQL 2005, and follows the :ref:`password-hash-api`.
 
@@ -199,9 +198,9 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-    #=========================================================
-    #algorithm information
-    #=========================================================
+    #===================================================================
+    # algorithm information
+    #===================================================================
     name = "mssql2005"
     setting_kwds = ("salt",)
 
@@ -209,9 +208,9 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     min_salt_size = max_salt_size = 4
     _stub_checksum = b("\x00") * 20
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     # 0x0100 - 2 byte identifier
     # 4 byte salt
@@ -238,10 +237,10 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             secret = secret.decode("utf-8")
         return _raw_mssql(secret, self.salt)
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

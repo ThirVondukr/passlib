@@ -1,7 +1,7 @@
 """passlib.ext.django.models -- monkeypatch django hashing framework"""
-#===================================================================
-#imports
-#===================================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
@@ -17,9 +17,9 @@ from passlib.utils.compat import callable, unicode, bytes
 # local
 __all__ = ["password_context"]
 
-#===================================================================
+#=============================================================================
 # global attrs
-#===================================================================
+#=============================================================================
 
 # the context object which this patches contrib.auth to use for password hashing.
 # configuration controlled by ``settings.PASSLIB_CONFIG``.
@@ -42,9 +42,9 @@ _manager = _PatchManager(log=logging.getLogger(__name__ + "._manager"))
 # patch status
 _patched = False
 
-#===================================================================
+#=============================================================================
 # applying & removing the patches
-#===================================================================
+#=============================================================================
 def _apply_patch():
     """monkeypatch django's password handling to use ``passlib_context``,
     assumes the caller will configure the object.
@@ -111,6 +111,7 @@ def _apply_patch():
     def set_password(user, password):
         "passlib replacement for User.set_password()"
         if is_valid_secret(password):
+            # NOTE: pulls _get_category from module globals
             cat = _get_category(user)
             user.password = password_context.encrypt(password, category=cat)
         else:
@@ -122,6 +123,7 @@ def _apply_patch():
         hash = user.password
         if not is_valid_secret(password) or not is_password_usable(hash):
             return False
+        # NOTE: pulls _get_category from module globals
         cat = _get_category(user)
         ok, new_hash = password_context.verify_and_update(password, hash,
                                                           category=cat)
@@ -216,9 +218,9 @@ def _remove_patch():
     log.debug("django not monkeypatched")
     return False
 
-#===================================================================
+#=============================================================================
 # main code
-#===================================================================
+#=============================================================================
 def _load():
     global _get_category
 
@@ -238,7 +240,7 @@ def _load():
     if config is _UNSET:
         config = "passlib-default"
     if config is None:
-        warn("PASSLIB_CONFIG=None is deprecated, "
+        warn("setting PASSLIB_CONFIG=None is deprecated, "
              "and support will be removed in Passlib 1.8, "
              "use PASSLIB_CONFIG='disabled' instead.",
              DeprecationWarning)
@@ -266,6 +268,8 @@ def _load():
     _apply_patch()
     password_context.load(config)
     if get_category:
+        # NOTE: _get_category is module global which is read by
+        #       monkeypatched functions constructed by _apply_patch()
         _get_category = get_category
     log.debug("passlib.ext.django loaded")
 
@@ -276,6 +280,6 @@ except:
     _remove_patch()
     raise
 
-#===================================================================
-#eof
-#===================================================================
+#=============================================================================
+# eof
+#=============================================================================

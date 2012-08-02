@@ -1,4 +1,4 @@
-.. index:: 
+.. index::
     single: Windows; Domain Cached Credentials
     see: mscash; msdcc
     see: mscache; msdcc
@@ -83,7 +83,7 @@ This algorithm is should not be used for any purpose besides
 manipulating existing DCC v1 hashes, due to the following flaws:
 
 * It's use of the username as a salt value (and lower-case at that),
-  means that common usernames (eg ``Administrator``) will occur
+  means that common usernames (e.g. ``Administrator``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.
 

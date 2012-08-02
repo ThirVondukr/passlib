@@ -170,26 +170,26 @@ of the unittest for :class:`passlib.hash.des_crypt`::
     from passlib.hash import des_crypt
     from passlib.tests.utils import HandlerCase
 
-    #create a subclass for the handler...
+    # create a subclass for the handler...
     class DesCryptTest(HandlerCase):
         "test des-crypt algorithm"
 
-        #: [required] - store the handler object itself in the handler attribute
+        # [required] - store the handler object itself in the handler attribute
         handler = des_crypt
 
-        #: [optional] - if your hash only uses the first X characters of the password,
-        #:              set that value here. otherwise leave the default (-1).
+        # [optional] - if your hash only uses the first X characters of the password,
+        #              set that value here. otherwise leave the default (-1).
         secret_size = 8
 
-        #: [required] - this should be a list of (password, hash) pairs,
-        #               which should all verify correctly using your handler.
-        #               it is recommend include pairs which test all of the following:
+        # [required] - this should be a list of (password, hash) pairs,
+        #              which should all verify correctly using your handler.
+        #              it is recommend include pairs which test all of the following:
         #
-        #               * empty string & short strings for passwords
-        #               * passwords with 2 byte unicode characters
-        #               * hashes with varying salts, rounds, and other options
+        #              * empty string & short strings for passwords
+        #              * passwords with 2 byte unicode characters
+        #              * hashes with varying salts, rounds, and other options
         known_correct_hashes = (
-            #format: (password, hash)
+            # format: (password, hash)
             ('', 'OgAwTx2l6NADI'),
             (' ', '/Hk.VPuwQTXbc'),
             ('test', 'N1tQbOFcM5fpg'),
@@ -199,13 +199,13 @@ of the unittest for :class:`passlib.hash.des_crypt`::
             (u'hell\u00D6', 'saykDgk3BPZ9E'),
             )
 
-        #: [optional] - if there are hashes which are similar in format
-        #:              to your handler, and you want to make sure :meth:`identify`
-        #:              does not return ``True`` for such hashes,
-        #:              list them here. otherwise this can be omitted.
+        # [optional] - if there are hashes which are similar in format
+        #              to your handler, and you want to make sure :meth:`identify`
+        #              does not return ``True`` for such hashes,
+        #              list them here. otherwise this can be omitted.
         #
         known_unidentified_hashes = [
-            #bad char in otherwise correctly formatted hash
+            # bad char in otherwise correctly formatted hash
             '!gAwTx2l6NADI',
             ]
 

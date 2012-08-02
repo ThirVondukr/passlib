@@ -161,7 +161,7 @@ Randomness
 
 .. autofunction:: getrandbytes
 .. autofunction:: getrandstr
-.. autofunction:: generate_password(size=10, charset=<default>)
+.. autofunction:: generate_password(size=10, charset=<default charset>)
 
 Interface Tests
 ===============

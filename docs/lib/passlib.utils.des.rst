@@ -12,7 +12,7 @@
     should not be used in new applications.
 
 This module contains routines for encrypting blocks of data using the DES algorithm.
-They do not support multi-block operation or decryption,
+Note that these functions do not support multi-block operation or decryption,
 since they are designed primarily for use in password hash algorithms
 (such as :class:`~passlib.hash.des_crypt` and :class:`~passlib.hash.bsdi_crypt`).
 

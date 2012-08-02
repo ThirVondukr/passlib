@@ -1,21 +1,20 @@
 """passlib.handlers.django- Django password hash support"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from base64 import b64encode
 from hashlib import md5, sha1
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import to_unicode, classproperty
 from passlib.utils.compat import b, bytes, str_to_uascii, uascii_to_str, unicode, u
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "django_salted_sha1",
     "django_salted_md5",
@@ -26,9 +25,9 @@ __all__ = [
     "django_disabled",
 ]
 
-#=========================================================
+#=============================================================================
 # lazy imports & constants
-#=========================================================
+#=============================================================================
 des_crypt = None
 
 def _import_des_crypt():
@@ -40,9 +39,9 @@ def _import_des_crypt():
 # django 1.4's salt charset
 SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
-#=========================================================
+#=============================================================================
 # salted hashes
-#=========================================================
+#=============================================================================
 class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
     # name, ident, checksum_size must be set by subclass.
@@ -277,9 +276,9 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     checksum_size = 28 # 20 bytes -> base64
     _prf = "hmac-sha1"
 
-#=========================================================
-#other
-#=========================================================
+#=============================================================================
+# other
+#=============================================================================
 class django_des_crypt(uh.HasSalt, uh.GenericHandler):
     """This class implements Django's :class:`des_crypt` wrapper, and follows the :ref:`password-hash-api`.
 
@@ -373,6 +372,6 @@ class django_disabled(uh.StaticHandler):
             raise uh.exc.InvalidHashError(cls)
         return False
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

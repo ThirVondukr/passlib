@@ -4,12 +4,17 @@
 :class:`passlib.hash.apr_md5_crypt` - Apache's MD5-Crypt variant
 ======================================================================
 
+.. warning::
+
+    As of 2012-6-7, the MD5-Crypt  algorithm is "no longer considered safe"
+    by it's author, who urges migration to newer hash algorithms.
+
 .. currentmodule:: passlib.hash
 
-This format is a variation of :class:`~passlib.hash.md5_crypt`,
+This hash is a variation of :class:`~passlib.hash.md5_crypt`,
 primarily used by the Apache webserver in ``htpasswd`` files.
-It contains only minor changes to the md5-crypt algorithm,
-and should be considered just as strong / weak as md5-crypt itself.
+It contains only minor changes to the MD5-Crypt algorithm,
+and should be considered just as weak as MD5-Crypt itself.
 
 .. seealso::
 

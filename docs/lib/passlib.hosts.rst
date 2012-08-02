@@ -119,7 +119,7 @@ Current Host OS
     As an example, this can be used in conjunction with stdlib's :mod:`!spwd` module
     to verify user passwords on the local system::
 
-        >>> #NOTE/WARNING: this example requires running as root on most systems.
+        >>> # NOTE/WARNING: this example requires running as root on most systems.
         >>> import spwd, os
         >>> from passlib.hosts import host_context
         >>> hash = spwd.getspnam(os.environ['USER']).sp_pwd

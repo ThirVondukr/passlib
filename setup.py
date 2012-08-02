@@ -1,14 +1,14 @@
 """passlib setup script"""
-#=========================================================
+#=============================================================================
 # init script env -- ensure cwd = root of source dir
-#=========================================================
+#=============================================================================
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
 os.chdir(root_dir)
 
-#=========================================================
+#=============================================================================
 # imports
-#=========================================================
+#=============================================================================
 import re
 import sys
 import time
@@ -22,24 +22,24 @@ except ImportError:
     from distutils.core import setup
     has_distribute = False
 
-#=========================================================
+#=============================================================================
 # init setup options
-#=========================================================
+#=============================================================================
 opts = { "cmdclass": { } }
 args = sys.argv[1:]
 
-#=========================================================
-#register docdist command (not required)
-#=========================================================
+#=============================================================================
+# register docdist command (not required)
+#=============================================================================
 try:
     from passlib._setup.docdist import docdist
     opts['cmdclass']['docdist'] = docdist
 except ImportError:
     pass
 
-#=========================================================
+#=============================================================================
 # version string / datestamps
-#=========================================================
+#=============================================================================
 from passlib import __version__ as VERSION
 
 # if this is an hg checkout of passlib, add datestamp to version string.
@@ -75,9 +75,9 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         from passlib._setup.stamp import stamp_distutils_output
         stamp_distutils_output(opts, VERSION)
 
-#=========================================================
-#static text
-#=========================================================
+#=============================================================================
+# static text
+#=============================================================================
 SUMMARY = "comprehensive password hashing framework supporting over 30 schemes"
 
 DESCRIPTION = """\
@@ -90,7 +90,7 @@ providing full-strength password hashing for multi-user application.
 * See the `online documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `passlib homepage <http://passlib.googlecode.com>`_
+* See the `Passlib homepage <http://passlib.googlecode.com>`_
   for the latest news, more information, and additional downloads.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
@@ -130,12 +130,12 @@ else:
     is_release = True
     CLASSIFIERS.append("Development Status :: 5 - Production/Stable")
 
-#=========================================================
-#run setup
-#=========================================================
+#=============================================================================
+# run setup
+#=============================================================================
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
-    #package info
+    # package info
     packages = [
         "passlib",
             "passlib.ext",
@@ -149,7 +149,7 @@ setup(
     package_data = { "passlib.tests": ["*.cfg"] },
     zip_safe=True,
 
-    #metadata
+    # metadata
     name = "passlib",
     version = VERSION,
     author = "Eli Collins",
@@ -169,10 +169,10 @@ setup(
     tests_require = 'nose >= 1.1',
     test_suite = 'nose.collector',
 
-    #extra opts
+    # extra opts
     script_args=args,
     **opts
 )
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

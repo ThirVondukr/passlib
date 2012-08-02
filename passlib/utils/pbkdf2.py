@@ -3,25 +3,25 @@
 this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
-#=================================================================================
-#imports
-#=================================================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import hashlib
 import logging; log = logging.getLogger(__name__)
 import re
 from struct import pack
 from warnings import warn
-#site
+# site
 try:
     from M2Crypto import EVP as _EVP
 except ImportError:
     _EVP = None
-#pkg
+# pkg
 from passlib.exc import PasslibRuntimeWarning, ExpectedTypeError
 from passlib.utils import join_bytes, to_native_str, bytes_to_int, int_to_bytes, join_byte_values
 from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
-#local
+# local
 __all__ = [
     "get_prf",
     "pbkdf1",
@@ -132,9 +132,9 @@ def norm_hash_name(name, format="hashlib"):
 
 # TODO: get_hash() func which wraps norm_hash_name(), hashlib.<attr>, and hashlib.new
 
-#=================================================================================
-#general prf lookup
-#=================================================================================
+#=============================================================================
+# general prf lookup
+#=============================================================================
 _BNULL = b('\x00')
 _XY_DIGEST = b(',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i')
 
@@ -153,7 +153,7 @@ def _get_hmac_prf(digest):
         # use m2crypto function directly for sha1, since that's it's default digest
         try:
             result = _EVP.hmac(b('x'),b('y'))
-        except ValueError: #pragma: no cover
+        except ValueError: # pragma: no cover
             pass
         else:
             if result == _XY_DIGEST:
@@ -168,7 +168,7 @@ def _get_hmac_prf(digest):
         except ValueError:
             pass
         else:
-            #it does. so use M2Crypto's hmac & digest code
+            # it does. so use M2Crypto's hmac & digest code
             hmac_const = _EVP.hmac
             def prf(key, msg):
                 return hmac_const(key, msg, digest)
@@ -176,7 +176,7 @@ def _get_hmac_prf(digest):
             tag_wrapper(prf)
             return prf, digest_size
 
-    #fall back to hashlib-based implementation
+    # fall back to hashlib-based implementation
     digest_const = getattr(hashlib, digest, None)
     if not digest_const:
         raise ValueError("unknown hash algorithm: %r" % (digest,))
@@ -195,7 +195,7 @@ def _get_hmac_prf(digest):
     tag_wrapper(prf)
     return prf, digest_size
 
-#cache mapping prf name/func -> (func, digest_size)
+# cache mapping prf name/func -> (func, digest_size)
 _prf_cache = {}
 
 def _clear_prf_cache():
@@ -252,7 +252,7 @@ def get_prf(name):
         else:
             raise ValueError("unknown prf algorithm: %r" % (name,))
     elif callable(name):
-        #assume it's a callable, use it directly
+        # assume it's a callable, use it directly
         digest_size = len(name(b('x'),b('y')))
         retval = (name, digest_size)
     else:
@@ -260,9 +260,9 @@ def get_prf(name):
     _prf_cache[name] = retval
     return retval
 
-#=================================================================================
-#pbkdf1 support
-#=================================================================================
+#=============================================================================
+# pbkdf1 support
+#=============================================================================
 def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     """pkcs#5 password-based key derivation v1.5
 
@@ -326,10 +326,10 @@ def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
         block = hash_const(block).digest()
     return block[:keylen]
 
-#=================================================================================
-#pbkdf2
-#=================================================================================
-MAX_BLOCKS = 0xffffffff #2**32-1
+#=============================================================================
+# pbkdf2
+#=============================================================================
+MAX_BLOCKS = 0xffffffff # 2**32-1
 MAX_HMAC_SHA1_KEYLEN = MAX_BLOCKS*20
 # NOTE: the pbkdf2 spec does not specify a maximum number of rounds.
 #       however, many of the hashes in passlib are currently clamped
@@ -399,7 +399,7 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     if block_count >= MAX_BLOCKS:
         raise ValueError("key length too long for digest")
 
-    #build up result from blocks
+    # build up result from blocks
     def gen():
         for i in irange(block_count):
             digest = prf_func(secret, salt + pack(">L", i+1))
@@ -410,6 +410,6 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
             yield int_to_bytes(accum, digest_size)
     return join_bytes(gen())[:keylen]
 
-#=================================================================================
-#eof
-#=================================================================================
+#=============================================================================
+# eof
+#=============================================================================

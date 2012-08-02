@@ -12,9 +12,9 @@ __all__ = [
     "PasswordHash",
 ]
 
-#=====================================================
+#=============================================================================
 # 2.5-3.2 compatibility helpers
-#=====================================================
+#=============================================================================
 if sys.version_info >= (2,6):
     from abc import ABCMeta, abstractmethod, abstractproperty
 else:
@@ -35,9 +35,9 @@ def create_with_metaclass(meta):
         return meta(cls.__name__, cls.__bases__, cls.__dict__.copy())
     return builder
 
-#=====================================================
+#=============================================================================
 # PasswordHash interface
-#=====================================================
+#=============================================================================
 class PasswordHash(object):
     """This class describes an abstract interface which all password hashes
     in Passlib adhere to. Under Python 2.6 and up, this is an actual
@@ -45,42 +45,42 @@ class PasswordHash(object):
 
     See the Passlib docs for full documentation.
     """
-    #=====================================================
+    #===================================================================
     # class attributes
-    #=====================================================
+    #===================================================================
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # general information
-    #----------------------------------
+    #---------------------------------------------------------------
     ##name
     ##setting_kwds
     ##context_kwds
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # salt information -- if 'salt' in setting_kwds
-    #----------------------------------
+    #---------------------------------------------------------------
     ##min_salt_size
     ##max_salt_size
     ##default_salt_size
     ##salt_chars
     ##default_salt_chars
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # rounds information -- if 'rounds' in setting_kwds
-    #----------------------------------
+    #---------------------------------------------------------------
     ##min_rounds
     ##max_rounds
     ##default_rounds
     ##rounds_cost
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # encoding info -- if 'encoding' in context_kwds
-    #----------------------------------
+    #---------------------------------------------------------------
     ##default_encoding
 
-    #=====================================================
+    #===================================================================
     # primary methods
-    #=====================================================
+    #===================================================================
     @classmethod
     @abstractmethod
     def encrypt(cls, secret, **setting_and_context_kwds): # pragma: no cover -- abstract method
@@ -93,9 +93,9 @@ class PasswordHash(object):
         "verify secret against hash, returns True/False"
         raise NotImplementedError("must be implemented by subclass")
 
-    #=====================================================
+    #===================================================================
     # additional methods
-    #=====================================================
+    #===================================================================
     @classmethod
     @abstractmethod
     def identify(cls, hash): # pragma: no cover -- abstract method
@@ -114,23 +114,23 @@ class PasswordHash(object):
         "generated hash for secret, using settings from config/hash string"
         raise NotImplementedError("must be implemented by subclass")
 
-    #=====================================================
+    #===================================================================
     # undocumented methods / attributes
-    #=====================================================
+    #===================================================================
     # the following entry points are used internally by passlib,
     # and aren't documented as part of the exposed interface.
     # they are subject to change between releases,
     # but are documented here so there's a list of them *somewhere*.
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # checksum information - defined for many hashes
-    #----------------------------------
+    #---------------------------------------------------------------
     ## checksum_chars
     ## checksum_size
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # CryptContext flags
-    #----------------------------------
+    #---------------------------------------------------------------
 
     # hack for bsdi_crypt: if True, causes CryptContext to only generate
     # odd rounds values. assumed False if not defined.
@@ -155,9 +155,9 @@ class PasswordHash(object):
     ##    part may change at some point.
     ##    """
 
-    #----------------------------------
+    #---------------------------------------------------------------
     # experimental methods
-    #----------------------------------
+    #---------------------------------------------------------------
 
     ##@classmethod
     ##def normhash(cls, hash):
@@ -182,9 +182,9 @@ class PasswordHash(object):
     ##    components currently include checksum, salt, rounds.
     ##    """
 
-    #=====================================================
+    #===================================================================
     # eoc
-    #=====================================================
+    #===================================================================
 
 PasswordHash = create_with_metaclass(ABCMeta)(PasswordHash)
 

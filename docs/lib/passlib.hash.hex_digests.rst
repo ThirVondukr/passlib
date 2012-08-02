@@ -22,17 +22,22 @@ and can be used directly as follows::
 
     >>> from passlib.hash import hex_sha1 as hex_sha1
 
-    >>> #encrypt password
+    >>> # encrypt password
     >>> h = hex_sha1.encrypt("password")
     >>> h
     '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8'
 
-    >>> hex_sha1.verify("password", h) #verify correct password
+    >>> # verify correct password
+    >>> hex_sha1.verify("password", h)
     True
-    >>> hex_sha1.verify("secret", h) #verify incorrect password
+    
+    >>> # verify incorrect password
+    >>> hex_sha1.verify("secret", h)
     False
 
 .. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
+
+.. index:: virtualbox; passwordhash
 
 Interface
 =========
@@ -47,6 +52,11 @@ Interface
     and following the :ref:`password-hash-api`.
 
     They support no settings or other keywords.
+
+.. note::
+
+   Oracle VirtualBox's :command:`VBoxManager internalcommands passwordhash` command
+   uses :class:`hex_sha256`.
 
 Format & Algorithm
 ==================

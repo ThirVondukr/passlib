@@ -1,33 +1,32 @@
 """passlib.apache - apache password support"""
 # XXX: relocate this to passlib.ext.apache?
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 import os
 import sys
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import consteq, render_bytes, to_bytes, deprecated_method, is_ascii_codec
 from passlib.utils.compat import b, bytes, join_bytes, str_to_bascii, u, \
                                  unicode, BytesIO, iteritems, imap, PY3
-#pkg
-#local
+# local
 __all__ = [
     'HtpasswdFile',
     'HtdigestFile',
 ]
 
-#=========================================================
+#=============================================================================
 # constants & support
-#=========================================================
+#=============================================================================
 _UNSET = object()
 
 _BCOLON = b(":")
@@ -35,9 +34,9 @@ _BCOLON = b(":")
 # byte values that aren't allowed in fields.
 _INVALID_FIELD_CHARS = b(":\n\r\t\x00")
 
-#=========================================================
+#=============================================================================
 # backport of OrderedDict for PY2.5
-#=========================================================
+#=============================================================================
 try:
     from collections import OrderedDict
 except ImportError:
@@ -69,14 +68,14 @@ except ImportError:
         # these aren't used or implemented, so disabling them for safety.
         update = pop = popitem = clear = keys = iterkeys = None
 
-#=========================================================
-#common helpers
-#=========================================================
+#=============================================================================
+# common helpers
+#=============================================================================
 class _CommonFile(object):
     """common framework for HtpasswdFile & HtdigestFile"""
-    #=======================================================================
+    #===================================================================
     # instance attrs
-    #=======================================================================
+    #===================================================================
 
     # charset encoding used by file (defaults to utf-8)
     encoding = None
@@ -96,9 +95,9 @@ class _CommonFile(object):
     # (e.g. user => hash for Htpasswd)
     _records = None
 
-    #=======================================================================
+    #===================================================================
     # alt constuctors
-    #=======================================================================
+    #===================================================================
     @classmethod
     def from_string(cls, data, **kwds):
         """create new object from raw string.
@@ -131,9 +130,9 @@ class _CommonFile(object):
         self.load(path)
         return self
 
-    #=======================================================================
+    #===================================================================
     # init
-    #=======================================================================
+    #===================================================================
     def __init__(self, path=None, new=False, autoload=True, autosave=False,
                  encoding="utf-8", return_unicode=PY3,
                  ):
@@ -192,9 +191,9 @@ class _CommonFile(object):
         "modify time when last loaded (if bound to a local file)"
         return self._mtime
 
-    #=======================================================================
+    #===================================================================
     # loading
-    #=======================================================================
+    #===================================================================
     def load_if_changed(self):
         """Reload from ``self.path`` only if file has changed since last load"""
         if not self._path:
@@ -267,9 +266,9 @@ class _CommonFile(object):
         "parse line of file into (key, value) pair"
         raise NotImplementedError("should be implemented in subclass")
 
-    #=======================================================================
+    #===================================================================
     # saving
-    #=======================================================================
+    #===================================================================
     def _autosave(self):
         "subclass helper to call save() after any changes"
         if self.autosave and self._path:
@@ -301,9 +300,9 @@ class _CommonFile(object):
         "given key/value pair, encode as line of file"
         raise NotImplementedError("should be implemented in subclass")
 
-    #=======================================================================
+    #===================================================================
     # field encoding
-    #=======================================================================
+    #===================================================================
     def _encode_user(self, user):
         "user-specific wrapper for _encode_field()"
         return self._encode_field(user, "user")
@@ -363,16 +362,20 @@ class _CommonFile(object):
     # platforms supporting the 'plaintext' scheme. these classes don't currently
     # check for this.
 
-    #=======================================================================
+    #===================================================================
     # eoc
-    #=======================================================================
+    #===================================================================
 
-#=========================================================
-#htpasswd editing
-#=========================================================
+#=============================================================================
+# htpasswd editing
+#=============================================================================
 
 # FIXME: apr_md5_crypt technically the default only for windows, netware and tpf.
-# TODO: find out if htpasswd's "crypt" mode is crypt *call* or just des_crypt implementation.
+# TODO: find out if htpasswd's "crypt" mode is a crypt() *call* or just des_crypt implementation.
+#       if the former, we can support anything supported by passlib.hosts.host_context,
+#       allowing more secure hashes than apr_md5_crypt to be used.
+#       could perhaps add this behavior as an option to the constructor.
+#       c.f. http://httpd.apache.org/docs/2.2/programs/htpasswd.html
 htpasswd_context = CryptContext([
     "apr_md5_crypt", # man page notes supported everywhere, default on Windows, Netware, TPF
     "des_crypt", # man page notes server does NOT support this on Windows, Netware, TPF
@@ -524,16 +527,16 @@ class HtpasswdFile(_CommonFile):
         any user name contains a forbidden character (one of ``:\\r\\n\\t\\x00``),
         or is longer than 255 characters.
     """
-    #=========================================================
+    #===================================================================
     # instance attrs
-    #=========================================================
+    #===================================================================
 
     # NOTE: _records map stores <user> for the key, and <hash> for the value,
     # both in bytes which use self.encoding
 
-    #=========================================================
+    #===================================================================
     # init & serialization
-    #=========================================================
+    #===================================================================
     def __init__(self, path=None, default_scheme=None, context=htpasswd_context,
                  **kwds):
         if 'default' in kwds:
@@ -558,9 +561,9 @@ class HtpasswdFile(_CommonFile):
     def _render_record(self, user, hash):
         return render_bytes("%s:%s\n", user, hash)
 
-    #=========================================================
+    #===================================================================
     # public methods
-    #=========================================================
+    #===================================================================
 
     def users(self):
         "Return list of all users in database"
@@ -673,13 +676,13 @@ class HtpasswdFile(_CommonFile):
         "verify password for user"
         return self.check_password(user, password)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
-#htdigest editing
-#=========================================================
+#=============================================================================
+# htdigest editing
+#=============================================================================
 class HtdigestFile(_CommonFile):
     """class for reading & writing Htdigest files.
 
@@ -812,9 +815,9 @@ class HtdigestFile(_CommonFile):
         any user name or realm contains a forbidden character (one of ``:\\r\\n\\t\\x00``),
         or is longer than 255 characters.
     """
-    #=========================================================
+    #===================================================================
     # instance attrs
-    #=========================================================
+    #===================================================================
 
     # NOTE: _records map stores (<user>,<realm>) for the key,
     # and <hash> as the value, all as <self.encoding> bytes.
@@ -826,9 +829,9 @@ class HtdigestFile(_CommonFile):
     # is provided to a method call. otherwise realm is always required.
     default_realm = None
 
-    #=========================================================
+    #===================================================================
     # init & serialization
-    #=========================================================
+    #===================================================================
     def __init__(self, path=None, default_realm=None, **kwds):
         self.default_realm = default_realm
         super(HtdigestFile, self).__init__(path, **kwds)
@@ -854,9 +857,9 @@ class HtdigestFile(_CommonFile):
                                   "or set the default_realm attribute")
         return self._encode_field(realm, "realm")
 
-    #=========================================================
+    #===================================================================
     # public methods
-    #=========================================================
+    #===================================================================
 
     def realms(self):
         """Return list of all realms in database"""
@@ -1025,10 +1028,10 @@ class HtdigestFile(_CommonFile):
         "verify password for user"
         return self.check_password(user, realm, password)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

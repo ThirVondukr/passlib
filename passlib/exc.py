@@ -1,7 +1,7 @@
 """passlib.exc -- exceptions & warnings raised by passlib"""
-#==========================================================================
+#=============================================================================
 # exceptions
-#==========================================================================
+#=============================================================================
 class MissingBackendError(RuntimeError):
     """Error raised if multi-backend handler has no available backends;
     or if specifically requested backend is not available.
@@ -10,8 +10,8 @@ class MissingBackendError(RuntimeError):
     from :exc:`RuntimeError`, since it usually indicates
     lack of an external library or OS feature.
     This is primarily raised by handlers which depend on
-    external libraries -- which is currently just
-    :class:`~passlib.hash.bcrypt`.
+    external libraries (which is currently just
+    :class:`~passlib.hash.bcrypt`).
     """
 
 class PasswordSizeError(ValueError):
@@ -24,7 +24,7 @@ class PasswordSizeError(ValueError):
     password is provided to an application. Because of this, Passlib enforces
     a maximum size limit, but one which should be *much* larger
     than any legitimate password. :exc:`!PasswordSizeError` derives
-    from :exc:`!ValueError`. 
+    from :exc:`!ValueError`.
 
     .. note::
         Applications wishing to use a different limit should set the
@@ -39,9 +39,9 @@ class PasswordSizeError(ValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
-#==========================================================================
+#=============================================================================
 # warnings
-#==========================================================================
+#=============================================================================
 class PasslibWarning(UserWarning):
     """base class for Passlib's user warnings.
 
@@ -54,9 +54,9 @@ class PasslibConfigWarning(PasslibWarning):
 
     This occurs primarily in one of two cases:
 
-    * the CryptContext contains rounds limits which exceed the hard limits
+    * The CryptContext contains rounds limits which exceed the hard limits
       imposed by the underlying algorithm.
-    * an explicit rounds value was provided which exceeds the limits
+    * An explicit rounds value was provided which exceeds the limits
       imposed by the CryptContext.
 
     In both of these cases, the code will perform correctly & securely;
@@ -69,10 +69,11 @@ class PasslibHashWarning(PasslibWarning):
 
     This occurs primarily in one of two cases:
 
-    * a rounds value or other setting was explicitly provided which
-      exceeded the handler's limits (and has been clamped).
+    * A rounds value or other setting was explicitly provided which
+      exceeded the handler's limits (and has been clamped
+      by the :ref:`relaxed<relaxed-keyword>` flag).
 
-    * a hash malformed hash string was encountered, which while parsable,
+    * A malformed hash string was encountered which (while parsable)
       should be re-encoded.
     """
 
@@ -89,7 +90,7 @@ class PasslibSecurityWarning(PasslibWarning):
     that might affect security.
     """
 
-#==========================================================================
+#=============================================================================
 # error constructors
 #
 # note: these functions are used by the hashes in Passlib to raise common
@@ -97,14 +98,14 @@ class PasslibSecurityWarning(PasslibWarning):
 # rather than subclasses of ValueError, since the specificity isn't needed
 # yet; and who wants to import a bunch of error classes when catching
 # ValueError will do?
-#==========================================================================
+#=============================================================================
 
 def _get_name(handler):
     return handler.name if handler else "<unnamed>"
 
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 # generic helpers
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 def type_name(value):
     "return pretty-printed string containing name of value's type"
     cls = value.__class__
@@ -125,9 +126,9 @@ def ExpectedStringError(value, param):
     "error message when param was supposed to be unicode or bytes"
     return ExpectedTypeError(value, "unicode or bytes", param)
 
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 # encrypt/verify parameter errors
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 def MissingDigestError(handler=None):
     "raised when verify() method gets passed config string instead of hash"
     name = _get_name(handler)
@@ -139,9 +140,9 @@ def NullPasswordError(handler=None):
     name = _get_name(handler)
     return ValueError("%s does not allow NULL bytes in password" % name)
 
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 # errors when parsing hashes
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 def InvalidHashError(handler=None):
     "error raised if unrecognized hash provided to handler"
     return ValueError("not a valid %s hash" % _get_name(handler))
@@ -157,9 +158,9 @@ def ZeroPaddedRoundsError(handler=None):
     "error raised if hash was recognized but contained zero-padded rounds field"
     return MalformedHashError(handler, "zero-padded rounds")
 
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 # settings / hash component errors
-#----------------------------------------------------------------
+#------------------------------------------------------------------------
 def ChecksumSizeError(handler, raw=False):
     "error raised if hash was recognized, but checksum was wrong size"
     # TODO: if handler.use_defaults is set, this came from app-provided value,
@@ -169,6 +170,6 @@ def ChecksumSizeError(handler, raw=False):
     reason = "checksum must be exactly %d %s" % (checksum_size, unit)
     return MalformedHashError(handler, reason)
 
-#==========================================================================
+#=============================================================================
 # eof
-#==========================================================================
+#=============================================================================

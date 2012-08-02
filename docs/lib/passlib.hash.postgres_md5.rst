@@ -53,7 +53,7 @@ This algorithm it not suitable for *any* use besides manipulating existing
 PostgreSQL account passwords, due to the following flaws:
 
 * It's use of the username as a salt value means that common usernames
-  (eg ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
+  (e.g. ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * Since the keyspace of ``user+password`` is still a subset of ascii characters,

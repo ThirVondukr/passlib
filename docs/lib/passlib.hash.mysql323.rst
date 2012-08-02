@@ -27,7 +27,7 @@ That aside, this class can be used as follows::
     >>> mysql323.encrypt("password")
     '5d2e19393cc5ef67'
 
-    >>> #verify correct password
+    >>> # verify correct password
     >>> mysql323.verify("password", '5d2e19393cc5ef67')
     True
     >>> mysql323.verify("secret", '5d2e19393cc5ef67')
@@ -62,7 +62,7 @@ but verifying existing MySQL 3.2.3 - 4.0 password hashes.
 
 .. rubric:: Footnotes
 
-.. [#f1] Source of implementation used by passlib -
+.. [#f1] Source of implementation used by Passlib -
          `<http://djangosnippets.org/snippets/1508/>`_
 
 .. [#f2] Mysql document describing transition -

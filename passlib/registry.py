@@ -1,7 +1,7 @@
 """passlib.registry - registry for password hash handlers"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 import re
 import logging; log = logging.getLogger(__name__)
@@ -17,9 +17,9 @@ __all__ = [
     "list_crypt_handlers",
 ]
 
-#=========================================================
+#=============================================================================
 # proxy object used in place of 'passlib.hash' module
-#=========================================================
+#=============================================================================
 class _PasslibRegistryProxy(object):
     """proxy module passlib.hash
 
@@ -63,9 +63,9 @@ class _PasslibRegistryProxy(object):
 # create single instance - available publically as 'passlib.hash'
 _proxy = _PasslibRegistryProxy()
 
-#=========================================================
+#=============================================================================
 # internal registry state
-#=========================================================
+#=============================================================================
 
 # singleton uses to detect omitted keywords
 _UNSET = object()
@@ -158,9 +158,9 @@ _name_re = re.compile("^[a-z][a-z0-9_]+[a-z0-9]$")
 _forbidden_names = frozenset(["onload", "policy", "context", "all",
                               "default", "none", "auto"])
 
-#=========================================================
+#=============================================================================
 # registry frontend functions
-#=========================================================
+#=============================================================================
 def _validate_handler_name(name):
     """helper to validate handler name
 
@@ -293,6 +293,14 @@ def get_crypt_handler(name, default=_UNSET):
 
     :returns: handler attached to name, or default value (if specified).
     """
+    # catch invalid names before we check _handlers,
+    # since it's a module dict, and exposes things like __package__, etc.
+    if name.startswith("_"):
+        if default is _UNSET:
+            raise KeyError("invalid handler name: %r" % (name,))
+        else:
+            return default
+
     # check if handler is already loaded
     try:
         return _handlers[name]
@@ -356,9 +364,11 @@ def list_crypt_handlers(loaded_only=False):
     names = set(_handlers)
     if not loaded_only:
         names.update(_locations)
-    return sorted(names)
+    # strip private attrs out of namespace and sort.
+    # TODO: make _handlers a separate list, so we don't have module namespace mixed in.
+    return sorted(name for name in names if not name.startswith("_"))
 
-#NOTE: these two functions mainly exist just for the unittests...
+# NOTE: these two functions mainly exist just for the unittests...
 
 def _has_crypt_handler(name, loaded_only=False):
     """check if handler name is known.
@@ -394,6 +404,6 @@ def _unload_handler_name(name, locations=True):
     if locations and name in _locations:
         del _locations[name]
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

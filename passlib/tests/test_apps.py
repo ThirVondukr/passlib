@@ -1,27 +1,27 @@
 """test passlib.apps"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import logging; log = logging.getLogger(__name__)
-#site
-#pkg
+# site
+# pkg
 from passlib import apps, hash as hashmod
 from passlib.tests.utils import TestCase
-#module
+# module
 
-#=========================================================
-#test predefined app contexts
-#=========================================================
+#=============================================================================
+# test predefined app contexts
+#=============================================================================
 class AppsTest(TestCase):
     "perform general tests to make sure contexts work"
-    #NOTE: these tests are not really comprehensive,
-    #      since they would do little but duplicate
-    #      the presets in apps.py
+    # NOTE: these tests are not really comprehensive,
+    #       since they would do little but duplicate
+    #       the presets in apps.py
     #
-    #      they mainly try to ensure no typos
-    #      or dynamic behavior foul-ups.
+    #       they mainly try to ensure no typos
+    #       or dynamic behavior foul-ups.
 
     def test_master_context(self):
         ctx = apps.master_context
@@ -123,6 +123,6 @@ class AppsTest(TestCase):
         ]:
             self.assertTrue(ctx.verify("test", hash))
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

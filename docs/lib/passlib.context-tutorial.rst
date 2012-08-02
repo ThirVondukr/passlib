@@ -441,7 +441,7 @@ Applications which choose to use a policy file will typically want
 to create the CryptContext at the module level, and then load
 the configuration once the application starts:
 
-1. Within a common module in your application (eg ``myapp.model.security``)::
+1. Within a common module in your application (e.g. ``myapp.model.security``)::
 
         #
         # create a crypt context that can be imported and used wherever is needed...

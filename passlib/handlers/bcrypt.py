@@ -7,40 +7,39 @@ TODO:
 
 * deal with lack of PY3-compatibile c-ext implementation
 """
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement, absolute_import
-#core
+# core
 import os
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
+# site
 try:
     from bcrypt import hashpw as pybcrypt_hashpw
-except ImportError: #pragma: no cover
+except ImportError: # pragma: no cover
     pybcrypt_hashpw = None
 try:
     from bcryptor.engine import Engine as bcryptor_engine
-except ImportError: #pragma: no cover
+except ImportError: # pragma: no cover
     bcryptor_engine = None
-#libs
+# pkg
 from passlib.exc import PasslibHashWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
-#pkg
-#local
+# local
 __all__ = [
     "bcrypt",
 ]
 
-#=========================================================
+#=============================================================================
 # support funcs & constants
-#=========================================================
+#=============================================================================
 _builtin_bcrypt = None
 
 def _load_builtin():
@@ -54,9 +53,9 @@ IDENT_2X = u("$2x$")
 IDENT_2Y = u("$2y$")
 _BNULL = b('\x00')
 
-#=========================================================
+#=============================================================================
 # handler
-#=========================================================
+#=============================================================================
 class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.GenericHandler):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -74,14 +73,15 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     :param rounds:
         Optional number of rounds to use.
         Defaults to 12, must be between 4 and 31, inclusive.
-        This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`.
+        This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`
+        -- increasing the rounds by +1 will double the amount of time taken.
 
     :type ident: str
     :param ident:
-        Specifies which version of the BCrypt algorithm will be used when creating a new hash. 
+        Specifies which version of the BCrypt algorithm will be used when creating a new hash.
         Typically this option is not needed, as the default (``"2a"``) is usually the correct choice.
-        If specified, it must be one of the following: 
-           
+        If specified, it must be one of the following:
+
         * ``"2"`` - the first revision of BCrypt, which suffers from a minor security flaw and is generally not used anymore.
         * ``"2a"`` - latest revision of the official BCrypt algorithm, and the current default.
         * ``"2y"`` - format specific to the *crypt_blowfish* BCrypt implementation,
@@ -102,11 +102,14 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         (but does not support) the broken ``"2x"`` hashes.
         (see the :ref:`crypt_blowfish bug <crypt-blowfish-bug>`
         for details).
+
+    .. versionchanged:: 1.6
+        Added a pure-python backend.
     """
 
-    #=========================================================
-    #class attrs
-    #=========================================================
+    #===================================================================
+    # class attrs
+    #===================================================================
     #--GenericHandler--
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident")
@@ -121,7 +124,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #--HasSalt--
     min_salt_size = max_salt_size = 22
     salt_chars = bcrypt64.charmap
-        #NOTE: 22nd salt char must be in bcrypt64._padinfo2[1], not full charmap
+        # NOTE: 22nd salt char must be in bcrypt64._padinfo2[1], not full charmap
 
     #--HasRounds--
     default_rounds = 12 # current passlib default
@@ -129,9 +132,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)
     rounds_cost = "log2"
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -167,9 +170,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         config = u("%s%02d$%s") % (ident, self.rounds, self.salt)
         return uascii_to_str(config)
 
-    #=========================================================
+    #===================================================================
     # specialized salt generation - fixes passlib issue 25
-    #=========================================================
+    #===================================================================
 
     @classmethod
     def _bind_needs_update(cls, **settings):
@@ -225,9 +228,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 PasslibHashWarning)
         return checksum
 
-    #=========================================================
-    #primary interface
-    #=========================================================
+    #===================================================================
+    # primary interface
+    #===================================================================
     backends = ("pybcrypt", "bcryptor", "os_crypt", "builtin")
 
     @classproperty
@@ -276,7 +279,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 )
 
     def _calc_checksum_pybcrypt(self, secret):
-        #py-bcrypt behavior:
+        # py-bcrypt behavior:
         #   py2: unicode secret/hash encoded as ascii bytes before use,
         #        bytes taken as-is; returns ascii bytes.
         #   py3: not supported (patch submitted)
@@ -290,7 +293,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return str_to_uascii(hash[-31:])
 
     def _calc_checksum_bcryptor(self, secret):
-        #bcryptor behavior:
+        # bcryptor behavior:
         #   py2: unicode secret/hash encoded as ascii bytes before use,
         #        bytes taken as-is; returns ascii bytes.
         #   py3: not supported
@@ -323,10 +326,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                               self.salt.encode("ascii"), self.rounds)
         return chk.decode("ascii")
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

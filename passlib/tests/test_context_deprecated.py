@@ -5,23 +5,23 @@ containing the tests using the legacy CryptPolicy api.
 it's being preserved here to ensure the old api doesn't break
 (until Passlib 1.8, when this and the legacy api will be removed).
 """
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import hashlib
 from logging import getLogger
 import os
 import time
 import warnings
 import sys
-#site
+# site
 try:
     from pkg_resources import resource_filename
 except ImportError:
     resource_filename = None
-#pkg
+# pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
@@ -34,27 +34,27 @@ from passlib.registry import (register_crypt_handler_path,
                         _unload_handler_name as unload_handler_name,
                         get_crypt_handler,
                         )
-#module
+# module
 log = getLogger(__name__)
 
-#=========================================================
+#=============================================================================
 #
-#=========================================================
+#=============================================================================
 class CryptPolicyTest(TestCase):
     "test CryptPolicy object"
 
-    #TODO: need to test user categories w/in all this
+    # TODO: need to test user categories w/in all this
 
     descriptionPrefix = "CryptPolicy"
 
-    #=========================================================
-    #sample crypt policies used for testing
-    #=========================================================
+    #===================================================================
+    # sample crypt policies used for testing
+    #===================================================================
 
-    #-----------------------------------------------------
-    #sample 1 - average config file
-    #-----------------------------------------------------
-    #NOTE: copy of this is stored in file passlib/tests/sample_config_1s.cfg
+    #---------------------------------------------------------------
+    # sample 1 - average config file
+    #---------------------------------------------------------------
+    # NOTE: copy of this is stored in file passlib/tests/sample_config_1s.cfg
     sample_config_1s = """\
 [passlib]
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
@@ -68,11 +68,11 @@ sha512_crypt.min_rounds = 40000
     sample_config_1s_path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "sample_config_1s.cfg"))
     if not os.path.exists(sample_config_1s_path) and resource_filename:
-        #in case we're zipped up in an egg.
+        # in case we're zipped up in an egg.
         sample_config_1s_path = resource_filename("passlib.tests",
                                                   "sample_config_1s.cfg")
 
-    #make sure sample_config_1s uses \n linesep - tests rely on this
+    # make sure sample_config_1s uses \n linesep - tests rely on this
     assert sample_config_1s.startswith("[passlib]\nschemes")
 
     sample_config_1pd = dict(
@@ -108,9 +108,9 @@ sha512_crypt.min_rounds = 40000
         sha512_crypt__min_rounds = 40000,
     )
 
-    #-----------------------------------------------------
-    #sample 2 - partial policy & result of overlay on sample 1
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
+    # sample 2 - partial policy & result of overlay on sample 1
+    #---------------------------------------------------------------
     sample_config_2s = """\
 [passlib]
 bsdi_crypt.min_rounds = 29000
@@ -120,11 +120,11 @@ sha512_crypt.min_rounds = 45000
 """
 
     sample_config_2pd = dict(
-        #using this to test full replacement of existing options
+        # using this to test full replacement of existing options
         bsdi_crypt__min_rounds = 29000,
         bsdi_crypt__max_rounds = 35000,
         bsdi_crypt__default_rounds = 31000,
-        #using this to test partial replacement of existing options
+        # using this to test partial replacement of existing options
         sha512_crypt__min_rounds=45000,
     )
 
@@ -140,9 +140,9 @@ sha512_crypt.min_rounds = 45000
         sha512_crypt__min_rounds=45000,
     )
 
-    #-----------------------------------------------------
-    #sample 3 - just changing default
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
+    # sample 3 - just changing default
+    #---------------------------------------------------------------
     sample_config_3pd = dict(
         default="sha512_crypt",
     )
@@ -159,9 +159,9 @@ sha512_crypt.min_rounds = 45000
         sha512_crypt__min_rounds=45000,
     )
 
-    #-----------------------------------------------------
-    #sample 4 - category specific
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
+    # sample 4 - category specific
+    #---------------------------------------------------------------
     sample_config_4s = """
 [passlib]
 schemes = sha512_crypt
@@ -181,9 +181,9 @@ admin.sha512_crypt.max_rounds = 40000
         admin__sha512_crypt__max_rounds = 40000,
         )
 
-    #-----------------------------------------------------
-    #sample 5 - to_string & deprecation testing
-    #-----------------------------------------------------
+    #---------------------------------------------------------------
+    # sample 5 - to_string & deprecation testing
+    #---------------------------------------------------------------
     sample_config_5s = sample_config_1s + """\
 deprecated = des_crypt
 admin__context__deprecated = des_crypt, bsdi_crypt
@@ -209,13 +209,15 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         "admin__context__deprecated": ["des_crypt", "bsdi_crypt"],
     })
 
-    #=========================================================
-    #constructors
-    #=========================================================
+    #===================================================================
+    # constructors
+    #===================================================================
     def setUp(self):
         TestCase.setUp(self)
         warnings.filterwarnings("ignore",
                                 r"The CryptPolicy class has been deprecated")
+        warnings.filterwarnings("ignore",
+                                r"the method.*hash_needs_update.*is deprecated")
 
     def test_00_constructor(self):
         "test CryptPolicy() constructor"
@@ -228,13 +230,13 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         self.assertRaises(TypeError, CryptPolicy, {}, {})
         self.assertRaises(TypeError, CryptPolicy, {}, dummy=1)
 
-        #check key with too many separators is rejected
+        # check key with too many separators is rejected
         self.assertRaises(TypeError, CryptPolicy,
             schemes = [ "des_crypt", "md5_crypt", "bsdi_crypt", "sha512_crypt"],
             bad__key__bsdi_crypt__max_rounds = 30000,
             )
 
-        #check nameless handler rejected
+        # check nameless handler rejected
         class nameless(uh.StaticHandler):
             name = None
         self.assertRaises(ValueError, CryptPolicy, schemes=[nameless])
@@ -242,48 +244,48 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         # check scheme must be name or crypt handler
         self.assertRaises(TypeError, CryptPolicy, schemes=[uh.StaticHandler])
 
-        #check name conflicts are rejected
+        # check name conflicts are rejected
         class dummy_1(uh.StaticHandler):
             name = 'dummy_1'
         self.assertRaises(KeyError, CryptPolicy, schemes=[dummy_1, dummy_1])
 
-        #with unknown deprecated value
+        # with unknown deprecated value
         self.assertRaises(KeyError, CryptPolicy,
                           schemes=['des_crypt'],
                           deprecated=['md5_crypt'])
 
-        #with unknown default value
+        # with unknown default value
         self.assertRaises(KeyError, CryptPolicy,
                           schemes=['des_crypt'],
                           default='md5_crypt')
 
     def test_01_from_path_simple(self):
         "test CryptPolicy.from_path() constructor"
-        #NOTE: this is separate so it can also run under GAE
+        # NOTE: this is separate so it can also run under GAE
 
-        #test preset stored in existing file
+        # test preset stored in existing file
         path = self.sample_config_1s_path
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test if path missing
+        # test if path missing
         self.assertRaises(EnvironmentError, CryptPolicy.from_path, path + 'xxx')
 
     def test_01_from_path(self):
         "test CryptPolicy.from_path() constructor with encodings"
         path = self.mktemp()
 
-        #test "\n" linesep
+        # test "\n" linesep
         set_file(path, self.sample_config_1s)
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test "\r\n" linesep
+        # test "\r\n" linesep
         set_file(path, self.sample_config_1s.replace("\n","\r\n"))
         policy = CryptPolicy.from_path(path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test with custom encoding
+        # test with custom encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         set_file(path, uc2)
         policy = CryptPolicy.from_path(path, encoding="utf-16")
@@ -291,62 +293,62 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 
     def test_02_from_string(self):
         "test CryptPolicy.from_string() constructor"
-        #test "\n" linesep
+        # test "\n" linesep
         policy = CryptPolicy.from_string(self.sample_config_1s)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test "\r\n" linesep
+        # test "\r\n" linesep
         policy = CryptPolicy.from_string(
             self.sample_config_1s.replace("\n","\r\n"))
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test with unicode
+        # test with unicode
         data = to_unicode(self.sample_config_1s)
         policy = CryptPolicy.from_string(data)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test with non-ascii-compatible encoding
+        # test with non-ascii-compatible encoding
         uc2 = to_bytes(self.sample_config_1s, "utf-16", source_encoding="utf-8")
         policy = CryptPolicy.from_string(uc2, encoding="utf-16")
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #test category specific options
+        # test category specific options
         policy = CryptPolicy.from_string(self.sample_config_4s)
         self.assertEqual(policy.to_dict(), self.sample_config_4pd)
 
     def test_03_from_source(self):
         "test CryptPolicy.from_source() constructor"
-        #pass it a path
+        # pass it a path
         policy = CryptPolicy.from_source(self.sample_config_1s_path)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #pass it a string
+        # pass it a string
         policy = CryptPolicy.from_source(self.sample_config_1s)
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #pass it a dict (NOTE: make a copy to detect in-place modifications)
+        # pass it a dict (NOTE: make a copy to detect in-place modifications)
         policy = CryptPolicy.from_source(self.sample_config_1pd.copy())
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #pass it existing policy
+        # pass it existing policy
         p2 = CryptPolicy.from_source(policy)
         self.assertIs(policy, p2)
 
-        #pass it something wrong
+        # pass it something wrong
         self.assertRaises(TypeError, CryptPolicy.from_source, 1)
         self.assertRaises(TypeError, CryptPolicy.from_source, [])
 
     def test_04_from_sources(self):
         "test CryptPolicy.from_sources() constructor"
 
-        #pass it empty list
+        # pass it empty list
         self.assertRaises(ValueError, CryptPolicy.from_sources, [])
 
-        #pass it one-element list
+        # pass it one-element list
         policy = CryptPolicy.from_sources([self.sample_config_1s])
         self.assertEqual(policy.to_dict(), self.sample_config_1pd)
 
-        #pass multiple sources
+        # pass multiple sources
         policy = CryptPolicy.from_sources(
             [
             self.sample_config_1s_path,
@@ -360,22 +362,22 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 
         p1 = CryptPolicy(**self.sample_config_1pd)
 
-        #check overlaying sample 2
+        # check overlaying sample 2
         p2 = p1.replace(**self.sample_config_2pd)
         self.assertEqual(p2.to_dict(), self.sample_config_12pd)
 
-        #check repeating overlay makes no change
+        # check repeating overlay makes no change
         p2b = p2.replace(**self.sample_config_2pd)
         self.assertEqual(p2b.to_dict(), self.sample_config_12pd)
 
-        #check overlaying sample 3
+        # check overlaying sample 3
         p3 = p2.replace(self.sample_config_3pd)
         self.assertEqual(p3.to_dict(), self.sample_config_123pd)
 
     def test_06_forbidden(self):
         "test CryptPolicy() forbidden kwds"
 
-        #salt not allowed to be set
+        # salt not allowed to be set
         self.assertRaises(KeyError, CryptPolicy,
             schemes=["des_crypt"],
             des_crypt__salt="xx",
@@ -385,15 +387,15 @@ admin__context__deprecated = des_crypt, bsdi_crypt
             all__salt="xx",
         )
 
-        #schemes not allowed for category
+        # schemes not allowed for category
         self.assertRaises(KeyError, CryptPolicy,
             schemes=["des_crypt"],
             user__context__schemes=["md5_crypt"],
         )
 
-    #=========================================================
-    #reading
-    #=========================================================
+    #===================================================================
+    # reading
+    #===================================================================
     def test_10_has_schemes(self):
         "test has_schemes() method"
 
@@ -418,14 +420,14 @@ admin__context__deprecated = des_crypt, bsdi_crypt
 
         p1 = CryptPolicy(**self.sample_config_1pd)
 
-        #check by name
+        # check by name
         self.assertIs(p1.get_handler("bsdi_crypt"), hash.bsdi_crypt)
 
-        #check by missing name
+        # check by missing name
         self.assertIs(p1.get_handler("sha256_crypt"), None)
         self.assertRaises(KeyError, p1.get_handler, "sha256_crypt", required=True)
 
-        #check default
+        # check default
         self.assertIs(p1.get_handler(), hash.md5_crypt)
 
     def test_13_get_options(self):
@@ -480,7 +482,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         self.assertFalse(pb.handler_is_deprecated(hash.bsdi_crypt))
         self.assertFalse(pb.handler_is_deprecated("sha512_crypt"))
 
-        #check categories as well
+        # check categories as well
         self.assertTrue(pb.handler_is_deprecated("des_crypt", "user"))
         self.assertFalse(pb.handler_is_deprecated("bsdi_crypt", "user"))
         self.assertTrue(pb.handler_is_deprecated("des_crypt", "admin"))
@@ -518,9 +520,9 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         self.assertEqual(pd.get_min_verify_time(), .1)
         self.assertEqual(pd.get_min_verify_time('admin'), .2)
 
-    #=========================================================
-    #serialization
-    #=========================================================
+    #===================================================================
+    # serialization
+    #===================================================================
     def test_20_iter_config(self):
         "test iter_config() method"
         p5 = CryptPolicy(**self.sample_config_5pd)
@@ -537,20 +539,20 @@ admin__context__deprecated = des_crypt, bsdi_crypt
     def test_22_to_string(self):
         "test to_string() method"
         pa = CryptPolicy(**self.sample_config_5pd)
-        s = pa.to_string() #NOTE: can't compare string directly, ordering etc may not match
+        s = pa.to_string() # NOTE: can't compare string directly, ordering etc may not match
         pb = CryptPolicy.from_string(s)
         self.assertEqual(pb.to_dict(), self.sample_config_5pd)
 
         s = pa.to_string(encoding="latin-1")
         self.assertIsInstance(s, bytes)
 
-    #=========================================================
+    #===================================================================
     #
-    #=========================================================
+    #===================================================================
 
-#=========================================================
-#CryptContext
-#=========================================================
+#=============================================================================
+# CryptContext
+#=============================================================================
 class CryptContextTest(TestCase):
     "test CryptContext class"
     descriptionPrefix = "CryptContext"
@@ -562,20 +564,22 @@ class CryptContextTest(TestCase):
         warnings.filterwarnings("ignore",
                                 r"The CryptContext ``policy`` keyword has been deprecated.*")
         warnings.filterwarnings("ignore", ".*(CryptPolicy|context\.policy).*(has|have) been deprecated.*")
+        warnings.filterwarnings("ignore",
+                                r"the method.*hash_needs_update.*is deprecated")
 
-    #=========================================================
-    #constructor
-    #=========================================================
+    #===================================================================
+    # constructor
+    #===================================================================
     def test_00_constructor(self):
         "test constructor"
-        #create crypt context using handlers
+        # create crypt context using handlers
         cc = CryptContext([hash.md5_crypt, hash.bsdi_crypt, hash.des_crypt])
         c,b,a = cc.policy.iter_handlers()
         self.assertIs(a, hash.des_crypt)
         self.assertIs(b, hash.bsdi_crypt)
         self.assertIs(c, hash.md5_crypt)
 
-        #create context using names
+        # create context using names
         cc = CryptContext(["md5_crypt", "bsdi_crypt", "des_crypt"])
         c,b,a = cc.policy.iter_handlers()
         self.assertIs(a, hash.des_crypt)
@@ -615,13 +619,13 @@ class CryptContextTest(TestCase):
     def test_02_no_handlers(self):
         "test no handlers"
 
-        #check constructor...
+        # check constructor...
         cc = CryptContext()
         self.assertRaises(KeyError, cc.identify, 'hash', required=True)
         self.assertRaises(KeyError, cc.encrypt, 'secret')
         self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
-        #check updating policy after the fact...
+        # check updating policy after the fact...
         cc = CryptContext(['md5_crypt'])
         p = CryptPolicy(schemes=[])
         cc.policy = p
@@ -630,9 +634,9 @@ class CryptContextTest(TestCase):
         self.assertRaises(KeyError, cc.encrypt, 'secret')
         self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
-    #=========================================================
-    #policy adaptation
-    #=========================================================
+    #===================================================================
+    # policy adaptation
+    #===================================================================
     sample_policy_1 = dict(
             schemes = [ "des_crypt", "md5_crypt", "phpass", "bsdi_crypt",
                        "sha256_crypt"],
@@ -652,21 +656,21 @@ class CryptContextTest(TestCase):
         "test hash_needs_update() method"
         cc = CryptContext(**self.sample_policy_1)
 
-        #check deprecated scheme
+        # check deprecated scheme
         self.assertTrue(cc.hash_needs_update('9XXD4trGYeGJA'))
         self.assertFalse(cc.hash_needs_update('$1$J8HC2RCr$HcmM.7NxB2weSvlw2FgzU0'))
 
-        #check min rounds
+        # check min rounds
         self.assertTrue(cc.hash_needs_update('$5$rounds=1999$jD81UCoo.zI.UETs$Y7qSTQ6mTiU9qZB4fRr43wRgQq4V.5AAf7F97Pzxey/'))
         self.assertFalse(cc.hash_needs_update('$5$rounds=2000$228SSRje04cnNCaQ$YGV4RYu.5sNiBvorQDlO0WWQjyJVGKBcJXz3OtyQ2u8'))
 
-        #check max rounds
+        # check max rounds
         self.assertFalse(cc.hash_needs_update('$5$rounds=3000$fS9iazEwTKi7QPW4$VasgBC8FqlOvD7x2HhABaMXCTh9jwHclPA9j5YQdns.'))
         self.assertTrue(cc.hash_needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
-    #=========================================================
+    #===================================================================
     # border cases
-    #=========================================================
+    #===================================================================
     def test_30_nonstring_hash(self):
         "test non-string hash values cause error"
         #
@@ -686,13 +690,13 @@ class CryptContextTest(TestCase):
         cc2 = CryptContext(["mysql323"])
         self.assertRaises(TypeError, cc2.hash_needs_update, None)
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#LazyCryptContext
-#=========================================================
+#=============================================================================
+# LazyCryptContext
+#=============================================================================
 class dummy_2(uh.StaticHandler):
     name = "dummy_2"
 
@@ -700,6 +704,8 @@ class LazyCryptContextTest(TestCase):
     descriptionPrefix = "LazyCryptContext"
 
     def setUp(self):
+        TestCase.setUp(self)
+
         # make sure this isn't registered before OR after
         unload_handler_name("dummy_2")
         self.addCleanup(unload_handler_name, "dummy_2")
@@ -741,6 +747,6 @@ class LazyCryptContextTest(TestCase):
 
         self.assertTrue(has_crypt_handler("dummy_2", True))
 
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

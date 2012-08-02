@@ -16,24 +16,26 @@ and defaults to 40000 hash iterations for increased strength.
 For applications which want to quickly add password hashing,
 all they need to do is the following::
 
-    >>> #import the context under an app-specific name (so it can easily be replaced later)
+    >>> # import the context under an app-specific name (so it can easily be replaced later)
     >>> from passlib.apps import custom_app_context as pwd_context
 
-    >>> #encrypting a password...
+    >>> # encrypting a password...
     >>> hash = pwd_context.encrypt("somepass")
 
-    >>> #verifying a password...
+    >>> # verifying a password...
     >>> ok = pwd_context.verify("somepass", hash)
 
-    >>> #[optional] encrypting a password for an admin account...
-    >>> #           the custom_app_context is preconfigured so that
-    >>> #           if the category is set to "admin" instead of None,
-    >>> #           it uses a stronger setting of 80000 rounds:
+    >>> # [optional] encrypting a password for an admin account...
+    >>> #            the custom_app_context is preconfigured so that
+    >>> #            if the category is set to "admin" instead of None,
+    >>> #            it uses a stronger setting of 80000 rounds:
     >>> hash = pwd_context.encrypt("somepass", category="admin")
 
 For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
 instance; see below for more...
+
+.. index:: Passlib; recommended hash algorithms
 
 .. _recommended-hashes:
 
@@ -89,15 +91,14 @@ this matter of concern is what motivated the development of SHA512-Crypt.
 As well, its rounds parameter is logarithmically scaled,
 making it hard to fine-tune the amount of time taken to verify passwords;
 which can be an issue for applications that handle a large number
-of simultaneous logon attempts (eg web apps).
+of simultaneous logon attempts (e.g. web apps).
 
 .. note::
 
     For BCrypt support on non-BSD systems,
-    Passlib requires a C-extension module
-    provided by the external
-    :ref:`py-bcrypt or bcryptor <optional-libraries>`  packages.
-    Neither of these currently supports Python 3.
+    Passlib requires the C-extension provided by
+    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_.
+    (py-bcrypt does not currently support Python 3).
 
 SHA512-Crypt
 ............
@@ -121,7 +122,9 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
-This algorithm is probably the best choice for Google App Engine,
+.. index:: Google App Engine; recommended hash algorithm
+
+:class:`~passlib.hash.sha512_crypt` is probably the best choice for Google App Engine,
 as Google's production servers appear to provide native support
 via :mod:`crypt`, which will be used by Passlib.
 
@@ -185,12 +188,12 @@ to manage your hashes, and relating configuration information.
 Insert the following code into your application::
 
     #
-    #import the CryptContext class, used to handle all hashing...
+    # import the CryptContext class, used to handle all hashing...
     #
     from passlib.context import CryptContext
 
     #
-    #create a single global instance for your app...
+    # create a single global instance for your app...
     #
     pwd_context = CryptContext(
         # replace this list with the hash(es) you wish to support.
@@ -233,7 +236,7 @@ To start using your CryptContext, import the context you created wherever it's n
 .. rubric:: Footnotes
 
 .. [#choices] BCrypt, SHA-512 Crypt, and PBKDF2 are the most commonly
-              used password hashes as of May 2011, when this document
-              was written. You should make sure you are reading a current
-              copy of the passlib documentation, in case the state
+              used password hashes as of Aug 2012, when this document
+              last updated. You should make sure you are reading a current
+              copy of the Passlib documentation, in case the state
               of things has changed.

@@ -23,13 +23,13 @@ PIX firewalls. This class can be used directly as follows::
     >>> hash
     'A5XOy94YKDPXCo7U'
 
-    >>> #verify correct password
+    >>> # verify correct password
     >>> pix.verify("password", hash, user="user")
     True
-    >>> #verify correct password w/ wrong username
+    >>> # verify correct password w/ wrong username
     >>> pm.verify("password", hash, user="other")
     False
-    >>> #verify incorrect password
+    >>> # verify incorrect password
     >>> pm.verify("letmein", hash, user="user")
     False
 
@@ -92,7 +92,7 @@ This algorithm is not suitable for *any* use besides manipulating existing
 Cisco PIX hashes, due to the following flaws:
 
 * It's use of the username as a salt value (and only the first four characters
-  at that), means that common usernames (eg ``admin``, ``cisco``) will occur
+  at that), means that common usernames (e.g. ``admin``, ``cisco``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.
 

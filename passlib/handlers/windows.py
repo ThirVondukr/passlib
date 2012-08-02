@@ -1,20 +1,19 @@
 """passlib.handlers.nthash - Microsoft Windows -related hashes"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from binascii import hexlify
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import to_unicode, right_pad_string
 from passlib.utils.compat import b, bytes, str_to_uascii, u, unicode, uascii_to_str
 from passlib.utils.md4 import md4
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "lmhash",
     "nthash",
@@ -23,9 +22,9 @@ __all__ = [
     "msdcc2",
 ]
 
-#=========================================================
+#=============================================================================
 # lanman hash
-#=========================================================
+#=============================================================================
 class lmhash(uh.HasEncodingContext, uh.StaticHandler):
     """This class implements the Lan Manager Password hash, and follows the :ref:`password-hash-api`.
 
@@ -44,17 +43,17 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
     Note that while this class outputs digests in lower-case hexidecimal,
     it will accept upper-case as well.
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "lmhash"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
     default_encoding = "cp437"
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -103,13 +102,13 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
         return des_encrypt_block(secret[0:7], MAGIC) + \
                des_encrypt_block(secret[7:14], MAGIC)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # ntlm hash
-#=========================================================
+#=============================================================================
 class nthash(uh.StaticHandler):
     """This class implements the NT Password hash, and follows the :ref:`password-hash-api`.
 
@@ -120,16 +119,16 @@ class nthash(uh.StaticHandler):
     Note that while this class outputs lower-case hexidecimal digests,
     it will accept upper-case digests as well.
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "nthash"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -157,9 +156,9 @@ class nthash(uh.StaticHandler):
         ret = nthash.raw(secret)
         return hexlify(ret).decode("ascii") if hex else ret
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
     doc="""The class support FreeBSD's representation of NTHASH
@@ -208,9 +207,9 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 ##        # causes one not to match.
 ##        return lmhash.verify(secret, lm) or nthash.verify(secret, nt)
 
-#=========================================================
+#=============================================================================
 # msdcc v1
-#=========================================================
+#=============================================================================
 class msdcc(uh.HasUserContext, uh.StaticHandler):
     """This class implements Microsoft's Domain Cached Credentials password hash,
     and follows the :ref:`password-hash-api`.
@@ -256,9 +255,9 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
         user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         return md4(md4(secret).digest() + user).digest()
 
-#=========================================================
+#=============================================================================
 # msdcc2 aka mscash2
-#=========================================================
+#=============================================================================
 class msdcc2(uh.HasUserContext, uh.StaticHandler):
     """This class implements version 2 of Microsoft's Domain Cached Credentials
     password hash, and follows the :ref:`password-hash-api`.
@@ -306,6 +305,6 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
         tmp = md4(md4(secret).digest() + user).digest()
         return pbkdf2(tmp, user, 10240, 16, 'hmac-sha1')
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

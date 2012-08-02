@@ -7,30 +7,29 @@
     See documentation for details.
 """
 
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from hashlib import md5
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import h64, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "sun_md5_crypt",
 ]
 
-#=========================================================
-#backend
-#=========================================================
-#constant data used by alg - Hamlet act 3 scene 1 + null char
+#=============================================================================
+# backend
+#=============================================================================
+# constant data used by alg - Hamlet act 3 scene 1 + null char
 # exact bytes as in http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt
 # from Project Gutenberg.
 
@@ -72,13 +71,13 @@ MAGIC_HAMLET = b(
     "Be all my sins remember'd.\n\x00" #<- apparently null at end of C string is included (test vector won't pass otherwise)
 )
 
-#NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
+# NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
 xr = irange(7)
 _XY_ROUNDS = [
-    tuple((i,i,i+3) for i in xr), #xrounds 0
-    tuple((i,i+1,i+4) for i in xr), #xrounds 1
-    tuple((i,i+8,(i+11)&15) for i in xr), #yrounds 0
-    tuple((i,(i+9)&15, (i+12)&15) for i in xr), #yrounds 1
+    tuple((i,i,i+3) for i in xr), # xrounds 0
+    tuple((i,i+1,i+4) for i in xr), # xrounds 1
+    tuple((i,i+8,(i+11)&15) for i in xr), # yrounds 0
+    tuple((i,(i+9)&15, (i+12)&15) for i in xr), # yrounds 1
 ]
 del xr
 
@@ -88,37 +87,45 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     assert isinstance(secret, bytes)
     assert isinstance(salt, bytes)
 
-    #validate rounds
+    # validate rounds
     if rounds <= 0:
         rounds = 0
     real_rounds = 4096 + rounds
-    #NOTE: spec seems to imply max 'rounds' is 2**32-1
+    # NOTE: spec seems to imply max 'rounds' is 2**32-1
 
-    #generate initial digest to start off round 0.
-    #NOTE: algorithm 'salt' includes full config string w/ trailing "$"
+    # generate initial digest to start off round 0.
+    # NOTE: algorithm 'salt' includes full config string w/ trailing "$"
     result = md5(secret + salt).digest()
     assert len(result) == 16
 
-    #NOTE: many things have been inlined to speed up the loop as much as possible,
-    # so that this only barely resembles the algorithm as described in the docs.
-    # * all accesses to a given bit have been inlined using the formula
-    #       rbitval(bit) = (rval((bit>>3) & 15) >> (bit & 7)) & 1
-    # * the calculation of coinflip value R has been inlined
-    # * the conditional division of coinflip value V has been inlined as a shift right of 0 or 1.
-    # * the i, i+3, etc iterations are precalculated in lists.
-    # * the round-based conditional division of x & y is now performed
-    #   by choosing an appropriate precalculated list, so only the 7 used bits
-    #   are actually calculated
+    # NOTE: many things in this function have been inlined (to speed up the loop
+    #       as much as possible), to the point that this code barely resembles
+    #       the algorithm as described in the docs. in particular:
+    #
+    #       * all accesses to a given bit have been inlined using the formula
+    #         rbitval(bit) = (rval((bit>>3) & 15) >> (bit & 7)) & 1
+    #
+    #       * the calculation of coinflip value R has been inlined
+    #
+    #       * the conditional division of coinflip value V has been inlined as
+    #         a shift right of 0 or 1.
+    #
+    #       * the i, i+3, etc iterations are precalculated in lists.
+    #
+    #       * the round-based conditional division of x & y is now performed
+    #         by choosing an appropriate precalculated list, so that it only
+    #         calculates the 7 bits which will actually be used.
+    #
     X_ROUNDS_0, X_ROUNDS_1, Y_ROUNDS_0, Y_ROUNDS_1 = _XY_ROUNDS
 
-    #NOTE: % appears to be *slightly* slower than &, so we prefer & if possible
+    # NOTE: % appears to be *slightly* slower than &, so we prefer & if possible
 
     round = 0
     while round < real_rounds:
-        #convert last result byte string to list of byte-ints for easy access
+        # convert last result byte string to list of byte-ints for easy access
         rval = [ byte_elem_value(c) for c in result ].__getitem__
 
-        #build up X bit by bit
+        # build up X bit by bit
         x = 0
         xrounds = X_ROUNDS_1 if (rval((round>>3) & 15)>>(round & 7)) & 1 else X_ROUNDS_0
         for i, ia, ib in xrounds:
@@ -127,7 +134,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
             v = rval((a >> (b % 5)) & 15) >> ((b>>(a&7)) & 1)
             x |= ((rval((v>>3)&15)>>(v&7))&1) << i
 
-        #build up Y bit by bit
+        # build up Y bit by bit
         y = 0
         yrounds = Y_ROUNDS_1 if (rval(((round+64)>>3) & 15)>>(round & 7)) & 1 else Y_ROUNDS_0
         for i, ia, ib in yrounds:
@@ -136,10 +143,10 @@ def raw_sun_md5_crypt(secret, rounds, salt):
             v = rval((a >> (b % 5)) & 15) >> ((b>>(a&7)) & 1)
             y |= ((rval((v>>3)&15)>>(v&7))&1) << i
 
-        #extract x'th and y'th bit, xoring them together to yeild "coin flip"
+        # extract x'th and y'th bit, xoring them together to yeild "coin flip"
         coin = ((rval(x>>3) >> (x&7)) ^ (rval(y>>3) >> (y&7))) & 1
 
-        #construct hash for this round
+        # construct hash for this round
         h = md5(result)
         if coin:
             h.update(MAGIC_HAMLET)
@@ -148,10 +155,10 @@ def raw_sun_md5_crypt(secret, rounds, salt):
 
         round += 1
 
-    #encode output
+    # encode output
     return h64.encode_transposed_bytes(result, _chk_offsets)
 
-#NOTE: same offsets as md5_crypt
+# NOTE: same offsets as md5_crypt
 _chk_offsets = (
     12,6,0,
     13,7,1,
@@ -161,9 +168,9 @@ _chk_offsets = (
     11,
 )
 
-#=========================================================
-#handler
-#=========================================================
+#=============================================================================
+# handler
+#=============================================================================
 class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the Sun-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -206,47 +213,47 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
-    #=========================================================
-    #class attrs
-    #=========================================================
+    #===================================================================
+    # class attrs
+    #===================================================================
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
     checksum_chars = uh.HASH64_CHARS
     checksum_size = 22
 
-    #NOTE: docs say max password length is 255.
-    #release 9u2
+    # NOTE: docs say max password length is 255.
+    # release 9u2
 
-    #NOTE: not sure if original crypt has a salt size limit,
+    # NOTE: not sure if original crypt has a salt size limit,
     # all instances that have been seen use 8 chars.
     default_salt_size = 8
     min_salt_size = 0
     max_salt_size = None
     salt_chars = uh.HASH64_CHARS
 
-    default_rounds = 5000 #current passlib default
+    default_rounds = 5000 # current passlib default
     min_rounds = 0
     max_rounds = 4294963199 ##2**32-1-4096
-        #XXX: ^ not sure what it does if past this bound... does 32 int roll over?
+        # XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
 
     ident_values = (u("$md5$"), u("$md5,"))
 
-    #=========================================================
-    #instance attrs
-    #=========================================================
-    bare_salt = False #flag to indicate legacy hashes that lack "$$" suffix
+    #===================================================================
+    # instance attrs
+    #===================================================================
+    bare_salt = False # flag to indicate legacy hashes that lack "$$" suffix
 
-    #=========================================================
-    #constructor
-    #=========================================================
+    #===================================================================
+    # constructor
+    #===================================================================
     def __init__(self, bare_salt=False, **kwds):
         self.bare_salt = bare_salt
         super(sun_md5_crypt, self).__init__(**kwds)
 
-    #=========================================================
-    #internal helpers
-    #=========================================================
+    #===================================================================
+    # internal helpers
+    #===================================================================
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
@@ -257,9 +264,9 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         hash = to_unicode(hash, "ascii", "hash")
 
         #
-        #detect if hash specifies rounds value.
-        #if so, parse and validate it.
-        #by end, set 'rounds' to int value, and 'tail' containing salt+chk
+        # detect if hash specifies rounds value.
+        # if so, parse and validate it.
+        # by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
         if hash.startswith(u("$md5$")):
             rounds = 0
@@ -276,7 +283,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             if rstr != unicode(rounds):
                 raise uh.exc.ZeroPaddedRoundsError(cls)
             if rounds == 0:
-                #NOTE: not sure if this is forbidden by spec or not;
+                # NOTE: not sure if this is forbidden by spec or not;
                 #      but allowing it would complicate things,
                 #      and it should never occur anyways.
                 raise uh.exc.MalformedHashError(cls, "explicit zero rounds")
@@ -285,9 +292,9 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             raise uh.exc.InvalidHashError(cls)
 
         #
-        #salt/checksum separation is kinda weird,
-        #to deal cleanly with some backward-compatible workarounds
-        #implemented by original implementation.
+        # salt/checksum separation is kinda weird,
+        # to deal cleanly with some backward-compatible workarounds
+        # implemented by original implementation.
         #
         chk_idx = hash.rfind(u("$"), salt_idx)
         if chk_idx == -1:
@@ -333,25 +340,25 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                 hash = u("%s$%s") % (hash, chk)
         return uascii_to_str(hash)
 
-    #=========================================================
-    #primary interface
-    #=========================================================
-    #TODO: if we're on solaris, check for native crypt() support.
-    # this will require extra testing, to make sure native crypt
-    # actually behaves correctly.
-    # especially, when using ''-config, make sure to append '$x' to string.
+    #===================================================================
+    # primary interface
+    #===================================================================
+    # TODO: if we're on solaris, check for native crypt() support.
+    #       this will require extra testing, to make sure native crypt
+    #       actually behaves correctly. of particular importance:
+    #       when using ""-config, make sure to append "$x" to string.
 
     def _calc_checksum(self, secret):
-        #NOTE: no reference for how sun_md5_crypt handles unicode
+        # NOTE: no reference for how sun_md5_crypt handles unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         config = str_to_bascii(self.to_string(withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

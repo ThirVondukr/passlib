@@ -1,7 +1,7 @@
 """test passlib.ext.django"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
@@ -20,9 +20,9 @@ from passlib.tests.utils import TestCase, skipUnless, catch_warnings, TEST_MODE,
 from passlib.tests.test_handlers import get_handler_case
 # local
 
-#=========================================================
+#=============================================================================
 # configure django settings for testcases
-#=========================================================
+#=============================================================================
 from passlib.ext.django.utils import DJANGO_VERSION
 
 # disable all Django integration tests under py3,
@@ -53,9 +53,9 @@ if has_django:
     elif not settings.configured:
         settings.configure()
 
-#=========================================================
+#=============================================================================
 # support funcs
-#=========================================================
+#=============================================================================
 
 # flag for update_settings() to remove specified key entirely
 UNSET = object()
@@ -104,9 +104,9 @@ def create_mock_setter():
     setter.popstate = popstate
     return setter
 
-#=========================================================
+#=============================================================================
 # work up stock django config
-#=========================================================
+#=============================================================================
 if has_django14:
     # have to modify this a little -
     # all but pbkdf2_sha256 will be deprecated here,
@@ -120,14 +120,14 @@ else:
     stock_config = dict(schemes=["django_salted_sha1", "django_salted_md5", "hex_md5"],
                  deprecated=["hex_md5"])
 
-#=========================================================
+#=============================================================================
 # test utils
-#=========================================================
+#=============================================================================
 class _ExtensionSupport(object):
     "support funcs for loading/unloading extension"
-    #=========================================================
+    #===================================================================
     # support funcs
-    #=========================================================
+    #===================================================================
     @classmethod
     def _iter_patch_candidates(cls):
         """helper to scan for monkeypatches.
@@ -163,9 +163,9 @@ class _ExtensionSupport(object):
                 if source:
                     yield obj, attr, source, (attr in patched)
 
-    #=========================================================
+    #===================================================================
     # verify current patch state
-    #=========================================================
+    #===================================================================
     def assert_unpatched(self):
         "test that django is in unpatched state"
         # make sure we aren't currently patched
@@ -206,9 +206,9 @@ class _ExtensionSupport(object):
             self.assertEqual(mod.password_context.to_dict(resolve=True),
                              context.to_dict(resolve=True))
 
-    #=========================================================
+    #===================================================================
     # load / unload the extension (and verify it worked)
-    #=========================================================
+    #===================================================================
     _config_keys = ["PASSLIB_CONFIG", "PASSLIB_CONTEXT", "PASSLIB_GET_CATEGORY"]
 
     def load_extension(self, check=True, **kwds):
@@ -235,9 +235,9 @@ class _ExtensionSupport(object):
         # check everything's gone
         self.assert_unpatched()
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 class _ExtensionTest(TestCase, _ExtensionSupport):
     def setUp(self):
@@ -254,9 +254,9 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
         # and do the same when the test exits
         self.addCleanup(self.unload_extension)
 
-#=========================================================
+#=============================================================================
 # extension tests
-#=========================================================
+#=============================================================================
 class DjangoBehaviorTest(_ExtensionTest):
     "tests model to verify it matches django's behavior"
     descriptionPrefix = "verify django behavior"
@@ -604,9 +604,9 @@ class DjangoExtensionTest(_ExtensionTest):
     """test the ``passlib.ext.django`` plugin"""
     descriptionPrefix = "passlib.ext.django plugin"
 
-    #=========================================================
+    #===================================================================
     # monkeypatch testing
-    #=========================================================
+    #===================================================================
     def test_00_patch_control(self):
         "test set_django_password_context patch/unpatch"
 
@@ -699,9 +699,9 @@ class DjangoExtensionTest(_ExtensionTest):
              'hash': u('v2RWkZ*************************************'),
              })
 
-    #=========================================================
+    #===================================================================
     # PASSLIB_CONFIG settings
-    #=========================================================
+    #===================================================================
     def test_11_config_disabled(self):
         "test PASSLIB_CONFIG='disabled'"
         # test config=None (deprecated)
@@ -754,9 +754,9 @@ class DjangoExtensionTest(_ExtensionTest):
         update_settings(PASSLIB_CONFIG="missing-preset", PASSLIB_CONTEXT=UNSET)
         self.assertRaises(ValueError, __import__, 'passlib.ext.django.models')
 
-    #=========================================================
+    #===================================================================
     # PASSLIB_GET_CATEGORY setting
-    #=========================================================
+    #===================================================================
     def test_21_category_setting(self):
         "test PASSLIB_GET_CATEGORY parameter"
         # define config where rounds can be used to detect category
@@ -804,9 +804,9 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assertRaises(TypeError, self.load_extension, PASSLIB_CONTEXT=config,
                           PASSLIB_GET_CATEGORY='x')
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 # hack up the some of the real django tests to run w/ extension loaded,
 # to ensure we mimic their behavior.
@@ -824,6 +824,6 @@ if has_django14:
     HashersTest = skipUnless(TEST_MODE("default"),
                              "requires >= 'default' test mode")(HashersTest)
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================
