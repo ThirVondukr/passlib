@@ -1655,38 +1655,23 @@ class HandlerCase(TestCase):
     #===================================================================
     # fuzz testing
     #===================================================================
-    """the following attempts to perform some basic fuzz testing
-    of the handler, based on whatever information can be found about it.
-    it does as much as it can within a fixed amount of time
-    (defaults to 1 second, but can be overridden via $PASSLIB_TEST_FUZZ_TIME).
-    it tests the following:
-
-    * randomly generated passwords including extended unicode chars
-    * randomly selected rounds values (if rounds supported)
-    * randomly selected salt sizes (if salts supported)
-    * randomly selected identifiers (if multiple found)
-
-    * runs output of selected backend against other available backends
-      (if any) to detect errors occurring between different backends.
-    * runs output against other "external" verifiers such as OS crypt()
-    """
-
-    fuzz_password_alphabet = u('qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113')
-    fuzz_password_encoding = "utf-8"
-    fuzz_settings = ["rounds", "salt_size", "ident"]
-
-    @property
-    def max_fuzz_time(self):
-        if TEST_MODE(max="quick"):
-            default = 0
-        elif TEST_MODE(max="default"):
-            default = 1
-        else:
-            default = 5
-        return float(os.environ.get("PASSLIB_TEST_FUZZ_TIME") or default)
-
     def test_77_fuzz_input(self):
-        """test random passwords and options"""
+        """test random passwords and options
+
+        This test attempts to perform some basic fuzz testing of the hash,
+        based on whatever information can be found about it.
+        It does as much as it can within a fixed amount of time
+        (defaults to 1 second, but can be overridden via $PASSLIB_TEST_FUZZ_TIME).
+        It tests the following:
+
+        * randomly generated passwords including extended unicode chars
+        * randomly selected rounds values (if rounds supported)
+        * randomly selected salt sizes (if salts supported)
+        * randomly selected identifiers (if multiple found)
+        * runs output of selected backend against other available backends
+          (if any) to detect errors occurring between different backends.
+        * runs output against other "external" verifiers such as OS crypt()
+        """
         if self.is_disabled_handler:
             raise self.skipTest("not applicable")
 
@@ -1739,6 +1724,36 @@ class HandlerCase(TestCase):
                   self.descriptionPrefix,  count, len(verifiers),
                   ", ".join(vname(v) for v in verifiers))
 
+    #---------------------------------------------------------------
+    # fuzz constants & helpers
+    #---------------------------------------------------------------
+
+    # alphabet for randomly generated passwords
+    fuzz_password_alphabet = u('qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113')
+
+    # encoding when testing bytes
+    fuzz_password_encoding = "utf-8"
+
+    @property
+    def max_fuzz_time(self):
+        "amount of time to spend on fuzz testing"
+        value = float(os.environ.get("PASSLIB_TEST_FUZZ_TIME") or 0)
+        if value:
+            return value
+        elif TEST_MODE(max="quick"):
+            return 0
+        elif TEST_MODE(max="default"):
+            return 1
+        else:
+            return 5
+
+    def os_supports_ident(self, ident):
+        "whether native OS crypt() supports particular ident value"
+        return True
+
+    #---------------------------------------------------------------
+    # fuzz verifiers
+    #---------------------------------------------------------------
     def get_fuzz_verifiers(self):
         """return list of password verifiers (including external libs)
 
@@ -1784,10 +1799,6 @@ class HandlerCase(TestCase):
             check_default.__doc__ = "self"
         return check_default
 
-    def os_supports_ident(self, ident):
-        "skip verifier_crypt when OS doesn't support ident"
-        return True
-
     def fuzz_verifier_crypt(self):
         "test results against OS crypt()"
         handler = self.handler
@@ -1802,50 +1813,22 @@ class HandlerCase(TestCase):
             return crypt(secret, hash) == hash
         return check_crypt
 
-    def get_fuzz_password(self):
-        "generate random passwords (for fuzz testing)"
-        # occasionally try an empty password
-        if rng.random() < .0001:
-            return u('')
-        # otherwise alternate between large and small passwords.
-        if rng.random() < .5:
-            size = randintgauss(1, 50, 15, 15)
-        else:
-            size = randintgauss(50, 99, 70, 20)
-        return getrandstr(rng, self.fuzz_password_alphabet, size)
-
-    def mangle_fuzz_password(self, secret):
-        "mangle fuzz-testing password so it doesn't match"
-        other = secret.strip()[1:]
-        if other:
-            return other
-        while True:
-            other = self.get_fuzz_password()
-            if other != secret:
-                return other
-
-    def get_fuzz_password_pair(self):
-        "generate random password, and non-matching alternate password"
-        secret = self.get_fuzz_password()
-        other = self.mangle_fuzz_password(secret)
-        if rng.randint(0,1):
-            secret = secret.encode(self.fuzz_password_encoding)
-        if rng.randint(0,1):
-            other = other.encode(self.fuzz_password_encoding)
-        return secret, other
-
+    #---------------------------------------------------------------
+    # fuzz settings generation
+    #---------------------------------------------------------------
     def get_fuzz_settings(self):
         "generate random password and options for fuzz testing"
+        prefix = "fuzz_setting_"
         kwds = {}
-        for name in self.fuzz_settings:
-            func = getattr(self, "get_fuzz_" + name)
-            value = func()
-            if value is not None:
-                kwds[name] = value
+        for name in dir(self):
+            if name.startswith(prefix):
+                value = getattr(self, name)()
+                if value is not None:
+                    kwds[name[len(prefix):]] = value
         secret, other = self.get_fuzz_password_pair()
         return secret, other, kwds
 
-    def get_fuzz_rounds(self):
+    def fuzz_setting_rounds(self):
         handler = self.handler
         if not has_rounds_info(handler):
             return None
@@ -1857,7 +1840,7 @@ class HandlerCase(TestCase):
             upper = min(default*2, handler.max_rounds)
         return randintgauss(lower, upper, default, default*.5)
 
-    def get_fuzz_salt_size(self):
+    def fuzz_setting_salt_size(self):
         handler = self.handler
         if not (has_salt_info(handler) and 'salt_size' in handler.setting_kwds):
             return None
@@ -1866,7 +1849,7 @@ class HandlerCase(TestCase):
         upper = handler.max_salt_size or default*4
         return randintgauss(lower, upper, default, default*.5)
 
-    def get_fuzz_ident(self):
+    def fuzz_setting_ident(self):
         handler = self.handler
         if 'ident' not in handler.setting_kwds or not hasattr(handler, "ident_values"):
             return None
@@ -1878,6 +1861,38 @@ class HandlerCase(TestCase):
         if self.backend == "os_crypt" and not self.using_patched_crypt and not self.os_supports_ident(ident):
             return None
         return ident
+
+    #---------------------------------------------------------------
+    # fuzz password generation
+    #---------------------------------------------------------------
+    def get_fuzz_password(self):
+        "generate random passwords for fuzz testing"
+        # occasionally try an empty password
+        if rng.random() < .0001:
+            return u('')
+        # otherwise alternate between large and small passwords.
+        if rng.random() < .5:
+            size = randintgauss(1, 50, 15, 15)
+        else:
+            size = randintgauss(50, 99, 70, 20)
+        return getrandstr(rng, self.fuzz_password_alphabet, size)
+
+    def accept_fuzz_pair(self, secret, other):
+        "verify fuzz pair contains different passwords"
+        return secret != other
+
+    def get_fuzz_password_pair(self):
+        "generate random password, and non-matching alternate password"
+        secret = self.get_fuzz_password()
+        while True:
+            other = self.get_fuzz_password()
+            if self.accept_fuzz_pair(secret, other):
+                break
+        if rng.randint(0,1):
+            secret = secret.encode(self.fuzz_password_encoding)
+        if rng.randint(0,1):
+            other = other.encode(self.fuzz_password_encoding)
+        return secret, other
 
     #===================================================================
     # eoc
@@ -2111,9 +2126,7 @@ class UserHandlerMixin(HandlerCase):
     #===================================================================
     fuzz_user_alphabet = u("asdQWE123")
 
-    fuzz_settings = HandlerCase.fuzz_settings + ["user"]
-
-    def get_fuzz_user(self):
+    def fuzz_setting_user(self):
         if not self.requires_user and rng.random() < .1:
             return None
         return getrandstr(rng, self.fuzz_user_alphabet, rng.randint(2,10))

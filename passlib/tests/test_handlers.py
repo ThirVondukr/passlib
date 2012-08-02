@@ -277,7 +277,7 @@ class _bcrypt_test(HandlerCase):
             other = self.get_fuzz_password()
         return secret, other, kwds
 
-    def get_fuzz_rounds(self):
+    def fuzz_setting_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.
         return randintgauss(5, 8, 6, 1)
 
@@ -832,7 +832,7 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
         'md5$aa$bb',
     ]
 
-    def get_fuzz_salt_size(self):
+    def fuzz_setting_salt_size(self):
         # workaround for django14 regression --
         # 1.4 won't accept hashes with empty salt strings, unlike 1.3 and earlier.
         # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
@@ -873,7 +873,7 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
         'sha1$c2e86$0f75',
     ]
 
-    get_fuzz_salt_size = get_method_function(django_salted_md5_test.get_fuzz_salt_size)
+    fuzz_setting_salt_size = get_method_function(django_salted_md5_test.fuzz_setting_salt_size)
 
 class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
     "test django_pbkdf2_sha256"
@@ -930,11 +930,11 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
         kwds.setdefault("rounds", 4)
         super(django_bcrypt_test, self).populate_settings(kwds)
 
-    def get_fuzz_rounds(self):
+    def fuzz_setting_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.
         return randintgauss(5, 8, 6, 1)
 
-    def get_fuzz_ident(self):
+    def fuzz_setting_ident(self):
         # omit multi-ident tests, only $2a$ counts for this class
         return None
 
@@ -1180,7 +1180,7 @@ class ldap_plaintext_test(HandlerCase):
     known_unidentified_hashes = [
         "{FOO}bar",
 
-        # XXX: currently we reject empty string as valid for this format.
+        # NOTE: this hash currently rejects the empty string.
         "",
     ]
 
@@ -1189,11 +1189,11 @@ class ldap_plaintext_test(HandlerCase):
     ]
 
     def get_fuzz_password(self):
-        # XXX: currently we reject empty string as valid for this format.
-        pwd = None
-        while not pwd:
+        # NOTE: this hash currently rejects the empty string.
+        while True:
             pwd = super(ldap_plaintext_test, self).get_fuzz_password()
-        return pwd
+            if pwd:
+                return pwd
 
 class _ldap_md5_crypt_test(HandlerCase):
     # NOTE: since the ldap_{crypt} handlers are all wrappers, don't need
