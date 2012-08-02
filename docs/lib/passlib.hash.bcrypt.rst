@@ -62,12 +62,12 @@ Interface
 .. warning::
     The pure-python backend (#4) is disabled by default!
 
-    This backend is currently too slow to be usuable given the number of rounds required
+    That backend is currently too slow to be usuable given the number of rounds required
     for security. That said, if you have no other alternative and need to use it,
     set the environmental variable ``PASSLIB_BUILTIN_BCRYPT="enabled"``
     before importing Passlib.
 
-    In detail: Passlib's :ref:`rounds selection guidelines <rounds-selection-guidelines>`
+    What's "too slow"? Passlib's :ref:`rounds selection guidelines <rounds-selection-guidelines>`
     currently require BCrypt be able to do >= 12 cost in <= 300ms. By this standard
     the pure-python backend is 128x too slow under CPython 2.7, and 16x too slow under PyPy 1.8.
     (speedups are welcome!)

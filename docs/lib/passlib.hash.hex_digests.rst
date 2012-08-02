@@ -55,7 +55,7 @@ Interface
 
 .. note::
 
-   Oracle VirtualBox's :cmd:`VBoxManager internalcommands passwordhash` command
+   Oracle VirtualBox's :command:`VBoxManager internalcommands passwordhash` command
    uses :class:`hex_sha256`.
 
 Format & Algorithm
