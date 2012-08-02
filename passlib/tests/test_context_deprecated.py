@@ -216,6 +216,8 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         TestCase.setUp(self)
         warnings.filterwarnings("ignore",
                                 r"The CryptPolicy class has been deprecated")
+        warnings.filterwarnings("ignore",
+                                r"the method.*hash_needs_update.*is deprecated")
 
     def test_00_constructor(self):
         "test CryptPolicy() constructor"
@@ -562,6 +564,8 @@ class CryptContextTest(TestCase):
         warnings.filterwarnings("ignore",
                                 r"The CryptContext ``policy`` keyword has been deprecated.*")
         warnings.filterwarnings("ignore", ".*(CryptPolicy|context\.policy).*(has|have) been deprecated.*")
+        warnings.filterwarnings("ignore",
+                                r"the method.*hash_needs_update.*is deprecated")
 
     #===================================================================
     # constructor
@@ -700,6 +704,8 @@ class LazyCryptContextTest(TestCase):
     descriptionPrefix = "LazyCryptContext"
 
     def setUp(self):
+        TestCase.setUp(self)
+
         # make sure this isn't registered before OR after
         unload_handler_name("dummy_2")
         self.addCleanup(unload_handler_name, "dummy_2")
