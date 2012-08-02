@@ -293,6 +293,14 @@ def get_crypt_handler(name, default=_UNSET):
 
     :returns: handler attached to name, or default value (if specified).
     """
+    # catch invalid names before we check _handlers,
+    # since it's a module dict, and exposes things like __package__, etc.
+    if name.startswith("_"):
+        if default is _UNSET:
+            raise KeyError("invalid handler name: %r" % (name,))
+        else:
+            return default
+
     # check if handler is already loaded
     try:
         return _handlers[name]
@@ -356,7 +364,9 @@ def list_crypt_handlers(loaded_only=False):
     names = set(_handlers)
     if not loaded_only:
         names.update(_locations)
-    return sorted(names)
+    # strip private attrs out of namespace and sort.
+    # TODO: make _handlers a separate list, so we don't have module namespace mixed in.
+    return sorted(name for name in names if not name.startswith("_"))
 
 # NOTE: these two functions mainly exist just for the unittests...
 

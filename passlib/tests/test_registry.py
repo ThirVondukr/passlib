@@ -181,6 +181,23 @@ class RegistryTest(TestCase):
             register_crypt_handler_path('dummy_0', __name__)
             self.assertIs(get_crypt_handler("DUMMY-0"), dummy_0)
 
+        # check system & private names aren't returned
+        import passlib.hash # ensure module imported, so py3.3 sets __package__
+        passlib.hash.__dict__["_fake"] = "dummy" # so behavior seen under py2x also
+        for name in ["_fake", "__package__"]:
+            self.assertRaises(KeyError, get_crypt_handler, name)
+            self.assertIs(get_crypt_handler(name, None), None)
+
+    def test_list_crypt_handlers(self):
+        "test list_crypt_handlers()"
+        from passlib.registry import list_crypt_handlers
+
+        # check system & private names aren't returned
+        import passlib.hash # ensure module imported, so py3.3 sets __package__
+        passlib.hash.__dict__["_fake"] = "dummy" # so behavior seen under py2x also
+        for name in list_crypt_handlers():
+            self.assertFalse(name.startswith("_"), "%r: " % name)
+
 #=============================================================================
 # eof
 #=============================================================================

@@ -31,6 +31,8 @@ Release History
     * *bugfix:* Fixed bug which caused passlib.apache unittest to fail
       if mtime resolution >= 1 second (:issue:`35`).
 
+    * Various bugfixes for Python 3.3 compatibility.
+
     * Various documentation updates and corrections.
 
 **1.6** (2012-05-01)
