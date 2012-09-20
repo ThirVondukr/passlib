@@ -16,6 +16,8 @@ and helper utilities.
     * :ref:`CryptContext Overview & Tutorial <context-overview>` --
       overview of this class and walkthrough of how to use it.
 
+.. rst-class:: emphasize-children
+
 The CryptContext Class
 ======================
 .. class:: CryptContext(schemes=None, \*\*kwds)
@@ -42,7 +44,7 @@ The CryptContext Class
 
 .. index:: CryptContext; keyword options
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Constructor Keywords
 --------------------
@@ -334,7 +336,7 @@ For example, a CryptContext could be set up as follows::
     '$5$rounds=88000$w7XIdKfTI9.YLwmA$MIzGvs6NU1QOQuuDHhICLmDsdW/t94Bbdfxdh/6NJl7'
                ^^^^^
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Primary Methods
 ---------------
@@ -358,7 +360,7 @@ style methods provided by all the :class:`~passlib.ifc.PasswordHash` objects:
 .. automethod:: CryptContext.genhash
 .. automethod:: CryptContext.genconfig
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Hash Migration
 --------------
@@ -370,7 +372,7 @@ hashes will want to use one of the following methods:
 .. automethod:: CryptContext.needs_update
 .. automethod:: CryptContext.hash_needs_update
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Alternate Constructors
 ----------------------
@@ -381,7 +383,7 @@ as a set of keywords, there are the following alternate constructors:
 .. automethod:: CryptContext.from_path
 .. automethod:: CryptContext.copy
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Changing the Configuration
 --------------------------
@@ -393,7 +395,7 @@ This is done through three methods:
 .. automethod:: CryptContext.load
 .. automethod:: CryptContext.load_path
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Examining the Configuration
 ---------------------------
@@ -404,7 +406,7 @@ current configuration:
 .. automethod:: CryptContext.default_scheme
 .. automethod:: CryptContext.handler
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Saving the Configuration
 ------------------------

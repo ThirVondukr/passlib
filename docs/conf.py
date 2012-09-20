@@ -65,6 +65,9 @@ extensions = [
 
     # add "issue" role
     'cloud_sptheme.ext.issue_tracker',
+
+    # allow table column alignment styling
+    'cloud_sptheme.ext.table_styling',
     ]
 
 # Add any paths that contain templates here, relative to this directory.

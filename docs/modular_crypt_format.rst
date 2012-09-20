@@ -129,27 +129,31 @@ OS Defined Hashes
 The following table lists of all the major MCF hashes supported by Passlib,
 and indicates which operating systems offer native support:
 
-==================================== ==================== =========== =========== =========== =========== =======
-Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
-==================================== ==================== =========== =========== =========== =========== =======
-:class:`~passlib.hash.des_crypt`                          y           y           y           y           y
-:class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y           y
-:class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
-:class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``,
-                                     ``$2x$``, ``$2y$``               y           y           y           y
-:class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
-:class:`~passlib.hash.sha256_crypt`  ``$5$``              y           8.3+                                y
-:class:`~passlib.hash.sha512_crypt`  ``$6$``              y           8.3+                                y
-:class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                 y
-:class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
-==================================== ==================== =========== =========== =========== =========== =======
+.. table::
+    :column-alignment: llccccc
+    :column-wrapping: nn
+
+    ==================================== ==================== =========== =========== =========== =========== =======
+    Scheme                               Prefix               Linux       FreeBSD     NetBSD      OpenBSD     Solaris
+    ==================================== ==================== =========== =========== =========== =========== =======
+    :class:`~passlib.hash.des_crypt`                          y           y           y           y           y
+    :class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y           y
+    :class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
+    :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``,
+                                         ``$2x$``, ``$2y$``               y           y           y           y
+    :class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
+    :class:`~passlib.hash.sha256_crypt`  ``$5$``              y           8.3+                                y
+    :class:`~passlib.hash.sha512_crypt`  ``$6$``              y           8.3+                                y
+    :class:`~passlib.hash.sun_md5_crypt` ``$md5$``, ``$md5,``                                                 y
+    :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
+    ==================================== ==================== =========== =========== =========== =========== =======
 
 Additional Platforms
 --------------------
 The modular crypt format is also supported to some degree
 by the following operating systems and platforms:
 
-.. rst-class:: html-plain-table
+.. rst-class:: plain
 
 ===================== ==============================================================
 **MacOS X**           Darwin's native :func:`!crypt` provides limited functionality,
@@ -168,18 +172,23 @@ The following table lists the other MCF hashes supported by Passlib.
 These hashes can be found in various libraries and applications
 (and are not natively supported by any known OS):
 
-=========================================== =================== ===========================
-Scheme                                      Prefix              Primary Use (if known)
-=========================================== =================== ===========================
-:class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
-:class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
-:class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific
-:class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$`` Passlib-specific
-:class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$`` Passlib-specific
-:class:`~passlib.hash.scram`                ``$scram$``         Passlib-specific
-:class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
-:class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
-=========================================== =================== ===========================
+.. table::
+    :class: fullwidth
+    :widths: 1 1 2
+    :column-wrapping: nn
+
+    =========================================== =================== ===========================
+    Scheme                                      Prefix              Primary Use (if known)
+    =========================================== =================== ===========================
+    :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
+    :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
+    :class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific
+    :class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$`` Passlib-specific
+    :class:`~passlib.hash.pbkdf2_sha512`        ``$pbkdf2-sha512$`` Passlib-specific
+    :class:`~passlib.hash.scram`                ``$scram$``         Passlib-specific
+    :class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
+    :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
+    =========================================== =================== ===========================
 
 .. rubric:: Footnotes
 

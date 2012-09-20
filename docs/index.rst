@@ -107,13 +107,17 @@ Other Documents
 Online Resources
 ================
 
-    ================ ===================================================
-    Homepage:        `<http://passlib.googlecode.com>`_
-    Online Docs:     `<http://packages.python.org/passlib>`_
-    Discussion:      `<http://groups.google.com/group/passlib-users>`_
-    ---------------- ---------------------------------------------------
-    ---------------- ---------------------------------------------------
-    PyPI:            `<http://pypi.python.org/pypi/passlib>`_
-    Downloads:       `<http://code.google.com/p/passlib/downloads>`_
-    Source:          `<http://code.google.com/p/passlib/source>`_
-    ================ ===================================================
+    .. table::
+        :class: fullwidth
+        :column-alignment: lr
+
+        ================ ===================================================
+        Homepage:        `<http://passlib.googlecode.com>`_
+        Online Docs:     `<http://packages.python.org/passlib>`_
+        Discussion:      `<http://groups.google.com/group/passlib-users>`_
+        ---------------- ---------------------------------------------------
+        ---------------- ---------------------------------------------------
+        PyPI:            `<http://pypi.python.org/pypi/passlib>`_
+        Downloads:       `<http://code.google.com/p/passlib/downloads>`_
+        Source:          `<http://code.google.com/p/passlib/source>`_
+        ================ ===================================================
