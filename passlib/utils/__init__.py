@@ -1451,13 +1451,13 @@ except NotImplementedError: # pragma: no cover
 
 def genseed(value=None):
     "generate prng seed value from system resources"
-    # if value is rng, extract a bunch of bits from it's state
     from hashlib import sha512
-    if hasattr(value, "getrandbits"):
-        value = value.getrandbits(1<<15)
-    text = u("%s %s %s %.15f %.15f %s") % (
-        # if caller specified a seed value (e.g. current rng state), mix it in
+    text = u("%s %s %s %s %.15f %.15f %s") % (
+        # if caller specified a seed value, mix it in
         value,
+
+        # if caller's seed value was an RNG, mix in bits from it's state
+        value.getrandbits(1<<15) if hasattr(value, "getrandbits") else None,
 
         # add current process id
         # NOTE: not available in some environments, e.g. GAE
