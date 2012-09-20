@@ -1767,7 +1767,7 @@ class CryptContext(object):
     def load_path(self, path, update=False, section="passlib", encoding="utf-8"):
         """Load new configuration into CryptContext from a local file.
 
-        This function is a wrapper for :meth:`load`, which
+        This function is a wrapper for :meth:`load` which
         loads a configuration string from the local file *path*,
         instead of an in-memory source. It's behavior and options
         are otherwise identical to :meth:`!load` when provided with

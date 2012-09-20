@@ -31,15 +31,16 @@ should look like (if the implementation even uses them).
 
 That said, most of the handlers built into Passlib are based around the :class:`GenericHandler`
 class, and it's associated mixin classes. While deriving from this class is not required,
-doing so will greatly reduce the amount of addition code that is needed for
+doing so will greatly reduce the amount of additional code that is needed for
 all but the most convoluted password hash schemes.
 
 Once a handler has been written, it may be used explicitly, passed into
-an application's custom :class:`CryptContext` directly, or registered
+a :class:`CryptContext` constructor, or registered
 globally with Passlib via the :mod:`passlib.registry` module.
 
-See :ref:`testing-hash-handlers` for details about how to test
-custom handlers against Passlib's unittest suite.
+.. seealso::
+    :ref:`testing-hash-handlers` for details about how to test
+    custom handlers against Passlib's unittest suite.
 
 The GenericHandler Class
 ========================

@@ -85,12 +85,12 @@ Passlib is a password hashing library for Python 2 & 3, which provides
 cross-platform implementations of over 30 password hashing algorithms, as well
 as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
-providing full-strength password hashing for multi-user application.
+providing full-strength password hashing for multi-user applications.
 
-* See the `online documentation <http://packages.python.org/passlib>`_
+* See the `documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `Passlib homepage <http://passlib.googlecode.com>`_
+* See the `homepage <http://passlib.googlecode.com>`_
   for the latest news, more information, and additional downloads.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
@@ -158,7 +158,8 @@ setup(
 
     url = "http://passlib.googlecode.com",
     download_url =
-        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
+#        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
+        ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 
     description = SUMMARY,

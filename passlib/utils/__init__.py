@@ -310,6 +310,7 @@ def consteq(left, right):
         result = 1
 
     # run constant-time string comparision
+    # TODO: use izip instead (but first verify it's faster than zip for this case)
     if is_py3_bytes:
         for l,r in zip(tmp, right):
             result |= l ^ r
@@ -330,14 +331,16 @@ def splitcomma(source, sep=","):
     return [ elem.strip() for elem in source.split(sep) ]
 
 def saslprep(source, param="value"):
-    """Normalizes unicode string using SASLPrep stringprep profile.
+    """Normalizes unicode strings using SASLPrep stringprep profile.
 
     The SASLPrep profile is defined in :rfc:`4013`.
     It provides a uniform scheme for normalizing unicode usernames
     and passwords before performing byte-value sensitive operations
     such as hashing. Among other things, it normalizes diacritic
     representations, removes non-printing characters, and forbids
-    invalid characters such as ``\\n``.
+    invalid characters such as ``\\n``. Properly internationalized
+    applications should run user passwords through this function
+    before hashing.
 
     :arg source:
         unicode string to normalize & validate
@@ -358,6 +361,8 @@ def saslprep(source, param="value"):
         This function is not available under Jython,
         as the Jython stdlib is missing the :mod:`!stringprep` module
         (`Jython issue 1758320 <http://bugs.jython.org/issue1758320>`_).
+
+    .. versionadded:: 1.6
     """
     # saslprep - http://tools.ietf.org/html/rfc4013
     # stringprep - http://tools.ietf.org/html/rfc3454
@@ -414,7 +419,7 @@ def saslprep(source, param="value"):
     in_table_c8 = stringprep.in_table_c8
     in_table_c9 = stringprep.in_table_c9
     for c in data:
-        # check for this mapping stage should have removed
+        # check for chars mapping stage should have removed
         assert not in_table_b1(c), "failed to strip B.1 in mapping stage"
         assert not in_table_c12(c), "failed to replace C.1.2 in mapping stage"
 

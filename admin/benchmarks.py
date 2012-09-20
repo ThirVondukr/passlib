@@ -15,6 +15,7 @@ sys.path.insert(0, os.curdir)
 # imports
 #=============================================================================
 # core
+from binascii import hexlify
 import logging; log = logging.getLogger(__name__)
 import os
 import warnings
@@ -64,13 +65,9 @@ class benchmark:
         kwds = defaults.copy()
         kwds.update(options)
         if mode == "ctor":
-            itr = obj()
-            if not hasattr(itr, next_method_attr):
-                itr = [itr]
-            for func in itr:
-                # TODO: per function name & options
-                secs, precision = cls.measure(func, None, **kwds)
-                yield name, secs, precision
+            func = obj()
+            secs, precision = cls.measure(func, None, **kwds)
+            yield name, secs, precision
         else:
             raise ValueError("invalid mode: %r" % (mode,))
 
@@ -224,7 +221,7 @@ def test_md5_crypt_builtin():
         hash = md5_crypt.encrypt(SECRET)
         md5_crypt.verify(SECRET, hash)
         md5_crypt.verify(OTHER, hash)
-    yield helper
+    return helper
 
 @benchmark.constructor()
 def test_ldap_salted_md5():
@@ -234,7 +231,7 @@ def test_ldap_salted_md5():
         hash = handler.encrypt(SECRET, salt='....')
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
-    yield helper
+    return helper
 
 @benchmark.constructor()
 def test_phpass():
@@ -245,20 +242,26 @@ def test_phpass():
         hash = handler.encrypt(SECRET, **kwds)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
-    yield helper
+    return helper
 
 #=============================================================================
 # crypto utils
 #=============================================================================
 @benchmark.constructor()
-def test_pbkdf2():
-#    from passlib.hash import pbkdf2_sha1
-    from passlib.hash import pbkdf2_sha256 as hash
+def test_pbkdf2_sha1():
+    from passlib.utils.pbkdf2 import pbkdf2
     def helper():
-#        hash.encrypt("password", salt="salt", rounds=10000)
-        result = pbkdf2_sha1.encrypt("password", salt="salt", rounds=10000)
-        assert result == '$pbkdf2-sha256$10240$c2FsdA$FUGp71zmshcv1IwX1DV3ADWDyP66H/ANJZwmoGuF7FA'
-    yield helper
+        result = hexlify(pbkdf2("abracadabra", "open sesasme", 40960, 20, "hmac-sha1"))
+        assert result == 'ad317ed77bce584c90932b609e37e3736e6297bf', result
+    return helper
+
+@benchmark.constructor()
+def test_pbkdf2_sha256():
+    from passlib.utils.pbkdf2 import pbkdf2
+    def helper():
+        result = hexlify(pbkdf2("abracadabra", "open sesasme", 10240, 32, "hmac-sha256"))
+        assert result == '21d1ac0d474aaec49feb4f2172a266223e43edcf1052643dd27d82ebd5fa10c6', result
+    return helper
 
 #=============================================================================
 # main
