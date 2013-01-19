@@ -63,30 +63,31 @@ which encode the 16 byte digest. An example hash (of ``password``) is
 
 The digest is calculated as follows:
 
-1. First the password should be converted to uppercase, and encoded
-   to bytes using the "OEM Codepage" used [#cp]_ by the specific release of
-   Windows that the host or target server is running.
+1. First, the password should be converted to uppercase, and encoded
+   using the "OEM Codepage" of the Windows release that the host / target
+   server is running [#cp]_.
 
-   For pure-ASCII passwords, this step can be performed as normal
-   using the ``us-ascii`` encoding. For passwords with non-ASCII
-   characters, this step is fraught with compatibility issues
-   and border cases (see `Deviations`_ for details).
+   For pure-ASCII passwords, this step can be performed
+   using the ``us-ascii`` encoding (as most OEM Codepages are ASCII-compatible).
+   However, for passwords with non-ASCII characters, this step is fraught
+   with compatibility issues and border cases (see `Deviations`_ for details).
 
-2. The password is then truncated or NULL padded to 14 bytes, as appropriate.
+2. The password is then truncated to 14 bytes,
+   or the end NULL padded to 14 bytes; as appropriate.
 
-3. The first 7 bytes of the password in step 2 are used as a key,
+3. The first 7 bytes of the truncated password from step 2 are used as a key
    to DES encrypt the constant ``KGS!@#$%``, resulting
    in the first 8 bytes of the final digest.
 
-4. Step 4 is repeated using the second 7 bytes of the password from step 2,
+4. Step 3 is repeated using the second 7 bytes of the password from step 2,
    resulting in the second 8 bytes of the final digest.
 
 5. The combined digests from 3 and 4 are then encoded to hexidecimal.
 
 Security Issues
 ===============
-Due to this myriad of flaws, high-speed password cracking software
-dedicated to LMHASH exists, and the algorithm should be considered broken:
+Due to a myriad of flaws, and the existence high-speed password cracking software
+dedicated to LMHASH, this algorithm should be considered broken. The major flaws include:
 
 * It has no salt, making hashes easily pre-computable.
 
@@ -106,8 +107,7 @@ dedicated to LMHASH exists, and the algorithm should be considered broken:
 Deviations
 ==========
 Passlib's implementation differs from others in a few ways, all related to
-the handling of non-ASCII characters. Future releases of Passlib may update
-the implementation as new information comes up.
+the handling of non-ASCII characters.
 
 * Unicode Policy:
 
@@ -118,10 +118,11 @@ the implementation as new information comes up.
   of XP), and ``cp866`` (used by many Eastern European editions of XP).
   Complicating matters further, some third-party implementations are known
   to use encodings such as ``latin-1`` and ``utf-8``, which cause
-  the non-ASCII characters to have different hashes entirely.
+  non-ASCII characters to hash in a manner incompatible with the canonical
+  MS Windows implementation.
 
-  Thus the application must decide which encoding to use, if it wants
-  to provide support for non-ASCII passwords. Passlib uses ``cp437`` as a
+  Thus if an application wishes to provide support for non-ASCII passwords,
+  it must decide which encoding to use. Passlib uses ``cp437`` as a
   default, but this may need to be overridden via
   ``lmhash.encrypt(secret, encoding="some-other-codec")``.
   All known encodings are ``us-ascii``-compatible, so for ASCII passwords,
@@ -129,28 +130,32 @@ the implementation as new information comes up.
 
 * Upper Case Conversion:
 
+  .. note::
+
+    Future releases of Passlib may change this behavior
+    as new information and code is integrated.
+
   Once critical step in the LMHASH algorithm is converting the password
-  to upper case. While ASCII characters are converted to uppercase as normal,
-  non-ASCII characters are converted in implementation dependant ways:
+  to upper case. While ASCII characters are uppercased as normal,
+  non-ASCII characters are converted in implementation-dependant ways:
 
   Windows systems encode the password first, and then
-  convert it to uppercase using a codepage-dependant table.
-  For the most part these tables appear to agree with the Unicode specification,
+  convert it to uppercase using an codepage-specific table.
+  For the most part these tables seem to agree with the Unicode specification,
   but there are some codepoints where they deviate (for example,
-  Unicode uppercases U+00B5 -> U+039C, but ``cp437`` leaves it unchanged
-  [#uc]_).
+  Unicode uppercases U+00B5 -> U+039C, but ``cp437`` leaves it unchanged [#uc]_).
 
-  Most third-party implementations (Passlib included) choose to uppercase
-  non-ASCII characters according to the Unicode specification, and then
-  encode the password; despite the border cases where the hash would not match
-  the official windows hash.
+  In contrast, most third-party implementations (Passlib included)
+  perform the uppercase conversion first using the Unicode specification,
+  and then encode the password second; despite the non-ASCII border cases where the
+  resulting hash would not match the official Windows hash.
 
 .. rubric:: Footnotes
 
 .. [#] Article used as reference for algorithm -
        `<http://www.linuxjournal.com/article/2717>`_.
 
-.. [#cp] The OEM codepage used by specific Window XP (and earlier releases)
+.. [#cp] The OEM codepage used by specific Window XP (and earlier) releases
          can be found at `<http://msdn.microsoft.com/nl-nl/goglobal/cc563921%28en-us%29.aspx>`_.
 
 .. [#uc] Online discussion dealing with upper-case encoding issues -

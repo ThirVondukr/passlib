@@ -41,6 +41,7 @@ The CryptContext Class
     * `Changing the Configuration`_ -- altering the configuration of an existing context.
     * `Examining the Configuration`_ -- programmatically examining the context's settings.
     * `Saving the Configuration`_ -- exporting the context's current configuration.
+    * `Configuration Errors`_ -- overview of errors that may be thrown by :class:`!CryptContext` constructor
 
 .. index:: CryptContext; keyword options
 
@@ -146,6 +147,9 @@ Options which directly affect the behavior of the CryptContext instance:
     This may also contain a single special value,
     ``["auto"]``, which will configure the CryptContext instance
     to deprecate *all* supported schemes except for the default scheme.
+
+    .. versionadded:: 1.6
+        Added support for the ``["auto"]`` value.
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 
@@ -415,6 +419,47 @@ using one of the serialization methods:
 
 .. automethod:: CryptContext.to_dict
 .. automethod:: CryptContext.to_string
+
+Configuration Errors
+--------------------
+The following errors may be raised when creating a :class:`!CryptContext` instance
+via any of it's constructors, or when updating the configuration of an existing
+instance:
+
+:raises ValueError:
+
+    * If a configuration option contains an invalid value
+      (e.g. ``all__vary_rounds=-1``).
+
+    * If the configuration contains valid but incompatible options
+      (e.g. listing a scheme as both :ref:`default <context-default-option>`
+      and :ref:`deprecated <context-deprecated-option>`).
+
+:raises KeyError:
+
+    * If the configuration contains an unknown or forbidden option
+      (e.g. :samp:`{scheme}__salt`).
+
+    * If the :ref:`schemes <context-schemes-option>`,
+      :ref:`default <context-default-option>`, or
+      :ref:`deprecated <context-deprecated-option>` options reference an unknown
+      hash scheme (e.g. ``schemes=['xxx']``)
+
+:raises TypeError:
+
+    * If a configuration value has the wrong type (e.g. ``schemes=123``).
+
+    Note that this error shouldn't occur when loading configurations
+    from a file/string (e.g. using :meth:`CryptContext.from_string`).
+
+Additionally, a :exc:`~passlib.exc.PasslibConfigWarning` may be issued
+if any invalid-but-correctable values are encountered
+(e.g. if :samp:`sha256_crypt__min_rounds` is set to less than
+:class:`~passlib.hash.sha256_crypt` 's minimum of 1000).
+
+.. versionchanged:: 1.6
+    Previous releases issued a generic :exc:`UserWarning` instead
+    of the more specific :exc:`PasslibConfigWarning`.
 
 Other Helpers
 =============

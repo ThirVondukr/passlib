@@ -175,7 +175,8 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
                 warn(text, DeprecationWarning, stacklevel=2)
                 return func(*args, **kwds)
         update_wrapper(wrapper, func)
-        if updoc and (deprecated or removed) and wrapper.__doc__:
+        if updoc and (deprecated or removed) and \
+                   wrapper.__doc__ and ".. deprecated::" not in wrapper.__doc__:
             txt = deprecated or ''
             if removed or replacement:
                 txt += "\n    "
