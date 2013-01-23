@@ -75,7 +75,57 @@ class CryptoTest(TestCase):
                                          "name=%r, format=%r:" % (value,
                                                                   format))
 
-    # TODO: write full test of get_prf(), currently relying on pbkdf2 testing
+    def test_get_hash_info(self):
+        "test get_hash_info()"
+        import hashlib
+        from passlib.utils.pbkdf2 import get_hash_info
+
+        # invalid names should be rejected
+        self.assertRaises(ValueError, get_hash_info, "new")
+        self.assertRaises(ValueError, get_hash_info, "__name__")
+
+        # 1. should return hashlib builtin if found
+        self.assertEqual(get_hash_info("md5"), (hashlib.md5, 16, 64))
+
+        # 2. should return wrapper around hashlib.new() if found
+        try:
+            hashlib.new("sha")
+            has_sha = True
+        except ValueError:
+            has_sha = False
+        if has_sha:
+            record = get_hash_info("sha")
+            const = record[0]
+            self.assertEqual(record, (const, 20, 64))
+            self.assertEqual(hexlify(const(b("abc")).digest()),
+                             b("0164b8a914cd2a5e74c4f7ff082c4d97f1edf880"))
+
+        else:
+            self.assertRaises(ValueError, get_hash_info, "sha")
+
+        # 3. should fall back to builtin md4
+        try:
+            hashlib.new("md4")
+            has_md4 = True
+        except ValueError:
+            has_md4 = False
+        record = get_hash_info("md4")
+        const = record[0]
+        if not has_md4:
+            from passlib.utils.md4 import md4
+            self.assertIs(const, md4)
+        self.assertEqual(record, (const, 16, 64))
+        self.assertEqual(hexlify(const(b("abc")).digest()),
+                         b("a448017aaf21d8525fc10ae87aa6729d"))
+
+        # 4. unknown names should be rejected
+        self.assertRaises(ValueError, get_hash_info, "xxx256")
+
+        # should memoize records
+        self.assertIs(get_hash_info("md5"), get_hash_info("md5"))
+
+    # TODO: write full test of get_prf()
+    # TODO: write full test of get_keyed_prf() -- currently relying on pbkdf2() tests
 
 #=============================================================================
 # test DES routines
@@ -403,20 +453,13 @@ class Pbkdf1_Test(TestCase):
 #=============================================================================
 class _Pbkdf2_Test(TestCase):
     "test pbkdf2() support"
-    _disable_m2crypto = False
 
     def setUp(self):
         super(_Pbkdf2_Test, self).setUp()
-        import passlib.utils.pbkdf2 as mod
-
-        # disable m2crypto support, and use software backend
-        if M2Crypto and self._disable_m2crypto:
-            self.addCleanup(setattr, mod, "_EVP", mod._EVP)
-            mod._EVP = None
-
         # flush cached prf functions, since we're screwing with their backend.
-        mod._clear_prf_cache()
-        self.addCleanup(mod._clear_prf_cache)
+        from passlib.utils.pbkdf2 import _clear_caches
+        _clear_caches()
+        self.addCleanup(_clear_caches)
 
     pbkdf2_test_vectors = [
         # (result, secret, salt, rounds, keylen, prf="sha1")
@@ -583,14 +626,25 @@ class _Pbkdf2_Test(TestCase):
         result = pbkdf2(b('secret'), b('salt'), 1000, 20, prf)
         self.assertEqual(result, hb('5fe7ce9f7e379d3f65cbc66ba8aa6440474a6849'))
 
-# create subclasses to test with and without m2crypto
+#--------------------------------------------------------------------
+# create subclasses to test with- and without- m2crypto
+#--------------------------------------------------------------------
 class Pbkdf2_M2Crypto_Test(_Pbkdf2_Test):
     descriptionPrefix = "pbkdf2 (m2crypto backend)"
+
 Pbkdf2_M2Crypto_Test = skipUnless(M2Crypto, "M2Crypto not found")(Pbkdf2_M2Crypto_Test)
 
 class Pbkdf2_Builtin_Test(_Pbkdf2_Test):
     descriptionPrefix = "pbkdf2 (builtin backend)"
-    _disable_m2crypto = True
+
+    def setUp(self):
+        super(Pbkdf2_Builtin_Test, self).setUp()
+        # disable m2crypto support, and force pure-python backend
+        if M2Crypto:
+            import passlib.utils.pbkdf2 as mod
+            self.addCleanup(setattr, mod, "_EVP", mod._EVP)
+            mod._EVP = None
+
 Pbkdf2_Builtin_Test = skipUnless(TEST_MODE("full") or not M2Crypto,
                                  "skipped under current test mode")(Pbkdf2_Builtin_Test)
 

@@ -21,7 +21,7 @@ except ImportError:
 # pkg
 from passlib.exc import PasslibRuntimeWarning, ExpectedTypeError
 from passlib.utils import join_bytes, to_native_str, bytes_to_int, int_to_bytes, join_byte_values
-from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types
+from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types, PYPY
 # local
 __all__ = [
     # hash utils
@@ -37,6 +37,11 @@ __all__ = [
     "pbkdf1",
     "pbkdf2",
 ]
+
+def _clear_caches():
+    "unittest helper -- clears get_hash_info() / get_prf() caches"
+    _ghi_cache.clear()
+    _prf_cache.clear()
 
 #=============================================================================
 # hash helpers
@@ -297,10 +302,6 @@ def _get_hmac_prf(digest):
 
 # cache mapping prf name/func -> (func, digest_size)
 _prf_cache = {}
-
-def _clear_prf_cache():
-    "helper for unit tests"
-    _prf_cache.clear()
 
 def get_prf(name):
     """lookup pseudo-random family (prf) by name.
