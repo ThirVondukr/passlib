@@ -7,6 +7,17 @@ Release History
 **1.7** (NOT YET RELEASED)
 ==========================
 
+Minor Additions
+---------------
+
+* The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
+  hashes have been sped up by ~20% compared to Passlib 1.6.
+
+Todo
+----
+
+* unittests and documentation for get_hash_info(), get_keyed_prf()
+
 **1.6.1** (2012-08-02)
 ======================
 

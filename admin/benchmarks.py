@@ -6,6 +6,7 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 # init script env
 #=============================================================================
+from binascii import hexlify
 import re
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
@@ -251,14 +252,20 @@ def test_phpass():
 # crypto utils
 #=============================================================================
 @benchmark.constructor()
-def test_pbkdf2():
-#    from passlib.hash import pbkdf2_sha1
-    from passlib.hash import pbkdf2_sha256 as hash
+def test_pbkdf2_sha1():
+    from passlib.utils.pbkdf2 import pbkdf2
     def helper():
-#        hash.encrypt("password", salt="salt", rounds=10000)
-        result = pbkdf2_sha1.encrypt("password", salt="salt", rounds=10000)
-        assert result == '$pbkdf2-sha256$10240$c2FsdA$FUGp71zmshcv1IwX1DV3ADWDyP66H/ANJZwmoGuF7FA'
-    yield helper
+        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 20, "hmac-sha1"))
+        assert result == 'e45ce658e79b16107a418ad4634836f5f0601ad1', result
+    return helper
+
+@benchmark.constructor()
+def test_pbkdf2_sha256():
+    from passlib.utils.pbkdf2 import pbkdf2
+    def helper():
+        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 32, "hmac-sha256"))
+        assert result == 'fadef97054306c93c55213cd57111d6c0791735dcdde8ac32f9f934b49c5af1e', result
+    return helper
 
 #=============================================================================
 # main
