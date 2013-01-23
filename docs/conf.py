@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Sphinx configuration file for Passlib documentation.
+Sphinx configuration file for the Passlib documentation.
 
 This file is execfile()d with the current directory set to its containing dir.
 Note that not all possible configuration values are present in this
@@ -12,21 +12,20 @@ commented out serve to show the default.
 #=============================================================================
 import sys, os
 
-# make sure passlib in sys.path
-doc_root = os.path.abspath(os.path.dirname(__file__))
-source_root = os.path.dirname(doc_root)
-sys.path.insert(0, source_root)
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 ##sys.path.insert(0, os.path.abspath('.'))
 
+# make sure root of source dir in sys.path
+sys.path.insert(0, os.path.abspath(os.pardir))
+
 #=============================================================================
 # imports
 #=============================================================================
 
-# load build option flags
+# build option flags:
+# "for-pypi" -- enable analytics tracker for pypi documentation
 options = os.environ.get("PASSLIB_DOCS", "").split(",")
 
 # building the docs requires the Cloud Sphinx theme & extensions (>= v1.4),
@@ -66,6 +65,9 @@ extensions = [
 
     # add "issue" role
     'cloud_sptheme.ext.issue_tracker',
+
+    # allow table column alignment styling
+    'cloud_sptheme.ext.table_styling',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -85,7 +87,8 @@ index_doc = 'index'
 
 # General information about the project.
 project = 'Passlib'
-copyright = '2008-2012, Assurance Technologies, LLC'
+author = "Assurance Technologies, LLC"
+copyright = "2008-2012, " + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -149,14 +152,14 @@ issue_tracker_url = "gc:passlib"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'redcloud'
+html_theme = os.environ.get("SPHINX_THEME") or 'redcloud'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
-    html_theme_options.update(roottarget=index_doc)
+    html_theme_options.update(roottarget=index_doc, issueicon=None)
     if 'for-pypi' in options:
         html_theme_options.update(
             googleanalytics_id = 'UA-22302196-2',
@@ -189,7 +192,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%b %d, %Y'
+##html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -244,8 +247,8 @@ htmlhelp_basename = project + 'Doc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  (index_doc, project + '.tex', project + ' Documentation',
-   'Assurance Technologies, LLC', 'manual'),
+  (master_doc, project + '.tex', project + ' Documentation',
+   author, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -278,8 +281,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (index_doc, project, project + ' Documentation',
-     ['Assurance Technologies, LLC'], 1)
+    (master_doc, project, project + ' Documentation',
+     [author], 1)
 ]
 
 #=============================================================================

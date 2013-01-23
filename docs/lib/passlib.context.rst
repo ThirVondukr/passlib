@@ -16,6 +16,8 @@ and helper utilities.
     * :ref:`CryptContext Overview & Tutorial <context-overview>` --
       overview of this class and walkthrough of how to use it.
 
+.. rst-class:: emphasize-children
+
 The CryptContext Class
 ======================
 .. class:: CryptContext(schemes=None, \*\*kwds)
@@ -39,10 +41,11 @@ The CryptContext Class
     * `Changing the Configuration`_ -- altering the configuration of an existing context.
     * `Examining the Configuration`_ -- programmatically examining the context's settings.
     * `Saving the Configuration`_ -- exporting the context's current configuration.
+    * `Configuration Errors`_ -- overview of errors that may be thrown by :class:`!CryptContext` constructor
 
 .. index:: CryptContext; keyword options
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Constructor Keywords
 --------------------
@@ -144,6 +147,9 @@ Options which directly affect the behavior of the CryptContext instance:
     This may also contain a single special value,
     ``["auto"]``, which will configure the CryptContext instance
     to deprecate *all* supported schemes except for the default scheme.
+
+    .. versionadded:: 1.6
+        Added support for the ``["auto"]`` value.
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 
@@ -334,7 +340,7 @@ For example, a CryptContext could be set up as follows::
     '$5$rounds=88000$w7XIdKfTI9.YLwmA$MIzGvs6NU1QOQuuDHhICLmDsdW/t94Bbdfxdh/6NJl7'
                ^^^^^
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Primary Methods
 ---------------
@@ -358,7 +364,7 @@ style methods provided by all the :class:`~passlib.ifc.PasswordHash` objects:
 .. automethod:: CryptContext.genhash
 .. automethod:: CryptContext.genconfig
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Hash Migration
 --------------
@@ -370,7 +376,7 @@ hashes will want to use one of the following methods:
 .. automethod:: CryptContext.needs_update
 .. automethod:: CryptContext.hash_needs_update
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Alternate Constructors
 ----------------------
@@ -381,7 +387,7 @@ as a set of keywords, there are the following alternate constructors:
 .. automethod:: CryptContext.from_path
 .. automethod:: CryptContext.copy
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Changing the Configuration
 --------------------------
@@ -393,7 +399,7 @@ This is done through three methods:
 .. automethod:: CryptContext.load
 .. automethod:: CryptContext.load_path
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Examining the Configuration
 ---------------------------
@@ -404,7 +410,7 @@ current configuration:
 .. automethod:: CryptContext.default_scheme
 .. automethod:: CryptContext.handler
 
-.. rst-class:: html-toggle expanded emphasized
+.. rst-class:: html-toggle expanded
 
 Saving the Configuration
 ------------------------
@@ -413,6 +419,47 @@ using one of the serialization methods:
 
 .. automethod:: CryptContext.to_dict
 .. automethod:: CryptContext.to_string
+
+Configuration Errors
+--------------------
+The following errors may be raised when creating a :class:`!CryptContext` instance
+via any of it's constructors, or when updating the configuration of an existing
+instance:
+
+:raises ValueError:
+
+    * If a configuration option contains an invalid value
+      (e.g. ``all__vary_rounds=-1``).
+
+    * If the configuration contains valid but incompatible options
+      (e.g. listing a scheme as both :ref:`default <context-default-option>`
+      and :ref:`deprecated <context-deprecated-option>`).
+
+:raises KeyError:
+
+    * If the configuration contains an unknown or forbidden option
+      (e.g. :samp:`{scheme}__salt`).
+
+    * If the :ref:`schemes <context-schemes-option>`,
+      :ref:`default <context-default-option>`, or
+      :ref:`deprecated <context-deprecated-option>` options reference an unknown
+      hash scheme (e.g. ``schemes=['xxx']``)
+
+:raises TypeError:
+
+    * If a configuration value has the wrong type (e.g. ``schemes=123``).
+
+    Note that this error shouldn't occur when loading configurations
+    from a file/string (e.g. using :meth:`CryptContext.from_string`).
+
+Additionally, a :exc:`~passlib.exc.PasslibConfigWarning` may be issued
+if any invalid-but-correctable values are encountered
+(e.g. if :samp:`sha256_crypt__min_rounds` is set to less than
+:class:`~passlib.hash.sha256_crypt` 's minimum of 1000).
+
+.. versionchanged:: 1.6
+    Previous releases issued a generic :exc:`UserWarning` instead
+    of the more specific :exc:`PasslibConfigWarning`.
 
 Other Helpers
 =============

@@ -6,7 +6,6 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 # init script env
 #=============================================================================
-from binascii import hexlify
 import re
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
@@ -16,6 +15,7 @@ sys.path.insert(0, os.curdir)
 # imports
 #=============================================================================
 # core
+from binascii import hexlify
 import logging; log = logging.getLogger(__name__)
 import os
 import warnings
@@ -65,13 +65,9 @@ class benchmark:
         kwds = defaults.copy()
         kwds.update(options)
         if mode == "ctor":
-            itr = obj()
-            if not hasattr(itr, next_method_attr):
-                itr = [itr]
-            for func in itr:
-                # TODO: per function name & options
-                secs, precision = cls.measure(func, None, **kwds)
-                yield name, secs, precision
+            func = obj()
+            secs, precision = cls.measure(func, None, **kwds)
+            yield name, secs, precision
         else:
             raise ValueError("invalid mode: %r" % (mode,))
 
@@ -225,7 +221,7 @@ def test_md5_crypt_builtin():
         hash = md5_crypt.encrypt(SECRET)
         md5_crypt.verify(SECRET, hash)
         md5_crypt.verify(OTHER, hash)
-    yield helper
+    return helper
 
 @benchmark.constructor()
 def test_ldap_salted_md5():
@@ -235,7 +231,7 @@ def test_ldap_salted_md5():
         hash = handler.encrypt(SECRET, salt='....')
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
-    yield helper
+    return helper
 
 @benchmark.constructor()
 def test_phpass():
@@ -246,7 +242,7 @@ def test_phpass():
         hash = handler.encrypt(SECRET, **kwds)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
-    yield helper
+    return helper
 
 #=============================================================================
 # crypto utils

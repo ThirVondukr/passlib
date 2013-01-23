@@ -117,9 +117,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     checksum_chars = bcrypt64.charmap
 
     #--HasManyIdents--
-    default_ident = u("$2a$")
-    ident_values = (u("$2$"), IDENT_2A, IDENT_2X, IDENT_2Y)
-    ident_aliases = {u("2"): u("$2$"), u("2a"): IDENT_2A,  u("2y"): IDENT_2Y}
+    default_ident = IDENT_2A
+    ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y)
+    ident_aliases = {u("2"): IDENT_2, u("2a"): IDENT_2A,  u("2y"): IDENT_2Y}
 
     #--HasSalt--
     min_salt_size = max_salt_size = 22
@@ -128,7 +128,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     #--HasRounds--
     default_rounds = 12 # current passlib default
-    min_rounds = 4 # bcrypt spec specified minimum
+    min_rounds = 4 # minimum from bcrypt specification
     max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)
     rounds_cost = "log2"
 
@@ -164,8 +164,13 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         if ident is None:
             ident = self.ident
         if ident == IDENT_2Y:
+            # none of passlib's backends suffered from crypt_blowfish's
+            # buggy "2a" hash, which means we can safely implement
+            # crypt_blowfish's "2y" hash by passing "2a" to the backends.
             ident = IDENT_2A
         else:
+            # no backends currently support 2x, but that should have
+            # been caught earlier in from_string()
             assert ident != IDENT_2X
         config = u("%s%02d$%s") % (ident, self.rounds, self.salt)
         return uascii_to_str(config)
@@ -197,7 +202,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             return hash
 
     def _generate_salt(self, salt_size):
-        # override to correct generate salt bits
+        # generate random salt as normal,
+        # but repair last char so the padding bits always decode to zero.
         salt = super(bcrypt, self)._generate_salt(salt_size)
         return bcrypt64.repair_unused(salt)
 
@@ -251,7 +257,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classproperty
     def _has_backend_os_crypt(cls):
-        # XXX: what to do if only h2 is supported? h1 is *very* rare.
+        # XXX: what to do if "2" isn't supported, but "2a" is?
+        #      "2" is *very* rare, and can fake it using "2a"+repeat_string
         h1 = '$2$04$......................1O4gOrCYaqBG3o/4LnT2ykQUt1wbyju'
         h2 = '$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'
         return test_crypt("test",h1) and test_crypt("test", h2)

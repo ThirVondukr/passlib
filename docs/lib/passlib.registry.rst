@@ -24,10 +24,10 @@ querying Passlib to detect what algorithms are available.
 
 Interface
 =========
-.. autofunction:: get_crypt_handler
+.. autofunction:: get_crypt_handler(name[, default])
 .. autofunction:: list_crypt_handlers
 .. autofunction:: register_crypt_handler_path
-.. autofunction:: register_crypt_handler
+.. autofunction:: register_crypt_handler(handler, force=False)
 
 .. note::
 

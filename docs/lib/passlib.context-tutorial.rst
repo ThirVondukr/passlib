@@ -31,6 +31,8 @@ with some simple examples, and working up to a complex "full-integration" exampl
 
 .. index:: CryptContext; usage examples
 
+.. rst-class:: emphasize-children
+
 Tutorial / Walkthrough
 ======================
 * `Basic Usage`_
@@ -45,8 +47,6 @@ Tutorial / Walkthrough
     could use elaboration.
 
 .. _context-basic-example:
-
-.. rst-class:: emphasized
 
 Basic Usage
 -----------
@@ -111,8 +111,6 @@ which probably provide a better argument for *why* you'd want to use it.
 
 .. _context-default-settings-example:
 
-.. rst-class:: emphasized
-
 Using Default Settings
 ----------------------
 While encrypting and verifying hashes is useful enough, it's not much
@@ -165,8 +163,6 @@ These is done by passing the CryptContext constructor a keyword with the format 
       :ref:`per-scheme setting <context-other-option>` constructor options.
 
 .. _context-serialization-example:
-
-.. rst-class:: emphasized
 
 Loading & Saving a CryptContext
 -------------------------------
@@ -233,8 +229,6 @@ policies from the code, and into a configuration file with other security settin
     * the :meth:`CryptContext.from_string` and :meth:`CryptContext.from_path` constructors.
 
 .. _context-migration-example:
-
-.. rst-class:: emphasized
 
 Deprecation & Hash Migration
 ----------------------------

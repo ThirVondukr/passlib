@@ -161,8 +161,6 @@ Security Issues
 MD5-Crypt has a couple of issues which have weakened severely:
 
 * It relies on the MD5 message digest, for which theoretical pre-image attacks exist [#f2]_.
-  However, not only is this attack still only theoretical, but none of MD5's weaknesses
-  have been show to affect MD5-Crypt's security.
 
 * More seriously, it's fixed number of rounds (combined with the availability
   of high-throughput MD5 implementations) means this algorithm
