@@ -1539,6 +1539,8 @@ def getrandstr(rng, charset, count):
 
 _52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 
+@deprecated_function(deprecated="1.7", removed="2.0",
+                     replacement="passlib.pwd.generate()")
 def generate_password(size=10, charset=_52charset):
     """generate random password using given length & charset
 
