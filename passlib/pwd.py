@@ -13,9 +13,9 @@
       Currently looking at the NIST 800-63 algorithm, though this incorrectly
       estimates a number of generation schemes.
 
-    * Offer some alternative wordsets.
-
     * Sanity checks
+
+.. autofunction:: generate
 """
 #=============================================================================
 # imports
@@ -41,6 +41,12 @@ __all__ = [
 # constants
 #=============================================================================
 
+#: default entropy for generated passwords
+default_entropy = 48
+
+#: default preset used by generate()
+default_preset = "beale"
+
 #: dict of preset characters sets
 charsets = dict(
     safe52='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz',
@@ -49,18 +55,44 @@ charsets = dict(
 #: dict of preset wordsets, values=None are lazy-loaded from disk
 wordsets = dict(
     diceware=None,
+    beale=None,
+    electrum=None,
 )
 
 #: misc helper constants
 _PCW_MSG = "`preset`, `charset`, and `wordset` are mutually exclusive"
+_USPACE = u(" ")
+_UEMPTY = u("")
 
 #=============================================================================
 # internal helpers
 #=============================================================================
+def _entropy_per_char(words):
+    """return the average entropy per character in a given wordset,
+    using each char's frequency in the wordset as the probability of occurrence.
+
+    :arg words:
+        iterable containing 1+ words, each of which are themselves
+        iterables containing 1+ characters.
+    :returns:
+        float bits of entropy
+    """
+    hist = {}
+    for word in words:
+        for char in word:
+            try:
+                hist[char] += 1
+            except KeyError:
+                hist[char] = 1
+    values = hist.values()
+    norm = 1.0 / sum(values)
+    return -sum(count * norm * logf(count * norm, 2) for count in values)
+
 def _load_wordset(name):
     "helper load compressed wordset from package data"
     # load wordset from data file
-    source = os.path.join(os.path.dirname(__file__), "_%s.txt.z" % name)
+    source = os.path.join(os.path.dirname(__file__), "_data",
+                          "%s.wordset.z" % name)
     with open(source, "rb") as fh:
         data = fh.read()
 
@@ -128,8 +160,8 @@ def generate(size=None, entropy=None, count=None,
         Optionally use a pre-defined word-set or character-set
         when generating a password. This option cannot be combined
         with ``charset`` or ``wordset``; if all three are omitted,
-        this function defaults to ``preset="diceware"``.
-        There are currently two presets available:
+        this function defaults to ``preset="beale"``.
+        There are currently three presets available:
 
         * ``"safe52"`` -- preset which outputs random alphanumeric passwords,
           using a 52-element character set containing the characters A-Z and 0-9,
@@ -139,6 +171,10 @@ def generate(size=None, entropy=None, count=None,
         * ``"diceware"`` -- preset which outputs random english phrases,
           drawn randomly from a list of 7776 english words set down
           by the `Diceware <http://world.std.com/~reinhold/diceware.html>` project.
+          This wordset has ~12.9 bits of entropy per word.
+
+        * ``"beale"`` -- variant of the Diceware wordlist as edited by
+          Alan Beale, also available from the diceware project.
           This wordset has ~12.9 bits of entropy per word.
 
     :param charset:
@@ -151,6 +187,10 @@ def generate(size=None, entropy=None, count=None,
         generating a passphrase. This option cannot be combined
         with ``preset`` or ``charset``.
 
+    :param spaces:
+        When generating a passphrase, controls whether spaces
+        should be inserted between the words. Defaults to ``True``.
+
     :returns:
         :class:`!str` containing randomly generated password,
         or list of 1+ passwords if ``count`` is specified.
@@ -159,11 +199,13 @@ def generate(size=None, entropy=None, count=None,
     # load preset
     #
     if not (preset or charset or wordset):
-        preset = "diceware"
+        preset = default_preset
     if preset:
         if charset or wordset:
             raise TypeError(_PCW_MSG)
         if preset in charsets:
+            if preset in wordsets: # pragma: no cover -- sanity check
+                raise RuntimeError("ambiguous preset name: %r" % preset)
             charset = charsets[preset]
         elif preset in wordsets:
             wordset = wordsets[preset]
@@ -182,7 +224,9 @@ def generate(size=None, entropy=None, count=None,
         if len(set(wordset)) != len(wordset):
             raise ValueError("`wordset` cannot contain duplicate elements")
         entropy_per_elem = logf(len(wordset), 2)
-        log.debug("generate(): entropy/word=%r", entropy_per_elem)
+        entropy_per_char = _entropy_per_char(wordset)
+        log.debug("generate(): entropy/word=%r entropy/char=%r",
+                  entropy_per_elem, entropy_per_char)
     else:
         assert charset
         phrase_mode = False
@@ -195,21 +239,40 @@ def generate(size=None, entropy=None, count=None,
     # init size
     #
     if size is None:
+        size = 1
         if entropy is None:
-            entropy = 48
+            entropy = default_entropy
     elif size < 1:
         raise ValueError("`size` must be positive integer")
     if entropy is not None:
         if entropy <= 0:
             raise ValueError("`entropy` must be positive number")
-        size = max(size or 0, int(ceil(entropy / entropy_per_elem)))
+        size = max(size, int(ceil(entropy / entropy_per_elem)))
 
     #
     # create mode-specific generator
     #
     if phrase_mode:
+        # in order to ensure a brute force attack against underlying
+        # charset isn't more successful than one against the wordset,
+        # we need to reject any passwords which contain so many short
+        # words that ``chars_in_phrase * entropy_per_char <
+        #              words_in_phrase * entropy_per_word``.
+        # this is done by calculating the minimum chars required to satisfy
+        # the inequality, and then rejecting any phrases that are shorter.
+        min_chars = int(size * entropy_per_elem / entropy_per_char)
+        log.debug("generate(): min_chars=%r", min_chars)
+        if spaces:
+            min_chars += size-1
+            sep = _USPACE
+        else:
+            sep = _UEMPTY
         def gen():
-            return u(" ").join(rng.choice(wordset) for _ in irange(size))
+            while True:
+                secret = sep.join(rng.choice(wordset) for _ in irange(size))
+                if len(secret) >= min_chars:
+                    return secret
+                log.debug("skipping %r due to size", secret)
     else:
         def gen():
             return getrandstr(rng, charset, size)
