@@ -89,9 +89,9 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
 * :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
   of the raw derived key bytes returned from the PBKDF2 function.
-  Each scheme uses the digest size of it's specific hash algorithm (:samp:`{digest}`)
+  Each scheme uses the digest size of its specific hash algorithm (:samp:`{digest}`)
   as the size of the raw derived key. This is enlarged
-  by appromixately 4/3 by the base64 encoding,
+  by approximately 4/3 by the base64 encoding,
   resulting in a checksum size of 27, 43, and 86 for each of the respective algorithms listed above.
 
 The algorithm used by all of these schemes is deliberately identical and simple:

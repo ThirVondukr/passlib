@@ -50,7 +50,7 @@ Tutorial / Walkthrough
 
 Basic Usage
 -----------
-At it's base, the :class:`!CryptContext` class is just a list of
+At its base, the :class:`!CryptContext` class is just a list of
 :class:`~passlib.ifc.PasswordHash` objects, imported by name
 from the :mod:`passlib.hash` module. The following snippet creates
 a new context object which supports three hash algorithms
@@ -179,8 +179,8 @@ could of course be done in one step::
 This is not much more useful, since these settings still have to be
 hardcoded somewhere in the application. This is where the CryptContext's
 serialization abilities come into play. As a starting point,
-every CryptContext object can dump it's configuration as a dictionary
-suitable for passing back into it's constructor::
+every CryptContext object can dump its configuration as a dictionary
+suitable for passing back into its constructor::
 
     >>> myctx.to_dict()
     {'schemes': ['sha256_crypt', 'ldap_salted_md5'],

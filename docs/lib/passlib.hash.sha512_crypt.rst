@@ -38,7 +38,7 @@ the following notable differences:
 
 * it uses the :ref:`modular crypt prefix <modular-crypt-format>` ``$6$``, whereas SHA256-Crypt uses ``$5$``.
 * it uses the SHA-512 message digest in place of the SHA-256 message digest.
-* it's output hash is correspondingly larger in size,
+* its output hash is correspondingly larger in size,
   with an 86-character encoded checksum, instead of 43 characters.
 
 See :doc:`sha256_crypt <passlib.hash.sha256_crypt>`

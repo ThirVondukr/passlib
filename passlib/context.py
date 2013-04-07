@@ -77,7 +77,7 @@ class CryptPolicy(object):
     """
     .. deprecated:: 1.6
         This class has been deprecated, and will be removed in Passlib 1.8.
-        All of it's functionality has been rolled into :class:`CryptContext`.
+        All of its functionality has been rolled into :class:`CryptContext`.
 
     This class previously stored the configuration options for the
     CryptContext class. In the interest of interface simplification,
@@ -974,7 +974,7 @@ class _CryptConfig(object):
     """parses, validates, and stores CryptContext config
 
     this is a helper used internally by CryptContext to handle
-    parsing, validation, and serialization of it's config options.
+    parsing, validation, and serialization of its config options.
     split out from the main class, but not made public since
     that just complicates interface too much (c.f. CryptPolicy)
 
@@ -1339,7 +1339,7 @@ class _CryptConfig(object):
         """return composite dict of options for given scheme + category.
 
         this is currently a private method, though some variant
-        of it's output may eventually be made public.
+        of its output may eventually be made public.
 
         given a scheme & category, it returns two things:
         a set of all the keyword options to pass to the _CryptRecord constructor,
@@ -1769,7 +1769,7 @@ class CryptContext(object):
 
         This function is a wrapper for :meth:`load` which
         loads a configuration string from the local file *path*,
-        instead of an in-memory source. It's behavior and options
+        instead of an in-memory source. Its behavior and options
         are otherwise identical to :meth:`!load` when provided with
         an INI-formatted string.
 
@@ -1812,7 +1812,7 @@ class CryptContext(object):
 
             * another :class:`!CryptContext` object.
 
-                this will export a snapshot of it's configuration
+                this will export a snapshot of its configuration
                 using :meth:`to_dict`.
 
         :type update: bool
@@ -2240,7 +2240,7 @@ class CryptContext(object):
     #       which are optimized for the specific (scheme,category) configuration.
     #
     #       The record objects are cached inside the _CryptConfig
-    #       instance stored in self._config, and are retreived
+    #       instance stored in self._config, and are retrieved
     #       via get_record() and identify_record().
     #
     #       _get_record() and _identify_record() are references
@@ -2354,7 +2354,7 @@ class CryptContext(object):
 
         :param \*\*settings:
             All additional keywords are passed to the appropriate handler,
-            and should match it's :attr:`~passlib.ifc.PasswordHash.setting_kwds`.
+            and should match its :attr:`~passlib.ifc.PasswordHash.setting_kwds`.
 
         :returns:
             A configuration string suitable for passing to :meth:`~CryptContext.genhash`,
@@ -2398,7 +2398,7 @@ class CryptContext(object):
 
         :param \*\*kwds:
             All additional keywords are passed to the appropriate handler,
-            and should match it's :attr:`~passlib.ifc.PasswordHash.context_kwds`.
+            and should match its :attr:`~passlib.ifc.PasswordHash.context_kwds`.
 
         :returns:
             The secret as encoded by the specified algorithm and options.
@@ -2526,7 +2526,7 @@ class CryptContext(object):
 
         :param \*\*kwds:
             All additional keywords are passed to the appropriate handler,
-            and should match it's :attr:`~passlib.ifc.PasswordHash.context_kwds`.
+            and should match its :attr:`~passlib.ifc.PasswordHash.context_kwds`.
 
         :returns:
             ``True`` if the password matched the hash, else ``False``.
@@ -2628,8 +2628,8 @@ class LazyCryptContext(CryptContext):
 
     This is a subclass of CryptContext which takes in a set of arguments
     exactly like CryptContext, but won't load any handlers
-    (or even parse it's arguments) until
-    the first time one of it's methods is accessed.
+    (or even parse its arguments) until
+    the first time one of its methods is accessed.
 
     :arg schemes:
         The first positional argument can be a list of schemes, or omitted,

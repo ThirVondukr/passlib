@@ -39,7 +39,7 @@ defined by the following abstract base class:
     * :meth:`~PasswordHash.identify` - check if hash belongs to this algorithm.
 
     Each hash algorithm also provides a number of :ref:`informational attributes <informational-attributes>`,
-    allowing programmatic inspection of it's options and parameter limits.
+    allowing programmatic inspection of its options and parameter limits.
 
 .. _password-hash-examples:
 
@@ -78,9 +78,9 @@ using the :class:`~passlib.hash.sha256_crypt` hash as an example::
 
 .. note::
 
-    Whether a hash supports a particular configuration keywoard (such as ``rounds``)
-    can be determined from it's documentation page; but also programmatically from
-    it's :attr:`~PasswordHash.setting_kwds` attribute.
+    Whether a hash supports a particular configuration keyword (such as ``rounds``)
+    can be determined from its documentation page; but also programmatically from
+    its :attr:`~PasswordHash.setting_kwds` attribute.
 
 That concludes the most basic example, but there are a few more
 common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
@@ -131,8 +131,8 @@ An example of this is the :class:`~passlib.hash.oracle10` algorithm::
 .. note::
 
     Whether a hash requires external parameters (such as ``user``)
-    can be determined from it's documentation page; but also programmatically from
-    it's :attr:`~PasswordHash.context_kwds` attribute.
+    can be determined from its documentation page; but also programmatically from
+    its :attr:`~PasswordHash.context_kwds` attribute.
 
 .. _primary-methods:
 
@@ -270,7 +270,7 @@ and hash comparison.
       otherwise non-ASCII passwords may not :meth:`!verify` successfully.
 
     * For historical reasons, :class:`~passlib.hash.lmhash` uses ``cp437``
-      as it's default encoding. It will handle :class:`!unicode` correctly;
+      as its default encoding. It will handle :class:`!unicode` correctly;
       but non-ASCII passwords provided as :class:`!bytes` must either be encoded
       using ``"cp437"``, or :class:`!lmhash`'s ``encoding`` keyword must
       be set to indicate which encoding was used.
@@ -399,7 +399,7 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
 
         A small number of the hashes supported by Passlib lack a reliable
         method of identification (e.g. :class:`~passlib.hash.lmhash`
-        and :class:`~passlib.hash.nthash` both consist of 32 hexidecimal characters,
+        and :class:`~passlib.hash.nthash` both consist of 32 hexadecimal characters,
         with no distinguishing features). For such hashes, this method
         may return false positives.
 
@@ -486,7 +486,7 @@ the hashes in passlib:
 
     ``rounds``
         If present, this means the hash can vary the number
-        of internal rounds used in some part of it's algorithm,
+        of internal rounds used in some part of its algorithm,
         allowing the calculation to take a variable amount of processor
         time, for increased security.
 
@@ -723,7 +723,7 @@ Choosing the right rounds value
 For hash algorithms which support a variable time-cost,
 Passlib's default ``rounds`` choices attempt to be secure enough for
 the average [#avgsys]_ system. But the "right" value for a given hash
-is dependant on the server, it's cpu, it's expected load, and it's users.
+is dependant on the server, its cpu, its expected load, and its users.
 Since larger values mean increased work for an attacker,
 *the right* ``rounds`` *value for a given hash & server should be the largest
 possible value that doesn't cause intolerable delay for your users*.

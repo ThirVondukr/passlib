@@ -24,10 +24,10 @@ __all__ = [
 ]
 
 #=============================================================================
-# helpers for hexidecimal hashes
+# helpers for hexadecimal hashes
 #=============================================================================
 class HexDigestHash(uh.StaticHandler):
-    "this provides a template for supporting passwords stored as plain hexidecimal hashes"
+    "this provides a template for supporting passwords stored as plain hexadecimal hashes"
     #===================================================================
     # class attrs
     #===================================================================
@@ -60,7 +60,7 @@ def create_hex_hash(hash, digest_name, module=__name__):
         __module__=module, # so ABCMeta won't clobber it
         _hash_func=staticmethod(hash), # sometimes it's a function, sometimes not. so wrap it.
         checksum_size=h.digest_size*2,
-        __doc__="""This class implements a plain hexidecimal %s hash, and follows the :ref:`password-hash-api`.
+        __doc__="""This class implements a plain hexadecimal %s hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.
 """ % (digest_name,)

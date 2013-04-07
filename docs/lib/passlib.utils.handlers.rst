@@ -11,7 +11,7 @@
 .. warning::
 
     This module is primarily used as an internal support module.
-    It's interface has not been finalized yet, and may be changed somewhat
+    Its interface has not been finalized yet, and may be changed somewhat
     between major releases of Passlib, as the internal code is cleaned up
     and simplified.
 
@@ -30,7 +30,7 @@ For classes, Passlib does not make any requirements about what a class instance
 should look like (if the implementation even uses them).
 
 That said, most of the handlers built into Passlib are based around the :class:`GenericHandler`
-class, and it's associated mixin classes. While deriving from this class is not required,
+class, and its associated mixin classes. While deriving from this class is not required,
 doing so will greatly reduce the amount of additional code that is needed for
 all but the most convoluted password hash schemes.
 
@@ -54,7 +54,7 @@ workflow for hashes is some combination of the following:
 1. parse hash into constituent parts - performed by :meth:`~GenericHandler.from_string`.
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
    and the normalization functions such as :meth:`~GenericHandler._norm_checksum` and :meth:`~HasSalt._norm_salt`
-   which are provided by it's related mixin classes.
+   which are provided by its related mixin classes.
 3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler._calc_checksum`.
 4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
 
@@ -137,7 +137,7 @@ Examples
 
 .. todo::
 
-    Show some walk-through examples of how to use GenericHandler and it's mixins
+    Show some walk-through examples of how to use GenericHandler and its mixins
 
 The StaticHandler class
 =======================
@@ -158,7 +158,7 @@ Other Constructors
 
 Testing Hash Handlers
 =====================
-Within it's unittests, Passlib provides the :class:`~passlib.tests.utils.HandlerCase` class,
+Within its unittests, Passlib provides the :class:`~passlib.tests.utils.HandlerCase` class,
 which can be subclassed to provide a unittest-compatible test class capable of
 checking if a handler adheres to the :ref:`password-hash-api`.
 

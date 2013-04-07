@@ -95,7 +95,7 @@ Security Issues
 ===============
 DES-Crypt is no longer considered secure, for a variety of reasons:
 
-* It's use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
+* Its use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
   and considered broken, as well as having too-small key and block sizes.
 
 * The 12-bit salt is considered to small to defeat rainbow-table attacks

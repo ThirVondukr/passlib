@@ -39,11 +39,11 @@ A example hash (of ``password``) is:
 
     ``{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J``
 
-Once decoded, the salt value (in hexdecimal octets) is:
+Once decoded, the salt value (in hexadecimal octets) is:
 
     ``0d0217254d37f2ee0fec576cb854d8ff``
 
-and the checksum value (in hexidecimal octets) is:
+and the checksum value (in hexadecimal octets) is:
 
     ``edf96e6e3591f8d96b9ed4addc47a7632edea176bb2fa8a03fa3179b75b5bf09``
 

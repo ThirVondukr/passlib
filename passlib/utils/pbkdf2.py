@@ -226,7 +226,7 @@ def get_hash_info(name):
     return record
 
 ##def get_hash_const(name):
-##    """convience wrapper around :func:`get_hash_info` which just
+##    """convenience wrapper around :func:`get_hash_info` which just
 ##    returns a hash constructor"""
 ##    try:
 ##        return _ghi_cache[name][0]
@@ -264,7 +264,7 @@ def _get_hmac_prf(digest):
 
     # use m2crypto if it's present and supports requested digest
     if _EVP:
-        # use m2crypto function directly for sha1, since that's it's default digest
+        # use m2crypto function directly for sha1, since that's its default digest
         if digest == "sha1":
             if _EVP.hmac(b('x'), b('y')) != _TEST_HMAC_SHA1:
                 # don't expect to ever get here, but just in case

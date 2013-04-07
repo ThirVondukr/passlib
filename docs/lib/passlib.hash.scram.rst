@@ -23,7 +23,7 @@ of the hash algorithms the server wishes to support over SCRAM.
 Since this format is PBKDF2-based, it has equivalent security to
 Passlib's other :doc:`pbkdf2 hashes <passlib.hash.pbkdf2_digest>`,
 and can be used to authenticate users using either the normal :ref:`password-hash-api`
-or the SCRAM-specific class methods documentated below.
+or the SCRAM-specific class methods documented below.
 
 .. note::
 
@@ -73,7 +73,7 @@ Additionally, this class provides a number of useful methods for SCRAM-specific 
   the SCRAM needs to authenticate against a specific mechanism::
 
     >>> # this returns (salt_bytes, rounds, digest_bytes)
-    >>> scram.extact_digest_info(hash, "sha-1")
+    >>> scram.extract_digest_info(hash, "sha-1")
     ('F\xc8\x19\xa3\xb4\xf6\xfe_+\x05@H',
      1000,
      'u\x17\x04\xd8\x05#\x00\xb2\xc5\xb5~C\xb2\xd7K\tv}\x01\xfc')
@@ -95,7 +95,7 @@ Interface
 =========
 .. note::
 
-    This hash format is new in Passlib 1.6, and it's SCRAM-specific API
+    This hash format is new in Passlib 1.6, and its SCRAM-specific API
     may change in the next few releases, depending on user feedback.
 
 .. autoclass:: scram()
@@ -159,7 +159,7 @@ always be supported, this will generally be the weakest link, since
 the other digests will generally be stronger ones (e.g. SHA2-256).
 
 None-the-less, since PBKDF2 is sufficiently collision-resistant
-on it's own, any pre-image weakenesses found in SHA1 should be mitigated
+on its own, any pre-image weaknesses found in SHA1 should be mitigated
 by the PBKDF2-HMAC-SHA1 wrapper; and should have no flaws outside of
 brute-force attacks on PBKDF2-HMAC-SHA1.
 

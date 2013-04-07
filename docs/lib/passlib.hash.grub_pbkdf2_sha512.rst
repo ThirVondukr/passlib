@@ -38,14 +38,14 @@ A example hash (of ``password``) is ::
 
 All of this scheme's hashes have the format :samp:`grub.pbkdf2.sha512.{rounds}.{salt}.{checksum}`,
 where :samp:`{rounds}` is the number of iteration stored in decimal,
-:samp:`{salt}` is the salt string encoded using upper-case hexdecimal,
+:samp:`{salt}` is the salt string encoded using upper-case hexadecimal,
 and :samp:`{checksum}` is the resulting 64-byte derived key, also
-encoded in upper-case hexidecimal. It can be identified by the prefix ``grub.pdkdf2.sha512.``.
+encoded in upper-case hexadecimal. It can be identified by the prefix ``grub.pdkdf2.sha512.``.
 
 The algorithm used is the same as :class:`pbkdf2_sha1`: the password is encoded into UTF-8 if not already encoded,
 and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
 along with the decoded salt, and the number of rounds.
-The result is then encoded into hexidecimal.
+The result is then encoded into hexadecimal.
 
 ..
     Hash Translation
