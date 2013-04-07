@@ -226,7 +226,7 @@ class TestCase(unittest.TestCase):
                     expected_regex = re.compile(expected_regex)
                 if not expected_regex.search(text):
                     msg = msg or "Regex didn't match: "
-                    std = '%r not found in %r' % (msg, expected_regex.pattern, text)
+                    std = '%r not found in %r' % (expected_regex.pattern, text)
                     raise self.failureException(self._formatMessage(msg, std))
 
     #===================================================================

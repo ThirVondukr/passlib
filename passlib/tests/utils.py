@@ -243,9 +243,6 @@ class TestCase(_TestCase):
         return name.startswith("_") or \
                getattr(cls, "_%s__unittest_skip" % name, False)
 
-        # make this mirror nose's '__test__' attr
-        return not getattr(cls, "__test__", True)
-
     @classproperty
     def __test__(cls):
         # make nose just proxy __unittest_skip__
