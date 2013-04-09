@@ -350,22 +350,19 @@ class _bcrypt_test(HandlerCase):
             with self.assertWarningList([]):
                 self.assertEqual(bcrypt.genhash(pwd, good), good)
 
-        #
-        # and that verify() works good & bad
-        #
-        with self.assertWarningList([corr_desc]):
-            self.assertTrue(bcrypt.verify(pwd, bad))
-        with self.assertWarningList([]):
-            self.assertTrue(bcrypt.verify(pwd, good))
+            # make sure verify() works correctly with good & bad hashes
+            with self.assertWarningList([corr_desc]):
+                self.assertTrue(bcrypt.verify(pwd, bad))
+            with self.assertWarningList([]):
+                self.assertTrue(bcrypt.verify(pwd, good))
 
-        #
-        # test normhash cleans things up correctly
-        #
-        for pwd, bad, good in samples:
+            # make sure normhash() corrects bad hashes, leaves good unchanged
             with self.assertWarningList([corr_desc]):
                 self.assertEqual(bcrypt.normhash(bad), good)
             with self.assertWarningList([]):
                 self.assertEqual(bcrypt.normhash(good), good)
+
+        # make sure normhash() leaves non-bcrypt hashes alone
         self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
 
 hash.bcrypt._no_backends_msg() # call this for coverage purposes

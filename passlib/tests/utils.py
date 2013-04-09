@@ -1002,20 +1002,19 @@ class HandlerCase(TestCase):
             raise AssertionError("default_salt_size must be <= max_salt_size")
 
         # check for 'salt_size' keyword
-        if 'salt_size' not in cls.setting_kwds and \
-                (not mx_set or cls.min_salt_size < cls.max_salt_size):
-            # NOTE: only bothering to issue warning if default_salt_size
-            # isn't maxed out
-            if (not mx_set or cls.default_salt_size < cls.max_salt_size):
-                warn("%s: hash handler supports range of salt sizes, "
-                     "but doesn't offer 'salt_size' setting" % (cls.name,))
+        # NOTE: skipping warning if default salt size is already maxed out
+        #       (might change that in future)
+        if 'salt_size' not in cls.setting_kwds and (not mx_set or cls.default_salt_size < cls.max_salt_size):
+            warn('%s: hash handler supports range of salt sizes, '
+                 'but doesn\'t offer \'salt_size\' setting' % (cls.name,))
 
         # check salt_chars & default_salt_chars
         if cls.salt_chars:
             if not cls.default_salt_chars:
                 raise AssertionError("default_salt_chars must not be empty")
-            if any(c not in cls.salt_chars for c in cls.default_salt_chars):
-                raise AssertionError("default_salt_chars must be subset of salt_chars: %r not in salt_chars" % (c,))
+            for c in cls.default_salt_chars:
+                if c not in cls.salt_chars:
+                    raise AssertionError("default_salt_chars must be subset of salt_chars: %r not in salt_chars" % (c,))
         else:
             if not cls.default_salt_chars:
                 raise AssertionError("default_salt_chars MUST be specified if salt_chars is empty")
