@@ -168,7 +168,7 @@ def _get_hash_const(name):
     # second, check hashlib.new() in case SSL supports the digest
     try:
         # new() should throw ValueError if alg is unknown
-        tmp = hashlib.new(name, "")
+        tmp = hashlib.new(name, b(""))
         if PYPY and not tmp.digest():
             # detect https://bugs.pypy.org/issue957, fixed in PyPy 1.8
             raise ValueError("not actually supported")
