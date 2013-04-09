@@ -4,7 +4,6 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-import hashlib
 import logging; log = logging.getLogger(__name__)
 import os
 import warnings
@@ -14,7 +13,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, b, catch_warnings, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, b, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 # module
 
 #=============================================================================
@@ -223,7 +222,7 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_pybcrypt(self):
         # test against py-bcrypt if available
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y
+        from passlib.handlers.bcrypt import IDENT_2A, IDENT_2Y
         from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw

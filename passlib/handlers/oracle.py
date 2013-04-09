@@ -7,11 +7,10 @@ from binascii import hexlify, unhexlify
 from hashlib import sha1
 import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.utils import to_unicode, to_native_str, xor_bytes
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, u, \
+from passlib.utils import to_unicode, xor_bytes
+from passlib.utils.compat import b, bytes, irange, u, \
                                  uascii_to_str, unicode, str_to_uascii
 from passlib.utils.des import des_encrypt_block
 import passlib.utils.handlers as uh

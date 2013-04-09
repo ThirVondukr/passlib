@@ -6,9 +6,6 @@ from __future__ import with_statement
 # core
 from binascii import hexlify, unhexlify
 import hashlib
-import hmac
-import sys
-import random
 import warnings
 # site
 try:
@@ -17,9 +14,8 @@ except ImportError:
     M2Crypto = None
 # pkg
 # module
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode, join_bytes, PYPY, JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, catch_warnings, skipUnless, skipIf
+from passlib.utils.compat import b, bascii_to_str, PY3, u, PYPY, JYTHON
+from passlib.tests.utils import TestCase, TEST_MODE, catch_warnings, skipUnless
 
 #=============================================================================
 # support

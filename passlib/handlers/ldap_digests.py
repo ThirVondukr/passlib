@@ -8,13 +8,11 @@ from base64 import b64encode, b64decode
 from hashlib import md5, sha1
 import logging; log = logging.getLogger(__name__)
 import re
-from warnings import warn
 # site
 # pkg
 from passlib.handlers.misc import plaintext
-from passlib.utils import to_native_str, unix_crypt_schemes, \
-                          classproperty, to_unicode
-from passlib.utils.compat import b, bytes, uascii_to_str, unicode, u
+from passlib.utils import unix_crypt_schemes, classproperty, to_unicode
+from passlib.utils.compat import b, uascii_to_str, unicode, u
 import passlib.utils.handlers as uh
 # local
 __all__ = [

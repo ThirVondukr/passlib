@@ -4,10 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-import hashlib
 from logging import getLogger
-import os
-import time
 import warnings
 import sys
 # site

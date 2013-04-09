@@ -4,16 +4,14 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-from binascii import hexlify, unhexlify
-import sys
+from binascii import unhexlify
 import random
-import warnings
 # site
 # pkg
 # module
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
+from passlib.utils.compat import b, bytes, irange, PY3, u, \
                                  unicode, join_bytes, SUPPORTS_DIR_METHOD
-from passlib.tests.utils import TestCase, catch_warnings
+from passlib.tests.utils import TestCase
 
 def hb(source):
     return unhexlify(b(source))

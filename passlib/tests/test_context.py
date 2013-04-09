@@ -9,22 +9,18 @@ if PY3:
     from configparser import NoSectionError
 else:
     from ConfigParser import NoSectionError
-import hashlib
 import logging; log = logging.getLogger(__name__)
-import re
 import os
-import time
 import warnings
-import sys
 # site
 # pkg
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
-from passlib.utils import tick, to_bytes, to_unicode
+from passlib.utils import tick, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, catch_warnings, set_file, TICK_RESOLUTION, quicksleep
+from passlib.tests.utils import TestCase, set_file, TICK_RESOLUTION, quicksleep
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,

@@ -10,12 +10,9 @@ it's being preserved here to ensure the old api doesn't break
 #=============================================================================
 from __future__ import with_statement
 # core
-import hashlib
 from logging import getLogger
 import os
-import time
 import warnings
-import sys
 # site
 try:
     from pkg_resources import resource_filename
@@ -24,15 +21,13 @@ except ImportError:
 # pkg
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
-from passlib.exc import PasslibConfigWarning
-from passlib.utils import tick, to_bytes, to_unicode
-from passlib.utils.compat import irange, u, bytes
+from passlib.utils import to_bytes, to_unicode
+from passlib.utils.compat import bytes
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, catch_warnings, set_file
+from passlib.tests.utils import TestCase, set_file
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
-                        get_crypt_handler,
                         )
 # module
 log = getLogger(__name__)

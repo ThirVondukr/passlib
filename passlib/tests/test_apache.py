@@ -4,16 +4,14 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-import hashlib
 from logging import getLogger
 import os
-import time
 # site
 # pkg
 from passlib import apache
-from passlib.utils.compat import irange, unicode
-from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings, ensure_mtime_changed
-from passlib.utils.compat import b, bytes, u
+from passlib.utils.compat import irange
+from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
+from passlib.utils.compat import b, u
 # module
 log = getLogger(__name__)
 

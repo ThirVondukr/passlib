@@ -17,8 +17,6 @@ sys.path.insert(0, os.curdir)
 # core
 from binascii import hexlify
 import logging; log = logging.getLogger(__name__)
-import os
-import warnings
 # site
 # pkg
 try:
@@ -26,7 +24,7 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import u, print_, unicode, next_method_attr
+from passlib.utils.compat import u, print_, unicode
 # local
 
 #=============================================================================

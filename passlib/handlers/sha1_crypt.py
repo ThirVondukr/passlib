@@ -6,15 +6,11 @@
 #=============================================================================
 
 # core
-from hmac import new as hmac
-from hashlib import sha1
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt
-from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
+from passlib.utils.compat import b, u, unicode
 from passlib.utils.pbkdf2 import get_prf
 import passlib.utils.handlers as uh
 # local

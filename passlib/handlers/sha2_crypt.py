@@ -5,12 +5,11 @@
 # core
 import hashlib
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
                           repeat_string, to_unicode
-from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
+from passlib.utils.compat import b, bytes, byte_elem_value, u, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local

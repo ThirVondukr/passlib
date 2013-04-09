@@ -5,13 +5,11 @@
 # core
 from binascii import hexlify, unhexlify
 from base64 import b64encode, b64decode
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, to_unicode
-from passlib.utils.compat import b, bytes, str_to_bascii, u, uascii_to_str, unicode
+from passlib.utils.compat import b, str_to_bascii, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 # local

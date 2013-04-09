@@ -6,7 +6,6 @@ from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
 import sys
-import warnings
 # site
 # pkg
 from passlib.apps import django10_context, django14_context
@@ -14,9 +13,8 @@ from passlib.context import CryptContext
 import passlib.exc as exc
 from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
 from passlib.utils import memoized_property
-from passlib.registry import get_crypt_handler
 # tests
-from passlib.tests.utils import TestCase, skipUnless, catch_warnings, TEST_MODE, has_active_backend
+from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend
 from passlib.tests.test_handlers import get_handler_case
 # local
 

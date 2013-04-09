@@ -4,14 +4,8 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-from functools import update_wrapper
-import inspect
-import re
-import hashlib
 from math import log as logb, ceil
 import logging; log = logging.getLogger(__name__)
-import os
-import re
 from time import sleep
 from warnings import warn
 # site

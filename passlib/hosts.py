@@ -3,7 +3,6 @@
 # imports
 #=============================================================================
 # core
-import sys
 from warnings import warn
 # pkg
 from passlib.context import LazyCryptContext

@@ -6,11 +6,10 @@
 # core
 import hashlib
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
-from passlib.utils.compat import bascii_to_str, bytes, unicode, str_to_uascii
+from passlib.utils.compat import unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.utils.md4 import md4
 # local

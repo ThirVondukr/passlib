@@ -10,8 +10,8 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import h64, right_pad_string, to_unicode
-from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
-             join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
+from passlib.utils.compat import unicode, u, join_byte_values, \
+             join_byte_elems, iter_byte_values, uascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [

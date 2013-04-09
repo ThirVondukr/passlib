@@ -7,19 +7,15 @@ from __future__ import with_statement
 import re
 import hashlib
 from logging import getLogger
-import warnings
 # site
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
-from passlib.registry import _unload_handler_name as unload_handler_name, \
-    register_crypt_handler, get_crypt_handler
 from passlib.exc import MissingBackendError, PasslibHashWarning
-from passlib.utils import getrandstr, JYTHON, rng
-from passlib.utils.compat import b, bytes, bascii_to_str, str_to_uascii, \
+from passlib.utils.compat import b, bytes, str_to_uascii, \
                                  uascii_to_str, unicode, PY_MAX_25, SUPPORTS_DIR_METHOD
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
-from passlib.utils.compat import u, PY3
+from passlib.utils.compat import u
 # module
 log = getLogger(__name__)
 

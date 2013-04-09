@@ -5,19 +5,17 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 import os
-import sys
 from warnings import warn
 # site
 # pkg
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
-from passlib.utils import consteq, render_bytes, to_bytes, deprecated_method, is_ascii_codec
-from passlib.utils.compat import b, bytes, join_bytes, str_to_bascii, u, \
-                                 unicode, BytesIO, iteritems, imap, PY3
+from passlib.utils import render_bytes, to_bytes, deprecated_method, is_ascii_codec
+from passlib.utils.compat import b, bytes, join_bytes, unicode, BytesIO, \
+                                 iteritems,  PY3
 # local
 __all__ = [
     'HtpasswdFile',
