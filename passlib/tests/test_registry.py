@@ -47,7 +47,7 @@ class RegistryTest(TestCase):
             unload_handler_name(name)
 
     def test_hash_proxy(self):
-        "test passlib.hash proxy object"
+        """test passlib.hash proxy object"""
         # check dir works
         dir(hash)
 
@@ -80,7 +80,7 @@ class RegistryTest(TestCase):
         self.assertRaises(ValueError, setattr, hash, "dummy_1x", dummy_1)
 
     def test_register_crypt_handler_path(self):
-        "test register_crypt_handler_path()"
+        """test register_crypt_handler_path()"""
         # NOTE: this messes w/ internals of registry, shouldn't be used publically.
         paths = registry._locations
 
@@ -127,7 +127,7 @@ class RegistryTest(TestCase):
         self.assertIs(h, tbr.alt_dummy_bad)
 
     def test_register_crypt_handler(self):
-        "test register_crypt_handler()"
+        """test register_crypt_handler()"""
 
         self.assertRaises(TypeError, register_crypt_handler, {})
 
@@ -158,7 +158,7 @@ class RegistryTest(TestCase):
         self.assertTrue('dummy_1' in list_crypt_handlers())
 
     def test_get_crypt_handler(self):
-        "test get_crypt_handler()"
+        """test get_crypt_handler()"""
 
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
@@ -189,7 +189,7 @@ class RegistryTest(TestCase):
             self.assertIs(get_crypt_handler(name, None), None)
 
     def test_list_crypt_handlers(self):
-        "test list_crypt_handlers()"
+        """test list_crypt_handlers()"""
         from passlib.registry import list_crypt_handlers
 
         # check system & private names aren't returned

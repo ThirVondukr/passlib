@@ -68,3 +68,4 @@ Example showing how to load a hash by name::
 
         >>> get_crypt_handler("missing_hash", None)
         None
+

@@ -5,7 +5,7 @@
 .. currentmodule:: passlib.hash
 
 This class implements the hash algorithm introduced in version 11g of the Oracle Database.
-It supercedes the :class:`Oracle 10 <passlib.hash.oracle10>` password hash.
+It supersedes the :class:`Oracle 10 <passlib.hash.oracle10>` password hash.
 This class can be can be used directly as follows::
 
     >>> from passlib.hash import oracle11 as oracle11

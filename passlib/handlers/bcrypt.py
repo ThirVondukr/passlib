@@ -160,7 +160,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return uascii_to_str(hash)
 
     def _get_config(self, ident=None):
-        "internal helper to prepare config string for backends"
+        """internal helper to prepare config string for backends"""
         if ident is None:
             ident = self.ident
         if ident == IDENT_2Y:
@@ -195,7 +195,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classmethod
     def normhash(cls, hash):
-        "helper to normalize hash, correcting any bcrypt padding bits"
+        """helper to normalize hash, correcting any bcrypt padding bits"""
         if cls.identify(hash):
             return cls.from_string(hash).to_string()
         else:

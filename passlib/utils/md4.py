@@ -146,7 +146,7 @@ class md4(object):
     ]
 
     def _process(self, block):
-        "process 64 byte block"
+        """process 64 byte block"""
         # unpack block into 16 32-bit ints
         X = struct.unpack("<16I", block)
 
@@ -258,7 +258,7 @@ def _has_native_md4(): # pragma: no cover -- runtime detection
 if _has_native_md4():
     # overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
-        "wrapper for hashlib.new('md4')"
+        """wrapper for hashlib.new('md4')"""
         return hashlib.new('md4', content or b(''))
 
 #=============================================================================
