@@ -23,6 +23,10 @@ Minor Changes
 * The shared :class:`!PasswordHash` unittests now check all hash handlers for
   basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
 
+* The internal support module :mod:`passlib.utils.pbkdf2` has gained
+  to new helpers: :func:`~passlib.utils.pbkdf2.get_hash_info`
+  and :func:`~passlib.utils.pbkdf2.get_keyed_prf`.
+
 Deprecations
 ------------
 :class:`passlib.utils.handlers.HasManyBackends` internal API change
@@ -37,7 +41,6 @@ Deprecations
 Todo
 ----
 
-* unittests and documentation for get_hash_info(), get_keyed_prf()
 * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
 **1.6.1** (2012-08-02)

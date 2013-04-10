@@ -27,7 +27,6 @@ __all__ = [
     # hash utils
     "norm_hash_name",
     "get_hash_info",
-    ##"get_hash_const,"
 
     # prf utils
     "get_prf",
@@ -150,7 +149,7 @@ def norm_hash_name(name, format="hashlib"):
     return row[idx]
 
 def _get_hash_const(name):
-    """internal helper for :func:`get_hash_const`"""
+    """internal helper used by :func:`get_hash_info`"""
     # typecheck
     if not isinstance(name, str):
         raise TypeError("expected digest name")
@@ -196,19 +195,20 @@ def _get_hash_const(name):
 _ghi_cache = {}
 
 def get_hash_info(name):
-    """lookup hash constructor & stats by name.
+    """Lookup hash constructor & stats by name.
 
-    This is a thin wrapper around hashlib, which looks up a hash by name,
-    and returns a hash constructor, along the digest & block sizes.
+    This is a thin wrapper around :mod:`hashlib`. It looks up a hash by name,
+    and returns a hash constructor, along with the digest & block sizes.
     Calls to this method are cached, making it a lot faster
     than looking up a hash and then creating a temporary instance
-    in order to read the digest size.
+    in order to read the digest size. Additionally, this function includes
+    workarounds and fallbacks for various VM-specific issues.
 
     :arg name: hashlib-compatible name of hash function
 
-    :raises ValueError: if hash is unknown
+    :raises ValueError: if hash is unknown or unsupported.
 
-    :returns: `(constuctor, digest_size, block_size)`
+    :returns: `(hash_constructor, digest_size, block_size)`
 
     .. versionadded:: 1.7
     """
@@ -224,14 +224,6 @@ def get_hash_info(name):
         raise RuntimeError("%r constructor failed sanity check" % name)
     record = _ghi_cache[name] = (const, tmp.digest_size, tmp.block_size)
     return record
-
-##def get_hash_const(name):
-##    """convenience wrapper around :func:`get_hash_info` which just
-##    returns a hash constructor"""
-##    try:
-##        return _ghi_cache[name][0]
-##    except KeyError:
-##        return get_hash_info(name)[0]
 
 #=============================================================================
 # prf lookup
@@ -304,33 +296,33 @@ def _get_hmac_prf(digest):
 _prf_cache = {}
 
 def get_prf(name):
-    """lookup pseudo-random family (prf) by name.
+    """Lookup pseudo-random family (PRF) by name.
 
     :arg name:
-        this must be the name of a recognized prf.
-        currently this only recognizes names with the format
+        This must be the name of a recognized prf.
+        Currently this only recognizes names with the format
         :samp:`hmac-{digest}`, where :samp:`{digest}`
         is the name of a hash function such as
         ``md5``, ``sha256``, etc.
 
-        this can also be a callable with the signature
-        ``prf(secret, message) -> digest``,
+        This can also be a callable with the signature
+        ``prf_func(secret, message) -> digest``,
         in which case it will be returned unchanged.
 
     :raises ValueError: if the name is not known
     :raises TypeError: if the name is not a callable or string
 
     :returns:
-        a tuple of :samp:`({func}, {digest_size})`.
+        a tuple of :samp:`({prf_func}, {digest_size})`, where:
 
-        * :samp:`{func}` is a function implementing
-          the specified prf, and has the signature
-          ``func(secret, message) -> digest``.
+        * :samp:`{prf_func}` is a function implementing
+          the specified PRF, and has the signature
+          ``prf_func(secret, message) -> digest``.
 
         * :samp:`{digest_size}` is an integer indicating
           the number of bytes the function returns.
 
-    usage example::
+    Usage example::
 
         >>> from passlib.utils.pbkdf2 import get_prf
         >>> hmac_sha256, dsize = get_prf("hmac-sha256")
@@ -340,8 +332,8 @@ def get_prf(name):
         32
         >>> digest = hmac_sha256('password', 'message')
 
-    this function will attempt to return the fastest implementation
-    it can find; if M2Crypto is present, and supports the specified prf,
+    This function will attempt to return the fastest implementation
+    it can find. Primarily, if M2Crypto is present, and supports the specified PRF,
     :func:`M2Crypto.EVP.hmac` will be used behind the scenes.
     """
     global _prf_cache
@@ -399,8 +391,8 @@ def _get_keyed_hmac_prf(digest, key):
     return kprf, digest_size
 
 def get_keyed_prf(name, key):
-    """lookup psuedo-random function family by name,
-    and return function associated with specific key.
+    """Lookup psuedo-random function family by name,
+    and return a psuedo-random function bound to a specific key.
 
     :arg name:
         name of psuedorandom family.
@@ -410,8 +402,8 @@ def get_keyed_prf(name, key):
         key encoded as bytes.
 
     :returns:
-        tuple of :samp:`({func}, {digest_size})`,
-        where function has signature `func(message) -> digest`.
+        tuple of :samp:`({bound_prf_func}, {digest_size})`,
+        where function has signature `bound_prf_func(message) -> digest`.
 
     .. versionadded:: 1.7
     """

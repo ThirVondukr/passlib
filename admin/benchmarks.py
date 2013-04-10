@@ -242,6 +242,16 @@ def test_phpass():
         handler.verify(OTHER, hash)
     return helper
 
+@benchmark.constructor()
+def test_sha1_crypt():
+    from passlib.hash import sha1_crypt as handler
+    kwds = dict(salt='.'*8, rounds=10000)
+    def helper():
+        hash = handler.encrypt(SECRET, **kwds)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
+    return helper
+
 #=============================================================================
 # crypto utils
 #=============================================================================

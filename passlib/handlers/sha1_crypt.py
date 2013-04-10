@@ -9,9 +9,9 @@
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt
-from passlib.utils.compat import b, u, unicode
-from passlib.utils.pbkdf2 import get_prf
+from passlib.utils import h64, safe_crypt, test_crypt
+from passlib.utils.compat import b, u, unicode, irange
+from passlib.utils.pbkdf2 import get_keyed_prf
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -19,7 +19,6 @@ __all__ = [
 #=============================================================================
 # sha1-crypt
 #=============================================================================
-_hmac_sha1 = get_prf("hmac-sha1")[0]
 _BNULL = b('\x00')
 
 class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
@@ -129,10 +128,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         # NOTE: this seed value is NOT the same as the config string
         result = (u("%s$sha1$%s") % (self.salt, rounds)).encode("ascii")
         # NOTE: this algorithm is essentially PBKDF1, modified to use HMAC.
-        r = 0
-        while r < rounds:
-            result = _hmac_sha1(secret, result)
-            r += 1
+        keyed_hmac = get_keyed_prf("hmac-sha1", secret)[0]
+        for _ in irange(rounds):
+            result = keyed_hmac(result)
         return h64.encode_transposed_bytes(result, self._chk_offsets).decode("ascii")
 
     _chk_offsets = [
