@@ -7,6 +7,7 @@ from __future__ import with_statement
 import re
 import hashlib
 from logging import getLogger
+import warnings
 # site
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
@@ -359,6 +360,74 @@ class SkeletonTest(TestCase):
 
             backends = ("a", "b")
 
+            @classmethod
+            def _load_backend_a(cls):
+                return None
+
+            @classmethod
+            def _load_backend_b(cls):
+                return None
+
+            def _calc_checksum_a(self, secret):
+                return 'a'
+
+            def _calc_checksum_b(self, secret):
+                return 'b'
+
+        # test no backends
+        self.assertRaises(MissingBackendError, d1.get_backend)
+        self.assertRaises(MissingBackendError, d1.set_backend)
+        self.assertRaises(MissingBackendError, d1.set_backend, 'any')
+        self.assertRaises(MissingBackendError, d1.set_backend, 'default')
+        self.assertFalse(d1.has_backend())
+
+        # enable 'b' backend
+        d1._load_backend_b = classmethod(lambda cls: cls._calc_checksum_b)
+
+        # test lazy load
+        obj = d1()
+        self.assertEqual(obj._calc_checksum('s'), 'b')
+
+        # test repeat load
+        d1.set_backend('b')
+        d1.set_backend('any')
+        self.assertEqual(obj._calc_checksum('s'), 'b')
+
+        # test unavailable
+        self.assertRaises(MissingBackendError, d1.set_backend, 'a')
+        self.assertTrue(d1.has_backend('b'))
+        self.assertFalse(d1.has_backend('a'))
+
+        # enable 'a' backend also
+        d1._load_backend_a = classmethod(lambda cls: cls._calc_checksum_a)
+
+        # test explicit
+        self.assertTrue(d1.has_backend())
+        d1.set_backend('a')
+        self.assertEqual(obj._calc_checksum('s'), 'a')
+
+        # test unknown backend
+        self.assertRaises(ValueError, d1.set_backend, 'c')
+        self.assertRaises(ValueError, d1.has_backend, 'c')
+
+        # test error thrown if _has & _load are mixed
+        class d2(d1):
+            _has_backend_a = True
+        self.assertRaises(AssertionError, d2.has_backend, "a")
+
+    def test_41_backends(self):
+        """test GenericHandler + HasManyBackends mixin (deprecated api)"""
+        warnings.filterwarnings("ignore",
+            category=DeprecationWarning,
+            message=r".* support for \._has_backend_.* is deprecated.*",
+            )
+
+        class d1(uh.HasManyBackends, uh.GenericHandler):
+            name = 'd1'
+            setting_kwds = ()
+
+            backends = ("a", "b")
+
             _has_backend_a = False
             _has_backend_b = False
 
@@ -403,6 +472,52 @@ class SkeletonTest(TestCase):
         # test unknown backend
         self.assertRaises(ValueError, d1.set_backend, 'c')
         self.assertRaises(ValueError, d1.has_backend, 'c')
+
+    def test_42_tab(self):
+        """test HasManyBackends._try_alternate_backends() helper"""
+        class d1(uh.HasManyBackends, uh.GenericHandler):
+            name = 'd1'
+            setting_kwds = ()
+
+            backends = ("a", "b", "c")
+
+            @classmethod
+            def _load_backend_a(cls):
+                return cls._calc_a
+
+            def _calc_a(self, secret):
+                if secret == "a":
+                    return "a"
+                return self._try_alternate_backends(secret)
+
+            @classmethod
+            def _load_backend_b(cls):
+                return cls._calc_b
+
+            def _calc_b(self, secret):
+                if secret == "b":
+                    return "b"
+                return self._try_alternate_backends(secret)
+
+            @classmethod
+            def _load_backend_c(cls):
+                return None
+
+        handler = d1()
+
+        # A backend active
+        handler.set_backend("a")
+        self.assertEqual(handler._calc_checksum("a"), "a") # uses a
+        self.assertEqual(handler._calc_checksum("b"), "b") # falls back to b
+        self.assertRaises(uh.exc.MissingBackendError,
+                          handler._calc_checksum, "c") # no fallback
+
+        # B backend active
+        handler.set_backend("b")
+        self.assertEqual(handler._calc_checksum("b"), "b") # uses b
+        self.assertEqual(handler._calc_checksum("a"), "a") # falls back to a
+        self.assertRaises(uh.exc.MissingBackendError,
+                          handler._calc_checksum, "c") # no fallback
 
     def test_50_norm_ident(self):
         """test GenericHandler + HasManyIdents"""

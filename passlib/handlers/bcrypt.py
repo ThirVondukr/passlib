@@ -17,15 +17,10 @@ import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
-try:
-    from bcrypt import hashpw as pybcrypt_hashpw
-except ImportError: # pragma: no cover
-    pybcrypt_hashpw = None
-try:
-    from bcryptor.engine import Engine as bcryptor_engine
-except ImportError: # pragma: no cover
-    bcryptor_engine = None
+_pybcrypt_hashpw = None # dynamically imported by _load_backend_pybcrypt()
+_bcryptor_engine = None # dynamically imported by _load_backend_bcryptor()
 # pkg
+_builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.exc import PasslibHashWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
                           classproperty, rng, getrandstr, test_crypt
@@ -40,13 +35,6 @@ __all__ = [
 #=============================================================================
 # support funcs & constants
 #=============================================================================
-_builtin_bcrypt = None
-
-def _load_builtin():
-    global _builtin_bcrypt
-    if _builtin_bcrypt is None:
-        from passlib.utils._blowfish import raw_bcrypt as _builtin_bcrypt
-
 IDENT_2 = u("$2$")
 IDENT_2A = u("$2a$")
 IDENT_2X = u("$2x$")
@@ -235,55 +223,26 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return checksum
 
     #===================================================================
-    # primary interface
+    # backend configuration
     #===================================================================
+
     backends = ("pybcrypt", "bcryptor", "os_crypt", "builtin")
 
-    @classproperty
-    def _has_backend_pybcrypt(cls):
-        return pybcrypt_hashpw is not None
+    # appended to HasManyBackends' "no backends available" error message
+    _no_backend_suggestion = " -- recommend you install py-bcrypt 0.3+"
 
-    @classproperty
-    def _has_backend_bcryptor(cls):
-        return bcryptor_engine is not None
-
-    @classproperty
-    def _has_backend_builtin(cls):
-        if os.environ.get("PASSLIB_BUILTIN_BCRYPT") not in ["enable","enabled"]:
-            return False
-        # look at it cross-eyed, and it loads itself
-        _load_builtin()
-        return True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        # XXX: what to do if "2" isn't supported, but "2a" is?
-        #      "2" is *very* rare, and can fake it using "2a"+repeat_string
-        h1 = '$2$04$......................1O4gOrCYaqBG3o/4LnT2ykQUt1wbyju'
-        h2 = '$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'
-        return test_crypt("test",h1) and test_crypt("test", h2)
-
+    #---------------------------------------------------------------
+    # pybcrypt backend
+    #---------------------------------------------------------------
     @classmethod
-    def _no_backends_msg(cls):
-        return "no bcrypt backends available - please install py-bcrypt"
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self._get_config()
-        hash = safe_crypt(secret, config)
-        if hash:
-            assert hash.startswith(config) and len(hash) == len(config)+31
-            return hash[-31:]
-        else:
-            # NOTE: it's unlikely any other backend will be available,
-            # but checking before we bail, just in case.
-            for name in self.backends:
-                if name != "os_crypt" and self.has_backend(name):
-                    func = getattr(self, "_calc_checksum_" + name)
-                    return func(secret)
-            raise uh.exc.MissingBackendError(
-                "password can't be handled by os_crypt, "
-                "recommend installing py-bcrypt.",
-                )
+    def _load_backend_pybcrypt(cls):
+        # try to import pybcrypt
+        global _pybcrypt_hashpw
+        try:
+            from bcrypt import hashpw as _pybcrypt_hashpw
+        except ImportError: # pragma: no cover
+            return None
+        return cls._calc_checksum_pybcrypt
 
     def _calc_checksum_pybcrypt(self, secret):
         # py-bcrypt behavior:
@@ -295,9 +254,22 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         if _BNULL in secret:
             raise uh.exc.NullPasswordError(self)
         config = self._get_config()
-        hash = pybcrypt_hashpw(secret, config)
+        hash = _pybcrypt_hashpw(secret, config)
         assert hash.startswith(config) and len(hash) == len(config)+31
         return str_to_uascii(hash[-31:])
+
+    #---------------------------------------------------------------
+    # bcryptor backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_bcryptor(cls):
+        # try to import bcryptor
+        global _bcryptor_engine
+        try:
+            from bcryptor.engine import Engine as _bcryptor_engine
+        except ImportError: # pragma: no cover
+            return None
+        return cls._calc_checksum_bcryptor
 
     def _calc_checksum_bcryptor(self, secret):
         # bcryptor behavior:
@@ -320,9 +292,45 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             config = self._get_config(IDENT_2A)
         else:
             config = self._get_config()
-        hash = bcryptor_engine(False).hash_key(secret, config)
+        hash = _bcryptor_engine(False).hash_key(secret, config)
         assert hash.startswith(config) and len(hash) == len(config)+31
         return str_to_uascii(hash[-31:])
+
+    #---------------------------------------------------------------
+    # os crypt() backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        # XXX: what to do if "2" isn't supported, but "2a" is?
+        #      "2" is *very* rare, and can fake it using "2a"+repeat_string
+        h1 = '$2$04$......................1O4gOrCYaqBG3o/4LnT2ykQUt1wbyju'
+        h2 = '$2a$04$......................qiOQjkB8hxU8OzRhS.GhRMa4VUnkPty'
+        if test_crypt("test", h1) and test_crypt("test", h2):
+            return cls._calc_checksum_os_crypt
+        return None
+
+    def _calc_checksum_os_crypt(self, secret):
+        config = self._get_config()
+        hash = safe_crypt(secret, config)
+        if hash:
+            assert hash.startswith(config) and len(hash) == len(config)+31
+            return hash[-31:]
+        # get here mainly if 1) under py3, and 2) secret is latin-1 or other non-unicode bytes.
+        # in this case, another backend like pybcrypt should be able to get around
+        # py3's limitations.
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classproperty
+    def _load_backend_builtin(cls):
+        if os.environ.get("PASSLIB_BUILTIN_BCRYPT") not in ["enable","enabled"]:
+            return None
+        global _builtin_bcrypt
+        if _builtin_bcrypt is None:
+            from passlib.utils._blowfish import raw_bcrypt as _builtin_bcrypt
+        return cls._calc_checksum_builtin
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):

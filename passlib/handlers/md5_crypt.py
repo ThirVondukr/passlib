@@ -265,14 +265,14 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
 
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/')
-
-    def _calc_checksum_builtin(self, secret):
-        return _raw_md5_crypt(secret, self.salt)
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/'):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.ident + self.salt
@@ -280,8 +280,17 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 23
             return hash[-22:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_md5_crypt(secret, self.salt)
 
     #===================================================================
     # eoc

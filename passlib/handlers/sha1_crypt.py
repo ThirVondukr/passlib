@@ -81,7 +81,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #===================================================================
     # formatting
     #===================================================================
-
     @classmethod
     def from_string(cls, hash):
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
@@ -96,12 +95,30 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #===================================================================
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
+                              'ExLaiSFlGkAe'):
+            return cls._calc_checksum_os_crypt
+        return None
 
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
-                                          'ExLaiSFlGkAe')
+    def _calc_checksum_os_crypt(self, secret):
+        config = self.to_string(config=True)
+        hash = safe_crypt(secret, config)
+        if hash:
+            assert hash.startswith(config) and len(hash) == len(config) + 29
+            return hash[-28:]
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -127,15 +144,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         17,16,15,
         0,19,18,
     ]
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.to_string(config=True)
-        hash = safe_crypt(secret, config)
-        if hash:
-            assert hash.startswith(config) and len(hash) == len(config) + 29
-            return hash[-28:]
-        else:
-            return self._calc_checksum_builtin(secret)
 
     #===================================================================
     # eoc
