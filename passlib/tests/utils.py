@@ -9,6 +9,7 @@ import re
 import os
 import sys
 import tempfile
+import threading
 import time
 from passlib.exc import PasslibHashWarning
 from passlib.utils.compat import PY27, PY_MIN_32, PY3, JYTHON
@@ -1718,6 +1719,51 @@ class HandlerCase(TestCase):
                   self.descriptionPrefix,  count, len(verifiers),
                   ", ".join(vname(v) for v in verifiers))
 
+    def test_78_fuzz_threading(self):
+        """run test_77 simultaneously in multiple threads
+        in an attempt to detect any concurrency issues
+        (e.g. the bug fixed by pybcrypt 0.3)
+        """
+        import threading
+
+        # check if this test should run
+        if self.is_disabled_handler:
+            raise self.skipTest("not applicable")
+        thread_count = self.fuzz_thread_count
+        if not thread_count or self.max_fuzz_time <= 0:
+            raise self.skipTest("disabled by test mode")
+
+        # buffer to hold errors thrown by threads
+        failed_lock = threading.Lock()
+        failed = [0]
+
+        # launch <thread count> threads, all of which run
+        # test_77_fuzz_input(), and see if any errors get thrown.
+        # if hash has concurrency issues, this should reveal it.
+        def wrapper():
+            try:
+                self.test_77_fuzz_input()
+            except:
+                with failed_lock:
+                    failed[0] += 1
+                raise
+        def launch(n):
+            name = "Fuzz-Thread-%d (%s.test_78_fuzz_threading)" % (n, self.__class__.__name__)
+            thread = threading.Thread(target=wrapper, name=name)
+            thread.setDaemon(True)
+            thread.start()
+            return thread
+        threads = [launch(n) for n in irange(thread_count)]
+
+        # wait until all threads exit
+        for thread in threads:
+            thread.join()
+
+        # if any thread threw an error, raise one ourselves.
+        if failed[0]:
+            raise self.fail("%d/%d threads failed concurrent fuzz testing "
+                      "(see error log for details)" % (failed[0], thread_count))
+
     #---------------------------------------------------------------
     # fuzz constants & helpers
     #---------------------------------------------------------------
@@ -1740,6 +1786,19 @@ class HandlerCase(TestCase):
             return 1
         else:
             return 5
+
+    @property
+    def fuzz_thread_count(self):
+        "number of threads for threaded fuzz testing"
+        value = int(os.environ.get("PASSLIB_TEST_FUZZ_THREADS") or 0)
+        if value:
+            return value
+        elif TEST_MODE(max="quick"):
+            return 0
+        elif TEST_MODE(max="default"):
+            return 10
+        else:
+            return 20
 
     def os_supports_ident(self, ident):
         """whether native OS crypt() supports particular ident value"""

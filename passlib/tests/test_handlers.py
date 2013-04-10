@@ -222,19 +222,25 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_pybcrypt(self):
         # test against py-bcrypt if available
-        from passlib.handlers.bcrypt import IDENT_2A, IDENT_2Y
+        from passlib.handlers.bcrypt import IDENT_2A, IDENT_2Y, bcrypt
         from passlib.utils import to_native_str
         try:
             from bcrypt import hashpw
         except ImportError:
             return
+        bcrypt._load_backend_pybcrypt()
+        lock = bcrypt._calc_lock # reuse threadlock workaround for pybcrypt 0.2
         def check_pybcrypt(secret, hash):
             """pybcrypt"""
             secret = to_native_str(secret, self.fuzz_password_encoding)
             if hash.startswith(IDENT_2Y):
                 hash = IDENT_2A + hash[4:]
             try:
-                return hashpw(secret, hash) == hash
+                if lock:
+                    with lock:
+                        return hashpw(secret, hash) == hash
+                else:
+                    return hashpw(secret, hash) == hash
             except ValueError:
                 raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
         return check_pybcrypt

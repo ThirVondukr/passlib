@@ -22,7 +22,7 @@ _bcryptor_engine = None # dynamically imported by _load_backend_bcryptor()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.exc import PasslibHashWarning
-from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
+from passlib.utils import bcrypt64, safe_crypt, repeat_string, parse_version, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
@@ -234,6 +234,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #---------------------------------------------------------------
     # pybcrypt backend
     #---------------------------------------------------------------
+
+    #: classwide thread lock used for pybcrypt < 0.3
+    _calc_lock = None
+
     @classmethod
     def _load_backend_pybcrypt(cls):
         # try to import pybcrypt
@@ -242,7 +246,37 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             from bcrypt import hashpw as _pybcrypt_hashpw
         except ImportError: # pragma: no cover
             return None
-        return cls._calc_checksum_pybcrypt
+
+        # determine pybcrypt version
+        try:
+            from bcrypt._bcrypt import __version__ as vstr
+        except ImportError:
+            log.warning("couldn't determine pybcrypt version", exc_info=True)
+            vstr = "?.?"
+        version = parse_version(vstr)
+        if not version:
+            log.warning("couldn't parse pybcrypt version string: %r", vstr)
+            version = (0, 0)
+        log.debug("found pybcrypt version %s", vstr)
+
+        # return calc function based on version
+        if version < (0,3):
+            warn("py-bcrypt %s has a major security vulnerability, "
+                 "you should upgrade to py-bcrypt 0.3 immediately."
+                 % vstr, uh.exc.PasslibSecurityWarning)
+            if cls._calc_lock is None:
+                import threading
+                cls._calc_lock = threading.Lock()
+            return cls._calc_checksum_pybcrypt_threadsafe
+        else:
+            return cls._calc_checksum_pybcrypt
+
+    def _calc_checksum_pybcrypt_threadsafe(self, secret):
+        # as workaround for pybcrypt < 0.3's concurrency issue,
+        # we wrap everything in a thread lock. as long as bcrypt is only
+        # used through passlib, this should be safe.
+        with self._calc_lock:
+            return self._calc_checksum_pybcrypt(secret)
 
     def _calc_checksum_pybcrypt(self, secret):
         # py-bcrypt behavior:
