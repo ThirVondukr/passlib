@@ -371,8 +371,6 @@ class _bcrypt_test(HandlerCase):
         # make sure normhash() leaves non-bcrypt hashes alone
         self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
 
-hash.bcrypt._no_backends_msg() # call this for coverage purposes
-
 # create test cases for specific backends
 bcrypt_pybcrypt_test, bcrypt_bcryptor_test, bcrypt_os_crypt_test, bcrypt_builtin_test = \
                _bcrypt_test.create_backend_cases(["pybcrypt", "bcryptor", "os_crypt", "builtin"])

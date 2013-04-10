@@ -7,7 +7,7 @@ import hashlib
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
+from passlib.utils import h64, safe_crypt, test_crypt, \
                           repeat_string, to_unicode
 from passlib.utils.compat import b, bytes, byte_elem_value, u, \
                                  uascii_to_str, unicode

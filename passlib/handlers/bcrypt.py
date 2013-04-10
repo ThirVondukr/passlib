@@ -23,7 +23,7 @@ _bcryptor_engine = None # dynamically imported by _load_backend_bcryptor()
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.exc import PasslibHashWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, parse_version, \
-                          classproperty, rng, getrandstr, test_crypt
+                          rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
@@ -357,7 +357,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #---------------------------------------------------------------
     # builtin backend
     #---------------------------------------------------------------
-    @classproperty
+    @classmethod
     def _load_backend_builtin(cls):
         if os.environ.get("PASSLIB_BUILTIN_BCRYPT") not in ["enable","enabled"]:
             return None
