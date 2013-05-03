@@ -85,6 +85,9 @@ Application Helpers
     :mod:`passlib.ext.django`
         Django plugin which monkeypatches support for (almost) any hash in Passlib.
 
+    :mod:`passlib.pwd`
+        Password generation helpers.
+
 ..
     Support Modules
     ---------------

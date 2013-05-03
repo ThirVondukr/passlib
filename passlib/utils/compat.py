@@ -260,8 +260,14 @@ if PY_MAX_25:
             return itr.next()
         except StopIteration:
             return default
+    def chain_from_iterable(itr):
+        for subitr in itr:
+            for elem in subitr:
+                yield elem
 else:
+    from itertools import chain
     next = builtins.next
+    chain_from_iterable = chain.from_iterable
 
 #=============================================================================
 # typing

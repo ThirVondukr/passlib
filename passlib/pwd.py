@@ -1,22 +1,4 @@
-"""
-=================================================
-:mod:`passlib.pwd` -- password generation helpers
-=================================================
-
-.. todo::
-
-    This module is still a work in progress.
-
-    * Unit tests !!!
-
-    * Add password strength measurement helper(s).
-      Currently looking at the NIST 800-63 algorithm, though this incorrectly
-      estimates a number of generation schemes.
-
-    * Sanity checks
-
-.. autofunction:: generate(size=None, entropy=None, count=None, preset=None, charset=None, wordset=None, spaces=True)
-"""
+"""passlib.pwd -- password generation helpers"""
 #=============================================================================
 # imports
 #=============================================================================
@@ -41,7 +23,7 @@ __all__ = [
 # constants
 #=============================================================================
 
-#: default entropy for generated passwords
+#: default entropy amount for generated passwords
 default_entropy = 48
 
 #: default presets
@@ -53,12 +35,20 @@ charsets = dict(
     safe52='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz',
 )
 
-#: dict of preset wordsets, values=None are lazy-loaded from disk
+#: dict of preset word sets,
+#: values set to None are lazy-loaded from disk by _load_wordset()
 wordsets = dict(
     diceware=None,
     beale=None,
     electrum=None,
 )
+
+#: sha256 digest for wordset files, used as sanity check by _load_wordset()
+_wordset_checksums = dict(
+    diceware="b39e6c367066a75208424cb591f64f188bb6ad69c61da52195718203c18b93d6",
+    beale="4b3ca06b22094df07b078e28f632845191ef927deb5a7c77b0f788b336fb80e6",
+    electrum="d4975b36cff7002332f6e8dff5477af52089c48ad6535272bbff6fb850ffe206",
+    )
 
 #: misc helper constants
 _PCW_MSG = "`preset`, `charset`, and `wordset` are mutually exclusive"
@@ -72,7 +62,7 @@ def _entropy_per_char(words):
     """return the average entropy per character in a given wordset,
     using each char's frequency in the wordset as the probability of occurrence.
 
-    :arg words:
+    :arg wordset:
         iterable containing 1+ words, each of which are themselves
         iterables containing 1+ characters.
     :returns:
@@ -97,6 +87,14 @@ def _load_wordset(name):
     with open(source, "rb") as fh:
         data = fh.read()
 
+    # verify against checksum
+    try:
+        checksum = _wordset_checksums[name]
+    except KeyError: # pragma: no cover -- sanity check
+        raise AssertionError("no checksum for wordset: %r" % name)
+    if sha256(data).hexdigest() != checksum:
+        raise RuntimeError("%r wordset file corrupted" % name)
+
     # decompress and return wordset
     words = wordsets[name] = zlib.decompress(data).decode("utf-8").splitlines()
     log.debug("loaded %d-element wordset from %r", len(words), source)
@@ -110,20 +108,33 @@ class SecretGenerator(object):
 
     These objects take a series of options, corresponding
     to those of the :func:`generate` function.
-    They act as callables which can be used to generate a password,
-    or a list of passwords, as well as exposing some read-only
-    informational attributes:
+    They act as callables which can be used to generate a password
+    or a list of 1+ passwords. They also expose some read-only
+    informational attributes.
 
-    .. autoattribute:: size
-    .. autoattribute:: entropy
-    .. autoattribute:: entropy_per_elem
+    :param entropy:
+        Optionally specify the amount of entropy the resulting passwords
+        should contain (as measured with respect to the generator itself).
+        This will be used to autocalculate the required password size.
+
+        Also exposed as a readonly attribute.
+
+    :param size:
+        Optionally specify the size of password to generate,
+        measured in whatever symbols the subclass uses (characters or words).
+        Note that if both ``size`` and ``entropy`` are specified,
+        the larger requested size will be used.
+
+        Also exposed as a readonly attribute.
+
+    .. autoattribute:: entropy_rate
     """
     #=============================================================================
     # instance attrs
     #=============================================================================
 
-    #: entropy rate per element of generated password
-    entropy_per_elem = None
+    #: entropy rate per symbol of generated password (character or word)
+    entropy_rate = None
 
     #: requested size of final passwords
     size = None
@@ -135,7 +146,7 @@ class SecretGenerator(object):
     # init
     #=============================================================================
     def __init__(self, size=None, entropy=None, rng=None, **kwds):
-        # NOTE: subclass should have already set .entropy_per_elem
+        # NOTE: subclass should have already set .entropy_rate
         if size is None:
             size = 1
             if entropy is None:
@@ -145,7 +156,7 @@ class SecretGenerator(object):
         if entropy is not None:
             if entropy <= 0:
                 raise ValueError("`entropy` must be positive number")
-            size = max(size, int(ceil(entropy / self.entropy_per_elem)))
+            size = max(size, int(ceil(entropy / self.entropy_rate)))
         self.size = size
         if rng is not None:
             self.rng = rng
@@ -156,17 +167,19 @@ class SecretGenerator(object):
     #=============================================================================
     @property
     def entropy(self):
-        """entropy of generated passwords (with respect to the scheme)"""
-        return self.size * self.entropy_per_elem
+        """entropy of generated passwords (
+        measured with respect to the generation scheme)"""
+        return self.size * self.entropy_rate
 
     def _gen(self):
-        "main generation function"
+        """main generation function"""
         raise NotImplementedError, "implement in subclass"
 
     #=============================================================================
     # iter & callable frontend
     #=============================================================================
     def __call__(self, count=None):
+        """create and return passwords"""
         if count is None:
             return self._gen()
         else:
@@ -187,16 +200,23 @@ class SecretGenerator(object):
     #=============================================================================
 
 class WordGenerator(SecretGenerator):
-    """helper class created by create_generator(),
-    used to generate passwords from a charset.
+    """class which generates passwords by randomly choosing
+    from a string of unique characters.
 
-    see :func:`passlib.pwd.create_generator` for details.
+    :param charset:
+        charset to draw from.
+    :param preset:
+        name of preset charset to use instead of explict charset.
+    :param \*\*kwds:
+        all other keywords passed to :class:`SecretGenerator`.
+
+    .. autoattribute:: charset
     """
     #=============================================================================
     # instance attrs
     #=============================================================================
 
-    #: string of chars to draw from
+    #: charset used by this generator
     charset = None
 
     #=============================================================================
@@ -212,9 +232,9 @@ class WordGenerator(SecretGenerator):
         if len(set(charset)) != len(charset):
             raise ValueError("`charset` cannot contain duplicate elements")
         self.charset = charset
-        self.entropy_per_elem = logf(len(charset), 2)
+        self.entropy_rate = logf(len(charset), 2)
         super(WordGenerator, self).__init__(**kwds)
-        ##log.debug("WordGenerator(): entropy/char=%r", self.entropy_per_elem)
+        ##log.debug("WordGenerator(): entropy/char=%r", self.entropy_rate)
 
     #=============================================================================
     # helpers
@@ -227,8 +247,19 @@ class WordGenerator(SecretGenerator):
     #=============================================================================
 
 class PhraseGenerator(SecretGenerator):
-    """helper class created by create_generator(),
-    used to generate passphrases from a wordset.
+    """class which generates passphrases by randomly choosing
+    from a list of unique words.
+
+    :param wordset:
+        wordset to draw from.
+    :param preset:
+        name of preset wordlist to use instead of ``wordset``.
+    :param spaces:
+        whether to insert spaces between words in output (defaults to ``True``).
+    :param \*\*kwds:
+        all other keywords passed to :class:`SecretGenerator`.
+
+    .. autoattribute:: wordset
     """
     #=============================================================================
     # instance attrs
@@ -237,12 +268,12 @@ class PhraseGenerator(SecretGenerator):
     #: list of words to draw from
     wordset = None
 
-    #: average entropy per char
-    entropy_per_char = None
+    #: average entropy per char within wordset
+    _entropy_per_char = None
 
     #: minimum size string this will output, to prevent low-entropy
     #: phrases from leaking through.
-    min_chars = None
+    _min_chars = None
 
     #=============================================================================
     # init
@@ -259,7 +290,7 @@ class PhraseGenerator(SecretGenerator):
         if len(set(wordset)) != len(wordset):
             raise ValueError("`wordset` cannot contain duplicate elements")
         self.wordset = wordset
-        self.entropy_per_elem = logf(len(wordset), 2)
+        self.entropy_rate = logf(len(wordset), 2)
         super(PhraseGenerator, self).__init__(**kwds)
         # NOTE: regarding min_chars:
         #       in order to ensure a brute force attack against underlying
@@ -269,15 +300,15 @@ class PhraseGenerator(SecretGenerator):
         #                    words_in_phrase * entropy_per_word``.
         #       this is done by finding the minimum chars required to invalidate
         #       the inequality, and then rejecting any phrases that are shorter.
-        self.entropy_per_char = _entropy_per_char(wordset)
-        self.min_chars = int(self.entropy / self.entropy_per_char)
+        self._entropy_per_char = _entropy_per_char(wordset)
+        self._min_chars = int(self.entropy / self._entropy_per_char)
         if spaces:
-            self.min_chars += self.size-1
+            self._min_chars += self.size-1
             self._sep = _USPACE
         else:
             self._sep = _UEMPTY
         ##log.debug("PhraseGenerator(): entropy/word=%r entropy/char=%r min_chars=%r",
-        ##          self.entropy_per_elem, self.entropy_per_char, self.min_chars)
+        ##          self.entropy_rate, self._entropy_per_char, self._min_chars)
 
     #=============================================================================
     # helpers
@@ -286,7 +317,7 @@ class PhraseGenerator(SecretGenerator):
         while True:
             secret = self._sep.join(self.rng.choice(self.wordset)
                                     for _ in irange(self.size))
-            if len(secret) >= self.min_chars: # see __init__ for explanation
+            if len(secret) >= self._min_chars: # see __init__ for explanation
                 return secret
 
     #=============================================================================
@@ -299,7 +330,7 @@ class PhraseGenerator(SecretGenerator):
 def generate(size=None, entropy=None, count=None,
              preset=None, charset=None, wordset=None,
              **kwds):
-    """generate one or more random password / passphrases.
+    """Generate one or more random password / passphrases.
 
     This function uses :mod:`random.SystemRandom` to generate
     one or more passwords; it can be configured to generate
@@ -307,24 +338,16 @@ def generate(size=None, entropy=None, count=None,
     The complexity of the password can be specified
     by size, or by the desired amount of entropy.
 
-    .. warning::
-
-        This function is primarily intended for generating temporary
-        passwords for new user accounts. If used as an aid to generate
-        your own passwords, be sure your system's RNG state is safe,
-        and that you use a sufficiently high ``entropy`` value for
-        the intended purpose.
-
     Usage Example::
 
-        >>> from passlib.pwd import generate
-        >>> # generate random alphanumeric string with default 48 bits of entropy
-        >>> generate_password()
-        'DnBHvDjMK6'
+        >>> # generate random english phrase with 48 bits of entropy
+        >>> from passlib import pwd
+        >>> pwd.generate()
+        'cairn pen keys flaw'
 
-        >>> # generate random english phrase with 52 bits of entropy
-        >>> generate_password(entropy=52, mode="phrase")
-        'cairn penn keyes flaw stem'
+        >>> # generate a random alphanumeric string with default 52 bits of entropy
+        >>> pwd.generate(entropy=52, preset="safe52")
+        'DnBHvDjMK6'
 
     :param size:
         Size of resulting password, measured in characters or words.
@@ -334,14 +357,14 @@ def generate(size=None, entropy=None, count=None,
         Strength of resulting password, measured in bits of Shannon entropy
         (defaults to 48).
 
-        Based on the ``mode`` in use, the ``size`` parameter will be
+        Based on the mode in use, the ``size`` parameter will be
         autocalculated so that that an attacker will need an average of
         ``2**(entropy-1)`` attempts to correctly guess the password
         (this measurement assumes the attacker knows the mode
         and configuration options in use, but nothing of the RNG state).
 
         If both ``entropy`` and ``size`` are specified,
-        the larger of the two values will be used.
+        the larger effective size will be used.
 
     :param count:
         By default this generates a single password.
@@ -353,21 +376,28 @@ def generate(size=None, entropy=None, count=None,
         when generating a password. This option cannot be combined
         with ``charset`` or ``wordset``; if all three are omitted,
         this function defaults to ``preset="beale"``.
+
         There are currently three presets available:
 
-        * ``"safe52"`` -- preset which outputs random alphanumeric passwords,
-          using a 52-element character set containing the characters A-Z and 0-9,
-          except for ``1IiLl0OoS5`` (which were omitted due to their visual similarity).
-          This charset has ~5.7 bits of entropy per character.
+        ``"safe52"``
 
-        * ``"diceware"`` -- preset which outputs random english phrases,
-          drawn randomly from a list of 7776 english words set down
-          by the `Diceware <http://world.std.com/~reinhold/diceware.html>` project.
-          This wordset has ~12.9 bits of entropy per word.
+            preset which outputs random alphanumeric passwords,
+            using a 52-element character set containing the characters A-Z and 0-9,
+            except for ``1IiLl0OoS5`` (which were omitted due to their visual similarity).
+            This charset has ~5.7 bits of entropy per character.
 
-        * ``"beale"`` -- variant of the Diceware wordlist as edited by
-          Alan Beale, also available from the diceware project.
-          This wordset has ~12.9 bits of entropy per word.
+        ``"diceware"``
+
+            preset which outputs random english phrases,
+            drawn randomly from a list of 7776 english words set down
+            by the `Diceware <http://world.std.com/~reinhold/diceware.html>`_ project.
+            This wordset has ~12.9 bits of entropy per word.
+
+        ``"beale"``
+
+            variant of the Diceware wordlist as edited by
+            Alan Beale, also available from the diceware project.
+            This wordset has ~12.9 bits of entropy per word.
 
     :param charset:
         Optionally specifies a string of characters to use when randomly

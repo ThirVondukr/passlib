@@ -9,9 +9,16 @@ Release History
 
 Minor Additions
 ---------------
+* New :mod:`passlib.pwd` module added to aid in password generation.
 
 * The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
   hashes have been sped up by ~20% compared to Passlib 1.6.
+
+Deprecations
+------------
+* The :func:`~passlib.utils.generate_secret` function has been deprecated
+  in favor of the new :mod:`passlib.pwd` module, and will be removed
+  in Passlib 2.0.
 
 Todo
 ----
