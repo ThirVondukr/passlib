@@ -12,11 +12,13 @@ import os
 import zlib
 # site
 # pkg
-from passlib.utils.compat import PY3, irange, u
+from passlib.utils.compat import PY3, irange, itervalues, u, chain_from_iterable
 from passlib.utils import rng, getrandstr
 # local
 __all__ = [
     'generate',
+    'strength',
+    'classify',
 ]
 
 #=============================================================================
@@ -58,7 +60,51 @@ _UEMPTY = u("")
 #=============================================================================
 # internal helpers
 #=============================================================================
-def _entropy_per_char(words):
+
+# XXX: would this be more appropriate as _self_info()?
+def _average_entropy(source, total=False):
+    """returns the rate of self-information in a sequence of symbols,
+    (or total self-information if total=True).
+
+    this is eqvuialent to the average entropy of a given symbol,
+    using the sequence itself as the symbol probability distribution.
+    if all elements of the source are unique, this should equal
+    ``log(len(source), 2)``.
+
+    :arg source:
+        iterable containing 0+ symbols
+    :param total:
+        instead of returning average entropy rate,
+        return total self-information
+    :returns:
+        float bits
+    """
+    try:
+        size = len(source)
+    except TypeError:
+        # if len() doesn't work, calculate size by summing counts later
+        size = None
+    counts = defaultdict(int)
+    for char in source:
+        counts[char] += 1
+    if size is None:
+        values = counts.values()
+        size = sum(values)
+    else:
+        values = itervalues(counts)
+    if not size:
+        return 0
+    ### NOTE: below code performs the calculation
+    ###       ``- sum(value / size * logf(value / size, 2) for value in values)``,
+    ###       and then multplies by ``size`` if total is True,
+    ###       it just does it with fewer operations.
+    tmp = sum(value * logf(value, 2) for value in values)
+    if total:
+        return size * logf(size, 2) - tmp
+    else:
+        return logf(size, 2) - tmp / size
+
+def _average_wordset_entropy(wordset):
     """return the average entropy per character in a given wordset,
     using each char's frequency in the wordset as the probability of occurrence.
 
@@ -68,16 +114,7 @@ def _entropy_per_char(words):
     :returns:
         float bits of entropy
     """
-    hist = {}
-    for word in words:
-        for char in word:
-            try:
-                hist[char] += 1
-            except KeyError:
-                hist[char] = 1
-    values = hist.values()
-    norm = 1.0 / sum(values)
-    return -sum(count * norm * logf(count * norm, 2) for count in values)
+    return _average_entropy(chain_from_iterable(wordset))
 
 def _load_wordset(name):
     "helper load compressed wordset from package data"
@@ -173,7 +210,7 @@ class SecretGenerator(object):
 
     def _gen(self):
         """main generation function"""
-        raise NotImplementedError, "implement in subclass"
+        raise NotImplementedError("implement in subclass")
 
     #=============================================================================
     # iter & callable frontend
@@ -289,6 +326,8 @@ class PhraseGenerator(SecretGenerator):
                 wordset = _load_wordset(preset)
         if len(set(wordset)) != len(wordset):
             raise ValueError("`wordset` cannot contain duplicate elements")
+        if not isinstance(wordset, (list, tuple)):
+            wordset = tuple(wordset)
         self.wordset = wordset
         self.entropy_rate = logf(len(wordset), 2)
         super(PhraseGenerator, self).__init__(**kwds)
@@ -300,7 +339,7 @@ class PhraseGenerator(SecretGenerator):
         #                    words_in_phrase * entropy_per_word``.
         #       this is done by finding the minimum chars required to invalidate
         #       the inequality, and then rejecting any phrases that are shorter.
-        self._entropy_per_char = _entropy_per_char(wordset)
+        self._entropy_per_char = _average_wordset_entropy(wordset)
         self._min_chars = int(self.entropy / self._entropy_per_char)
         if spaces:
             self._min_chars += self.size-1
@@ -451,15 +490,7 @@ def strength(symbols):
     param symbols: a sequence of symbols (e.g. password string/unicode)
     returns: password strength estimate [float]
     """
-    # we don't use len(symbols) as we need to iterate over all symbols ONCE
-    # anyway and some len implementations might be less efficient than this.
-    length = 0
-    counts = defaultdict(int)
-    for symbol in symbols:
-        length += 1
-        counts[symbol] += 1
-    probabilities = [count / length for count in counts.values()]
-    return - length * sum(p * logf(p, 2) for p in probabilities)
+    return _average_entropy(symbols, total=True)
 
 CLASSIFICATIONS = [
     (10, 0), # everything < 10 returns 0 (weak)

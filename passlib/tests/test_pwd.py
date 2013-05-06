@@ -9,13 +9,60 @@ import logging; log = logging.getLogger(__name__)
 from passlib.tests.utils import TestCase
 # local
 __all__ = [
-    "StrengthTest"
+    "UtilsTest",
+    "GenerateTest",
+    "StrengthTest",
 ]
+
+#=============================================================================
+#
+#=============================================================================
+class UtilsTest(TestCase):
+    """test internal utilities"""
+    descriptionPrefix = "passlib.pwd"
+
+    def test_average_entropy(self):
+        "_average_entropy()"
+        from passlib.pwd import _average_entropy
+
+        self.assertEqual(_average_entropy(""), 0)
+        self.assertEqual(_average_entropy("", True), 0)
+
+        self.assertEqual(_average_entropy("a"*8), 0)
+        self.assertEqual(_average_entropy("a"*8, True), 0)
+
+        self.assertEqual(_average_entropy("ab"), 1)
+        self.assertEqual(_average_entropy("ab"*8), 1)
+        self.assertEqual(_average_entropy("ab", True), 2)
+        self.assertEqual(_average_entropy("ab"*8, True), 16)
+
+        self.assertEqual(_average_entropy("abcd"), 2)
+        self.assertEqual(_average_entropy("abcd"*8), 2)
+        self.assertAlmostEqual(_average_entropy("abcdaaaa"), 1.5488, 4)
+        self.assertEqual(_average_entropy("abcd", True), 8)
+        self.assertEqual(_average_entropy("abcd"*8, True), 64)
+        self.assertAlmostEqual(_average_entropy("abcdaaaa", True), 12.3904, 4)
+
+#=============================================================================
+# generation
+#=============================================================================
+class GenerateTest(TestCase):
+    """test generation routines"""
+    descriptionPrefix = "passlib.pwd"
+
+    def test_PhraseGenerator(self):
+        """PhraseGenerator()"""
+        from passlib.pwd import PhraseGenerator
+
+        # test wordset can be any iterable
+        results = PhraseGenerator(size=3, wordset=set("abc"))(5000)
+        self.assertEqual(len(set(results)), 27)
 
 #=============================================================================
 # strength
 #=============================================================================
 class StrengthTest(TestCase):
+    """test strength measurements"""
     descriptionPrefix = "passlib.pwd"
 
     reference = [

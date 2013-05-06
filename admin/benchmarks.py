@@ -264,6 +264,20 @@ def test_pbkdf2_sha256():
     return helper
 
 #=============================================================================
+# entropy estimates
+#=============================================================================
+@benchmark.constructor()
+def test_average_entropy():
+    from passlib.pwd import _average_entropy
+    testc = "abcdef"*100000
+    def helper():
+        _average_entropy(testc)
+        _average_entropy(testc, True)
+        _average_entropy(iter(testc))
+        _average_entropy(iter(testc), True)
+    return helper
+
+#=============================================================================
 # main
 #=============================================================================
 def main(*args):
