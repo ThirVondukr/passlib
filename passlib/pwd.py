@@ -324,9 +324,6 @@ class PhraseGenerator(SecretGenerator):
     # eoc
     #=============================================================================
 
-#=============================================================================
-# frontend
-#=============================================================================
 def generate(size=None, entropy=None, count=None,
              preset=None, charset=None, wordset=None,
              **kwds):
@@ -442,6 +439,50 @@ def generate(size=None, entropy=None, count=None,
 
     # return passwords
     return gen(count)
+
+#=============================================================================
+# password strength measurement
+#=============================================================================
+def strength(symbols):
+    """
+    roughly estimate the strength of the password.
+    this is a bit better than just using len(password).
+
+    param symbols: a sequence of symbols (e.g. password string/unicode)
+    returns: password strength estimate [float]
+    """
+    # we don't use len(symbols) as we need to iterate over all symbols ONCE
+    # anyway and some len implementations might be less efficient than this.
+    length = 0
+    counts = defaultdict(int)
+    for symbol in symbols:
+        length += 1
+        counts[symbol] += 1
+    probabilities = [count / length for count in counts.values()]
+    return - length * sum(p * logf(p, 2) for p in probabilities)
+
+CLASSIFICATIONS = [
+    (10, 0), # everything < 10 returns 0 (weak)
+    (20, 1), # 10 <= s < 20 returns 1 (maybe still too weak)
+    (None, 2), # everything else returns 2
+    # last tuple must be (None, MAXVAL)
+]
+
+def classify(symbols, classifications=CLASSIFICATIONS):
+    """
+    roughly classify the strength of the password.
+    this is a bit better than just using len(password).
+
+    param symbols: a sequence of symbols (e.g. password string/unicode)
+    param classifications: list of tuples (limit, classification)
+    returns: classification value
+    """
+    s = strength(symbols)
+    for limit, classification in classifications:
+        if limit is None or s < limit:
+            return classification
+    else:
+       raise ValueError("classifications needs to end with a (None, MAXVAL) tuple")
 
 #=============================================================================
 # eof
