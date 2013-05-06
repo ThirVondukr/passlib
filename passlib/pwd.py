@@ -1,4 +1,69 @@
-"""passlib.pwd -- password generation helpers"""
+"""passlib.pwd -- password generation helpers.
+
+current api
+===========
+generation
+    * frontend: generate()
+    * backends: PhraseGenerator(), WordGenerator()
+
+strength
+    * strength(), classify()
+    * XXX: consider redo-ing as returning an informational object,
+      ala ``https://github.com/lowe/zxcvbn``'s result object
+
+TODO
+====
+This module's design is in flux, and may be changed before release.
+The following known bits remain:
+
+misc
+----
+* the terminology about what's being measured by _average_entropy() etc
+  may not be correct. this needs fixing before the module is released.
+  need to find a good reference on information theory, to make sure terminology
+  and formulas are correct :)
+
+    * when researching, also need to find any papers attempting to measure
+      guessing entropy (w/ respect to cracker's attack model),
+      rather than entropy with respect to a particular password
+      generation algorithm.
+
+* add a "crack time" estimation to generate & classify?
+  might be useful to give people better idea of what measurements mean.
+
+generation
+----------
+* unittests for generation code
+* add create_generator() frontend?
+* straighten out any unicode issues this code may have.
+    - primarily, this should always return unicode (currently doesn't)
+* don't like existing wordsets.
+    - diceware has some weird bordercases that average users may not like
+    - electrum's set isn't large enough for these purposes
+    - looking into modified version of wordfrequency.info's 5k list
+      (could merge w/ diceware, and remove commonly used passwords)
+
+strength
+--------
+* unittests for strength measurement
+* improve api for strength measurement
+    * one issue: need way to indicate when measurement is a lower/upper
+      bound, rather than and/or the accuracy of a given measurement.
+        * need to present this in a way which makes it easy to write
+          a password-strength meter,
+        * yet can have it's scale tweaked if the heuristics are revised.
+        * could look at https://github.com/lowe/zxcvbn for some ideas.
+* add more strength measurement algorithms
+    * NIST 800-63 should be easy
+    * zxcvbn (https://tech.dropbox.com/2012/04/zxcvbn-realistic-password-strength-estimation/)
+      might also be good, and has approach similar to composite approach
+      i was already thinking about.
+    * passfault (https://github.com/c-a-m/passfault) looks *very* thorough,
+      but may have licensing issues, plus porting to python
+      looks like very big job :(
+    * give a look at running things through zlib - might be able to cheaply
+      catch extra redundancies.
+"""
 #=============================================================================
 # imports
 #=============================================================================
