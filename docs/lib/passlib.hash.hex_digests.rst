@@ -1,6 +1,6 @@
-==============================================================
-:samp:`passlib.hash.hex_{digest}` - Generic Hexdecimal Digests
-==============================================================
+===============================================================
+:samp:`passlib.hash.hex_{digest}` - Generic Hexadecimal Digests
+===============================================================
 
 .. warning::
 
@@ -12,7 +12,7 @@
 .. currentmodule:: passlib.hash
 
 Some existing applications store passwords by storing them using
-hexidecimal-encoded message digests, such as MD5 or SHA1.
+hexadecimal-encoded message digests, such as MD5 or SHA1.
 Such schemes are *extremely* vulnerable to pre-computed brute-force attacks,
 and should not be used in new applications. However, for the sake
 of backwards compatibility when converting existing applications,
@@ -47,7 +47,7 @@ Interface
 .. class:: hex_sha256()
 .. class:: hex_sha512()
 
-    Each of these classes implements a plain hexidecimal encoded
+    Each of these classes implements a plain hexadecimal encoded
     message digest, using the relevant digest function from :mod:`!hashlib`,
     and following the :ref:`password-hash-api`.
 
@@ -61,5 +61,5 @@ Interface
 Format & Algorithm
 ==================
 All of these classes just report the result of the specified digest,
-encoded as a series of lowercase hexidecimal characters;
+encoded as a series of lowercase hexadecimal characters;
 though upper case is accepted as input.

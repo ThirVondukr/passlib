@@ -77,7 +77,7 @@ def main(*args):
         rounds_to_cost = cost_to_rounds = lambda value: value
 
     def clamp_rounds(rounds):
-        "convert float rounds to int value, clamped to hasher's limits"
+        """convert float rounds to int value, clamped to hasher's limits"""
         if hasher.max_rounds and rounds > hasher.max_rounds:
             rounds = hasher.max_rounds
         rounds = int(rounds)
@@ -91,7 +91,7 @@ def main(*args):
         return sum(seq) / len(seq)
 
     def estimate_speed(rounds):
-        "estimate speed using specified # of rounds"
+        """estimate speed using specified # of rounds"""
         # time a single verify() call
         secret = "S0m3-S3Kr1T"
         hash = hasher.encrypt(secret, rounds=rounds)

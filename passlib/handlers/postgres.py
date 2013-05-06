@@ -4,13 +4,11 @@
 #=============================================================================
 # core
 from hashlib import md5
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import to_bytes
-from passlib.utils.compat import b, bytes, str_to_uascii, unicode, u
+from passlib.utils.compat import str_to_uascii, unicode, u
 import passlib.utils.handlers as uh
 # local
 __all__ = [

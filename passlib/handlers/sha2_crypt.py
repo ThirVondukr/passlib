@@ -5,12 +5,11 @@
 # core
 import hashlib
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, \
+from passlib.utils import h64, safe_crypt, test_crypt, \
                           repeat_string, to_unicode
-from passlib.utils.compat import b, bytes, byte_elem_value, irange, u, \
+from passlib.utils.compat import b, bytes, byte_elem_value, u, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
@@ -240,7 +239,7 @@ _UZERO = u("0")
 
 class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
                    uh.GenericHandler):
-    "class containing common code shared by sha256_crypt & sha512_crypt"
+    """class containing common code shared by sha256_crypt & sha512_crypt"""
     #===================================================================
     # class attrs
     #===================================================================
@@ -335,13 +334,18 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     #===================================================================
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
 
-    # _has_backend_os_crypt - provided by subclass
+    #: test hash for OS detection -- provided by subclass
+    _test_hash = None
 
-    def _calc_checksum_builtin(self, secret):
-        return _raw_sha2_crypt(secret, self.salt, self.rounds,
-                               self._cdb_use_512)
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt(*cls._test_hash):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
         hash = safe_crypt(secret, self.to_string())
@@ -351,8 +355,18 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             cs = self.checksum_size
             assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
             return hash[-cs:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_sha2_crypt(secret, self.salt, self.rounds,
+                               self._cdb_use_512)
 
     #===================================================================
     # eoc
@@ -406,10 +420,8 @@ class sha256_crypt(_SHA2_Common):
     #===================================================================
     # backends
     #===================================================================
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", "$5$rounds=1000$test$QmQADEXMG8POI5W"
-                                         "Dsaeho0P36yK3Tcrgboabng6bkb/")
+    _test_hash = ("test", "$5$rounds=1000$test$QmQADEXMG8POI5W"
+                          "Dsaeho0P36yK3Tcrgboabng6bkb/")
 
     #===================================================================
     # eoc
@@ -468,12 +480,10 @@ class sha512_crypt(_SHA2_Common):
     #===================================================================
     # backend
     #===================================================================
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", "$6$rounds=1000$test$2M/Lx6Mtobqj"
-                                          "Ljobw0Wmo4Q5OFx5nVLJvmgseatA6oMn"
-                                          "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
-                                          "I5c7TZauS0")
+    _test_hash = ("test", "$6$rounds=1000$test$2M/Lx6Mtobqj"
+                          "Ljobw0Wmo4Q5OFx5nVLJvmgseatA6oMn"
+                          "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
+                          "I5c7TZauS0")
 
     #===================================================================
     # eoc

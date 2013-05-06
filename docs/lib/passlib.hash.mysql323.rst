@@ -13,7 +13,7 @@
     password hashes.
 
 This class implements the first of MySQL's password hash functions,
-used to store it's user account passwords. Introduced in MySQL 3.2.3
+used to store its user account passwords. Introduced in MySQL 3.2.3
 under the function ``PASSWORD()``, this function was renamed
 to ``OLD_PASSWORD()`` under MySQL 4.1, when a newer password
 hash algorithm was introduced (see :class:`~passlib.hash.mysql41`).
@@ -45,7 +45,7 @@ Interface
 
 Format & Algorithm
 ==================
-A mysql-323 password hash consists of 16 hexidecimal digits,
+A mysql-323 password hash consists of 16 hexadecimal digits,
 directly encoding the 64 bit checksum. MySQL always uses
 lower-case letters, and so does Passlib
 (though Passlib will recognize upper case letters as well).

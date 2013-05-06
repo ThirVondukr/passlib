@@ -7,13 +7,28 @@ Release History
 **1.7** (NOT YET RELEASED)
 ==========================
 
-Minor Additions
----------------
+Major Changes
+-------------
 * New :mod:`passlib.pwd` module added to aid in password generation
   and strength measurement (with contributions from Thomas Waldmann).
 
 * The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
   hashes have been sped up by ~20% compared to Passlib 1.6.
+
+* Passlib will now detect and work around the fatal concurrency bug
+  in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`
+  will also be issued). Nevertheless, users are *strongly* encouraged
+  to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
+  the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+
+Minor Changes
+-------------
+* The shared :class:`!PasswordHash` unittests now check all hash handlers for
+  basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
+
+* The internal support module :mod:`passlib.utils.pbkdf2` has gained
+  to new helpers: :func:`~passlib.utils.pbkdf2.get_hash_info`
+  and :func:`~passlib.utils.pbkdf2.get_keyed_prf`.
 
 Deprecations
 ------------
@@ -21,10 +36,19 @@ Deprecations
   in favor of the new :mod:`passlib.pwd` module, and will be removed
   in Passlib 2.0.
 
+* :class:`passlib.utils.handlers.HasManyBackends` internal API change
+
+  Applications implementing a custom handler with multiple backends
+  should now provide :samp:`_load_backend_{name}` classmethod for each backend.
+  This is simpler, more flexible, and more explicit than the
+  previous (1.6 and earlier) API, which required a :samp:`_has_backend_{name}`
+  class property and a :samp:`_calc_checksum_{name}` method. Support
+  for the older API is deprecated, and will it be removed in Passlib 2.0.
+
 Todo
 ----
 
-* unittests and documentation for get_hash_info(), get_keyed_prf()
+* Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
 **1.6.1** (2012-08-02)
 ======================
@@ -85,7 +109,7 @@ Deprecated APIs
     The following interfaces have changed:
 
     * The semi-internal :class:`!CryptPolicy` class has been deprecated
-      in it's entirety. All functionality has been rolled into the
+      in its entirety. All functionality has been rolled into the
       parent :class:`!CryptContext` class (see :ref:`below <crypt-policy-deprecated>` for more).
 
     * The interface of the :mod:`passlib.apache` classes has been improved:
@@ -93,7 +117,7 @@ Deprecated APIs
       constructors and other functions have been added.
 
     * The (undocumented) :mod:`!passlib.win32` module has been deprecated,
-      all of it's functionality is now offered through the
+      all of its functionality is now offered through the
       :doc:`lmhash <lib/passlib.hash.lmhash>` and :doc:`nthash <lib/passlib.hash.nthash>`
       algorithms.
 
@@ -112,7 +136,7 @@ New Hashes
     :doc:`lmhash <lib/passlib.hash.lmhash>`, :doc:`nthash <lib/passlib.hash.nthash>`
         Microsoft's legacy "Lan Manager" hash, and the replacement
         NT password hash. *(the old* ``nthash`` *algorithm in Passlib 1.5 has been renamed to*
-        :class:`~passlib.hash.bsd_nthash` *, to reflect it's lineage)*.
+        :class:`~passlib.hash.bsd_nthash` *, to reflect its lineage)*.
 
     :doc:`msdcc <lib/passlib.hash.msdcc>`, :doc:`msdcc2 <lib/passlib.hash.msdcc2>`
         Microsoft Windows' Domain Cached Credentials, versions 1 and 2.
@@ -398,8 +422,8 @@ Internal Changes
         .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
-          :data:`hash64 <passlib.utils.h64>` characters in it's salts;
-          previously it accepted only lower-case hexidecimal characters (:issue:`22`).
+          :data:`hash64 <passlib.utils.h64>` characters in its salts;
+          previously it accepted only lower-case hexadecimal characters (:issue:`22`).
 
         * Additional unittests added for all
           standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
@@ -544,13 +568,13 @@ CryptContext
     * host_context now dynamically detects which formats
       OS crypt() supports, instead of guessing based on sys.platform.
     * added predefined context for Roundup Issue Tracker database.
-    * added CryptContext.verify_and_update() convience method,
+    * added CryptContext.verify_and_update() convenience method,
       to make it easier to perform both operations at once.
     * *bugfix:* fixed NameError in category+min_verify_time border case
     * apps & hosts modules now use new
       :class:`LazyCryptContext` wrapper class -
       this should speed up initial import,
-      and reduce memory by not loading uneeded hashes.
+      and reduce memory by not loading unneeded hashes.
 
 Documentation
 -------------
@@ -605,7 +629,7 @@ Other
     * documentation completed
     * 99% unittest coverage
     * some refactoring and lots of bugfixes
-    * added support for a number of addtional password schemes:
+    * added support for a number of additional password schemes:
       bigcrypt, crypt16, sun md5 crypt, nthash, lmhash, oracle10 & 11,
       phpass, sha1, generic hex digests, ldap digests.
 
@@ -614,7 +638,7 @@ Other
 
     .. note::
 
-        For this and all previous versions, Passlib did not exist independantly,
+        For this and all previous versions, Passlib did not exist independently,
         but as a subpackage of *BPS*, a private & unreleased toolkit library.
 
     * many bugfixes

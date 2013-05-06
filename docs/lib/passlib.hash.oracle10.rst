@@ -10,7 +10,7 @@
     besides manipulating existing Oracle 10 password hashes.
 
 This class implements the hash algorithm used by the Oracle Database up to
-version 10g Rel.2. It was superceded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.
+version 10g Rel.2. It was superseded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.
 This class can be used directly as follows (note that this class requires
 a username for all encrypt/verify operations)::
 
@@ -37,7 +37,7 @@ a username for all encrypt/verify operations)::
 
     This implementation has not been compared
     very carefully against the official implementation or reference documentation,
-    and it's behavior may not match under various border cases.
+    and its behavior may not match under various border cases.
     *caveat emptor*.
 
 Interface
@@ -48,7 +48,7 @@ Interface
 
 Format & Algorithm
 ==================
-Oracle10 hashes all consist of a series of 16 hexidecimal digits,
+Oracle10 hashes all consist of a series of 16 hexadecimal digits,
 representing the resulting checksum.
 Oracle10 hashes can be formed by the following procedure:
 
@@ -67,14 +67,14 @@ Oracle10 hashes can be formed by the following procedure:
    a block of null bytes is still used as the CBC initialization vector.
    All but the last block of ciphertext is discarded.
 7. The last block of ciphertext of step 6 is converted
-   to a hexdecimal string, and returned as the checksum.
+   to a hexadecimal string, and returned as the checksum.
 
 Security Issues
 ===============
 This algorithm it not suitable for *any* use besides manipulating existing
 Oracle10 account passwords, due to the following flaws [#flaws]_:
 
-* It's use of the username as a salt value means that common usernames
+* Its use of the username as a salt value means that common usernames
   (e.g. ``system``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
@@ -82,7 +82,7 @@ Oracle10 account passwords, due to the following flaws [#flaws]_:
   and password, greatly reduces the keyspace that must be searched by
   brute-force or pre-computed attacks.
 
-* It's simplicity, and decades of research on high-speed DES
+* Its simplicity, and decades of research on high-speed DES
   implementations, makes efficient brute force attacks much more feasible.
 
 Deviations

@@ -8,7 +8,6 @@
 from base64 import b64encode, b64decode
 import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import to_unicode

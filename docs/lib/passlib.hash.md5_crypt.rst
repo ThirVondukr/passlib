@@ -7,7 +7,7 @@
 .. warning::
 
     As of 2012-6-7, this algorithm is "no longer considered safe"
-    by it's author [#phk]_, citing the increased
+    by its author [#phk]_, citing the increased
     speed of the MD5 hash on modern hardware, and MD5-Crypt's
     lack of a variable time-cost parameter. See Passlib's
     :ref:`recommended hashes <recommended-hashes>` for a replacement.
@@ -17,7 +17,7 @@
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
 to replace the aging :class:`passlib.hash.des_crypt`.
 It has since been adopted by a wide variety of other Unix flavors, and is found
-in many other contexts as well. Due to it's origins, it's sometimes referred to as "FreeBSD MD5 Crypt".
+in many other contexts as well. Due to its origins, it's sometimes referred to as "FreeBSD MD5 Crypt".
 Security-wise it should now be considered weak,
 and most Unix flavors have since replaced it with stronger schemes
 (such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`).
@@ -162,10 +162,10 @@ MD5-Crypt has a couple of issues which have weakened severely:
 
 * It relies on the MD5 message digest, for which theoretical pre-image attacks exist [#f2]_.
 
-* More seriously, it's fixed number of rounds (combined with the availability
+* More seriously, its fixed number of rounds (combined with the availability
   of high-throughput MD5 implementations) means this algorithm
   is increasingly vulnerable to brute force attacks.
-  It is this issue which has motivated it's replacement
+  It is this issue which has motivated its replacement
   by new algorithms such as :class:`~passlib.hash.bcrypt`
   and :class:`~passlib.hash.sha512_crypt`.
 
@@ -175,7 +175,7 @@ Passlib's implementation of md5-crypt differs from the reference implementation 
 
 * Restricted salt string character set:
 
-  The underlying algorithm can unambigously handle salt strings
+  The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,

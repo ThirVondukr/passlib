@@ -108,12 +108,12 @@ BigCrypt is dangerously flawed:
 
 * It suffers from all the flaws of :class:`~passlib.hash.des_crypt`.
 
-* Since each checksum compontent in it's hash is essentially a separate
+* Since each checksum component in its hash is essentially a separate
   des-crypt checksum, they can be attacked in parallel.
 
 * It reveals information about the length of the encoded
   password (to within 8 characters), further reducing the keyspace that needs
-  to be searched for each of the invididual segments.
+  to be searched for each of the individual segments.
 
 * The last checksum typically contains only a few
   characters of the passphrase, and once cracked,

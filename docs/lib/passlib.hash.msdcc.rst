@@ -57,7 +57,7 @@ Interface
 Format & Algorithm
 ==================
 Much like :class:`!lmhash` and :class:`!nthash`, MS DCC hashes
-consists of a 16 byte digest, usually encoded as 32 hexidecimal characters.
+consists of a 16 byte digest, usually encoded as 32 hexadecimal characters.
 An example hash (of ``"password"`` with the account ``"Administrator"``) is
 ``25fd08fa89795ed54207e6e8442a6ca0``.
 
@@ -74,7 +74,7 @@ The digest is calculated as follows:
 4. The username from step 3 is appended to the
    digest from step 2; and the MD4 digest of the result
    is calculated.
-5. The result of step 4 is encoded into hexidecimal,
+5. The result of step 4 is encoded into hexadecimal,
    this is the DCC hash.
 
 Security Issues
@@ -82,7 +82,7 @@ Security Issues
 This algorithm is should not be used for any purpose besides
 manipulating existing DCC v1 hashes, due to the following flaws:
 
-* It's use of the username as a salt value (and lower-case at that),
+* Its use of the username as a salt value (and lower-case at that),
   means that common usernames (e.g. ``Administrator``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.

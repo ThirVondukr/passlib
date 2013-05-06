@@ -58,7 +58,7 @@ The algorithm used is based around the MD5 message digest and the "Muffett Coin 
 
 .. _smc-digest-step:
 
-2. an initial MD5 digest is created from the concatentation of the password,
+2. an initial MD5 digest is created from the concatenation of the password,
    and the configuration string (using the format :samp:`$md5,rounds={rounds}${salt}$`,
    or :samp:`$md5${salt}$` if rounds is 0).
 
@@ -120,7 +120,7 @@ using the following formula:
 Bare Salt Issue
 ---------------
 According to the only existing documentation of this algorithm [#mct]_,
-it's hashes were supposed to have the format :samp:`$md5${salt}${checksum}`,
+its hashes were supposed to have the format :samp:`$md5${salt}${checksum}`,
 and include only the bare string :samp:`$md5${salt}` in the salt digest step
 (see :ref:`step 2 <smc-digest-step>`, above).
 
@@ -136,7 +136,7 @@ implementation's parser. This bug causes the implementation to return
 It returns the intended original format & checksum
 only if there is at least one letter after the ``$``, e.g. :samp:`$md5${salt}$x`.
 
-Passlib attempts to accomodate both formats using the special ``bare_salt``
+Passlib attempts to accommodate both formats using the special ``bare_salt``
 keyword. It is set to ``True`` to indicate a configuration or hash string which
 contains only a single ``$``, and does not incorporate it into the hash calculation.
 The ``$$`` hash is encountered more often in production since it seems

@@ -89,7 +89,7 @@ Crypt16 is dangerously flawed:
 
 * It suffers from all the flaws of :class:`~passlib.hash.des_crypt`.
 
-* Compared to des-crypt, it's smaller number of rounds
+* Compared to des-crypt, its smaller number of rounds
   makes it even *more* vulnerable to brute-force attacks.
 
 * For a given salt, passwords under 9 characters all have the same 2nd checksum.

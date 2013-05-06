@@ -7,8 +7,8 @@
 .. note::
 
     While the SHA-2 variants of PBKDF1 have no critical security vulnerabilities,
-    PBKDF1 itself has been deprecated in favor of it's successor, PBKDF2.
-    Furthermore, FSHP has been listed as insecure by it's author (for unspecified reasons);
+    PBKDF1 itself has been deprecated in favor of its successor, PBKDF2.
+    Furthermore, FSHP has been listed as insecure by its author (for unspecified reasons);
     so this scheme should probably only be used to support existing hashes.
 
 .. currentmodule:: passlib.hash
@@ -68,11 +68,11 @@ A example hash (of ``password``) is:
 * :samp:`{data}` is a base64-encoded string which, when decoded,
   contains a salt string of the specified size, followed
   by the checksum. In the example, the data portion decodes to
-  a salt value (in hexdecimal octets) of:
+  a salt value (in hexadecimal octets) of:
 
     ``3eda2a70651eb66544cbfb91f3bd794c``
 
-  and a checksum value (in hexidecimal octets) of:
+  and a checksum value (in hexadecimal octets) of:
 
     ``da8a6bcfad78c17da993b5940f6524d526d444012cf67ea8f44b7843c7ab2e82``
 
@@ -94,7 +94,7 @@ Security Issues
 * Since PBKDF1 is based on repeated composition of a hash,
   it is vulnerable to any first-preimage attacks on the underlying hash.
   This has led to the deprecation of using SHA-1 or earlier hashes with PBKDF1.
-  In contrast, it's successor PBKDF2 was designed to mitigate
+  In contrast, its successor PBKDF2 was designed to mitigate
   this weakness (among other things), and enjoys much stronger preimage resistance
   when used with the same cryptographic hashes.
 

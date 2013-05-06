@@ -4,12 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-import inspect
-import re
-import hashlib
 import logging; log = logging.getLogger(__name__)
-import time
-import os
 from warnings import warn
 # site
 # pkg
@@ -22,7 +17,7 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, to_unicode, \
                           MAX_PASSWORD_SIZE
-from passlib.utils.compat import b, join_byte_values, bytes, irange, u, \
+from passlib.utils.compat import b, join_byte_values, bytes, irange, u, callable, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, base_string_types, PY2, int_types
 # local
@@ -88,14 +83,14 @@ _UDOLLAR = u("$")
 _UZERO = u("0")
 
 def validate_secret(secret):
-    "ensure secret has correct type & size"
+    """ensure secret has correct type & size"""
     if not isinstance(secret, base_string_types):
         raise exc.ExpectedStringError(secret, "secret")
     if len(secret) > MAX_PASSWORD_SIZE:
         raise exc.PasswordSizeError()
 
 def to_unicode_for_identify(hash):
-    "convert hash to unicode for identify method"
+    """convert hash to unicode for identify method"""
     if isinstance(hash, unicode):
         return hash
     elif isinstance(hash, bytes):
@@ -584,7 +579,7 @@ class GenericHandler(PasswordHash):
 
     @staticmethod
     def _sanitize(value, char=u("*")):
-        "default method to obscure sensitive fields"
+        """default method to obscure sensitive fields"""
         if value is None:
             return None
         if isinstance(value, bytes):
@@ -606,7 +601,7 @@ class GenericHandler(PasswordHash):
         (with the extra keyword *checksum*).
 
         this method may not work correctly for all hashes,
-        and may not be available on some few. it's interface may
+        and may not be available on some few. its interface may
         change in future releases, if it's kept around at all.
 
         :arg hash: hash to parse
@@ -634,7 +629,7 @@ class GenericHandler(PasswordHash):
 
     @classmethod
     def bitsize(cls, **kwds):
-        "[experimental method] return info about bitsizes of hash"
+        """[experimental method] return info about bitsizes of hash"""
         try:
             info = super(GenericHandler, cls).bitsize(**kwds)
         except AttributeError:
@@ -692,7 +687,7 @@ class StaticHandler(GenericHandler):
 
     @classmethod
     def _norm_hash(cls, hash):
-        "helper for subclasses to normalize case if needed"
+        """helper for subclasses to normalize case if needed"""
         return hash
 
     def to_string(self):
@@ -737,7 +732,7 @@ class StaticHandler(GenericHandler):
         hash = wrapper_cls.genhash(secret, None, **context)
         warn("%r should be updated to implement StaticHandler._calc_checksum() "
              "instead of StaticHandler.genhash(), support for the latter "
-             "style will be removed in Passlib 1.8" % (cls),
+             "style will be removed in Passlib 1.8" % cls,
              DeprecationWarning)
         return str_to_uascii(hash)
 
@@ -920,7 +915,7 @@ class HasSalt(GenericHandler):
 
     Class Attributes
     ================
-    In order for :meth:`!_norm_salt` to do it's job, the following
+    In order for :meth:`!_norm_salt` to do its job, the following
     attributes should be provided by the handler subclass:
 
     .. attribute:: min_salt_size
@@ -986,12 +981,12 @@ class HasSalt(GenericHandler):
 
     @classproperty
     def default_salt_size(cls):
-        "default salt size (defaults to *max_salt_size*)"
+        """default salt size (defaults to *max_salt_size*)"""
         return cls.max_salt_size
 
     @classproperty
     def default_salt_chars(cls):
-        "charset used to generate new salt strings (defaults to *salt_chars*)"
+        """charset used to generate new salt strings (defaults to *salt_chars*)"""
         return cls.salt_chars
 
     # private helpers for HasRawSalt, shouldn't be used by subclasses
@@ -1082,7 +1077,7 @@ class HasSalt(GenericHandler):
     @staticmethod
     def _truncate_salt(salt, mx):
         # NOTE: some hashes (e.g. bcrypt) has structure within their
-        # salt string. this provides a method to overide to perform
+        # salt string. this provides a method to override to perform
         # the truncation properly
         return salt[:mx]
 
@@ -1095,7 +1090,7 @@ class HasSalt(GenericHandler):
 
     @classmethod
     def bitsize(cls, salt_size=None, **kwds):
-        "[experimental method] return info about bitsizes of hash"
+        """[experimental method] return info about bitsizes of hash"""
         info = super(HasSalt, cls).bitsize(**kwds)
         if salt_size is None:
             salt_size = cls.default_salt_size
@@ -1143,7 +1138,7 @@ class HasRounds(GenericHandler):
 
     Class Attributes
     ================
-    In order for :meth:`!_norm_rounds` to do it's job, the following
+    In order for :meth:`!_norm_rounds` to do its job, the following
     attributes must be provided by the handler subclass:
 
     .. attribute:: min_rounds
@@ -1259,7 +1254,7 @@ class HasRounds(GenericHandler):
 
     @classmethod
     def bitsize(cls, rounds=None, vary_rounds=.1, **kwds):
-        "[experimental method] return info about bitsizes of hash"
+        """[experimental method] return info about bitsizes of hash"""
         info = super(HasRounds, cls).bitsize(**kwds)
         # NOTE: this essentially estimates how many bits of "salt"
         # can be added by varying the rounds value just a little bit.
@@ -1305,17 +1300,8 @@ class HasManyBackends(GenericHandler):
     offers a way to specify alternate :meth:`_calc_checksum` methods,
     and will dynamically chose the best one at runtime.
 
-    Backend Methods
-    ---------------
-
-    .. automethod:: get_backend
-    .. automethod:: set_backend
-    .. automethod:: has_backend
-
-    Subclass Hooks
-    --------------
-    The following attributes and methods should be filled in by the subclass
-    which is using :class:`HasManyBackends` as a mixin:
+    Public API
+    ----------
 
     .. attribute:: backends
 
@@ -1324,6 +1310,29 @@ class HasManyBackends(GenericHandler):
         uses :mod:`crypt`), and ``"builtin"`` (if the backend is a pure-python
         fallback).
 
+    .. automethod:: get_backend
+    .. automethod:: set_backend
+    .. automethod:: has_backend
+
+    Private API (Subclass Hooks)
+    ----------------------------
+    The following attributes and methods should be filled in by the subclass
+    which is using :class:`HasManyBackends` as a mixin:
+
+    .. attribute:: _load_backend_{name}
+
+        private class method that should try to load the specified backend,
+        one of which should be provided for each backend listed in :attr:`backends`.
+
+        * if backend isn't available, it should return ``None``.
+        * if backend is available, it should return a callable
+          which implements :meth:`_calc_checksum`.
+        * it may also do things like import modules, run tests, issue warnings,
+          etc; though it should avoid doing things which would change the operation
+          of other backends (e.g. modify ``cls.default_rounds``).
+
+        .. versionadded:: 1.7
+
     .. attribute:: _has_backend_{name}
 
         private class attribute checked by :meth:`has_backend` to see if a
@@ -1331,23 +1340,33 @@ class HasManyBackends(GenericHandler):
         or ``False``. One of these should be provided by
         the subclass for each backend listed in :attr:`backends`.
 
+        .. deprecated:: 1.7
+
+            use :attr:`_load_backend_{name}` instead.
+            support for this attribute will be removed in Passlib 2.0.
+
     .. classmethod:: _calc_checksum_{name}
 
         private class method that should implement :meth:`_calc_checksum`
         for a given backend. it will only be called if the backend has
         been selected by :meth:`set_backend`. One of these should be provided
         by the subclass for each backend listed in :attr:`backends`.
+
+        .. deprecated:: 1.7
+
+            use :attr:`_load_backend_{name}` instead.
+            this attribute will be ignored in Passlib 2.0.
     """
-
-    # NOTE:
-    # subclass must provide:
-    # * attr 'backends' containing list of known backends (top priority backend first)
-    # * attr '_has_backend_xxx' for each backend 'xxx', indicating if backend is available on system
-    # * attr '_calc_checksum_xxx' for each backend 'xxx', containing calc_checksum implementation using that backend
-
     backends = None # list of backend names, provided by subclass.
 
     _backend = None # holds currently loaded backend (if any) or None
+
+    #: optional class-specific text containing suggestion about what to do
+    #: when no backends are available.
+    _no_backend_suggestion = None
+
+    #: flag used by _try_alternate_backend to prevent recursion
+    __tab_active = None
 
     @classmethod
     def get_backend(cls):
@@ -1360,12 +1379,10 @@ class HasManyBackends(GenericHandler):
 
         :returns: name of active backend
         """
-        name = cls._backend
-        if not name:
+        if not cls._backend:
             cls.set_backend()
-            name = cls._backend
-            assert name, "set_backend() didn't load any backends"
-        return name
+            assert cls._backend, "set_backend() failed to load a default backend"
+        return cls._backend
 
     @classmethod
     def has_backend(cls, name="any"):
@@ -1381,19 +1398,16 @@ class HasManyBackends(GenericHandler):
         :returns:
             ``True`` if backend is currently supported, else ``False``.
         """
-        if name in ("any", "default"):
-            if name == "any" and cls._backend:
+        if name == "any" or name == "default":
+            if cls._backend:
                 return True
-            return any(getattr(cls, "_has_backend_" + name)
-                       for name in cls.backends)
-        elif name in cls.backends:
-            return getattr(cls, "_has_backend_" + name)
+            try:
+                cls.set_backend()
+                return True
+            except exc.MissingBackendError:
+                return False
         else:
-            raise ValueError("unknown backend: %r" % (name,))
-
-    @classmethod
-    def _no_backends_msg(cls):
-        return "no %s backends available" % (cls.name,)
+            return cls._load_backend(name) is not None
 
     @classmethod
     def set_backend(cls, name="any"):
@@ -1426,29 +1440,73 @@ class HasManyBackends(GenericHandler):
               and *no* backends are currently available.
 
         :returns:
-
             The return value of this function should be ignored.
         """
-        if name == "any":
-            name = cls._backend
-            if name:
-                return name
-            name = "default"
-        if name == "default":
+        if name == "any" and cls._backend:
+            # keep active backend
+            return cls._backend
+        elif name == "any" or name == "default":
+            # select default backend
             for name in cls.backends:
-                if cls.has_backend(name):
+                calc = cls._load_backend(name)
+                if calc:
                     break
+                assert calc is None
             else:
-                raise exc.MissingBackendError(cls._no_backends_msg())
-        elif not cls.has_backend(name):
-            raise exc.MissingBackendError("%s backend not available: %r" %
-                                          (cls.name, name))
-        cls._calc_checksum = getattr(cls, "_calc_checksum_" + name)
+                msg = "%s: no backends available" % cls.name
+                if cls._no_backend_suggestion:
+                    msg += cls._no_backend_suggestion
+                raise exc.MissingBackendError(msg)
+        else:
+            # select specific backend
+            calc = cls._load_backend(name)
+            if not calc:
+                assert calc is None
+                raise exc.MissingBackendError("%s: backend not available: %s" %
+                                              (cls.name, name))
+        # load backend into class
+        assert callable(calc)
+        cls._calc_checksum = calc
         cls._backend = name
         return name
 
+    @classmethod
+    def _load_backend(cls, name):
+        """helper used by has_backend() & set_backend(), loads specified backend.
+
+        :raises ValueError: if invalid backend name is provided
+
+        :returns:
+            * ``None`` if backend can't be loaded.
+            * backend-specific ``_calc_checksum()`` callable on success.
+        """
+        # validate name
+        if name not in cls.backends:
+            raise ValueError("%s: unknown backend: %r" % (cls.name, name))
+
+        # new in v1.7: check for _load_backend_xxx() function
+        load = getattr(cls, "_load_backend_" + name, None)
+        if load is not None:
+            assert not hasattr(cls, "_has_backend_" + name), (
+                "%s: can't specify both ._load_backend_%s() "
+                "and ._has_backend_%s" % (cls.name, name, name)
+                )
+            return load()
+
+        # fallback to _has_backend_xxx + _calc_checksum_xxx() style
+        value = getattr(cls, "_has_backend_" + name)
+        warn("%s: support for ._has_backend_%s is deprecated as of Passlib 1.7, "
+             "and will be removed in Passlib 2.0, please implement "
+             "._load_backend_%s() instead" % (cls.name, name, name),
+             DeprecationWarning,
+             )
+        if value:
+            return getattr(cls, "_calc_checksum_" + name)
+        else:
+            return None
+
     def _calc_checksum(self, secret):
-        "stub for _calc_checksum(), default backend will be selected first time stub is called"
+        """stub for _calc_checksum(), default backend will be selected first time stub is called"""
         # if we got here, no backend has been loaded; so load default backend
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
@@ -1456,6 +1514,45 @@ class HasManyBackends(GenericHandler):
 
         # this should now invoke the backend-specific version, so call it again.
         return self._calc_checksum(secret)
+
+    def _try_alternate_backends(self, secret):
+        """helper for _calc_checksum implementations to hand off
+        to other backends on a per-hash basis.
+
+        :raises MissingBackendError: if *no*  backends can handle secret
+        """
+        # if we're recursing, throw back to higher-level invocation (below)
+        if self.__tab_active:
+            raise exc.MissingBackendError("catch me")
+
+        # backup current backend
+        current = self.get_backend()
+        self.__tab_active = True
+        try:
+            # run through all others until one works
+            for backend in self.backends:
+                if backend == current:
+                    continue
+                try:
+                    # may throw MissingBackendError if unavaiable
+                    self.set_backend(backend)
+
+                    # if recurses to this function,
+                    # will also throw MissingBackendError (above)
+                    return self._calc_checksum(secret)
+                except exc.MissingBackendError:
+                    pass
+        finally:
+            # restore previous backend
+            self.__tab_active = False
+            self.set_backend(current)
+
+        # no backend could handle things - give up
+        msg = "%s: password/hash can't be handled by any available backend" % (self.name,)
+        suggestion = self._no_backend_suggestion
+        if suggestion:
+            msg += suggestion
+        raise exc.MissingBackendError(msg)
 
 #=============================================================================
 # wrappers
@@ -1601,13 +1698,13 @@ class PrefixWrapper(object):
         return list(attrs)
 
     def __getattr__(self, attr):
-        "proxy most attributes from wrapped class (e.g. rounds, salt size, etc)"
+        """proxy most attributes from wrapped class (e.g. rounds, salt size, etc)"""
         if attr in self._proxy_attrs:
             return getattr(self.wrapped, attr)
         raise AttributeError("missing attribute: %r" % (attr,))
 
     def _unwrap_hash(self, hash):
-        "given hash belonging to wrapper, return orig version"
+        """given hash belonging to wrapper, return orig version"""
         # NOTE: assumes hash has been validated as unicode already
         prefix = self.prefix
         if not hash.startswith(prefix):
@@ -1616,7 +1713,7 @@ class PrefixWrapper(object):
         return self.orig_prefix + hash[len(prefix):]
 
     def _wrap_hash(self, hash):
-        "given orig hash; return one belonging to wrapper"
+        """given orig hash; return one belonging to wrapper"""
         # NOTE: should usually be native string.
         # (which does mean extra work under py2, but not py3)
         if isinstance(hash, bytes):

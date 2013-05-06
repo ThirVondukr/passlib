@@ -5,13 +5,11 @@
 # core
 from binascii import hexlify, unhexlify
 from base64 import b64encode, b64decode
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, to_unicode
-from passlib.utils.compat import b, bytes, str_to_bascii, u, uascii_to_str, unicode
+from passlib.utils.compat import b, str_to_bascii, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 # local
@@ -28,7 +26,7 @@ __all__ = [
 #
 #=============================================================================
 class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
-    "base class for various pbkdf2_{digest} algorithms"
+    """base class for various pbkdf2_{digest} algorithms"""
     #===================================================================
     # class attrs
     #===================================================================
@@ -84,7 +82,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
 def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=__name__):
-    "create new Pbkdf2DigestHandler subclass for a specific hash"
+    """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = 'pbkdf2_' + hash_name
     if ident is None:
         ident = u("$pbkdf2-%s$") % (hash_name,)

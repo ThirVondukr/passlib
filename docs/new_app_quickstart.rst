@@ -4,7 +4,7 @@ New Application Quickstart Guide
 
 Need to quickly get password hash support added into your new application,
 and don't have time to wade through pages of documentation,
-comparing and constrasting all the different schemes? Read on...
+comparing and contrasting all the different schemes? Read on...
 
 Really Quick Start
 ==================
@@ -56,7 +56,7 @@ For new applications, there are really only three choices [#choices]_:
 
 All three password hashes share the following properties:
 
-    * no known vulnerabilties.
+    * no known vulnerabilities.
     * based on documented & widely reviewed algorithms.
     * basic algorithm has seen heavy scrutiny
       and use for at least 10 years.
@@ -172,7 +172,7 @@ over all of the above hashes; the primary feature being that it has
 a variable *memory* cost as well as time cost. It is incredibly well designed,
 and looks to likely replace all the others in this section.
 
-However, it is still young by comparison to the others; and has not been as throughly
+However, it is still young by comparison to the others; and has not been as thoroughly
 tested, or widely implemented. The only Python wrapper that exists
 does not even expose the underlying :func:`!scrypt` function,
 but is rather a file encryption tool.

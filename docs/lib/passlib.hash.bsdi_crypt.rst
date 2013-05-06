@@ -113,7 +113,7 @@ Security Issues
 ===============
 BSDi Crypt should not be considered sufficiently secure, for a number of reasons:
 
-* It's use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
+* Its use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
   and considered broken, as well as having too-small key and block sizes.
 
 * The 24-bit salt is too small to defeat rainbow-table attacks
@@ -126,7 +126,7 @@ BSDi Crypt should not be considered sufficiently secure, for a number of reasons
   as they may reveal the hash used one of the weak DES keys [#weak]_.
   This information could theoretically allow an attacker to perform a
   brute-force attack on a reduced keyspace and against only 1-2 rounds of DES.
-  (This issue is mitagated by the fact that few passwords are both valid *and*
+  (This issue is mitigated by the fact that few passwords are both valid *and*
   result in a weak key).
 
 This algorithm is none-the-less stronger than :class:`!des_crypt` itself,

@@ -18,7 +18,7 @@ This class implements the LanManager Hash (aka *LanMan* or *LM* hash).
 It was used by early versions of Microsoft Windows to store user passwords,
 until it was supplanted (though not entirely replaced) by
 the :doc:`nthash <passlib.hash.nthash>` algorithm in Windows NT.
-It continues to crop up in production due to it's integral role
+It continues to crop up in production due to its integral role
 in the legacy NTLM authentication protocol.
 This class can be used directly as follows::
 
@@ -57,7 +57,7 @@ details about the known interoperability issues. It's a mess of codepages.
 
 Format & Algorithm
 ==================
-A LM hash consists of 32 hexidecimal digits,
+A LM hash consists of 32 hexadecimal digits,
 which encode the 16 byte digest. An example hash (of ``password``) is
 ``e52cac67419a9a224a3b108f3fa6cb6d``.
 
@@ -82,7 +82,7 @@ The digest is calculated as follows:
 4. Step 3 is repeated using the second 7 bytes of the password from step 2,
    resulting in the second 8 bytes of the final digest.
 
-5. The combined digests from 3 and 4 are then encoded to hexidecimal.
+5. The combined digests from 3 and 4 are then encoded to hexadecimal.
 
 Security Issues
 ===============
@@ -94,10 +94,10 @@ dedicated to LMHASH, this algorithm should be considered broken. The major flaws
 * It limits the password to 14 characters, and converts the password to
   uppercase before hashing, greatly reducing the keyspace.
 
-* By breaking the password into two independant chunks,
-  they can be attacked independantly and simultaneously.
+* By breaking the password into two independent chunks,
+  they can be attacked independently and simultaneously.
 
-* The independance of the chunks reveals significant information
+* The independence of the chunks reveals significant information
   about the original password: The second 8 bytes of the digest
   are the same for all passwords < 8 bytes; and for passwords
   of 8-9 characters, the second chunk can be broken *much* faster,

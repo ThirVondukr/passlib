@@ -3,7 +3,6 @@
 # imports
 #=============================================================================
 # core
-from binascii import hexlify
 import warnings
 # site
 # pkg
@@ -15,7 +14,7 @@ from passlib.utils.compat import u
 #
 #=============================================================================
 class UtilTest(TestCase):
-    "test util funcs in passlib.win32"
+    """test util funcs in passlib.win32"""
 
     ##test hashes from http://msdn.microsoft.com/en-us/library/cc245828(v=prot.10).aspx
     ## among other places

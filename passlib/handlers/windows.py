@@ -4,13 +4,12 @@
 #=============================================================================
 # core
 from binascii import hexlify
-import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
 from passlib.utils import to_unicode, right_pad_string
-from passlib.utils.compat import b, bytes, str_to_uascii, u, unicode, uascii_to_str
+from passlib.utils.compat import b, bytes, unicode
 from passlib.utils.md4 import md4
 import passlib.utils.handlers as uh
 # local
@@ -40,7 +39,7 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
         calculating digest. It defaults to ``cp437``, the most
         common encoding encountered.
 
-    Note that while this class outputs digests in lower-case hexidecimal,
+    Note that while this class outputs digests in lower-case hexadecimal,
     it will accept upper-case as well.
     """
     #===================================================================
@@ -116,7 +115,7 @@ class nthash(uh.StaticHandler):
 
     The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
 
-    Note that while this class outputs lower-case hexidecimal digests,
+    Note that while this class outputs lower-case hexadecimal digests,
     it will accept upper-case digests as well.
     """
     #===================================================================
@@ -228,7 +227,7 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
         This keyword is case-insensitive, and should contain just the username
         (e.g. ``Administrator``, not ``SOMEDOMAIN\\Administrator``).
 
-    Note that while this class outputs lower-case hexidecimal digests,
+    Note that while this class outputs lower-case hexadecimal digests,
     it will accept upper-case digests as well.
     """
     name = "msdcc"

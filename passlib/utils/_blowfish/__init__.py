@@ -18,11 +18,11 @@ This package contains two submodules:
 
 Status
 ------
-This implementation is usuable, but is an order of magnitude too slow to be
-usuable with real security. For "ok" security, BCrypt hashes should have at
+This implementation is usable, but is an order of magnitude too slow to be
+usable with real security. For "ok" security, BCrypt hashes should have at
 least 2**11 rounds (as of 2011). Assuming a desired response time <= 100ms,
 this means a BCrypt implementation should get at least 20 rounds/ms in order
-to be both usuable *and* secure. On a 2 ghz cpu, this implementation gets
+to be both usable *and* secure. On a 2 ghz cpu, this implementation gets
 roughly 0.09 rounds/ms under CPython (220x too slow), and 1.9 rounds/ms
 under PyPy (10x too slow).
 

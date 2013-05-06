@@ -4,13 +4,11 @@
 #=============================================================================
 # core
 from hashlib import md5
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_string
-from passlib.utils.compat import b, bytes, irange, unicode, u
+from passlib.utils import h64, safe_crypt, test_crypt, repeat_string
+from passlib.utils.compat import b, bytes, unicode, u
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -191,7 +189,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
 # handler
 #=============================================================================
 class _MD5_Common(uh.HasSalt, uh.GenericHandler):
-    "common code for md5_crypt and apr_md5_crypt"
+    """common code for md5_crypt and apr_md5_crypt"""
     #===================================================================
     # class attrs
     #===================================================================
@@ -267,14 +265,14 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
 
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/')
-
-    def _calc_checksum_builtin(self, secret):
-        return _raw_md5_crypt(secret, self.salt)
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/'):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.ident + self.salt
@@ -282,8 +280,17 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 23
             return hash[-22:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_md5_crypt(secret, self.salt)
 
     #===================================================================
     # eoc

@@ -55,7 +55,7 @@ Interface
 Format & Algorithm
 ==================
 The Cisco Type 7 encoding consists of two decimal digits
-(encoding the salt), followed a series of hexdecimal characters,
+(encoding the salt), followed a series of hexadecimal characters,
 two for every byte in the encoded password.
 An example encoding (of ``"password"``) is ``044B0A151C36435C0D``.
 This has a salt/offset of 4 (``04`` in the example),
@@ -83,7 +83,7 @@ The algorithm is a straightforward XOR Cipher:
     a. let ``j=(i + salt) % 53``
     b. XOR the :samp:`{i}`'th byte of the password with the :samp:`{j}`'th byte
        of the magic constant.
-    c. encode the resulting byte as uppercase hexidecimal,
+    c. encode the resulting byte as uppercase hexadecimal,
        and append to the encoded string.
 
 Deviations

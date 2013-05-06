@@ -12,8 +12,8 @@
 .. currentmodule:: passlib.hash
 
 This class implements the md5-based hash algorithm used by PostgreSQL to store
-it's user account passwords. This scheme was introduced in PostgreSQL 7.2;
-prior to this PostgreSQL stored it's password in plain text.
+its user account passwords. This scheme was introduced in PostgreSQL 7.2;
+prior to this PostgreSQL stored its password in plain text.
 Users will most likely find the frontend provided by :mod:`passlib.apps`
 to be more useful than accessing this class directly.
 That aside, this class can be used directly as follows::
@@ -44,7 +44,7 @@ Interface
 Format & Algorithm
 ==================
 Postgres-MD5 hashes all have the format :samp:`md5{checksum}`,
-where :samp:`{checksum}` is 32 hexidecimal digits, encoding a 128-bit checksum.
+where :samp:`{checksum}` is 32 hexadecimal digits, encoding a 128-bit checksum.
 This checksum is the MD5 message digest of the password concatenated with the username.
 
 Security Issues
@@ -52,14 +52,14 @@ Security Issues
 This algorithm it not suitable for *any* use besides manipulating existing
 PostgreSQL account passwords, due to the following flaws:
 
-* It's use of the username as a salt value means that common usernames
+* Its use of the username as a salt value means that common usernames
   (e.g. ``admin``, ``root``, ``postgres``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * Since the keyspace of ``user+password`` is still a subset of ascii characters,
   existing MD5 lookup tables have an increased chance of being able to reverse common hashes.
 
-* It's simplicity makes high-speed brute force attacks much more feasible [#brute]_ .
+* Its simplicity makes high-speed brute force attacks much more feasible [#brute]_ .
 
 .. rubric:: Footnotes
 

@@ -3,20 +3,13 @@
 # imports
 #=============================================================================
 # core
-from binascii import hexlify, unhexlify
-from base64 import b64encode, b64decode
-import hashlib
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
-                          to_native_str, xor_bytes, splitcomma
-from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
-                                 PY3, u, unicode
-from passlib.utils.pbkdf2 import pbkdf2, get_prf, norm_hash_name
+                          to_native_str, splitcomma
+from passlib.utils.compat import bytes, bascii_to_str, iteritems, u
+from passlib.utils.pbkdf2 import pbkdf2, norm_hash_name
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -317,7 +310,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return checksum
 
     def _norm_algs(self, algs):
-        "normalize algs parameter"
+        """normalize algs parameter"""
         # determine default algs value
         if algs is None:
             # derive algs list from checksum (if present).
@@ -348,7 +341,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def _bind_needs_update(cls, **settings):
-        "generate a deprecation detector for CryptContext to use"
+        """generate a deprecation detector for CryptContext to use"""
         # generate deprecation hook which marks hashes as deprecated
         # if they don't support a superset of current algs.
         algs = frozenset(cls(use_defaults=True, **settings).algs)

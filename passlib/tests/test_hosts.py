@@ -5,7 +5,6 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
-import warnings
 # site
 # pkg
 from passlib import hosts, hash as hashmod
@@ -17,7 +16,7 @@ from passlib.tests.utils import TestCase
 # test predefined app contexts
 #=============================================================================
 class HostsTest(TestCase):
-    "perform general tests to make sure contexts work"
+    """perform general tests to make sure contexts work"""
     # NOTE: these tests are not really comprehensive,
     #       since they would do little but duplicate
     #       the presets in apps.py

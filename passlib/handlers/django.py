@@ -5,13 +5,11 @@
 # core
 from base64 import b64encode
 from hashlib import md5, sha1
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.utils import to_unicode, classproperty
-from passlib.utils.compat import b, bytes, str_to_uascii, uascii_to_str, unicode, u
+from passlib.utils import classproperty
+from passlib.utils.compat import str_to_uascii, unicode, u
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 # local

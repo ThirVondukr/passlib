@@ -10,13 +10,11 @@ phpass context - blowfish, bsdi_crypt, phpass
 #=============================================================================
 # core
 from hashlib import md5
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.utils import h64
-from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
+from passlib.utils.compat import u, uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -47,7 +45,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     :type ident: str
     :param ident:
-        phpBB3 uses ``H`` instead of ``P`` for it's identifier,
+        phpBB3 uses ``H`` instead of ``P`` for its identifier,
         this may be set to ``H`` in order to generate phpBB3 compatible hashes.
         it defaults to ``P``.
 

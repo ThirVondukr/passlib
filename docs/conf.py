@@ -51,7 +51,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
 
-    # add autdoc support for ReST sections in class/function docstrings
+    # add autodoc support for ReST sections in class/function docstrings
     'cloud_sptheme.ext.autodoc_sections',
 
     # adds extra ids & classes to genindex html, for additional styling

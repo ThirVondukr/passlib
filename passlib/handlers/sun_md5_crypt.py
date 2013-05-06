@@ -82,7 +82,7 @@ _XY_ROUNDS = [
 del xr
 
 def raw_sun_md5_crypt(secret, rounds, salt):
-    "given secret & salt, return encoded sun-md5-crypt checksum"
+    """given secret & salt, return encoded sun-md5-crypt checksum"""
     global MAGIC_HAMLET
     assert isinstance(secret, bytes)
     assert isinstance(salt, bytes)

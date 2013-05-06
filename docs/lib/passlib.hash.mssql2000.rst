@@ -12,7 +12,7 @@
 .. currentmodule:: passlib.hash
 
 This class implements the hash algorithm used by Microsoft SQL Server 2000
-to store it's user account passwords, until it was replaced
+to store its user account passwords, until it was replaced
 by a slightly more secure variant (:class:`~passlib.hash.mssql2005`)
 in MSSQL 2005.
 This class can be used directly as follows::
@@ -45,7 +45,7 @@ Interface
 Format & Algorithm
 ==================
 MSSQL 2000 hashes are usually presented as a series of 92 upper-case
-hexidecimal characters, prefixed by ``0x``. An example MSSQL 2000 hash
+hexadecimal characters, prefixed by ``0x``. An example MSSQL 2000 hash
 (of ``"password"``)::
 
     0x0100200420C4988140FD3920894C3EDC188E94F428D57DAD5905F6CC1CBAF950CAD4C63F272B2C91E4DEEB5E6444
@@ -73,7 +73,7 @@ MSSQL 2005 removed the second digest, and thus became case sensitive.
 
     MSSQL 2000 hashes do not actually have a native textual format, as they
     are stored as raw bytes in an SQL table. However, when external programs
-    deal with them, MSSQL generally encodes raw bytes as upper-case hexidecimal,
+    deal with them, MSSQL generally encodes raw bytes as upper-case hexadecimal,
     prefixed with ``0x``. This is the representation Passlib uses.
 
 Security Issues
@@ -85,7 +85,7 @@ following flaws:
 * The fact that it is case insensitive greatly reduces the keyspace that
   must be searched by brute-force or pre-computed attacks.
 
-* It's simplicity, and years of research on high-speed SHA1
+* Its simplicity, and years of research on high-speed SHA1
   implementations, makes efficient brute force attacks much more feasible.
 
 .. rubric:: Footnotes

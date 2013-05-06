@@ -6,16 +6,12 @@
 #=============================================================================
 
 # core
-from hmac import new as hmac
-from hashlib import sha1
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt
-from passlib.utils.compat import b, bytes, u, uascii_to_str, unicode
-from passlib.utils.pbkdf2 import get_prf
+from passlib.utils import h64, safe_crypt, test_crypt
+from passlib.utils.compat import b, u, unicode, irange
+from passlib.utils.pbkdf2 import get_keyed_prf
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -23,7 +19,6 @@ __all__ = [
 #=============================================================================
 # sha1-crypt
 #=============================================================================
-_hmac_sha1 = get_prf("hmac-sha1")[0]
 _BNULL = b('\x00')
 
 class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
@@ -85,7 +80,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #===================================================================
     # formatting
     #===================================================================
-
     @classmethod
     def from_string(cls, hash):
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
@@ -100,12 +94,30 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #===================================================================
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
+                              'ExLaiSFlGkAe'):
+            return cls._calc_checksum_os_crypt
+        return None
 
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
-                                          'ExLaiSFlGkAe')
+    def _calc_checksum_os_crypt(self, secret):
+        config = self.to_string(config=True)
+        hash = safe_crypt(secret, config)
+        if hash:
+            assert hash.startswith(config) and len(hash) == len(config) + 29
+            return hash[-28:]
+        return self._try_alternate_backends(secret)
+
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):
@@ -116,10 +128,9 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         # NOTE: this seed value is NOT the same as the config string
         result = (u("%s$sha1$%s") % (self.salt, rounds)).encode("ascii")
         # NOTE: this algorithm is essentially PBKDF1, modified to use HMAC.
-        r = 0
-        while r < rounds:
-            result = _hmac_sha1(secret, result)
-            r += 1
+        keyed_hmac = get_keyed_prf("hmac-sha1", secret)[0]
+        for _ in irange(rounds):
+            result = keyed_hmac(result)
         return h64.encode_transposed_bytes(result, self._chk_offsets).decode("ascii")
 
     _chk_offsets = [
@@ -131,15 +142,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         17,16,15,
         0,19,18,
     ]
-
-    def _calc_checksum_os_crypt(self, secret):
-        config = self.to_string(config=True)
-        hash = safe_crypt(secret, config)
-        if hash:
-            assert hash.startswith(config) and len(hash) == len(config) + 29
-            return hash[-28:]
-        else:
-            return self._calc_checksum_builtin(secret)
 
     #===================================================================
     # eoc
