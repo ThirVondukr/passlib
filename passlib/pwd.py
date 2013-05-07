@@ -93,6 +93,11 @@ __all__ = [
 #: default entropy amount for generated passwords
 default_entropy = 48
 
+#: default threshold for rejecting low self-information sequences,
+#: measured as % of maximum possible self-information for string & alphabet size.
+#: (todo: defend this choice of value -- 'twas picked via experimentation)
+default_min_complexity = 0.4
+
 #: default presets
 default_charset = "safe52"
 default_wordset = "beale"
@@ -169,6 +174,26 @@ def _average_entropy(source, total=False):
     else:
         return logf(size, 2) - tmp / size
 
+def _max_average_entropy(target, source):
+    """calculate maximum _average_entropy() of all possible
+    strings of length <target>, if drawn from a set of symbols
+    of size <source>.
+    """
+    # NOTE: this accomplishes it's purpose by assuming maximum self-information
+    #       would be a string repeating all symbols ``floor(target/source)``
+    #       times, followed by the first ``target % source`` symbols repeated
+    #       once more.
+    assert target > 0
+    assert source > 0
+    if target < source:
+        # special case of general equation, to prevent intermediate DomainError.
+        return logf(target, 2)
+    else:
+        q, r = divmod(target, source)
+        p1 = (q + 1) / target
+        p2 = q / target
+        return -(r * p1 * logf(p1, 2) + (source - r) * p2 * logf(p2, 2))
+
 def _average_wordset_entropy(wordset):
     """return the average entropy per character in a given wordset,
     using each char's frequency in the wordset as the probability of occurrence.
@@ -205,7 +230,7 @@ def _load_wordset(name):
 #=============================================================================
 # password generators
 #=============================================================================
-class SecretGenerator(object):
+class SequenceGenerator(object):
     """base class used by word & phrase generators.
 
     These objects take a series of options, corresponding
@@ -229,11 +254,22 @@ class SecretGenerator(object):
 
         Also exposed as a readonly attribute.
 
+    :param min_complexity:
+        By default, generators derived from this class will avoid
+        generating passwords with excessively high per-symbol redundancy
+        (e.g. ``aaaaaaaa``). This is done by rejecting any strings
+        whose self-information per symbol is below a certain
+        percentage of the maximum possible a given string and alphabet
+        size. This defaults to 40%, or ``min_complexity=0.4``.
+
     .. autoattribute:: entropy_rate
     """
     #=============================================================================
     # instance attrs
     #=============================================================================
+
+    #: minimum complexity threshold for rejecting generating strings.
+    _min_entropy = None
 
     #: entropy rate per symbol of generated password (character or word)
     entropy_rate = None
@@ -247,7 +283,8 @@ class SecretGenerator(object):
     #=============================================================================
     # init
     #=============================================================================
-    def __init__(self, size=None, entropy=None, rng=None, **kwds):
+    def __init__(self, size=None, entropy=None, rng=None, min_complexity=None,
+                 **kwds):
         # NOTE: subclass should have already set .entropy_rate
         if size is None:
             size = 1
@@ -262,7 +299,13 @@ class SecretGenerator(object):
         self.size = size
         if rng is not None:
             self.rng = rng
-        super(SecretGenerator, self).__init__(**kwds)
+        if min_complexity is None:
+            min_complexity = default_min_complexity
+        if min_complexity < 0 or min_complexity > 1:
+            raise ValueError("min_complexity must be between 0 and 1")
+        self._max_entropy = _max_average_entropy(size, 2**self.entropy_rate)
+        self._min_entropy = min_complexity * self._max_entropy
+        super(SequenceGenerator, self).__init__(**kwds)
 
     #=============================================================================
     # helpers
@@ -301,7 +344,7 @@ class SecretGenerator(object):
     # eoc
     #=============================================================================
 
-class WordGenerator(SecretGenerator):
+class WordGenerator(SequenceGenerator):
     """class which generates passwords by randomly choosing
     from a string of unique characters.
 
@@ -310,7 +353,7 @@ class WordGenerator(SecretGenerator):
     :param preset:
         name of preset charset to use instead of explict charset.
     :param \*\*kwds:
-        all other keywords passed to :class:`SecretGenerator`.
+        all other keywords passed to :class:`SequenceGenerator`.
 
     .. autoattribute:: charset
     """
@@ -342,13 +385,18 @@ class WordGenerator(SecretGenerator):
     # helpers
     #=============================================================================
     def _gen(self):
-        return getrandstr(self.rng, self.charset, self.size)
+        while True:
+            secret = getrandstr(self.rng, self.charset, self.size)
+            # check that it satisfies minimum self-information limit
+            # set by min_complexity. i.e., reject strings like "aaaaaaaa"
+            if _average_entropy(secret) >= self._min_entropy:
+                return secret
 
     #=============================================================================
     # eoc
     #=============================================================================
 
-class PhraseGenerator(SecretGenerator):
+class PhraseGenerator(SequenceGenerator):
     """class which generates passphrases by randomly choosing
     from a list of unique words.
 
@@ -359,7 +407,7 @@ class PhraseGenerator(SecretGenerator):
     :param spaces:
         whether to insert spaces between words in output (defaults to ``True``).
     :param \*\*kwds:
-        all other keywords passed to :class:`SecretGenerator`.
+        all other keywords passed to :class:`SequenceGenerator`.
 
     .. autoattribute:: wordset
     """
@@ -419,10 +467,15 @@ class PhraseGenerator(SecretGenerator):
     #=============================================================================
     def _gen(self):
         while True:
-            secret = self._sep.join(self.rng.choice(self.wordset)
-                                    for _ in irange(self.size))
-            if len(secret) >= self._min_chars: # see __init__ for explanation
-                return secret
+            symbols = [self.rng.choice(self.wordset) for _ in irange(self.size)]
+            # check that it satisfies minimum self-information limit
+            # set by min_complexity. i.e., reject strings like "aaaaaaaa"
+            if _average_entropy(symbols) > self._min_entropy:
+                secret = self._sep.join(symbols)
+                # check that we don't fall below per-character limit
+                # on self information. see __init__ for explanation
+                if len(secret) >= self._min_chars:
+                    return secret
 
     #=============================================================================
     # eoc
@@ -569,9 +622,23 @@ def classify(symbols, classifications=CLASSIFICATIONS):
     roughly classify the strength of the password.
     this is a bit better than just using len(password).
 
-    param symbols: a sequence of symbols (e.g. password string/unicode)
-    param classifications: list of tuples (limit, classification)
-    returns: classification value
+    :param symbols:
+        a sequence of symbols (e.g. password string/unicode)
+    :param classifications:
+        list of tuples with the format ``(limit, classification)``.
+
+    :returns:
+        classification value
+
+    Usage Example::
+
+        >>> from passlib import pwd
+        >>> pwd.classify("10011001")
+        0
+        >>> pwd.classify("secret")
+        1
+        >>> pwd.classify("Eer6aiya")
+        2
     """
     s = strength(symbols)
     for limit, classification in classifications:
