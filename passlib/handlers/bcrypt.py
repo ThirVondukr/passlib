@@ -18,16 +18,16 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 try:
-    from bcrypt import hashpw as pybcrypt_hashpw
+    import bcrypt as _bcrypt
 except ImportError: # pragma: no cover
-    pybcrypt_hashpw = None
+    _bcrypt = None
 try:
     from bcryptor.engine import Engine as bcryptor_engine
 except ImportError: # pragma: no cover
     bcryptor_engine = None
 # pkg
 from passlib.exc import PasslibHashWarning
-from passlib.utils import bcrypt64, safe_crypt, repeat_string, \
+from passlib.utils import bcrypt64, safe_crypt, repeat_string, to_bytes, \
                           classproperty, rng, getrandstr, test_crypt
 from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
@@ -237,11 +237,15 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #===================================================================
     # primary interface
     #===================================================================
-    backends = ("pybcrypt", "bcryptor", "os_crypt", "builtin")
+    backends = ("bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin")
+
+    @classproperty
+    def _has_backend_bcrypt(cls):
+        return _bcrypt is not None and hasattr(_bcrypt, "_ffi")
 
     @classproperty
     def _has_backend_pybcrypt(cls):
-        return pybcrypt_hashpw is not None
+        return _bcrypt is not None and not hasattr(_bcrypt, "_ffi")
 
     @classproperty
     def _has_backend_bcryptor(cls):
@@ -285,17 +289,43 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 "recommend installing py-bcrypt.",
                 )
 
+    def _calc_checksum_bcrypt(self, secret):
+        # bcrypt behavior:
+        #   hash must be ascii bytes
+        #   secret must be bytes
+        #   returns bytes
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        if _BNULL in secret:
+            raise uh.exc.NullPasswordError(self)
+        if self.ident == IDENT_2:
+            # bcrypt doesn't support $2$ hashes; but we can fake $2$ behavior
+            # using the $2a$ algorithm, by repeating the password until
+            # it's at least 72 chars in length.
+            if secret:
+                secret = repeat_string(secret, 72)
+            config = self._get_config(IDENT_2A)
+        else:
+            config = self._get_config()
+        if isinstance(config, unicode):
+            config = config.encode("ascii")
+        hash = _bcrypt.hashpw(secret, config)
+        assert hash.startswith(config) and len(hash) == len(config)+31
+        assert isinstance(hash, bytes)
+        return hash[-31:].decode("ascii")
+
     def _calc_checksum_pybcrypt(self, secret):
         # py-bcrypt behavior:
         #   py2: unicode secret/hash encoded as ascii bytes before use,
         #        bytes taken as-is; returns ascii bytes.
-        #   py3: not supported (patch submitted)
+        #   py3: unicode secret encoded as utf-8 bytes,
+        #        hash encoded as ascii bytes, returns ascii unicode.
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         if _BNULL in secret:
             raise uh.exc.NullPasswordError(self)
         config = self._get_config()
-        hash = pybcrypt_hashpw(secret, config)
+        hash = _bcrypt.hashpw(secret, config)
         assert hash.startswith(config) and len(hash) == len(config)+31
         return str_to_uascii(hash[-31:])
 

@@ -23,10 +23,11 @@ Google App Engine is supported as well.
 
 Optional Libraries
 ==================
-* `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_ or
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ or
+  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_ or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
-   If either of these packages are installed, they will be used to provide
+   If any of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support
