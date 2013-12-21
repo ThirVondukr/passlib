@@ -4,6 +4,19 @@
 Release History
 ===============
 
+**1.6.2** (NOT YET RELEASED)
+============================
+
+    Bugfix release
+
+    * *Django compatibility* -- Passlib's Django extension (:mod:`passlib.ext.django`),
+      and it's related hashes and unittests, have been updated to handle
+      some minor API changes in Django 1.5-1.6. They should now be compatible with Django 1.2 and up.
+
+    .. note::
+
+        As of Passlib 1.7, :mod:`passlib.ext.django` will require Django >= 1.4.
+
 **1.6.1** (2012-08-02)
 ======================
 

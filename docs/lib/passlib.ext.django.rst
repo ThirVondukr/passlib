@@ -8,6 +8,10 @@
 
 .. versionadded:: 1.6
 
+.. note::
+
+    As of Passlib 1.7, :mod:`passlib.ext.django` will require Django >= 1.4.
+
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
 overriddes all of Django's password hashing functions, replacing them
 with wrappers around a Passlib :ref:`CryptContext <context-overview>` object
@@ -31,7 +35,7 @@ of uses:
 * Mark any hash algorithms as deprecated, and automatically migrate to stronger
   hashes when the user logs in.
 
-.. warning::
+.. note::
 
     This plugin should be considered "release candidate" quality.
     It works, and has good unittest coverage, but has seen only

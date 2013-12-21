@@ -203,6 +203,22 @@ def quicksleep(delay):
 #=============================================================================
 # custom test harness
 #=============================================================================
+
+def patchAttr(test, obj, attr, value):
+    """monkeypatch object value, restoring original on cleanup"""
+    try:
+        orig = getattr(obj, attr)
+    except AttributeError:
+        def cleanup():
+            try:
+                delattr(obj, attr)
+            except AttributeError:
+                pass
+        test.addCleanup(cleanup)
+    else:
+        test.addCleanup(setattr, obj, attr, orig)
+    setattr(obj, attr, value)
+
 class TestCase(_TestCase):
     """passlib-specific test case class
 

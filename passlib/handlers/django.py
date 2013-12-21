@@ -224,7 +224,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     max_rounds = 0xffffffff # setting at 32-bit limit for now
     checksum_chars = uh.PADDED_BASE64_CHARS
     checksum_size = 44 # 32 bytes -> base64
-    default_rounds = 10000 # NOTE: using django default here
+    default_rounds = 12000 # NOTE: using django default here
     _prf = "hmac-sha256"
 
     def _calc_checksum(self, secret):
@@ -311,6 +311,21 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
     min_salt_size = default_salt_size = 2
     _stub_checksum = u('.')*11
 
+    # NOTE: regarding duplicate salt field:
+    #
+    # django 1.0 had a "crypt$<salt1>$<salt2><digest>" hash format,
+    # used [a-z0-9] to generate a 5 char salt, stored it in salt1,
+    # duplicated the first two chars of salt1 as salt2.
+    # it would throw an error if salt1 was empty.
+    #
+    # django 1.4 started generating 2 char salt using the full alphabet,
+    # left salt1 empty, and only paid attention to salt2.
+    #
+    # in order to be compatible with django 1.0, the hashes generated
+    # by this function will always include salt1, unless the following
+    # class-level field is disabled (mainly used for testing)
+    use_duplicate_salt = True
+
     @classmethod
     def from_string(cls, hash):
         salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
@@ -331,11 +346,14 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        # NOTE: always filling in salt field, so that we're compatible
-        # with django 1.0 (which requires it)
         salt = self.salt
         chk = salt[:2] + (self.checksum or self._stub_checksum)
-        return uh.render_mc2(self.ident, salt, chk)
+        if self.use_duplicate_salt:
+            # filling in salt field, so that we're compatible with django 1.0
+            return uh.render_mc2(self.ident, salt, chk)
+        else:
+            # django 1.4+ style hash
+            return uh.render_mc2(self.ident, "", chk)
 
     def _calc_checksum(self, secret):
         # NOTE: we lazily import des_crypt,
@@ -352,15 +370,23 @@ class django_disabled(uh.StaticHandler):
     claims the special hash string ``"!"`` which Django uses
     to indicate an account's password has been disabled.
 
-    * newly encrypted passwords will hash to ``!``.
+    * newly encrypted passwords will hash to ``"!"``.
     * it rejects all passwords.
+
+    .. note::
+
+        Django 1.6 prepends a randomly generate 40-char alphanumeric string
+        to each unusuable password. This class recognizes such strings,
+        but for backwards compatibility, still returns ``"!"``.
+
+    .. versionchanged:: 1.6.2 added Django 1.6 support
     """
     name = "django_disabled"
 
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
-        return hash == u("!")
+        return hash.startswith(u("!"))
 
     def _calc_checksum(self, secret):
         return u("!")
