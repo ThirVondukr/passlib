@@ -33,7 +33,7 @@ def get_handler_case(scheme):
     "return HandlerCase instance for scheme, used by other tests"
     from passlib.registry import get_crypt_handler
     handler = get_crypt_handler(scheme)
-    if hasattr(handler, "backends") and not hasattr(handler, "wrapped"):
+    if hasattr(handler, "backends") and not hasattr(handler, "wrapped") and handler.name != "django_bcrypt_sha256":
         backend = handler.get_backend()
         name = "%s_%s_test" % (scheme, backend)
     else:

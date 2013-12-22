@@ -21,23 +21,30 @@ from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 #=============================================================================
 # django
 #=============================================================================
+
+# standard string django uses
+UPASS_LETMEIN = u('l\xe8tmein')
+
+def vstr(version):
+    return ".".join(str(e) for e in version)
+
 class _DjangoHelper(object):
     # NOTE: not testing against Django < 1.0 since it doesn't support
     # most of these hash formats.
 
-    # flag if hash wasn't added until Django 1.4
-    requires14 = False
+    # flag that hash wasn't added until specified version
+    min_django_version = ()
 
     def fuzz_verifier_django(self):
         from passlib.tests.test_ext_django import DJANGO_VERSION
-        if DJANGO_VERSION < (1,0):
-            return None
-        if self.requires14 and DJANGO_VERSION < (1,4):
+        # check_password() not added until 1.0
+        min_django_version = max(self.min_django_version, (1,0))
+        if DJANGO_VERSION < min_django_version:
             return None
         from django.contrib.auth.models import check_password
         def verify_django(secret, hash):
             "django/check_password"
-            if DJANGO_VERSION >= (1,4) and not secret:
+            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
                 return "skip"
             if self.handler.name == "django_bcrypt" and hash.startswith("bcrypt$$2y$"):
                 hash = hash.replace("$$2y$", "$$2a$")
@@ -51,16 +58,16 @@ class _DjangoHelper(object):
 
     def test_90_django_reference(self):
         "run known correct hashes through Django's check_password()"
-        from passlib.tests.test_ext_django import has_django1, has_django14
-        if self.requires14 and not has_django14:
-            raise self.skipTest("Django >= 1.4 not installed")
-        if not has_django1:
-            raise self.skipTest("Django >= 1.0 not installed")
+        from passlib.tests.test_ext_django import DJANGO_VERSION
+        # check_password() not added until 1.0
+        min_django_version = max(self.min_django_version, (1,0))
+        if DJANGO_VERSION < min_django_version:
+            raise self.skipTest("Django >= %s not installed" % vstr(min_django_version))
         from django.contrib.auth.models import check_password
         assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
-            if has_django14 and not secret:
-                # django 1.4 rejects empty passwords
+            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
+                # django 1.4-1.5 rejects empty passwords
                 self.assertFalse(check_password(secret, hash),
                                 "empty string should not have verified")
                 continue
@@ -76,8 +83,10 @@ class _DjangoHelper(object):
     def test_91_django_generation(self):
         "test against output of Django's make_password()"
         from passlib.tests.test_ext_django import DJANGO_VERSION
-        if DJANGO_VERSION < (1,4):
-            raise self.skipTest("Django >= 1.4 not installed")
+        # make_password() not added until 1.4
+        min_django_version = max(self.min_django_version, (1,4))
+        if DJANGO_VERSION < min_django_version:
+            raise self.skipTest("Django >= %s not installed" % vstr(min_django_version))
         from passlib.utils import tick
         from django.contrib.auth.hashers import make_password
         name = self.handler.django_name # set for all the django_* handlers
@@ -229,7 +238,7 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
 class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
     "test django_pbkdf2_sha256"
     handler = hash.django_pbkdf2_sha256
-    requires14 = True
+    min_django_version = (1,4)
 
     known_correct_hashes = [
         #
@@ -244,7 +253,7 @@ class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
 class django_pbkdf2_sha1_test(HandlerCase, _DjangoHelper):
     "test django_pbkdf2_sha1"
     handler = hash.django_pbkdf2_sha1
-    requires14 = True
+    min_django_version = (1,4)
 
     known_correct_hashes = [
         #
@@ -260,7 +269,7 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
     "test django_bcrypt"
     handler = hash.django_bcrypt
     secret_size = 72
-    requires14 = True
+    min_django_version = (1,4)
 
     known_correct_hashes = [
         #
@@ -291,6 +300,64 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
 
 django_bcrypt_test = skipUnless(hash.bcrypt.has_backend(),
                                 "no bcrypt backends available")(django_bcrypt_test)
+
+class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
+    "test django_bcrypt_sha256"
+    handler = hash.django_bcrypt_sha256
+    min_django_version = (1,6)
+    forbidden_characters = None
+
+    known_correct_hashes = [
+        #
+        # custom - generated via django 1.6 hasher
+        #
+        ('',
+            'bcrypt_sha256$$2a$06$/3OeRpbOf8/l6nPPRdZPp.nRiyYqPobEZGdNRBWihQhiFDh1ws1tu'),
+        (UPASS_LETMEIN,
+            'bcrypt_sha256$$2a$08$NDjSAIcas.EcoxCRiArvT.MkNiPYVhrsrnJsRkLueZOoV1bsQqlmC'),
+        (UPASS_TABLE,
+            'bcrypt_sha256$$2a$06$kCXUnRFQptGg491siDKNTu8RxjBGSjALHRuvhPYNFsa4Ea5d9M48u'),
+
+        # test >72 chars is hashed correctly -- under bcrypt these hash the same.
+        (repeat_string("abc123",72),
+            'bcrypt_sha256$$2a$06$Tg/oYyZTyAf.Nb3qSgN61OySmyXA8FoY4PjGizjE1QSDfuL5MXNni'),
+        (repeat_string("abc123",72)+"qwr",
+            'bcrypt_sha256$$2a$06$Tg/oYyZTyAf.Nb3qSgN61Ocy0BEz1RK6xslSNi8PlaLX2pe7x/KQG'),
+        (repeat_string("abc123",72)+"xyz",
+            'bcrypt_sha256$$2a$06$Tg/oYyZTyAf.Nb3qSgN61OvY2zoRVUa2Pugv2ExVOUT2YmhvxUFUa'),
+    ]
+
+    known_malformed_hashers = [
+        # data in django salt field
+        'bcrypt_sha256$xyz$2a$06$/3OeRpbOf8/l6nPPRdZPp.nRiyYqPobEZGdNRBWihQhiFDh1ws1tu',
+    ]
+
+    def test_30_HasManyIdents(self):
+        raise self.skipTest("multiple idents not supported")
+
+    def test_30_HasOneIdent(self):
+        # forbidding ident keyword, django doesn't support configuring this
+        handler = self.handler
+        handler(use_defaults=True)
+        self.assertRaises(TypeError, handler, ident="$2a$", use_defaults=True)
+
+    # NOTE: the following have been cloned from _bcrypt_test()
+
+    def populate_settings(self, kwds):
+        # speed up test w/ lower rounds
+        kwds.setdefault("rounds", 4)
+        super(django_bcrypt_sha256_test, self).populate_settings(kwds)
+
+    def fuzz_setting_rounds(self):
+        # decrease default rounds for fuzz testing to speed up volume.
+        return randintgauss(5, 8, 6, 1)
+
+    def fuzz_setting_ident(self):
+        # omit multi-ident tests, only $2a$ counts for this class
+        return None
+
+django_bcrypt_sha256_test = skipUnless(hash.bcrypt.has_backend(),
+                                       "no bcrypt backends available")(django_bcrypt_sha256_test)
 
 #=============================================================================
 # eof

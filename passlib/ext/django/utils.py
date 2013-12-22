@@ -28,6 +28,15 @@ __all__ = [
 #=============================================================================
 # default policies
 #=============================================================================
+
+# map preset names -> passlib.app attrs
+_preset_map = {
+    "django-1.0": "django10_context",
+    "django-1.4": "django14_context",
+    "django-1.6": "django16_context",
+    "django-latest": "django_context",
+}
+
 def get_preset_config(name):
     """Returns configuration string for one of the preset strings
     supported by the ``PASSLIB_CONFIG`` setting.
@@ -35,36 +44,41 @@ def get_preset_config(name):
 
     * ``"passlib-default"`` - default config used by this release of passlib.
     * ``"django-default"`` - config matching currently installed django version.
-    * ``"django-latest"`` - config matching newest django version (currently same as ``"django-1.4"``).
+    * ``"django-latest"`` - config matching newest django version (currently same as ``"django-1.6"``).
     * ``"django-1.0"`` - config used by stock Django 1.0 - 1.3 installs
-    * ``"django-1.4"`` -config used by stock Django 1.4 installs
+    * ``"django-1.4"`` - config used by stock Django 1.4 installs
+    * ``"django-1.6"`` - config used by stock Django 1.6 installs
     """
     # TODO: add preset which includes HASHERS + PREFERRED_HASHERS,
-    #       after having imported any custom hashers. "django-current"
+    #       after having imported any custom hashers. e.g. "django-current"
     if name == "django-default":
-        if (0,0) < DJANGO_VERSION < (1,4):
+        if not DJANGO_VERSION:
+            raise ValueError("can't resolve django-default preset, "
+                             "django not installed")
+        if DJANGO_VERSION < (1,4):
             name = "django-1.0"
-        else:
+        elif DJANGO_VERSION < (1,6):
             name = "django-1.4"
-    if name == "django-1.0":
-        from passlib.apps import django10_context
-        return django10_context.to_string()
-    if name == "django-1.4" or name == "django-latest":
-        from passlib.apps import django14_context
-        return django14_context.to_string()
+        else:
+            name = "django-1.6"
     if name == "passlib-default":
         return PASSLIB_DEFAULT
-    raise ValueError("unknown preset config name: %r" % name)
+    try:
+        attr = _preset_map[name]
+    except KeyError:
+        raise ValueError("unknown preset config name: %r" % name)
+    import passlib.apps
+    return getattr(passlib.apps, attr).to_string()
 
 # default context used by passlib 1.6
 PASSLIB_DEFAULT = """
 [passlib]
 
 ; list of schemes supported by configuration
-; currently all django 1.4 hashes, django 1.0 hashes,
+; currently all django 1.6, 1.4, and 1.0 hashes,
 ; and three common modular crypt format hashes.
 schemes =
-    django_pbkdf2_sha256, django_pbkdf2_sha1, django_bcrypt,
+    django_pbkdf2_sha256, django_pbkdf2_sha1, django_bcrypt, django_bcrypt_sha256,
     django_salted_sha1, django_salted_md5, django_des_crypt, hex_md5,
     sha512_crypt, bcrypt, phpass
 

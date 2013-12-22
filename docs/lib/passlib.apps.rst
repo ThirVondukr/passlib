@@ -79,15 +79,23 @@ supported by the particular Django version.
 
     .. versionadded:: 1.6
 
+.. data:: django16_context
+
+    The object replicates the stock password hashing policy for Django 1.6.
+    It supports all the Django 1.0-1.6 hashes, and defaults to
+    :class:`~passlib.hash.django_pbkdf2_sha256`. It treats all
+    Django 1.0 hashes as deprecated.
+
+    .. versionadded:: 1.6.2
+
 .. data:: django_context
 
     This alias will always point to the latest preconfigured Django
     context supported by Passlib, and as such should support
     all historical hashes built into Django.
 
-    .. versionchanged:: 1.6
-        This previously was an alias for :data:`django10_context`,
-        and now points to :data:`django14_context`.
+    .. versionchanged:: 1.6.2
+        This now points to :data:`django16_context`.
 
 .. _ldap-contexts:
 

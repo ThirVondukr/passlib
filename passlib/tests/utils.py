@@ -1152,9 +1152,10 @@ class HandlerCase(TestCase):
                 c3 = self.do_genconfig(salt=s1[:-1])
                 self.assertNotEqual(c3, c1)
 
+    # XXX: make this a class-level flag
     def prepare_salt(self, salt):
         "prepare generated salt"
-        if self.handler.name in ["bcrypt", "django_bcrypt"]:
+        if self.handler.name in ["bcrypt", "django_bcrypt", "django_bcrypt_sha256"]:
             from passlib.utils import bcrypt64
             salt = bcrypt64.repair_unused(salt)
         return salt

@@ -9,7 +9,7 @@ import sys
 import warnings
 # site
 # pkg
-from passlib.apps import django10_context, django14_context
+from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 import passlib.exc as exc
 from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
@@ -109,22 +109,28 @@ def create_mock_setter():
 # work up stock django config
 #=============================================================================
 sample_hashes = {} # override sample hashes used in test cases
-if has_django14:
-    # have to modify this a little -
-    # all but pbkdf2_sha256 will be deprecated here,
-    # whereas preconfigured passlib policy is more permissive
+if DJANGO_VERSION >= (1,6):
+    stock_config = django16_context.to_dict()
+    stock_config.update(
+        deprecated="auto"
+    )
+    sample_hashes.update(
+        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
+    )
+elif DJANGO_VERSION >= (1,4):
     stock_config = django14_context.to_dict()
-    stock_config['deprecated'] = ["django_pbkdf2_sha1", "django_bcrypt"] + stock_config['deprecated']
-    if DJANGO_VERSION >= (1,6):
-        sample_hashes.update(
-            django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
-        )
-elif has_django1:
+    stock_config.update(
+        deprecated="auto",
+        django_pbkdf2_sha256__default_rounds=10000,
+    )
+elif DJANGO_VERSION >= (1,0):
     stock_config = django10_context.to_dict()
 else:
     # 0.9.6 config
-    stock_config = dict(schemes=["django_salted_sha1", "django_salted_md5", "hex_md5"],
-                 deprecated=["hex_md5"])
+    stock_config = dict(
+        schemes=["django_salted_sha1", "django_salted_md5", "hex_md5"],
+        deprecated=["hex_md5"]
+        )
 
 #=============================================================================
 # test utils
@@ -618,8 +624,10 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertTrue(user.check_password(secret))
 
             # check if it upgraded the hash
+            # NOTE: needs_update kept separate in case we need to test rounds.
             needs_update = deprecated
             if needs_update:
+                self.assertNotEqual(user.password, hash)
                 self.assertFalse(handler.identify(user.password))
                 self.assertTrue(ctx.handler().verify(secret, user.password))
                 self.assert_valid_password(user, saved=user.password)
@@ -798,7 +806,9 @@ class DjangoExtensionTest(_ExtensionTest):
         "test PASSLIB_CONFIG='<preset>'"
         # test django presets
         self.load_extension(PASSLIB_CONTEXT="django-default", check=False)
-        if has_django14:
+        if DJANGO_VERSION >= (1,6):
+            ctx = django16_context
+        elif DJANGO_VERSION >= (1,4):
             ctx = django14_context
         else:
             ctx = django10_context
