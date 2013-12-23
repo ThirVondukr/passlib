@@ -7,6 +7,8 @@ Release History
 **1.6.2** (NOT YET RELEASED)
 ============================
 
+    * Updated the :attr:`~passlib.ifc.PasswordHash.default_rounds` values for all of the hashes.
+
     * *BCrypt*: Added support for the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
       library as of the possible bcrypt backends that will be used if available.
       (:issue:`49`)

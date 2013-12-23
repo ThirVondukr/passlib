@@ -112,7 +112,9 @@ sample_hashes = {} # override sample hashes used in test cases
 if DJANGO_VERSION >= (1,6):
     stock_config = django16_context.to_dict()
     stock_config.update(
-        deprecated="auto"
+        deprecated="auto",
+        django_pbkdf2_sha1__default_rounds=12000,
+        django_pbkdf2_sha256__default_rounds=12000,
     )
     sample_hashes.update(
         django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
@@ -121,6 +123,7 @@ elif DJANGO_VERSION >= (1,4):
     stock_config = django14_context.to_dict()
     stock_config.update(
         deprecated="auto",
+        django_pbkdf2_sha1__default_rounds=10000,
         django_pbkdf2_sha256__default_rounds=10000,
     )
 elif DJANGO_VERSION >= (1,0):

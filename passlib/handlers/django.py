@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.hash import bcrypt
+from passlib.hash import bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, classproperty
 from passlib.utils.compat import b, bytes, str_to_uascii, uascii_to_str, unicode, u
 from passlib.utils.pbkdf2 import pbkdf2
@@ -270,7 +270,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 10000, but must be within ``range(1,1<<32)``.
+        Defaults to 20000, but must be within ``range(1,1<<32)``.
 
     :type relaxed: bool
     :param relaxed:
@@ -292,7 +292,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     max_rounds = 0xffffffff # setting at 32-bit limit for now
     checksum_chars = uh.PADDED_BASE64_CHARS
     checksum_size = 44 # 32 bytes -> base64
-    default_rounds = 12000 # NOTE: using django default here
+    default_rounds = pbkdf2_sha256.default_rounds # NOTE: django 1.6 uses 12000
     _prf = "hmac-sha256"
 
     def _calc_checksum(self, secret):
@@ -323,7 +323,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 10000, but must be within ``range(1,1<<32)``.
+        Defaults to 60000, but must be within ``range(1,1<<32)``.
 
     :type relaxed: bool
     :param relaxed:
@@ -342,6 +342,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     django_name = "pbkdf2_sha1"
     ident = u('pbkdf2_sha1$')
     checksum_size = 28 # 20 bytes -> base64
+    default_rounds = pbkdf2_sha1.default_rounds # NOTE: django 1.6 uses 12000
     _prf = "hmac-sha1"
 
 #=============================================================================
