@@ -60,10 +60,15 @@ application: fake-app
 version: 2
 runtime: %s
 api_version: 1
+threadsafe: no
 
 handlers:
 - url: /.*
   script: dummy.py
+
+libraries:
+- name: django
+  version: "latest"
 """ % runtime)
 
 def main(cmd, *args):
