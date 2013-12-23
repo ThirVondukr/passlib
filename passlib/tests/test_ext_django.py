@@ -955,6 +955,7 @@ if has_django14:
                     rounds = _thmod.get_hasher("pbkdf2_sha256").iterations
                     self.update(
                         django_pbkdf2_sha256__min_rounds=rounds,
+                        django_pbkdf2_sha256__default_rounds=rounds,
                         django_pbkdf2_sha256__max_rounds=rounds,
                     )
                 patchAttr(self, password_context, "__class__", ContextWithHook)
