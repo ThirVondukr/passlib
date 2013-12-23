@@ -18,9 +18,10 @@ Release History
       some minor API changes in Django 1.5-1.6. They should now be compatible with Django 1.2 and up.
       (:issue:`50`)
 
-    .. note::
+        .. note::
 
-        As of Passlib 1.7, :mod:`passlib.ext.django` will require Django >= 1.4.
+            As of Passlib 1.7, :mod:`passlib.ext.django` will require Django >= 1.4.
+            Passlib 1.6.x is the last release that will support Django 1.3.x and earlier.
 
 **1.6.1** (2012-08-02)
 ======================

@@ -12,9 +12,10 @@ It is known to work with the following Python implementations:
 * CPython 2 -- v2.5 or newer.
 * CPython 3 -- all versions.
 * PyPy -- v1.5 or newer.
+* PyPy3 -- v2.1 or newer.
 * Jython -- v2.5 or newer.
 
-Passlib should work with all operating systems and enviroments,
+Passlib should work with all operating systems and environments,
 as it contains builtin fallbacks
 for almost all OS-dependant features.
 Google App Engine is supported as well.
