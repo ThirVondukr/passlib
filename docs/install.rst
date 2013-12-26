@@ -22,10 +22,10 @@ Google App Engine is supported as well.
 
 .. warning::
 
-    Unless significant feedback is received to reverse the decision,
-    **Passlib 1.7 will drop support for Python 2.5.** Too many core tools
-    (such as Setuptools, Pip, and Tox) no longer support it, making
-    testing increasingly burdensome.
+    **Passlib 1.7 will drop support for Python 2.5,** and require Python 2.6 or newer,
+    unless significant feedback is received to reverse the decision.
+    Too many core tools such as Setuptools, Pip, and Tox no longer support it,
+    making testing increasingly burdensome.
 
 .. _optional-libraries:
 
