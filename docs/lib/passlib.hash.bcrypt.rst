@@ -93,6 +93,21 @@ While BCrypt's basic algorithm is described in it's design document [#f1]_,
 the OpenBSD implementation [#f2]_ is considered the canonical reference, even
 though it differs from the design document in a few small ways.
 
+Security Issues
+===============
+
+.. _bcrypt-password-truncation:
+
+* Password Truncation.
+
+  While not a security issue per-se, bcrypt does have one major limitation:
+  password are truncated on the first NULL byte (if any),
+  and only the first 72 bytes of a password are hashed... all the rest are ignored.
+  Furthermore, bytes 55-72 are not fully mixed into the resulting hash (citation needed!).
+  To work around both these issues, many applications first run the password through a message
+  digest such as SHA2-256. Passlib offers the premade :doc:`passlib.hash.bcrypt_sha256`
+  to take care of this issue.
+
 Deviations
 ==========
 This implementation of bcrypt differs from others in a few ways:

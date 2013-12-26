@@ -82,6 +82,7 @@ _locations = dict(
     apr_md5_crypt = "passlib.handlers.md5_crypt",
     atlassian_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
     bcrypt = "passlib.handlers.bcrypt",
+    bcrypt_sha256 = "passlib.handlers.bcrypt",
     bigcrypt = "passlib.handlers.des_crypt",
     bsd_nthash = "passlib.handlers.windows",
     bsdi_crypt = "passlib.handlers.des_crypt",

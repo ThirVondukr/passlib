@@ -7,14 +7,21 @@ Release History
 **1.6.2** (NOT YET RELEASED)
 ============================
 
-    * Updated the :attr:`~passlib.ifc.PasswordHash.default_rounds` values for all of the hashes.
+    Minor changes & compatibility fixes
 
-    * *BCrypt*: Added support for the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+    * Re-tuned the :attr:`~passlib.ifc.PasswordHash.default_rounds` values for all of the hashes.
+
+    * *New hash:* Added the :doc:`bcrypt_sha256 <lib/passlib.hash.bcrypt_sha256>` hash,
+      which wraps BCrypt using SHA256 in order to work around it's password size limitations
+      (:issue:`43`).
+
+    * :doc:`passlib.hash.bcrypt <lib/passlib.hash.bcrypt>`:
+      Added support for the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
       library as of the possible bcrypt backends that will be used if available.
       (:issue:`49`)
 
-    * *Django*: Passlib's Django extension (:mod:`passlib.ext.django`),
-      and it's related hashes and unittests, have been updated to handle
+    * :mod:`passlib.ext.django`: Passlib's Django extension
+      (and it's related hashes and unittests) have been updated to handle
       some minor API changes in Django 1.5-1.6. They should now be compatible with Django 1.2 and up.
       (:issue:`50`)
 

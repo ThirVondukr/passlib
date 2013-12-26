@@ -270,6 +270,7 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
     handler = hash.django_bcrypt
     secret_size = 72
     min_django_version = (1,4)
+    fuzz_salts_need_bcrypt_repair = True
 
     known_correct_hashes = [
         #
@@ -306,6 +307,7 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     handler = hash.django_bcrypt_sha256
     min_django_version = (1,6)
     forbidden_characters = None
+    fuzz_salts_need_bcrypt_repair = True
 
     known_correct_hashes = [
         #

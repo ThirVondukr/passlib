@@ -27,6 +27,7 @@ class _bcrypt_test(HandlerCase):
     handler = hash.bcrypt
     secret_size = 72
     reduce_default_rounds = True
+    fuzz_salts_need_bcrypt_repair = True
 
     known_correct_hashes = [
         #
@@ -358,6 +359,113 @@ hash.bcrypt._no_backends_msg() # call this for coverage purposes
 # create test cases for specific backends
 bcrypt_bcrypt_test, bcrypt_pybcrypt_test, bcrypt_bcryptor_test, bcrypt_os_crypt_test, bcrypt_builtin_test = \
                _bcrypt_test.create_backend_cases(["bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin"])
+
+#=============================================================================
+# bcrypt
+#=============================================================================
+class _bcrypt_sha256_test(HandlerCase):
+    "base for BCrypt-SHA256 test cases"
+    handler = hash.bcrypt_sha256
+    reduce_default_rounds = True
+    forbidden_characters = None
+    fuzz_salts_need_bcrypt_repair = True
+    fallback_os_crypt_handler = hash.bcrypt
+
+    known_correct_hashes = [
+        #
+        # custom test vectors
+        #
+
+        # empty
+        ("",
+            '$bcrypt-sha256$2a,5$E/e/2AOhqM5W/KJTFQzLce$F6dYSxOdAEoJZO2eoHUZWZljW/e0TXO'),
+
+        # ascii
+        ("password",
+            '$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu'),
+
+        # unicode / utf8
+        (UPASS_TABLE,
+            '$bcrypt-sha256$2a,5$.US1fQ4TQS.ZTz/uJ5Kyn.$QNdPDOTKKT5/sovNz1iWg26quOU4Pje'),
+        (UPASS_TABLE.encode("utf-8"),
+            '$bcrypt-sha256$2a,5$.US1fQ4TQS.ZTz/uJ5Kyn.$QNdPDOTKKT5/sovNz1iWg26quOU4Pje'),
+
+        # test >72 chars is hashed correctly -- under bcrypt these hash the same.
+        # NOTE: test_60_secret_size() handles this already, this is just for overkill :)
+        (repeat_string("abc123",72),
+            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$r/hyEtqJ0teqPEmfTLoZ83ciAI1Q74.'),
+        (repeat_string("abc123",72)+"qwr",
+            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$021KLEif6epjot5yoxk0m8I0929ohEa'),
+        (repeat_string("abc123",72)+"xyz",
+            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$7.1kgpHduMGEjvM3fX6e/QCvfn6OKja'),
+        ]
+
+    known_correct_configs =[
+        ('$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe',
+         "password", '$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu'),
+    ]
+
+    known_malformed_hashes = [
+        # bad char in otherwise correct hash
+        #                           \/
+        '$bcrypt-sha256$2a,5$5Hg1DKF!PE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unrecognized bcrypt variant
+        '$bcrypt-sha256$2c,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unsupported bcrypt variant
+        '$bcrypt-sha256$2x,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # rounds zero-padded
+        '$bcrypt-sha256$2a,05$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # config string w/ $ added
+        '$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe$',
+    ]
+
+    #===================================================================
+    # override some methods -- cloned from bcrypt
+    #===================================================================
+    def setUp(self):
+        # ensure builtin is enabled for duration of test.
+        if TEST_MODE("full") and self.backend == "builtin":
+            key = "PASSLIB_BUILTIN_BCRYPT"
+            orig = os.environ.get(key)
+            if orig:
+                self.addCleanup(os.environ.__setitem__, key, orig)
+            else:
+                self.addCleanup(os.environ.__delitem__, key)
+            os.environ[key] = "enabled"
+        super(_bcrypt_sha256_test, self).setUp()
+
+    def populate_settings(self, kwds):
+        # builtin is still just way too slow.
+        if self.backend == "builtin":
+            kwds.setdefault("rounds", 4)
+        super(_bcrypt_sha256_test, self).populate_settings(kwds)
+
+    #===================================================================
+    # override ident tests for now
+    #===================================================================
+    def test_30_HasManyIdents(self):
+        raise self.skipTest("multiple idents not supported")
+
+    def test_30_HasOneIdent(self):
+        # forbidding ident keyword, we only support "2a" for now
+        handler = self.handler
+        handler(use_defaults=True)
+        self.assertRaises(ValueError, handler, ident="$2y$", use_defaults=True)
+
+    #===================================================================
+    # fuzz testing -- cloned from bcrypt
+    #===================================================================
+    def fuzz_setting_rounds(self):
+        # decrease default rounds for fuzz testing to speed up volume.
+        return randintgauss(5, 8, 6, 1)
+
+# create test cases for specific backends
+bcrypt_sha256_bcrypt_test, bcrypt_sha256_pybcrypt_test, bcrypt_sha256_bcryptor_test, bcrypt_sha256_os_crypt_test, bcrypt_sha256_builtin_test = \
+               _bcrypt_sha256_test.create_backend_cases(["bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin"])
 
 #=============================================================================
 # eof

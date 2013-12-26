@@ -10,7 +10,7 @@ Overview
 The :mod:`!passlib.hash` module contains all the password hash algorithms built into Passlib.
 While each hash has it's own options and output format, they all share a common interface,
 documented in detail in the :ref:`password-hash-api`. The following pages
-describe the common interface, and then describe each hash in detail 
+describe the common interface, and then describe each hash in detail
 (including it's format, underlying algorithm, and known security issues).
 
 .. seealso:: :doc:`Quickstart Guide </new_app_quickstart>` -- advice on
@@ -123,6 +123,7 @@ they can be used compatibly along side other modular crypt format hashes.
     :maxdepth: 1
 
     passlib.hash.apr_md5_crypt
+    passlib.hash.bcrypt_sha256
     passlib.hash.phpass
     passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
