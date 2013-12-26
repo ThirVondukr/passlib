@@ -258,7 +258,7 @@ class _bcrypt_test(HandlerCase):
         if ident == IDENT_2X:
             # 2x is just recognized, not supported. don't test with it.
             del kwds['ident']
-        elif ident == IDENT_2 and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
+        elif ident == IDENT_2 and other and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
             # avoid false failure due to flaw in 0-revision bcrypt:
             # repeated strings like 'abc' and 'abcabc' hash identically.
             other = self.get_fuzz_password()
