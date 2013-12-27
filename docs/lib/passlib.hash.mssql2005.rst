@@ -12,7 +12,7 @@
 .. currentmodule:: passlib.hash
 
 This class implements the hash algorithm used by Microsoft SQL Server 2005
-to store it's user account passwords, replacing the slightly less secure
+to store its user account passwords, replacing the slightly less secure
 :class:`~passlib.hash.mssql2000` variant.
 This class can be used directly as follows::
 
@@ -44,7 +44,7 @@ Interface
 Format & Algorithm
 ==================
 MSSQL 2005 hashes are usually presented as a series of 52 upper-case
-hexidecimal characters, prefixed by ``0x``. An example MSSQL 2005 hash
+hexadecimal characters, prefixed by ``0x``. An example MSSQL 2005 hash
 (of ``"password"``)::
 
     0x01006ACDF9FF5D2E211B392EEF1175EFFE13B3A368CE2F94038B
@@ -67,14 +67,14 @@ digest used by MSSQL 2000.
 
     MSSQL 2005 hashes do not actually have a native textual format, as they
     are stored as raw bytes in an SQL table. However, when external programs
-    deal with them, MSSQL generally encodes raw bytes as upper-case hexidecimal,
+    deal with them, MSSQL generally encodes raw bytes as upper-case hexadecimal,
     prefixed with ``0x``. This is the representation Passlib uses.
 
 Security Issues
 ===============
 This algorithm is reasonably weak, and shouldn't be used for any
 purpose besides manipulating existing MSSQL 2005 hashes. This mainly due to
-it's simplicity, and years of research on high-speed SHA1
+its simplicity, and years of research on high-speed SHA1
 implementations, which makes efficient brute force attacks feasible.
 
 .. rubric:: Footnotes

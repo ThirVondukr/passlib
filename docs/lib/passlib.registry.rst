@@ -15,7 +15,7 @@ querying Passlib to detect what algorithms are available.
 .. warning::
 
     This module is primarily used as an internal support module.
-    It's interface has not been finalized yet, and may be changed somewhat
+    Its interface has not been finalized yet, and may be changed somewhat
     between major releases of Passlib, as the internal code is cleaned up
     and simplified.
 
@@ -45,7 +45,7 @@ Example showing how to use :func:`!registry_crypt_handler_path`::
         >>> from passlib.registry import register_crypt_handler_path
         >>> register_crypt_handler_path("myhash", "myapp.support.hashes")
 
-        >>> # even before being loaded, it's name will show up as available
+        >>> # even before being loaded, its name will show up as available
         >>> from passlib.registry import list_crypt_handlers
         >>> 'myhash' in list_crypt_handlers()
         True

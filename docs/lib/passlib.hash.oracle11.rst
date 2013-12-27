@@ -27,7 +27,7 @@ This class can be can be used directly as follows::
 
     This implementation has not been compared
     very carefully against the official implementation or reference documentation,
-    and it's behavior may not match under various border cases.
+    and its behavior may not match under various border cases.
     *caveat emptor*.
 
 Interface
@@ -44,17 +44,17 @@ An oracle11 hash string has the format :samp:`S:{checksum}{salt}`, where:
 
 * ``S:`` is the prefix used to identify oracle11 hashes
   (as distinct from oracle10 hashes, which have no constant prefix).
-* :samp:`{checksum}` is 40 hexidecimal characters;
+* :samp:`{checksum}` is 40 hexadecimal characters;
   encoding a 160-bit checksum.
 
   (``4143053633E59B4992A8EA17D2FF542C9EDEB335`` in the example)
 
-* :samp:`{salt}` is 20 hexidecimal characters;
+* :samp:`{salt}` is 20 hexadecimal characters;
   providing a 80-bit salt (``C886EED9C80450C1B4E6`` in the example).
 
 The Oracle 11 hash has a very simple algorithm: The salt is decoded
-from it's hexidecimal representation into binary, and the SHA-1 digest
-of :samp:`{password}{raw_salt}` is then encoded into hexidecimal, and returned as the checksum.
+from its hexadecimal representation into binary, and the SHA-1 digest
+of :samp:`{password}{raw_salt}` is then encoded into hexadecimal, and returned as the checksum.
 
 Deviations
 ==========

@@ -223,7 +223,7 @@ The following contexts are available for reading Roundup password hash fields:
 .. data:: roundup15_context
 
     Roundup 1.4.17 adds support for :class:`~passlib.hash.ldap_pbkdf2_sha1`
-    as it's preferred hash format.
+    as its preferred hash format.
     This context supports all the :data:`roundup10_context` hashes,
     but adds that hash as well (and uses it as the default).
 

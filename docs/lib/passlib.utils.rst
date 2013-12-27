@@ -8,11 +8,11 @@
 .. warning::
 
     This module is primarily used as an internal support module.
-    It's interface has not been finalized yet, and may be changed somewhat
+    Its interface has not been finalized yet, and may be changed somewhat
     between major releases of Passlib, as the internal code is cleaned up
     and simplified.
 
-This module primarily contains utility functions used interally by Passlib.
+This module primarily contains utility functions used internally by Passlib.
 However, end-user applications may find some of the functions useful,
 in particular:
 

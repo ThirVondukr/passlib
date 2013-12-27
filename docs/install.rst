@@ -99,7 +99,7 @@ you will need to:
 2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.5 or newer).
 3. Download the Passlib source
 4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
-5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
+5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
    to access the Passlib documentation in html format.
 6. Alternately, steps 4 & 5 can be replaced by running :samp:`python setup.py docdist`,
    which will build a zip file of the documentation in :samp:`{SOURCE}/dist`.

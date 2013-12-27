@@ -21,7 +21,7 @@ htpasswd and htdigest files; though the use of two helper classes.
 Htpasswd Files
 ==============
 The :class:`!HTpasswdFile` class allows managing of htpasswd files.
-A quick summary of it's usage::
+A quick summary of its usage::
 
     >>> from passlib.apache import HtpasswdFile
 

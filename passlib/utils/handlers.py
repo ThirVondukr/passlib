@@ -606,7 +606,7 @@ class GenericHandler(PasswordHash):
         (with the extra keyword *checksum*).
 
         this method may not work correctly for all hashes,
-        and may not be available on some few. it's interface may
+        and may not be available on some few. its interface may
         change in future releases, if it's kept around at all.
 
         :arg hash: hash to parse
@@ -920,7 +920,7 @@ class HasSalt(GenericHandler):
 
     Class Attributes
     ================
-    In order for :meth:`!_norm_salt` to do it's job, the following
+    In order for :meth:`!_norm_salt` to do its job, the following
     attributes should be provided by the handler subclass:
 
     .. attribute:: min_salt_size
@@ -1082,7 +1082,7 @@ class HasSalt(GenericHandler):
     @staticmethod
     def _truncate_salt(salt, mx):
         # NOTE: some hashes (e.g. bcrypt) has structure within their
-        # salt string. this provides a method to overide to perform
+        # salt string. this provides a method to override to perform
         # the truncation properly
         return salt[:mx]
 
@@ -1143,7 +1143,7 @@ class HasRounds(GenericHandler):
 
     Class Attributes
     ================
-    In order for :meth:`!_norm_rounds` to do it's job, the following
+    In order for :meth:`!_norm_rounds` to do its job, the following
     attributes must be provided by the handler subclass:
 
     .. attribute:: min_rounds

@@ -297,7 +297,7 @@ sha512_crypt__min_rounds = 45000
     def test_10_load(self):
         "test load() / load_path() method"
         # NOTE: load() is the workhorse that handles all policy parsing,
-        # compilation, and validation. most of it's features are tested
+        # compilation, and validation. most of its features are tested
         # elsewhere, since all the constructors and modifiers are just
         # wrappers for it.
 

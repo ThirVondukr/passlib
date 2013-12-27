@@ -46,9 +46,9 @@ An sha1-crypt hash string has the format :samp:`$sha1${rounds}${salt}${checksum}
 Algorithm
 =========
 The checksum is calculated using a modified version of PBKDF1 [#pbk]_,
-replacing it's use of the SHA1 message digest with HMAC-SHA1,
+replacing its use of the SHA1 message digest with HMAC-SHA1,
 (which does not suffer from the current vulnerabilities that SHA1 itself does,
-as well as providing some of the advancements made in PDKDF2).
+as well as providing some of the advancements made in PBKDF2).
 
 * first, the HMAC-SHA1 digest of :samp:`{salt}$sha1${rounds}` is generated,
   using the password as the HMAC-SHA1 key.
@@ -85,7 +85,7 @@ in a few ways:
 
 * Restricted salt string character set:
 
-  The underlying algorithm can unambigously handle salt strings
+  The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,

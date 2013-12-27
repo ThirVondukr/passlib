@@ -50,7 +50,7 @@ Interface
 
 .. note::
 
-    This hash algorithm has a context-sensitive percularity.
+    This hash algorithm has a context-sensitive peculiarity.
     It takes in an optional username, used to salt the hash,
     but with specific restrictions...
 
@@ -91,12 +91,12 @@ Security Issues
 This algorithm is not suitable for *any* use besides manipulating existing
 Cisco PIX hashes, due to the following flaws:
 
-* It's use of the username as a salt value (and only the first four characters
+* Its use of the username as a salt value (and only the first four characters
   at that), means that common usernames (e.g. ``admin``, ``cisco``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.
 
-* It's truncation of the ``password+user`` combination to 16 characters
+* Its truncation of the ``password+user`` combination to 16 characters
   additionally limits the keyspace, and the effectiveness of the username
   as a salt; making pre-computed and brute force attacks much more feasible.
 
@@ -104,7 +104,7 @@ Cisco PIX hashes, due to the following flaws:
   existing MD5 lookup tables have an increased chance of being able to
   reverse common hashes.
 
-* It's simplicity, and the weakness of MD5, makes high-speed brute force attacks
+* Its simplicity, and the weakness of MD5, makes high-speed brute force attacks
   much more feasible.
 
 * Furthermore, it discards of 1/4 of MD5's already small 16 byte digest,

@@ -109,7 +109,7 @@ class cisco_type7(uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` values that are out of range.
 
-    Note that while this class outputs digests in upper-case hexidecimal,
+    Note that while this class outputs digests in upper-case hexadecimal,
     it will accept lower-case as well.
 
     This class also provides the following additional method:

@@ -26,7 +26,7 @@ History
 =======
 Historically, most unix systems supported only :class:`~passlib.hash.des_crypt`.
 Around the same time, many incompatible variations were also developed,
-but their hashes were not easily distingiushable from each other
+but their hashes were not easily distinguishable from each other
 (see :ref:`archaic-unix-schemes`); making it impossible to use
 multiple hashes on one system, or progressively migrate to a newer scheme.
 
@@ -159,7 +159,7 @@ by the following operating systems and platforms:
 **MacOS X**           Darwin's native :func:`!crypt` provides limited functionality,
                       supporting only :class:`~passlib.hash.des_crypt` and
                       :class:`~passlib.hash.bsdi_crypt`. OS X uses a separate
-                      system for it's own password hashes.
+                      system for its own password hashes.
 
 **Google App Engine** As of 2011-08-19, Google App Engine's :func:`!crypt`
                       implementation appears to match that of a typical Linux

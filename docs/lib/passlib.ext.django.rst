@@ -14,9 +14,9 @@
     support for Django 1.3 and earlier, and require Django 1.4 or newer.
 
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
-overriddes all of Django's password hashing functions, replacing them
+overrides all of Django's password hashing functions, replacing them
 with wrappers around a Passlib :ref:`CryptContext <context-overview>` object
-whose configuration is controled from Django's ``settings``.
+whose configuration is controlled from Django's ``settings``.
 While this extension's utility is diminished with the advent
 of Django 1.4's *hashers* framework, this plugin still has a number
 of uses:
@@ -65,7 +65,7 @@ options, you can customize it using the following options in Django's ``settings
     This option specifies the CryptContext configuration options
     that will be used when the plugin is loaded.
 
-    * It's value will usually be an INI-formatted string or a dictionary, containing
+    * Its value will usually be an INI-formatted string or a dictionary, containing
       options to be passed to :class:`~passlib.context.CryptContext`.
 
     * Alternately, it can be the name of any preset supported by
@@ -77,7 +77,7 @@ options, you can customize it using the following options in Django's ``settings
 
 
     At any point after this plugin has been loaded, you can serialize
-    it's current configuration to a string::
+    its current configuration to a string::
 
         >>> from passlib.ext.django.models import password_context
         >>> print password_context.to_string()
@@ -99,7 +99,7 @@ options, you can customize it using the following options in Django's ``settings
     to have per-category policies, such as a larger number of iterations
     for the superuser account.
 
-    This option allows overidding the function which performs this mapping,
+    This option allows overriding the function which performs this mapping,
     so that more fine-grained / alternate user categories can be used.
     If specified, the function should have the call syntax
     ``get_category(user) -> category_string|None``.

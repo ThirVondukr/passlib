@@ -24,7 +24,7 @@ The CryptContext Class
 
     Helper for encrypting passwords using different algorithms.
 
-    At it's base, this is a proxy object that makes it easy to use
+    At its base, this is a proxy object that makes it easy to use
     multiple :class:`~passlib.ifc.PasswordHash` objects at the same time.
     Instances of this class can be created by calling the constructor
     with the appropriate keywords, or by using one of the alternate
@@ -107,7 +107,7 @@ Options which directly affect the behavior of the CryptContext instance:
     new hashes. This parameter is optional; if omitted,
     the first non-deprecated algorithm in ``schemes`` will be used.
     You can use the :meth:`~CryptContext.default_scheme` method
-    to retreive the name of the current default scheme.
+    to retrieve the name of the current default scheme.
     As an example, the following demonstrates the effect
     of this parameter on the :meth:`~CryptContext.encrypt`
     method::
@@ -344,8 +344,8 @@ For example, a CryptContext could be set up as follows::
 
 Primary Methods
 ---------------
-The main interface to the CryptContext object deliberate mirrors
-the :ref:`PasswordHash <password-hash-api>` interface, since it's central
+The main interface to the CryptContext object deliberately mirrors
+the :ref:`PasswordHash <password-hash-api>` interface, since its central
 purpose is to act as a container for multiple password hashes.
 Most applications will only need to make use two methods in a CryptContext
 instance:
@@ -403,7 +403,7 @@ This is done through three methods:
 
 Examining the Configuration
 ---------------------------
-The CryptContext object also supports basic inspection of it's
+The CryptContext object also supports basic inspection of its
 current configuration:
 
 .. automethod:: CryptContext.schemes
@@ -423,7 +423,7 @@ using one of the serialization methods:
 Configuration Errors
 --------------------
 The following errors may be raised when creating a :class:`!CryptContext` instance
-via any of it's constructors, or when updating the configuration of an existing
+via any of its constructors, or when updating the configuration of an existing
 instance:
 
 :raises ValueError:

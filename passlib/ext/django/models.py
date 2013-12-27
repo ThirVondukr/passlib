@@ -61,7 +61,7 @@ def _apply_patch():
     FORMS_PATH = "django.contrib.auth.forms"
 
     #
-    # import UNUSUABLE_PASSWORD and is_password_usuable() helpers
+    # import UNUSABLE_PASSWORD and is_password_usable() helpers
     # (providing stubs for older django versions)
     #
     if VERSION < (1,4):
@@ -161,7 +161,7 @@ def _apply_patch():
     @_manager.monkeypatch(MODELS_PATH)
     def check_password(password, encoded, setter=None, preferred="default"):
         "passlib replacement for check_password()"
-        # XXX: this currently ignores "preferred" keyword, since it's purpose
+        # XXX: this currently ignores "preferred" keyword, since its purpose
         #      was for hash migration, and that's handled by the context.
         if not is_valid_secret(password) or not is_password_usable(encoded):
             return False

@@ -666,7 +666,7 @@ def des_encrypt_block(key, input, salt=0, rounds=1):
 
     :arg salt:
         Optional 24-bit integer used to mutate the base DES algorithm in a
-        manner specific to :class:`~passlib.hash.des_crypt` and it's variants.
+        manner specific to :class:`~passlib.hash.des_crypt` and its variants.
         The default value ``0`` provides the normal (unsalted) DES behavior.
         The salt functions as follows:
         if the ``i``'th bit of ``salt`` is set,
@@ -675,7 +675,7 @@ def des_encrypt_block(key, input, salt=0, rounds=1):
     :arg rounds:
         Optional number of rounds of to apply the DES key schedule.
         the default (``rounds=1``) provides the normal DES behavior,
-        but :class:`~passlib.hash.des_crypt` and it's variants use
+        but :class:`~passlib.hash.des_crypt` and its variants use
         alternate rounds values.
 
     :raises TypeError: if any of the provided args are of the wrong type.

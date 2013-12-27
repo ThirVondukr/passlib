@@ -150,7 +150,7 @@ def _get_hmac_prf(digest):
                        digest)
 
     if _EVP and digest == "sha1":
-        # use m2crypto function directly for sha1, since that's it's default digest
+        # use m2crypto function directly for sha1, since that's its default digest
         try:
             result = _EVP.hmac(b('x'),b('y'))
         except ValueError: # pragma: no cover

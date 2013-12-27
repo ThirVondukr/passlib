@@ -259,7 +259,7 @@ def _get_hasher(algorithm):
         # we haven't patched django, so just import directly
         from django.contrib.auth.hashers import get_hasher
     else:
-        # we've patched django, so have to use patch manager to retreive
+        # we've patched django, so have to use patch manager to retrieve
         # original get_hasher() function...
         get_hasher = module._manager.getorig("django.contrib.auth.hashers:get_hasher")
     return get_hasher(algorithm)

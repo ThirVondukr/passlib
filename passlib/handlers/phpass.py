@@ -47,7 +47,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     :type ident: str
     :param ident:
-        phpBB3 uses ``H`` instead of ``P`` for it's identifier,
+        phpBB3 uses ``H`` instead of ``P`` for its identifier,
         this may be set to ``H`` in order to generate phpBB3 compatible hashes.
         it defaults to ``P``.
 

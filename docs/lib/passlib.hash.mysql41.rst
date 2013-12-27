@@ -13,7 +13,7 @@
     password hashes.
 
 This class implements the second of MySQL's password hash functions,
-used to store it's user account passwords. Introduced in MySQL 4.1.1
+used to store its user account passwords. Introduced in MySQL 4.1.1
 under the function ``PASSWORD()``, it replaced the previous
 algorithm (:class:`~passlib.hash.mysql323`) as the default
 used by MySQL, and is still in active use under MySQL 5.
@@ -34,13 +34,13 @@ Interface
 Format & Algorithm
 ==================
 A mysql-41 password hash consists of an asterisk ``*`` followed
-by 40 hexidecimal digits, directly encoding the 160 bit checksum.
+by 40 hexadecimal digits, directly encoding the 160 bit checksum.
 An example hash (of ``password``) is ``*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19``.
 MySQL always uses upper-case letters,
 and so does Passlib (though Passlib will recognize lower-case letters as well).
 
 The checksum is calculated simply, as the SHA1 hash of the SHA1 hash of the password,
-which is then encoded into hexidecimal.
+which is then encoded into hexadecimal.
 
 Security Issues
 ===============

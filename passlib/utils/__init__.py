@@ -253,7 +253,7 @@ def consteq(left, right):
 
     The purpose of this function is to help prevent timing attacks
     during digest comparisons: the standard ``==`` operator aborts
-    after the first mismatched character, causing it's runtime to be
+    after the first mismatched character, causing its runtime to be
     proportional to the longest prefix shared by the two inputs.
     If an attacker is able to predict and control one of the two
     inputs, repeated queries can be leveraged to reveal information about
@@ -671,7 +671,7 @@ class Base64Engine(object):
         A string of 64 unique characters,
         which will be used to encode successive 6-bit chunks of data.
         A character's position within the string should correspond
-        to it's 6-bit value.
+        to its 6-bit value.
 
     :param big:
         Whether the encoding should be big-endian (default False).
@@ -1457,7 +1457,7 @@ def genseed(value=None):
         # if caller specified a seed value, mix it in
         value,
 
-        # if caller's seed value was an RNG, mix in bits from it's state
+        # if caller's seed value was an RNG, mix in bits from its state
         value.getrandbits(1<<15) if hasattr(value, "getrandbits") else None,
 
         # add current process id

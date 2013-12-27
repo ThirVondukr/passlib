@@ -93,7 +93,7 @@ and other implementations, in a few ways:
 
 * Restricted salt string character set:
 
-  The underlying algorithm can unambigously handle salt strings
+  The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,

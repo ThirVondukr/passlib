@@ -56,7 +56,7 @@ class md4(object):
 
     .. method:: hexdigest
 
-        return hexdecimal version of digest
+        return hexadecimal version of digest
     """
     # FIXME: make this follow hash object PEP better.
     # FIXME: this isn't threadsafe

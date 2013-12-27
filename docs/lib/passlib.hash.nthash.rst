@@ -41,12 +41,12 @@ Interface
 
 Format & Algorithm
 ==================
-A nthash consists of 32 hexidecimal digits, which encode the digest.
+A nthash consists of 32 hexadecimal digits, which encode the digest.
 An example hash (of ``password``) is ``8846f7eaee8fb117ad06bdd830b7586c``.
 
 The digest is calculated by encoding the secret using ``UTF-16-LE``,
 taking the :mod:`~passlib.utils.md4` digest, and then encoding
-that as hexidecimal.
+that as hexadecimal.
 
 FreeBSD Variant
 ===============

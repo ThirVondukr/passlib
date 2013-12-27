@@ -10,8 +10,8 @@ This algorithm is used primarily by PHP software
 which uses PHPass [#pp]_,
 a PHP library similar to Passlib. The PHPass Portable Hash
 is a custom password hash used by PHPass as a fallback
-when none of it's other hashes are available.
-Due to it's reliance on MD5, and the simplistic implementation,
+when none of its other hashes are available.
+Due to its reliance on MD5, and the simplistic implementation,
 other hash algorithms should be used if possible.
 
 .. seealso::

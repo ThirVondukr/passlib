@@ -338,7 +338,7 @@ def get_crypt_handler(name, default=_UNSET):
         mod = __import__(modname, fromlist=[modattr], level=0)
 
         # first check if importing module triggered register_crypt_handler(),
-        # (this is discouraged due to it's magical implicitness)
+        # (this is discouraged due to its magical implicitness)
         handler = _handlers.get(name)
         if handler:
             # XXX: issue deprecation warning here?
@@ -394,7 +394,7 @@ def _unload_handler_name(name, locations=True):
         used only by the unittests.
 
     if loaded handler is found with specified name, it's removed.
-    if path to lazy load handler is found, its' removed.
+    if path to lazy load handler is found, it's removed.
 
     missing names are a noop.
 

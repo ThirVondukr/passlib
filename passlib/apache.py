@@ -464,7 +464,7 @@ class HtpasswdFile(_CommonFile):
 
             This option may be used to add support for non-standard hash
             formats to an htpasswd file. However, the resulting file
-            will probably not be usuable by another application,
+            will probably not be usable by another application,
             and particularly not by Apache.
 
     :param autoload:

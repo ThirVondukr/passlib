@@ -41,7 +41,7 @@ where:
 * ``$p5k2$`` is used as the :ref:`modular-crypt-format` identifier.
 
 * :samp:`{rounds}` is the number of PBKDF2 iterations to perform,
-  stored as lowercase hexidecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
+  stored as lowercase hexadecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
 
 * :samp:`{salt}` is the salt string, which can be any number of characters,
   drawn from the :data:`hash64 charset <passlib.utils.HASH64_CHARS>`
@@ -54,7 +54,7 @@ where:
 In order to generate the checksum, the password is first encoded into UTF-8 if it's unicode.
 Then, the entire configuration string (all of the hash except the checksum, ie :samp:`$p5k2${rounds}${salt}`)
 is used as the PBKDF2 salt. PBKDF2 is called using the encoded password, the full salt,
-the specified number of rounds, and using HMAC-SHA1 as it's psuedorandom function.
+the specified number of rounds, and using HMAC-SHA1 as its pseudorandom function.
 24 bytes of derived key are requested, and the resulting key is encoded and used
 as the checksum portion of the hash.
 

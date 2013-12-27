@@ -64,7 +64,7 @@ Interface
 .. warning::
     The pure-python backend (#5) is disabled by default!
 
-    That backend is currently too slow to be usuable given the number of rounds required
+    That backend is currently too slow to be usable given the number of rounds required
     for security. That said, if you have no other alternative and need to use it,
     set the environmental variable ``PASSLIB_BUILTIN_BCRYPT="enabled"``
     before importing Passlib.
@@ -77,7 +77,7 @@ Interface
 Format & Algorithm
 ==================
 Bcrypt is compatible with the :ref:`modular-crypt-format`, and uses ``$2$`` and ``$2a$`` as the identifying prefix
-for all it's strings (``$2$`` is seen only for legacy hashes which used an older version of Bcrypt).
+for all its strings (``$2$`` is seen only for legacy hashes which used an older version of Bcrypt).
 An example hash (of ``password``) is:
 
   ``$2a$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``
@@ -89,7 +89,7 @@ Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 * :samp:`{salt}` is a 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
 * :samp:`{checksum}` is a 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
-While BCrypt's basic algorithm is described in it's design document [#f1]_,
+While BCrypt's basic algorithm is described in its design document [#f1]_,
 the OpenBSD implementation [#f2]_ is considered the canonical reference, even
 though it differs from the design document in a few small ways.
 
@@ -116,7 +116,7 @@ This implementation of bcrypt differs from others in a few ways:
 
   BCrypt does not specify what the behavior should be when
   passed a salt string outside of the regexp range ``[./A-Za-z0-9]``.
-  In order to avoid this situtation, Passlib strictly limits salts to the
+  In order to avoid this situation, Passlib strictly limits salts to the
   allowed character set, and will throw a :exc:`ValueError` if an invalid
   salt character is encountered.
 

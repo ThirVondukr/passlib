@@ -14,7 +14,7 @@ by Windows Vista and newer to cache and verify remote credentials when the relev
 server is unavailable. It is known by a number of other names,
 including "mscache2" and "mscash2" (Microsoft CAched haSH). It replaces
 the weaker :doc:`msdcc v1<passlib.hash.msdcc>` hash used by previous releases
-of Windows. Security wise it is not particularly weak, but due to it's
+of Windows. Security wise it is not particularly weak, but due to its
 use of the username as a salt, it should probably not be used for anything
 but verifying existing cached credentials.
 This class can be used directly as follows::
@@ -52,7 +52,7 @@ Format & Algorithm
 ==================
 Much like :class:`!lmhash`, :class:`!nthash`, and :class:`!msdcc`,
 MS DCC v2 hashes consists of a 16 byte digest, usually encoded as 32
-hexidecimal characters. An example hash (of ``"password"`` with the
+hexadecimal characters. An example hash (of ``"password"`` with the
 account ``"Administrator"``) is ``4c253e4b65c007a8cd683ea57bc43c76``.
 
 The digest is calculated as follows:
@@ -67,12 +67,12 @@ The digest is calculated as follows:
    not ``SOMEDOMAIN\\User``)
 4. The username from step 3 is appended to the
    digest from step 2; and the MD4 digest of the result
-   is calculated (The result of this is identicial to the
+   is calculated (The result of this is identical to the
    :class:`~passlib.hash.msdcc` digest).
 5. :func:`PBKDF2-HMAC-SHA1 <passlib.utils.pbkdf2.pbkdf2>` is then invoked,
    using the result of step 4 as the secret, the username from step 3 as
    the salt, 10240 rounds, and resulting in a 16 byte digest.
-6. The result of step 5 is encoded into hexidecimal;
+6. The result of step 5 is encoded into hexadecimal;
    this is the DCC2 hash.
 
 Security Issues
@@ -93,7 +93,7 @@ Deviations
   but the actual value of this limit is unclear; sources
   report it to be set at assorted values from 26 to 128 characters,
   and it may in fact vary between Windows releases. 
-  The one consistent peice of information is that
+  The one consistent piece of information is that
   passwords above the limit are simply not allowed (rather
   than truncated ala :class:`~passlib.hash.des_crypt`).  
   Because of this, Passlib does not currently enforce a size limit:

@@ -96,7 +96,7 @@ Deprecated APIs
     The following interfaces have changed:
 
     * The semi-internal :class:`!CryptPolicy` class has been deprecated
-      in it's entirety. All functionality has been rolled into the
+      in its entirety. All functionality has been rolled into the
       parent :class:`!CryptContext` class (see :ref:`below <crypt-policy-deprecated>` for more).
 
     * The interface of the :mod:`passlib.apache` classes has been improved:
@@ -104,7 +104,7 @@ Deprecated APIs
       constructors and other functions have been added.
 
     * The (undocumented) :mod:`!passlib.win32` module has been deprecated,
-      all of it's functionality is now offered through the
+      all of its functionality is now offered through the
       :doc:`lmhash <lib/passlib.hash.lmhash>` and :doc:`nthash <lib/passlib.hash.nthash>`
       algorithms.
 
@@ -123,7 +123,7 @@ New Hashes
     :doc:`lmhash <lib/passlib.hash.lmhash>`, :doc:`nthash <lib/passlib.hash.nthash>`
         Microsoft's legacy "Lan Manager" hash, and the replacement
         NT password hash. *(the old* ``nthash`` *algorithm in Passlib 1.5 has been renamed to*
-        :class:`~passlib.hash.bsd_nthash` *, to reflect it's lineage)*.
+        :class:`~passlib.hash.bsd_nthash` *, to reflect its lineage)*.
 
     :doc:`msdcc <lib/passlib.hash.msdcc>`, :doc:`msdcc2 <lib/passlib.hash.msdcc2>`
         Microsoft Windows' Domain Cached Credentials, versions 1 and 2.
@@ -409,8 +409,8 @@ Internal Changes
         .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
-          :data:`hash64 <passlib.utils.h64>` characters in it's salts;
-          previously it accepted only lower-case hexidecimal characters (:issue:`22`).
+          :data:`hash64 <passlib.utils.h64>` characters in its salts;
+          previously it accepted only lower-case hexadecimal characters (:issue:`22`).
 
         * Additional unittests added for all
           standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
@@ -555,13 +555,13 @@ CryptContext
     * host_context now dynamically detects which formats
       OS crypt() supports, instead of guessing based on sys.platform.
     * added predefined context for Roundup Issue Tracker database.
-    * added CryptContext.verify_and_update() convience method,
+    * added CryptContext.verify_and_update() convenience method,
       to make it easier to perform both operations at once.
     * *bugfix:* fixed NameError in category+min_verify_time border case
     * apps & hosts modules now use new
       :class:`LazyCryptContext` wrapper class -
       this should speed up initial import,
-      and reduce memory by not loading uneeded hashes.
+      and reduce memory by not loading unneeded hashes.
 
 Documentation
 -------------
