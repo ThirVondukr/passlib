@@ -73,6 +73,8 @@ Interface
 
     .. versionadded:: 1.6
 
+.. autoclass:: django_bcrypt_sha256()
+
 Format
 ------
 An example :class:`!django_pbkdf2_sha256` hash (of ``password``) is:

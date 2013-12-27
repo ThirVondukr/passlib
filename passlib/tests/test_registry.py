@@ -195,6 +195,17 @@ class RegistryTest(TestCase):
         for name in list_crypt_handlers():
             self.assertFalse(name.startswith("_"), "%r: " % name)
 
+    def test_handlers(self):
+        "verify we have tests for all handlers"
+        from passlib.registry import list_crypt_handlers
+        from passlib.tests.test_handlers import get_handler_case
+        for name in list_crypt_handlers():
+            if name.startswith("ldap_") and name[5:] in list_crypt_handlers():
+                continue
+            if name in ["roundup_plaintext"]:
+                continue
+            self.assertTrue(get_handler_case(name))
+
 #=============================================================================
 # eof
 #=============================================================================

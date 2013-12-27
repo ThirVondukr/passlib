@@ -181,6 +181,7 @@ These hashes can be found in various libraries and applications
     Scheme                                      Prefix              Primary Use (if known)
     =========================================== =================== ===========================
     :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
+    :class:`~passlib.hash.bcrypt_sha256`        ``$bcrypt-sha256$`` Passlib-specific
     :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
     :class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific
     :class:`~passlib.hash.pbkdf2_sha256`        ``$pbkdf2-sha256$`` Passlib-specific

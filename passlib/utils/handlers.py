@@ -1466,7 +1466,7 @@ class HasManyBackends(GenericHandler):
                                               (cls.name, name))
         # load backend into class
         assert callable(calc)
-        cls._calc_checksum = calc
+        cls._calc_checksum_backend = calc
         cls._backend = name
         return name
 
@@ -1505,18 +1505,22 @@ class HasManyBackends(GenericHandler):
         else:
             return None
 
-    def _calc_checksum(self, secret):
-        """stub for _calc_checksum(), default backend will be selected first time stub is called"""
+    def _calc_checksum_backend(self, secret):
+        """stub for _calc_checksum_backend(), default backend will be selected first time stub is called"""
         # if we got here, no backend has been loaded; so load default backend
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
         assert self._backend, "set_backend() failed to load a default backend"
 
         # this should now invoke the backend-specific version, so call it again.
-        return self._calc_checksum(secret)
+        return self._calc_checksum_backend(secret)
+
+    def _calc_checksum(self, secret):
+        "wrapper for backend, for common code"""
+        return self._calc_checksum_backend(secret)
 
     def _try_alternate_backends(self, secret):
-        """helper for _calc_checksum implementations to hand off
+        """helper for _calc_checksum_backend implementations to hand off
         to other backends on a per-hash basis.
 
         :raises MissingBackendError: if *no*  backends can handle secret
@@ -1539,7 +1543,7 @@ class HasManyBackends(GenericHandler):
 
                     # if recurses to this function,
                     # will also throw MissingBackendError (above)
-                    return self._calc_checksum(secret)
+                    return self._calc_checksum_backend(secret)
                 except exc.MissingBackendError:
                     pass
         finally:

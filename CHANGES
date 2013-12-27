@@ -7,6 +7,18 @@ Release History
 **1.7** (NOT YET RELEASED)
 ==========================
 
+.. warning::
+
+    **Passlib 1.7 will drop support for Python 2.5,** and require Python 2.6 or newer,
+    unless significant feedback is received to reverse the decision.
+    Too many core tools such as Setuptools, Pip, and Tox no longer support it,
+    making testing increasingly burdensome.
+
+.. note::
+
+    Passlib 1.7's :mod:`passlib.ext.django` extension will drop
+    support for Django 1.3 and earlier, and require Django 1.4 or newer.
+
 Major Changes
 -------------
 * New :mod:`passlib.pwd` module added to aid in password generation
@@ -49,6 +61,27 @@ Todo
 ----
 
 * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
+
+**1.6.2** (2013-12-26)
+======================
+
+    Minor changes & compatibility fixes
+
+    * Re-tuned the :attr:`~passlib.ifc.PasswordHash.default_rounds` values for all of the hashes.
+
+    * Added the new :doc:`bcrypt_sha256 <lib/passlib.hash.bcrypt_sha256>` hash,
+      which wraps BCrypt using SHA256 in order to work around BCrypt's password size limitations
+      (:issue:`43`).
+
+    * :doc:`passlib.hash.bcrypt <lib/passlib.hash.bcrypt>`:
+      Added support for the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+      library as one of the possible bcrypt backends that will be used if available.
+      (:issue:`49`)
+
+    * :mod:`passlib.ext.django`: Passlib's Django extension
+      (and it's related hashes and unittests) have been updated to handle
+      some minor API changes in Django 1.5-1.6. They should now be compatible with Django 1.2 and up.
+      (:issue:`50`)
 
 **1.6.1** (2012-08-02)
 ======================

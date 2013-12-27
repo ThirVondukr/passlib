@@ -12,6 +12,7 @@ It is known to work with the following Python implementations:
 * CPython 2 -- v2.5 or newer.
 * CPython 3 -- all versions.
 * PyPy -- v1.5 or newer.
+* PyPy3 -- v2.1 or newer.
 * Jython -- v2.5 or newer.
 
 Passlib should work with all operating systems and environments,
@@ -19,14 +20,22 @@ as it contains builtin fallbacks
 for almost all OS-dependant features.
 Google App Engine is supported as well.
 
+.. warning::
+
+    **Passlib 1.7 will drop support for Python 2.5,** and require Python 2.6 or newer,
+    unless significant feedback is received to reverse the decision.
+    Too many core tools such as Setuptools, Pip, and Tox no longer support it,
+    making testing increasingly burdensome.
+
 .. _optional-libraries:
 
 Optional Libraries
 ==================
-* `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_ or
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ or
+  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_ or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
-   If either of these packages are installed, they will be used to provide
+   If any of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support

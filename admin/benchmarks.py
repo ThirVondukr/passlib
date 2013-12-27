@@ -211,6 +211,32 @@ def test_context_calls():
 # handler benchmarks
 #=============================================================================
 @benchmark.constructor()
+def test_bcrypt_builtin():
+    "test bcrypt 'builtin' backend"
+    from passlib.hash import bcrypt
+    import os
+    os.environ['PASSLIB_BUILTIN_BCRYPT'] = 'enabled'
+    bcrypt.set_backend("builtin")
+    bcrypt.default_rounds = 10
+    def helper():
+        hash = bcrypt.encrypt(SECRET)
+        bcrypt.verify(SECRET, hash)
+        bcrypt.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
+def test_bcrypt_ffi():
+    "test bcrypt 'bcrypt' backend"
+    from passlib.hash import bcrypt
+    bcrypt.set_backend("bcrypt")
+    bcrypt.default_rounds = 8
+    def helper():
+        hash = bcrypt.encrypt(SECRET)
+        bcrypt.verify(SECRET, hash)
+        bcrypt.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
 def test_md5_crypt_builtin():
     """test test md5_crypt builtin backend"""
     from passlib.hash import md5_crypt

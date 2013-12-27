@@ -636,7 +636,7 @@ class SkeletonTest(TestCase):
 
         # linear rounds
         self.assertEqual(hash.sha256_crypt.bitsize(),
-                         {'checksum': 258, 'rounds': 13, 'salt': 96})
+                         {'checksum': 258, 'rounds': 14, 'salt': 96})
 
         # raw checksum
         self.assertEqual(hash.pbkdf2_sha1.bitsize(),

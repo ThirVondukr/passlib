@@ -1,8 +1,13 @@
+.. index:: pbkdf2 hash; dlitz
+
 ===========================================================================
 :class:`passlib.hash.dlitz_pbkdf2_sha1` - Dwayne Litzenberger's PBKDF2 hash
 ===========================================================================
 
-.. index:: pbkdf2 hash; dlitz
+.. note::
+
+    Due to a small flaw, this hash is not as strong as other PBKDF1-HMAC-SHA1
+    based hashes. It should probably not be used for new applications.
 
 .. currentmodule:: passlib.hash
 
@@ -52,6 +57,17 @@ is used as the PBKDF2 salt. PBKDF2 is called using the encoded password, the ful
 the specified number of rounds, and using HMAC-SHA1 as its pseudorandom function.
 24 bytes of derived key are requested, and the resulting key is encoded and used
 as the checksum portion of the hash.
+
+Security Issues
+===============
+
+* *Extra Block:* This hash generates 24 bytes using PBKDF2-HMAC-SHA1.
+  Since SHA1 has a digest size of only 20 bytes, this means an second PBKDF2
+  block must be generated for each :class:`dlitz_pbkdf2_sha1` hash.
+  While a normal user has to calculate both blocks, a dedicated attacker
+  would only have to calculate the first block when brute-forcing,
+  taking half the time. That means this hash is half as strong as other
+  PBKDF2-HMAC-SHA1 based hashes (given a fixed amount of time spent by the user).
 
 .. rubric:: Footnotes
 

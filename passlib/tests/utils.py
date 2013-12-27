@@ -204,6 +204,22 @@ def quicksleep(delay):
 #=============================================================================
 # custom test harness
 #=============================================================================
+
+def patchAttr(test, obj, attr, value):
+    """monkeypatch object value, restoring original on cleanup"""
+    try:
+        orig = getattr(obj, attr)
+    except AttributeError:
+        def cleanup():
+            try:
+                delattr(obj, attr)
+            except AttributeError:
+                pass
+        test.addCleanup(cleanup)
+    else:
+        test.addCleanup(setattr, obj, attr, orig)
+    setattr(obj, attr, value)
+
 class TestCase(_TestCase):
     """passlib-specific test case class
 
@@ -1132,9 +1148,12 @@ class HandlerCase(TestCase):
                 c3 = self.do_genconfig(salt=s1[:-1])
                 self.assertNotEqual(c3, c1)
 
+    # whether salt should be passed through bcrypt repair function
+    fuzz_salts_need_bcrypt_repair = False
+
     def prepare_salt(self, salt):
         """prepare generated salt"""
-        if self.handler.name in ["bcrypt", "django_bcrypt"]:
+        if self.fuzz_salts_need_bcrypt_repair:
             from passlib.utils import bcrypt64
             salt = bcrypt64.repair_unused(salt)
         return salt
@@ -1994,13 +2013,17 @@ class OsCryptMixin(HandlerCase):
             self._patch_safe_crypt()
         super(OsCryptMixin, self).setUp()
 
+    # alternate handler to use for fake os_crypt,
+    # e.g. bcrypt_sha256 uses bcrypt
+    fallback_os_crypt_handler = None
+
     def _patch_safe_crypt(self):
         """if crypt() doesn't support current hash alg, this patches
         safe_crypt() so that it transparently uses another one of the handler's
         backends, so that we can go ahead and test as much of code path
         as possible.
         """
-        handler = self.handler
+        handler = self.fallback_os_crypt_handler or self.handler
         # resolve wrappers, since we want to return crypt compatible hash.
         while hasattr(handler, "wrapped"):
             handler = handler.wrapped

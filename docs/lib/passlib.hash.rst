@@ -10,7 +10,7 @@ Overview
 The :mod:`!passlib.hash` module contains all the password hash algorithms built into Passlib.
 While each hash has its own options and output format, they all share a common interface,
 documented in detail in the :ref:`password-hash-api`. The following pages
-describe the common interface, and then describe each hash in detail 
+describe the common interface, and then describe each hash in detail
 (including its format, underlying algorithm, and known security issues).
 
 .. seealso:: :doc:`Quickstart Guide </new_app_quickstart>` -- advice on

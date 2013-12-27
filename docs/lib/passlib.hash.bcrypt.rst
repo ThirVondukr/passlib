@@ -31,7 +31,8 @@ for new applications. This class can be used directly as follows::
 .. note::
 
     It is strongly recommended that you install
-    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_
+    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+    or `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_
     when using this hash.
 
 .. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
@@ -47,20 +48,21 @@ Interface
 
 .. note::
 
-    This class will use the first available of four possible backends:
+    This class will use the first available of five possible backends:
 
-    1. `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_, if installed.
-    2. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
-    3. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
+    1. `bcrypt <https://pypi.python.org/pypi/bcrypt>`_, if installed.
+    2. `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, if installed.
+    3. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
+    4. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
        (primarily BSD-derived systems).
-    4. A pure-python implementation of BCrypt, built into Passlib.
+    5. A pure-python implementation of BCrypt, built into Passlib.
 
     If no backends are available, :meth:`encrypt` and :meth:`verify`
     will throw :exc:`~passlib.exc.MissingBackendError` when they are invoked.
     You can check which backend is in use by calling :meth:`!bcrypt.get_backend()`.
 
 .. warning::
-    The pure-python backend (#4) is disabled by default!
+    The pure-python backend (#5) is disabled by default!
 
     That backend is currently too slow to be usable given the number of rounds required
     for security. That said, if you have no other alternative and need to use it,
@@ -90,6 +92,21 @@ Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 While BCrypt's basic algorithm is described in its design document [#f1]_,
 the OpenBSD implementation [#f2]_ is considered the canonical reference, even
 though it differs from the design document in a few small ways.
+
+Security Issues
+===============
+
+.. _bcrypt-password-truncation:
+
+* Password Truncation.
+
+  While not a security issue per-se, bcrypt does have one major limitation:
+  password are truncated on the first NULL byte (if any),
+  and only the first 72 bytes of a password are hashed... all the rest are ignored.
+  Furthermore, bytes 55-72 are not fully mixed into the resulting hash (citation needed!).
+  To work around both these issues, many applications first run the password through a message
+  digest such as SHA2-256. Passlib offers the premade :doc:`passlib.hash.bcrypt_sha256`
+  to take care of this issue.
 
 Deviations
 ==========
