@@ -76,7 +76,7 @@ if has_django:
     from django.contrib.auth.models import User
 
     class FakeUser(User):
-        "mock user object for use in testing"
+        """mock user object for use in testing"""
         # NOTE: this mainly just overrides .save() to test commit behavior.
 
         @memoized_property
@@ -139,7 +139,7 @@ else:
 # test utils
 #=============================================================================
 class _ExtensionSupport(object):
-    "support funcs for loading/unloading extension"
+    """support funcs for loading/unloading extension"""
     #===================================================================
     # support funcs
     #===================================================================
@@ -182,7 +182,7 @@ class _ExtensionSupport(object):
     # verify current patch state
     #===================================================================
     def assert_unpatched(self):
-        "test that django is in unpatched state"
+        """test that django is in unpatched state"""
         # make sure we aren't currently patched
         mod = sys.modules.get("passlib.ext.django.models")
         self.assertFalse(mod and mod._patched, "patch should not be enabled")
@@ -199,7 +199,7 @@ class _ExtensionSupport(object):
                                 (obj, attr, source))
 
     def assert_patched(self, context=None):
-        "helper to ensure django HAS been patched, and is using specified config"
+        """helper to ensure django HAS been patched, and is using specified config"""
         # make sure we're currently patched
         mod = sys.modules.get("passlib.ext.django.models")
         self.assertTrue(mod and mod._patched, "patch should have been enabled")
@@ -225,9 +225,8 @@ class _ExtensionSupport(object):
     # load / unload the extension (and verify it worked)
     #===================================================================
     _config_keys = ["PASSLIB_CONFIG", "PASSLIB_CONTEXT", "PASSLIB_GET_CATEGORY"]
-
     def load_extension(self, check=True, **kwds):
-        "helper to load extension with specified config & patch django"
+        """helper to load extension with specified config & patch django"""
         self.unload_extension()
         if check:
             config = kwds.get("PASSLIB_CONFIG") or kwds.get("PASSLIB_CONTEXT")
@@ -239,7 +238,7 @@ class _ExtensionSupport(object):
             self.assert_patched(context=config)
 
     def unload_extension(self):
-        "helper to remove patches and unload extension"
+        """helper to remove patches and unload extension"""
         # remove patches and unload module
         mod = sys.modules.get("passlib.ext.django.models")
         if mod:
@@ -275,7 +274,7 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
 # extension tests
 #=============================================================================
 class DjangoBehaviorTest(_ExtensionTest):
-    "tests model to verify it matches django's behavior"
+    """tests model to verify it matches django's behavior"""
     descriptionPrefix = "verify django behavior"
     patched = False
     config = stock_config
@@ -680,7 +679,7 @@ class DjangoBehaviorTest(_ExtensionTest):
                 self.assertEqual(name, scheme)
 
 class ExtensionBehaviorTest(DjangoBehaviorTest):
-    "test model to verify passlib.ext.django conforms to it"
+    """test model to verify passlib.ext.django conforms to it"""
     descriptionPrefix = "verify extension behavior"
     patched = True
     config = dict(
@@ -700,7 +699,7 @@ class DjangoExtensionTest(_ExtensionTest):
     # monkeypatch testing
     #===================================================================
     def test_00_patch_control(self):
-        "test set_django_password_context patch/unpatch"
+        """test set_django_password_context patch/unpatch"""
 
         # check config="disabled"
         self.load_extension(PASSLIB_CONFIG="disabled", check=False)
@@ -726,7 +725,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.unload_extension()
 
     def test_01_overwrite_detection(self):
-        "test detection of foreign monkeypatching"
+        """test detection of foreign monkeypatching"""
         # NOTE: this sets things up, and spot checks two methods,
         #       this should be enough to verify patch manager is working.
         # TODO: test unpatch behavior honors flag.
@@ -756,7 +755,7 @@ class DjangoExtensionTest(_ExtensionTest):
         models.check_password = orig
 
     def test_02_handler_wrapper(self):
-        "test Hasher-compatible handler wrappers"
+        """test Hasher-compatible handler wrappers"""
         if not has_django14:
             raise self.skipTest("Django >= 1.4 not installed")
         from passlib.ext.django.utils import get_passlib_hasher
@@ -795,7 +794,7 @@ class DjangoExtensionTest(_ExtensionTest):
     # PASSLIB_CONFIG settings
     #===================================================================
     def test_11_config_disabled(self):
-        "test PASSLIB_CONFIG='disabled'"
+        """test PASSLIB_CONFIG='disabled'"""
         # test config=None (deprecated)
         with self.assertWarningList("PASSLIB_CONFIG=None is deprecated"):
             self.load_extension(PASSLIB_CONFIG=None, check=False)
@@ -806,7 +805,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assert_unpatched()
 
     def test_12_config_presets(self):
-        "test PASSLIB_CONFIG='<preset>'"
+        """test PASSLIB_CONFIG='<preset>'"""
         # test django presets
         self.load_extension(PASSLIB_CONTEXT="django-default", check=False)
         if DJANGO_VERSION >= (1,6):
@@ -824,7 +823,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assert_patched(django14_context)
 
     def test_13_config_defaults(self):
-        "test PASSLIB_CONFIG default behavior"
+        """test PASSLIB_CONFIG default behavior"""
         # check implicit default
         from passlib.ext.django.utils import PASSLIB_DEFAULT
         default = CryptContext.from_string(PASSLIB_DEFAULT)
@@ -840,7 +839,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assert_patched(PASSLIB_DEFAULT)
 
     def test_14_config_invalid(self):
-        "test PASSLIB_CONFIG type checks"
+        """test PASSLIB_CONFIG type checks"""
         update_settings(PASSLIB_CONTEXT=123, PASSLIB_CONFIG=UNSET)
         self.assertRaises(TypeError, __import__, 'passlib.ext.django.models')
 
@@ -852,7 +851,7 @@ class DjangoExtensionTest(_ExtensionTest):
     # PASSLIB_GET_CATEGORY setting
     #===================================================================
     def test_21_category_setting(self):
-        "test PASSLIB_GET_CATEGORY parameter"
+        """test PASSLIB_GET_CATEGORY parameter"""
         # define config where rounds can be used to detect category
         config = dict(
             schemes = ["sha256_crypt"],
@@ -863,7 +862,7 @@ class DjangoExtensionTest(_ExtensionTest):
         from passlib.hash import sha256_crypt
 
         def run(**kwds):
-            "helper to take in user opts, return rounds used in password"
+            """helper to take in user opts, return rounds used in password"""
             user = FakeUser(**kwds)
             user.set_password("stub")
             return sha256_crypt.from_string(user.password).rounds

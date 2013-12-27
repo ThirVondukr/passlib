@@ -28,7 +28,7 @@ __all__ = [
 #
 #=============================================================================
 class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
-    "base class for various pbkdf2_{digest} algorithms"
+    """base class for various pbkdf2_{digest} algorithms"""
     #===================================================================
     # class attrs
     #===================================================================
@@ -84,7 +84,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
 
 def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=__name__):
-    "create new Pbkdf2DigestHandler subclass for a specific hash"
+    """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = 'pbkdf2_' + hash_name
     if ident is None:
         ident = u("$pbkdf2-%s$") % (hash_name,)

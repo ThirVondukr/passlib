@@ -616,7 +616,7 @@ Other
     * documentation completed
     * 99% unittest coverage
     * some refactoring and lots of bugfixes
-    * added support for a number of addtional password schemes:
+    * added support for a number of additional password schemes:
       bigcrypt, crypt16, sun md5 crypt, nthash, lmhash, oracle10 & 11,
       phpass, sha1, generic hex digests, ldap digests.
 
@@ -625,7 +625,7 @@ Other
 
     .. note::
 
-        For this and all previous versions, Passlib did not exist independantly,
+        For this and all previous versions, Passlib did not exist independently,
         but as a subpackage of *BPS*, a private & unreleased toolkit library.
 
     * many bugfixes

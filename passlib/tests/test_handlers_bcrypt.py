@@ -167,7 +167,7 @@ class _bcrypt_test(HandlerCase):
     # fuzz testing
     #===================================================================
     def os_supports_ident(self, hash):
-        "check if OS crypt is expected to support given ident"
+        """check if OS crypt is expected to support given ident"""
         if hash is None:
             return True
         # most OSes won't support 2x/2y
@@ -188,7 +188,7 @@ class _bcrypt_test(HandlerCase):
         if not hasattr(bcrypt, "_ffi"):
             return
         def check_bcrypt(secret, hash):
-            "bcrypt"
+            """bcrypt"""
             secret = to_bytes(secret, self.fuzz_password_encoding)
             #if hash.startswith(IDENT_2Y):
             #    hash = IDENT_2A + hash[4:]
@@ -217,7 +217,7 @@ class _bcrypt_test(HandlerCase):
         if hasattr(bcrypt, "_ffi"):
             return
         def check_pybcrypt(secret, hash):
-            "pybcrypt"
+            """pybcrypt"""
             secret = to_native_str(secret, self.fuzz_password_encoding)
             if hash.startswith(IDENT_2Y):
                 hash = IDENT_2A + hash[4:]
@@ -236,7 +236,7 @@ class _bcrypt_test(HandlerCase):
         except ImportError:
             return
         def check_bcryptor(secret, hash):
-            "bcryptor"
+            """bcryptor"""
             secret = to_native_str(secret, self.fuzz_password_encoding)
             if hash.startswith(IDENT_2Y):
                 hash = IDENT_2A + hash[4:]
@@ -297,7 +297,7 @@ class _bcrypt_test(HandlerCase):
     ]
 
     def test_90_bcrypt_padding(self):
-        "test passlib correctly handles bcrypt padding bits"
+        """test passlib correctly handles bcrypt padding bits"""
         self.require_TEST_MODE("full")
         #
         # prevents reccurrence of issue 25 (https://code.google.com/p/passlib/issues/detail?id=25)
@@ -327,10 +327,12 @@ class _bcrypt_test(HandlerCase):
         self.assertEqual(hash, "$2a$05$" + "." * 22)
 
         #
-        # make sure genhash() corrects input
+        # test public methods against good & bad hashes
         #
         samples = self.known_incorrect_padding
         for pwd, bad, good in samples:
+
+            # make sure genhash() corrects bad configs, leaves good unchanged
             with self.assertWarningList([corr_desc]):
                 self.assertEqual(bcrypt.genhash(pwd, bad), good)
             with self.assertWarningList([]):

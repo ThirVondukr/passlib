@@ -317,7 +317,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return checksum
 
     def _norm_algs(self, algs):
-        "normalize algs parameter"
+        """normalize algs parameter"""
         # determine default algs value
         if algs is None:
             # derive algs list from checksum (if present).
@@ -348,7 +348,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @classmethod
     def _bind_needs_update(cls, **settings):
-        "generate a deprecation detector for CryptContext to use"
+        """generate a deprecation detector for CryptContext to use"""
         # generate deprecation hook which marks hashes as deprecated
         # if they don't support a superset of current algs.
         algs = frozenset(cls(use_defaults=True, **settings).algs)

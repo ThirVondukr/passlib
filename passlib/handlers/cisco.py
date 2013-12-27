@@ -156,7 +156,7 @@ class cisco_type7(uh.GenericHandler):
         self.salt = self._norm_salt(salt)
 
     def _norm_salt(self, salt):
-        "the salt for this algorithm is an integer 0-52, not a string"
+        """the salt for this algorithm is an integer 0-52, not a string"""
         # XXX: not entirely sure that values >15 are valid, so for
         # compatibility we don't output those values, but we do accept them.
         if salt is None:
@@ -206,7 +206,7 @@ class cisco_type7(uh.GenericHandler):
 
     @classmethod
     def _cipher(cls, data, salt):
-        "xor static key against data - encrypts & decrypts"
+        """xor static key against data - encrypts & decrypts"""
         key = cls._key
         key_size = len(key)
         return join_byte_values(

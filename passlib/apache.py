@@ -188,7 +188,7 @@ class _CommonFile(object):
 
     @property
     def mtime(self):
-        "modify time when last loaded (if bound to a local file)"
+        """modify time when last loaded (if bound to a local file)"""
         return self._mtime
 
     #===================================================================
@@ -240,13 +240,13 @@ class _CommonFile(object):
         return True
 
     def load_string(self, data):
-        "Load state from unicode or bytes string, replacing current state"
+        """Load state from unicode or bytes string, replacing current state"""
         data = to_bytes(data, self.encoding, "data")
         self._mtime = 0
         self._load_lines(BytesIO(data))
 
     def _load_lines(self, lines):
-        "load from sequence of lists"
+        """load from sequence of lists"""
         # XXX: found reference that "#" comment lines may be supported by
         #      htpasswd, should verify this, and figure out how to handle them.
         #      if true, this would also affect what can be stored in user field.
@@ -262,15 +262,15 @@ class _CommonFile(object):
             if key not in records:
                 records[key] = value
 
-    def _parse_record(cls, record, lineno): # pragma: no cover - abstract method
-        "parse line of file into (key, value) pair"
+    def _parse_record(self, record, lineno): # pragma: no cover - abstract method
+        """parse line of file into (key, value) pair"""
         raise NotImplementedError("should be implemented in subclass")
 
     #===================================================================
     # saving
     #===================================================================
     def _autosave(self):
-        "subclass helper to call save() after any changes"
+        """subclass helper to call save() after any changes"""
         if self.autosave and self._path:
             self.save()
 
@@ -289,26 +289,26 @@ class _CommonFile(object):
                                self.__class__.__name__)
 
     def to_string(self):
-        "Export current state as a string of bytes"
+        """Export current state as a string of bytes"""
         return join_bytes(self._iter_lines())
 
     def _iter_lines(self):
-        "iterator yielding lines of database"
+        """iterator yielding lines of database"""
         return (self._render_record(key,value) for key,value in iteritems(self._records))
 
-    def _render_record(cls, key, value): # pragma: no cover - abstract method
-        "given key/value pair, encode as line of file"
+    def _render_record(self, key, value): # pragma: no cover - abstract method
+        """given key/value pair, encode as line of file"""
         raise NotImplementedError("should be implemented in subclass")
 
     #===================================================================
     # field encoding
     #===================================================================
     def _encode_user(self, user):
-        "user-specific wrapper for _encode_field()"
+        """user-specific wrapper for _encode_field()"""
         return self._encode_field(user, "user")
 
     def _encode_realm(self, realm): # pragma: no cover - abstract method
-        "realm-specific wrapper for _encode_field()"
+        """realm-specific wrapper for _encode_field()"""
         return self._encode_field(realm, "realm")
 
     def _encode_field(self, value, param="field"):
@@ -566,7 +566,7 @@ class HtpasswdFile(_CommonFile):
     #===================================================================
 
     def users(self):
-        "Return list of all users in database"
+        """Return list of all users in database"""
         return [self._decode_field(user) for user in self._records]
 
     ##def has_user(self, user):
@@ -605,7 +605,7 @@ class HtpasswdFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="set_password")
     def update(self, user, password):
-        "set password for user"
+        """set password for user"""
         return self.set_password(user, password)
 
     def get_hash(self, user):
@@ -624,7 +624,7 @@ class HtpasswdFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="get_hash")
     def find(self, user):
-        "return hash for user"
+        """return hash for user"""
         return self.get_hash(user)
 
     # XXX: rename to something more explicit, like delete_user()?
@@ -673,7 +673,7 @@ class HtpasswdFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="check_password")
     def verify(self, user, password):
-        "verify password for user"
+        """verify password for user"""
         return self.check_password(user, password)
 
     #===================================================================
@@ -931,7 +931,7 @@ class HtdigestFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="set_password")
     def update(self, user, realm, password):
-        "set password for user"
+        """set password for user"""
         return self.set_password(user, realm, password)
 
     # XXX: rename to something more explicit, like get_hash()?
@@ -957,7 +957,7 @@ class HtdigestFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="get_hash")
     def find(self, user, realm):
-        "return hash for user"
+        """return hash for user"""
         return self.get_hash(user, realm)
 
     # XXX: rename to something more explicit, like delete_user()?
@@ -1025,7 +1025,7 @@ class HtdigestFile(_CommonFile):
     @deprecated_method(deprecated="1.6", removed="1.8",
                        replacement="check_password")
     def verify(self, user, realm, password):
-        "verify password for user"
+        """verify password for user"""
         return self.check_password(user, realm, password)
 
     #===================================================================

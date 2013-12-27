@@ -175,3 +175,4 @@ Module Contents
         ; and even stronger ones for ``User.is_superuser``
         superuser__sha512_crypt__default_rounds = 120000
         superuser__django_pbkdf2_sha256__default_rounds = 15000
+

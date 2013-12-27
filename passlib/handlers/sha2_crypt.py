@@ -240,7 +240,7 @@ _UZERO = u("0")
 
 class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
                    uh.GenericHandler):
-    "class containing common code shared by sha256_crypt & sha512_crypt"
+    """class containing common code shared by sha256_crypt & sha512_crypt"""
     #===================================================================
     # class attrs
     #===================================================================

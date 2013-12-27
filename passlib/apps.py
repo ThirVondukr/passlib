@@ -132,7 +132,7 @@ def _iter_ldap_crypt_schemes():
     return ('ldap_' + name for name in unix_crypt_schemes)
 
 def _iter_ldap_schemes():
-    "helper which iterates over supported std ldap schemes"
+    """helper which iterates over supported std ldap schemes"""
     return chain(std_ldap_schemes, _iter_ldap_crypt_schemes())
 ldap_context = LazyCryptContext(_iter_ldap_schemes())
 
@@ -159,7 +159,7 @@ postgres_context = LazyCryptContext(["postgres_md5"])
 # phpass & variants
 #=============================================================================
 def _create_phpass_policy(**kwds):
-    "helper to choose default alg based on bcrypt availability"
+    """helper to choose default alg based on bcrypt availability"""
     kwds['default'] = 'bcrypt' if hash.bcrypt.has_backend() else 'phpass'
     return kwds
 

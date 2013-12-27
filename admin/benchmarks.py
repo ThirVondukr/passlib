@@ -33,7 +33,7 @@ from passlib.utils.compat import u, print_, unicode, next_method_attr
 # benchmarking support
 #=============================================================================
 class benchmark:
-    "class to hold various benchmarking helpers"
+    """class to hold various benchmarking helpers"""
 
     @classmethod
     def constructor(cls, **defaults):
@@ -149,7 +149,7 @@ OTHER =  u("setecastronomy")
 #=============================================================================
 @benchmark.constructor()
 def test_context_from_path():
-    "test speed of CryptContext.from_path()"
+    """test speed of CryptContext.from_path()"""
     path = sample_config_1p
     if CryptPolicy:
         def helper():
@@ -161,7 +161,7 @@ def test_context_from_path():
 
 @benchmark.constructor()
 def test_context_update():
-    "test speed of CryptContext.update()"
+    """test speed of CryptContext.update()"""
     kwds = dict(
         schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
                     "des_crypt", "unix_disabled" ],
@@ -180,7 +180,7 @@ def test_context_update():
 
 @benchmark.constructor()
 def test_context_init():
-    "test speed of CryptContext() constructor"
+    """test speed of CryptContext() constructor"""
     kwds = dict(
         schemes=[BlankHandler, AnotherHandler],
         default="another",
@@ -194,7 +194,7 @@ def test_context_init():
 
 @benchmark.constructor()
 def test_context_calls():
-    "test speed of CryptContext password methods"
+    """test speed of CryptContext password methods"""
     ctx = CryptContext(
         schemes=[BlankHandler, AnotherHandler],
         default="another",
@@ -240,7 +240,7 @@ def test_bcrypt_ffi():
 
 @benchmark.constructor()
 def test_md5_crypt_builtin():
-    "test test md5_crypt builtin backend"
+    """test test md5_crypt builtin backend"""
     from passlib.hash import md5_crypt
     md5_crypt.set_backend("builtin")
     def helper():
@@ -251,7 +251,7 @@ def test_md5_crypt_builtin():
 
 @benchmark.constructor()
 def test_ldap_salted_md5():
-    "test ldap_salted_md5"
+    """test ldap_salted_md5"""
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
         hash = handler.encrypt(SECRET, salt='....')
@@ -261,7 +261,7 @@ def test_ldap_salted_md5():
 
 @benchmark.constructor()
 def test_phpass():
-    "test phpass"
+    """test phpass"""
     from passlib.hash import phpass as handler
     kwds = dict(salt='.'*8, rounds=16)
     def helper():
