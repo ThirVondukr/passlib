@@ -187,7 +187,7 @@ class _bcrypt_test(HandlerCase):
         if not hasattr(bcrypt, "_ffi"):
             return
         def check_bcrypt(secret, hash):
-            "bcrypt"
+            """bcrypt"""
             secret = to_bytes(secret, self.fuzz_password_encoding)
             #if hash.startswith(IDENT_2Y):
             #    hash = IDENT_2A + hash[4:]

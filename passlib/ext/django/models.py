@@ -72,7 +72,7 @@ def _apply_patch():
             from django.contrib.auth.models import UNUSABLE_PASSWORD
 
         def is_password_usable(encoded):
-            return encoded is not None and encoded != UNUSABLE_PASSWORD
+            return (encoded is not None and encoded != UNUSABLE_PASSWORD)
 
         def is_valid_secret(secret):
             return secret is not None

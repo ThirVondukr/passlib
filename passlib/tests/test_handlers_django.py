@@ -302,7 +302,7 @@ django_bcrypt_test = skipUnless(hash.bcrypt.has_backend(),
                                 "no bcrypt backends available")(django_bcrypt_test)
 
 class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
-    "test django_bcrypt_sha256"
+    """test django_bcrypt_sha256"""
     handler = hash.django_bcrypt_sha256
     min_django_version = (1,6)
     forbidden_characters = None

@@ -1506,7 +1506,10 @@ class HasManyBackends(GenericHandler):
             return None
 
     def _calc_checksum_backend(self, secret):
-        """stub for _calc_checksum_backend(), default backend will be selected first time stub is called"""
+        """
+        stub for _calc_checksum_backend(),
+        the default backend will be selected the first time stub is called.
+        """
         # if we got here, no backend has been loaded; so load default backend
         assert not self._backend, "set_backend() failed to replace lazy loader"
         self.set_backend()
