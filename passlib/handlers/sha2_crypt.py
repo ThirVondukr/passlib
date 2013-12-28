@@ -71,6 +71,19 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     # init & validate inputs
     #===================================================================
 
+    # NOTE: the setup portion of this algorithm scales ~linearly in time
+    #       with the size of the password, making it vulnerable to a DOS from
+    #       unreasonably large inputs. the following code has some optimizations
+    #       which would make things even worse, using O(pwd_len**2) memory
+    #       when calculating digest P. 
+    #
+    #       to mitigate these two issues: 1) this code switches to a 
+    #       O(pwd_len)-memory algorithm for passwords that are much larger 
+    #       than average, and 2) Passlib enforces a library-wide max limit on
+    #       the size of passwords it will allow, to prevent this algorithm and 
+    #       others from being DOSed in this way (see passlib.exc.PasswordSizeError
+    #       for details).
+
     # validate secret
     if isinstance(pwd, unicode):
         # XXX: not sure what official unicode policy is, using this as default
@@ -133,11 +146,12 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     # digest P from password - used instead of password itself
     #                          when calculating digest C.
     #===================================================================
-    if pwd_len < 64:
-        # method this is faster under python, but uses O(pwd_len**2) memory
-        # so we don't use it for larger passwords, to avoid a potential DOS.
+    if pwd_len < 96:
+        # this method is faster under python, but uses O(pwd_len**2) memory;
+        # so we don't use it for larger passwords to avoid a potential DOS.
         dp = repeat_string(hash_const(pwd * pwd_len).digest(), pwd_len)
     else:
+        # this method is slower under python, but uses a fixed amount of memory.
         tmp_ctx = hash_const(pwd)
         tmp_ctx_update = tmp_ctx.update
         i = pwd_len-1

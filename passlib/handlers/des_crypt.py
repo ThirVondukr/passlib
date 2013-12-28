@@ -33,7 +33,7 @@ def _crypt_secret_to_key(secret):
     a null parity bit is inserted after every 7th bit of the output.
     """
     # NOTE: this would set the parity bits correctly,
-    # but des_encrypt_int_block() would just ignore them...
+    #       but des_encrypt_int_block() would just ignore them...
     ##return sum(expand_7bit(byte_elem_value(c) & 0x7f) << (56-i*8)
     ##           for i, c in enumerate(secret[:8]))
     return sum((byte_elem_value(c) & 0x7f) << (57-i*8)
@@ -44,15 +44,12 @@ def _raw_des_crypt(secret, salt):
     assert len(salt) == 2
 
     # NOTE: some OSes will accept non-HASH64 characters in the salt,
-    # but what value they assign these characters varies wildy,
-    # so just rejecting them outright.
-    # NOTE: the same goes for single-character salts...
-    # some OSes duplicate the char, some insert a '.' char,
-    # and openbsd does something which creates an invalid hash.
-    try:
-        salt_value = h64.decode_int12(salt)
-    except ValueError: # pragma: no cover - always caught by class
-        raise ValueError("invalid chars in salt")
+    #       but what value they assign these characters varies wildy,
+    #       so just rejecting them outright.
+    #       the same goes for single-character salts...
+    #       some OSes duplicate the char, some insert a '.' char,
+    #       and openbsd does (something) which creates an invalid hash.
+    salt_value = h64.decode_int12(salt)
 
     # gotta do something - no official policy since this predates unicode
     if isinstance(secret, unicode):
@@ -73,12 +70,12 @@ def _raw_des_crypt(secret, salt):
     return h64big.encode_int64(result)
 
 def _bsdi_secret_to_key(secret):
-    """covert secret to DES key used by bsdi_crypt"""
+    """convert secret to DES key used by bsdi_crypt"""
     key_value = _crypt_secret_to_key(secret)
     idx = 8
     end = len(secret)
     while idx < end:
-        next = idx+8
+        next = idx + 8
         tmp_value = _crypt_secret_to_key(secret[idx:next])
         key_value = des_encrypt_int_block(key_value, key_value) ^ tmp_value
         idx = next
@@ -88,10 +85,7 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     """pure-python backend for bsdi_crypt"""
 
     # decode salt
-    try:
-        salt_value = h64.decode_int24(salt)
-    except ValueError: # pragma: no cover - always caught by class
-        raise ValueError("invalid salt")
+    salt_value = h64.decode_int24(salt)
 
     # gotta do something - no official policy since this predates unicode
     if isinstance(secret, unicode):
@@ -186,8 +180,8 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         return None
 
     def _calc_checksum_os_crypt(self, secret):
-        # NOTE: safe_crypt encodes unicode secret -> utf8
-        # no official policy since des-crypt predates unicode
+        # NOTE: we let safe_crypt() encode unicode secret -> utf8;
+        #       no official policy since des-crypt predates unicode
         hash = safe_crypt(secret, self.salt)
         if hash:
             assert hash.startswith(self.salt) and len(hash) == 13

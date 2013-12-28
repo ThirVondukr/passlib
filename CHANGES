@@ -1,5 +1,7 @@
 .. -*- restructuredtext -*-
 
+.. _whats-new:
+
 ===============
 Release History
 ===============
@@ -113,8 +115,6 @@ Todo
     * *bugfix:* Fixed minor bug in :mod:`!passlib.registry`, should now work correctly under Python 3.3.
 
     * Various documentation updates and corrections.
-
-.. _whats-new:
 
 **1.6** (2012-05-01)
 ====================

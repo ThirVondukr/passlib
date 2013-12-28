@@ -1,1 +1,1 @@
-cloud_sptheme>=1.4
+cloud_sptheme>=1.6

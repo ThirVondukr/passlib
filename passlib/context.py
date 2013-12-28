@@ -1530,6 +1530,12 @@ class CryptContext(object):
     # XXX: would like some way to restrict the categories that are allowed,
     # to restrict what the app OR the config can use.
 
+    # XXX: add wrap/unwrap callback hooks so app can mutate hash format?
+
+    # XXX: add method for detecting and warning user about schemes
+    #      which don't have any good distinguishing marks?
+    #      or greedy ones (unix_disabled, plaintext) which are not listed at the end?
+
     #===================================================================
     # instance attrs
     #===================================================================
@@ -1758,6 +1764,8 @@ class CryptContext(object):
             p.read_file(stream, filename)
         else:
             p.readfp(stream, filename)
+        # XXX: could change load() to accept list of items,
+        #      and skip intermediate dict creation
         return dict(p.items(section))
 
     def load_path(self, path, update=False, section="passlib", encoding="utf-8"):
@@ -1869,7 +1877,7 @@ class CryptContext(object):
 
         #-----------------------------------------------------------
         # parse dict keys into (category, scheme, option) format,
-        # merge with existing configuration if needed
+        # and merge with existing configuration if needed.
         #-----------------------------------------------------------
         if parse_keys:
             parse = self._parse_config_key
@@ -1897,7 +1905,7 @@ class CryptContext(object):
         """helper used to parse ``cat__scheme__option`` keys into a tuple"""
         # split string into 1-3 parts
         assert isinstance(ckey, str)
-        parts = ckey.replace(".","__").split("__")
+        parts = ckey.replace(".", "__").split("__")
         count = len(parts)
         if count == 1:
             cat, scheme, key = None, None, parts[0]
@@ -2051,6 +2059,13 @@ class CryptContext(object):
     ##    the tuple will be empty.
     ##    """
     ##    return self._config.categories
+
+    # XXX: need to decide if exposing this would be useful to applications
+    # in any meaningful way that isn't already served by to_dict()
+    ##def options(self, scheme, category=None):
+    ##    kwds, percat = self._config.get_options(scheme, category)
+    ##    kwds.pop("min_verify_time", None)
+    ##    return kwds
 
     def handler(self, scheme=None, category=None):
         """helper to resolve name of scheme -> :class:`~passlib.ifc.PasswordHash` object used by scheme.

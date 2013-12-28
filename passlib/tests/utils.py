@@ -1808,7 +1808,7 @@ class HandlerCase(TestCase):
 
     @property
     def fuzz_thread_count(self):
-        "number of threads for threaded fuzz testing"
+        """number of threads for threaded fuzz testing"""
         value = int(os.environ.get("PASSLIB_TEST_FUZZ_THREADS") or 0)
         if value:
             return value
