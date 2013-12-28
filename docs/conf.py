@@ -159,7 +159,7 @@ html_theme = os.environ.get("SPHINX_THEME") or 'redcloud'
 # documentation.
 html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
-    html_theme_options.update(roottarget=index_doc, issueicon=None)
+    html_theme_options.update(roottarget=index_doc, issueicon=None, lighter_decor=True)
     if 'for-pypi' in options:
         html_theme_options.update(
             googleanalytics_id = 'UA-22302196-2',
@@ -215,7 +215,7 @@ html_use_smartypants = True
 ##html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-##html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 ##html_show_sphinx = True
