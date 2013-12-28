@@ -38,7 +38,7 @@ Plain Hashes
 ============
 .. warning::
 
-    These hashes should be considered secure in any manner,
+    These hashes should not be considered secure in any way,
     as they are nothing but raw MD5 & SHA-1 digests,
     which are extremely vulnerable to brute-force attacks.
 

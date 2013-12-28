@@ -1,3 +1,6 @@
+.. image:: _static/masthead.png
+   :align: center
+
 ==========================================
 Passlib |release| documentation
 ==========================================
