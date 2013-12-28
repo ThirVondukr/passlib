@@ -68,6 +68,9 @@ extensions = [
 
     # allow table column alignment styling
     'cloud_sptheme.ext.table_styling',
+
+    # modify logo per page
+    'cloud_sptheme.ext.perpage',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -159,7 +162,16 @@ html_theme = os.environ.get("SPHINX_THEME") or 'redcloud'
 # documentation.
 html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
-    html_theme_options.update(roottarget=index_doc, issueicon=None, lighter_decor=True)
+    html_theme_options.update(roottarget=index_doc,
+                              issueicon=None,
+                              lighter_decor=True,
+#                              borderless_decor=True,
+                              inline_admonitions=False,
+                              sidebar_localtoc_title="Page contents",
+                              sidebarwidth="280px",
+                              max_width="11.5in",
+                              compact_width="11.5in",
+                              )
     if 'for-pypi' in options:
         html_theme_options.update(
             googleanalytics_id = 'UA-22302196-2',
@@ -179,6 +191,9 @@ html_short_title = "%s %s Documentation" % (project, version)
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = os.path.join("_static", "masthead.png")
+perpage_html_logo = {
+    'index': None,
+}
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -199,7 +214,14 @@ html_static_path = ['_static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-##html_sidebars = {}
+common_sidebars = ['quicklinks.html', 'searchbox.html']
+html_sidebars = {
+    '**': ['localtoc.html', 'relations.html'] + common_sidebars,
+    'py-modindex': common_sidebars,
+    'genindex': common_sidebars,
+    'search': common_sidebars,
+}
+#html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -215,7 +237,7 @@ html_use_smartypants = True
 ##html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-html_show_sourcelink = False
+##html_show_sourcelink = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 ##html_show_sphinx = True

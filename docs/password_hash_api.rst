@@ -630,7 +630,7 @@ and the following attributes should be defined:
 
     The maximum number of rounds the scheme allows.
     Specifying a value beyond this will result in a :exc:`ValueError`.
-    Will be a positive integer, or ``None`` (indicating
+    This will be either a positive integer, or ``None`` (indicating
     the algorithm has no effective upper limit).
 
 .. attribute:: PasswordHash.min_rounds
@@ -720,8 +720,8 @@ and the following attributes should be defined:
 
 Choosing the right rounds value
 ===============================
-For hash algorithms which support a variable time-cost,
-Passlib's default ``rounds`` choices attempt to be secure enough for
+For hash algorithms with a variable time-cost, 
+Passlib's :attr:`~PasswordHash.default_rounds` values attempt to be secure enough for
 the average [#avgsys]_ system. But the "right" value for a given hash
 is dependant on the server, its cpu, its expected load, and its users.
 Since larger values mean increased work for an attacker,
@@ -733,12 +733,12 @@ take upwards of 250ms - 400ms before users start getting annoyed.
 For superuser accounts, it should take as much time as the admin can stand
 (usually ~4x more delay than a regular account).
 
-Passlib's ``default_rounds`` values are retuned periodically
-by taking a rough estimate of what an "average" system is capable of,
+Passlib's :attr:`!default_rounds` values are retuned periodically,
+starting with a rough estimate of what an "average" system is capable of,
 and then setting all :samp:`{hash}.default_rounds` values to take ~300ms on such a system.
 However, some older algorithms (e.g. :class:`~passlib.hash.bsdi_crypt`) are weak enough that
 a tradeoff must be made, choosing "secure but intolerably slow" over "fast but unacceptably insecure".
 For this reason, it is strongly recommended to not use a value much lower than Passlib's default.
 
-.. [#avgsys] For Passlib 1.6, all hashes were retuned to take ~300ms on a
+.. [#avgsys] For Passlib 1.6.2, all hashes were retuned to take ~300ms on a
    system with a 2.5 ghz 64 bit CPU.

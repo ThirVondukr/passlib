@@ -4,7 +4,7 @@
 :class:`passlib.hash.dlitz_pbkdf2_sha1` - Dwayne Litzenberger's PBKDF2 hash
 ===========================================================================
 
-.. note::
+.. warning::
 
     Due to a small flaw, this hash is not as strong as other PBKDF1-HMAC-SHA1
     based hashes. It should probably not be used for new applications.

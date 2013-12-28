@@ -271,7 +271,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classmethod
     def _no_backends_msg(cls):
-        return "no bcrypt backends available - please install py-bcrypt"
+        return "no bcrypt backends available -- recommend you install one (e.g. 'pip install bcrypt')"
 
     def _calc_checksum(self, secret):
         "common backend code"

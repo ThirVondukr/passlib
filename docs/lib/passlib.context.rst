@@ -458,8 +458,8 @@ if any invalid-but-correctable values are encountered
 :class:`~passlib.hash.sha256_crypt` 's minimum of 1000).
 
 .. versionchanged:: 1.6
-    Previous releases issued a generic :exc:`UserWarning` instead
-    of the more specific :exc:`PasslibConfigWarning`.
+    Previous releases used Python's builtin :exc:`UserWarning` instead
+    of the more specific :exc:`!passlib.exc.PasslibConfigWarning`.
 
 Other Helpers
 =============
