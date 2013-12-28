@@ -28,20 +28,20 @@ UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
 
 PASS_TABLE_UTF8 = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99') # utf-8
 
+# handlers which support multiple backends, but don't have multi-backend tests.
+_omitted_backend_tests = ["django_bcrypt", "django_bcrypt_sha256"]
+
 def get_handler_case(scheme):
     """return HandlerCase instance for scheme, used by other tests"""
     from passlib.registry import get_crypt_handler
     handler = get_crypt_handler(scheme)
-    if hasattr(handler, "backends") and not hasattr(handler, "wrapped") and handler.name != "django_bcrypt_sha256":
+    if hasattr(handler, "backends") and scheme not in _omitted_backend_tests:
+        # NOTE: will throw MissingBackendError if none are installed.
         backend = handler.get_backend()
         name = "%s_%s_test" % (scheme, backend)
     else:
         name = "%s_test" % scheme
-    try:
-        return globals()[name]
-    except KeyError:
-        pass
-    for suffix in ("handlers_django", "handlers_bcrypt"):
+    for suffix in ("handlers", "handlers_django", "handlers_bcrypt"):
         modname = "passlib.tests.test_" + suffix
         __import__(modname)
         mod = sys.modules[modname]

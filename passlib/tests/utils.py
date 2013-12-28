@@ -125,7 +125,7 @@ def has_relaxed_setting(handler):
 def has_active_backend(handler):
     """return active backend for handler, if any"""
     if not hasattr(handler, "get_backend"):
-        return "builtin"
+        return "always"
     try:
         return handler.get_backend()
     except MissingBackendError:

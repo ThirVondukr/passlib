@@ -120,15 +120,15 @@ class MiscTest(TestCase):
         self.assertEqual(f('a',5), 'aaaaa')
 
         # letters
-        x = f(u('abc'), 16)
-        y = f(u('abc'), 16)
+        x = f(u('abc'), 32)
+        y = f(u('abc'), 32)
         self.assertIsInstance(x, unicode)
         self.assertNotEqual(x,y)
         self.assertEqual(sorted(set(x)), [u('a'),u('b'),u('c')])
 
         # bytes
-        x = f(b('abc'), 16)
-        y = f(b('abc'), 16)
+        x = f(b('abc'), 32)
+        y = f(b('abc'), 32)
         self.assertIsInstance(x, bytes)
         self.assertNotEqual(x,y)
         # NOTE: decoding this due to py3 bytes
