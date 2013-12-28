@@ -592,7 +592,9 @@ class DjangoBehaviorTest(_ExtensionTest):
             if testcase.is_disabled_handler:
                 continue
             if not has_active_backend(handler):
-                assert scheme == "django_bcrypt"
+                # TODO: move this above get_handler_case(),
+                #       and omit MissingBackendError check.
+                assert scheme in ["django_bcrypt", "django_bcrypt_sha256"], "%r scheme should always have active backend" % scheme
                 continue
             try:
                 secret, hash = sample_hashes[scheme]
