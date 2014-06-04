@@ -74,13 +74,18 @@ The digest is calculated as follows:
 1. The password is encoded using an ``ASCII``-compatible encoding
    (all known references are strict 7-bit ascii, and Passlib uses ``UTF-8``
    to provide unicode support).
-2. If the hash is associated with a user account,
-   append the first four bytes of the user account name
-   to the end of the password. If the hash is NOT associated
-   with a user account (e.g. it's the "enable" password),
-   this step should be omitted.
-3. The resulting password should be truncated to 16 bytes,
-   or the right side NULL padded to 16 bytes, as appropriate.
+2. If the hash is associated with a user account and provided
+   password is less than 28 characters, append the first four
+   bytes of the user account name to the end of the password.
+   If the hash is NOT associated with a user account (e.g.
+   it's the "enable" password), this step should be omitted.
+3. For password lengths 12 characters or less, the password
+   should be truncated to 16 bytes, or the right side NULL
+   padded to 16 bytes, as appropriate. For PIX/ASA code 7.0
+   or newer, password lengths up to 32 are supported. 
+   Passwords 12 or less characters in length are not altered
+   in operation.  Password of a length of 13 - 32 characters  
+   will be padded or truncated to 32 bytes as appropriate.
 4. Run the result of step 3 through MD5.
 5. Discard every 4th byte of the 16-byte MD5 hash, starting
    with the 4th byte.
