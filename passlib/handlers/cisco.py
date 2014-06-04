@@ -59,6 +59,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
             # 7-bit ascii compatible, so using UTF-8
             secret = secret.encode("utf-8")
 
+        seclen = len(secret)
         user = self.user
         if user:
             # not positive about this, but it looks like per-user
@@ -66,10 +67,18 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
             # whereas global "enable" passwords don't have any salt at all.
             if isinstance(user, unicode):
                 user = user.encode("utf-8")
-            secret += user[:4]
+            # ASA 7.0 (2005) adds support for up to 32 character passwords and
+            # modifies the algorithm.  Username 4 character prefix is only
+            # appended if 27 or less characters.
+            if seclen < 28:
+                secret += user[:4]
 
-        # null-pad or truncate to 16 bytes
-        secret = right_pad_string(secret, 16)
+        # null-pad or truncate to 16 bytes, for passwords 12 characters or less
+        # if password length is 13 - 32 characters, null-pad or truncate to 32
+        if seclen < 13:
+            secret = right_pad_string(secret, 16)
+        else:
+            secret = right_pad_string(secret, 32)
 
         # md5 digest
         hash = md5(secret).digest()
