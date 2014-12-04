@@ -186,7 +186,9 @@ class _HasherWrapper(object):
     _translate_kwds = dict(checksum="hash", rounds="iterations")
 
     def safe_summary(self, encoded):
-        from django.contrib.auth.hashers import mask_hash, _, SortedDict
+        from django.contrib.auth.hashers import mask_hash
+        from django.utils.translation import ugettext_noop as _
+        from django.utils.datastructures import SortedDict
         handler = self.passlib_handler
         items = [
             # since this is user-facing, we're reporting passlib's name,
