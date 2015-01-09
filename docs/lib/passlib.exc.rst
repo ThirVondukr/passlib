@@ -17,6 +17,8 @@ Exceptions
 
 .. autoexception:: PasswordSizeError
 
+.. autoexception:: TokenReuseError
+
 Warnings
 ========
 .. autoexception:: PasslibWarning

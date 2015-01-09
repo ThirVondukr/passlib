@@ -39,6 +39,21 @@ class PasswordSizeError(ValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
+class TokenReuseError(ValueError):
+    """Error raised by various methods in :mod:`passlib.totp` if a token is reused.
+    This exception derives from :exc:`!ValueError`.
+
+    .. versionadded:: 1.7
+    """
+
+    #: optional value indicating when current counter period will end,
+    #: and a new token can be generated.
+    expire_time = None
+
+    def __init__(self, *args, **kwds):
+        self.expire_time = kwds.pop("expire_time", None)
+        ValueError.__init__(self, *args, **kwds)
+
 #=============================================================================
 # warnings
 #=============================================================================

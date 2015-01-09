@@ -99,6 +99,9 @@ Application Helpers
     :mod:`passlib.pwd`
         Password generation helpers.
 
+    :mod:`passlib.totp`
+        TOTP / Two Factor Authentication
+
 ..
     Support Modules
     ---------------

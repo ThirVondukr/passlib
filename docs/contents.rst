@@ -21,6 +21,7 @@ Table Of Contents
     lib/passlib.apache
     lib/passlib.ext.django
     lib/passlib.pwd
+    lib/passlib.totp
 
     lib/passlib.exc
     lib/passlib.registry

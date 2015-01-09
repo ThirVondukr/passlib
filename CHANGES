@@ -23,6 +23,10 @@ Release History
 
 Major Changes
 -------------
+* New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
+  on both client and server side. Contains both low-level primitives, and high-level
+  helpers for persisting and tracking client state.
+
 * New :mod:`passlib.pwd` module added to aid in password generation
   and strength measurement (with contributions from Thomas Waldmann).
 

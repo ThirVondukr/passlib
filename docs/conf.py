@@ -51,17 +51,11 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
 
-    # add autodoc support for ReST sections in class/function docstrings
-    'cloud_sptheme.ext.autodoc_sections',
-
     # adds extra ids & classes to genindex html, for additional styling
     'cloud_sptheme.ext.index_styling',
 
     # inserts toc into right hand nav bar (ala old style python docs)
     'cloud_sptheme.ext.relbar_toc',
-
-    # replace sphinx :samp: role handler with one that allows escaped {} chars
-    'cloud_sptheme.ext.escaped_samp_literals',
 
     # add "issue" role
     'cloud_sptheme.ext.issue_tracker',
@@ -71,6 +65,12 @@ extensions = [
 
     # modify logo per page
     'cloud_sptheme.ext.perpage',
+
+    # monkeypatch sphinx to support a few extra things we can't do with extensions.
+    'cloud_sptheme.ext.autodoc_sections',
+    'cloud_sptheme.ext.autoattribute_search_bases',
+    'cloud_sptheme.ext.docfield_markup',
+    'cloud_sptheme.ext.escaped_samp_literals',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -200,7 +200,7 @@ perpage_html_logo = {
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "logo.ico"
+html_favicon = os.path.join("_static", "logo.ico")
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
