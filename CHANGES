@@ -21,6 +21,27 @@ Release History
     Passlib 1.7's :mod:`passlib.ext.django` extension will drop
     support for Django 1.3 and earlier, and require Django 1.4 or newer.
 
+.. todo::
+
+    The following tasks are blocking the 1.7 release:
+
+    * Finish the :mod:`passlib.totp` module (mainly tests & documentation)
+
+    * Get scrypt hash implemented, or push it to later release (really want to include it)
+
+    * Finish :mod:`passlib.pwd` -- need to finalize API and document it better.
+
+    * Would strongly like to also add pbkdf2 & bcrypt variants which have support for an external
+      "pepper" to further increase security.
+
+    * Internal cleanups:
+
+        * Remove python 2.5 workarounds
+
+        * Remove Django < 1.4 workarounds
+
+        * Potentially reorg the utils module (particularly the crypto bits), it's getting messy.
+
 Major Changes
 -------------
 * New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
