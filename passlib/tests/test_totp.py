@@ -15,7 +15,7 @@ import time as _time
 # pkg
 from passlib import exc
 from passlib.utils import to_bytes, to_unicode
-from passlib.utils.compat import unicode, u, b
+from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase
 # local
 __all__ = [

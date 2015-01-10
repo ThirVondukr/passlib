@@ -22,7 +22,6 @@ except ImportError:
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode
-from passlib.utils.compat import bytes
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, set_file
 from passlib.registry import (register_crypt_handler_path,

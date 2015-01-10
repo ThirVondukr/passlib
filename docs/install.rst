@@ -6,26 +6,24 @@ Installation
 
 Supported Platforms
 ===================
-Passlib requires Python 2 (>= 2.5) or Python 3.
+Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.2).
 It is known to work with the following Python implementations:
 
-* CPython 2 -- v2.5 or newer.
-* CPython 3 -- all versions.
-* PyPy -- v1.5 or newer.
-* PyPy3 -- v2.1 or newer.
-* Jython -- v2.5 or newer.
+* CPython 2 -- v2.6 or newer.
+* CPython 3 -- v3.2 or newer.
+* PyPy -- v2.0 or newer.
+* PyPy3 -- v2.0 or newer.
+* Jython -- v2.7 or newer.
 
 Passlib should work with all operating systems and environments,
-as it contains builtin fallbacks
-for almost all OS-dependant features.
+as it contains builtin fallbacks for almost all OS-dependant features.
 Google App Engine is supported as well.
 
-.. warning::
+.. versionchanged:: 1.7
 
-    **Passlib 1.7 will drop support for Python 2.5,** and require Python 2.6 or newer,
-    unless significant feedback is received to reverse the decision.
-    Too many core tools such as Setuptools, Pip, and Tox no longer support it,
-    making testing increasingly burdensome.
+    Support for Python 2.5, 3.0, and 3.1 was dropped.
+    Support for PyPy 1.x was dropped.
+    Support for Python 3.2 may be dropped in the next major release.
 
 .. _optional-libraries:
 
@@ -73,7 +71,8 @@ which provide nearly complete coverage, and verification of the hash
 algorithms using multiple external sources (if detected at runtime).
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
-`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
+`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library
+(as well as the ``unittest2`` library under Python 2.6).
 
 Once Passlib and Nose have been installed, the main suite of tests may be run from the source directory::
 

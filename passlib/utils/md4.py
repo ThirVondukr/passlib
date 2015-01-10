@@ -15,7 +15,7 @@ from binascii import hexlify
 import struct
 from warnings import warn
 # site
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY3
+from passlib.utils.compat import bascii_to_str, irange, PY3
 # local
 __all__ = [ "md4" ]
 #=============================================================================
@@ -72,7 +72,7 @@ class md4(object):
     def __init__(self, content=None):
         self._count = 0
         self._state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
-        self._buf = b('')
+        self._buf = b''
         if content:
             self.update(content)
 
@@ -208,7 +208,7 @@ class md4(object):
         # then last 8 bytes = msg length in bits
         buf = self._buf
         msglen = self._count*512 + len(buf)*8
-        block = buf + b('\x80') + b('\x00') * ((119-len(buf)) % 64) + \
+        block = buf + b'\x80' + b'\x00' * ((119-len(buf)) % 64) + \
             struct.pack("<2I", msglen & MASK_32, (msglen>>32) & MASK_32)
         if len(block) == 128:
             self._process(block[:64])
@@ -236,7 +236,6 @@ _builtin_md4 = md4
 # check if hashlib provides accelarated md4
 #=============================================================================
 import hashlib
-from passlib.utils import PYPY
 
 def _has_native_md4(): # pragma: no cover -- runtime detection
     try:
@@ -247,9 +246,6 @@ def _has_native_md4(): # pragma: no cover -- runtime detection
     result = h.hexdigest()
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
-    if PYPY and result == '':
-        # workaround for https://bugs.pypy.org/issue957, fixed in PyPy 1.8
-        return False
     # anything else and we should alert user
     from passlib.exc import PasslibRuntimeWarning
     warn("native md4 support disabled, sanity check failed!", PasslibRuntimeWarning)
@@ -259,7 +255,7 @@ if _has_native_md4():
     # overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
         """wrapper for hashlib.new('md4')"""
-        return hashlib.new('md4', content or b(''))
+        return hashlib.new('md4', content or b'')
 
 #=============================================================================
 # eof

@@ -55,7 +55,7 @@ from itertools import chain
 import struct
 # pkg
 from passlib.utils import bcrypt64, getrandbytes, rng
-from passlib.utils.compat import b, bytes, BytesIO, unicode, u
+from passlib.utils.compat import BytesIO, unicode, u
 from passlib.utils._blowfish.unrolled import BlowfishEngine
 # local
 __all__ = [
@@ -82,7 +82,7 @@ digest_struct = struct.Struct(">6I")
 # interface designed only for use by passlib.handlers.bcrypt:BCrypt
 # probably not suitable for other purposes
 #=============================================================================
-BNULL = b('\x00')
+BNULL = b'\x00'
 
 def raw_bcrypt(password, ident, salt, log_rounds):
     """perform central password hashing step in bcrypt scheme.

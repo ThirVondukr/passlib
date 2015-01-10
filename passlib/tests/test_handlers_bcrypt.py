@@ -14,7 +14,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, b, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 # module
 
@@ -52,21 +52,21 @@ class _bcrypt_test(HandlerCase):
         ('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
          '0123456789chars after 72 are ignored',
                 '$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui'),
-        (b('\xa3'),
+        (b'\xa3',
                 '$2a$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
-        (b('\xff\xa3345'),
+        (b'\xff\xa3345',
             '$2a$05$/OK.fbVrR/bpIqNJ5ianF.nRht2l/HRhr6zmCp9vYUvvsqynflf9e'),
-        (b('\xa3ab'),
+        (b'\xa3ab',
                 '$2a$05$/OK.fbVrR/bpIqNJ5ianF.6IflQkJytoRVc1yuaNtHfiuq.FRlSIS'),
-        (b('\xaa')*72 + b('chars after 72 are ignored as usual'),
+        (b'\xaa'*72 + b'chars after 72 are ignored as usual',
                 '$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6'),
-        (b('\xaa\x55'*36),
+        (b'\xaa\x55'*36,
                 '$2a$05$/OK.fbVrR/bpIqNJ5ianF.R9xrDjiycxMbQE2bp.vgqlYpW5wx2yy'),
-        (b('\x55\xaa\xff'*24),
+        (b'\x55\xaa\xff'*24,
                 '$2a$05$/OK.fbVrR/bpIqNJ5ianF.9tQZzcJfm3uj2NvJ/n5xkhpqLrMpWCe'),
 
         # keeping one of their 2y tests, because we are supporting that.
-        (b('\xa3'),
+        (b'\xa3',
                 '$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
 
         #

@@ -13,7 +13,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, b, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 # module
 

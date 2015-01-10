@@ -71,13 +71,14 @@ from __future__ import division
 # core
 from collections import defaultdict
 from hashlib import sha256
+from itertools import chain
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
 import os
 import zlib
 # site
 # pkg
-from passlib.utils.compat import PY3, irange, itervalues, u, chain_from_iterable
+from passlib.utils.compat import PY3, irange, itervalues, u
 from passlib.utils import rng, getrandstr
 # local
 __all__ = [
@@ -204,7 +205,7 @@ def _average_wordset_entropy(wordset):
     :returns:
         float bits of entropy
     """
-    return _average_entropy(chain_from_iterable(wordset))
+    return _average_entropy(chain.from_iterable(wordset))
 
 def _load_wordset(name):
     "helper load compressed wordset from package data"

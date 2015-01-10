@@ -38,10 +38,10 @@ class UtilsTest(TestCase):
 
         self.assertEqual(_average_entropy("abcd"), 2)
         self.assertEqual(_average_entropy("abcd"*8), 2)
-        self.assertAlmostEqual(_average_entropy("abcdaaaa"), 1.5488, 4)
+        self.assertAlmostEqual(_average_entropy("abcdaaaa"), 1.5488, delta=4)
         self.assertEqual(_average_entropy("abcd", True), 8)
         self.assertEqual(_average_entropy("abcd"*8, True), 64)
-        self.assertAlmostEqual(_average_entropy("abcdaaaa", True), 12.3904, 4)
+        self.assertAlmostEqual(_average_entropy("abcdaaaa", True), 12.3904, delta=4)
 
 #=============================================================================
 # generation

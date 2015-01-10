@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import h64, safe_crypt, test_crypt, repeat_string
-from passlib.utils.compat import b, bytes, unicode, u
+from passlib.utils.compat import unicode, u
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -19,9 +19,9 @@ __all__ = [
 #=============================================================================
 # pure-python backend
 #=============================================================================
-_BNULL = b("\x00")
-_MD5_MAGIC = b("$1$")
-_APR_MAGIC = b("$apr1$")
+_BNULL = b"\x00"
+_MD5_MAGIC = b"$1$"
+_APR_MAGIC = b"$apr1$"
 
 # pre-calculated offsets used to speed up C digest stage (see notes below).
 # sequence generated using the following:

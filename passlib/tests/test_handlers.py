@@ -14,7 +14,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, b, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 # module
 
 #=============================================================================
@@ -26,7 +26,7 @@ UPASS_WAV = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
 UPASS_USD = u("\u20AC\u00A5$")
 UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
 
-PASS_TABLE_UTF8 = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99') # utf-8
+PASS_TABLE_UTF8 = b't\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99' # utf-8
 
 # handlers which support multiple backends, but don't have multi-backend tests.
 _omitted_backend_tests = ["django_bcrypt", "django_bcrypt_sha256"]
@@ -450,18 +450,18 @@ class fshp_test(HandlerCase):
     def test_90_variant(self):
         """test variant keyword"""
         handler = self.handler
-        kwds = dict(salt=b('a'), rounds=1)
+        kwds = dict(salt=b'a', rounds=1)
 
         # accepts ints
         handler(variant=1, **kwds)
 
         # accepts bytes or unicode
         handler(variant=u('1'), **kwds)
-        handler(variant=b('1'), **kwds)
+        handler(variant=b'1', **kwds)
 
         # aliases
         handler(variant=u('sha256'), **kwds)
-        handler(variant=b('sha256'), **kwds)
+        handler(variant=b'sha256', **kwds)
 
         # rejects None
         self.assertRaises(TypeError, handler, variant=None, **kwds)
@@ -807,7 +807,7 @@ class _md5_crypt_test(HandlerCase):
         ('Compl3X AlphaNu3meric', '$1$nX1e7EeI$ljQn72ZUgt6Wxd9hfvHdV0'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
-        (b('test'), '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
+        (b'test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
         (u('s'), '$1$ssssssss$YgmLTApYTv12qgTwBoj8i/'),
 
         # ensures utf-8 used for unicode
@@ -1010,7 +1010,7 @@ class mssql2000_test(HandlerCase):
 
     known_malformed_hashes = [
         # non-hex char -----\/
-        b('0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+        b'0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
         u('0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
     ]
 
@@ -1187,10 +1187,10 @@ class nthash_test(HandlerCase):
         ('tigger', 'b7e0ea9fbffcf6dd83086e905089effd'),
 
         # utf-8
-        (b('\xC3\xBC'), '8bd6e4fb88e01009818749c5443ea712'),
-        (b('\xC3\xBC\xC3\xBC'), 'cc1260adb6985ca749f150c7e0b22063'),
-        (b('\xE2\x82\xAC'), '030926b781938db4365d46adc7cfbcb8'),
-        (b('\xE2\x82\xAC\xE2\x82\xAC'),'682467b963bb4e61943e170a04f7db46'),
+        (b'\xC3\xBC', '8bd6e4fb88e01009818749c5443ea712'),
+        (b'\xC3\xBC\xC3\xBC', 'cc1260adb6985ca749f150c7e0b22063'),
+        (b'\xE2\x82\xAC', '030926b781938db4365d46adc7cfbcb8'),
+        (b'\xE2\x82\xAC\xE2\x82\xAC','682467b963bb4e61943e170a04f7db46'),
 
         #
         # custom
@@ -1208,7 +1208,7 @@ class bsd_nthash_test(HandlerCase):
 
     known_correct_hashes = [
         ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
-        (b('\xC3\xBC'), '$3$$8bd6e4fb88e01009818749c5443ea712'),
+        (b'\xC3\xBC', '$3$$8bd6e4fb88e01009818749c5443ea712'),
     ]
 
     known_unidentified_hashes = [
@@ -1575,7 +1575,7 @@ class scram_test(HandlerCase):
 
     def test_90_algs(self):
         """test parsing of 'algs' setting"""
-        defaults = dict(salt=b('A')*10, rounds=1000)
+        defaults = dict(salt=b'A'*10, rounds=1000)
         def parse(algs, **kwds):
             for k in defaults:
                 kwds.setdefault(k, defaults[k])
@@ -1601,7 +1601,7 @@ class scram_test(HandlerCase):
 
         # alg & checksum mutually exclusive.
         self.assertRaises(RuntimeError, parse, ['sha-1'],
-                          checksum={"sha-1": b("\x00"*20)})
+                          checksum={"sha-1": b"\x00"*20})
 
     def test_90_checksums(self):
         """test internal parsing of 'checksum' keyword"""
@@ -1611,7 +1611,7 @@ class scram_test(HandlerCase):
 
         # check sha-1 is required
         self.assertRaises(ValueError, self.handler, use_defaults=True,
-                          checksum={'sha-256':  b('X')*32})
+                          checksum={'sha-256':  b'X'*32})
 
         # XXX: anything else that's not tested by the other code already?
 
@@ -1621,10 +1621,10 @@ class scram_test(HandlerCase):
 
         # return appropriate value or throw KeyError
         h = "$scram$10$AAAAAA$sha-1=AQ,bbb=Ag,ccc=Aw"
-        s = b('\x00')*4
-        self.assertEqual(edi(h,"SHA1"), (s,10, b('\x01')))
-        self.assertEqual(edi(h,"bbb"), (s,10, b('\x02')))
-        self.assertEqual(edi(h,"ccc"), (s,10, b('\x03')))
+        s = b'\x00'*4
+        self.assertEqual(edi(h,"SHA1"), (s,10, b'\x01'))
+        self.assertEqual(edi(h,"bbb"), (s,10, b'\x02'))
+        self.assertEqual(edi(h,"ccc"), (s,10, b'\x03'))
         self.assertRaises(KeyError, edi, h, "ddd")
 
         # config strings should cause value error.
@@ -1658,16 +1658,16 @@ class scram_test(HandlerCase):
         hash = self.handler.derive_digest
 
         # check various encodings of password work.
-        s1 = b('\x01\x02\x03')
-        d1 = b('\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3')
+        s1 = b'\x01\x02\x03'
+        d1 = b'\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3'
         self.assertEqual(hash(u("\u2168"), s1, 1000, 'sha-1'), d1)
-        self.assertEqual(hash(b("\xe2\x85\xa8"), s1, 1000, 'SHA-1'), d1)
+        self.assertEqual(hash(b"\xe2\x85\xa8", s1, 1000, 'SHA-1'), d1)
         self.assertEqual(hash(u("IX"), s1, 1000, 'sha1'), d1)
-        self.assertEqual(hash(b("IX"), s1, 1000, 'SHA1'), d1)
+        self.assertEqual(hash(b"IX", s1, 1000, 'SHA1'), d1)
 
         # check algs
         self.assertEqual(hash("IX", s1, 1000, 'md5'),
-                         b('3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od'))
+                         b'3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od')
         self.assertRaises(ValueError, hash, "IX", s1, 1000, 'sha-666')
 
         # check rounds

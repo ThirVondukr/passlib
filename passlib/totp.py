@@ -23,7 +23,7 @@ from passlib import exc
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
                            getrandbytes, rng, xor_bytes)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
-                                  irange, bytes, byte_elem_value, UnicodeIO)
+                                  irange, byte_elem_value, UnicodeIO)
 from passlib.utils.pbkdf2 import get_prf, norm_hash_name, pbkdf2
 # local
 __all__ = [

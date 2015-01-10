@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, to_unicode
-from passlib.utils.compat import b, str_to_bascii, u, uascii_to_str, unicode
+from passlib.utils.compat import str_to_bascii, u, uascii_to_str, unicode
 from passlib.utils.pbkdf2 import pbkdf2
 import passlib.utils.handlers as uh
 # local
@@ -146,7 +146,7 @@ ldap_pbkdf2_sha512 = uh.PrefixWrapper("ldap_pbkdf2_sha512", pbkdf2_sha512, "{PBK
 #=============================================================================
 
 # bytes used by cta hash for base64 values 63 & 64
-CTA_ALTCHARS = b("-_")
+CTA_ALTCHARS = b"-_"
 
 class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements Cryptacular's PBKDF2-based crypt algorithm, and follows the :ref:`password-hash-api`.
@@ -379,7 +379,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     ident = u("{PKCS5S2}")
     checksum_size = 32
 
-    _stub_checksum = b("\x00") * 32
+    _stub_checksum = b"\x00" * 32
 
     #--HasRawSalt--
     min_salt_size = max_salt_size = 16

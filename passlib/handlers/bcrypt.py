@@ -27,7 +27,7 @@ _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.exc import PasslibHashWarning
 from passlib.utils import bcrypt64, safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
-from passlib.utils.compat import bytes, b, u, uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -42,7 +42,7 @@ IDENT_2 = u("$2$")
 IDENT_2A = u("$2a$")
 IDENT_2X = u("$2x$")
 IDENT_2Y = u("$2y$")
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 #=============================================================================
 # handler

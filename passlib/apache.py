@@ -14,8 +14,7 @@ from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import render_bytes, to_bytes, deprecated_method, is_ascii_codec
-from passlib.utils.compat import b, bytes, join_bytes, unicode, BytesIO, \
-                                 iteritems,  PY3
+from passlib.utils.compat import join_bytes, unicode, BytesIO, iteritems, PY3
 # local
 __all__ = [
     'HtpasswdFile',
@@ -27,10 +26,10 @@ __all__ = [
 #=============================================================================
 _UNSET = object()
 
-_BCOLON = b(":")
+_BCOLON = b":"
 
 # byte values that aren't allowed in fields.
-_INVALID_FIELD_CHARS = b(":\n\r\t\x00")
+_INVALID_FIELD_CHARS = b":\n\r\t\x00"
 
 #=============================================================================
 # backport of OrderedDict for PY2.5

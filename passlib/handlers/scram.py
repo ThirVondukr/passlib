@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, splitcomma
-from passlib.utils.compat import bytes, bascii_to_str, iteritems, u
+from passlib.utils.compat import bascii_to_str, iteritems, u
 from passlib.utils.pbkdf2 import pbkdf2, norm_hash_name
 import passlib.utils.handlers as uh
 # local

@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 from passlib.exc import ExpectedTypeError
 from passlib.ext.django.utils import _PatchManager, hasher_to_passlib_name, \
                                      get_passlib_hasher, get_preset_config
-from passlib.utils.compat import callable, unicode, bytes
+from passlib.utils.compat import unicode
 # local
 __all__ = ["password_context"]
 

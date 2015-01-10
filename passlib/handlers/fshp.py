@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, u,\
+from passlib.utils.compat import bascii_to_str, iteritems, u,\
                                  unicode
 from passlib.utils.pbkdf2 import pbkdf1
 # local
@@ -170,7 +170,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @property
     def _stub_checksum(self):
-        return b('\x00') * self.checksum_size
+        return b'\x00' * self.checksum_size
 
     def to_string(self):
         chk = self.checksum or self._stub_checksum

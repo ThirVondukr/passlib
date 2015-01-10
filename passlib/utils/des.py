@@ -47,8 +47,8 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import bytes, join_byte_values, byte_elem_value, \
-                                 b, irange, irange, int_types
+from passlib.utils.compat import join_byte_values, byte_elem_value, \
+                                 irange, irange, int_types
 from passlib.utils import deprecated_function
 # local
 __all__ = [
@@ -584,7 +584,7 @@ def _permute(c, p):
 #=============================================================================
 _uint64_struct = struct.Struct(">Q")
 
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 def _pack64(value):
     return _uint64_struct.pack(value)

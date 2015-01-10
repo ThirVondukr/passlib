@@ -14,8 +14,8 @@ from passlib.exc import PasslibConfigWarning, ExpectedStringError, ExpectedTypeE
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import rng, tick, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
-from passlib.utils.compat import bytes, iteritems, num_types, \
-                                 PY2, PY3, PY_MIN_32, unicode, SafeConfigParser, \
+from passlib.utils.compat import iteritems, num_types, \
+                                 PY2, PY3, unicode, SafeConfigParser, \
                                  NativeStringIO, BytesIO, base_string_types
 # local
 __all__ = [
@@ -1759,7 +1759,7 @@ class CryptContext(object):
         # and a utf-8 bytes stream under py2,
         # allowing the resulting dict to always use native strings.
         p = SafeConfigParser()
-        if PY_MIN_32:
+        if PY3:
             # python 3.2 deprecated readfp in favor of read_file
             p.read_file(stream, filename)
         else:

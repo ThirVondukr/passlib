@@ -12,10 +12,10 @@ import warnings
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.exc import MissingBackendError, PasslibHashWarning
-from passlib.utils.compat import b, bytes, str_to_uascii, \
-                                 uascii_to_str, unicode, PY_MAX_25, SUPPORTS_DIR_METHOD
+from passlib.utils.compat import str_to_uascii, \
+                                 uascii_to_str, unicode
 import passlib.utils.handlers as uh
-from passlib.tests.utils import HandlerCase, TestCase, catch_warnings
+from passlib.tests.utils import HandlerCase, TestCase
 from passlib.utils.compat import u
 # module
 log = getLogger(__name__)
@@ -63,11 +63,11 @@ class SkeletonTest(TestCase):
 
         # check default identify method
         self.assertTrue(d1.identify(u('_a')))
-        self.assertTrue(d1.identify(b('_a')))
+        self.assertTrue(d1.identify(b'_a'))
         self.assertTrue(d1.identify(u('_b')))
 
         self.assertFalse(d1.identify(u('_c')))
-        self.assertFalse(d1.identify(b('_c')))
+        self.assertFalse(d1.identify(b'_c'))
         self.assertFalse(d1.identify(u('a')))
         self.assertFalse(d1.identify(u('b')))
         self.assertFalse(d1.identify(u('c')))
@@ -78,12 +78,12 @@ class SkeletonTest(TestCase):
         self.assertIs(d1.genconfig(), None)
 
         # check default verify method
-        self.assertTrue(d1.verify('s', b('_a')))
+        self.assertTrue(d1.verify('s', b'_a'))
         self.assertTrue(d1.verify('s',u('_a')))
-        self.assertFalse(d1.verify('s', b('_b')))
+        self.assertFalse(d1.verify('s', b'_b'))
         self.assertFalse(d1.verify('s',u('_b')))
-        self.assertTrue(d1.verify('s', b('_b'), flag=True))
-        self.assertRaises(ValueError, d1.verify, 's', b('_c'))
+        self.assertTrue(d1.verify('s', b'_b', flag=True))
+        self.assertRaises(ValueError, d1.verify, 's', b'_c')
         self.assertRaises(ValueError, d1.verify, 's', u('_c'))
 
         # check default encrypt method
@@ -116,7 +116,7 @@ class SkeletonTest(TestCase):
                     secret = secret.encode("utf-8")
                 if hash is not None and not cls.identify(hash):
                     raise ValueError("invalid hash")
-                return hashlib.sha1(b("xyz") + secret).hexdigest()
+                return hashlib.sha1(b"xyz" + secret).hexdigest()
             @classmethod
             def verify(cls, secret, hash):
                 if hash is None:
@@ -199,11 +199,11 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, norm_checksum, u('xxyx'))
 
         # wrong type
-        self.assertRaises(TypeError, norm_checksum, b('xxyx'))
+        self.assertRaises(TypeError, norm_checksum, b'xxyx')
 
         # relaxed
         with self.assertWarningList("checksum should be unicode"):
-            self.assertEqual(norm_checksum(b('xxzx'), relaxed=True), u('xxzx'))
+            self.assertEqual(norm_checksum(b'xxzx', relaxed=True), u('xxzx'))
         self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
 
         # test _stub_checksum behavior
@@ -214,20 +214,20 @@ class SkeletonTest(TestCase):
         class d1(uh.HasRawChecksum, uh.GenericHandler):
             name = 'd1'
             checksum_size = 4
-            _stub_checksum = b('0')*4
+            _stub_checksum = b'0'*4
 
         def norm_checksum(*a, **k):
             return d1(*a, **k).checksum
 
         # test bytes
-        self.assertEqual(norm_checksum(b('1234')), b('1234'))
+        self.assertEqual(norm_checksum(b'1234'), b'1234')
 
         # test unicode
         self.assertRaises(TypeError, norm_checksum, u('xxyx'))
         self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertIs(norm_checksum(b('0')*4), None)
+        self.assertIs(norm_checksum(b'0'*4), None)
 
     def test_20_norm_salt(self):
         """test GenericHandler + HasSalt mixin"""
@@ -256,7 +256,7 @@ class SkeletonTest(TestCase):
         self.assertIn(norm_salt(use_defaults=True), salts3)
 
         # check explicit salts
-        with catch_warnings(record=True) as wlog:
+        with warnings.catch_warnings(record=True) as wlog:
 
             # check too-small salts
             self.assertRaises(ValueError, norm_salt, salt='')
@@ -277,7 +277,7 @@ class SkeletonTest(TestCase):
             self.consumeWarningList(wlog, PasslibHashWarning)
 
         # check generated salts
-        with catch_warnings(record=True) as wlog:
+        with warnings.catch_warnings(record=True) as wlog:
 
             # check too-small salt size
             self.assertRaises(ValueError, gen_salt, 0)
@@ -327,7 +327,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_rounds, rounds=1.5)
 
         # check explicit rounds
-        with catch_warnings(record=True) as wlog:
+        with warnings.catch_warnings(record=True) as wlog:
             # too small
             self.assertRaises(ValueError, norm_rounds, rounds=0)
             self.consumeWarningList(wlog)
@@ -608,9 +608,9 @@ class SkeletonTest(TestCase):
         h1 = '$pbkdf2$60000$DoEwpvQeA8B4T.k951yLUQ$O26Y3/NJEiLCVaOVPxGXshyjW8k'
         result = hash.pbkdf2_sha1.parsehash(h1)
         self.assertEqual(result, dict(
-            checksum=b(';n\x98\xdf\xf3I\x12"\xc2U\xa3\x95?\x11\x97\xb2\x1c\xa3[\xc9'),
+            checksum=b';n\x98\xdf\xf3I\x12"\xc2U\xa3\x95?\x11\x97\xb2\x1c\xa3[\xc9',
             rounds=60000,
-            salt=b('\x0e\x810\xa6\xf4\x1e\x03\xc0xO\xe9=\xe7\\\x8bQ'),
+            salt=b'\x0e\x810\xa6\xf4\x1e\x03\xc0xO\xe9=\xe7\\\x8bQ',
         ))
 
         # sanitizing of raw checksums & salts
@@ -727,10 +727,7 @@ class PrefixWrapperTest(TestCase):
 
         d2 = uh.PrefixWrapper("d2", "sha256_crypt", "{XXX}")
         self.assertIs(d2.setting_kwds, sha256_crypt.setting_kwds)
-        if SUPPORTS_DIR_METHOD:
-            self.assertTrue('max_rounds' in dir(d2))
-        else:
-            self.assertFalse('max_rounds' in dir(d2))
+        self.assertTrue('max_rounds' in dir(d2))
 
     def test_11_wrapped_methods(self):
         d1 = uh.PrefixWrapper("d1", "ldap_md5", "{XXX}", "{MD5}")
@@ -835,7 +832,7 @@ class UnsaltedHash(uh.StaticHandler):
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        data = b("boblious") + secret
+        data = b"boblious" + secret
         return str_to_uascii(hashlib.sha1(data).hexdigest())
 
 class SaltedHash(uh.HasSalt, uh.GenericHandler):
@@ -888,11 +885,7 @@ class UnsaltedHashTest(HandlerCase):
     ]
 
     def test_bad_kwds(self):
-        if not PY_MAX_25:
-            # annoyingly, py25's ``super().__init__()`` doesn't throw TypeError
-            # when passing unknown keywords to object. just ignoring
-            # this issue for now, since it's a minor border case.
-            self.assertRaises(TypeError, UnsaltedHash, salt='x')
+        self.assertRaises(TypeError, UnsaltedHash, salt='x')
         self.assertRaises(TypeError, UnsaltedHash.genconfig, rounds=1)
 
 class SaltedHashTest(HandlerCase):

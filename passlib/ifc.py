@@ -13,22 +13,10 @@ __all__ = [
 ]
 
 #=============================================================================
-# 2.5-3.2 compatibility helpers
+# 2/3 compatibility helpers
 #=============================================================================
-if sys.version_info >= (2,6):
-    from abc import ABCMeta, abstractmethod, abstractproperty
-else:
-    # create stub for python 2.5
-    ABCMeta = type
-    def abstractmethod(func):
-        return func
-#    def abstractproperty():
-#        return None
-
-def create_with_metaclass(meta):
+def recreate_with_metaclass(meta):
     """class decorator that re-creates class using metaclass"""
-    # have to do things this way since abc not present in py25,
-    # and py2/py3 have different ways of doing metaclasses.
     def builder(cls):
         if meta is type(cls):
             return cls
@@ -38,6 +26,9 @@ def create_with_metaclass(meta):
 #=============================================================================
 # PasswordHash interface
 #=============================================================================
+from abc import ABCMeta, abstractmethod, abstractproperty
+
+@recreate_with_metaclass(ABCMeta)
 class PasswordHash(object):
     """This class describes an abstract interface which all password hashes
     in Passlib adhere to. Under Python 2.6 and up, this is an actual
@@ -185,8 +176,6 @@ class PasswordHash(object):
     #===================================================================
     # eoc
     #===================================================================
-
-PasswordHash = create_with_metaclass(ABCMeta)(PasswordHash)
 
 #=============================================================================
 # eof

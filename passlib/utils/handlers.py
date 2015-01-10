@@ -17,7 +17,7 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, to_unicode, \
                           MAX_PASSWORD_SIZE
-from passlib.utils.compat import b, join_byte_values, bytes, irange, u, callable, \
+from passlib.utils.compat import join_byte_values, irange, u, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, base_string_types, PY2, int_types
 # local

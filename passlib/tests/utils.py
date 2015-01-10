@@ -12,18 +12,18 @@ import tempfile
 import threading
 import time
 from passlib.exc import PasslibHashWarning
-from passlib.utils.compat import PY27, PY_MIN_32, PY3, JYTHON
+from passlib.utils.compat import PY3, JYTHON
 import warnings
 from warnings import warn
 # site
 # pkg
 from passlib.exc import MissingBackendError
 import passlib.registry as registry
-from passlib.tests.backports import TestCase as _TestCase, catch_warnings, skip, skipIf, skipUnless
+from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick
-from passlib.utils.compat import b, bytes, iteritems, irange, callable, \
+from passlib.utils.compat import iteritems, irange, \
                                  base_string_types, exc_err, u, unicode, PY2
 import passlib.utils.handlers as uh
 # local
@@ -373,7 +373,7 @@ class TestCase(_TestCase):
                                 "WarningMessage instance")
             self.assertEqual(wmsg.lineno, lineno, msg)
 
-    class _AssertWarningList(catch_warnings):
+    class _AssertWarningList(warnings.catch_warnings):
         """context manager for assertWarningList()"""
         def __init__(self, case, **kwds):
             self.case = case
@@ -560,7 +560,7 @@ class HandlerCase(TestCase):
     stock_passwords = [
         u("test"),
         u("\u20AC\u00A5$"),
-        b('\xe2\x82\xac\xc2\xa5$')
+        b'\xe2\x82\xac\xc2\xa5$'
     ]
 
     #---------------------------------------------------------------
@@ -591,7 +591,7 @@ class HandlerCase(TestCase):
         # anything that supports crypt() interface should forbid null chars,
         # since crypt() uses null-terminated strings.
         if 'os_crypt' in getattr(cls.handler, "backends", ()):
-            return b("\x00")
+            return b"\x00"
         return None
 
     #===================================================================
@@ -1137,7 +1137,7 @@ class HandlerCase(TestCase):
             # should accept too-large salt in relaxed mode
             #
             if has_relaxed_setting(handler):
-                with catch_warnings(record=True): # issues passlibhandlerwarning
+                with warnings.catch_warnings(record=True): # issues passlibhandlerwarning
                     c2 = self.do_genconfig(salt=s2, relaxed=True)
                 self.assertEqual(c2, c1)
 
@@ -1213,7 +1213,7 @@ class HandlerCase(TestCase):
         # bytes should be accepted only if salt_type is bytes,
         # OR if salt type is unicode and running PY2 - to allow native strings.
         if not (salt_type is bytes or (PY2 and salt_type is unicode)):
-            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b('x'))
+            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x')
 
     #===================================================================
     # rounds
@@ -1644,7 +1644,7 @@ class HandlerCase(TestCase):
         #
         # test hash='' is rejected for all but the plaintext hashes
         #
-        for hash in [u(''), b('')]:
+        for hash in [u(''), b'']:
             if self.accepts_all_hashes:
                 # then it accepts empty string as well.
                 self.assertTrue(self.do_identify(hash))
@@ -2228,7 +2228,7 @@ class EncodingHandlerMixin(HandlerCase):
     # so different encodings can be tested safely.
     stock_passwords = [
         u("test"),
-        b("test"),
+        b"test",
         u("\u00AC\u00BA"),
     ]
 
@@ -2247,7 +2247,7 @@ class EncodingHandlerMixin(HandlerCase):
 #=============================================================================
 # warnings helpers
 #=============================================================================
-class reset_warnings(catch_warnings):
+class reset_warnings(warnings.catch_warnings):
     """catch_warnings() wrapper which clears warning registry & filters"""
     def __init__(self, reset_filter="always", reset_registry=".*", **kwds):
         super(reset_warnings, self).__init__(**kwds)

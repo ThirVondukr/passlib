@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, consteq
-from passlib.utils.compat import bytes, unicode, u, b, base_string_types
+from passlib.utils.compat import unicode, u, base_string_types
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -88,7 +88,7 @@ class unix_fallback(uh.StaticHandler):
             return enable_wildcard
 
 _MARKER_CHARS = u("*!")
-_MARKER_BYTES = b("*!")
+_MARKER_BYTES = b"*!"
 
 class unix_disabled(uh.PasswordHash):
     """This class provides disabled password behavior for unix shadow files,

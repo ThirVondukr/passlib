@@ -18,7 +18,7 @@ from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler, list_crypt_handlers
 from passlib.utils import classproperty
-from passlib.utils.compat import bytes, get_method_function, iteritems
+from passlib.utils.compat import get_method_function, iteritems
 # local
 __all__ = [
     "get_preset_config",

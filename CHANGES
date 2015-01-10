@@ -9,13 +9,6 @@ Release History
 **1.7** (NOT YET RELEASED)
 ==========================
 
-.. warning::
-
-    **Passlib 1.7 will drop support for Python 2.5,** and require Python 2.6 or newer,
-    unless significant feedback is received to reverse the decision.
-    Too many core tools such as Setuptools, Pip, and Tox no longer support it,
-    making testing increasingly burdensome.
-
 .. note::
 
     Passlib 1.7's :mod:`passlib.ext.django` extension will drop
@@ -36,11 +29,17 @@ Release History
 
     * Internal cleanups:
 
-        * Remove python 2.5 workarounds
-
         * Remove Django < 1.4 workarounds
 
         * Potentially reorg the utils module (particularly the crypto bits), it's getting messy.
+
+Requirements
+------------
+
+   * **Passlib now requires Python 2.6, 2.7, or >= 3.2**.
+     Support for Python versions 2.5, 3.0, and 3.1 has been dropped
+     (and Python 3.2 may be dropped in the next major release).
+     Support for PyPy 1.x has also been dropped.
 
 Major Changes
 -------------

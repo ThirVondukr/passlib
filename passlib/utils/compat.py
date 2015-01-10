@@ -9,22 +9,18 @@
 import sys
 PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
-PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
-PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
-PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
+
+# make sure it's not an unsupported version, even if we somehow got this far
+if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
+    raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
 
 #------------------------------------------------------------------------
 # python implementation
 #------------------------------------------------------------------------
-PYPY = hasattr(sys, "pypy_version_info")
 JYTHON = sys.platform.startswith('java')
 
-#------------------------------------------------------------------------
-# capabilities
-#------------------------------------------------------------------------
-
-# __dir__() added in py2.6
-SUPPORTS_DIR_METHOD = not PY_MAX_25 and not (PYPY and sys.pypy_version_info < (1,6))
+if hasattr(sys, "pypy_version_info") and sys.pypy_version_info < (2,0):
+    raise AssertionError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
 #=============================================================================
 # common imports
@@ -44,7 +40,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
+    'PY2', 'PY3',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -52,14 +48,13 @@ __all__ = [
 
     # type detection
 ##    'is_mapping',
-    'callable',
     'int_types',
     'num_types',
     'base_string_types',
 
     # unicode/bytes types & helpers
-    'u', 'b',
-    'unicode', 'bytes',
+    'u',
+    'unicode',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
@@ -86,29 +81,20 @@ _lazy_attrs = dict()
 #=============================================================================
 if PY3:
     unicode = str
-    bytes = builtins.bytes
 
+    # TODO: drop python 3.2 support, and use u'' again!
     def u(s):
         assert isinstance(s, str)
         return s
-
-    def b(s):
-        assert isinstance(s, str)
-        return s.encode("latin-1")
 
     base_string_types = (unicode, bytes)
 
 else:
     unicode = builtins.unicode
-    bytes = str if PY_MAX_25 else builtins.bytes
 
     def u(s):
         assert isinstance(s, str)
         return s.decode("unicode_escape")
-
-    def b(s):
-        assert isinstance(s, str)
-        return s
 
     base_string_types = basestring
 
@@ -119,7 +105,7 @@ else:
 join_unicode = u('').join
 
 # function to join list of byte strings
-join_bytes = b('').join
+join_bytes = b''.join
 
 if PY3:
     def uascii_to_str(s):
@@ -250,39 +236,12 @@ else:
 
     next_method_attr = "next"
 
-if PY_MAX_25:
-    _undef = object()
-    def next(itr, default=_undef):
-        """compat wrapper for next()"""
-        if default is _undef:
-            return itr.next()
-        try:
-            return itr.next()
-        except StopIteration:
-            return default
-    def chain_from_iterable(itr):
-        for subitr in itr:
-            for elem in subitr:
-                yield elem
-else:
-    from itertools import chain
-    next = builtins.next
-    chain_from_iterable = chain.from_iterable
-
 #=============================================================================
 # typing
 #=============================================================================
 ##def is_mapping(obj):
 ##    # non-exhaustive check, enough to distinguish from lists, etc
 ##    return hasattr(obj, "items")
-
-if (3,0) <= sys.version_info < (3,2):
-    # callable isn't dead, it's just resting
-    from collections import Callable
-    def callable(obj):
-        return isinstance(obj, Callable)
-else:
-    callable = builtins.callable
 
 #=============================================================================
 # introspection

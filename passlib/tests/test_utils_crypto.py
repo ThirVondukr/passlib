@@ -14,14 +14,21 @@ except ImportError:
     M2Crypto = None
 # pkg
 # module
-from passlib.utils.compat import b, bascii_to_str, PY3, u, PYPY, JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, catch_warnings, skipUnless
+from passlib.utils.compat import bascii_to_str, PY3, u, JYTHON
+from passlib.tests.utils import TestCase, TEST_MODE, skipUnless
 
 #=============================================================================
 # support
 #=============================================================================
 def hb(source):
-    return unhexlify(b(source))
+    """
+    helper for represent byte strings in hex.
+
+    usage: ``hb("deadbeef23")``
+    """
+    if PY3:
+        source = source.encode("ascii")
+    return unhexlify(source)
 
 #=============================================================================
 # test assorted crypto helpers
@@ -56,11 +63,11 @@ class CryptoTest(TestCase):
 
         # test types
         self.assertEqual(norm_hash_name(u("MD4")), "md4")
-        self.assertEqual(norm_hash_name(b("MD4")), "md4")
+        self.assertEqual(norm_hash_name(b"MD4"), "md4")
         self.assertRaises(TypeError, norm_hash_name, None)
 
         # test selected results
-        with catch_warnings():
+        with warnings.catch_warnings():
             warnings.filterwarnings("ignore", '.*unknown hash')
             for row in chain(_nhn_hash_names, self.ndn_values):
                 for idx, format in enumerate(self.ndn_formats):
@@ -93,8 +100,8 @@ class CryptoTest(TestCase):
             record = get_hash_info("sha")
             const = record[0]
             self.assertEqual(record, (const, 20, 64))
-            self.assertEqual(hexlify(const(b("abc")).digest()),
-                             b("0164b8a914cd2a5e74c4f7ff082c4d97f1edf880"))
+            self.assertEqual(hexlify(const(b"abc").digest()),
+                             b"0164b8a914cd2a5e74c4f7ff082c4d97f1edf880")
 
         else:
             self.assertRaises(ValueError, get_hash_info, "sha")
@@ -111,8 +118,8 @@ class CryptoTest(TestCase):
             from passlib.utils.md4 import md4
             self.assertIs(const, md4)
         self.assertEqual(record, (const, 16, 64))
-        self.assertEqual(hexlify(const(b("abc")).digest()),
-                         b("a448017aaf21d8525fc10ae87aa6729d"))
+        self.assertEqual(hexlify(const(b"abc").digest()),
+                         b"a448017aaf21d8525fc10ae87aa6729d")
 
         # 4. unknown names should be rejected
         self.assertRaises(ValueError, get_hash_info, "xxx256")
@@ -186,11 +193,11 @@ class DesTest(TestCase):
 
         # too large
         self.assertRaises(ValueError, expand_des_key, INT_56_MASK+1)
-        self.assertRaises(ValueError, expand_des_key, b("\x00")*8)
+        self.assertRaises(ValueError, expand_des_key, b"\x00"*8)
 
         # too small
         self.assertRaises(ValueError, expand_des_key, -1)
-        self.assertRaises(ValueError, expand_des_key, b("\x00")*6)
+        self.assertRaises(ValueError, expand_des_key, b"\x00"*6)
 
     def test_02_shrink(self):
         """test shrink_des_key()"""
@@ -211,11 +218,11 @@ class DesTest(TestCase):
 
         # too large
         self.assertRaises(ValueError, shrink_des_key, INT_64_MASK+1)
-        self.assertRaises(ValueError, shrink_des_key, b("\x00")*9)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00"*9)
 
         # too small
         self.assertRaises(ValueError, shrink_des_key, -1)
-        self.assertRaises(ValueError, shrink_des_key, b("\x00")*7)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00"*7)
 
     def _random_parity(self, key):
         """randomize parity bits"""
@@ -254,13 +261,13 @@ class DesTest(TestCase):
                                                   (key, key3, plaintext))
 
         # check invalid keys
-        stub = b('\x00') * 8
+        stub = b'\x00' * 8
         self.assertRaises(TypeError, des_encrypt_block, 0, stub)
-        self.assertRaises(ValueError, des_encrypt_block, b('\x00')*6, stub)
+        self.assertRaises(ValueError, des_encrypt_block, b'\x00'*6, stub)
 
         # check invalid input
         self.assertRaises(TypeError, des_encrypt_block, stub, 0)
-        self.assertRaises(ValueError, des_encrypt_block, stub, b('\x00')*7)
+        self.assertRaises(ValueError, des_encrypt_block, stub, b'\x00'*7)
 
         # check invalid salts
         self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=-1)
@@ -288,11 +295,11 @@ class DesTest(TestCase):
                                                   (key, key3, plaintext))
 
         # check invalid keys
-        self.assertRaises(TypeError, des_encrypt_int_block, b('\x00'), 0)
+        self.assertRaises(TypeError, des_encrypt_int_block, b'\x00', 0)
         self.assertRaises(ValueError, des_encrypt_int_block, -1, 0)
 
         # check invalid input
-        self.assertRaises(TypeError, des_encrypt_int_block, 0, b('\x00'))
+        self.assertRaises(TypeError, des_encrypt_int_block, 0, b'\x00')
         self.assertRaises(ValueError, des_encrypt_int_block, 0, -1)
 
         # check invalid salts
@@ -321,19 +328,19 @@ class _MD4_Test(TestCase):
     vectors = [
         # input -> hex digest
         # test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
-        (b(""), "31d6cfe0d16ae931b73c59d7e0c089c0"),
-        (b("a"), "bde52cb31de33e46245e05fbdbd6fb24"),
-        (b("abc"), "a448017aaf21d8525fc10ae87aa6729d"),
-        (b("message digest"), "d9130a8164549fe818874806e1c7014b"),
-        (b("abcdefghijklmnopqrstuvwxyz"), "d79e1c308aa5bbcdeea8ed63df412da9"),
-        (b("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"), "043f8582f241db351ce627e153e7f0e4"),
-        (b("12345678901234567890123456789012345678901234567890123456789012345678901234567890"), "e33b4ddc9c38f2199c3e7b164fcc0536"),
+        (b"", "31d6cfe0d16ae931b73c59d7e0c089c0"),
+        (b"a", "bde52cb31de33e46245e05fbdbd6fb24"),
+        (b"abc", "a448017aaf21d8525fc10ae87aa6729d"),
+        (b"message digest", "d9130a8164549fe818874806e1c7014b"),
+        (b"abcdefghijklmnopqrstuvwxyz", "d79e1c308aa5bbcdeea8ed63df412da9"),
+        (b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "043f8582f241db351ce627e153e7f0e4"),
+        (b"12345678901234567890123456789012345678901234567890123456789012345678901234567890", "e33b4ddc9c38f2199c3e7b164fcc0536"),
     ]
 
     def test_md4_update(self):
         """test md4 update"""
         from passlib.utils.md4 import md4
-        h = md4(b(''))
+        h = md4(b'')
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 
         # NOTE: under py2, hashlib methods try to encode to ascii,
@@ -341,10 +348,10 @@ class _MD4_Test(TestCase):
         if PY3 or self._disable_native:
             self.assertRaises(TypeError, h.update, u('x'))
 
-        h.update(b('a'))
+        h.update(b'a')
         self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")
 
-        h.update(b('bcdefghijklmnopqrstuvwxyz'))
+        h.update(b'bcdefghijklmnopqrstuvwxyz')
         self.assertEqual(h.hexdigest(), "d79e1c308aa5bbcdeea8ed63df412da9")
 
     def test_md4_hexdigest(self):
@@ -364,13 +371,13 @@ class _MD4_Test(TestCase):
     def test_md4_copy(self):
         """test md4 copy()"""
         from passlib.utils.md4 import md4
-        h = md4(b('abc'))
+        h = md4(b'abc')
 
         h2 = h.copy()
-        h2.update(b('def'))
+        h2.update(b'def')
         self.assertEqual(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
 
-        h.update(b('ghi'))
+        h.update(b'ghi')
         self.assertEqual(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
 
 # create subclasses to test with and without native backend
@@ -397,21 +404,21 @@ class Pbkdf1_Test(TestCase):
         #
         # from http://www.di-mgt.com.au/cryptoKDFs.html
         #
-        (b('password'), hb('78578E5A5D63CB06'), 1000, 16, 'sha1', hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
+        (b'password', hb('78578E5A5D63CB06'), 1000, 16, 'sha1', hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
 
         #
         # custom
         #
-        (b('password'), b('salt'), 1000, 0, 'md5',    b('')),
-        (b('password'), b('salt'), 1000, 1, 'md5',    hb('84')),
-        (b('password'), b('salt'), 1000, 8, 'md5',    hb('8475c6a8531a5d27')),
-        (b('password'), b('salt'), 1000, 16, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
-        (b('password'), b('salt'), 1000, None, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
-        (b('password'), b('salt'), 1000, None, 'sha1', hb('4a8fd48e426ed081b535be5769892fa396293efb')),
+        (b'password', b'salt', 1000, 0, 'md5',    b''),
+        (b'password', b'salt', 1000, 1, 'md5',    hb('84')),
+        (b'password', b'salt', 1000, 8, 'md5',    hb('8475c6a8531a5d27')),
+        (b'password', b'salt', 1000, 16, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
+        (b'password', b'salt', 1000, None, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
+        (b'password', b'salt', 1000, None, 'sha1', hb('4a8fd48e426ed081b535be5769892fa396293efb')),
     ]
-    if not (PYPY or JYTHON):
+    if not JYTHON:
         pbkdf1_tests.append(
-            (b('password'), b('salt'), 1000, None, 'md4', hb('f7f2e91100a8f96190f2dd177cb26453'))
+            (b'password', b'salt', 1000, None, 'md4', hb('f7f2e91100a8f96190f2dd177cb26453'))
         )
 
     def test_known(self):
@@ -424,7 +431,7 @@ class Pbkdf1_Test(TestCase):
     def test_border(self):
         """test border cases"""
         from passlib.utils.pbkdf2 import pbkdf1
-        def helper(secret=b('secret'), salt=b('salt'), rounds=1, keylen=1, hash='md5'):
+        def helper(secret=b'secret', salt=b'salt', rounds=1, keylen=1, hash='md5'):
             return pbkdf1(secret, salt, rounds, keylen, hash)
         helper()
 
@@ -467,43 +474,43 @@ class _Pbkdf2_Test(TestCase):
             # test case 1 / 128 bit
             (
                 hb("cdedb5281bb2f801565a1122b2563515"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 1, 16
+                b"password", b"ATHENA.MIT.EDUraeburn", 1, 16
             ),
 
             # test case 2 / 128 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935d"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 16
+                b"password", b"ATHENA.MIT.EDUraeburn", 2, 16
             ),
 
             # test case 2 / 256 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935da05378b93244ec8f48a99e61ad799d86"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 32
+                b"password", b"ATHENA.MIT.EDUraeburn", 2, 32
             ),
 
             # test case 3 / 256 bit
             (
                 hb("5c08eb61fdf71e4e4ec3cf6ba1f5512ba7e52ddbc5e5142f708a31e2e62b1e13"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 1200, 32
+                b"password", b"ATHENA.MIT.EDUraeburn", 1200, 32
             ),
 
             # test case 4 / 256 bit
             (
                 hb("d1daa78615f287e6a1c8b120d7062a493f98d203e6be49a6adf4fa574b6e64ee"),
-                b("password"), b('\x12\x34\x56\x78\x78\x56\x34\x12'), 5, 32
+                b"password", b'\x12\x34\x56\x78\x78\x56\x34\x12', 5, 32
             ),
 
             # test case 5 / 256 bit
             (
                 hb("139c30c0966bc32ba55fdbf212530ac9c5ec59f1a452f5cc9ad940fea0598ed1"),
-                b("X"*64), b("pass phrase equals block size"), 1200, 32
+                b"X"*64, b"pass phrase equals block size", 1200, 32
             ),
 
             # test case 6 / 256 bit
             (
                 hb("9ccad6d468770cd51b10e6a68721be611a8b4d282601db3b36be9246915ec82a"),
-                b("X"*65), b("pass phrase exceeds block size"), 1200, 32
+                b"X"*65, b"pass phrase exceeds block size", 1200, 32
             ),
 
         #
@@ -511,17 +518,17 @@ class _Pbkdf2_Test(TestCase):
         #
             (
                 hb("0c60c80f961f0e71f3a9b524af6012062fe037a6"),
-                b("password"), b("salt"), 1, 20,
+                b"password", b"salt", 1, 20,
             ),
 
             (
                 hb("ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957"),
-                b("password"), b("salt"), 2, 20,
+                b"password", b"salt", 2, 20,
             ),
 
             (
                 hb("4b007901b765489abead49d926f721d065a429c1"),
-                b("password"), b("salt"), 4096, 20,
+                b"password", b"salt", 4096, 20,
             ),
 
             # just runs too long - could enable if ALL option is set
@@ -533,14 +540,14 @@ class _Pbkdf2_Test(TestCase):
 
             (
                 hb("3d2eec4fe41c849b80c8d83662c0e44a8b291a964cf2f07038"),
-                b("passwordPASSWORDpassword"),
-                b("saltSALTsaltSALTsaltSALTsaltSALTsalt"),
+                b"passwordPASSWORDpassword",
+                b"saltSALTsaltSALTsaltSALTsaltSALTsalt",
                 4096, 25,
             ),
 
             (
                 hb("56fa6aa75548099dcc37d7f03425e0c3"),
-                b("pass\00word"), b("sa\00lt"), 4096, 16,
+                b"pass\00word", b"sa\00lt", 4096, 16,
             ),
 
         #
@@ -550,7 +557,7 @@ class _Pbkdf2_Test(TestCase):
                hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED"
                   "97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC"
                   "6C29E293F0A0"),
-               b("hello"),
+               b"hello",
                hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71"
                   "784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073"
                   "994D79080136"),
@@ -562,11 +569,11 @@ class _Pbkdf2_Test(TestCase):
         #
             (
                 hb('e248fb6b13365146f8ac6307cc222812'),
-                b("secret"), b("salt"), 10, 16, "hmac-sha1",
+                b"secret", b"salt", 10, 16, "hmac-sha1",
             ),
             (
                 hb('e248fb6b13365146f8ac6307cc2228127872da6d'),
-                b("secret"), b("salt"), 10, None, "hmac-sha1",
+                b"secret", b"salt", 10, None, "hmac-sha1",
             ),
 
         ]
@@ -583,7 +590,7 @@ class _Pbkdf2_Test(TestCase):
     def test_border(self):
         """test border cases"""
         from passlib.utils.pbkdf2 import pbkdf2
-        def helper(secret=b('password'), salt=b('salt'), rounds=1, keylen=None, prf="hmac-sha1"):
+        def helper(secret=b'password', salt=b'salt', rounds=1, keylen=None, prf="hmac-sha1"):
             return pbkdf2(secret, salt, rounds, keylen, prf)
         helper()
 
@@ -609,7 +616,7 @@ class _Pbkdf2_Test(TestCase):
     def test_default_keylen(self):
         """test keylen==None"""
         from passlib.utils.pbkdf2 import pbkdf2
-        def helper(secret=b('password'), salt=b('salt'), rounds=1, keylen=None, prf="hmac-sha1"):
+        def helper(secret=b'password', salt=b'salt', rounds=1, keylen=None, prf="hmac-sha1"):
             return pbkdf2(secret, salt, rounds, keylen, prf)
         self.assertEqual(len(helper(prf='hmac-sha1')), 20)
         self.assertEqual(len(helper(prf='hmac-sha256')), 32)
@@ -618,8 +625,8 @@ class _Pbkdf2_Test(TestCase):
         """test custom prf function"""
         from passlib.utils.pbkdf2 import pbkdf2
         def prf(key, msg):
-            return hashlib.md5(key+msg+b('fooey')).digest()
-        result = pbkdf2(b('secret'), b('salt'), 1000, 20, prf)
+            return hashlib.md5(key+msg+b'fooey').digest()
+        result = pbkdf2(b'secret', b'salt', 1000, 20, prf)
         self.assertEqual(result, hb('5fe7ce9f7e379d3f65cbc66ba8aa6440474a6849'))
 
 #------------------------------------------------------------------------
