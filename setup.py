@@ -15,12 +15,7 @@ import time
 
 py3k = (sys.version_info[0] >= 3)
 
-try:
-    from setuptools import setup
-    has_distribute = True
-except ImportError:
-    from distutils.core import setup
-    has_distribute = False
+from setuptools import setup
 
 #=============================================================================
 # init setup options
@@ -146,7 +141,7 @@ setup(
                 "passlib.utils._blowfish",
             "passlib._setup",
         ],
-    package_data = { "passlib.tests": ["*.cfg"] },
+    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
     zip_safe=True,
 
     # metadata
