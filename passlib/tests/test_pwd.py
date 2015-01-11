@@ -55,8 +55,10 @@ class GenerateTest(TestCase):
         from passlib.pwd import PhraseGenerator
 
         # test wordset can be any iterable
+        # NOTE: there are 3**3=27 possible combinations,
+        #       but internal code rejects 'aaa' 'bbb' 'ccc', leaving only 24
         results = PhraseGenerator(size=3, wordset=set("abc"))(5000)
-        self.assertEqual(len(set(results)), 27)
+        self.assertEqual(len(set(results)), 24)
 
 #=============================================================================
 # strength
