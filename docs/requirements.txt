@@ -1,1 +1,1 @@
-cloud_sptheme>=1.4
+hg+https://bitbucket.org/ecollins/cloud_sptheme
