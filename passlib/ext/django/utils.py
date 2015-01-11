@@ -13,6 +13,9 @@ try:
 except ImportError:
     log.debug("django installation not found")
     DJANGO_VERSION = ()
+else:
+    if DJANGO_VERSION < (1,4):
+        raise RuntimeError("passlib.ext.django requires django >= 1.4 (as of passlib 1.7)")
 # pkg
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
@@ -55,9 +58,7 @@ def get_preset_config(name):
         if not DJANGO_VERSION:
             raise ValueError("can't resolve django-default preset, "
                              "django not installed")
-        if DJANGO_VERSION < (1,4):
-            name = "django-1.0"
-        elif DJANGO_VERSION < (1,6):
+        if DJANGO_VERSION < (1,6):
             name = "django-1.4"
         else:
             name = "django-1.6"
@@ -225,12 +226,7 @@ def get_passlib_hasher(handler, algorithm=None):
     Note that the format of the handler won't be altered,
     so will probably not be compatible with Django's algorithm format,
     so the monkeypatch provided by this plugin must have been applied.
-
-    .. note::
-        This function requires Django 1.4 or later.
     """
-    if DJANGO_VERSION < (1,4):
-        raise RuntimeError("get_passlib_hasher() requires Django >= 1.4")
     if isinstance(handler, str):
         handler = get_crypt_handler(handler)
     if hasattr(handler, "django_name"):

@@ -8,10 +8,9 @@
 
 .. versionadded:: 1.6
 
-.. note::
+.. versionchanged:: 1.7
 
-    Passlib 1.7's :mod:`passlib.ext.django` extension will drop
-    support for Django 1.3 and earlier, and require Django 1.4 or newer.
+    As of Passlib 1.7, this module requires Django 1.4 or newer.
 
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
 overrides all of Django's password hashing functions, replacing them
@@ -41,7 +40,7 @@ of uses:
     This plugin should be considered "release candidate" quality.
     It works, and has good unittest coverage, but has seen only
     limited real-world use. Please report any issues.
-    It has been tested with Django 0.9.6 - 1.4.
+    It has been tested with Django 1.5 - 1.7.
 
 Installation
 =============

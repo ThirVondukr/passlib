@@ -30,9 +30,6 @@ if PY3 and DJANGO_VERSION < (1,5):
 
 # convert django version to some cheap flags
 has_django = bool(DJANGO_VERSION)
-has_django0 = has_django and DJANGO_VERSION < (1,0)
-has_django1 = DJANGO_VERSION >= (1,0)
-has_django14 = DJANGO_VERSION >= (1,4)
 
 # import and configure empty django settings
 if has_django:
@@ -44,11 +41,7 @@ if has_django:
         raise RuntimeError("expected django.conf.settings to be LazySettings: %r" % (settings,))
 
     # else configure a blank settings instance for the unittests
-    if has_django0:
-        if settings._target is None:
-            from django.conf import UserSettingsHolder, global_settings
-            settings._target = UserSettingsHolder(global_settings)
-    elif not settings.configured:
+    if not settings.configured:
         settings.configure()
 
 #=============================================================================
@@ -63,10 +56,7 @@ def update_settings(**kwds):
     for k,v in iteritems(kwds):
         if v is UNSET:
             if hasattr(settings, k):
-                if has_django0:
-                    delattr(settings._target, k)
-                else:
-                    delattr(settings, k)
+                delattr(settings, k)
         else:
             setattr(settings, k, v)
 
@@ -117,21 +107,13 @@ if DJANGO_VERSION >= (1,6):
     sample_hashes.update(
         django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
     )
-elif DJANGO_VERSION >= (1,4):
+else:
     stock_config = django14_context.to_dict()
     stock_config.update(
         deprecated="auto",
         django_pbkdf2_sha1__default_rounds=10000,
         django_pbkdf2_sha256__default_rounds=10000,
     )
-elif DJANGO_VERSION >= (1,0):
-    stock_config = django10_context.to_dict()
-else:
-    # 0.9.6 config
-    stock_config = dict(
-        schemes=["django_salted_sha1", "django_salted_md5", "hex_md5"],
-        deprecated=["hex_md5"]
-        )
 
 #=============================================================================
 # test utils
@@ -153,17 +135,13 @@ class _ExtensionSupport(object):
         """
         # XXX: this and assert_unpatched() could probably be refactored to use
         #      the PatchManager class to do the heavy lifting.
-        from django.contrib.auth import models
+        from django.contrib.auth import models, hashers
         user_attrs = ["check_password", "set_password"]
-        model_attrs = ["check_password"]
-        objs = [(models, model_attrs), (models.User, user_attrs)]
-        if has_django14:
-            from django.contrib.auth import hashers
-            model_attrs.append("make_password")
-            objs.append((hashers, ["check_password", "make_password",
-                                   "get_hasher", "identify_hasher"]))
-        if has_django0:
-            user_attrs.extend(["has_usable_password", "set_unusable_password"])
+        model_attrs = ["check_password", "make_password"]
+        objs = [(models, model_attrs),
+                (models.User, user_attrs),
+                (hashers, ["check_password", "make_password", "get_hasher", "identify_hasher"]),
+        ]
         for obj, patched in objs:
             for attr in dir(obj):
                 if attr.startswith("_"):
@@ -293,8 +271,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertTrue(user.password.startswith("!"))
         else:
             self.assertEqual(user.password, "!")
-        if has_django1 or self.patched:
-            self.assertFalse(user.has_usable_password())
+        self.assertFalse(user.has_usable_password())
         self.assertEqual(user.pop_saved_passwords(), [])
 
     def assert_valid_password(self, user, hash=UNSET, saved=None):
@@ -309,8 +286,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertNotEqual(user.password, None)
         else:
             self.assertEqual(user.password, hash)
-        if has_django1 or self.patched:
-            self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.has_usable_password())
         self.assertEqual(user.pop_saved_passwords(),
                          [] if saved is None else [saved])
 
@@ -343,21 +319,16 @@ class DjangoBehaviorTest(_ExtensionTest):
         PASS1 = "toomanysecrets"
         WRONG1 = "letmein"
 
-        has_hashers = False
         has_identify_hasher = False
-        if has_django14:
-            from passlib.ext.django.utils import hasher_to_passlib_name, passlib_to_hasher_name
-            from django.contrib.auth.hashers import check_password, make_password, is_password_usable
-            if patched or DJANGO_VERSION > (1,5):
-                # identify_hasher()
-                #   django 1.4 -- not present
-                #   django 1.5 -- present (added in django ticket 18184)
-                #   passlib integration -- present even under 1.4
-                from django.contrib.auth.hashers import identify_hasher
-                has_identify_hasher = True
-            hash_hashers = True
-        else:
-            from django.contrib.auth.models import check_password
+        from passlib.ext.django.utils import hasher_to_passlib_name, passlib_to_hasher_name
+        from django.contrib.auth.hashers import check_password, make_password, is_password_usable
+        if patched or DJANGO_VERSION >= (1,5):
+            # identify_hasher()
+            #   django 1.4 -- not present
+            #   django 1.5 -- present (added in django ticket 18184)
+            #   passlib integration -- present even under 1.4
+            from django.contrib.auth.hashers import identify_hasher
+            has_identify_hasher = True
 
         #=======================================================
         # make sure extension is configured correctly
@@ -369,9 +340,8 @@ class DjangoBehaviorTest(_ExtensionTest):
                              ctx.to_dict(resolve=True))
 
             # should have patched both places
-            if has_django14:
-                from django.contrib.auth.models import check_password as check_password2
-                self.assertIs(check_password2, check_password)
+            from django.contrib.auth.models import check_password as check_password2
+            self.assertIs(check_password2, check_password)
 
         #=======================================================
         # default algorithm
@@ -385,16 +355,15 @@ class DjangoBehaviorTest(_ExtensionTest):
         # User.check_password() - n/a
 
         # make_password() should use default alg
-        if has_django14:
-            hash = make_password(PASS1)
-            self.assertTrue(ctx.handler().verify(PASS1, hash))
+        hash = make_password(PASS1)
+        self.assertTrue(ctx.handler().verify(PASS1, hash))
 
         # check_password() - n/a
 
         #=======================================================
         # empty password behavior
         #=======================================================
-        if (1,4) <= DJANGO_VERSION < (1,6):
+        if DJANGO_VERSION < (1,6):
             # NOTE: django 1.4-1.5 treat empty password as invalid
 
             # User.set_password() should set unusable flag
@@ -434,53 +403,38 @@ class DjangoBehaviorTest(_ExtensionTest):
         #=======================================================
         # 'unusable flag' behavior
         #=======================================================
-        if has_django1 or patched:
 
-            # sanity check via user.set_unusable_password()
-            user = FakeUser()
-            user.set_unusable_password()
-            self.assert_unusable_password(user)
+        # sanity check via user.set_unusable_password()
+        user = FakeUser()
+        user.set_unusable_password()
+        self.assert_unusable_password(user)
 
-            # ensure User.set_password() sets unusable flag
-            user = FakeUser()
-            user.set_password(None)
-            if DJANGO_VERSION < (1,2):
-                # would set password to hash of "None"
-                self.assert_valid_password(user)
-            else:
-                self.assert_unusable_password(user)
+        # ensure User.set_password() sets unusable flag
+        user = FakeUser()
+        user.set_password(None)
+        self.assert_unusable_password(user)
 
-            # User.check_password() should always fail
-            if DJANGO_VERSION < (1,2):
-                self.assertTrue(user.check_password(None))
-                self.assertTrue(user.check_password('None'))
-                self.assertFalse(user.check_password(''))
-                self.assertFalse(user.check_password(PASS1))
-                self.assertFalse(user.check_password(WRONG1))
-            else:
-                self.assertFalse(user.check_password(None))
-                self.assertFalse(user.check_password('None'))
-                self.assertFalse(user.check_password(''))
-                self.assertFalse(user.check_password(PASS1))
-                self.assertFalse(user.check_password(WRONG1))
-                self.assert_unusable_password(user)
+        # User.check_password() should always fail
+        self.assertFalse(user.check_password(None))
+        self.assertFalse(user.check_password('None'))
+        self.assertFalse(user.check_password(''))
+        self.assertFalse(user.check_password(PASS1))
+        self.assertFalse(user.check_password(WRONG1))
+        self.assert_unusable_password(user)
 
-            # make_password() should also set flag
-            if has_django14:
-                if DJANGO_VERSION >= (1,6):
-                    self.assertTrue(make_password(None).startswith("!"))
-                else:
-                    self.assertEqual(make_password(None), "!")
+        # make_password() should also set flag
+        if DJANGO_VERSION >= (1,6):
+            self.assertTrue(make_password(None).startswith("!"))
+        else:
+            self.assertEqual(make_password(None), "!")
 
-            # check_password() should return False (didn't handle disabled under 1.3)
-            if has_django14 or patched:
-                self.assertFalse(check_password(PASS1, '!'))
+        # check_password() should return False (didn't handle disabled under 1.3)
+        self.assertFalse(check_password(PASS1, '!'))
 
-            # identify_hasher() and is_password_usable() should reject it
-            if has_django14:
-                self.assertFalse(is_password_usable(user.password))
-            if has_identify_hasher:
-                self.assertRaises(ValueError, identify_hasher, user.password)
+        # identify_hasher() and is_password_usable() should reject it
+        self.assertFalse(is_password_usable(user.password))
+        if has_identify_hasher:
+            self.assertRaises(ValueError, identify_hasher, user.password)
 
         #=======================================================
         # hash=None
@@ -490,23 +444,13 @@ class DjangoBehaviorTest(_ExtensionTest):
         # User.check_password() - returns False
         user = FakeUser()
         user.password = None
-        if has_django14 or patched:
-            self.assertFalse(user.check_password(PASS1))
-        else:
-            self.assertRaises(TypeError, user.check_password, PASS1)
-        if has_django1 or patched:
-            if DJANGO_VERSION < (1,2):
-                self.assertTrue(user.has_usable_password())
-            else:
-                self.assertFalse(user.has_usable_password())
+        self.assertFalse(user.check_password(PASS1))
+        self.assertFalse(user.has_usable_password())
 
         # make_password() - n/a
 
         # check_password() - error
-        if has_django14 or patched:
-            self.assertFalse(check_password(PASS1, None))
-        else:
-            self.assertRaises(AttributeError, check_password, PASS1, None)
+        self.assertFalse(check_password(PASS1, None))
 
         # identify_hasher() - error
         if has_identify_hasher:
@@ -525,17 +469,16 @@ class DjangoBehaviorTest(_ExtensionTest):
             # User.check_password()
             #   empty
             #   -----
-            #   django 1.3 and earlier -- blank hash returns False
             #   django 1.4 -- blank threw error (fixed in 1.5)
             #   django 1.5 -- blank hash returns False
             #
             #   invalid
             #   -------
-            #   django 1.4 and earlier -- invalid hash threw error (fixed in 1.5)
+            #   django 1.4 -- invalid hash threw error (fixed in 1.5)
             #   django 1.5 -- invalid hash returns False
             user = FakeUser()
             user.password = hash
-            if DJANGO_VERSION >= (1,5) or (not hash and DJANGO_VERSION < (1,4)):
+            if DJANGO_VERSION >= (1,5):
                 # returns False for hash
                 self.assertFalse(user.check_password(PASS1))
             else:
@@ -547,19 +490,17 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertEqual(user.pop_saved_passwords(), [])
 
             # User.has_usable_password()
-            #   passlib shim for django 0.x -- invalid/empty usable, to match 1.0-1.4
-            #   django 1.0-1.4 -- invalid/empty usable (fixed in 1.5)
+            #   django 1.4 -- invalid/empty usable (fixed in 1.5)
             #   django 1.5 -- invalid/empty no longer usable
-            if has_django1 or self.patched:
-                if DJANGO_VERSION < (1,5):
-                    self.assertTrue(user.has_usable_password())
-                else:
-                    self.assertFalse(user.has_usable_password())
+            if DJANGO_VERSION < (1,5):
+                self.assertTrue(user.has_usable_password())
+            else:
+                self.assertFalse(user.has_usable_password())
 
             # make_password() - n/a
 
             # check_password()
-            #   django 1.4 and earlier -- invalid/empty hash threw error (fixed in 1.5)
+            #   django 1.4 -- invalid/empty hash threw error (fixed in 1.5)
             #   django 1.5 -- invalid/empty hash now returns False
             if DJANGO_VERSION < (1,5):
                 self.assertRaises(ValueError, check_password, PASS1, hash)
@@ -612,17 +553,12 @@ class DjangoBehaviorTest(_ExtensionTest):
             user.password = hash
 
             # check against invalid password
-            if has_django1 or patched:
-                self.assertFalse(user.check_password(None))
-            else:
-                self.assertRaises(TypeError, user.check_password, None)
+            self.assertFalse(user.check_password(None))
             ##self.assertFalse(user.check_password(''))
             self.assertFalse(user.check_password(other))
             self.assert_valid_password(user, hash)
 
             # check against valid password
-            if has_django0 and isinstance(secret, unicode):
-                secret = secret.encode("utf-8")
             self.assertTrue(user.check_password(secret))
 
             # check if it upgraded the hash
@@ -643,30 +579,23 @@ class DjangoBehaviorTest(_ExtensionTest):
             #-------------------------------------------------------
             # make_password() correctly selects algorithm
             #-------------------------------------------------------
-            if has_django14:
-                hash2 = make_password(secret, hasher=passlib_to_hasher_name(scheme))
-                self.assertTrue(handler.verify(secret, hash2))
+            hash2 = make_password(secret, hasher=passlib_to_hasher_name(scheme))
+            self.assertTrue(handler.verify(secret, hash2))
 
             #-------------------------------------------------------
             # check_password()+setter against known hash
             #-------------------------------------------------------
-            if has_django14 or patched:
-                # should call setter only if it needs_update
-                self.assertTrue(check_password(secret, hash, setter=setter))
-                self.assertEqual(setter.popstate(), [secret] if needs_update else [])
+            # should call setter only if it needs_update
+            self.assertTrue(check_password(secret, hash, setter=setter))
+            self.assertEqual(setter.popstate(), [secret] if needs_update else [])
 
-                # should not call setter
-                self.assertFalse(check_password(other, hash, setter=setter))
-                self.assertEqual(setter.popstate(), [])
+            # should not call setter
+            self.assertFalse(check_password(other, hash, setter=setter))
+            self.assertEqual(setter.popstate(), [])
 
-                ### check preferred kwd is ignored (django 1.4 feature we don't support)
-                ##self.assertTrue(check_password(secret, hash, setter=setter, preferred='fooey'))
-                ##self.assertEqual(setter.popstate(), [secret])
-
-            elif patched or scheme != "hex_md5":
-                # django 1.3 never called check_password() for hex_md5
-                self.assertTrue(check_password(secret, hash))
-                self.assertFalse(check_password(other, hash))
+            ### check preferred kwd is ignored (django 1.4 feature we don't support)
+            ##self.assertTrue(check_password(secret, hash, setter=setter, preferred='fooey'))
+            ##self.assertEqual(setter.popstate(), [secret])
 
             # TODO: get_hasher()
 
@@ -756,8 +685,6 @@ class DjangoExtensionTest(_ExtensionTest):
 
     def test_02_handler_wrapper(self):
         """test Hasher-compatible handler wrappers"""
-        if not has_django14:
-            raise self.skipTest("Django >= 1.4 not installed")
         from passlib.ext.django.utils import get_passlib_hasher
         from django.contrib.auth import hashers
 
@@ -810,10 +737,8 @@ class DjangoExtensionTest(_ExtensionTest):
         self.load_extension(PASSLIB_CONTEXT="django-default", check=False)
         if DJANGO_VERSION >= (1,6):
             ctx = django16_context
-        elif DJANGO_VERSION >= (1,4):
-            ctx = django14_context
         else:
-            ctx = django10_context
+            ctx = django14_context
         self.assert_patched(ctx)
 
         self.load_extension(PASSLIB_CONFIG="django-1.0", check=False)
@@ -919,7 +844,7 @@ class ContextWithHook(CryptContext):
 
 # hack up the some of the real django tests to run w/ extension loaded,
 # to ensure we mimic their behavior.
-if has_django14:
+if has_django:
     from passlib.tests.utils import patchAttr
     if DJANGO_VERSION >= (1,6):
         from django.contrib.auth.tests import test_hashers as _thmod
@@ -944,7 +869,7 @@ if has_django14:
                 patchAttr(self, _thmod, attr, getattr(hashers, attr))
 
             # django 1.5 tests expect empty django_des_crypt salt field
-            if DJANGO_VERSION > (1,4):
+            if DJANGO_VERSION >= (1,5):
                 from passlib.hash import django_des_crypt
                 patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
 

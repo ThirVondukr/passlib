@@ -195,10 +195,9 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
         # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
         # for now, we avoid salt_size==0 under 1.4
         handler = self.handler
-        from passlib.tests.test_ext_django import has_django14
         default = handler.default_salt_size
         assert handler.min_salt_size == 0
-        lower = 1 if has_django14 else 0
+        lower = 1
         upper = handler.max_salt_size or default*4
         return randintgauss(lower, upper, default, default*.5)
 
