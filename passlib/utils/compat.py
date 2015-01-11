@@ -68,6 +68,9 @@ __all__ = [
     'iteritems', 'itervalues',
     'next',
 
+    # collections
+    'OrderedDict',
+
     # introspection
     'exc_err', 'get_method_function', 'add_doc',
 ]
@@ -324,6 +327,14 @@ else:
                 arg = str(arg)
             write(arg)
         write(end)
+
+#=============================================================================
+# collections
+#=============================================================================
+if sys.version_info < (2,7):
+    _lazy_attrs['OrderedDict'] = 'passlib.utils._ordered_dict.OrderedDict'
+else:
+    _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 
 #=============================================================================
 # lazy overlay module

@@ -21,7 +21,7 @@ from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler, list_crypt_handlers
 from passlib.utils import classproperty
-from passlib.utils.compat import get_method_function, iteritems
+from passlib.utils.compat import get_method_function, iteritems, OrderedDict
 # local
 __all__ = [
     "get_preset_config",
@@ -189,7 +189,6 @@ class _HasherWrapper(object):
     def safe_summary(self, encoded):
         from django.contrib.auth.hashers import mask_hash
         from django.utils.translation import ugettext_noop as _
-        from django.utils.datastructures import SortedDict
         handler = self.passlib_handler
         items = [
             # since this is user-facing, we're reporting passlib's name,
@@ -201,7 +200,7 @@ class _HasherWrapper(object):
             for key, value in iteritems(kwds):
                 key = self._translate_kwds.get(key, key)
                 items.append((_(key), value))
-        return SortedDict(items)
+        return OrderedDict(items)
 
     # added in django 1.6
     def must_update(self, encoded):
