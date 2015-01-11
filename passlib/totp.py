@@ -238,7 +238,7 @@ def decrypt_key(enckey, password):
 #: default offset preferred by suggest_offset()
 #: attempts to account for time taken for user to enter token + transmission delay.
 #: value is avg of 'history1' sample in the unittests.
-DEFAULT_OFFSET = -8
+DEFAULT_OFFSET = 0
 
 def suggest_offset(history, period=30, target=None, default=None):
     """

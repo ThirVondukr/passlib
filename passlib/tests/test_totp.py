@@ -971,7 +971,7 @@ class TotpTest(_BaseOTPTest):
         """verify() -- 'time' and 'window' parameters"""
 
         # init generator
-        time = randtime()
+        time = orig_time = randtime()
         otp = self.randotp()
         period = otp.period
         if for_verify_next:
@@ -985,7 +985,9 @@ class TotpTest(_BaseOTPTest):
             """helper to test verify() output"""
             # NOTE: TotpMatch return type tested more throughly above ^^^
             result = verify(token, time, **kwds)
-            self.assertEqual(result.valid, correct_valid)
+            msg = "key=%r alg=%r period=%r token=%r orig_time=%r time=%r:" % \
+                  (otp.base32_key, otp.alg, otp.period, token, orig_time, time)
+            self.assertEqual(result.valid, correct_valid, msg=msg)
             if correct_valid:
                 self.assertEqual(result.counter_offset, correct_counter_offset)
             else:
