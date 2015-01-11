@@ -2043,15 +2043,28 @@ class OsCryptMixin(HandlerCase):
     #===================================================================
     # custom tests
     #===================================================================
+
+    # TODO: turn into decorator, and use mock library.
     def _use_mock_crypt(self):
-        """patch safe_crypt() so it returns mock value"""
+        """
+        patch passlib.utils.safe_crypt() so it returns mock value for duration of test.
+        returns a function with signature ``setter(value)`` for controlling what value
+        mocked-up safe_crypt() will return.
+        """
         import passlib.utils as mod
         if not self.using_patched_crypt:
             self.addCleanup(setattr, mod, "_crypt", mod._crypt)
-        crypt_value = [None]
-        mod._crypt = lambda secret, config: crypt_value[0]
+        def mock_crypt(secret, config):
+            # let this value through so has_backend() will still work
+            if secret == "test":
+                return mock_crypt.__wrapped__(secret, config)
+            else:
+                return mock_crypt.value
+        mock_crypt.__wrapped__ = mod._crypt
+        mock_crypt.value = None
+        mod._crypt = mock_crypt
         def setter(value):
-            crypt_value[0] = value
+            mock_crypt.value = value
         return setter
 
     def test_80_faulty_crypt(self):
@@ -2078,7 +2091,7 @@ class OsCryptMixin(HandlerCase):
         setter = self._use_mock_crypt()
         setter(None)
         if self.find_crypt_replacement():
-            # handler should have a fallback to use
+            # handler should have a fallback to use when os_crypt backend refuses to handle secret.
             h1 = self.do_encrypt("stub")
             h2 = self.do_genhash("stub", h1)
             self.assertEqual(h2, h1)

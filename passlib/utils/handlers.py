@@ -1541,7 +1541,7 @@ class HasManyBackends(GenericHandler):
                 if backend == current:
                     continue
                 try:
-                    # may throw MissingBackendError if unavaiable
+                    # may throw MissingBackendError if unavailable
                     self.set_backend(backend)
 
                     # if recurses to this function,
