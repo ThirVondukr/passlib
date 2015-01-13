@@ -6,7 +6,7 @@
 
 .. currentmodule:: passlib.hash
 
-PassLib provides three custom hash schemes based on the PBKDF2 [#pbkdf2]_ algorithm
+Passlib provides three custom hash schemes based on the PBKDF2 [#pbkdf2]_ algorithm
 which are compatible with the :ref:`ldap hash format <ldap-hashes>`:
 :class:`!ldap_pbkdf2_sha1`, :class:`!ldap_pbkdf2_sha256`, :class:`!ldap_pbkdf2_sha512`.
 They feature variable length salts, variable rounds.
@@ -20,17 +20,17 @@ Interface
 .. class:: ldap_pbkdf2_sha1()
 
     this is the same as :class:`pbkdf2_sha1`, except that it
-    uses ``{PBKDF2}`` as it's identifying prefix instead of ``$pdkdf2$``.
+    uses ``{PBKDF2}`` as its identifying prefix instead of ``$pdkdf2$``.
 
 .. class:: ldap_pbkdf2_sha256()
 
     this is the same as :class:`pbkdf2_sha256`, except that it
-    uses ``{PBKDF2-SHA256}`` as it's identifying prefix instead of ``$pdkdf2-sha256$``.
+    uses ``{PBKDF2-SHA256}`` as its identifying prefix instead of ``$pdkdf2-sha256$``.
 
 .. class:: ldap_pbkdf2_sha512()
 
     this is the same as :class:`pbkdf2_sha512`, except that it
-    uses ``{PBKDF2-SHA512}`` as it's identifying prefix instead of ``$pdkdf2-sha512$``.
+    uses ``{PBKDF2-SHA512}`` as its identifying prefix instead of ``$pdkdf2-sha512$``.
 
 .. rubric:: Footnotes
 

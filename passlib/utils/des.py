@@ -37,17 +37,18 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
     http://fxr.googlebit.com/source/lib/libcrypt/crypt.c?v=NETBSD-CURRENT
 """
 
-#TODO: could use an accelerated C version of this module to speed up lmhash, des-crypt, and ext-des-crypt
+# TODO: could use an accelerated C version of this module to speed up lmhash,
+#       des-crypt, and ext-des-crypt
 
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 # core
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import bytes, join_byte_values, byte_elem_value, \
-                                 b, irange, irange, int_types
+from passlib.utils.compat import join_byte_values, byte_elem_value, \
+                                 irange, irange, int_types
 from passlib.utils import deprecated_function
 # local
 __all__ = [
@@ -56,9 +57,9 @@ __all__ = [
     "mdes_encrypt_int_block",
 ]
 
-#=========================================================
+#=============================================================================
 # constants
-#=========================================================
+#=============================================================================
 
 # masks/upper limits for various integer sizes
 INT_24_MASK = 0xffffff
@@ -72,22 +73,22 @@ _KPARITY_MASK = 0x0101010101010101
 # mask used to setup key schedule
 _KS_MASK = 0xfcfcfcfcffffffff
 
-#=========================================================
+#=============================================================================
 # static DES tables
-#=========================================================
+#=============================================================================
 
 # placeholders filled in by _load_tables()
 PCXROT = IE3264 = SPE = CF6464 = None
 
 def _load_tables():
-    "delay loading tables until they are actually needed"
+    """delay loading tables until they are actually needed"""
     global PCXROT, IE3264, SPE, CF6464
 
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     # Initial key schedule permutation
     # PC1ROT - bit reverse, then PC1, then Rotate, then PC2
-    #---------------------------------------------------
-    #NOTE: this was reordered from original table to make perm3264 logic simpler
+    #---------------------------------------------------------------
+    # NOTE: this was reordered from original table to make perm3264 logic simpler
     PC1ROT=(
     ( 0x0000000000000000, 0x0000000000000000, 0x0000000000002000, 0x0000000000002000,
       0x0000000000000020, 0x0000000000000020, 0x0000000000002020, 0x0000000000002020,
@@ -154,11 +155,11 @@ def _load_tables():
       0x0000000800000000, 0x0000000880000000, 0x0000040800000000, 0x0000040880000000,
       0x0010000800000000, 0x0010000880000000, 0x0010040800000000, 0x0010040880000000, ),
         )
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     # Subsequent key schedule rotation permutations
     # PC2ROT - PC2 inverse, then Rotate, then PC2
-    #---------------------------------------------------
-    #NOTE: this was reordered from original table to make perm3264 logic simpler
+    #---------------------------------------------------------------
+    # NOTE: this was reordered from original table to make perm3264 logic simpler
     PC2ROTA=(
     ( 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
       0x0000000000200000, 0x0000000000200000, 0x0000000000200000, 0x0000000000200000,
@@ -226,7 +227,7 @@ def _load_tables():
       0x0008200000000000, 0x0088200000000000, 0x0008240000000000, 0x0088240000000000, ),
         )
 
-    #NOTE: this was reordered from original table to make perm3264 logic simpler
+    # NOTE: this was reordered from original table to make perm3264 logic simpler
     PC2ROTB=(
     ( 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
       0x0000000000000400, 0x0000000000000400, 0x0000000000000400, 0x0000000000000400,
@@ -293,10 +294,10 @@ def _load_tables():
       0x0004000000000000, 0x0104000000000000, 0x0005000000000000, 0x0105000000000000,
       0x0004001000000000, 0x0104001000000000, 0x0005001000000000, 0x0105001000000000, ),
         )
-    #---------------------------------------------------
-    #PCXROT - PC1ROT, PC2ROTA, PC2ROTB listed in order
+    #---------------------------------------------------------------
+    # PCXROT - PC1ROT, PC2ROTA, PC2ROTB listed in order
     # of the PC1 rotation schedule, as used by des_setkey
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     ##ROTATES = (1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1)
     ##PCXROT = (
     ##        PC1ROT,  PC2ROTA, PC2ROTB, PC2ROTB,
@@ -305,8 +306,8 @@ def _load_tables():
     ##        PC2ROTB, PC2ROTB, PC2ROTB, PC2ROTA,
     ##        )
 
-    #NOTE: modified PCXROT to contain entrys broken into pairs,
-    # to help generate them in format best used by encoder.
+    # NOTE: modified PCXROT to contain entrys broken into pairs,
+    #       to help generate them in format best used by encoder.
     PCXROT = (
             (PC1ROT,  PC2ROTA), (PC2ROTB, PC2ROTB),
             (PC2ROTB, PC2ROTB), (PC2ROTB, PC2ROTB),
@@ -314,11 +315,11 @@ def _load_tables():
             (PC2ROTB, PC2ROTB), (PC2ROTB, PC2ROTA),
             )
 
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     # Bit reverse, intial permupation, expantion
     # Initial permutation/expansion table
-    #---------------------------------------------------
-    #NOTE: this was reordered from original table to make perm3264 logic simpler
+    #---------------------------------------------------------------
+    # NOTE: this was reordered from original table to make perm3264 logic simpler
     IE3264=(
     ( 0x0000000000000000, 0x0000000000800800, 0x0000000000008008, 0x0000000000808808,
       0x0000008008000000, 0x0000008008800800, 0x0000008008008008, 0x0000008008808808,
@@ -354,9 +355,9 @@ def _load_tables():
       0x4044040000000000, 0x4044440400000000, 0x4044044004000000, 0x4044444404000000, ),
         )
 
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     # Table that combines the S, P, and E operations.
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     SPE=(
     ( 0x0080088008200000, 0x0000008008000000, 0x0000000000200020, 0x0080088008200020,
       0x0000000000200000, 0x0080088008000020, 0x0000008008000020, 0x0000000000200020,
@@ -488,11 +489,11 @@ def _load_tables():
       0x0000000000002000, 0x8008000080082000, 0x0000002000000000, 0x8008002080080000, ),
         )
 
-    #---------------------------------------------------
+    #---------------------------------------------------------------
     # compressed/interleaved => final permutation table
     # Compression, final permutation, bit reverse
-    #---------------------------------------------------
-    #NOTE: this was reordered from original table to make perm6464 logic simpler
+    #---------------------------------------------------------------
+    # NOTE: this was reordered from original table to make perm6464 logic simpler
     CF6464=(
     ( 0x0000000000000000, 0x0000002000000000, 0x0000200000000000, 0x0000202000000000,
       0x0020000000000000, 0x0020002000000000, 0x0020200000000000, 0x0020202000000000,
@@ -559,31 +560,31 @@ def _load_tables():
       0x0000000004000000, 0x0000000004000004, 0x0000000004000400, 0x0000000004000404,
       0x0000000004040000, 0x0000000004040004, 0x0000000004040400, 0x0000000004040404, ),
     )
-    #=========================================================
+    #===================================================================
     # eof _load_tables()
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # support
-#=========================================================
+#=============================================================================
 
 def _permute(c, p):
     """Returns the permutation of the given 32-bit or 64-bit code with
     the specified permutation table."""
-    #NOTE: only difference between 32 & 64 bit permutations
-    #is that len(p)==8 for 32 bit, and len(p)==16 for 64 bit.
+    # NOTE: only difference between 32 & 64 bit permutations
+    #       is that len(p)==8 for 32 bit, and len(p)==16 for 64 bit.
     out = 0
     for r in p:
         out |= r[c&0xf]
         c >>= 4
     return out
 
-#=========================================================
+#=============================================================================
 # packing & unpacking
-#=========================================================
+#=============================================================================
 _uint64_struct = struct.Struct(">Q")
 
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 def _pack64(value):
     return _uint64_struct.pack(value)
@@ -597,9 +598,9 @@ def _pack56(value):
 def _unpack56(value):
     return _uint64_struct.unpack(_BNULL+value)[0]
 
-#=========================================================
+#=============================================================================
 # 56->64 key manipulation
-#=========================================================
+#=============================================================================
 
 ##def expand_7bit(value):
 ##    "expand 7-bit integer => 7-bits + 1 odd-parity bit"
@@ -611,7 +612,7 @@ def _unpack56(value):
 _EXPAND_ITER = irange(49,-7,-7)
 
 def expand_des_key(key):
-    "convert DES from 7 bytes to 8 bytes (by inserting empty parity bits)"
+    """convert DES from 7 bytes to 8 bytes (by inserting empty parity bits)"""
     if isinstance(key, bytes):
         if len(key) != 7:
             raise ValueError("key must be 7 bytes in size")
@@ -622,15 +623,15 @@ def expand_des_key(key):
     else:
         raise exc.ExpectedTypeError(key, "bytes or int", "key")
     key = _unpack56(key)
-    # NOTE: this function would insert correctly-valued parity bits in each key,
+    # NOTE: the following would insert correctly-valued parity bits in each key,
     # but the parity bit would just be ignored in des_encrypt_block(),
     # so not bothering to use it.
     ##return join_byte_values(expand_7bit((key >> shift) & 0x7f)
-    #                         for shift in _EXPAND_ITER)
+    ##                        for shift in _EXPAND_ITER)
     return join_byte_values(((key>>shift) & 0x7f)<<1 for shift in _EXPAND_ITER)
 
 def shrink_des_key(key):
-    "convert DES key from 8 bytes to 7 bytes (by discarding the parity bits)"
+    """convert DES key from 8 bytes to 7 bytes (by discarding the parity bits)"""
     if isinstance(key, bytes):
         if len(key) != 8:
             raise ValueError("key must be 8 bytes in size")
@@ -650,9 +651,9 @@ def shrink_des_key(key):
     assert not (result & ~INT_64_MASK)
     return result
 
-#=========================================================
+#=============================================================================
 # des encryption
-#=========================================================
+#=============================================================================
 def des_encrypt_block(key, input, salt=0, rounds=1):
     """encrypt single block of data using DES, operates on 8-byte strings.
 
@@ -664,17 +665,17 @@ def des_encrypt_block(key, input, salt=0, rounds=1):
         plaintext block to encrypt, as 8 byte string.
 
     :arg salt:
-        optional 24-bit integer used to mutate the base DES algorithm in a
-        manner specific to :class:`~passlib.hash.des_crypt` and it's variants:
-
-        for each bit ``i`` which is set in the salt value,
+        Optional 24-bit integer used to mutate the base DES algorithm in a
+        manner specific to :class:`~passlib.hash.des_crypt` and its variants.
+        The default value ``0`` provides the normal (unsalted) DES behavior.
+        The salt functions as follows:
+        if the ``i``'th bit of ``salt`` is set,
         bits ``i`` and ``i+24`` are swapped in the DES E-box output.
-        the default (``salt=0``) provides the normal DES behavior.
 
     :arg rounds:
-        optional number of rounds of to apply the DES key schedule.
+        Optional number of rounds of to apply the DES key schedule.
         the default (``rounds=1``) provides the normal DES behavior,
-        but :class:`~passlib.hash.des_crypt` and it's variants use
+        but :class:`~passlib.hash.des_crypt` and its variants use
         alternate rounds values.
 
     :raises TypeError: if any of the provided args are of the wrong type.
@@ -738,9 +739,9 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
     :returns:
         resulting ciphertext as 64-bit integer.
     """
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     # input validation
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
 
     # validate salt, rounds
     if rounds < 1:
@@ -760,9 +761,9 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
     elif input < 0 or input > INT_64_MASK:
         raise ValueError("input must be 64-bit non-negative integer")
 
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     # DES setup
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     # load tables if not already done
     global SPE, PCXROT, IE3264, CF6464
     if PCXROT is None:
@@ -778,7 +779,7 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
     # NOTE: generation was modified to output two elements at a time,
     # so that per-round loop could do two passes at once.
     def _iter_key_schedule(ks_odd):
-        "given 64-bit key, iterates over the 8 (even,odd) key schedule pairs"
+        """given 64-bit key, iterates over the 8 (even,odd) key schedule pairs"""
         for p_even, p_odd in PCXROT:
             ks_even = _permute(ks_odd, p_even)
             ks_odd = _permute(ks_even, p_odd)
@@ -803,9 +804,9 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         R = ((input >> 32) & 0xaaaaaaaa) | ((input >> 1) & 0x55555555)
         R = _permute(R, IE3264)
 
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     # main DES loop - run for specified number of rounds
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     while rounds:
         rounds -= 1
 
@@ -830,9 +831,9 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         # swap L and R
         L, R = R, L
 
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     # return final result
-    #-------------------------------------------------------------------
+    #---------------------------------------------------------------
     C = (
             ((L>>3) &  0x0f0f0f0f00000000)
             |
@@ -844,15 +845,15 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         )
     return _permute(C, CF6464)
 
-def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover
-    warn("mdes_encrypt_int_block() has been deprecated as of Passlib 1.6,"
-         "and will be removed in Passlib 1.8, use des_encrypt_int_block instead.")
+@deprecated_function(deprecated="1.6", removed="1.8",
+                     replacement="des_encrypt_int_block()")
+def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover -- deprecated & unused
     if isinstance(key, bytes):
         if len(key) == 7:
             key = expand_des_key(key)
         key = _unpack64(key)
     return des_encrypt_int_block(key, input, salt, rounds)
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

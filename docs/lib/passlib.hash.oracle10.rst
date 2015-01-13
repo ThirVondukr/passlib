@@ -4,45 +4,41 @@
 
 .. currentmodule:: passlib.hash
 
-This class implements the hash algorithm used by the Oracle Database up to
-version 10g Rel.2. It was superceded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.
-
 .. warning::
 
     This hash is not secure, and should not be used for any purposes
     besides manipulating existing Oracle 10 password hashes.
 
+This class implements the hash algorithm used by the Oracle Database up to
+version 10g Rel.2. It was superseded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.
+This class can be used directly as follows (note that this class requires
+a username for all encrypt/verify operations)::
+
+    >>> from passlib.hash import oracle10 as oracle10
+
+    >>> # encrypt password using specified username
+    >>> hash = oracle10.encrypt("password", user="username")
+    >>> hash
+    '872805F3F4C83365'
+
+    >>> # verify correct password
+    >>> oracle10.verify("password", hash, user="username")
+    True
+    >>> # verify correct password w/ wrong username
+    >>> oracle10.verify("password", hash, user="somebody")
+    False
+    >>> # verify incorrect password
+    >>> oracle10.verify("letmein", hash, user="username")
+    False
+
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
+
 .. warning::
 
     This implementation has not been compared
     very carefully against the official implementation or reference documentation,
-    and it's behavior may not match under various border cases.
-    It should not be relied on for anything but novelty purposes
-    for the time being.
-
-Usage
-=====
-This class can be used directly as follows (note that this class requires
-a username for all encrypt/verify operations)::
-
-    >>> from passlib.hash import oracle10 as or10
-
-    >>> #encrypt password using specified username
-    >>> h = or10.encrypt("password", "username")
-    >>> h
-    '872805F3F4C83365'
-
-    >>> or10.identify(h) #check if hash is recognized
-    True
-    >>> or10.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
-    False
-
-    >>> or10.verify("password", h, "username") #verify correct password
-    True
-    >>> or10.verify("password", h, "somebody") #verify correct password w/ wrong username
-    False
-    >>> or10.verify("letmein", h, "username") #verify incorrect password
-    False
+    and its behavior may not match under various border cases.
+    *caveat emptor*.
 
 Interface
 =========
@@ -52,7 +48,7 @@ Interface
 
 Format & Algorithm
 ==================
-Oracle10 hashes all consist of a series of 16 hexidecimal digits,
+Oracle10 hashes all consist of a series of 16 hexadecimal digits,
 representing the resulting checksum.
 Oracle10 hashes can be formed by the following procedure:
 
@@ -71,27 +67,27 @@ Oracle10 hashes can be formed by the following procedure:
    a block of null bytes is still used as the CBC initialization vector.
    All but the last block of ciphertext is discarded.
 7. The last block of ciphertext of step 6 is converted
-   to a hexdecimal string, and returned as the checksum.
+   to a hexadecimal string, and returned as the checksum.
 
 Security Issues
 ===============
 This algorithm it not suitable for *any* use besides manipulating existing
 Oracle10 account passwords, due to the following flaws [#flaws]_:
 
-* It's use of the username as a salt value means that common usernames
-  (eg ``system``) will occur more frequently as salts,
+* Its use of the username as a salt value means that common usernames
+  (e.g. ``system``) will occur more frequently as salts,
   weakening the effectiveness of the salt in foiling pre-computed tables.
 
 * The fact that it is case insensitive, and simply concatenates the username
   and password, greatly reduces the keyspace that must be searched by
   brute-force or pre-computed attacks.
 
-* It's simplicity, and decades of research on high-speed DES
+* Its simplicity, and decades of research on high-speed DES
   implementations, makes efficient brute force attacks much more feasible.
 
 Deviations
 ==========
-PassLib's implementation of the Oracle10g hash may deviate from the official
+Passlib's implementation of the Oracle10g hash may deviate from the official
 implementation in unknown ways, as there is no official documentation.
 There is only one known issue:
 
@@ -100,7 +96,7 @@ There is only one known issue:
   Lack of testing (and test vectors) leaves it unclear
   as to how Oracle 10g handles passwords containing non-7bit ascii.
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-16-be`` [#enc]_
+  Passlib will encode unicode passwords using ``utf-16-be`` [#enc]_
   before running them through the Oracle10g algorithm.
   This behavior may be altered in the future, if further testing
   reveals another behavior is more in line with the official representation.
@@ -110,7 +106,7 @@ There is only one known issue:
 .. rubric:: Footnotes
 
 .. [#enc] The exact encoding used in step 3 of the algorithm is not clear from known references.
-          PassLib uses ``utf-16-be``, as this is both compatible with existing test vectors,
+          Passlib uses ``utf-16-be``, as this is both compatible with existing test vectors,
           and supports unicode input.
 
 .. [#flaws] Whitepaper analyzing flaws in this algorithm -

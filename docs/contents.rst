@@ -3,21 +3,25 @@ Table Of Contents
 =================
 
 .. toctree::
+    :maxdepth: 4
 
     Front Page <index>
     install
 
+    overview
     new_app_quickstart
 
-    overview
-
-    password_hash_api
     lib/passlib.hash
 
+    lib/passlib.context-tutorial
     lib/passlib.context
     lib/passlib.apps
-    lib/passlib.apache
     lib/passlib.hosts
+
+    lib/passlib.apache
+    lib/passlib.ext.django
+    lib/passlib.pwd
+    lib/passlib.totp
 
     lib/passlib.exc
     lib/passlib.registry
@@ -30,8 +34,3 @@ Table Of Contents
 
 * :ref:`General Index <genindex>`
 * :ref:`Module List <modindex>`
-
-..
-    unlisted:
-
-    lib/passlib.ext.django

@@ -11,12 +11,24 @@ may be raised by Passlib.
 Exceptions
 ==========
 .. autoexception:: MissingBackendError
+
+.. index::
+    pair: environmental variable; PASSLIB_MAX_PASSWORD_SIZE
+
 .. autoexception:: PasswordSizeError
+
+.. autoexception:: TokenReuseError
 
 Warnings
 ========
 .. autoexception:: PasslibWarning
+
+Minor Warnings
+--------------
 .. autoexception:: PasslibConfigWarning
 .. autoexception:: PasslibHashWarning
+
+Critical Warnings
+-----------------
 .. autoexception:: PasslibRuntimeWarning
 .. autoexception:: PasslibSecurityWarning

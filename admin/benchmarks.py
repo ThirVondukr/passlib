@@ -6,17 +6,17 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 # init script env
 #=============================================================================
+import re
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
-sys.path.insert(0, root)
+sys.path.insert(0, os.curdir)
 
 #=============================================================================
 # imports
 #=============================================================================
 # core
+from binascii import hexlify
 import logging; log = logging.getLogger(__name__)
-import os
-import warnings
 # site
 # pkg
 try:
@@ -31,7 +31,7 @@ from passlib.utils.compat import u, print_, unicode
 # benchmarking support
 #=============================================================================
 class benchmark:
-    "class to hold various benchmarking helpers"
+    """class to hold various benchmarking helpers"""
 
     @classmethod
     def constructor(cls, **defaults):
@@ -63,13 +63,9 @@ class benchmark:
         kwds = defaults.copy()
         kwds.update(options)
         if mode == "ctor":
-            itr = obj()
-            if not hasattr(itr, "next"):
-                itr = [itr]
-            for func in itr:
-                # TODO: per function name & options
-                secs, precision = cls.measure(func, None, **kwds)
-                yield name, secs, precision
+            func = obj()
+            secs, precision = cls.measure(func, None, **kwds)
+            yield name, secs, precision
         else:
             raise ValueError("invalid mode: %r" % (mode,))
 
@@ -151,7 +147,7 @@ OTHER =  u("setecastronomy")
 #=============================================================================
 @benchmark.constructor()
 def test_context_from_path():
-    "test speed of CryptContext.from_path()"
+    """test speed of CryptContext.from_path()"""
     path = sample_config_1p
     if CryptPolicy:
         def helper():
@@ -163,10 +159,10 @@ def test_context_from_path():
 
 @benchmark.constructor()
 def test_context_update():
-    "test speed of CryptContext.update()"
+    """test speed of CryptContext.update()"""
     kwds = dict(
         schemes = [ "sha512_crypt", "sha256_crypt", "md5_crypt",
-                    "des_crypt", "unix_fallback" ],
+                    "des_crypt", "unix_disabled" ],
         deprecated = [ "des_crypt" ],
         sha512_crypt__min_rounds=4000,
         )
@@ -182,7 +178,7 @@ def test_context_update():
 
 @benchmark.constructor()
 def test_context_init():
-    "test speed of CryptContext() constructor"
+    """test speed of CryptContext() constructor"""
     kwds = dict(
         schemes=[BlankHandler, AnotherHandler],
         default="another",
@@ -196,7 +192,7 @@ def test_context_init():
 
 @benchmark.constructor()
 def test_context_calls():
-    "test speed of CryptContext password methods"
+    """test speed of CryptContext password methods"""
     ctx = CryptContext(
         schemes=[BlankHandler, AnotherHandler],
         default="another",
@@ -215,25 +211,105 @@ def test_context_calls():
 # handler benchmarks
 #=============================================================================
 @benchmark.constructor()
+def test_bcrypt_builtin():
+    "test bcrypt 'builtin' backend"
+    from passlib.hash import bcrypt
+    import os
+    os.environ['PASSLIB_BUILTIN_BCRYPT'] = 'enabled'
+    bcrypt.set_backend("builtin")
+    bcrypt.default_rounds = 10
+    def helper():
+        hash = bcrypt.encrypt(SECRET)
+        bcrypt.verify(SECRET, hash)
+        bcrypt.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
+def test_bcrypt_ffi():
+    "test bcrypt 'bcrypt' backend"
+    from passlib.hash import bcrypt
+    bcrypt.set_backend("bcrypt")
+    bcrypt.default_rounds = 8
+    def helper():
+        hash = bcrypt.encrypt(SECRET)
+        bcrypt.verify(SECRET, hash)
+        bcrypt.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
 def test_md5_crypt_builtin():
-    "test test md5_crypt builtin backend"
+    """test test md5_crypt builtin backend"""
     from passlib.hash import md5_crypt
     md5_crypt.set_backend("builtin")
     def helper():
         hash = md5_crypt.encrypt(SECRET)
         md5_crypt.verify(SECRET, hash)
         md5_crypt.verify(OTHER, hash)
-    yield helper
+    return helper
 
 @benchmark.constructor()
 def test_ldap_salted_md5():
-    "test ldap_salted_md5"
+    """test ldap_salted_md5"""
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
         hash = handler.encrypt(SECRET, salt='....')
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
-    yield helper
+    return helper
+
+@benchmark.constructor()
+def test_phpass():
+    """test phpass"""
+    from passlib.hash import phpass as handler
+    kwds = dict(salt='.'*8, rounds=16)
+    def helper():
+        hash = handler.encrypt(SECRET, **kwds)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
+def test_sha1_crypt():
+    from passlib.hash import sha1_crypt as handler
+    kwds = dict(salt='.'*8, rounds=10000)
+    def helper():
+        hash = handler.encrypt(SECRET, **kwds)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
+    return helper
+
+#=============================================================================
+# crypto utils
+#=============================================================================
+@benchmark.constructor()
+def test_pbkdf2_sha1():
+    from passlib.utils.pbkdf2 import pbkdf2
+    def helper():
+        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 20, "hmac-sha1"))
+        assert result == 'e45ce658e79b16107a418ad4634836f5f0601ad1', result
+    return helper
+
+@benchmark.constructor()
+def test_pbkdf2_sha256():
+    from passlib.utils.pbkdf2 import pbkdf2
+    def helper():
+        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 32, "hmac-sha256"))
+        assert result == 'fadef97054306c93c55213cd57111d6c0791735dcdde8ac32f9f934b49c5af1e', result
+    return helper
+
+#=============================================================================
+# entropy estimates
+#=============================================================================
+@benchmark.constructor()
+def test_average_entropy():
+    from passlib.pwd import _average_entropy
+    testc = "abcdef"*100000
+    def helper():
+        _average_entropy(testc)
+        _average_entropy(testc, True)
+        _average_entropy(iter(testc))
+        _average_entropy(iter(testc), True)
+    return helper
 
 #=============================================================================
 # main
@@ -242,7 +318,8 @@ def main(*args):
     source = globals()
     if args:
        orig = source
-       source = dict((k,orig[k]) for k in orig if k in args)
+       source = dict((k,orig[k]) for k in orig
+                     if any(re.match(arg, k) for arg in args))
     helper = benchmark.run(source, maxtime=2, bestof=3)
     for name, secs, precision in helper:
         print_("%-50s %9s (%d)" % (name, benchmark.pptime(secs), precision))

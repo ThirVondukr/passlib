@@ -1,17 +1,16 @@
 .. -*- restructuredtext -*-
 
 ==========================
-The PassLib Python Library
+The Passlib Python Library
 ==========================
 
 Welcome
 =======
-Passlib is a password hashing library for Python 2 & 3,
-which provides cross-platform implementations of over 20
-password hashing algorithms, as well as a framework for
-managing existing password hashes. It's designed to be useful
-for a wide range of tasks, from verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user application.
+Passlib is a password hashing library for Python 2 & 3, which provides
+cross-platform implementations of over 30 password hashing algorithms, as well
+as a framework for managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow, to
+providing full-strength password hashing for multi-user application.
 
 The latest documentation can be found online at `<http://packages.python.org/passlib>`_.
 

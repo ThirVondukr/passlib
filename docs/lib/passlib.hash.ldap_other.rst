@@ -10,24 +10,27 @@ but are not part of any standard.
 
 .. seealso::
 
-    :ref:`ldap-hashes` for a full list of RFC 2307 style hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use these classes via the common hash interface.
 
-Hexidecimal Digests
+    * :ref:`ldap-hashes` for a full list of RFC 2307 style hashes.
+
+Hexadecimal Digests
 ===================
 All of the digests specified in RFC 2307 use base64 encoding.
-The following are non-standard versions which use hexdecimal
+The following are non-standard versions which use hexadecimal
 encoding, as is found in some applications.
 
 .. class:: ldap_hex_md5
 
-    hexidecimal version of :class:`ldap_md5`,
+    hexadecimal version of :class:`ldap_md5`,
     this is just the md5 digest of the password.
 
     an example hash (of ``password``) is ``{MD5}5f4dcc3b5aa765d61d8327deb882cf99``.
 
 .. class:: ldap_hex_sha1
 
-    hexidecimal version of :class:`ldap_sha1`,
+    hexadecimal version of :class:`ldap_sha1`,
     this is just the sha1 digest of the password.
 
     an example hash (of ``password``) is ``{SHA}5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8``.

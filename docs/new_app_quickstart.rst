@@ -4,7 +4,7 @@ New Application Quickstart Guide
 
 Need to quickly get password hash support added into your new application,
 and don't have time to wade through pages of documentation,
-comparing and constrasting all the different schemes? Read on...
+comparing and contrasting all the different schemes? Read on...
 
 Really Quick Start
 ==================
@@ -16,31 +16,33 @@ and defaults to 40000 hash iterations for increased strength.
 For applications which want to quickly add password hashing,
 all they need to do is the following::
 
-    >>> #import the context under an app-specific name (so it can easily be replaced later)
+    >>> # import the context under an app-specific name (so it can easily be replaced later)
     >>> from passlib.apps import custom_app_context as pwd_context
 
-    >>> #encrypting a password...
+    >>> # encrypting a password...
     >>> hash = pwd_context.encrypt("somepass")
 
-    >>> #verifying a password...
+    >>> # verifying a password...
     >>> ok = pwd_context.verify("somepass", hash)
 
-    >>> #[optional] encrypting a password for an admin account...
-    >>> #           the custom_app_context is preconfigured so that
-    >>> #           if the category is set to "admin" instead of None,
-    >>> #           it uses a stronger setting of 80000 rounds:
+    >>> # [optional] encrypting a password for an admin account...
+    >>> #            the custom_app_context is preconfigured so that
+    >>> #            if the category is set to "admin" instead of None,
+    >>> #            it uses a stronger setting of 80000 rounds:
     >>> hash = pwd_context.encrypt("somepass", category="admin")
 
 For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
 instance; see below for more...
 
+.. index:: Passlib; recommended hash algorithms
+
 .. _recommended-hashes:
 
 Choosing a Hash
 ================
 *If you already know what hash algorithm(s) you want to use,
-skip to the next section,* `Creating a CryptContext`_.
+skip to the next section,* `Creating and Using a CryptContext`_.
 
 If you'd like to set up a configuration that's right for your
 application, the first thing to do is choose a password hashing scheme.
@@ -54,7 +56,7 @@ For new applications, there are really only three choices [#choices]_:
 
 All three password hashes share the following properties:
 
-    * no known vulnerabilties.
+    * no known vulnerabilities.
     * based on documented & widely reviewed algorithms.
     * basic algorithm has seen heavy scrutiny
       and use for at least 10 years.
@@ -89,15 +91,14 @@ this matter of concern is what motivated the development of SHA512-Crypt.
 As well, its rounds parameter is logarithmically scaled,
 making it hard to fine-tune the amount of time taken to verify passwords;
 which can be an issue for applications that handle a large number
-of simultaneous logon attempts (eg web apps).
+of simultaneous logon attempts (e.g. web apps).
 
 .. note::
 
     For BCrypt support on non-BSD systems,
-    Passlib requires a C-extension module
-    provided by the external
-    :ref:`py-bcrypt or bcryptor <optional-libraries>`  packages.
-    Neither of these currently supports Python 3.
+    Passlib requires the C-extension provided by
+    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_.
+    (py-bcrypt does not currently support Python 3).
 
 SHA512-Crypt
 ............
@@ -121,7 +122,9 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
-This algorithm is probably the best choice for Google App Engine,
+.. index:: Google App Engine; recommended hash algorithm
+
+:class:`~passlib.hash.sha512_crypt` is probably the best choice for Google App Engine,
 as Google's production servers appear to provide native support
 via :mod:`crypt`, which will be used by Passlib.
 
@@ -159,52 +162,66 @@ standard format for encoding password hashes using this algorithm
     the external M2Crypto package to speed up PBKDF2 calculations,
     though this is not required.
 
-Creating a CryptContext
-=======================
+.. index:: SCrypt; status of
+
+What about SCrypt?
+..................
+`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the leading contender
+to be the next-generation password hash algorithm. It offers many advances
+over all of the above hashes; the primary feature being that it has
+a variable *memory* cost as well as time cost. It is incredibly well designed,
+and looks to likely replace all the others in this section.
+
+However, it is still young by comparison to the others; and has not been as thoroughly
+tested, or widely implemented. The only Python wrapper that exists
+does not even expose the underlying :func:`!scrypt` function,
+but is rather a file encryption tool.
+Due to these reasons, SCrypt has not yet been integrated into Passlib.
+
+.. seealso:: :issue:`8` of the Passlib bugtracker, for the current status of Passlib's SCrypt support.
+
+Creating and Using a CryptContext
+=================================
 One you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
 to manage your hashes, and relating configuration information.
 Insert the following code into your application::
 
     #
-    #import the CryptContext class, used to handle all hashing...
+    # import the CryptContext class, used to handle all hashing...
     #
     from passlib.context import CryptContext
 
     #
-    #create a single global instance for your app...
+    # create a single global instance for your app...
     #
     pwd_context = CryptContext(
-        #replace this list with the hash(es) you wish to support.
-        #this example sets pbkdf2_sha256 as the default,
-        #with support for legacy des_crypt hashes.
+        # replace this list with the hash(es) you wish to support.
+        # this example sets pbkdf2_sha256 as the default,
+        # with support for legacy des_crypt hashes.
         schemes=["pbkdf2_sha256", "des_crypt" ],
         default="pbkdf2_sha256",
 
-        #vary rounds parameter randomly when creating new hashes...
-        all__vary_rounds = "10%",
+        # vary rounds parameter randomly when creating new hashes...
+        all__vary_rounds = 0.1,
 
-        #set the number of rounds that should be used...
-        #(appropriate values may vary for different schemes,
+        # set the number of rounds that should be used...
+        # (appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
         pbkdf2_sha256__default_rounds = 8000,
         )
 
+To start using your CryptContext, import the context you created wherever it's needed::
 
-Using a CryptContext
-====================
-To start using your CryptContext, import the context you created
-in the previous section wherever needed::
-
-    >>> #import context from where you defined it...
+    >>> # import context from where you defined it...
     >>> from myapp.model.security import pwd_context
 
-    >>> #encrypting a password...
+    >>> # encrypting a password...
     >>> hash = pwd_context.encrypt("somepass")
     >>> hash
     '$pbkdf2-sha256$7252$qKFNyMYTmgQDCFDS.jRJDQ$sms3/EWbs4/3k3aOoid5azwq3HPZKVpUUrAsCfjrN6M'
 
-    >>> #verifying a password...
+    >>> # verifying a password...
     >>> pwd_context.verify("somepass", hash)
     True
     >>> pwd_context.verify("wrongpass", hash)
@@ -212,13 +229,14 @@ in the previous section wherever needed::
 
 .. seealso::
 
-    * :mod:`passlib.hash` - list of all hashes supported by passlib.
-    * :mod:`passlib.context` - for more details about the CryptContext class.
+    * :mod:`passlib.hash` -- list of all hashes supported by passlib.
+    * :ref:`CryptContext Overview & Tutorial <context-overview>` -- walkthrough of how to use the CryptContext class.
+    * :ref:`CryptContext Reference <context-reference>` -- reference for the CryptContext api.
 
 .. rubric:: Footnotes
 
 .. [#choices] BCrypt, SHA-512 Crypt, and PBKDF2 are the most commonly
-              used password hashes as of May 2011, when this document
-              was written. You should make sure you are reading a current
-              copy of the passlib documentation, in case the state
+              used password hashes as of Aug 2012, when this document
+              last updated. You should make sure you are reading a current
+              copy of the Passlib documentation, in case the state
               of things has changed.

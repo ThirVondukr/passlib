@@ -1,45 +1,40 @@
 """passlib setup script"""
-#=========================================================
+#=============================================================================
 # init script env -- ensure cwd = root of source dir
-#=========================================================
+#=============================================================================
 import os
 root_dir = os.path.abspath(os.path.join(__file__,".."))
 os.chdir(root_dir)
 
-#=========================================================
+#=============================================================================
 # imports
-#=========================================================
+#=============================================================================
 import re
 import sys
 import time
 
 py3k = (sys.version_info[0] >= 3)
 
-try:
-    from setuptools import setup
-    has_distribute = True
-except ImportError:
-    from distutils.core import setup
-    has_distribute = False
+from setuptools import setup
 
-#=========================================================
+#=============================================================================
 # init setup options
-#=========================================================
+#=============================================================================
 opts = { "cmdclass": { } }
 args = sys.argv[1:]
 
-#=========================================================
-#register docdist command (not required)
-#=========================================================
+#=============================================================================
+# register docdist command (not required)
+#=============================================================================
 try:
     from passlib._setup.docdist import docdist
     opts['cmdclass']['docdist'] = docdist
 except ImportError:
     pass
 
-#=========================================================
+#=============================================================================
 # version string / datestamps
-#=========================================================
+#=============================================================================
 from passlib import __version__ as VERSION
 
 # if this is an hg checkout of passlib, add datestamp to version string.
@@ -75,23 +70,22 @@ if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
         from passlib._setup.stamp import stamp_distutils_output
         stamp_distutils_output(opts, VERSION)
 
-#=========================================================
-#static text
-#=========================================================
-SUMMARY = "comprehensive password hashing framework supporting over 20 schemes"
+#=============================================================================
+# static text
+#=============================================================================
+SUMMARY = "comprehensive password hashing framework supporting over 30 schemes"
 
 DESCRIPTION = """\
-Passlib is a password hashing library for Python 2 & 3,
-which provides cross-platform implementations of over 20
-password hashing algorithms, as well as a framework for
-managing existing password hashes. It's designed to be useful
-for a wide range of tasks; from verifying a hash found in /etc/shadow,
-to providing full-strength password hashing for multi-user applications.
+Passlib is a password hashing library for Python 2 & 3, which provides
+cross-platform implementations of over 30 password hashing algorithms, as well
+as a framework for managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow, to
+providing full-strength password hashing for multi-user applications.
 
-* See the `online documentation <http://packages.python.org/passlib>`_
+* See the `documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `passlib homepage <http://passlib.googlecode.com>`_
+* See the `homepage <http://passlib.googlecode.com>`_
   for the latest news, more information, and additional downloads.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
@@ -120,7 +114,7 @@ Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
 """.splitlines()
 
-# TODO: also test releases under ironpython -- "Programming Language :: Python :: Implementation :: IronPython"
+# TODO: "Programming Language :: Python :: Implementation :: IronPython" -- issue 34
 
 is_release = False
 if '.dev' in VERSION:
@@ -131,12 +125,12 @@ else:
     is_release = True
     CLASSIFIERS.append("Development Status :: 5 - Production/Stable")
 
-#=========================================================
-#run setup
-#=========================================================
+#=============================================================================
+# run setup
+#=============================================================================
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
-    #package info
+    # package info
     packages = [
         "passlib",
             "passlib.ext",
@@ -147,10 +141,10 @@ setup(
                 "passlib.utils._blowfish",
             "passlib._setup",
         ],
-    package_data = { "passlib.tests": ["*.cfg"] },
+    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
     zip_safe=True,
 
-    #metadata
+    # metadata
     name = "passlib",
     version = VERSION,
     author = "Eli Collins",
@@ -159,7 +153,8 @@ setup(
 
     url = "http://passlib.googlecode.com",
     download_url =
-        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
+#        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
+        ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 
     description = SUMMARY,
@@ -167,13 +162,13 @@ setup(
     keywords = KEYWORDS,
     classifiers = CLASSIFIERS,
 
-    tests_require = 'nose >= 1.0',
+    tests_require = 'nose >= 1.1',
     test_suite = 'nose.collector',
 
-    #extra opts
+    # extra opts
     script_args=args,
     **opts
 )
-#=========================================================
-#EOF
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

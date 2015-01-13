@@ -1,8 +1,18 @@
-.. index:: msdcc; Windows; Domain Cached Credentials
+.. index::
+    single: Windows; Domain Cached Credentials
+    see: mscash; msdcc
+    see: mscache; msdcc
 
 ======================================================================
 :class:`passlib.hash.msdcc` - Windows' Domain Cached Credentials
 ======================================================================
+
+.. versionadded:: 1.6
+
+.. warning::
+
+    This hash is not very secure, and should mainly be used to verify
+    existing cached credentials.
 
 .. currentmodule:: passlib.hash
 
@@ -13,43 +23,30 @@ including "mscache" and "mscash" (Microsoft CAched haSH). Security wise
 it is not particularly strong, as it's little more than :doc:`nthash <passlib.hash.nthash>`
 salted with a username. It was replaced by :doc:`msdcc2 <passlib.hash.msdcc2>`
 in Windows Vista.
-
-.. warning::
-
-    This hash is not very secure, and should mainly be used to verify
-    existing cached credentials.
-
-.. seealso::
-
-    :doc:`passlib.hash.msdcc2`
-
-Usage
-=====
 This class can be used directly as follows::
 
     >>> from passlib.hash import msdcc
 
     >>> # encrypt password using specified username
-    >>> h = msdcc.encrypt("password", "Administrator")
-    >>> h
+    >>> hash = msdcc.encrypt("password", user="Administrator")
+    >>> hash
     '25fd08fa89795ed54207e6e8442a6ca0'
 
-    >>> #verify correct password
-    >>> msdcc.verify("password", h, "Administrator")
+    >>> # verify correct password
+    >>> msdcc.verify("password", hash, user="Administrator")
     True
-    >>> #verify correct password w/ wrong username
-    >>> msdcc.verify("password", h, "User")
+    >>> # verify correct password w/ wrong username
+    >>> msdcc.verify("password", hash, user="User")
     False
-    >>> #verify incorrect password
-    >>> msdcc.verify("letmein", h, "Administrator")
+    >>> # verify incorrect password
+    >>> msdcc.verify("letmein", hash, user="Administrator")
     False
 
-    >>> # check if hash may belong to msdcc
-    >>> msdcc.identify(h)
-    True
-    >>> # check if foreign hash belongs to msdcc
-    >>> msdcc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`msdcc2 <passlib.hash.msdcc2>` -- the successor to this hash
 
 Interface
 =========
@@ -60,7 +57,7 @@ Interface
 Format & Algorithm
 ==================
 Much like :class:`!lmhash` and :class:`!nthash`, MS DCC hashes
-consists of a 16 byte digest, usually encoded as 32 hexidecimal characters.
+consists of a 16 byte digest, usually encoded as 32 hexadecimal characters.
 An example hash (of ``"password"`` with the account ``"Administrator"``) is
 ``25fd08fa89795ed54207e6e8442a6ca0``.
 
@@ -77,7 +74,7 @@ The digest is calculated as follows:
 4. The username from step 3 is appended to the
    digest from step 2; and the MD4 digest of the result
    is calculated.
-5. The result of step 4 is encoded into hexidecimal,
+5. The result of step 4 is encoded into hexadecimal,
    this is the DCC hash.
 
 Security Issues
@@ -85,8 +82,8 @@ Security Issues
 This algorithm is should not be used for any purpose besides
 manipulating existing DCC v1 hashes, due to the following flaws:
 
-* It's use of the username as a salt value (and lower-case at that),
-  means that common usernames (eg ``Administrator``) will occur
+* Its use of the username as a salt value (and lower-case at that),
+  means that common usernames (e.g. ``Administrator``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.
 

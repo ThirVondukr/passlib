@@ -2,42 +2,38 @@
 :class:`passlib.hash.mssql2005` - MS SQL 2005 password hash
 ==================================================================
 
-.. currentmodule:: passlib.hash
-
-This class implements the hash algorithm used by Microsoft SQL Server 2005
-to store it's user account passwords, replacing the slightly less secure
-:class:`~passlib.hash.mssql2000` variant.
+.. versionadded:: 1.6
 
 .. warning::
 
     This hash is not very secure, and should not be used for any purposes
     besides manipulating existing MSSQL 2005 password hashes.
 
-.. seealso::
+.. currentmodule:: passlib.hash
 
-    :class:`~passlib.hash.mssql2000`
-
-Usage
-=====
-This class can be used directly as follows (note that this class requires
-a username for all encrypt/verify operations)::
+This class implements the hash algorithm used by Microsoft SQL Server 2005
+to store its user account passwords, replacing the slightly less secure
+:class:`~passlib.hash.mssql2000` variant.
+This class can be used directly as follows::
 
     >>> from passlib.hash import mssql2005 as m25
 
-    >>> #encrypt password using specified username
+    >>> # encrypt password
     >>> h = m25.encrypt("password")
     >>> h
     '0x01006ACDF9FF5D2E211B392EEF1175EFFE13B3A368CE2F94038B'
 
-    >>> m25.identify(h) #check if hash is recognized
+    >>> # verify password
+    >>> m25.verify("password", h)
     True
-    >>> m25.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
+    >>> m25.verify("letmein", h)
     False
 
-    >>> m25.verify("password", h) #verify correct password
-    True
-    >>> m25.verify("letmein", h) #verify incorrect password
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`mssql2000 <passlib.hash.mssql2000>` -- the predecessor to this hash.
 
 Interface
 =========
@@ -48,7 +44,7 @@ Interface
 Format & Algorithm
 ==================
 MSSQL 2005 hashes are usually presented as a series of 52 upper-case
-hexidecimal characters, prefixed by ``0x``. An example MSSQL 2005 hash
+hexadecimal characters, prefixed by ``0x``. An example MSSQL 2005 hash
 (of ``"password"``)::
 
     0x01006ACDF9FF5D2E211B392EEF1175EFFE13B3A368CE2F94038B
@@ -71,14 +67,14 @@ digest used by MSSQL 2000.
 
     MSSQL 2005 hashes do not actually have a native textual format, as they
     are stored as raw bytes in an SQL table. However, when external programs
-    deal with them, MSSQL generally encodes raw bytes as upper-case hexidecimal,
+    deal with them, MSSQL generally encodes raw bytes as upper-case hexadecimal,
     prefixed with ``0x``. This is the representation Passlib uses.
 
 Security Issues
 ===============
 This algorithm is reasonably weak, and shouldn't be used for any
 purpose besides manipulating existing MSSQL 2005 hashes. This mainly due to
-it's simplicity, and years of research on high-speed SHA1
+its simplicity, and years of research on high-speed SHA1
 implementations, which makes efficient brute force attacks feasible.
 
 .. rubric:: Footnotes

@@ -1,29 +1,28 @@
-"""passlib.hash stub
+"""passlib.hash - proxy object mapping hash scheme names -> handlers
 
-NOTE:
-  this module does not actually contain any hashes.
-  this file is a stub which is replaced by a proxy object,
-  which lazy-loads hashes as requested.
+Note
+====
+This module does not actually contain any hashes. This file
+is a stub that replaces itself with a proxy object.
 
-  the actually implementations of hashes (at least, those built into passlib)
-  are stored in the passlib.handlers subpackage.
+This proxy object (passlib.registry._PasslibRegistryProxy)
+handles lazy-loading hashes as they are requested.
+
+The actual implementation of the various hashes is store elsewhere,
+mainly in the submodules of the ``passlib.handlers`` subpackage.
 """
 
-#NOTE: could support 'non-lazy' version which just imports
-# all schemes known to list_crypt_handlers()
+# XXX: if any platform has problem w/ lazy modules, could support 'non-lazy'
+#      version which just imports all schemes known to list_crypt_handlers()
 
-#=========================================================
-#import special proxy object as 'passlib.hash' module
-#=========================================================
+#=============================================================================
+# import proxy object and replace this module
+#=============================================================================
 
-#import proxy object, and replace this module with it.
-#this should cause any import commands to return that object,
-#not this module
 from passlib.registry import _proxy
 import sys
-sys.modules['passlib.hash'] = _proxy
-del sys, _proxy
+sys.modules[__name__] = _proxy
 
-#=========================================================
-#eoc
-#=========================================================
+#=============================================================================
+# eoc
+#=============================================================================

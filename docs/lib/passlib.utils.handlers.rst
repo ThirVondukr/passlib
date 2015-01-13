@@ -2,17 +2,18 @@
     pair: custom hash handler; implementing
 
 ==========================================================================
-:mod:`passlib.utils.handlers` - Helpers for writing password hash handlers
+:mod:`passlib.utils.handlers` - Framework for writing password hashes
 ==========================================================================
 
 .. module:: passlib.utils.handlers
-    :synopsis: helper classes for writing password hash handlers
+    :synopsis: framework for writing password hashes
 
 .. warning::
 
     This module is primarily used as an internal support module.
-    It's interface has not been finalized yet, and may change between major
-    releases of Passlib.
+    Its interface has not been finalized yet, and may be changed somewhat
+    between major releases of Passlib, as the internal code is cleaned up
+    and simplified.
 
 .. todo::
 
@@ -23,36 +24,37 @@
 Implementing Custom Handlers
 ============================
 All that is required in order to write a custom handler that will work with
-PassLib is to create an object (be it module, class, or object) that
+Passlib is to create an object (be it module, class, or object) that
 exposes the functions and attributes required by the :ref:`password-hash-api`.
-For classes, PassLib does not make any requirements about what a class instance
+For classes, Passlib does not make any requirements about what a class instance
 should look like (if the implementation even uses them).
 
-That said, most of the handlers built into PassLib are based around the :class:`GenericHandler`
-class, and it's associated mixin classes. While deriving from this class is not required,
-doing so will greatly reduce the amount of addition code that is needed for
+That said, most of the handlers built into Passlib are based around the :class:`GenericHandler`
+class, and its associated mixin classes. While deriving from this class is not required,
+doing so will greatly reduce the amount of additional code that is needed for
 all but the most convoluted password hash schemes.
 
 Once a handler has been written, it may be used explicitly, passed into
-an application's custom :class:`CryptContext` directly, or registered
-globally with PassLib via the :mod:`passlib.registry` module.
+a :class:`CryptContext` constructor, or registered
+globally with Passlib via the :mod:`passlib.registry` module.
 
-See :ref:`testing-hash-handlers` for details about how to test
-custom handlers against PassLib's unittest suite.
+.. seealso::
+    :ref:`testing-hash-handlers` for details about how to test
+    custom handlers against Passlib's unittest suite.
 
 The GenericHandler Class
 ========================
 
 Design
 ------
-Most of the handlers built into PassLib are based around the :class:`GenericHandler`
+Most of the handlers built into Passlib are based around the :class:`GenericHandler`
 class. This class is designed under the assumption that the common
 workflow for hashes is some combination of the following:
 
 1. parse hash into constituent parts - performed by :meth:`~GenericHandler.from_string`.
 2. validate constituent parts - performed by :class:`!GenericHandler`'s constructor,
    and the normalization functions such as :meth:`~GenericHandler._norm_checksum` and :meth:`~HasSalt._norm_salt`
-   which are provided by it's related mixin classes.
+   which are provided by its related mixin classes.
 3. calculate the raw checksum for a specific password - performed by :meth:`~GenericHandler._calc_checksum`.
 4. assemble hash, including new checksum, into a new string - performed by :meth:`~GenericHandler.to_string`.
 
@@ -135,7 +137,7 @@ Examples
 
 .. todo::
 
-    Show some walk-through examples of how to use GenericHandler and it's mixins
+    Show some walk-through examples of how to use GenericHandler and its mixins
 
 The StaticHandler class
 =======================
@@ -156,7 +158,7 @@ Other Constructors
 
 Testing Hash Handlers
 =====================
-Within it's unittests, Passlib provides the :class:`~passlib.tests.utils.HandlerCase` class,
+Within its unittests, Passlib provides the :class:`~passlib.tests.utils.HandlerCase` class,
 which can be subclassed to provide a unittest-compatible test class capable of
 checking if a handler adheres to the :ref:`password-hash-api`.
 
@@ -169,26 +171,26 @@ of the unittest for :class:`passlib.hash.des_crypt`::
     from passlib.hash import des_crypt
     from passlib.tests.utils import HandlerCase
 
-    #create a subclass for the handler...
+    # create a subclass for the handler...
     class DesCryptTest(HandlerCase):
         "test des-crypt algorithm"
 
-        #: [required] - store the handler object itself in the handler attribute
+        # [required] - store the handler object itself in the handler attribute
         handler = des_crypt
 
-        #: [optional] - if your hash only uses the first X characters of the password,
-        #:              set that value here. otherwise leave the default (-1).
+        # [optional] - if your hash only uses the first X characters of the password,
+        #              set that value here. otherwise leave the default (-1).
         secret_size = 8
 
-        #: [required] - this should be a list of (password, hash) pairs,
-        #               which should all verify correctly using your handler.
-        #               it is recommend include pairs which test all of the following:
+        # [required] - this should be a list of (password, hash) pairs,
+        #              which should all verify correctly using your handler.
+        #              it is recommend include pairs which test all of the following:
         #
-        #               * empty string & short strings for passwords
-        #               * passwords with 2 byte unicode characters
-        #               * hashes with varying salts, rounds, and other options
+        #              * empty string & short strings for passwords
+        #              * passwords with 2 byte unicode characters
+        #              * hashes with varying salts, rounds, and other options
         known_correct_hashes = (
-            #format: (password, hash)
+            # format: (password, hash)
             ('', 'OgAwTx2l6NADI'),
             (' ', '/Hk.VPuwQTXbc'),
             ('test', 'N1tQbOFcM5fpg'),
@@ -198,13 +200,13 @@ of the unittest for :class:`passlib.hash.des_crypt`::
             (u'hell\u00D6', 'saykDgk3BPZ9E'),
             )
 
-        #: [optional] - if there are hashes which are similar in format
-        #:              to your handler, and you want to make sure :meth:`identify`
-        #:              does not return ``True`` for such hashes,
-        #:              list them here. otherwise this can be omitted.
+        # [optional] - if there are hashes which are similar in format
+        #              to your handler, and you want to make sure :meth:`identify`
+        #              does not return ``True`` for such hashes,
+        #              list them here. otherwise this can be omitted.
         #
         known_unidentified_hashes = [
-            #bad char in otherwise correctly formatted hash
+            # bad char in otherwise correctly formatted hash
             '!gAwTx2l6NADI',
             ]
 

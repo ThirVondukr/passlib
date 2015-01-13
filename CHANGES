@@ -1,5 +1,7 @@
 .. -*- restructuredtext -*-
 
+.. _whats-new:
+
 ===============
 Release History
 ===============
@@ -12,208 +14,428 @@ Release History
     and may never be fast enough to be useful (in which case
     this branch may be closed).
 
-**1.6** (NOT YET RELEASED)
+**1.7** (NOT YET RELEASED)
+==========================
 
-    Hashes
+.. todo::
 
-        * The :doc:`bcrypt <lib/passlib.hash.bcrypt>` class now supports
-          crypt_blowfish's ``$2y$`` hash prefix (though it will not generate
-          them by default).
+    The following tasks are blocking the 1.7 release:
 
-        * The *unix_fallback* handler has been deprecated, and will be removed
-          in Passlib 1.8. Please use the improved replacement,
-          :doc:`unix_disabled <lib/passlib.hash.unix_disabled>`,
-          instead.
+    * Finish the :mod:`passlib.totp` module (mainly tests & documentation)
 
-        * Added support for Window's Domain Cached Credentials (aka
-          "dcc", "mscache", "mscash"), versions 1 and 2:
-          :doc:`msdcc <lib/passlib.hash.msdcc>` and
-          :doc:`msdcc2 <lib/passlib.hash.msdcc2>`.
+    * Get scrypt hash implemented, or push it to later release (really want to include it)
 
-        * The rarely-used hash previously known as ``nthash`` has been renamed to
-          :class:`~passlib.hash.bsd_nthash`, to better indicate it's lineage;
-          a new :class:`~passlib.hash.nthash` class now directly implements
-          the plain hexidecimal Windows NT password hash.
+    * Finish :mod:`passlib.pwd` -- need to finalize API and document it better.
 
-        * added support for Windows' :doc:`lmhash <lib/passlib.hash.lmhash>`
-          (aka Lan Manager password hash).
+    * Would strongly like to also add pbkdf2 & bcrypt variants which have support for an external
+      "pepper" to further increase security.
 
-        * added support for Cisco :doc:`PIX <lib/passlib.hash.cisco_pix>` and
-          :doc:`Type 7 <lib/passlib.hash.cisco_type7>` password hashes.
-          (Cisco Type 5 passwords seem to be the same as
-          :doc:`md5_crypt <lib/passlib.hash.md5_crypt>`).
+    * Internal cleanups:
 
-        * added support for MS SQL Server password hashes (
-          :doc:`mssql2000 <lib/passlib.hash.mssql2000>` and
-          :doc:`mssql2005 <lib/passlib.hash.mssql2005>`).
+        * Check for additions to Django's hashers as of Django 1.7
 
-        * Passlib now offers the :doc:`scram <lib/passlib.hash.scram>` hash,
-          specially designed for storing digest information for verifying
-          a user against the SCRAM protocol (:rfc:`5802`). It can also
-          be used to verify users in the same way as any other password
-          hash in Passlib, though it offers no particular advantages
-          outside of this special case.
+        * Potentially reorg the utils module (particularly the crypto bits), it's getting messy.
 
-        * Fixed rare ``'NoneType' object has no attribute 'decode'`` error
-          that sometimes occurred on platforms with a deviant implementation
-          of :func:`!os_crypt`.
+Requirements
+------------
 
-        * The :doc:`ldap salted digests </lib/passlib.hash.ldap_std>`
-          now support salts from 4-16 bytes [issue 30].
+   * **Passlib now requires Python 2.6, 2.7, or >= 3.2**.
+     Support for Python versions 2.5, 3.0, and 3.1 has been dropped
+     (and Python 3.2 may be dropped in the next major release).
+     Support for PyPy 1.x has also been dropped.
 
-        * :class:`bsdi_crypt` now issues a warning if an even number of rounds
-          is requested by the application, due to a known weakness in DES.
+   * The :mod:`passlib.ext.django` extension now requires Django 1.4 or better.
+     Django 0.9 .. 1.3 are no longer supported.
 
-        * All hashes will now throw :exc:`~passlib.exc.PasswordSizeError`
-          if the provided password is larger than 4096 characters.
+Major Changes
+-------------
+* New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
+  on both client and server side. Contains both low-level primitives, and high-level
+  helpers for persisting and tracking client state.
 
-          This limit should be above any reasonable password size,
-          and prevents various things including DOS abuse of hashes
-          that have an expensive password-length-dependant stage,
-          and for OS's which have a buggy :func:`!crypt.crypt` implementation.
+* New :mod:`passlib.pwd` module added to aid in password generation
+  and strength measurement (with contributions from Thomas Waldmann).
 
-    CryptContext
+* The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
+  hashes have been sped up by ~20% compared to Passlib 1.6.
 
-        .. currentmodule:: passlib.context
+* Passlib will now detect and work around the fatal concurrency bug
+  in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`
+  will also be issued). Nevertheless, users are *strongly* encouraged
+  to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
+  the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
 
-        * :class:`~CryptContext` now supports a :ref:`passprep <passprep>` option,
-          which can be used to run all passwords through SASLPrep (:rfc:`4013`),
-          in order to normalize their unicode representation before hashing
-          [issue 24].
+Minor Changes
+-------------
+* The shared :class:`!PasswordHash` unittests now check all hash handlers for
+  basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
 
-        * The :class:`!CryptContext` option
-          :ref:`min_verify_time <min-verify-time>` has been deprecated,
-          will be ignored in release 1.7, and will be removed in release 1.8.
+* The internal support module :mod:`passlib.utils.pbkdf2` has gained
+  to new helpers: :func:`~passlib.utils.pbkdf2.get_hash_info`
+  and :func:`~passlib.utils.pbkdf2.get_keyed_prf`.
 
-        * The internals of :class:`!CryptContext` have been rewritten
-          drastically. It's methods should now be stricter and more informative
-          about invalid values; and common :class:`!CryptContext` operations
-          should be faster, and have shorter internal code paths.
+Deprecations
+------------
+* The :func:`~passlib.utils.generate_secret` function has been deprecated
+  in favor of the new :mod:`passlib.pwd` module, and will be removed
+  in Passlib 2.0.
 
-        * The :attr:`!CryptContext.policy` attr, and the supporting
-          :class:`!CryptPolicy` class, have been deprecated in their entirety.
+* :class:`passlib.utils.handlers.HasManyBackends` internal API change
 
-          They will not be removed until Passlib 1.8, to give applications
-          which used these features time to migrate. Applications which did
-          not use either of these features explicitly should be unaffected by
-          this change.
+  Applications implementing a custom handler with multiple backends
+  should now provide :samp:`_load_backend_{name}` classmethod for each backend.
+  This is simpler, more flexible, and more explicit than the
+  previous (1.6 and earlier) API, which required a :samp:`_has_backend_{name}`
+  class property and a :samp:`_calc_checksum_{name}` method. Support
+  for the older API is deprecated, and will it be removed in Passlib 2.0.
 
-          The functionality of :class:`!CryptPolicy` has been merged
-          into the :class:`CryptContext` class, in order to simplify
-          the exposed interface. Information on migrating can be found
-          in the :class:`CryptPolicy` documentation, as well as in
-          the :exc:`DeprecationWarning` messages issued when a :class:`!CryptPolicy`
-          is invoked.
+Todo
+----
 
-        * :meth:`CryptContext.from_path` and :meth:`CryptContext.from_string`
-          (and the legacy :class:`CryptPolicy` object) now use stdlib's
-          :class:`!SafeConfigParser`.
+* Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
-          Previous releases used the original :class:`!ConfigParser` interpolation.
-          Passlib 1.5 switched to :class:`SafeConfigParser`,
-          but kept support for the old format as a (deprecated) fallback.
-          This fallback has been removed in 1.6; any
-          legacy config files may need to double any raw ``%`` characters
-          in order to load successfully.
+**1.6.2** (2013-12-26)
+======================
 
-    Utils
+    Minor changes & compatibility fixes
 
-        .. currentmodule:: passlib.utils.handlers
+    * Re-tuned the :attr:`~passlib.ifc.PasswordHash.default_rounds` values for all of the hashes.
 
-        * Internal handler framework (:mod:`passlib.utils.handlers`) rewritten
-          drastically. Provides stricter input checking, reduction in
-          boilerplate code.
+    * Added the new :doc:`bcrypt_sha256 <lib/passlib.hash.bcrypt_sha256>` hash,
+      which wraps BCrypt using SHA256 in order to work around BCrypt's password size limitations
+      (:issue:`43`).
 
-        * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
-          changed in backward-incompatible way: the ``strict`` keyword
-          was removed. :class:`!GenericHandler` now defaults to a behavior
-          which matches ``strict=True``: the constructor strictly requires
-          all values be specified, and that all values be within correct bounds.
-          The new keywords ``use_defaults`` and ``relaxed`` can be used
-          to disable these two requirements, respectively.
+    * :doc:`passlib.hash.bcrypt <lib/passlib.hash.bcrypt>`:
+      Added support for the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+      library as one of the possible bcrypt backends that will be used if available.
+      (:issue:`49`)
 
-        * :class:`~passlib.utils.handlers.StaticHandler` now derived from
-          :class:`!GenericHandler`, and required ``_calc_checksum()`` be
-          implemented instead of ``encrypt()``.
+    * :mod:`passlib.ext.django`: Passlib's Django extension
+      (and it's related hashes and unittests) have been updated to handle
+      some minor API changes in Django 1.5-1.6. They should now be compatible with Django 1.2 and up.
+      (:issue:`50`)
 
-        * :class:`~passlib.utils.handlers.GenericHandler` and related mixins
-          changed in backward-incompatible way: the :samp:`norm_{xxx}`
-          classmethods have been renamed to :samp:`_norm_{xxx}`, and turned
-          into instance methods. Similar renames were done for
-          ``calc_calchecksum`` and ``generate_salt``.
+**1.6.1** (2012-08-02)
+======================
 
-        * Calls to :meth:`HasManyBackends.set_backend`
+    Minor bugfix release
+
+    * *bugfix*: Various :class:`~passlib.context.CryptContext` methods
+      would incorrectly raise :exc:`TypeError` if passed a :class:`!unicode`
+      user category under Python 2. For consistency,
+      :class:`!unicode` user category values are now encoded to ``utf-8`` :class:`bytes` under Python 2.
+
+    * *bugfix*: Reworked internals of the :class:`CryptContext` config compiler
+      to fix a couple of border cases (:issue:`39`):
+
+        - It will now throw a :exc:`ValueError`
+          if the :ref:`default <context-default-option>` scheme is marked as
+          :ref:`deprecated <context-deprecated-option>`.
+        - If no default scheme is specified, it will use the first
+          *non-deprecated* scheme.
+        - Finally, it will now throw a :exc:`ValueError` if all schemes
+          are marked as deprecated.
+
+    * *bugfix*: FreeBSD 8.3 added native support for :class:`~passlib.hash.sha256_crypt` --
+      updated Passlib's unittests and documentation accordingly (:issue:`35`).
+
+    * *bugfix:* Fixed bug which caused some :mod:`!passlib.apache` unittests to fail
+      if mtime resolution >= 1 second (:issue:`35`).
+
+    * *bugfix:* Fixed minor bug in :mod:`!passlib.registry`, should now work correctly under Python 3.3.
+
+    * Various documentation updates and corrections.
+
+**1.6** (2012-05-01)
+====================
+
+Overview
+--------
+
+    Welcome to Passlib 1.6.
+
+    The main goal of this release was to clean up the codebase, tighten input
+    validation, and simplify the publically exposed interfaces. This release also
+    brings a number of other improvements: 10 or so new hash algorithms,
+    additional security precautions for the existing algorithms,
+    a number of speed improvements, and updated documentation.
+
+Deprecated APIs
+...............
+    In order to improve the publically exposed interface,
+    some of the more cumbersome and less-used functions in Passlib
+    have been deprecated / renamed. This should not affect 99% of applications.
+    That said, all the deprecated interfaces are still present, and will continue
+    to be supported for at least one more major release.
+    To help with migration, all deprecated functions should issue an informative
+    :exc:`DeprecationWarning` when they are invoked, detailing their suggested replacement.
+    The following interfaces have changed:
+
+    * The semi-internal :class:`!CryptPolicy` class has been deprecated
+      in its entirety. All functionality has been rolled into the
+      parent :class:`!CryptContext` class (see :ref:`below <crypt-policy-deprecated>` for more).
+
+    * The interface of the :mod:`passlib.apache` classes has been improved:
+      some confusing methods and options have been renamed, some new
+      constructors and other functions have been added.
+
+    * The (undocumented) :mod:`!passlib.win32` module has been deprecated,
+      all of its functionality is now offered through the
+      :doc:`lmhash <lib/passlib.hash.lmhash>` and :doc:`nthash <lib/passlib.hash.nthash>`
+      algorithms.
+
+New Hashes
+----------
+    The release adds support for a number of hash algorithms:
+
+    :doc:`cisco_pix <lib/passlib.hash.cisco_pix>`, :doc:`cisco_type7 <lib/passlib.hash.cisco_type7>`
+        Two hash formats frequently found on various
+        Cisco devices *(for Cisco Type 5 hashes, see*
+        :doc:`md5_crypt <lib/passlib.hash.md5_crypt>` *).*
+
+    :ref:`django_pbkdf2_sha256 <django-1.4-hashes>`, :ref:`django_pbkdf2_sha1 <django-1.4-hashes>`, :ref:`django_bcrypt <django-1.4-hashes>`
+        All three of the new hash schemes introduced in Django 1.4.
+
+    :doc:`lmhash <lib/passlib.hash.lmhash>`, :doc:`nthash <lib/passlib.hash.nthash>`
+        Microsoft's legacy "Lan Manager" hash, and the replacement
+        NT password hash. *(the old* ``nthash`` *algorithm in Passlib 1.5 has been renamed to*
+        :class:`~passlib.hash.bsd_nthash` *, to reflect its lineage)*.
+
+    :doc:`msdcc <lib/passlib.hash.msdcc>`, :doc:`msdcc2 <lib/passlib.hash.msdcc2>`
+        Microsoft Windows' Domain Cached Credentials, versions 1 and 2.
+        These algorithms also go by the names "DCC", "MSCache", and "MSCash".
+
+    :doc:`mssql2000 <lib/passlib.hash.mssql2000>`, :doc:`mssql2005 <lib/passlib.hash.mssql2005>`
+        Hash algorithms used by MS SQL Server 2000 and later.
+
+    :doc:`scram <lib/passlib.hash.scram>`
+        A hash format added specifically for storing the complex digest
+        information needed to authenticate a user via the SCRAM protocol
+        (:rfc:`5802`). It can also be used in the same way as any other
+        password hash in Passlib.
+
+Existing Hashes
+---------------
+    Additionally, the following new features have been added to the existing hashes:
+
+    .. _password-size-limit:
+
+    *Password Size Limit*
+        All hashes in Passlib will now throw :exc:`~passlib.exc.PasswordSizeError`
+        if handed a password that's larger than 4096 characters.
+
+        This limit should be larger than any reasonable password size,
+        and prevents various things including DOS abuses, and exploitation
+        of OSes with a buggy :func:`!crypt` implementation.
+        See :exc:`~passlib.exc.PasswordSizeError` for how to change this limit.
+
+    .. _consteq-issue:
+
+    *Constant Time Comparison*
+        All hash comparisons in Passlib now use the "constant time" [#consteq]_
+        comparison function :func:`~passlib.utils.consteq`, instead
+        of ``==``.
+
+        This change is motivated a well-known `hmac timing attack <http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/>`_
+        which exploits short-circuit string comparisons.
+        While this attack is not currently feasible against
+        most password hashes, some of the weaker unsalted
+        hashes supported by Passlib may be vulnerable; and this
+        change has been made preventatively to all of them.
+
+        .. [#consteq] "constant time" is a misnomer, it actually takes ``THETA(len(righthand_value))`` time.
+
+    .. _strict-parameters:
+
+    *Strict Parameters*
+        Previous releases of Passlib would silently correct any invalid values
+        (such as ``rounds`` parameters that were out of range). This is was deemed
+        undesirable, as it leaves developers unaware they are requesting
+        an incorrect (and potentially insecure) value.
+
+        Starting with this release, providing invalid values to
+        :meth:`PasswordHash.encrypt <passlib.ifc.PasswordHash.encrypt>`
+        will result in a :exc:`ValueError`. However, most hashes now accept
+        an optional ``relaxed=True`` keyword, which causes Passlib
+        to try and correct invalid values, and if successful,
+        issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
+        These warnings can then be filtered if desired.
+
+    :doc:`bcrypt <lib/passlib.hash.bcrypt>`
+        The BCrypt hash now supports the `crypt_blowfish <http://www.openwall.com/crypt/>`_ project's
+        ``$2y$`` hash prefix.
+
+        On an unrelated note, Passlib now offers an (experimental) pure-python
+        implementation of BCrypt. Unfortunately, it's still *WAY* too slow to be
+        suitable for production use; and is disabled by default.
+        If you really need it, see the BCrypt :ref:`documentation <bcrypt-backends>`
+        for how to enable it.
+
+    :doc:`bsdi_crypt <lib/passlib.hash.bsdi_crypt>`
+        BSDi-Crypt will now issue a :exc:`~passlib.exc.PasslibSecurityWarning`
+        if an application requests an even number of rounds, due to
+        a known weakness in DES. Existing hashes with an even number of rounds will
+        now be flagged by :meth:`CryptContext.needs_update() <passlib.context.CryptContext.needs_update>`.
+
+    :doc:`ldap_salted_{digest} </lib/passlib.hash.ldap_std>`
+        The LDAP salted digests now support salts of any size
+        from 4-16 bytes, though they still default to 4 (:issue:`30`).
+
+    :doc:`md5_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha256_crypt </lib/passlib.hash.md5_crypt>`, :doc:`sha512_crypt </lib/passlib.hash.md5_crypt>`
+        The builtin implementation of these hashes has been
+        sped up by about 25%, using an additional pre-computation step.
+
+    :doc:`unix_disabled <lib/passlib.hash.unix_disabled>`
+        The :class:`!unix_fallback` handler has been deprecated,
+        and will be removed in Passlib 1.8.
+        Applications should use the stricter-but-equivalent
+        :class:`!unix_disabled` handler instead.
+
+        This most likely only affects internal Passlib code.
+
+.. _crypt-policy-deprecated:
+
+CryptContext
+------------
+
+    .. currentmodule:: passlib.context
+
+    The :ref:`CryptContext <context-overview>` class has had a thorough
+    internal overhaul. While the primary interface has not changed
+    at all, the internals are much stricter about input validation,
+    common methods have shorter code-paths,  and the
+    construction and introspection of :class:`!CryptContext` objects
+    has been greatly simplified.
+    Changes include:
+
+    * All new (and hopefully clearer) :ref:`tutorial <context-tutorial>`
+      and :ref:`reference <context-reference>` documentation.
+
+    *   The :class:`CryptPolicy` class and the :attr:`!CryptContext.policy` attribute have been deprecated.
+
+        This was a semi-internal class, which most applications
+        were not involved with at all, but to be conservative about
+        breaking things, the existing CryptPolicy interface
+        will remain in-place and supported until Passlib 1.8.
+
+        All of the functionality of this class has been rolled into
+        :class:`!CryptContext` itself, so there's one less class to remember.
+        Many of the methods provided by :class:`!CryptPolicy` are now
+        :class:`!CryptContext` methods, most with the same name and call syntax.
+        Information on migrating existing code can be found in
+        the deprecation warnings issued by the class itself,
+        and in the :class:`CryptPolicy` documentation.
+
+    * Two new class constructors have been added (:meth:`CryptContext.from_path`
+      and :meth:`CryptContext.from_string`) to aid in loading CryptContext objects
+      directly from a configuration file.
+
+    * The :ref:`deprecated <context-deprecated-option>` keyword
+      can now be set to the special string ``"auto"``; which will
+      automatically deprecate all schemes except for the default one.
+
+    * The :ref:`min_verify_time <context-min-verify-time-option>` keyword
+      has been deprecated, will be ignored in release 1.7, and will be removed in release 1.8.
+      It was never very useful, and now complicates the internal code needlessly.
+
+    * All string parsing now uses stdlib's :class:`!SafeConfigParser`.
+
+      Previous releases used the original :class:`!ConfigParser` interpolation;
+      which was deprecated in Passlib 1.5, and has now been removed.
+      This should only affect strings which contained raw ``%`` characters,
+      they will now need to be escaped via ``%%``.
+
+Other Modules
+-------------
+
+    * The api for the :mod:`passlib.apache` module has been updated
+      to add more flexibility, and to fix some ambiguous method
+      and keyword names. The old interface is still supported, but deprecated,
+      and will be removed in Passlib 1.8.
+
+    * Added the :data:`~passlib.apps.django14_context` preset to the
+      the :mod:`!passlib.apps` module. this preconfigured CryptContext
+      object should support all the hashes found in a typical Django 1.4
+      deployment.
+
+    * **new**: Added :mod:`passlib.ext.django`, a Django plugin which can be used to
+      override Django's password hashing framework with a custom Passlib
+      policy (an undocumented beta version of this was present in the 1.5 release).
+
+    * **new**: The :func:`passlib.utils.saslprep` function may be useful
+      for applications which need to normalize the unicode representation
+      of passwords before they are hashed.
+
+Bugfixes
+--------
+    * Handle platform-specific error strings that may be returned by the
+      :func:`!crypt` methods of some OSes.
+
+    * Fixed rare ``'NoneType' object has no attribute 'decode'``
+      error that sometimes occurred on platforms with a deviant implementation
+      of :func:`!crypt`.
+
+Internal Changes
+----------------
+    *The following changes should not affect most end users,
+    and have been documented just to keep track of them:*
+
+    .. currentmodule:: passlib.utils.handlers
+
+    * Passlib is now source-compatible with Python 2.5+ and Python 3.x.
+      It no longer requires the use of the :command:`2to3` command
+      to translate it for Python 3.
+
+    * The unittest suite has been rewritten. It handles a number of additional
+      border cases, enforcing uniform behavior across all hashes, and
+      even features the addition of some simplistic fuzz testing.
+      It will take a bit longer to run though. While not perfect,
+      statement coverage is at about 95%.
+      Additionally, the hash test suite has been enhanced with many more
+      test vectors across the board, including 8-bit test vectors.
+
+    * The internal framework used to construct the hash classes (:mod:`passlib.utils.handlers`)
+      was rewritten drastically. The new version provides stricter input checking,
+      reduction in boilerplate code. *These changes should not affect any
+      publically exposed routines*.
+
+        - :class:`~passlib.utils.handlers.GenericHandler`'s
+          ``strict`` keyword was removed, ``strict=True`` is now
+          the class's default behavior: all values must be specified,
+          and be within the correct bounds. The new keywords
+          ``use_defaults`` and ``relaxed`` can be used to disable
+          these two requirements.
+
+        - Most of the private methods of :class:`~passlib.utils.handlers.GenericHandler`
+          were renamed to begin with an underscore, to clarify their status;
+          and turned into instance methods, to simplify the internals.
+          (for example, :samp:`norm_salt` was renamed to :samp:`_norm_salt`).
+
+        - :class:`~passlib.utils.handlers.StaticHandler` now derives from
+          :class:`!GenericHandler`, and requires ``_calc_checksum()`` be
+          implemented instead of ``encrypt()``. The old style is supported
+          but deprecated, and support will be removed in Passlib 1.8.
+
+        - Calls to :meth:`HasManyBackends.set_backend`
           should now use the string ``"any"`` instead of the value ``None``.
           ``None`` was deprecated in release 1.5, and is no longer supported.
-          This affects all schemes in :mod:`passlib.hash` which support
-          multiple backends.
 
-        .. currentmodule:: passlib.utils
+    .. currentmodule:: passlib.utils
 
-        * :mod:`!passlib.utils.h64` has been replaced by an instance of the
-          new :class:`~passlib.utils.Base64Engine` class. This  instance is
-          imported under the same name, and has (mostly) the same interface;
-          but should be faster, more flexible, and better unit-tested.
+    * :mod:`!passlib.utils.h64` has been replaced by an instance of the
+      new :class:`~passlib.utils.Base64Engine` class. This  instance is
+      imported under the same name, and has (mostly) the same interface;
+      but should be faster, more flexible, and better unit-tested.
 
-        * deprecated some unused functions in :mod:`!passlib.utils`,
-          they will be removed in release 1.7.
+    * deprecated some unused support functions within :mod:`!passlib.utils`,
+      they will be removed in release 1.7.
 
-    Other
-
-        * The api for the :mod:`passlib.apache` module has been updated
-          to add more flexibility, and to fix some ambiguous method
-          and keyword names. The old names are still supported, but deprecated,
-          and will be removed in Passlib 1.8.
-
-        * Handle platform-specific error strings returned by :func:`!crypt.crypt`.
-
-        * Passlib is now source-compatible with Python 2.5+ and Python 3,
-          and no longer requires the use of :command:`2to3` to run under Python 3.
-
-        * Hash unittest framework rewritten. More border cases handled,
-          some simple fuzz testing added.
-
-        .. currentmodule:: passlib.hash
-
-        .. _consteq-issue:
-
-        * All digest comparisons within Passlib are now done using
-          a "constant time" comparison function :func:`~passlib.utils.consteq`,
-          instead of ``==``.
-
-          *In detail:*
-
-              This change is motivated by an `hmac timing attack <http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/>`_
-              which exploits ``==``'s short-circuit comparison algorithm.
-              This attack is generally not applicable to password hashes,
-              as it requires the attacker to both know the salt,
-              and be able to generate digests beginning with a specific prefix.
-              However, while this task should be computationally difficult
-              against modern hashes (such as :class:`sha512_crypt`), this
-              change should pre-emptively protect Passlib in case someone
-              constructs a such an attack in the future. Furthermore, some of
-              the legacy hashes supported by Passlib (such as
-              :class:`mysql323`) are already weak enough to be vulnerable.
-
-        * Builtin implementations of :class:`md5_crypt`,
-          :class:`sha256_crypt`, and :class:`sha512_crypt` sped up by
-          about 25% due via additional pre-computation step.
-
-        * Restored builtin pure-python BCrypt implementation
-          (:mod:`passlib.utils._slow_bcrypt`) that was removed in v1.3.
-          This implementation is still *WAY* to slow to be suitable
-          for production. However, it's almost fast enough under PyPy,
-          and might be sped up in the future... so while it is disabled
-          by default, developers who really want to use it
-          should set the environment variable ``PASSLIB_BUILTIN_BCRYPT=enabled``
-          before loading Passlib.
+.. _bcrypt-padding-issue:
 
 **1.5.3** (2011-10-08)
 ======================
 
-    Bugfix release -- fixes BCrypt padding/verification issue
-
-    .. _bcrypt-padding-issue:
+    Bugfix release -- fixes BCrypt padding/verification issue (:issue:`25`)
 
     This release fixes a single issue with Passlib's BCrypt support: Many
     BCrypt hashes generated by Passlib (<= 1.5.2) will not successfully verify
@@ -229,7 +451,7 @@ Release History
         *all* passwords if any of the padding bits are set.  Thus Passlib's
         BCrypt salt generation needed to be fixed to ensure compatibility,
         and a route provided to correct existing hashes already out in the wild
-        [issue 25].
+        :issue:`25`.
 
     *Changes in this release:*
 
@@ -263,8 +485,8 @@ Release History
         .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
-          :data:`hash64 <passlib.utils.h64>` characters in it's salts;
-          previously it accepted only lower-case hexidecimal characters [issue 22].
+          :data:`hash64 <passlib.utils.h64>` characters in its salts;
+          previously it accepted only lower-case hexadecimal characters (:issue:`22`).
 
         * Additional unittests added for all
           standard :doc:`Django hashes </lib/passlib.hash.django_std>`.
@@ -288,16 +510,16 @@ Release History
     Minor bugfix release -- now compatible with Google App Engine.
 
     * *bugfix:* make ``passlib.hash.__loader__`` attribute writable -
-      needed by Google App Engine (GAE) [issue 19].
+      needed by Google App Engine (GAE) :issue:`19`.
 
     * *bugfix:* provide fallback for loading ``passlib/default.cfg``
-      if :mod:`pkg_resources` is not present, such as for GAE [issue 19].
+      if :mod:`pkg_resources` is not present, such as for GAE :issue:`19`.
 
     * *bugfix:* fixed error thrown by CryptContext.verify
-      when issuing min_verify_time warning [issue 17].
+      when issuing min_verify_time warning :issue:`17`.
 
     * removed min_verify_time setting from custom_app_context,
-      min_verify_time is too host & load dependant to be hardcoded [issue 17].
+      min_verify_time is too host & load dependant to be hardcoded :issue:`17`.
 
     * under GAE, disable all unittests which require writing to filesystem.
 
@@ -308,141 +530,148 @@ Release History
 **1.5** (2011-07-11)
 ====================
 
-    *"20% more unicode than the leading breakfast cereal"*
+*"20% more unicode than the leading breakfast cereal"*
 
-    The main new feature in this release is that
-    Passlib now supports Python 3 (via the 2to3 tool).
-    Everything has been recoded to have better separation
-    between unicode and bytes, and to use unicode internally
-    where possible.
-    When run under Python 2, Passlib 1.5 attempts
-    to provide the same behavior as Passlib 1.4;
-    but when run under Python 3, most functions
-    will return unicode instead of ascii bytes.
+The main new feature in this release is that
+Passlib now supports Python 3 (via the 2to3 tool).
+Everything has been recoded to have better separation
+between unicode and bytes, and to use unicode internally
+where possible.
+When run under Python 2, Passlib 1.5 attempts
+to provide the same behavior as Passlib 1.4;
+but when run under Python 3, most functions
+will return unicode instead of ascii bytes.
 
-    Besides this major change, there have
-    been some other additions:
+Besides this major change, there have
+been some other additions:
 
-    Hashes
+Hashes
+------
 
-        * added support for Cryptacular's PBKDF2 format.
-        * added support for the FSHP family of hashes.
-        * added support for using BCryptor as BCrypt backend.
-        * added support for all of Django's hash formats.
+    * added support for Cryptacular's PBKDF2 format.
+    * added support for the FSHP family of hashes.
+    * added support for using BCryptor as BCrypt backend.
+    * added support for all of Django's hash formats.
 
-    CryptContext
+CryptContext
+------------
 
-        .. currentmodule:: passlib.context
+    .. currentmodule:: passlib.context
 
-        * interpolation deprecation:
+    * interpolation deprecation:
 
-          :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
-          now use :class:`!SafeConfigParser` instead of :class:`!ConfigParser`.
-          This may cause some existing config files containing unescaped ``%``
-          to result in errors; Passlib 1.5 will demote these to warnings,
-          but any extant config files should be updated,
-          as the errors will be fatal in Passlib 1.6.
+      :meth:`CryptPolicy.from_path` and :meth:`CryptPolicy.from_string`
+      now use :class:`!SafeConfigParser` instead of :class:`!ConfigParser`.
+      This may cause some existing config files containing unescaped ``%``
+      to result in errors; Passlib 1.5 will demote these to warnings,
+      but any extant config files should be updated,
+      as the errors will be fatal in Passlib 1.6.
 
-        * added encoding keyword to :class:`!CryptPolicy`'s
-          :meth:`!.from_path()`, :meth:`!.from_string`,
-          and :meth:`!.to_string` methods.
+    * added encoding keyword to :class:`!CryptPolicy`'s
+      :meth:`!.from_path()`, :meth:`!.from_string`,
+      and :meth:`!.to_string` methods.
 
-        * both classes in :mod:`passlib.apache`
-          now support specifying an encoding for the username/realm.
+    * both classes in :mod:`passlib.apache`
+      now support specifying an encoding for the username/realm.
 
-    Documentation
+Documentation
+-------------
 
-        * Password Hash API expanded to include explicit
-          :ref:`unicode vs bytes policy <hash-unicode-behavior>`.
-        * Added quickstart guide to documentation.
-        * Various minor improvements.
+    * Password Hash API expanded to include explicit
+      :ref:`unicode vs bytes policy <hash-unicode-behavior>`.
+    * Added quickstart guide to documentation.
+    * Various minor improvements.
 
-    Internals
+Internal Changes
+----------------
 
-        * Added more handler utility functions to reduce code duplication.
-        * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
-        * Removed deprecated parts of :mod:`passlib.utils.handlers`.
-        * Various minor changes to
-          :class:`passlib.utils.handlers.HasManyBackends`;
-          main change is that multi-backend handlers now raise
-          :exc:`~passlib.exc.MissingBackendError`
-          if no backends are available.
+    * Added more handler utility functions to reduce code duplication.
+    * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
+    * Removed deprecated parts of :mod:`passlib.utils.handlers`.
+    * Various minor changes to
+      :class:`passlib.utils.handlers.HasManyBackends`;
+      main change is that multi-backend handlers now raise
+      :exc:`~passlib.exc.MissingBackendError`
+      if no backends are available.
 
-    Other
-
-        * Builtin tests now use :mod:`!unittest2` if available.
-        * Setup script no longer requires distribute or setuptools.
-        * added (undocumented, experimental) Django app
-          for overriding Django's default hash format,
-          see ``docs/lib/passlib.ext.django.rst`` for more.
+    * Builtin tests now use :mod:`!unittest2` if available.
+    * Setup script no longer requires distribute or setuptools.
+    * added (undocumented, experimental) Django app
+      for overriding Django's default hash format,
+      see ``docs/lib/passlib.ext.django.rst`` for more.
 
 **1.4** (2011-05-04)
 ====================
 
-    This release contains a large number of changes, both large and small.
-    It adds a number of PBKDF2-based schemes, better support
-    for LDAP-format hashes, improved documentation,
-    and faster load times. In detail...
+This release contains a large number of changes, both large and small.
+It adds a number of PBKDF2-based schemes, better support
+for LDAP-format hashes, improved documentation,
+and faster load times. In detail...
 
-    Hashes
+Hashes
+------
 
-        * added LDAP ``{CRYPT}`` support for all hashes
-          known to be supported by OS crypt()
-        * added 3 custom PBKDF2 schemes for general use,
-          as well as 3 LDAP-compatible versions.
-        * added support for Dwayne Litzenberger's PBKDF2 scheme.
-        * added support for Grub2's PBKDF2 hash scheme.
-        * added support for Atlassian's PBKDF2 password hash
-        * added support for all hashes used by the Roundup Issue Tracker
-        * bsdi_crypt, sha1_crypt now check for OS crypt() support
-        * ``salt_size`` keyword added to encrypt() method of all
-          the hashes which support variable-length salts.
-        * security fix: disabled unix_fallback's "wildcard password" support
-          unless explicitly enabled by user.
+    * added LDAP ``{CRYPT}`` support for all hashes
+      known to be supported by OS crypt()
+    * added 3 custom PBKDF2 schemes for general use,
+      as well as 3 LDAP-compatible versions.
+    * added support for Dwayne Litzenberger's PBKDF2 scheme.
+    * added support for Grub2's PBKDF2 hash scheme.
+    * added support for Atlassian's PBKDF2 password hash
+    * added support for all hashes used by the Roundup Issue Tracker
+    * bsdi_crypt, sha1_crypt now check for OS crypt() support
+    * ``salt_size`` keyword added to encrypt() method of all
+      the hashes which support variable-length salts.
+    * security fix: disabled unix_fallback's "wildcard password" support
+      unless explicitly enabled by user.
 
-    CryptContext
+CryptContext
+------------
 
-        * host_context now dynamically detects which formats
-          OS crypt() supports, instead of guessing based on sys.platform.
-        * added predefined context for Roundup Issue Tracker database.
-        * added CryptContext.verify_and_update() convience method,
-          to make it easier to perform both operations at once.
-        * *bugfix:* fixed NameError in category+min_verify_time border case
-        * apps & hosts modules now use new
-          :class:`LazyCryptContext` wrapper class -
-          this should speed up initial import,
-          and reduce memory by not loading uneeded hashes.
+    * host_context now dynamically detects which formats
+      OS crypt() supports, instead of guessing based on sys.platform.
+    * added predefined context for Roundup Issue Tracker database.
+    * added CryptContext.verify_and_update() convenience method,
+      to make it easier to perform both operations at once.
+    * *bugfix:* fixed NameError in category+min_verify_time border case
+    * apps & hosts modules now use new
+      :class:`LazyCryptContext` wrapper class -
+      this should speed up initial import,
+      and reduce memory by not loading unneeded hashes.
 
-    Documentation
+Documentation
+-------------
 
-        * greatly expanded documentation on how to use CryptContexts.
-        * roughly documented framework for writing & testing
-          custom password handlers.
-        * various minor improvements.
+    * greatly expanded documentation on how to use CryptContexts.
+    * roughly documented framework for writing & testing
+      custom password handlers.
+    * various minor improvements.
 
-    Internals
+Internals
+---------
 
-        * added generate_password() convenience method
-        * refactored framework for building hash handlers,
-          using new mixin-based system.
-        * deprecated old handler framework - will remove in 1.5
-        * deprecated list_to_bytes & bytes_to_list - not used, will remove in 1.5
+    * added generate_password() convenience method
+    * refactored framework for building hash handlers,
+      using new mixin-based system.
+    * deprecated old handler framework - will remove in 1.5
+    * deprecated list_to_bytes & bytes_to_list - not used, will remove in 1.5
 
-    Other
+Other
+-----
 
-        * password hash api - as part of cleaning up optional attributes
-          specification, renamed a number of them to reduce ambiguity:
+    * password hash api - as part of cleaning up optional attributes
+      specification, renamed a number of them to reduce ambiguity:
 
-            - renamed *{xxx}_salt_chars* attributes -> *xxx_salt_size*
-            - renamed *salt_charset* -> *salt_chars*
-            - old attributes still present, but deprecated - will remove in 1.5
+        - renamed *{xxx}_salt_chars* attributes -> *xxx_salt_size*
+        - renamed *salt_charset* -> *salt_chars*
+        - old attributes still present, but deprecated - will remove in 1.5
 
-        * password hash api - tightened specifications for salt & rounds parameters,
-          added support for hashes w/ no max salt size.
+    * password hash api - tightened specifications for salt & rounds parameters,
+      added support for hashes w/ no max salt size.
 
-        * improved password hash api conformance tests
+    * improved password hash api conformance tests
 
-        * PyPy compatibility
+    * PyPy compatibility
 
 **1.3.1** (2011-03-28)
 ======================
@@ -463,7 +692,7 @@ Release History
     * documentation completed
     * 99% unittest coverage
     * some refactoring and lots of bugfixes
-    * added support for a number of addtional password schemes:
+    * added support for a number of additional password schemes:
       bigcrypt, crypt16, sun md5 crypt, nthash, lmhash, oracle10 & 11,
       phpass, sha1, generic hex digests, ldap digests.
 
@@ -472,7 +701,7 @@ Release History
 
     .. note::
 
-        For this and all previous versions, PassLib did not exist independantly,
+        For this and all previous versions, Passlib did not exist independently,
         but as a subpackage of *BPS*, a private & unreleased toolkit library.
 
     * many bugfixes

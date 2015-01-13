@@ -26,7 +26,10 @@ PKCS#5 Key Derivation Functions
 Helper Functions
 ================
 .. autofunction:: norm_hash_name
+.. autofunction:: get_hash_info
+
 .. autofunction:: get_prf
+.. autofunction:: get_keyed_prf
 
 ..
     given how this module is expanding in scope,

@@ -1,18 +1,15 @@
 """passlib.registry - registry for password hash handlers"""
-#=========================================================
-#imports
-#=========================================================
-#core
-import inspect
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
-from passlib.exc import PasslibWarning
+# pkg
+from passlib.exc import ExpectedTypeError, PasslibWarning
 from passlib.utils import is_crypt_handler
-#pkg
-#local
+# local
 __all__ = [
     "register_crypt_handler_path",
     "register_crypt_handler",
@@ -20,10 +17,10 @@ __all__ = [
     "list_crypt_handlers",
 ]
 
-#=========================================================
-#registry proxy object
-#=========================================================
-class PasslibRegistryProxy(object):
+#=============================================================================
+# proxy object used in place of 'passlib.hash' module
+#=============================================================================
+class _PasslibRegistryProxy(object):
     """proxy module passlib.hash
 
     this module is in fact an object which lazy-loads
@@ -44,123 +41,152 @@ class PasslibRegistryProxy(object):
 
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
-            #NOTE: this is required for GAE,
-            #      since it tries to set passlib.hash.__loader__
+            # writing to private attributes should behave normally.
+            # (required so GAE can write to the __loader__ attribute).
             object.__setattr__(self, attr, value)
         else:
-            register_crypt_handler(value, name=attr)
+            # writing to public attributes should be treated
+            # as attempting to register a handler.
+            register_crypt_handler(value, _attr=attr)
 
     def __repr__(self):
         return "<proxy module 'passlib.hash'>"
 
     def __dir__(self):
-        #add in handlers that will be lazy-loaded,
-        #otherwise this is std dir implementation
+        # this adds in lazy-loaded handler names,
+        # otherwise this is the standard dir() implementation.
         attrs = set(dir(self.__class__))
         attrs.update(self.__dict__)
-        attrs.update(_handler_locations)
+        attrs.update(_locations)
         return sorted(attrs)
 
-    #=========================================================
-    #eoc
-    #=========================================================
+# create single instance - available publically as 'passlib.hash'
+_proxy = _PasslibRegistryProxy()
 
-#singleton instance - available publically as 'passlib.hash'
-_proxy = PasslibRegistryProxy()
+#=============================================================================
+# internal registry state
+#=============================================================================
 
-#==========================================================
-#internal registry state
-#==========================================================
+# singleton uses to detect omitted keywords
+_UNSET = object()
 
-#: dict mapping name -> handler for all loaded handlers. uses proxy's dict so they stay in sync.
+# dict mapping name -> loaded handlers (just uses proxy object's internal dict)
 _handlers = _proxy.__dict__
 
-#: dict mapping name -> (module path, attribute) for lazy-loading of handlers
-_handler_locations = {
-    #NOTE: this is a hardcoded list of the handlers built into passlib,
-    #applications should call register_crypt_handler_location() to add their own
-    "apr_md5_crypt":    ("passlib.handlers.md5_crypt",   "apr_md5_crypt"),
-    "atlassian_pbkdf2_sha1":
-                        ("passlib.handlers.pbkdf2",      "atlassian_pbkdf2_sha1"),
-    "bcrypt":           ("passlib.handlers.bcrypt",      "bcrypt"),
-    "bigcrypt":         ("passlib.handlers.des_crypt",   "bigcrypt"),
-    "bsd_nthash":       ("passlib.handlers.windows",     "bsd_nthash"),
-    "bsdi_crypt":       ("passlib.handlers.des_crypt",   "bsdi_crypt"),
-    "cisco_pix":        ("passlib.handlers.cisco",       "cisco_pix"),
-    "cisco_type7":      ("passlib.handlers.cisco",       "cisco_type7"),
-    "cta_pbkdf2_sha1":  ("passlib.handlers.pbkdf2",      "cta_pbkdf2_sha1"),
-    "crypt16":          ("passlib.handlers.des_crypt",   "crypt16"),
-    "des_crypt":        ("passlib.handlers.des_crypt",   "des_crypt"),
-    "django_salted_sha1":
-                        ("passlib.handlers.django",      "django_salted_sha1"),
-    "django_salted_md5":("passlib.handlers.django",      "django_salted_md5"),
-    "django_des_crypt": ("passlib.handlers.django",      "django_des_crypt"),
-    "django_disabled":  ("passlib.handlers.django",      "django_disabled"),
-    "dlitz_pbkdf2_sha1":("passlib.handlers.pbkdf2",      "dlitz_pbkdf2_sha1"),
-    "fshp":             ("passlib.handlers.fshp",        "fshp"),
-    "grub_pbkdf2_sha512":
-                        ("passlib.handlers.pbkdf2",      "grub_pbkdf2_sha512"),
-    "hex_md4":          ("passlib.handlers.digests",     "hex_md4"),
-    "hex_md5":          ("passlib.handlers.digests",     "hex_md5"),
-    "hex_sha1":         ("passlib.handlers.digests",     "hex_sha1"),
-    "hex_sha256":       ("passlib.handlers.digests",     "hex_sha256"),
-    "hex_sha512":       ("passlib.handlers.digests",     "hex_sha512"),
-    "htdigest":         ("passlib.handlers.digests",     "htdigest"),
-    "ldap_plaintext":   ("passlib.handlers.ldap_digests","ldap_plaintext"),
-    "ldap_md5":         ("passlib.handlers.ldap_digests","ldap_md5"),
-    "ldap_sha1":        ("passlib.handlers.ldap_digests","ldap_sha1"),
-    "ldap_hex_md5":     ("passlib.handlers.roundup",     "ldap_hex_md5"),
-    "ldap_hex_sha1":    ("passlib.handlers.roundup",     "ldap_hex_sha1"),
-    "ldap_salted_md5":  ("passlib.handlers.ldap_digests","ldap_salted_md5"),
-    "ldap_salted_sha1": ("passlib.handlers.ldap_digests","ldap_salted_sha1"),
-    "ldap_des_crypt":   ("passlib.handlers.ldap_digests","ldap_des_crypt"),
-    "ldap_bsdi_crypt":  ("passlib.handlers.ldap_digests","ldap_bsdi_crypt"),
-    "ldap_md5_crypt":   ("passlib.handlers.ldap_digests","ldap_md5_crypt"),
-    "ldap_bcrypt":      ("passlib.handlers.ldap_digests","ldap_bcrypt"),
-    "ldap_sha1_crypt":  ("passlib.handlers.ldap_digests","ldap_sha1_crypt"),
-    "ldap_sha256_crypt":("passlib.handlers.ldap_digests","ldap_sha256_crypt"),
-    "ldap_sha512_crypt":("passlib.handlers.ldap_digests","ldap_sha512_crypt"),
-    "ldap_pbkdf2_sha1": ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha1"),
-    "ldap_pbkdf2_sha256":
-                        ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha256"),
-    "ldap_pbkdf2_sha512":
-                        ("passlib.handlers.pbkdf2",      "ldap_pbkdf2_sha512"),
-    "lmhash":           ("passlib.handlers.windows",     "lmhash"),
-    "md5_crypt":        ("passlib.handlers.md5_crypt",   "md5_crypt"),
-    "msdcc":            ("passlib.handlers.windows",     "msdcc"),
-    "msdcc2":           ("passlib.handlers.windows",     "msdcc2"),
-    "mssql2000":        ("passlib.handlers.mssql",       "mssql2000"),
-    "mssql2005":        ("passlib.handlers.mssql",       "mssql2005"),
-    "mysql323":         ("passlib.handlers.mysql",       "mysql323"),
-    "mysql41":          ("passlib.handlers.mysql",       "mysql41"),
-    "nthash":           ("passlib.handlers.windows",     "nthash"),
-    "oracle10":         ("passlib.handlers.oracle",      "oracle10"),
-    "oracle11":         ("passlib.handlers.oracle",      "oracle11"),
-    "pbkdf2_sha1":      ("passlib.handlers.pbkdf2",      "pbkdf2_sha1"),
-    "pbkdf2_sha256":    ("passlib.handlers.pbkdf2",      "pbkdf2_sha256"),
-    "pbkdf2_sha512":    ("passlib.handlers.pbkdf2",      "pbkdf2_sha512"),
-    "phpass":           ("passlib.handlers.phpass",      "phpass"),
-    "plaintext":        ("passlib.handlers.misc",        "plaintext"),
-    "postgres_md5":     ("passlib.handlers.postgres",    "postgres_md5"),
-    "roundup_plaintext":("passlib.handlers.roundup",     "roundup_plaintext"),
-    "scram":            ("passlib.handlers.scram",       "scram"),
-    "sha1_crypt":       ("passlib.handlers.sha1_crypt",  "sha1_crypt"),
-    "sha256_crypt":     ("passlib.handlers.sha2_crypt",  "sha256_crypt"),
-    "sha512_crypt":     ("passlib.handlers.sha2_crypt",  "sha512_crypt"),
-    "sun_md5_crypt":    ("passlib.handlers.sun_md5_crypt","sun_md5_crypt"),
-    "unix_disabled":    ("passlib.handlers.misc",         "unix_disabled"),
-    "unix_fallback":    ("passlib.handlers.misc",         "unix_fallback"),
-}
+# dict mapping names -> import path for lazy loading.
+#     * import path should be "module.path" or "module.path:attr"
+#     * if attr omitted, "name" used as default.
+_locations = dict(
+    # NOTE: this is a hardcoded list of the handlers built into passlib,
+    #       applications should call register_crypt_handler_path()
+    apr_md5_crypt = "passlib.handlers.md5_crypt",
+    atlassian_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
+    bcrypt = "passlib.handlers.bcrypt",
+    bcrypt_sha256 = "passlib.handlers.bcrypt",
+    bigcrypt = "passlib.handlers.des_crypt",
+    bsd_nthash = "passlib.handlers.windows",
+    bsdi_crypt = "passlib.handlers.des_crypt",
+    cisco_pix = "passlib.handlers.cisco",
+    cisco_type7 = "passlib.handlers.cisco",
+    cta_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
+    crypt16 = "passlib.handlers.des_crypt",
+    des_crypt = "passlib.handlers.des_crypt",
+    django_bcrypt = "passlib.handlers.django",
+    django_bcrypt_sha256 = "passlib.handlers.django",
+    django_pbkdf2_sha256 = "passlib.handlers.django",
+    django_pbkdf2_sha1 = "passlib.handlers.django",
+    django_salted_sha1 = "passlib.handlers.django",
+    django_salted_md5 = "passlib.handlers.django",
+    django_des_crypt = "passlib.handlers.django",
+    django_disabled = "passlib.handlers.django",
+    dlitz_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
+    fshp = "passlib.handlers.fshp",
+    grub_pbkdf2_sha512 = "passlib.handlers.pbkdf2",
+    hex_md4 = "passlib.handlers.digests",
+    hex_md5 = "passlib.handlers.digests",
+    hex_sha1 = "passlib.handlers.digests",
+    hex_sha256 = "passlib.handlers.digests",
+    hex_sha512 = "passlib.handlers.digests",
+    htdigest = "passlib.handlers.digests",
+    ldap_plaintext = "passlib.handlers.ldap_digests",
+    ldap_md5 = "passlib.handlers.ldap_digests",
+    ldap_sha1 = "passlib.handlers.ldap_digests",
+    ldap_hex_md5 = "passlib.handlers.roundup",
+    ldap_hex_sha1 = "passlib.handlers.roundup",
+    ldap_salted_md5 = "passlib.handlers.ldap_digests",
+    ldap_salted_sha1 = "passlib.handlers.ldap_digests",
+    ldap_des_crypt = "passlib.handlers.ldap_digests",
+    ldap_bsdi_crypt = "passlib.handlers.ldap_digests",
+    ldap_md5_crypt = "passlib.handlers.ldap_digests",
+    ldap_bcrypt = "passlib.handlers.ldap_digests",
+    ldap_sha1_crypt = "passlib.handlers.ldap_digests",
+    ldap_sha256_crypt = "passlib.handlers.ldap_digests",
+    ldap_sha512_crypt = "passlib.handlers.ldap_digests",
+    ldap_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
+    ldap_pbkdf2_sha256 = "passlib.handlers.pbkdf2",
+    ldap_pbkdf2_sha512 = "passlib.handlers.pbkdf2",
+    lmhash = "passlib.handlers.windows",
+    md5_crypt = "passlib.handlers.md5_crypt",
+    msdcc = "passlib.handlers.windows",
+    msdcc2 = "passlib.handlers.windows",
+    mssql2000 = "passlib.handlers.mssql",
+    mssql2005 = "passlib.handlers.mssql",
+    mysql323 = "passlib.handlers.mysql",
+    mysql41 = "passlib.handlers.mysql",
+    nthash = "passlib.handlers.windows",
+    oracle10 = "passlib.handlers.oracle",
+    oracle11 = "passlib.handlers.oracle",
+    pbkdf2_sha1 = "passlib.handlers.pbkdf2",
+    pbkdf2_sha256 = "passlib.handlers.pbkdf2",
+    pbkdf2_sha512 = "passlib.handlers.pbkdf2",
+    phpass = "passlib.handlers.phpass",
+    plaintext = "passlib.handlers.misc",
+    postgres_md5 = "passlib.handlers.postgres",
+    roundup_plaintext = "passlib.handlers.roundup",
+    scram = "passlib.handlers.scram",
+    sha1_crypt = "passlib.handlers.sha1_crypt",
+    sha256_crypt = "passlib.handlers.sha2_crypt",
+    sha512_crypt = "passlib.handlers.sha2_crypt",
+    sun_md5_crypt = "passlib.handlers.sun_md5_crypt",
+    unix_disabled = "passlib.handlers.misc",
+    unix_fallback = "passlib.handlers.misc",
+)
 
-#: master regexp for detecting valid handler names
-_name_re = re.compile("^[a-z][_a-z0-9]{2,}$")
+# master regexp for detecting valid handler names
+_name_re = re.compile("^[a-z][a-z0-9_]+[a-z0-9]$")
 
-#: names which aren't allowed for various reasons (mainly keyword conflicts in CryptContext)
-_forbidden_names = frozenset(["onload", "policy", "context", "all", "default", "none"])
+# names which aren't allowed for various reasons
+# (mainly keyword conflicts in CryptContext)
+_forbidden_names = frozenset(["onload", "policy", "context", "all",
+                              "default", "none", "auto"])
 
-#==========================================================
-#registry frontend functions
-#==========================================================
+#=============================================================================
+# registry frontend functions
+#=============================================================================
+def _validate_handler_name(name):
+    """helper to validate handler name
+
+    :raises ValueError:
+        * if empty name
+        * if name not lower case
+        * if name contains double underscores
+        * if name is reserved (e.g. ``context``, ``all``).
+    """
+    if not name:
+        raise ValueError("handler name cannot be empty: %r" % (name,))
+    if name.lower() != name:
+        raise ValueError("name must be lower-case: %r" % (name,))
+    if not _name_re.match(name):
+        raise ValueError("invalid name (must be 3+ characters, "
+                         " begin with a-z, and contain only underscore, a-z, "
+                         "0-9): %r" % (name,))
+    if '__' in name:
+        raise ValueError("name may not contain double-underscores: %r" %
+                         (name,))
+    if name in _forbidden_names:
+        raise ValueError("that name is not allowed: %r" % (name,))
+    return True
+
 def register_crypt_handler_path(name, path):
     """register location to lazy-load handler when requested.
 
@@ -187,38 +213,23 @@ def register_crypt_handler_path(name, path):
         >>> from passlib.registry import registry_crypt_handler_path
         >>> registry_crypt_handler_path("myhash", "myapp.helpers:MyHash")
     """
-    global _handler_locations
+    # validate name
+    _validate_handler_name(name)
+
+    # validate path
+    if path.startswith("."):
+        raise ValueError("path cannot start with '.'")
     if ':' in path:
-        modname, modattr = path.split(":")
-    else:
-        modname, modattr = path, name
-    _handler_locations[name] = (modname, modattr)
+        if path.count(':') > 1:
+            raise ValueError("path cannot have more than one ':'")
+        if path.find('.', path.index(':')) > -1:
+            raise ValueError("path cannot have '.' to right of ':'")
 
-def _validate_handler_name(name):
-    """helper to validate handler name
+    # store location
+    _locations[name] = path
+    log.debug("registered path to %r handler: %r", name, path)
 
-    :raises ValueError:
-        * if empty name
-        * if name not lower case
-        * if name contains double underscores
-        * if name is reserved (e.g. ``context``, ``all``).
-    """
-    if not name:
-        raise ValueError("handler name cannot be empty: %r" % (name,))
-    if name.lower() != name:
-        raise ValueError("name must be lower-case: %r" % (name,))
-    if not _name_re.match(name):
-        raise ValueError("invalid characters in name (must be 3+ characters, "
-                         " begin with a-z, and contain only underscore, a-z, "
-                         "0-9): %r" % (name,))
-    if '__' in name:
-        raise ValueError("name may not contain double-underscores: %r" %
-                         (name,))
-    if name in _forbidden_names:
-        raise ValueError("that name is not allowed: %r" % (name,))
-    return True
-
-def register_crypt_handler(handler, force=False, name=None):
+def register_crypt_handler(handler, force=False, _attr=None):
     """register password hash handler.
 
     this method immediately registers a handler with the internal passlib registry,
@@ -226,7 +237,7 @@ def register_crypt_handler(handler, force=False, name=None):
 
     :arg handler: the password hash handler to register
     :param force: force override of existing handler (defaults to False)
-    :param name:
+    :param _attr:
         [internal kwd] if specified, ensures ``handler.name``
         matches this value, or raises :exc:`ValueError`.
 
@@ -241,39 +252,37 @@ def register_crypt_handler(handler, force=False, name=None):
         if a (different) handler was already registered with
         the same name, and ``force=True`` was not specified.
     """
-    global _handlers, _name_re
-
-    #validate handler
+    # validate handler
     if not is_crypt_handler(handler):
-        raise TypeError("object does not appear to be a crypt handler: %r" % (handler,))
-    assert handler, "crypt handlers must be boolean True: %r" % (handler,)
+        raise ExpectedTypeError(handler, "password hash handler", "handler")
+    if not handler:
+        raise AssertionError("``bool(handler)`` must be True")
 
-    #if name specified, make sure it matched
-    #(this is mainly used as a check to help __setattr__)
-    if name:
-        if name != handler.name:
-            raise ValueError("handlers must be stored only under their own name")
-    else:
-        name = handler.name
+    # validate name
+    name = handler.name
     _validate_handler_name(name)
+    if _attr and _attr != name:
+        raise ValueError("handlers must be stored only under their own name (%r != %r)" %
+                         (_attr, name))
 
-    #check for existing handler
+    # check for existing handler
     other = _handlers.get(name)
     if other:
         if other is handler:
-            return #already registered
-        if force:
-            log.warning("overriding previous handler registered to name %r: %r", name, other)
+            log.debug("same %r handler already registered: %r", name, handler)
+            return
+        elif force:
+            log.warning("overriding previously registered %r handler: %r",
+                        name, other)
         else:
-            raise KeyError("a handler has already registered for the name %r: %r (use force=True to override)" % (name, other))
+            raise KeyError("another %r handler has already been registered: %r" %
+                           (name, other))
 
-    #register handler in dict
+    # register handler
     _handlers[name] = handler
-    log.debug("registered crypt handler %r: %r", name, handler)
+    log.debug("registered %r handler: %r", name, handler)
 
-_NOTSET = object()
-
-def get_crypt_handler(name, default=_NOTSET):
+def get_crypt_handler(name, default=_UNSET):
     """return handler for specified password hash scheme.
 
     this method looks up a handler for the specified scheme.
@@ -287,51 +296,63 @@ def get_crypt_handler(name, default=_NOTSET):
 
     :returns: handler attached to name, or default value (if specified).
     """
-    global _handlers, _handler_locations
+    # catch invalid names before we check _handlers,
+    # since it's a module dict, and exposes things like __package__, etc.
+    if name.startswith("_"):
+        if default is _UNSET:
+            raise KeyError("invalid handler name: %r" % (name,))
+        else:
+            return default
 
-    #check if handler is already loaded
+    # check if handler is already loaded
     try:
         return _handlers[name]
     except KeyError:
         pass
 
-    #normalize name (and if changed, check dict again)
+    # normalize name (and if changed, check dict again)
     assert isinstance(name, str), "name must be str instance"
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names should be lower-case, and use underscores instead "
-             "of hyphens: %r => %r" % (name, alt), PasslibWarning)
+             "of hyphens: %r => %r" % (name, alt), PasslibWarning,
+             stacklevel=2)
         name = alt
 
-        #check if handler loaded
-        handler = _handlers.get(name)
-        if handler:
-            return handler
+        # try to load using new name
+        try:
+            return _handlers[name]
+        except KeyError:
+            pass
 
-    #check if lazy load mapping has been specified for this driver
-    route = _handler_locations.get(name)
-    if route:
-        modname, modattr = route
+    # check if lazy load mapping has been specified for this driver
+    path = _locations.get(name)
+    if path:
+        if ':' in path:
+            modname, modattr = path.split(":")
+        else:
+            modname, modattr = path, name
+        ##log.debug("loading %r handler from path: '%s:%s'", name, modname, modattr)
 
-        #try to load the module - any import errors indicate runtime config, usually
+        # try to load the module - any import errors indicate runtime config, usually
         # either missing package, or bad path provided to register_crypt_handler_path()
-        mod = __import__(modname, None, None, [modattr], 0)
+        mod = __import__(modname, fromlist=[modattr], level=0)
 
-        #first check if importing module triggered register_crypt_handler(),
-        #(this is discouraged due to it's magical implicitness)
+        # first check if importing module triggered register_crypt_handler(),
+        # (this is discouraged due to its magical implicitness)
         handler = _handlers.get(name)
         if handler:
-            #XXX: issue deprecation warning here?
+            # XXX: issue deprecation warning here?
             assert is_crypt_handler(handler), "unexpected object: name=%r object=%r" % (name, handler)
             return handler
 
-        #then get real handler & register it
+        # then get real handler & register it
         handler = getattr(mod, modattr)
-        register_crypt_handler(handler, name=name)
+        register_crypt_handler(handler, _attr=name)
         return handler
 
-    #fail!
-    if default is _NOTSET:
+    # fail!
+    if default is _UNSET:
         raise KeyError("no crypt handler found for algorithm: %r" % (name,))
     else:
         return default
@@ -343,15 +364,16 @@ def list_crypt_handlers(loaded_only=False):
 
     :returns: list of names of all known handlers
     """
-    global _handlers, _handler_locations
     names = set(_handlers)
     if not loaded_only:
-        names.update(_handler_locations)
-    return sorted(names)
+        names.update(_locations)
+    # strip private attrs out of namespace and sort.
+    # TODO: make _handlers a separate list, so we don't have module namespace mixed in.
+    return sorted(name for name in names if not name.startswith("_"))
 
-#NOTE: these two functions mainly exist just for the unittests...
+# NOTE: these two functions mainly exist just for the unittests...
 
-def has_crypt_handler(name, loaded_only=False):
+def _has_crypt_handler(name, loaded_only=False):
     """check if handler name is known.
 
     this is only useful for two cases:
@@ -362,8 +384,7 @@ def has_crypt_handler(name, loaded_only=False):
     :arg name: name of handler
     :param loaded_only: if ``True``, returns False if handler exists but hasn't been loaded
     """
-    global _handlers, _handler_locations
-    return (name in _handlers) or (not loaded_only and name in _handler_locations)
+    return (name in _handlers) or (not loaded_only and name in _locations)
 
 def _unload_handler_name(name, locations=True):
     """unloads a handler from the registry.
@@ -374,21 +395,18 @@ def _unload_handler_name(name, locations=True):
         used only by the unittests.
 
     if loaded handler is found with specified name, it's removed.
-    if path to lazy load handler is found, its' removed.
+    if path to lazy load handler is found, it's removed.
 
     missing names are a noop.
 
     :arg name: name of handler to unload
     :param locations: if False, won't purge registered handler locations (default True)
     """
-    global _handlers, _handler_locations
-
     if name in _handlers:
         del _handlers[name]
+    if locations and name in _locations:
+        del _locations[name]
 
-    if locations and name in _handler_locations:
-        del _handler_locations[name]
-
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

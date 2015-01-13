@@ -1,27 +1,31 @@
 """test passlib.apps"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import logging; log = logging.getLogger(__name__)
-#site
-#pkg
+# site
+# pkg
 from passlib import apps, hash as hashmod
 from passlib.tests.utils import TestCase
-#module
+# module
 
-#=========================================================
-#test predefined app contexts
-#=========================================================
+#=============================================================================
+# test predefined app contexts
+#=============================================================================
 class AppsTest(TestCase):
-    "perform general tests to make sure contexts work"
-    #NOTE: these tests are not really comprehensive,
-    #      since they would do little but duplicate
-    #      the presets in apps.py
+    """perform general tests to make sure contexts work"""
+    # NOTE: these tests are not really comprehensive,
+    #       since they would do little but duplicate
+    #       the presets in apps.py
     #
-    #      they mainly try to ensure no typos
-    #      or dynamic behavior foul-ups.
+    #       they mainly try to ensure no typos
+    #       or dynamic behavior foul-ups.
+
+    def test_master_context(self):
+        ctx = apps.master_context
+        self.assertGreater(len(ctx.schemes()), 50)
 
     def test_custom_app_context(self):
         ctx = apps.custom_app_context
@@ -90,7 +94,7 @@ class AppsTest(TestCase):
         ]:
             self.assertTrue(ctx.verify("test", hash))
 
-        h1 = '$2a$10$Ljj0Kgu7Ddob9xWoqzn0ae.uNfxPRofowWdksk.6jCUHKTGYLD.QG'
+        h1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
         if hashmod.bcrypt.has_backend():
             self.assertTrue(ctx.verify("test", h1))
             self.assertEqual(ctx.default_scheme(), "bcrypt")
@@ -119,6 +123,6 @@ class AppsTest(TestCase):
         ]:
             self.assertTrue(ctx.verify("test", hash))
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

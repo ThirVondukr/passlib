@@ -7,20 +7,20 @@ implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
 
 """
 
-#=========================================================================
-#imports
-#=========================================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from binascii import hexlify
 import struct
 from warnings import warn
-#site
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY3
-#local
+# site
+from passlib.utils.compat import bascii_to_str, irange, PY3
+# local
 __all__ = [ "md4" ]
-#=========================================================================
-#utils
-#=========================================================================
+#=============================================================================
+# utils
+#=============================================================================
 def F(x,y,z):
     return (x&y) | ((~x) & z)
 
@@ -32,9 +32,9 @@ def G(x,y,z):
 
 MASK_32 = 2**32-1
 
-#=========================================================================
-#main class
-#=========================================================================
+#=============================================================================
+# main class
+#=============================================================================
 class md4(object):
     """pep-247 compatible implementation of MD4 hash algorithm
 
@@ -56,27 +56,27 @@ class md4(object):
 
     .. method:: hexdigest
 
-        return hexdecimal version of digest
+        return hexadecimal version of digest
     """
-    #FIXME: make this follow hash object PEP better.
-    #FIXME: this isn't threadsafe
-    #XXX: should we monkeypatch ourselves into hashlib for general use? probably wouldn't be nice.
+    # FIXME: make this follow hash object PEP better.
+    # FIXME: this isn't threadsafe
+    # XXX: should we monkeypatch ourselves into hashlib for general use? probably wouldn't be nice.
 
     name = "md4"
     digest_size = digestsize = 16
 
-    _count = 0 #number of 64-byte blocks processed so far (not including _buf)
-    _state = None #list of [a,b,c,d] 32 bit ints used as internal register
-    _buf = None #data processed in 64 byte blocks, this holds leftover from last update
+    _count = 0 # number of 64-byte blocks processed so far (not including _buf)
+    _state = None # list of [a,b,c,d] 32 bit ints used as internal register
+    _buf = None # data processed in 64 byte blocks, this holds leftover from last update
 
     def __init__(self, content=None):
         self._count = 0
         self._state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
-        self._buf = b('')
+        self._buf = b''
         if content:
             self.update(content)
 
-    #round 1 table - [abcd k s]
+    # round 1 table - [abcd k s]
     _round1 = [
         [0,1,2,3, 0,3],
         [3,0,1,2, 1,7],
@@ -99,7 +99,7 @@ class md4(object):
         [1,2,3,0, 15,19],
     ]
 
-    #round 2 table - [abcd k s]
+    # round 2 table - [abcd k s]
     _round2 = [
         [0,1,2,3, 0,3],
         [3,0,1,2, 4,5],
@@ -122,7 +122,7 @@ class md4(object):
         [1,2,3,0, 15,13],
     ]
 
-    #round 3 table - [abcd k s]
+    # round 3 table - [abcd k s]
     _round3 = [
         [0,1,2,3, 0,3],
         [3,0,1,2, 8,9],
@@ -146,30 +146,30 @@ class md4(object):
     ]
 
     def _process(self, block):
-        "process 64 byte block"
-        #unpack block into 16 32-bit ints
+        """process 64 byte block"""
+        # unpack block into 16 32-bit ints
         X = struct.unpack("<16I", block)
 
-        #clone state
+        # clone state
         orig = self._state
         state = list(orig)
 
-        #round 1 - F function - (x&y)|(~x & z)
+        # round 1 - F function - (x&y)|(~x & z)
         for a,b,c,d,k,s in self._round1:
             t = (state[a] + F(state[b],state[c],state[d]) + X[k]) & MASK_32
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
-        #round 2 - G function
+        # round 2 - G function
         for a,b,c,d,k,s in self._round2:
             t = (state[a] + G(state[b],state[c],state[d]) + X[k] + 0x5a827999) & MASK_32
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
-        #round 3 - H function - x ^ y ^ z
+        # round 3 - H function - x ^ y ^ z
         for a,b,c,d,k,s in self._round3:
             t = (state[a] + (state[b] ^ state[c] ^ state[d]) + X[k] + 0x6ed9eba1) & MASK_32
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
-        #add back into original state
+        # add back into original state
         for i in irange(4):
             orig[i] = (orig[i]+state[i]) & MASK_32
 
@@ -199,16 +199,16 @@ class md4(object):
         return other
 
     def digest(self):
-        #NOTE: backing up state so we can restore it after _process is called,
-        #in case object is updated again (this is only attr altered by this method)
+        # NOTE: backing up state so we can restore it after _process is called,
+        #       in case object is updated again (this is only attr altered by this method)
         orig = list(self._state)
 
-        #final block: buf + 0x80,
+        # final block: buf + 0x80,
         # then 0x00 padding until congruent w/ 56 mod 64 bytes
         # then last 8 bytes = msg length in bits
         buf = self._buf
         msglen = self._count*512 + len(buf)*8
-        block = buf + b('\x80') + b('\x00') * ((119-len(buf)) % 64) + \
+        block = buf + b'\x80' + b'\x00' * ((119-len(buf)) % 64) + \
             struct.pack("<2I", msglen & MASK_32, (msglen>>32) & MASK_32)
         if len(block) == 128:
             self._process(block[:64])
@@ -217,7 +217,7 @@ class md4(object):
             assert len(block) == 64
             self._process(block)
 
-        #render digest & restore un-finalized state
+        # render digest & restore un-finalized state
         out = struct.pack("<4I", *self._state)
         self._state = orig
         return out
@@ -225,20 +225,19 @@ class md4(object):
     def hexdigest(self):
         return bascii_to_str(hexlify(self.digest()))
 
-    #=========================================================================
-    #eoc
-    #=========================================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#keep ref around for unittest, 'md4' usually replaced by ssl wrapper, below.
+# keep ref around for unittest, 'md4' usually replaced by ssl wrapper, below.
 _builtin_md4 = md4
 
-#=========================================================================
-#check if hashlib provides accelarated md4
-#=========================================================================
+#=============================================================================
+# check if hashlib provides accelarated md4
+#=============================================================================
 import hashlib
-from passlib.utils import PYPY
 
-def _has_native_md4():
+def _has_native_md4(): # pragma: no cover -- runtime detection
     try:
         h = hashlib.new("md4")
     except ValueError:
@@ -247,22 +246,17 @@ def _has_native_md4():
     result = h.hexdigest()
     if result == '31d6cfe0d16ae931b73c59d7e0c089c0':
         return True
-    if PYPY and result == '':
-        # as of pypy 1.5-1.7, this returns empty string! 
-        # since this is expected, don't bother w/ warning.
-        return False
-    #anything else should alert user
+    # anything else and we should alert user
     from passlib.exc import PasslibRuntimeWarning
-    warn("native md4 support disabled, incorrect value returned!",
-         PasslibRuntimeWarning)
+    warn("native md4 support disabled, sanity check failed!", PasslibRuntimeWarning)
     return False
 
 if _has_native_md4():
-    #overwrite md4 class w/ hashlib wrapper
+    # overwrite md4 class w/ hashlib wrapper
     def md4(content=None):
-        "wrapper for hashlib.new('md4')"
-        return hashlib.new('md4', content or b(''))
+        """wrapper for hashlib.new('md4')"""
+        return hashlib.new('md4', content or b'')
 
-#=========================================================================
-#eof
-#=========================================================================
+#=============================================================================
+# eof
+#=============================================================================

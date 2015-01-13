@@ -1,19 +1,26 @@
 """passlib.utils.compat - python 2/3 compatibility helpers"""
 #=============================================================================
-# figure out what version we're running
+# figure out what we're running
 #=============================================================================
+
+#------------------------------------------------------------------------
+# python version
+#------------------------------------------------------------------------
 import sys
 PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
-PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
-PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
-PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
 
-#=============================================================================
-# figure out what VM we're running
-#=============================================================================
-PYPY = hasattr(sys, "pypy_version_info")
+# make sure it's not an unsupported version, even if we somehow got this far
+if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
+    raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
+
+#------------------------------------------------------------------------
+# python implementation
+#------------------------------------------------------------------------
 JYTHON = sys.platform.startswith('java')
+
+if hasattr(sys, "pypy_version_info") and sys.pypy_version_info < (2,0):
+    raise AssertionError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
 #=============================================================================
 # common imports
@@ -33,7 +40,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
+    'PY2', 'PY3',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -41,14 +48,13 @@ __all__ = [
 
     # type detection
 ##    'is_mapping',
-    'callable',
     'int_types',
     'num_types',
     'base_string_types',
 
     # unicode/bytes types & helpers
-    'u', 'b',
-    'unicode', 'bytes',
+    'u',
+    'unicode',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
@@ -61,6 +67,9 @@ __all__ = [
     'imap', 'lmap',
     'iteritems', 'itervalues',
     'next',
+
+    # collections
+    'OrderedDict',
 
     # introspection
     'exc_err', 'get_method_function', 'add_doc',
@@ -75,29 +84,20 @@ _lazy_attrs = dict()
 #=============================================================================
 if PY3:
     unicode = str
-    bytes = builtins.bytes
 
+    # TODO: drop python 3.2 support, and use u'' again!
     def u(s):
         assert isinstance(s, str)
         return s
-
-    def b(s):
-        assert isinstance(s, str)
-        return s.encode("latin-1")
 
     base_string_types = (unicode, bytes)
 
 else:
     unicode = builtins.unicode
-    bytes = str if PY_MAX_25 else builtins.bytes
 
     def u(s):
         assert isinstance(s, str)
         return s.decode("unicode_escape")
-
-    def b(s):
-        assert isinstance(s, str)
-        return s
 
     base_string_types = basestring
 
@@ -108,7 +108,7 @@ else:
 join_unicode = u('').join
 
 # function to join list of byte strings
-join_bytes = b('').join
+join_bytes = b''.join
 
 if PY3:
     def uascii_to_str(s):
@@ -136,6 +136,11 @@ if PY3:
     def iter_byte_values(s):
         assert isinstance(s, bytes)
         return s
+
+    def iter_byte_chars(s):
+        assert isinstance(s, bytes)
+        # FIXME: there has to be a better way to do this
+        return (bytes([c]) for c in s)
 
 else:
     def uascii_to_str(s):
@@ -165,6 +170,10 @@ else:
         assert isinstance(s, bytes)
         return (ord(c) for c in s)
 
+    def iter_byte_chars(s):
+        assert isinstance(s, bytes)
+        return s
+
 add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
@@ -178,7 +187,8 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
-add_doc(iter_byte_values, "helper to iterate over byte values in byte string")
+add_doc(iter_byte_values, "iterate over byte string as sequence of ints 0-255")
+add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings")
 
 #=============================================================================
 # numeric
@@ -212,6 +222,9 @@ if PY3:
         return d.items()
     def itervalues(d):
         return d.values()
+
+    next_method_attr = "__next__"
+
 else:
     irange = xrange
     ##lrange = range
@@ -224,18 +237,7 @@ else:
     def itervalues(d):
         return d.itervalues()
 
-if PY_MAX_25:
-    _undef = object()
-    def next(itr, default=_undef):
-        "compat wrapper for next()"
-        if default is _undef:
-            return itr.next()
-        try:
-            return itr.next()
-        except StopIteration:
-            return default
-else:
-    next = builtins.next
+    next_method_attr = "next"
 
 #=============================================================================
 # typing
@@ -244,27 +246,21 @@ else:
 ##    # non-exhaustive check, enough to distinguish from lists, etc
 ##    return hasattr(obj, "items")
 
-if (3,0) <= sys.version_info < (3,2):
-    # callable isn't dead, it's just resting
-    from collections import Callable
-    def callable(obj):
-        return isinstance(obj, Callable)
-else:
-    callable = builtins.callable
-
 #=============================================================================
 # introspection
 #=============================================================================
 def exc_err():
-    "return current error object (to avoid try/except syntax change)"
+    """return current error object (to avoid try/except syntax change)"""
     return sys.exc_info()[1]
 
 if PY3:
-    def get_method_function(method):
-        return method.__func__
+    method_function_attr = "__func__"
 else:
-    def get_method_function(method):
-        return method.im_func
+    method_function_attr = "im_func"
+
+def get_method_function(func):
+    """given (potential) method, return underlying function"""
+    return getattr(func, method_function_attr, func)
 
 #=============================================================================
 # input/output
@@ -333,12 +329,20 @@ else:
         write(end)
 
 #=============================================================================
+# collections
+#=============================================================================
+if sys.version_info < (2,7):
+    _lazy_attrs['OrderedDict'] = 'passlib.utils._ordered_dict.OrderedDict'
+else:
+    _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
+
+#=============================================================================
 # lazy overlay module
 #=============================================================================
 from types import ModuleType
 
 def _import_object(source):
-    "helper to import object from module; accept format `path.to.object`"
+    """helper to import object from module; accept format `path.to.object`"""
     modname, modattr = source.rsplit(".",1)
     mod = __import__(modname, fromlist=[modattr], level=0)
     return getattr(mod, modattr)

@@ -1,30 +1,27 @@
 """passlib.handlers.md5_crypt - md5-crypt algorithm"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from hashlib import md5
-import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
-#site
-#libs
-from passlib.utils import classproperty, h64, safe_crypt, test_crypt, repeat_string
-from passlib.utils.compat import b, bytes, irange, unicode, u
+# site
+# pkg
+from passlib.utils import h64, safe_crypt, test_crypt, repeat_string
+from passlib.utils.compat import unicode, u
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "md5_crypt",
     "apr_md5_crypt",
 ]
 
-#=========================================================
-#pure-python backend
-#=========================================================
-B_NULL = b("\x00")
-B_MD5_MAGIC = b("$1$")
-B_APR_MAGIC = b("$apr1$")
+#=============================================================================
+# pure-python backend
+#=============================================================================
+_BNULL = b"\x00"
+_MD5_MAGIC = b"$1$"
+_APR_MAGIC = b"$apr1$"
 
 # pre-calculated offsets used to speed up C digest stage (see notes below).
 # sequence generated using the following:
@@ -61,20 +58,22 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     # really, apache? you had to invent a whole new "$apr1$" format,
     # when all you did was change the ident incorporated into the hash?
     # would love to find webpage explaining why just using a portable
-    # implementation of $1$ wasn't sufficient. *nothing* else was changed.
+    # implementation of $1$ wasn't sufficient. *nothing else* was changed.
 
-    #=====================================================================
+    #===================================================================
     # init & validate inputs
-    #=====================================================================
+    #===================================================================
 
-    #validate secret
+    # validate secret
     # XXX: not sure what official unicode policy is, using this as default
     if isinstance(pwd, unicode):
         pwd = pwd.encode("utf-8")
     assert isinstance(pwd, bytes), "pwd not unicode or bytes"
+    if _BNULL in pwd:
+        raise uh.exc.NullPasswordError(md5_crypt)
     pwd_len = len(pwd)
 
-    #validate salt - should have been taken care of by caller
+    # validate salt - should have been taken care of by caller
     assert isinstance(salt, unicode), "salt not unicode"
     salt = salt.encode("ascii")
     assert len(salt) < 9, "salt too large"
@@ -84,18 +83,18 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
 
     # load APR specific constants
     if use_apr:
-        magic = B_APR_MAGIC
+        magic = _APR_MAGIC
     else:
-        magic = B_MD5_MAGIC
+        magic = _MD5_MAGIC
 
-    #=====================================================================
+    #===================================================================
     # digest B - used as subinput to digest A
-    #=====================================================================
+    #===================================================================
     db = md5(pwd + salt + pwd).digest()
 
-    #=====================================================================
+    #===================================================================
     # digest A - used to initialize first round of digest C
-    #=====================================================================
+    #===================================================================
     # start out with pwd + magic + salt
     a_ctx = md5(pwd + magic + salt)
     a_ctx_update = a_ctx.update
@@ -111,16 +110,16 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     i = pwd_len
     evenchar = pwd[:1]
     while i:
-        a_ctx_update(B_NULL if i & 1 else evenchar)
+        a_ctx_update(_BNULL if i & 1 else evenchar)
         i >>= 1
 
     # finish A
     da = a_ctx.digest()
 
-    #=====================================================================
+    #===================================================================
     # digest C - for a 1000 rounds, combine A, S, and P
     #            digests in various ways; in order to burn CPU time.
-    #=====================================================================
+    #===================================================================
 
     # NOTE: the original MD5-Crypt implementation performs the C digest
     # calculation using the following loop:
@@ -142,8 +141,8 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     # of things beforehand. It works off of a couple of observations
     # about the original algorithm:
     #
-    # 1. each round is a combination of 'dc', 'salt', and 'pwd'; determined
-    #    by the whether 'i' a multiple of 2,3, and/or 7.
+    # 1. each round is a combination of 'dc', 'salt', and 'pwd'; and the exact
+    #    combination is determined by whether 'i' a multiple of 2,3, and/or 7.
     # 2. since lcm(2,3,7)==42, the series of combinations will repeat
     #    every 42 rounds.
     # 3. even rounds 0-40 consist of 'hash(dc + round-specific-constant)';
@@ -151,12 +150,12 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     #
     # Using these observations, the following code...
     # * calculates the round-specific combination of salt & pwd for each round 0-41
-    # * runs through as many 42-round blocks as possible
-    # * runs through as many pairs of rounds as possible for remaining rounds
-    # * performs once last round if the total rounds should be odd.
+    # * runs through as many 42-round blocks as possible (23)
+    # * runs through as many pairs of rounds as needed for remaining rounds (17)
+    # * this results in the required 42*23+2*17=1000 rounds required by md5_crypt.
     #
     # this cuts out a lot of the control overhead incurred when running the
-    # original loop 40,000+ times in python, resulting in ~20% increase in
+    # original loop 1000 times in python, resulting in ~20% increase in
     # speed under CPython (though still 2x slower than glibc crypt)
 
     # prepare the 6 combinations of pwd & salt which are needed
@@ -181,22 +180,22 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     for even, odd in data[:17]:
         dc = md5(odd + md5(dc + even).digest()).digest()
 
-    #=====================================================================
+    #===================================================================
     # encode digest using appropriate transpose map
-    #=====================================================================
+    #===================================================================
     return h64.encode_transposed_bytes(dc, _transpose_map).decode("ascii")
 
-#=========================================================
+#=============================================================================
 # handler
-#=========================================================
+#=============================================================================
 class _MD5_Common(uh.HasSalt, uh.GenericHandler):
-    "common code for md5_crypt and apr_md5_crypt"
-    #=========================================================
+    """common code for md5_crypt and apr_md5_crypt"""
+    #===================================================================
     # class attrs
-    #=========================================================
-    #name - set in subclass
+    #===================================================================
+    # name - set in subclass
     setting_kwds = ("salt", "salt_size")
-    #ident - set in subclass
+    # ident - set in subclass
     checksum_size = 22
     checksum_chars = uh.HASH64_CHARS
 
@@ -204,9 +203,9 @@ class _MD5_Common(uh.HasSalt, uh.GenericHandler):
     max_salt_size = 8
     salt_chars = uh.HASH64_CHARS
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -218,51 +217,62 @@ class _MD5_Common(uh.HasSalt, uh.GenericHandler):
 
     # _calc_checksum() - provided by subclass
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
 class md5_crypt(uh.HasManyBackends, _MD5_Common):
     """This class implements the MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 0-8 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
 
-    It will use the first available of two possible backends:
+    :type salt_size: int
+    :param salt_size:
+        Optional number of characters to use when autogenerating new salts.
+        Defaults to 8, but can be any value between 0 and 8.
+        (This is mainly needed when generating Cisco-compatible hashes,
+        which require ``salt_size=4``).
 
-    * stdlib :func:`crypt()`, if the host OS supports MD5-Crypt.
-    * a pure python implementation of MD5-Crypt built into passlib.
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
 
-    You can see which backend is in use by calling the :meth:`get_backend()` method.
+        .. versionadded:: 1.6
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "md5_crypt"
     ident = u("$1$")
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
-    #FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
-    # all backends currently coerce -> utf-8
+    #===================================================================
+    # FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
+    #        all backends currently coerce -> utf-8
 
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/')
-
-    def _calc_checksum_builtin(self, secret):
-        return _raw_md5_crypt(secret, self.salt)
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '$1$test$pi/xDtU5WFVRqYS6BMU8X/'):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.ident + self.salt
@@ -270,41 +280,61 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 23
             return hash[-22:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
 
-    #=========================================================
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_md5_crypt(secret, self.salt)
+
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 class apr_md5_crypt(_MD5_Common):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 0-8 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     name = "apr_md5_crypt"
     ident = u("$apr1$")
 
-    #=========================================================
+    #===================================================================
     # methods
-    #=========================================================
+    #===================================================================
     def _calc_checksum(self, secret):
         return _raw_md5_crypt(secret, self.salt, use_apr=True)
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

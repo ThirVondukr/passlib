@@ -1,29 +1,56 @@
-.. index:: cisco; pix hash
+.. index:: Cisco; PIX hash
 
 ==================================================================
 :class:`passlib.hash.cisco_pix` - Cisco PIX hash
 ==================================================================
 
-.. currentmodule:: passlib.hash
-
-This class implements the password hash algorithm commonly found on Cisco
-PIX firewalls.
+.. versionadded:: 1.6
 
 .. warning::
 
     This hash is not secure, and should not be used for any purposes
     besides manipulating existing Cisco PIX password hashes.
 
-.. seealso::
+.. currentmodule:: passlib.hash
 
-    * :doc:`passlib.hash.md5_crypt` (referred to as a "type 5" hash by Cisco)
-    * :doc:`passlib.hash.cisco_type7`
+This class implements the password hash algorithm commonly found on Cisco
+PIX firewalls. This class can be used directly as follows::
 
-Usage
-=====
+    >>> from passlib.hash import cisco_pix as pix
+
+    >>> # encrypt password using specified username
+    >>> hash = pix.encrypt("password", user="user")
+    >>> hash
+    'A5XOy94YKDPXCo7U'
+
+    >>> # verify correct password
+    >>> pix.verify("password", hash, user="user")
+    True
+    >>> # verify correct password w/ wrong username
+    >>> pm.verify("password", hash, user="other")
+    False
+    >>> # verify incorrect password
+    >>> pm.verify("letmein", hash, user="user")
+    False
+
+    >>> # encrypt password without associate user account
+    >>> hash2 = pix.encrypt("password")
+    >>> hash2
+    'NuLKvvWGg.x9HEKO'
+
+    >>> # verify password without associated user account
+    >>> pix.verify("password", hash2)
+    True
+
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
+
+Interface
+=========
+.. autoclass:: cisco_pix()
+
 .. note::
 
-    This hash algorithm has a context-sensitive percularity.
+    This hash algorithm has a context-sensitive peculiarity.
     It takes in an optional username, used to salt the hash,
     but with specific restrictions...
 
@@ -33,40 +60,6 @@ Usage
     * Conversely, the username *must not* be provided (or must be set to ``""``)
       in order to correctly hash passwords which don't have an associated user
       account (such as the "enable" password).
-
-This class can be used directly as follows::
-
-    >>> from passlib.hash import cisco_pix as pix
-
-    >>> # encrypt password using specified username
-    >>> h = pix.encrypt("password", "user")
-    >>> h
-    'A5XOy94YKDPXCo7U'
-
-    >>> pix.identify(h) #check if hash is recognized
-    True
-    >>> pix.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
-    False
-
-    >>> pix.verify("password", h, "user") #verify correct password
-    True
-    >>> pm.verify("password", h, "other") #verify correct password w/ wrong username
-    False
-    >>> pm.verify("letmein", h, "user") #verify incorrect password
-    False
-
-    >>> # encrypt password without associate user account
-    >>> h2 = pix.encrypt("password")
-    >>> h2
-    'NuLKvvWGg.x9HEKO'
-
-    >>> # verify password without associated user account
-    >>> pix.verify("password", h2)
-    True
-
-Interface
-=========
-.. autoclass:: cisco_pix()
 
 .. rst-class:: html-toggle
 
@@ -98,12 +91,12 @@ Security Issues
 This algorithm is not suitable for *any* use besides manipulating existing
 Cisco PIX hashes, due to the following flaws:
 
-* It's use of the username as a salt value (and only the first four characters
-  at that), means that common usernames (eg ``admin``, ``cisco``) will occur
+* Its use of the username as a salt value (and only the first four characters
+  at that), means that common usernames (e.g. ``admin``, ``cisco``) will occur
   more frequently as salts, weakening the effectiveness of the salt in
   foiling pre-computed tables.
 
-* It's truncation of the ``password+user`` combination to 16 characters
+* Its truncation of the ``password+user`` combination to 16 characters
   additionally limits the keyspace, and the effectiveness of the username
   as a salt; making pre-computed and brute force attacks much more feasible.
 
@@ -111,7 +104,7 @@ Cisco PIX hashes, due to the following flaws:
   existing MD5 lookup tables have an increased chance of being able to
   reverse common hashes.
 
-* It's simplicity, and the weakness of MD5, makes high-speed brute force attacks
+* Its simplicity, and the weakness of MD5, makes high-speed brute force attacks
   much more feasible.
 
 * Furthermore, it discards of 1/4 of MD5's already small 16 byte digest,
@@ -127,10 +120,10 @@ This implementation differs from the standard in one main way:
   how it handles other characters is not known.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through this algorithm. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 * While this implementation agrees with all known references,
   the actual algorithm has not been published by Cisco, so there may be other

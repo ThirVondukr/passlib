@@ -1,30 +1,140 @@
 """tests for passlib.utils.(des|pbkdf2|md4)"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 from binascii import hexlify, unhexlify
-import sys
-import random
+import hashlib
 import warnings
-#site
-#pkg
-#module
-from passlib.utils.compat import b, bytes, bascii_to_str, irange, PY2, PY3, u, \
-                                 unicode, join_bytes
-from passlib.tests.utils import TestCase, Params as ak, enable_option, catch_warnings
+# site
+try:
+    import M2Crypto
+except ImportError:
+    M2Crypto = None
+# pkg
+# module
+from passlib.utils.compat import bascii_to_str, PY3, u, JYTHON
+from passlib.tests.utils import TestCase, TEST_MODE, skipUnless
 
-#=========================================================
+#=============================================================================
 # support
-#=========================================================
+#=============================================================================
 def hb(source):
-    return unhexlify(b(source))
+    """
+    helper for represent byte strings in hex.
 
-#=========================================================
-#test des module
-#=========================================================
+    usage: ``hb("deadbeef23")``
+    """
+    if PY3:
+        source = source.encode("ascii")
+    return unhexlify(source)
+
+#=============================================================================
+# test assorted crypto helpers
+#=============================================================================
+class CryptoTest(TestCase):
+    """test various crypto functions"""
+
+    ndn_formats = ["hashlib", "iana"]
+    ndn_values = [
+        # (iana name, hashlib name, ... other unnormalized names)
+        ("md5", "md5",          "SCRAM-MD5-PLUS", "MD-5"),
+        ("sha1", "sha-1",       "SCRAM-SHA-1", "SHA1"),
+        ("sha256", "sha-256",   "SHA_256", "sha2-256"),
+        ("ripemd", "ripemd",    "SCRAM-RIPEMD", "RIPEMD"),
+        ("ripemd160", "ripemd-160",
+                                "SCRAM-RIPEMD-160", "RIPEmd160"),
+        ("test128", "test-128", "TEST128"),
+        ("test2", "test2", "TEST-2"),
+        ("test3128", "test3-128", "TEST-3-128"),
+    ]
+
+    def test_norm_hash_name(self):
+        """test norm_hash_name()"""
+        from itertools import chain
+        from passlib.utils.pbkdf2 import norm_hash_name, _nhn_hash_names
+
+        # test formats
+        for format in self.ndn_formats:
+            norm_hash_name("md4", format)
+        self.assertRaises(ValueError, norm_hash_name, "md4", None)
+        self.assertRaises(ValueError, norm_hash_name, "md4", "fake")
+
+        # test types
+        self.assertEqual(norm_hash_name(u("MD4")), "md4")
+        self.assertEqual(norm_hash_name(b"MD4"), "md4")
+        self.assertRaises(TypeError, norm_hash_name, None)
+
+        # test selected results
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", '.*unknown hash')
+            for row in chain(_nhn_hash_names, self.ndn_values):
+                for idx, format in enumerate(self.ndn_formats):
+                    correct = row[idx]
+                    for value in row:
+                        result = norm_hash_name(value, format)
+                        self.assertEqual(result, correct,
+                                         "name=%r, format=%r:" % (value,
+                                                                  format))
+
+    def test_get_hash_info(self):
+        """test get_hash_info()"""
+        import hashlib
+        from passlib.utils.pbkdf2 import get_hash_info
+
+        # invalid names should be rejected
+        self.assertRaises(ValueError, get_hash_info, "new")
+        self.assertRaises(ValueError, get_hash_info, "__name__")
+
+        # 1. should return hashlib builtin if found
+        self.assertEqual(get_hash_info("md5"), (hashlib.md5, 16, 64))
+
+        # 2. should return wrapper around hashlib.new() if found
+        try:
+            hashlib.new("sha")
+            has_sha = True
+        except ValueError:
+            has_sha = False
+        if has_sha:
+            record = get_hash_info("sha")
+            const = record[0]
+            self.assertEqual(record, (const, 20, 64))
+            self.assertEqual(hexlify(const(b"abc").digest()),
+                             b"0164b8a914cd2a5e74c4f7ff082c4d97f1edf880")
+
+        else:
+            self.assertRaises(ValueError, get_hash_info, "sha")
+
+        # 3. should fall back to builtin md4
+        try:
+            hashlib.new("md4")
+            has_md4 = True
+        except ValueError:
+            has_md4 = False
+        record = get_hash_info("md4")
+        const = record[0]
+        if not has_md4:
+            from passlib.utils.md4 import md4
+            self.assertIs(const, md4)
+        self.assertEqual(record, (const, 16, 64))
+        self.assertEqual(hexlify(const(b"abc").digest()),
+                         b"a448017aaf21d8525fc10ae87aa6729d")
+
+        # 4. unknown names should be rejected
+        self.assertRaises(ValueError, get_hash_info, "xxx256")
+
+        # should memoize records
+        self.assertIs(get_hash_info("md5"), get_hash_info("md5"))
+
+    # TODO: write full test of get_prf()
+    # TODO: write full test of get_keyed_prf() -- currently relying on pbkdf2() tests
+
+#=============================================================================
+# test DES routines
+#=============================================================================
 class DesTest(TestCase):
+    descriptionPrefix = "DES"
 
     # test vectors taken from http://www.skepticfiles.org/faq/testdes.htm
     des_test_vectors = [
@@ -66,12 +176,12 @@ class DesTest(TestCase):
     ]
 
     def test_01_expand(self):
-        "test expand_des_key()"
+        """test expand_des_key()"""
         from passlib.utils.des import expand_des_key, shrink_des_key, \
                                       _KDATA_MASK, INT_56_MASK
 
         # make sure test vectors are preserved (sans parity bits)
-        # uses ints, bytes are tested under #02
+        # uses ints, bytes are tested under # 02
         for key1, _, _ in self.des_test_vectors:
             key2 = shrink_des_key(key1)
             key3 = expand_des_key(key2)
@@ -83,20 +193,20 @@ class DesTest(TestCase):
 
         # too large
         self.assertRaises(ValueError, expand_des_key, INT_56_MASK+1)
-        self.assertRaises(ValueError, expand_des_key, b("\x00")*8)
+        self.assertRaises(ValueError, expand_des_key, b"\x00"*8)
 
         # too small
         self.assertRaises(ValueError, expand_des_key, -1)
-        self.assertRaises(ValueError, expand_des_key, b("\x00")*6)
+        self.assertRaises(ValueError, expand_des_key, b"\x00"*6)
 
     def test_02_shrink(self):
-        "test shrink_des_key()"
+        """test shrink_des_key()"""
         from passlib.utils.des import expand_des_key, shrink_des_key, \
                                       INT_64_MASK
         from passlib.utils import random, getrandbytes
 
         # make sure reverse works for some random keys
-        # uses bytes, ints are tested under #01
+        # uses bytes, ints are tested under # 01
         for i in range(20):
             key1 = getrandbytes(random, 7)
             key2 = expand_des_key(key1)
@@ -108,20 +218,20 @@ class DesTest(TestCase):
 
         # too large
         self.assertRaises(ValueError, shrink_des_key, INT_64_MASK+1)
-        self.assertRaises(ValueError, shrink_des_key, b("\x00")*9)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00"*9)
 
         # too small
         self.assertRaises(ValueError, shrink_des_key, -1)
-        self.assertRaises(ValueError, shrink_des_key, b("\x00")*7)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00"*7)
 
     def _random_parity(self, key):
-        "randomize parity bits"
+        """randomize parity bits"""
         from passlib.utils.des import _KDATA_MASK, _KPARITY_MASK, INT_64_MASK
         from passlib.utils import rng
         return (key & _KDATA_MASK) | (rng.randint(0,INT_64_MASK) & _KPARITY_MASK)
 
     def test_03_encrypt_bytes(self):
-        "test des_encrypt_block()"
+        """test des_encrypt_block()"""
         from passlib.utils.des import (des_encrypt_block, shrink_des_key,
                                        _pack64, _unpack64)
 
@@ -151,13 +261,13 @@ class DesTest(TestCase):
                                                   (key, key3, plaintext))
 
         # check invalid keys
-        stub = b('\x00') * 8
+        stub = b'\x00' * 8
         self.assertRaises(TypeError, des_encrypt_block, 0, stub)
-        self.assertRaises(ValueError, des_encrypt_block, b('\x00')*6, stub)
+        self.assertRaises(ValueError, des_encrypt_block, b'\x00'*6, stub)
 
         # check invalid input
         self.assertRaises(TypeError, des_encrypt_block, stub, 0)
-        self.assertRaises(ValueError, des_encrypt_block, stub, b('\x00')*7)
+        self.assertRaises(ValueError, des_encrypt_block, stub, b'\x00'*7)
 
         # check invalid salts
         self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=-1)
@@ -167,8 +277,8 @@ class DesTest(TestCase):
         self.assertRaises(ValueError, des_encrypt_block, stub, stub, 0, rounds=0)
 
     def test_04_encrypt_ints(self):
-        "test des_encrypt_int_block()"
-        from passlib.utils.des import (des_encrypt_int_block, shrink_des_key)
+        """test des_encrypt_int_block()"""
+        from passlib.utils.des import des_encrypt_int_block
 
         # run through test vectors
         for key, plaintext, correct in self.des_test_vectors:
@@ -185,11 +295,11 @@ class DesTest(TestCase):
                                                   (key, key3, plaintext))
 
         # check invalid keys
-        self.assertRaises(TypeError, des_encrypt_int_block, b('\x00'), 0)
+        self.assertRaises(TypeError, des_encrypt_int_block, b'\x00', 0)
         self.assertRaises(ValueError, des_encrypt_int_block, -1, 0)
 
         # check invalid input
-        self.assertRaises(TypeError, des_encrypt_int_block, 0, b('\x00'))
+        self.assertRaises(TypeError, des_encrypt_int_block, 0, b'\x00')
         self.assertRaises(ValueError, des_encrypt_int_block, 0, -1)
 
         # check invalid salts
@@ -199,246 +309,229 @@ class DesTest(TestCase):
         # check invalid rounds
         self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, 0, rounds=0)
 
-#=========================================================
-#test md4
-#=========================================================
-class _MD4_Test(TestCase):
-    #test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
+#=============================================================================
+# test pure-python MD4 implementation
+#=============================================================================
+from passlib.utils.md4 import _has_native_md4
+has_native_md4 = _has_native_md4()
 
-    hash = None
+class _MD4_Test(TestCase):
+    _disable_native = False
+
+    def setUp(self):
+        super(_MD4_Test, self).setUp()
+        import passlib.utils.md4 as mod
+        if has_native_md4 and self._disable_native:
+            self.addCleanup(setattr, mod, "md4", mod.md4)
+            mod.md4 = mod._builtin_md4
 
     vectors = [
         # input -> hex digest
-        (b(""), "31d6cfe0d16ae931b73c59d7e0c089c0"),
-        (b("a"), "bde52cb31de33e46245e05fbdbd6fb24"),
-        (b("abc"), "a448017aaf21d8525fc10ae87aa6729d"),
-        (b("message digest"), "d9130a8164549fe818874806e1c7014b"),
-        (b("abcdefghijklmnopqrstuvwxyz"), "d79e1c308aa5bbcdeea8ed63df412da9"),
-        (b("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"), "043f8582f241db351ce627e153e7f0e4"),
-        (b("12345678901234567890123456789012345678901234567890123456789012345678901234567890"), "e33b4ddc9c38f2199c3e7b164fcc0536"),
+        # test vectors from http://www.faqs.org/rfcs/rfc1320.html - A.5
+        (b"", "31d6cfe0d16ae931b73c59d7e0c089c0"),
+        (b"a", "bde52cb31de33e46245e05fbdbd6fb24"),
+        (b"abc", "a448017aaf21d8525fc10ae87aa6729d"),
+        (b"message digest", "d9130a8164549fe818874806e1c7014b"),
+        (b"abcdefghijklmnopqrstuvwxyz", "d79e1c308aa5bbcdeea8ed63df412da9"),
+        (b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "043f8582f241db351ce627e153e7f0e4"),
+        (b"12345678901234567890123456789012345678901234567890123456789012345678901234567890", "e33b4ddc9c38f2199c3e7b164fcc0536"),
     ]
 
     def test_md4_update(self):
-        "test md4 update"
-        md4 = self.hash
-        h = md4(b(''))
+        """test md4 update"""
+        from passlib.utils.md4 import md4
+        h = md4(b'')
         self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 
-        #NOTE: under py2, hashlib methods try to encode to ascii,
-        #      though shouldn't rely on that.
-        if PY3:
+        # NOTE: under py2, hashlib methods try to encode to ascii,
+        #       though shouldn't rely on that.
+        if PY3 or self._disable_native:
             self.assertRaises(TypeError, h.update, u('x'))
 
-        h.update(b('a'))
+        h.update(b'a')
         self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")
 
-        h.update(b('bcdefghijklmnopqrstuvwxyz'))
+        h.update(b'bcdefghijklmnopqrstuvwxyz')
         self.assertEqual(h.hexdigest(), "d79e1c308aa5bbcdeea8ed63df412da9")
 
     def test_md4_hexdigest(self):
-        "test md4 hexdigest()"
-        md4 = self.hash
+        """test md4 hexdigest()"""
+        from passlib.utils.md4 import md4
         for input, hex in self.vectors:
             out = md4(input).hexdigest()
             self.assertEqual(out, hex)
 
     def test_md4_digest(self):
-        "test md4 digest()"
-        md4 = self.hash
+        """test md4 digest()"""
+        from passlib.utils.md4 import md4
         for input, hex in self.vectors:
             out = bascii_to_str(hexlify(md4(input).digest()))
             self.assertEqual(out, hex)
 
     def test_md4_copy(self):
-        "test md4 copy()"
-        md4 = self.hash
-        h = md4(b('abc'))
+        """test md4 copy()"""
+        from passlib.utils.md4 import md4
+        h = md4(b'abc')
 
         h2 = h.copy()
-        h2.update(b('def'))
+        h2.update(b'def')
         self.assertEqual(h2.hexdigest(), '804e7f1c2586e50b49ac65db5b645131')
 
-        h.update(b('ghi'))
+        h.update(b'ghi')
         self.assertEqual(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
 
-#
-#now do a bunch of things to test multiple possible backends.
-#
-import passlib.utils.md4 as md4_mod
+# create subclasses to test with and without native backend
+class MD4_SSL_Test(_MD4_Test):
+    descriptionPrefix = "MD4 (ssl version)"
+MD4_SSL_TEST = skipUnless(has_native_md4, "hashlib lacks ssl support")(MD4_SSL_Test)
 
-has_ssl_md4 = (md4_mod.md4 is not md4_mod._builtin_md4)
+class MD4_Builtin_Test(_MD4_Test):
+    descriptionPrefix = "MD4 (builtin version)"
+    _disable_native = True
+MD4_Builtin_Test = skipUnless(TEST_MODE("full") or not has_native_md4,
+                              "skipped under current test mode")(MD4_Builtin_Test)
 
-if has_ssl_md4:
-    class MD4_SSL_Test(_MD4_Test):
-        descriptionPrefix = "MD4 (SSL version)"
-        hash = staticmethod(md4_mod.md4)
+#=============================================================================
+# test PBKDF1 support
+#=============================================================================
+class Pbkdf1_Test(TestCase):
+    """test kdf helpers"""
+    descriptionPrefix = "pbkdf1"
 
-if not has_ssl_md4 or enable_option("cover"):
-    class MD4_Builtin_Test(_MD4_Test):
-        descriptionPrefix = "MD4 (builtin version)"
-        hash = md4_mod._builtin_md4
+    pbkdf1_tests = [
+        # (password, salt, rounds, keylen, hash, result)
 
-#=========================================================
-#test passlib.utils.pbkdf2
-#=========================================================
-import hashlib
-import hmac
-from passlib.utils import pbkdf2
+        #
+        # from http://www.di-mgt.com.au/cryptoKDFs.html
+        #
+        (b'password', hb('78578E5A5D63CB06'), 1000, 16, 'sha1', hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
 
-#TODO: should we bother testing hmac_sha1() function? it's verified via sha1_crypt testing.
-class CryptoTest(TestCase):
-    "test various crypto functions"
-
-    ndn_formats = ["hashlib", "iana"]
-    ndn_values = [
-        # (iana name, hashlib name, ... other unnormalized names)
-        ("md5", "md5",          "SCRAM-MD5-PLUS", "MD-5"),
-        ("sha1", "sha-1",       "SCRAM-SHA-1", "SHA1"),
-        ("sha256", "sha-256",   "SHA_256", "sha2-256"),
-        ("ripemd", "ripemd",    "SCRAM-RIPEMD", "RIPEMD"),
-        ("ripemd160", "ripemd-160",
-                                "SCRAM-RIPEMD-160", "RIPEmd160"),
-        ("test128", "test-128", "TEST128"),
-        ("test2", "test2", "TEST-2"),
-        ("test3128", "test3-128", "TEST-3-128"),
+        #
+        # custom
+        #
+        (b'password', b'salt', 1000, 0, 'md5',    b''),
+        (b'password', b'salt', 1000, 1, 'md5',    hb('84')),
+        (b'password', b'salt', 1000, 8, 'md5',    hb('8475c6a8531a5d27')),
+        (b'password', b'salt', 1000, 16, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
+        (b'password', b'salt', 1000, None, 'md5', hb('8475c6a8531a5d27e386cd496457812c')),
+        (b'password', b'salt', 1000, None, 'sha1', hb('4a8fd48e426ed081b535be5769892fa396293efb')),
     ]
+    if not JYTHON:
+        pbkdf1_tests.append(
+            (b'password', b'salt', 1000, None, 'md4', hb('f7f2e91100a8f96190f2dd177cb26453'))
+        )
 
-    def test_norm_hash_name(self):
-        "test norm_hash_name()"
-        from itertools import chain
-        from passlib.utils.pbkdf2 import norm_hash_name, _nhn_hash_names
-
-        # test formats
-        for format in self.ndn_formats:
-            norm_hash_name("md4", format)
-        self.assertRaises(ValueError, norm_hash_name, "md4", None)
-        self.assertRaises(ValueError, norm_hash_name, "md4", "fake")
-
-        # test types
-        self.assertEqual(norm_hash_name(u("MD4")), "md4")
-        self.assertEqual(norm_hash_name(b("MD4")), "md4")
-        self.assertRaises(TypeError, norm_hash_name, None)
-
-        # test selected results
-        with catch_warnings():
-            warnings.filterwarnings("ignore", '.*unknown hash')
-            for row in chain(_nhn_hash_names, self.ndn_values):
-                for idx, format in enumerate(self.ndn_formats):
-                    correct = row[idx]
-                    for value in row:
-                        result = norm_hash_name(value, format)
-                        self.assertEqual(result, correct,
-                                         "name=%r, format=%r:" % (value,
-                                                                  format))
-
-class KdfTest(TestCase):
-    "test kdf helpers"
-
-    def test_pbkdf1(self):
-        "test pbkdf1"
-        for secret, salt, rounds, klen, hash, correct in [
-            #http://www.di-mgt.com.au/cryptoKDFs.html
-            (b('password'), hb('78578E5A5D63CB06'), 1000, 16, 'sha1',
-                hb('dc19847e05c64d2faf10ebfb4a3d2a20')),
-        ]:
-            result = pbkdf2.pbkdf1(secret, salt, rounds, klen, hash)
+    def test_known(self):
+        """test reference vectors"""
+        from passlib.utils.pbkdf2 import pbkdf1
+        for secret, salt, rounds, keylen, digest, correct in self.pbkdf1_tests:
+            result = pbkdf1(secret, salt, rounds, keylen, digest)
             self.assertEqual(result, correct)
 
-        #test rounds < 1
-        #test klen < 0
-        #test klen > block size
-        #test invalid hash
+    def test_border(self):
+        """test border cases"""
+        from passlib.utils.pbkdf2 import pbkdf1
+        def helper(secret=b'secret', salt=b'salt', rounds=1, keylen=1, hash='md5'):
+            return pbkdf1(secret, salt, rounds, keylen, hash)
+        helper()
 
-#NOTE: this is not run directly, but via two subclasses (below)
-class _Pbkdf2BackendTest(TestCase):
-    "test builtin unix crypt backend"
-    enable_m2crypto = False
+        # salt/secret wrong type
+        self.assertRaises(TypeError, helper, secret=1)
+        self.assertRaises(TypeError, helper, salt=1)
+
+        # non-existent hashes
+        self.assertRaises(ValueError, helper, hash='missing')
+
+        # rounds < 1 and wrong type
+        self.assertRaises(ValueError, helper, rounds=0)
+        self.assertRaises(TypeError, helper, rounds='1')
+
+        # keylen < 0, keylen > block_size, and wrong type
+        self.assertRaises(ValueError, helper, keylen=-1)
+        self.assertRaises(ValueError, helper, keylen=17, hash='md5')
+        self.assertRaises(TypeError, helper, keylen='1')
+
+#=============================================================================
+# test PBKDF2 support
+#=============================================================================
+class _Pbkdf2_Test(TestCase):
+    """test pbkdf2() support"""
 
     def setUp(self):
-        #disable m2crypto support so we'll always use software backend
-        if not self.enable_m2crypto:
-            self._orig_EVP = pbkdf2._EVP
-            pbkdf2._EVP = None
-        else:
-            #set flag so tests can check for m2crypto presence quickly
-            self.enable_m2crypto = bool(pbkdf2._EVP)
-        pbkdf2._clear_prf_cache()
+        super(_Pbkdf2_Test, self).setUp()
+        # flush cached prf functions, since we're screwing with their backend.
+        from passlib.utils.pbkdf2 import _clear_caches
+        _clear_caches()
+        self.addCleanup(_clear_caches)
 
-    def tearDown(self):
-        if not self.enable_m2crypto:
-            pbkdf2._EVP = self._orig_EVP
-        pbkdf2._clear_prf_cache()
+    pbkdf2_test_vectors = [
+        # (result, secret, salt, rounds, keylen, prf="sha1")
 
-    #TODO: test get_prf() behavior in various situations - though overall behavior tested via pbkdf2
+        #
+        # from rfc 3962
+        #
 
-    def test_rfc3962(self):
-        "rfc3962 test vectors"
-        self.assertFunctionResults(pbkdf2.pbkdf2, [
-            # result, secret, salt, rounds, keylen, digest="sha1"
-
-            #test case 1 / 128 bit
+            # test case 1 / 128 bit
             (
                 hb("cdedb5281bb2f801565a1122b2563515"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 1, 16
+                b"password", b"ATHENA.MIT.EDUraeburn", 1, 16
             ),
 
-            #test case 2 / 128 bit
+            # test case 2 / 128 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935d"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 16
+                b"password", b"ATHENA.MIT.EDUraeburn", 2, 16
             ),
 
-            #test case 2 / 256 bit
+            # test case 2 / 256 bit
             (
                 hb("01dbee7f4a9e243e988b62c73cda935da05378b93244ec8f48a99e61ad799d86"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 2, 32
+                b"password", b"ATHENA.MIT.EDUraeburn", 2, 32
             ),
 
-            #test case 3 / 256 bit
+            # test case 3 / 256 bit
             (
                 hb("5c08eb61fdf71e4e4ec3cf6ba1f5512ba7e52ddbc5e5142f708a31e2e62b1e13"),
-                b("password"), b("ATHENA.MIT.EDUraeburn"), 1200, 32
+                b"password", b"ATHENA.MIT.EDUraeburn", 1200, 32
             ),
 
-            #test case 4 / 256 bit
+            # test case 4 / 256 bit
             (
                 hb("d1daa78615f287e6a1c8b120d7062a493f98d203e6be49a6adf4fa574b6e64ee"),
-                b("password"), b('\x12\x34\x56\x78\x78\x56\x34\x12'), 5, 32
+                b"password", b'\x12\x34\x56\x78\x78\x56\x34\x12', 5, 32
             ),
 
-            #test case 5 / 256 bit
+            # test case 5 / 256 bit
             (
                 hb("139c30c0966bc32ba55fdbf212530ac9c5ec59f1a452f5cc9ad940fea0598ed1"),
-                b("X"*64), b("pass phrase equals block size"), 1200, 32
+                b"X"*64, b"pass phrase equals block size", 1200, 32
             ),
 
-            #test case 6 / 256 bit
+            # test case 6 / 256 bit
             (
                 hb("9ccad6d468770cd51b10e6a68721be611a8b4d282601db3b36be9246915ec82a"),
-                b("X"*65), b("pass phrase exceeds block size"), 1200, 32
+                b"X"*65, b"pass phrase exceeds block size", 1200, 32
             ),
-        ])
 
-    def test_rfc6070(self):
-        "rfc6070 test vectors"
-        self.assertFunctionResults(pbkdf2.pbkdf2, [
-
+        #
+        # from rfc 6070
+        #
             (
                 hb("0c60c80f961f0e71f3a9b524af6012062fe037a6"),
-                b("password"), b("salt"), 1, 20,
+                b"password", b"salt", 1, 20,
             ),
 
             (
                 hb("ea6c014dc72d6f8ccd1ed92ace1d41f0d8de8957"),
-                b("password"), b("salt"), 2, 20,
+                b"password", b"salt", 2, 20,
             ),
 
             (
                 hb("4b007901b765489abead49d926f721d065a429c1"),
-                b("password"), b("salt"), 4096, 20,
+                b"password", b"salt", 4096, 20,
             ),
 
-            #just runs too long - could enable if ALL option is set
+            # just runs too long - could enable if ALL option is set
             ##(
             ##
             ##    unhexlify("eefe3d61cd4da4e4e9945b3d6ba2158c2634e984"),
@@ -447,104 +540,117 @@ class _Pbkdf2BackendTest(TestCase):
 
             (
                 hb("3d2eec4fe41c849b80c8d83662c0e44a8b291a964cf2f07038"),
-                b("passwordPASSWORDpassword"),
-                b("saltSALTsaltSALTsaltSALTsaltSALTsalt"),
+                b"passwordPASSWORDpassword",
+                b"saltSALTsaltSALTsaltSALTsaltSALTsalt",
                 4096, 25,
             ),
 
             (
                 hb("56fa6aa75548099dcc37d7f03425e0c3"),
-                b("pass\00word"), b("sa\00lt"), 4096, 16,
+                b"pass\00word", b"sa\00lt", 4096, 16,
             ),
-        ])
 
-    def test_invalid_values(self):
-
-        #invalid rounds
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), -1, 16)
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 0, 16)
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 'x', 16)
-
-        #invalid keylen
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'),
-                                                     1, 20*(2**32-1)+1)
-
-        #invalid salt type
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), 5, 1, 10)
-
-        #invalid secret type
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, 5, b('salt'), 1, 10)
-
-        #invalid hash
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'hmac-foo')
-        self.assertRaises(ValueError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 'foo')
-        self.assertRaises(TypeError, pbkdf2.pbkdf2, b('password'), b('salt'), 1, 16, 5)
-
-    def test_default_keylen(self):
-        "test keylen==-1"
-        self.assertEqual(len(pbkdf2.pbkdf2(b('password'), b('salt'), 1, -1,
-                                           prf='hmac-sha1')), 20)
-
-        self.assertEqual(len(pbkdf2.pbkdf2(b('password'), b('salt'), 1, -1,
-                                           prf='hmac-sha256')), 32)
-
-    def test_hmac_sha1(self):
-        "test independant hmac_sha1() method"
-        self.assertEqual(
-            pbkdf2.hmac_sha1(b("secret"), b("salt")),
-            b('\xfc\xd4\x0c;]\r\x97\xc6\xf1S\x8d\x93\xb9\xeb\xc6\x00\x04.\x8b\xfe')
-            )
-
-    def test_sha1_string(self):
-        "test various prf values"
-        self.assertEqual(
-            pbkdf2.pbkdf2(b("secret"), b("salt"), 10, 16, "hmac-sha1"),
-            b('\xe2H\xfbk\x136QF\xf8\xacc\x07\xcc"(\x12')
-        )
-
-    def test_sha512_string(self):
-        "test alternate digest string (sha512)"
-        self.assertFunctionResults(pbkdf2.pbkdf2, [
-            # result, secret, salt, rounds, keylen, digest="sha1"
-
-            #case taken from example in http://grub.enbug.org/Authentication
+        #
+        # from example in http://grub.enbug.org/Authentication
+        #
             (
-               hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
-               b("hello"),
-               hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
+               hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED"
+                  "97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC"
+                  "6C29E293F0A0"),
+               b"hello",
+               hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71"
+                  "784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073"
+                  "994D79080136"),
                10000, 64, "hmac-sha512"
             ),
-        ])
 
-    def test_sha512_function(self):
-        "test custom digest function"
-        def prf(key, msg):
-            return hmac.new(key, msg, hashlib.sha512).digest()
-
-        self.assertFunctionResults(pbkdf2.pbkdf2, [
-            # result, secret, salt, rounds, keylen, digest="sha1"
-
-            #case taken from example in http://grub.enbug.org/Authentication
+        #
+        # custom
+        #
             (
-               hb("887CFF169EA8335235D8004242AA7D6187A41E3187DF0CE14E256D85ED97A97357AAA8FF0A3871AB9EEFF458392F462F495487387F685B7472FC6C29E293F0A0"),
-               b("hello"),
-               hb("9290F727ED06C38BA4549EF7DE25CF5642659211B7FC076F2D28FEFD71784BB8D8F6FB244A8CC5C06240631B97008565A120764C0EE9C2CB0073994D79080136"),
-               10000, 64, prf,
+                hb('e248fb6b13365146f8ac6307cc222812'),
+                b"secret", b"salt", 10, 16, "hmac-sha1",
             ),
-        ])
+            (
+                hb('e248fb6b13365146f8ac6307cc2228127872da6d'),
+                b"secret", b"salt", 10, None, "hmac-sha1",
+            ),
 
-has_m2crypto = (pbkdf2._EVP is not None)
+        ]
 
-if has_m2crypto:
-    class Pbkdf2_M2Crypto_Test(_Pbkdf2BackendTest):
-        descriptionPrefix = "pbkdf2 (m2crypto backend)"
-        enable_m2crypto = True
+    def test_known(self):
+        """test reference vectors"""
+        from passlib.utils.pbkdf2 import pbkdf2
+        for row in self.pbkdf2_test_vectors:
+            correct, secret, salt, rounds, keylen = row[:5]
+            prf = row[5] if len(row) == 6 else "hmac-sha1"
+            result = pbkdf2(secret, salt, rounds, keylen, prf)
+            self.assertEqual(result, correct)
 
-if not has_m2crypto or enable_option("cover"):
-    class Pbkdf2_Builtin_Test(_Pbkdf2BackendTest):
-        descriptionPrefix = "pbkdf2 (builtin backend)"
-        enable_m2crypto = False
+    def test_border(self):
+        """test border cases"""
+        from passlib.utils.pbkdf2 import pbkdf2
+        def helper(secret=b'password', salt=b'salt', rounds=1, keylen=None, prf="hmac-sha1"):
+            return pbkdf2(secret, salt, rounds, keylen, prf)
+        helper()
 
-#=========================================================
-#EOF
-#=========================================================
+        # invalid rounds
+        self.assertRaises(ValueError, helper, rounds=0)
+        self.assertRaises(TypeError, helper, rounds='x')
+
+        # invalid keylen
+        helper(keylen=0)
+        self.assertRaises(ValueError, helper, keylen=-1)
+        self.assertRaises(ValueError, helper, keylen=20*(2**32-1)+1)
+        self.assertRaises(TypeError, helper, keylen='x')
+
+        # invalid secret/salt type
+        self.assertRaises(TypeError, helper, salt=5)
+        self.assertRaises(TypeError, helper, secret=5)
+
+        # invalid hash
+        self.assertRaises(ValueError, helper, prf='hmac-foo')
+        self.assertRaises(ValueError, helper, prf='foo')
+        self.assertRaises(TypeError, helper, prf=5)
+
+    def test_default_keylen(self):
+        """test keylen==None"""
+        from passlib.utils.pbkdf2 import pbkdf2
+        def helper(secret=b'password', salt=b'salt', rounds=1, keylen=None, prf="hmac-sha1"):
+            return pbkdf2(secret, salt, rounds, keylen, prf)
+        self.assertEqual(len(helper(prf='hmac-sha1')), 20)
+        self.assertEqual(len(helper(prf='hmac-sha256')), 32)
+
+    def test_custom_prf(self):
+        """test custom prf function"""
+        from passlib.utils.pbkdf2 import pbkdf2
+        def prf(key, msg):
+            return hashlib.md5(key+msg+b'fooey').digest()
+        result = pbkdf2(b'secret', b'salt', 1000, 20, prf)
+        self.assertEqual(result, hb('5fe7ce9f7e379d3f65cbc66ba8aa6440474a6849'))
+
+#------------------------------------------------------------------------
+# create subclasses to test with- and without- m2crypto
+#------------------------------------------------------------------------
+class Pbkdf2_M2Crypto_Test(_Pbkdf2_Test):
+    descriptionPrefix = "pbkdf2 (m2crypto backend)"
+
+Pbkdf2_M2Crypto_Test = skipUnless(M2Crypto, "M2Crypto not found")(Pbkdf2_M2Crypto_Test)
+
+class Pbkdf2_Builtin_Test(_Pbkdf2_Test):
+    descriptionPrefix = "pbkdf2 (builtin backend)"
+
+    def setUp(self):
+        super(Pbkdf2_Builtin_Test, self).setUp()
+        # disable m2crypto support, and force pure-python backend
+        if M2Crypto:
+            import passlib.utils.pbkdf2 as mod
+            self.addCleanup(setattr, mod, "_EVP", mod._EVP)
+            mod._EVP = None
+
+Pbkdf2_Builtin_Test = skipUnless(TEST_MODE("full") or not M2Crypto,
+                                 "skipped under current test mode")(Pbkdf2_Builtin_Test)
+
+#=============================================================================
+# eof
+#=============================================================================

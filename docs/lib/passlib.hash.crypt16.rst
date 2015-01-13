@@ -2,26 +2,19 @@
 :class:`passlib.hash.crypt16` - Crypt16
 =======================================================================
 
+.. warning::
+
+    This algorithm is dangerously weak, and should not be used if at all possible.
+
 .. currentmodule:: passlib.hash
 
 This class implements the Crypt16 password hash, commonly
 found on Ultrix and Tru64. It's a minor modification of :class:`~passlib.hash.des_crypt`,
 which allows passwords of up to 16 characters.
 
-.. warning::
-
-    This algorithm is dangerously weak, and should not be used if at all possible.
-
-.. note::
-
-    This format is frequently confused with :class:`~passlib.hash.bigcrypt`,
-    another derivative of des-crypt, because (for passwords between
-    9 and 16 chars in length) bigcrypt hashes will have
-    the same size and character set.
-
-Usage
-=====
-This class can be used in exactly the same manner as :class:`~passlib.hash.des_crypt`.
+.. seealso::
+    :ref:`password hash usage <password-hash-examples>` --
+    for examples of how to use this class via the common hash interface.
 
 Interface
 =========
@@ -39,6 +32,13 @@ A crypt16 hash string has the format :samp:`{salt}{checksum_1}{checksum_2}`, whe
 * each :samp:`{checksum_i}` is a separate checksum, stored as an 11 character
   :data:`hash64-big <passlib.utils.h64big>`-encoded 64-bit integer
   (``X/UmCcBrceQ`` and ``0kQGGWKTbuE`` in the example).
+
+.. note::
+
+    This hash is frequently confused with the :doc:`bigcrypt <passlib.hash.bigcrypt>`
+    hash algorithm, as it has the same size and uses the same character
+    set as a :class:`!bigcrypt` hash of a password with 9 to 16
+    characters; though the actual algorithms are different.
 
 .. rst-class:: html-toggle
 
@@ -89,7 +89,7 @@ Crypt16 is dangerously flawed:
 
 * It suffers from all the flaws of :class:`~passlib.hash.des_crypt`.
 
-* Compared to des-crypt, it's smaller number of rounds
+* Compared to des-crypt, its smaller number of rounds
   makes it even *more* vulnerable to brute-force attacks.
 
 * For a given salt, passwords under 9 characters all have the same 2nd checksum.
@@ -110,10 +110,10 @@ This implementation of crypt16 deviates from public documentation of the format 
   (as evidenced by the fact that it discards the 8th bit of all password bytes).
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through crypt16. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 

@@ -1,4 +1,4 @@
-.. index:: phpass; portable hash, phpbb3; phpass hash
+.. index:: PHPass; portable hash, phpBB3; PHPass hash
 
 ==================================================================
 :class:`passlib.hash.phpass` - PHPass' Portable Hash
@@ -7,17 +7,16 @@
 .. currentmodule:: passlib.hash
 
 This algorithm is used primarily by PHP software
-which uses PHPass [#home],
-a PHP library similar to PassLib. The PHPass Portable Hash
+which uses PHPass [#pp]_,
+a PHP library similar to Passlib. The PHPass Portable Hash
 is a custom password hash used by PHPass as a fallback
-when none of it's other hashes are available.
-Due to it's reliance on MD5, and the simplistic implementation,
+when none of its other hashes are available.
+Due to its reliance on MD5, and the simplistic implementation,
 other hash algorithms should be used if possible.
 
-Usage
-=====
-Supporting a variable sized salt and variable number of rounds,
-this scheme is used in exactly the same way as :doc:`bcrypt <passlib.hash.bcrypt>`.
+.. seealso::
+    :ref:`password hash usage <password-hash-examples>` --
+    for examples of how to use this class via the common hash interface.
 
 Interface
 =========
@@ -66,10 +65,10 @@ This implementation of phpass differs from the specification in one way:
   is implied by nearly all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through phpass. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 

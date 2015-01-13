@@ -1,612 +1,744 @@
 .. index::
-    single: password hash api
+    single: PasswordHash interface
     single: custom hash handler; requirements
 
-.. currentmodule:: passlib.hash
+.. module:: passlib.ifc
+    :synopsis: abstract interfaces used by Passlib
 
 .. _password-hash-api:
 
-=================
-Password Hash API
-=================
+=============================================
+Password Hash Interface
+=============================================
 
 Overview
 ========
-All of the hashes supported by PassLib are implemented using classes [#otypes]_
-which support an identical interface; this document describes that
-interface in terms of a non-existent abstract class called :class:`!PasswordHash`.
-All of the supported password hashes [#supported]_ provide the following methods and attributes:
+While the exact options and behavior will vary between algorithms,
+all of the hashes provided by Passlib use the same interface,
+defined by the following abstract base class:
 
-:ref:`required-attributes`
+.. class:: PasswordHash()
 
-  These consist of the attributes :attr:`~PasswordHash.name`,
-  :attr:`~PasswordHash.setting_kwds`, and :attr:`~PasswordHash.context_kwds`.
-  They permit users and applications to detect what features a specific :class:`!PasswordHash`
-  allows and/or requires.
+    This class provides an abstract interface for
+    an arbitrary password hashing algorithm.
+    While it offers a number of methods and attributes,
+    but most applications will only need the two primary methods:
 
-:ref:`application-methods`
+    * :meth:`~PasswordHash.encrypt` - generate new salt, return hash of password.
+    * :meth:`~PasswordHash.verify` - verify password against existing hash.
 
-  This interface consists of the :meth:`~PasswordHash.encrypt`,
-  :meth:`~PasswordHash.identify`, and :meth:`~PasswordHash.verify` classmethods.
-  These are the methods most applications will need to make use of.
+    While not needed by most applications, the following methods
+    provide an interface that mimics the traditional Unix :func:`crypt`
+    function:
 
-:ref:`crypt-methods`
+    * :meth:`~PasswordHash.genconfig` - create configuration string from salt & other options.
+    * :meth:`~PasswordHash.genhash` - hash password using existing hash or configuration string.
 
-  This interface consists of the :meth:`~PasswordHash.genconfig`
-  and :meth:`~PasswordHash.genhash` classmethods.
-  These methods mimic the standard unix crypt interface,
-  and are not usually needed by applications.
+    One additional support method is provided:
 
-:ref:`optional-attributes`
+    * :meth:`~PasswordHash.identify` - check if hash belongs to this algorithm.
 
-  These attributes provide additional information
-  about the capabilities and limitations of certain password hash schemes.
+    Each hash algorithm also provides a number of :ref:`informational attributes <informational-attributes>`,
+    allowing programmatic inspection of its options and parameter limits.
 
-Usage
-=====
-While most uses of PassLib are done through a :class:`~passlib.context.CryptContext` class,
-the various :class:`!PasswordHash` classes can be used directly to manipulate
-passwords::
+.. _password-hash-examples:
 
-    >>> # for example, the SHA256-Crypt class:
-    >>> from passlib.hash import sha256_crypt as sc
+Usage Examples
+==============
+The following code shows how to use the primary
+methods of the :class:`~passlib.ifc.PasswordHash` interface --
+:meth:`~PasswordHash.encrypt` and :meth:`~PasswordHash.verify` --
+using the :class:`~passlib.hash.sha256_crypt` hash as an example::
 
-    >>> # using it to encrypt a password:
-    >>> h = sc.encrypt("password")
-    >>> h
+    >>> # import the handler class
+    >>> from passlib.hash import sha256_crypt
+
+    >>> # hash a password using the default settings:
+    >>> hash = sha256_crypt.encrypt("password")
+    >>> hash
     '$5$rounds=40000$HIo6SCnVL9zqF8TK$y2sUnu13gp4cv0YgLQMW56PfQjWaTyiHjVbXTgleYG9'
 
-    >>> # subsequent calls to sc.encrypt() will generate a new salt:
-    >>> sc.encrypt("password")
+    >>> # note that each call to encrypt() generates a new salt,
+    >>> # and thus the contents of the hash will differ, despite using the same password:
+    >>> sha256_crypt.encrypt("password")
     '$5$rounds=40000$1JfxoiYM5Pxokyh8$ez8uV8jjXW7SjpaTg2vHJmx3Qn36uyZpjhyC9AfBi7B'
 
-    >>> # the same, but with an explict number of rounds:
-    >>> sc.encrypt("password", rounds=10000)
-    '$5$rounds=10000$UkvoKJb8BPrLnR.D$OrUnOdr.IJx74hmyyzuRdr5k9lSXdkFxKmr7bLQTty5'
+    >>> # if the hash supports a variable number of iterations (which sha256_crypt does),
+    >>> # you can override the default value via the 'rounds' keyword:
+    >>> sha256_crypt.encrypt("password", rounds=12345)
+    '$5$rounds=12345$UeVpHaN2YFDwBoeJ$NJN8DwVZ4UfQw6.ijJZNWoZtk1Ivi5YfKCDsI2HzSq2'
+               ^^^^^
 
-    >>> #the identify method can be used to determine the format of an unknown hash:
-    >>> sc.identify(h)
+    >>> # on the other end of things, the verify() method takes care of
+    >>> # checking if a password matches an existing hash string:
+    >>> sha256_crypt.verify("password", hash)
     True
-
-    >>> #check if some other hash is recognized (in this case, an MD5-Crypt hash)
-    >>> sc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    >>> sha256_crypt.verify("letmeinplz", hash)
     False
 
-    >>> #the verify method encapsulates all hash comparison logic for a class:
-    >>> sc.verify("password", h)
+.. note::
+
+    Whether a hash supports a particular configuration keyword (such as ``rounds``)
+    can be determined from its documentation page; but also programmatically from
+    its :attr:`~PasswordHash.setting_kwds` attribute.
+
+That concludes the most basic example, but there are a few more
+common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
+
+    >>> # attempting to call verify() with another algorithm's hash will result in a ValueError:
+    >>> from passlib.hash import sha256_crypt, md5_crypt
+    >>> other_hash = md5_crypt.encrypt("password")
+    >>> sha256_crypt.verify("password", other_hash)
+    Traceback (most recent call last):
+        <traceback omitted>
+    ValueError: not a valid sha256_crypt hash
+
+    >>> # this can be prevented by using the identify method,
+    >>> # determines whether a hash belongs to a given algorithm:
+    >>> hash = sha256_crypt.encrypt("password")
+    >>> sha256_crypt.identify(hash)
     True
-    >>> sc.verify("wrongpassword", h)
+    >>> sha256_crypt.identify(other_hash)
     False
 
-.. _required-attributes:
+While the initial :meth:`~PasswordHash.encrypt` example works for most hashes,
+a small number of algorithms require you provide external data
+(such as a username) every time a hash is calculated.
+An example of this is the :class:`~passlib.hash.oracle10` algorithm::
 
-Required Attributes
-=================================
-.. attribute:: PasswordHash.name
+    >>> # for oracle10, encrypt requires a username:
+    >>> from passlib.hash import oracle10
+    >>> hash = oracle10.encrypt("secret", user="admin")
+    'B858CE295C95193F'
 
-    A unique name used to identify
-    the particular scheme this class implements.
+    >>> # the difference between this and something like the rounds setting (above)
+    >>> # is that oracle10 also requires the username when verifying a hash:
+    >>> oracle10.verify("secret", hash, user="admin")
+    True
 
-    These names should consist only of lowercase a-z, the digits 0-9, and underscores.
+    >>> # if either the username OR password is wrong, verify() will fail:
+    >>> oracle10.verify("secret", hash, user="wronguser")
+    False
+    >>> oracle10.verify("wrongpassword", hash, user="admin")
+    False
 
-    .. note::
+    >>> # forgetting to include the username when it's required will cause a TypeError:
+    >>> hash = oracle10.encrypt("password")
+    Traceback (most recent call last):
+        <traceback omitted>
+    TypeError: user must be unicode or bytes, not None
 
-        All handlers built into passlib are implemented as classes
-        located under :samp:`passlib.hash.{name}`, where :samp:`{name}`
-        is both the class name, and the value of the ``name`` attribute.
-        This is not a requirement, and may not be true for
-        externally-defined handlers.
+.. note::
 
-.. attribute:: PasswordHash.setting_kwds
+    Whether a hash requires external parameters (such as ``user``)
+    can be determined from its documentation page; but also programmatically from
+    its :attr:`~PasswordHash.context_kwds` attribute.
 
-    If the scheme supports per-hash configuration
-    (such as salts, variable rounds, etc), this attribute
-    should contain a tuple of keywords corresponding
-    to each of those configuration options.
-    This should list all the main configuration keywords accepted
-    by :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.encrypt`.
-    If no configuration options are supported, this attribute should be an empty tuple.
+.. _primary-methods:
 
-    While each class may support a variety of options, each with their own meaning
-    and semantics, the following keywords should have the same behavior
-    across all schemes which use them:
+Primary Methods
+===============
+Most applications will only need to use two methods:
+:meth:`~PasswordHash.encrypt` to generate new hashes, and :meth:`~PasswordHash.verify`
+to check passwords against existing hashes.
+These methods provide an easy interface for working with a password hash,
+and abstract away details such as salt generation, hash normalization,
+and hash comparison.
 
-    ``salt``
-        If present, this means the algorithm contains some number of bits of salt
-        which should vary with every new hash created.
+.. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
 
-        Additionally, this means
-        :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.encrypt`
-        should both accept an optional ``salt`` keyword allowing the user
-        to specify a bare salt string. Note that this feature is rarely
-        needed, and the constraints on the size & content of this string
-        will vary for each algorithm.
+    Digest password using format-specific algorithm,
+    returning resulting hash string.
 
-    ``salt_size``
-        Most algorithms which support ``salt`` will auto-generate a salt string
-        if none is provided. If this keyword is also present, it means it
-        can be used to select the size of the auto-generated salt.
-        If omitted, most algorithms will fall back to a default salt size.
+    For most hashes supported by Passlib, the returned string will contain:
+    an algorithm identifier, a cost parameter, the salt string,
+    and finally the password digest itself.
 
-    ``rounds``
-        If present, this means the algorithm allows for a variable number of rounds
-        to be used, allowing the processor time required to be increased.
+    :type secret: unicode or bytes
+    :arg secret: string containing the password to encode.
 
-        Providing this as a keyword should allow the application to
-        override the class' default number of rounds. While this
-        must be a non-negative integer for all implementations,
-        additional constraints may be present for each algorith
-        (such as the cost varying on a linear or logarithmic scale).
+    :param \*\*kwds:
 
-    ``ident``
-        If present, the class supports multiple formats for encoding
-        the same hash. The class's documentation will generally list
-        the allowed values, allowing alternate output formats to be selected.
-
-    ``relaxed``
-        If supported, ``relaxed=True`` will cause the handler to
-        be more forgiving about invalid input. Instead of immediately throwing
-        a :exc:`ValueError`, it will first attempt to correct the input,
-        and issue a :exc:`~passlib.exc.PasslibHashWarning` if successful.
-        This includes actions like clamping out-of-range rounds values,
-        and truncating salts that are too long.
-
-.. attribute:: PasswordHash.context_kwds
-
-    This attribute should contain a tuple of keywords
-    which should be passed into :func:`encrypt`, :func:`verify`,
-    and :func:`genhash` in order to encrypt a password.
-
-    Some algorithms require external contextual information
-    in order to generate a checksum for a password.
-    An example of this is :doc:`Postgres' MD5 algorithm <lib/passlib.hash.postgres_md5>`,
-    which requires the username be provided when generating a hash
-    (see that class for an example of how this works in pratice).
-
-    Since most password hashes require no external information,
-    this tuple will usually be empty, and references
-    to context keywords can be ignored for all but a few classes.
-
-    While each class may support a variety of options, each with their own meaning
-    and semantics, the following keywords should have the same behavior
-    across all schemes which use them:
-
-    ``user``
-
-        If present, the class requires a username be specified whenever
-        performing a hash calculation (eg: postgres_md5 and oracle10).
-
-.. _application-methods:
-
-Application Methods
-===================
-The :meth:`~PasswordHash.encrypt`, :meth:`~PasswordHash.identify`, and :meth:`~PasswordHash.verify` methods are designed
-to provide an easy interface for applications. They allow encrypt new passwords
-without having to deal with details such as salt generation, verifying
-passwords without having to deal with hash comparison rules, and determining
-which scheme a hash belongs to when multiple schemes are in use.
-
-.. classmethod:: PasswordHash.encrypt(secret, \*\*settings_and_context_kwds)
-
-    encrypt secret, returning resulting hash string.
-
-    :arg secret:
-        A string containing the secret to encode.
-
-        Unicode behavior is specified on a per-hash basis,
-        but the common case is to encode into utf-8
-        before processing.
-
-    :param \*\*settings_and_context_kwds:
-        All other keywords are algorithm-specified,
-        and should be listed in :attr:`~PasswordHash.setting_kwds`
+        All additional keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though many of the more common keywords
+        are listed under :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
+        Examples of common keywords include ``rounds`` and ``salt_size``.
 
-        Common settings keywords include ``salt`` and ``rounds``.
+    :returns:
+        Resulting password hash, encoded in an algorithm-specific format.
+        This will always be an instance of :class:`!str`
+        (i.e. :class:`unicode` under Python 3, ``ascii``-encoded :class:`bytes` under Python 2).
 
     :raises ValueError:
 
-        * If a keyword's value is invalid (e.g. if a ``salt`` string
+        * If a ``kwd``'s value is invalid (e.g. if a ``salt`` string
           is too small, or a ``rounds`` value is out of range).
 
-        * If the secret contains characters forbidden by the handler
-          (e.g. :class:`!des_crypt` forbids NULL characters). This should not
-          happen often, since most modern algorithms have no limitations on
-          the character values they accept.
+        * If ``secret`` contains characters forbidden by the hash algorithm
+          (e.g. :class:`!des_crypt` forbids NULL characters).
 
     :raises TypeError:
 
-        * if :samp:`{secret}` is not a unicode or bytes instance.
+        * if ``secret`` is not :class:`!unicode` or :class:`bytes`.
+        * if a ``kwd`` argument has an incorrect type.
+        * if an algorithm-specific required ``kwd`` is not provided.
 
-        * if a required option (such as a context keyword) was not set.
-
-    :returns:
-        Hash string, using an algorithm-specific format.
+    *(Note that the name of this method is a misnomer: nearly all
+    password hashes use an irreversible cryptographic digest,
+    rather than a reversible cipher. see* :issue:`21` *).*
 
     .. versionchanged:: 1.6
+        Hashes now raise :exc:`TypeError` if a required keyword is missing,
+        rather than :exc:`ValueError` like in previous releases; in order
+        to conform with normal Python behavior.
 
-        Previous versions of Passlib would raise :exc:`ValueError` if a
-        required keyword was missing; this has been changed to :exc:`TypeError`
-        in order to conform with normal Python behavior.
-
-        Previous versions of Passlib would silently correct invalid settings
-        where possible (e.g. silently clamping out-of-range ``rounds``); as
-        of Passlib 1.6 the policy is to raise an explicit error.
-
-.. classmethod:: PasswordHash.identify(hash)
-
-    Quickly identify if a hash string belongs to this algorithm.
-
-    :arg hash: the candidate hash string to check
-
-    :raises TypeError: if :samp:`{hash}` is not a unicode or bytes instance.
-
-    :returns:
-        ``True`` if the input appears to be a hash or configuration string
-        which belongs to this algorithm, otherwise ``False``.
-
-    .. note::
-
-        The goal of this method is positively identify the correct
-        handler for a given hash, and do it as efficiently as possible.
-        In order to accomplish this, many implementations perform only minimal
-        validation of the candidate hashes. Thus, they may return ``True``
-        for hashes which are identifiable, but malformed enough that
-        a :exc:`ValueError` is raised when the string is passed to
-        :func:`~PasswordHash.verify` or :func:`~PasswordHash.genhash`.
-        Because of this, applications should rely on this method only for identification,
-        not confirmation that a hash is correctly formed.
+    .. versionchanged:: 1.6
+        Passlib is now much stricter about input validation: for example,
+        out-of-range ``rounds`` values now cause an error instead of being
+        clipped (though applications may set :ref:`relaxed=True <relaxed-keyword>`
+        to restore the old behavior).
 
 .. classmethod:: PasswordHash.verify(secret, hash, \*\*context_kwds)
 
-    verify a secret against an existing hash.
+    Verify a secret using an existing hash.
 
     This checks if a secret matches against the one stored
     inside the specified hash.
 
+    :type secret: unicode or bytes
     :param secret:
-        A string containing the secret to check.
+        A string containing the password to check.
+
+    :type secret: unicode or bytes
     :param hash:
-        A string containing the hash to check against.
+        A string containing the hash to check against,
+        such as returned by :meth:`~encrypt`.
 
-    :param \*\*context_kwds:
-        Any additional keywords will be passed to the encrypt
-        method. These should be limited to those listed
-        in :attr:`~PasswordHash.context_kwds`.
+        Hashes may be specified as :class:`!unicode` or
+        ``ascii``-encoded :class:`!bytes`.
 
-    :raises TypeError:
+    :param \*\*kwds:
+        Very few hashes will have additional keywords.
 
-        if either *secret* or *hash* is not a unicode or bytes instance.
+        The ones that do typically require external contextual information
+        in order to calculate the digest. For these hashes,
+        the values must match the ones passed to the original
+        :meth:`~PasswordHash.encrypt` call when the hash was generated,
+        or the password will not verify.
 
-    :raises ValueError:
-        * the hash does not match this algorithm's hash format.
-        * if the secret contains forbidden characters (see
-          :meth:`~PasswordHash.encrypt`).
-        * if a configuration string from :meth:`~PasswordHash.genconfig`
-          is passed in as the value for *hash*.
+        These additional keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though the more common keywords
+        are listed under :attr:`~PasswordHash.context_kwds`.
+        Examples of common keywords include ``user``.
 
     :returns:
         ``True`` if the secret matches, otherwise ``False``.
 
+    :raises TypeError:
+        * if either ``secret`` or ``hash`` is not a unicode or bytes instance.
+        * if the hash requires additional ``kwds`` which are not provided,
+        * if a ``kwd`` argument has the wrong type.
+
+    :raises ValueError:
+        * if ``hash`` does not match this algorithm's format.
+        * if the ``secret`` contains forbidden characters (see
+          :meth:`~PasswordHash.encrypt`).
+        * if a configuration/salt string generated by :meth:`~PasswordHash.genconfig`
+          is passed in as the value for ``hash`` (these strings look
+          similar to a full hash, but typically lack the digest portion
+          needed to verify a password).
+
+    .. versionchanged:: 1.6
+        This function now raises :exc:`ValueError` if ``None`` or a config string is provided
+        instead of a properly-formed hash; previous releases were inconsistent
+        in their handling of these two border cases.
+
+.. _hash-unicode-behavior:
+
+.. note::
+
+    Regarding unicode passwords & non-ASCII characters:
+
+    For the majority of hash algorithms and use-cases, passwords should
+    be provided as either :class:`!unicode` or ``utf-8``-encoded :class:`!bytes`.
+    There are only two major exceptions:
+
+    * Some systems have legacy hashes that were generated using a different
+      character encoding. In this case, all :class:`!unicode` passwords
+      should be encoded using the correct encoding before they are hashed;
+      otherwise non-ASCII passwords may not :meth:`!verify` successfully.
+
+    * For historical reasons, :class:`~passlib.hash.lmhash` uses ``cp437``
+      as its default encoding. It will handle :class:`!unicode` correctly;
+      but non-ASCII passwords provided as :class:`!bytes` must either be encoded
+      using ``"cp437"``, or :class:`!lmhash`'s ``encoding`` keyword must
+      be set to indicate which encoding was used.
+
 .. _crypt-methods:
+
+.. rst-class:: html-toggle
 
 Crypt Methods
 =============
-While the application methods are generally the most useful when integrating
-password support into an application, those methods are for the most part
-built on top of the crypt interface, which is somewhat simpler
-for *implementing* new password schemes. It also happens to match
-more closely with the crypt api of most Unix systems,
-and consists of two functions: :meth:`~PasswordHash.genconfig`
-and :meth:`~PasswordHash.genhash`.
+Taken together, the :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.genhash`
+are two tightly-coupled methods that mimic the standard Unix
+"crypt" interface. The first method generates salt / configuration
+strings from a set of settings, and the second hashes the password
+using the provided configuration string.
 
-.. classmethod:: PasswordHash.genconfig(\*\*settings_kwds)
+.. seealso::
 
-    returns configuration string encoding settings for hash generation
+    Most applications will find :meth:`~PasswordHash.encrypt` much more useful,
+    as it combines the functionality of these two methods into one.
 
-    Many hashes have configuration options,  and support a format
-    which encodes them into a single configuration string.
-    (This configuration string is usually an abbreviated version of their
-    encoded hash format, sans the actual checksum, and is commonly
-    referred to as a ``salt string``, though it may contain much more
-    than just a salt).
+.. classmethod:: PasswordHash.genconfig(\*\*setting_kwds)
 
-    This function takes in configuration options specific to the handler,
-    validates the inputs, fills in defaults where appropriate, and returns
-    a configuration string. For algorithms which do not have any configuration
-    options, this function should always return ``None``.
+    Returns a configuration string encoding settings for hash generation.
 
-    :param \*\*settings_kwds:
+    This function takes in all the same :attr:`~PasswordHash.setting_kwds`
+    as :meth:`~PasswordHash.encrypt`, fills in suitable defaults,
+    and encodes the settings into a single "configuration" string,
+    suitable passing to :meth:`~PasswordHash.genhash`.
 
-        While each algorithm may have it's own specific configuration options
-        (detailed in it's documentation), a list of common options can be
-        found in in :attr:`~PasswordHash.setting_kwds`.
-
-        commonly supported keywords include ``salt`` and ``rounds``.
-
-    :raises TypeError:
-        if any required configuration options are omitted
-        (most options do not need to be specified; e.g. an appropriate
-        value for ``salt`` will be autogenerated for each call).
-
-    :raises ValueError:
-        if any configuration options are invalid (and cannot
-        be corrected, if in relaxed parsing mode).
+    :param \*\*kwds:
+        All additional keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though many of the more common keywords
+        are listed under :attr:`~PasswordHash.setting_kwds`
+        Examples of common keywords include ``salt`` and ``rounds``.
 
     :returns:
-        the configuration string, or ``None`` if the algorithm does not support
-        any configuration options.
+        A configuration string (as :class:`!str`), or ``None`` if the scheme
+        does not support a separate configuration.
+
+    :raises ValueError, TypeError:
+        This function raises exceptions for the same
+        reasons as :meth:`~PasswordHash.encrypt`.
+
+    .. note::
+
+        This configuration string is typically the same as the full hash string,
+        except that it lacks the final portion containing the digested password.
+        This is sometimes referred to as a "salt" string, though it typically
+        contains much more than just the salt parameter.
 
 .. classmethod:: PasswordHash.genhash(secret, config, \*\*context_kwds)
 
-    encrypt secret to hash
+    Encrypt secret using specified configuration string.
 
-    takes in a password, optional configuration string,
-    and any required contextual information the algorithm needs,
-    and returns the encoded hash strings.
+    This takes in a password and a configuration string,
+    and returns a hash for that password.
 
-    :arg secret: string containing the password to be encrypted
+    :type secret: unicode or bytes
+    :arg secret:
+        string containing the password to be encrypted.
+
+    :type config: unicode or bytes or ``None``
     :arg config:
         configuration string to use when encrypting secret.
         this can either be an existing hash that was previously
         returned by :meth:`~PasswordHash.genhash`, or a configuration string
         that was previously created by :meth:`~PasswordHash.genconfig`.
 
-    :param \*\*context_kwds:
-        All other keywords must be external contextual information
-        required by the algorithm to create the hash. If any,
-        these kwds must be specified in :attr:`~PasswordHash.context_kwds`.
+        ``None`` is accepted *only* for the hashes which lack a configuration
+        string (for which :meth:`~PasswordHash.genconfig` always returns ``None``).
 
-    :raises TypeError:
-        * if either *secret* or *config* is not a unicode or bytes instance.
-        * if required contextual keywords are not provided
+    :param \*\*kwds:
+        Very few hashes will have additional keywords.
 
-    :raises ValueError:
-        * if the configuration string is not in a recognized format.
-        * if the secret contains a forbidden character (rare, but some algorithms have limitations, eg: forbidding null characters)
-        * if the contextual information is invalid
+        The ones that do typically require external contextual information
+        in order to calculate the digest. For these hashes,
+        the values must match the ones passed to the original
+        :meth:`~PasswordHash.encrypt` call when the hash was generated,
+        or the password will not verify.
+
+        These additional keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though the more common keywords
+        are listed under ::attr:`~PasswordHash.context_kwds`.
+        Examples of common keywords include ``user``.
 
     :returns:
-        encoded hash matching specified secret, config, and context.
+        Encoded hash matching specified secret, config, and kwds.
+        This will always be a native :class:`!str` instance.
 
-.. _optional-attributes:
+    :raises ValueError, TypeError:
+        This function raises exceptions for the same
+        reasons as :meth:`~PasswordHash.encrypt`.
 
-Optional Attributes
-=================================
-Many of the handlers expose the following informational
-attributes (though their presence is not uniform or required
-as of this version of Passlib).
+    .. warning::
 
-.. todo::
+        Traditionally, password verification using the "crypt" interface
+        was done by testing if ``hash == genhash(password, hash)``.
+        This test is only reliable for a handful of algorithms,
+        as various hash representation issues may cause false results.
+        Applications are strongly urged to use :meth:`~PasswordHash.verify` instead.
 
-    Consider making these attributes required for all hashes
-    which support the appropriate keyword in :attr:`~PasswordHash.setting_kwds`.
+.. _support-methods:
 
-.. _optional-rounds-attributes:
+Support Methods
+===============
+There is currently one additional support method, :meth:`~PasswordHash.identify`:
 
-Rounds Information
-------------------
-For schemes which support a variable number of rounds (ie, ``'rounds' in PasswordHash.setting_kwds``),
-the following attributes are usually exposed.
-(Applications can test for this suites' presence by using :func:`~passlib.utils.has_rounds_info`)
+.. classmethod:: PasswordHash.identify(hash)
 
-.. attribute:: PasswordHash.max_rounds
+    Quickly identify if a hash string belongs to this algorithm.
 
-    The maximum number of rounds the scheme allows.
-    Specifying values above this will generally result
-    in a warning, and :attr:`~!PasswordHash.max_rounds` will be used instead.
-    Must be a positive integer.
+    :type hash: unicode or bytes
+    :arg hash:
+        the candidate hash string to check
 
-.. attribute:: PasswordHash.min_rounds
+    :returns:
+        * ``True`` if the input is a configuration string or hash string
+           identifiable as belonging to this scheme (even if it's malformed).
+        * ``False`` if the input does not belong to this scheme.
 
-    The minimum number of rounds the scheme allows.
-    Specifying values below this will generally result
-    in a warning, and :attr:`~!PasswordHash.min_rounds` will be used instead.
-    Must be within ``range(0, max_rounds+1)``.
+    :raises TypeError:
+        if :samp:`{hash}` is not a unicode or bytes instance.
 
-.. attribute:: PasswordHash.default_rounds
+    .. note::
 
-    The default number of rounds that will be used if not
-    explicitly set when calling :meth:`~PasswordHash.encrypt` or :meth:`~PasswordHash.genconfig`.
-    Must be within ``range(min_rounds, max_rounds+1)``.
+        A small number of the hashes supported by Passlib lack a reliable
+        method of identification (e.g. :class:`~passlib.hash.lmhash`
+        and :class:`~passlib.hash.nthash` both consist of 32 hexadecimal characters,
+        with no distinguishing features). For such hashes, this method
+        may return false positives.
 
-.. attribute:: PasswordHash.rounds_cost
+    .. seealso::
 
-    Specifies how the rounds value affects the amount of time taken.
-    Currently used values are:
+        If you are considering using this method to select from multiple
+        algorithms (e.g. in order to verify a password), you will be better served
+        by the :ref:`CryptContext <context-overview>` class.
 
-    ``linear``
-        time taken scales linearly with rounds value (eg: :class:`~passlib.hash.sha512_crypt`)
+..
+    the undocumented and experimental support methods currently include
+    parsehash() and bitsize()
 
-    ``log2``
-        time taken scales exponentially with rounds value (eg: :class:`~passlib.hash.bcrypt`)
+.. _informational-attributes:
 
-.. _optional-salt-attributes:
+Informational Attributes
+========================
+
+.. _general-attributes:
+
+General Information
+-------------------
+Each hash provides a handful of informational attributes, allowing
+programs to dynamically adapt to the requirements of different
+hash algorithms. The following attributes should be defined for all
+the hashes in passlib:
+
+.. attribute:: PasswordHash.name
+
+    Name uniquely identifying this hash.
+
+    For the hashes built into Passlib, this will always match
+    the location where it was imported from — :samp:`passlib.hash.{name}` —
+    though externally defined hashes may not adhere to this.
+
+    This should always be a :class:`!str` consisting of lowercase ``a-z``,
+    the digits ``0-9``, and the underscore character ``_``.
+
+.. attribute:: PasswordHash.setting_kwds
+
+    Tuple listing the keywords supported by :meth:`~PasswordHash.encrypt`
+    and :meth:`~PasswordHash.genconfig` that control hash generation, and which will
+    be encoded into the resulting hash.
+
+    This list commonly includes keywords for controlling salt generation,
+    adjusting time-cost parameters, etc. Most of these settings are optional,
+    and suitable defaults will be chosen if they are omitted (e.g. salts
+    will be autogenerated).
+
+    While the documentation for each hash should have a complete list of
+    the specific settings the hash uses, the following keywords should have
+    roughly the same behavior for all the hashes that support them:
+
+    .. index::
+        single: salt; PasswordHash keyword
+
+    ``salt``
+        Specifies a fixed salt string to use, rather than randomly
+        generating one.
+
+        This option is supported by most of the hashes in Passlib,
+        though typically it isn't used, as random generation of a salt
+        is usually the desired behavior.
+
+        Hashes typically require this to be a :class:`!unicode` or
+        :class:`!bytes` instance, with additional constraints
+        appropriate to the algorithm.
+
+    .. index::
+        single: salt_size; PasswordHash keyword
+
+    ``salt_size``
+
+        Most algorithms which support the ``salt`` setting will
+        autogenerate a salt when none is provided. Most of those hashes
+        will also offer this option, which allows the caller to specify
+        the size of salt which should be generated. If omitted,
+        the hash's default salt size will be used.
+
+        .. seealso:: the :ref:`salt info <salt-attributes>` attributes (below)
+
+    .. index::
+        single: rounds; PasswordHash keyword
+
+    ``rounds``
+        If present, this means the hash can vary the number
+        of internal rounds used in some part of its algorithm,
+        allowing the calculation to take a variable amount of processor
+        time, for increased security.
+
+        While this is almost always a non-negative integer,
+        additional constraints may be present for each algorithm
+        (such as the cost varying on a linear or logarithmic scale).
+
+        This value is typically omitted, in which case a default
+        value will be used. The defaults for all the hashes in Passlib
+        are periodically retuned to strike a balance between
+        security and responsiveness.
+
+        .. seealso:: the :ref:`rounds info <rounds-attributes>` attributes (below)
+
+    .. index::
+        single: ident; PasswordHash keyword
+
+    ``ident``
+        If present, the class supports multiple formats for encoding
+        the same hash. The class's documentation will generally list
+        the allowed values, allowing alternate output formats to be selected.
+
+        Note that these values will typically correspond to different
+        revision of the hash algorithm itself, and they may not all
+        offer the same level of security.
+
+    .. index::
+        single: relaxed; PasswordHash keyword
+
+    .. _relaxed-keyword:
+
+    ``relaxed``
+        By default, passing an invalid value to :meth:`~PasswordHash.encrypt`
+        will result in a :exc:`ValueError`. However, if ``relaxed=True``
+        then Passlib will attempt to correct the error and (if successful)
+        issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
+        This warning may then be filtered if desired.
+        Correctable errors include (but are not limited to): ``rounds``
+        and ``salt_size`` values that are too low or too high, ``salt``
+        strings that are too large.
+
+        This option is supported by most of the hashes in Passlib.
+
+        .. versionadded:: 1.6
+
+.. attribute:: PasswordHash.context_kwds
+
+    Tuple listing the keywords supported by :meth:`~PasswordHash.encrypt`,
+    :meth:`~PasswordHash.verify`, and :meth:`~PasswordHash.genhash` affect the hash, but are
+    not encoded within it, and thus must be provided each time
+    the hash is calculated.
+
+    This list commonly includes a user account, http realm identifier,
+    etc. Most of these keywords are required by the hashes which support them,
+    as they are frequently used in place of an embedded salt parameter.
+    This is typically an empty tuple for most of the hashes in passlib.
+
+    While the documentation for each hash should have a complete list of
+    the specific context keywords the hash uses,
+    the following keywords should have roughly the same behavior
+    for all the hashes that support them:
+
+    .. index::
+        single: user; PasswordHash keyword
+
+    ``user``
+
+        If present, the class requires a username be specified whenever
+        performing a hash calculation (e.g.
+        :class:`~passlib.hash.postgres_md5` and
+        :class:`~passlib.hash.oracle10`).
+
+    .. index::
+        single: encoding; PasswordHash keyword
+
+    ``encoding``
+
+        Some hashes have poorly-defined or host-dependant unicode behavior,
+        and properly hashing a non-ASCII password requires providing
+        the correct encoding (:class:`~passlib.hash.lmhash` is perhaps the worst offender).
+        Hashes which provide this keyword will always expose
+        their default encoding programmatically via the
+        :attr:`~PasswordHash.default_encoding` attribute.
+
+.. _salt-attributes:
 
 Salt Information
 ----------------
-For schemes which support a salt (ie, ``'salt' in PasswordHash.setting_kwds``),
-the following attributes are usually exposed.
-(Applications can test for this suites' presence by using :func:`~passlib.utils.has_salt_info`)
+For schemes which support a salt string,
+``"salt"`` should be listed in their :attr:`~PasswordHash.setting_kwds`,
+and the following attributes should be defined:
 
 .. attribute:: PasswordHash.max_salt_size
 
-    maximum number of characters which will be used
-    if a salt string is provided to :meth:`~PasswordHash.genconfig` or :meth:`~PasswordHash.encrypt`.
-    must be one of:
-
-    * A positive integer - it should accept and silently truncate
-      any salt strings longer than this size.
-
-    * ``None`` - the scheme should use all characters of a provided salt,
-      no matter how large.
+    The maximum number of bytes/characters allowed in the salt.
+    Should either be a positive integer, or ``None`` (indicating
+    the algorithm has no effective upper limit).
 
 .. attribute:: PasswordHash.min_salt_size
 
-    minimum number of characters required for any salt string
-    provided to :meth:`~PasswordHash.genconfig` or :meth:`~PasswordHash.encrypt`.
-    must be an integer within ``range(0,max_salt_size+1)``.
+    The minimum number of bytes/characters required for the salt.
+    Must be an integer between 0 and :attr:`~PasswordHash.max_salt_size`.
 
 .. attribute:: PasswordHash.default_salt_size
 
-    size of salts generated by genconfig
-    when no salt is provided by caller.
-    for most hashes, this defaults to :attr:`~PasswordHash.max_salt_size`.
-    this value must be within ``range(min_salt_size, max_salt_size+1)``.
+    The default salt size that will be used when generating a salt,
+    assuming ``salt_size`` is not set explicitly. This is typically
+    the same as :attr:`max_salt_size`,
+    or a sane default if ``max_salt_size=None``.
 
 .. attribute:: PasswordHash.salt_chars
 
-    string containing list of all characters which are allowed
-    to be specified in salt parameter.
-    for most :ref:`MCF <modular-crypt-format>` hashes,
+    A unicode string containing all the characters permitted
+    in a salt string.
+
+    For most :ref:`modular-crypt-format` hashes,
     this is equal to :data:`passlib.utils.HASH64_CHARS`.
-
-    this must be a :class:`!unicode` string if the salt is encoded,
-    or (rarely) :class:`!bytes` if the salt is manipulating as unencoded raw bytes.
-
-.. todo::
-
-    This section lists the behavior for handlers which accept
-    salt strings containing encoded characters.
-    Some handlers may instead expect raw bytes for their salt keyword,
-    and handle encoding / decoding them internally.
-    It should be documented how these attributes
-    behave in that situation.
+    For the rare hashes where the ``salt`` parameter must be specified
+    in bytes, this will be a placeholder :class:`!bytes` object containing
+    all 256 possible byte values.
 
 ..
     not yet documentated, want to make sure this is how we want to do things:
 
     .. attribute:: PasswordHash.default_salt_chars
 
-        sequence of characters used to generated new salts
-        when no salt is provided by caller.
-        for most hashes, this is the same as :attr:`!PasswordHash.salt_chars`;
-        but some hashes accept a much larger range of values
-        than are typically used. This field allows
-        the full range to be accepted, while only
-        a select subset to be used for generation.
+        sequence of characters used to generate new salts.
+        this is typically the same as :attr:`~PasswordHash.salt_chars`, but some
+        hashes accept a larger-than-useful range, and this will
+        contain only the "common" values used for generation.
 
-    xxx: what about a bits_per_salt_char or some such, so effective salt strength
-    can be compared?
+.. _rounds-attributes:
 
-.. _hash-unicode-behavior:
+Rounds Information
+------------------
+For schemes which support a variable time-cost parameter,
+``"rounds"`` should be listed in their :attr:`~PasswordHash.setting_kwds`,
+and the following attributes should be defined:
 
-Unicode Behavior
-================
+.. attribute:: PasswordHash.max_rounds
 
-.. versionadded:: 1.5
+    The maximum number of rounds the scheme allows.
+    Specifying a value beyond this will result in a :exc:`ValueError`.
+    This will be either a positive integer, or ``None`` (indicating
+    the algorithm has no effective upper limit).
 
-Quick summary
--------------
-For the application developer in a hurry:
+.. attribute:: PasswordHash.min_rounds
 
-* Passwords should be provided as :class:`unicode` if possible.
-  While they may be provided as :class:`bytes`,
-  in that case it is strongly suggested
-  they be encoded using ``utf-8`` or ``ascii``.
+    The minimum number of rounds the scheme allows.
+    Specifying a value below this will result in a :exc:`ValueError`.
+    Will always be an integer between 0 and :attr:`~PasswordHash.max_rounds`.
 
-* Passlib will always return hashes as native python strings.
-  This means :class:`unicode` under Python 3,
-  and ``ascii``-encoded :class:`bytes` under Python 2.
+.. attribute:: PasswordHash.default_rounds
 
-* Applications should provide hashes as :class:`unicode` if possible.
-  However, ``ascii``-encoded :class:`bytes` are also accepted
-  under Python 2.
+    The default number of rounds that will be used if none is explicitly
+    provided to :meth:`~PasswordHash.encrypt`.
+    This will always be an integer between :attr:`~PasswordHash.min_rounds`
+    and :attr:`~PasswordHash.max_rounds`.
 
-The following sections detail the issues surrounding
-encoding password hashes, and the behavior required
-by handlers implementing this API.
-It can be skipped by the uninterested.
+.. attribute:: PasswordHash.rounds_cost
 
-Passwords
----------
-Applications are strongly encouraged to provide passwords
-as :class:`unicode`. Two situations where an application
-might need to provide a password as :class:`bytes`:
-the application isn't unicode aware (lots of python 2 apps),
-or it needs to verify a password hash that used a specific encoding (eg ``latin-1``).
-For either of these cases, application developers should consider
-the following issues:
+    While the cost parameter ``rounds`` is an integer, how it corresponds
+    to the amount of time taken can vary between hashes. This attribute
+    indicates the scale used by the hash:
 
-*  Most hashes in Passlib operate on a string of bytes.
-   For handlers implementing such hashes,
-   passwords provided as :class:`unicode` should be encoded to ``utf-8``,
-   and passwords provided as :class:`bytes` should be treated as opaque.
+    * ``"linear"`` - time taken scales linearly with rounds value
+      (e.g. :class:`~passlib.hash.sha512_crypt`)
+    * ``"log2"`` - time taken scales exponentially with rounds value
+      (e.g. :class:`~passlib.hash.bcrypt`)
 
-   A few of these hashes officially specify this behavior;
-   the rest have no preferred encoding at all,
-   so this was chosen as a sensible standard behavior.
-   Unless the underlying algorithm specifies an alternate policy,
-   handlers should always encode unicode to ``utf-8``.
+..
+    todo: haven't decided if this is how I want the api look before
+    formally publishing it in the documentation:
 
-*  Because of the above behavior for :class:`unicode` inputs,
-   applications which encode their passwords are urged
-   to use ``utf-8`` or ``ascii``,
-   so that hashes they generate with encoded bytes
-   will verify correctly if/when they start using unicode.
+    .. _password-hash-backends:
 
-   Applications which need to verify existing hashes
-   using an alternate encoding such as ``latin-1``
-   should be wary of this future "gotcha".
+    Multiple Backends
+    =================
+    .. note::
 
-*  A few hashes operate on :class:`unicode` strings instead.
-   For handlers implementing such hashes:
-   passwords provided as :class:`unicode` should be handled as appropriate,
-   and passwords provided as :class:`bytes` should be treated as ``utf-8``,
-   and decoded.
+        For the most part, applications will not need this interface,
+        outside of perhaps calling the :meth:`~PasswordHash.get_backend`
+        to determine which the active backend.
 
-   This behavior was chosen in order to be compatible with
-   the common case (above), combined with the fact
-   that applications should never need to use a specific
-   encoding with these hashes, as they are natively unicode.
+    Some hashes provided by Passlib have multiple backends which they
+    select from at runtime, to provide the fastest implementation available.
+    Algorithms which offer multiple backends will expose the following
+    methods and attributes:
 
-   (Hashes like this include :class:`~passlib.hash.oracle10` and
-   :class:`~passlib.hash.nthash`)
+    .. attribute:: PasswordHash.backends
 
-Hashes
-------
-With the exception of plaintext passwords,
-literally *all* of the hash formats surveyed by the Passlib authors
-use only the characters found in 7-bit ``ascii``.
-This has caused most password hashing code (in python and elsewhere)
-to draw a very blurry line between :class:`unicode` and :class:`bytes`.
-Because of that, the following behavior was dictated less
-by design requirements, and more by compatibility
-and ease of implementation issues:
+        Tuple listing names of potential backends (which may or may not be available).
+        If this attribute is not present, the hash does not support
+        multiple backends.
 
-*   Handlers should accept hashes as either :class:`unicode` or
-    as ``ascii``-encoded :class:`bytes`.
+        While the names of the backends are specific to the hash algorithm,
+        the following standard names may be present:
 
-    This behavior allows applications to provide hashes
-    as unicode or as bytes, as they please; making
-    (among other things) migration to Python 3 easier.
+        * ``"os_crypt"`` - backend which uses stdlib's :mod:`!crypt` module.
+          this backend will not be available if the underlying host OS
+          does not support the particular hash algorithm.
 
-    The primary exception to this is handlers implementing
-    plaintext passwords. The implementations in passlib generally
-    use ``utf-8`` to encode unicode passwords,
-    and reproduce existing passwords as opaque bytes.
+        * ``"builtin"`` - backend using pure-python implementation built into
+          Passlib. All hashes will have this as their last backend, as a fallback.
 
-*   Internally, it is recommended that handlers use
-    :class:`unicode` for parsing / formatting
-    purposes, and only use :class:`bytes` for decoded
-    binary data ready to be passed into their digest routines.
+    .. method:: PasswordHash.get_backend()
 
-*   Handlers should return hashes as native python strings.
-    This means :class:`unicode` under Python 3,
-    and ``ascii``-encoded :class:`bytes` under Python 2.
+        This method should return the name of the currently active backend
+        that will be used by :meth:`!encrypt` and :meth:`!verify`.
 
-    This behavior was chosen to fit with Python 3's
-    unicode-oriented philosophy, while retaining
-    backwards compatibility with Passlib 1.4 and earlier
-    under Python 2.
+        :raises passlib.exc.MissingBackendError:
+            in the rare case that *no* backends can be loaded.
 
-.. rubric:: Footnotes
+    .. method:: PasswordHash.has_backend(backend)
 
-.. [#otypes]    While this specification is written referring to classes and classmethods,
-                password hash handlers can be any type of object (instance, module, etc),
-                so long as they offer attributes and functions with the required
-                signatures. For example, some of the handlers in Passlib are
-                instances of the :class:`~passlib.utils.handlers.PrefixWrapper` class.
+        This method can be used to test if a specific backend is available.
+        Returns ``True`` or ``False``.
 
-.. [#supported] all supported password hashes, whether builtin or registered
-                from an external source can be found in the :mod:`passlib.hash` module.
+    .. method:: PasswordHash.set_backend(backend)
+
+        This method can be used to select a specific backend.
+        The ``backend`` argument must be one of the backends listed
+        in :attr:`~PasswordHash.backends`, or the special value ``"default"``.
+
+        :raises passlib.exc.MissingBackendError:
+            if the specified backend is not available.
+
+.. index:: rounds; choosing the right value
+
+.. _rounds-selection-guidelines:
+
+Choosing the right rounds value
+===============================
+For hash algorithms with a variable time-cost, 
+Passlib's :attr:`~PasswordHash.default_rounds` values attempt to be secure enough for
+the average [#avgsys]_ system. But the "right" value for a given hash
+is dependant on the server, its cpu, its expected load, and its users.
+Since larger values mean increased work for an attacker,
+*the right* ``rounds`` *value for a given hash & server should be the largest
+possible value that doesn't cause intolerable delay for your users*.
+
+For most public facing services, you can generally have signin
+take upwards of 250ms - 400ms before users start getting annoyed.
+For superuser accounts, it should take as much time as the admin can stand
+(usually ~4x more delay than a regular account).
+
+Passlib's :attr:`!default_rounds` values are retuned periodically,
+starting with a rough estimate of what an "average" system is capable of,
+and then setting all :samp:`{hash}.default_rounds` values to take ~300ms on such a system.
+However, some older algorithms (e.g. :class:`~passlib.hash.bsdi_crypt`) are weak enough that
+a tradeoff must be made, choosing "secure but intolerably slow" over "fast but unacceptably insecure".
+For this reason, it is strongly recommended to not use a value much lower than Passlib's default.
+
+.. [#avgsys] For Passlib 1.6.2, all hashes were retuned to take ~300ms on a
+   system with a 2.5 ghz 64 bit CPU.

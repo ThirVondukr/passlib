@@ -8,14 +8,22 @@ SHA1-Crypt is a hash algorithm introduced by NetBSD in 2004.
 It's based on a variation of the PBKDF1 algorithm,
 and supports a large salt and variable number of rounds.
 
-Usage
-=====
-Supporting a variable sized salt and variable number of rounds,
-this scheme is used in exactly the same way as :doc:`sha512_crypt <passlib.hash.sha512_crypt>`.
+.. seealso::
+    :ref:`password hash usage <password-hash-examples>` --
+    for examples of how to use this class via the common hash interface.
 
-Functions
+Interface
 =========
 .. autoclass:: sha1_crypt()
+
+.. note::
+
+    This class will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports sha1-crypt (NetBSD).
+    * a pure python implementation of sha1-crypt built into Passlib.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
 
 Format
 ======
@@ -38,9 +46,9 @@ An sha1-crypt hash string has the format :samp:`$sha1${rounds}${salt}${checksum}
 Algorithm
 =========
 The checksum is calculated using a modified version of PBKDF1 [#pbk]_,
-replacing it's use of the SHA1 message digest with HMAC-SHA1,
+replacing its use of the SHA1 message digest with HMAC-SHA1,
 (which does not suffer from the current vulnerabilities that SHA1 itself does,
-as well as providing some of the advancements made in PDKDF2).
+as well as providing some of the advancements made in PBKDF2).
 
 * first, the HMAC-SHA1 digest of :samp:`{salt}$sha1${rounds}` is generated,
   using the password as the HMAC-SHA1 key.
@@ -62,7 +70,7 @@ in a few ways:
 
   The NetBSD implementation randomly varies the actual number of rounds
   when generating a new configuration string, in order to decrease
-  predictability. This feature is provided by PassLib to *all* hashes,
+  predictability. This feature is provided by Passlib to *all* hashes,
   via the :class:`CryptContext` class, and so it omitted
   from this implementation.
 
@@ -72,14 +80,14 @@ in a few ways:
   within the rounds portion of the hash. No existing examples
   or test vectors have zero padding, and allowing it would
   result in multiple encodings for the same configuration / hash.
-  To prevent this situation, PassLib will throw an error if the rounds in a hash
+  To prevent this situation, Passlib will throw an error if the rounds in a hash
   have leading zeros.
 
 * Restricted salt string character set:
 
-  The underlying algorithm can unambigously handle salt strings
+  The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
-  However, PassLib strictly limits salts to the
+  However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of sha1-crypt generate
   and expect salts containing those characters.
@@ -92,10 +100,10 @@ in a few ways:
   is implied by nearly all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through sha1-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 

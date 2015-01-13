@@ -2,7 +2,7 @@
 :class:`passlib.hash.cta_pbkdf2_sha1` - Cryptacular's PBKDF2 hash
 =================================================================
 
-.. index:: pbkdf2 hash; cryptacular
+.. index:: pbkdf2 hash; Cryptacular
 
 .. currentmodule:: passlib.hash
 
@@ -13,23 +13,15 @@ variable length salts, variable number of rounds.
 
 .. seealso::
 
-    * :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
-      for some other PBKDF2-based hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use this class via the common hash interface.
 
-    * :doc:`passlib.hash.dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
+    * :doc:`dlitz_pbkdf2_sha1 <passlib.hash.dlitz_pbkdf2_sha1>`
       for another hash which looks almost exactly like this one.
-
-Usage
-=====
-This class support both rounds and salts,
-and can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
 
 Interface
 =========
 .. autoclass:: cta_pbkdf2_sha1()
-
-.. rst-class:: html-toggle
 
 Format & Algorithm
 ==================
@@ -44,7 +36,7 @@ where:
 * ``$p5k2$`` is used as the :ref:`modular-crypt-format` identifier.
 
 * :samp:`{rounds}` is the number of PBKDF2 iterations to perform,
-  stored as lowercase hexidecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
+  stored as lowercase hexadecimal number with no zero-padding (in the example: ``2710`` or 10000 iterations).
 
 * :samp:`{salt}` is the salt string encoding using
   base64 (with ``-_`` as the high values).
@@ -56,9 +48,9 @@ where:
   ``AU2JLf2rNxWoZxWxRCluY0u6h6c=`` in the example.
 
 In order to generate the checksum, the password is first encoded into UTF-8 if it's unicode.
-The salt is decoded from it's base64 representation.
+The salt is decoded from its base64 representation.
 PBKDF2 is called using the encoded password, the full salt,
-the specified number of rounds, and using HMAC-SHA1 as it's psuedorandom function.
+the specified number of rounds, and using HMAC-SHA1 as its pseudorandom function.
 20 bytes of derived key are requested, and the resulting key is encoded and used
 as the checksum portion of the hash.
 

@@ -1,19 +1,19 @@
 """passlib.utils._blowfish.base - unoptimized pure-python blowfish engine"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import struct
-#pkg
+# pkg
 from passlib.utils import repeat_string
-#local
+# local
 __all__ = [
     "BlowfishEngine",
 ]
 
-#=========================================================
+#=============================================================================
 # blowfish constants
-#=========================================================
+#=============================================================================
 BLOWFISH_P = BLOWFISH_S = None
 
 def _init_constants():
@@ -303,9 +303,9 @@ def _init_constants():
         ]
     ]
 
-#=========================================================
+#=============================================================================
 # engine
-#=========================================================
+#=============================================================================
 class BlowfishEngine(object):
 
     def __init__(self):
@@ -314,9 +314,9 @@ class BlowfishEngine(object):
         self.P = list(BLOWFISH_P)
         self.S = [ list(box) for box in BLOWFISH_S ]
 
-    #=========================================================
+    #===================================================================
     # common helpers
-    #=========================================================
+    #===================================================================
     @staticmethod
     def key_to_words(data, size=18):
         """convert data to tuple of <size> 4-byte integers, repeating or
@@ -334,11 +334,11 @@ class BlowfishEngine(object):
         # unpack
         return struct.unpack(">%dI" % (size,), data)
 
-    #=========================================================
+    #===================================================================
     # blowfish routines
-    #=========================================================
+    #===================================================================
     def encipher(self, l, r):
-        "loop version of blowfish encipher routine"
+        """loop version of blowfish encipher routine"""
         P, S = self.P, self.S
         l ^= P[0]
         i = 1
@@ -354,7 +354,7 @@ class BlowfishEngine(object):
     # NOTE: decipher is same as above, just with reversed(P) instead.
 
     def expand(self, key_words):
-        "perform stock Blowfish keyschedule setup"
+        """perform stock Blowfish keyschedule setup"""
         assert len(key_words) >= 18, "key_words must be at least as large as P"
         P, S, encipher = self.P, self.S, self.encipher
 
@@ -374,11 +374,11 @@ class BlowfishEngine(object):
                 box[i], box[i+1] = l,r = encipher(l,r)
                 i += 2
 
-    #=========================================================
+    #===================================================================
     # eks-blowfish routines
-    #=========================================================
-    def eks_expand(self, key_words, salt_words):
-        "perform EKS version of Blowfish keyschedule setup"
+    #===================================================================
+    def eks_salted_expand(self, key_words, salt_words):
+        """perform EKS' salted version of Blowfish keyschedule setup"""
         # NOTE: this is the same as expand(), except for the addition
         #       of the operations involving *salt_words*.
 
@@ -400,7 +400,7 @@ class BlowfishEngine(object):
             s += 2
             if s == salt_size:
                 s = 0
-            P[i], P[i+1] = l,r = encipher(l,r) #next()
+            P[i], P[i+1] = l,r = encipher(l,r) # next()
             i += 2
 
         for box in S:
@@ -411,11 +411,11 @@ class BlowfishEngine(object):
                 s += 2
                 if s == salt_size:
                     s = 0
-                box[i], box[i+1] = l,r = encipher(l,r) #next()
+                box[i], box[i+1] = l,r = encipher(l,r) # next()
                 i += 2
 
-    def eks_rounds_expand0(self, key_words, salt_words, rounds):
-        "perform rounds stage of EKS keyschedule setup"
+    def eks_repeated_expand(self, key_words, salt_words, rounds):
+        """perform rounds stage of EKS keyschedule setup"""
         expand = self.expand
         n = 0
         while n < rounds:
@@ -424,7 +424,7 @@ class BlowfishEngine(object):
             n += 1
 
     def repeat_encipher(self, l, r, count):
-        "repeatedly apply encipher operation to a block"
+        """repeatedly apply encipher operation to a block"""
         encipher = self.encipher
         n = 0
         while n < count:
@@ -432,10 +432,10 @@ class BlowfishEngine(object):
             n += 1
         return l, r
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

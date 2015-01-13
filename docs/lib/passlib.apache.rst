@@ -10,17 +10,18 @@ htpasswd and htdigest files; though the use of two helper classes.
 
 .. versionchanged:: 1.6
     The api for this module was updated to be more flexible,
-    and to have (hopefully) less confusing method names.
-    The old method and keyword names are supported but deprecated, and
+    and to have less ambiguous method names.
+    The old method and keyword names are deprecated, and
     will be removed in Passlib 1.8.
-    No more backwards-incompatible changes are currently planned.
+    No more backwards-incompatible changes are currently planned
+    for these classes.
 
-.. index:: apache; htpasswd
+.. index:: Apache; htpasswd
 
 Htpasswd Files
 ==============
 The :class:`!HTpasswdFile` class allows managing of htpasswd files.
-A quick summary of it's usage::
+A quick summary of its usage::
 
     >>> from passlib.apache import HtpasswdFile
 
@@ -53,7 +54,7 @@ A quick summary of it's usage::
 
 .. autoclass:: HtpasswdFile(path=None, new=False, autosave=False, ...)
 
-.. index:: apache; htdigest
+.. index:: Apache; htdigest
 
 Htdigest Files
 ==============

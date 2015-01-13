@@ -1,35 +1,59 @@
 """passlib.tests.test_handlers - tests for passlib hash algorithms"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
-import hashlib
+# core
 import logging; log = logging.getLogger(__name__)
+import os
+import sys
 import warnings
-#site
-#pkg
+# site
+# pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, u
-from passlib.tests.utils import TestCase, HandlerCase, create_backend_case, \
-        enable_option, b, catch_warnings, UserHandlerMixin, randintgauss
-#module
+from passlib.utils.compat import irange, PY3, u, get_method_function
+from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
+        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+# module
 
-#=========================================================
-#some
-#=========================================================
+#=============================================================================
+# constants & support
+#=============================================================================
 
 # some common unicode passwords which used as test cases
 UPASS_WAV = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
 UPASS_USD = u("\u20AC\u00A5$")
 UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
 
-PASS_TABLE_UTF8 = b('t\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99') # utf-8
+PASS_TABLE_UTF8 = b't\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99' # utf-8
 
-#=========================================================
-#apr md5 crypt
-#=========================================================
+# handlers which support multiple backends, but don't have multi-backend tests.
+_omitted_backend_tests = ["django_bcrypt", "django_bcrypt_sha256"]
+
+def get_handler_case(scheme):
+    """return HandlerCase instance for scheme, used by other tests"""
+    from passlib.registry import get_crypt_handler
+    handler = get_crypt_handler(scheme)
+    if hasattr(handler, "backends") and scheme not in _omitted_backend_tests:
+        # NOTE: will throw MissingBackendError if none are installed.
+        backend = handler.get_backend()
+        name = "%s_%s_test" % (scheme, backend)
+    else:
+        name = "%s_test" % scheme
+    for suffix in ("handlers", "handlers_django", "handlers_bcrypt"):
+        modname = "passlib.tests.test_" + suffix
+        __import__(modname)
+        mod = sys.modules[modname]
+        try:
+            return getattr(mod, name)
+        except AttributeError:
+            pass
+    raise KeyError("test case %r not found" % name)
+
+#=============================================================================
+# apr md5 crypt
+#=============================================================================
 class apr_md5_crypt_test(HandlerCase):
     handler = hash.apr_md5_crypt
 
@@ -52,309 +76,9 @@ class apr_md5_crypt_test(HandlerCase):
             '$apr1$r31.....$HqJZimcKQFAMYayBlzkrA!'
         ]
 
-#=========================================================
-#bcrypt
-#=========================================================
-class _bcrypt_test(HandlerCase):
-    "base for BCrypt test cases"
-    handler = hash.bcrypt
-    secret_size = 72
-
-    known_correct_hashes = [
-        #
-        # from JTR 1.7.9
-        #
-        ('U*U*U*U*', '$2a$05$c92SVSfjeiCD6F2nAD6y0uBpJDjdRkt0EgeC4/31Rf2LUZbDRDE.O'),
-        ('U*U***U', '$2a$05$WY62Xk2TXZ7EvVDQ5fmjNu7b0GEzSzUXUh2cllxJwhtOeMtWV3Ujq'),
-        ('U*U***U*', '$2a$05$Fa0iKV3E2SYVUlMknirWU.CFYGvJ67UwVKI1E2FP6XeLiZGcH3MJi'),
-        ('*U*U*U*U', '$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2'),
-        ('', '$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO'),
-
-        #
-        # test vectors from http://www.openwall.com/crypt v1.2
-        # note that this omits any hashes that depend on crypt_blowfish's
-        # various CVE-2011-2483 workarounds (hash 2a and \xff\xff in password,
-        # and any 2x hashes); and only contain hashes which are correct
-        # under both crypt_blowfish 1.2 AND OpenBSD.
-        #
-        ('U*U', '$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW'),
-        ('U*U*', '$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK'),
-        ('U*U*U', '$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a'),
-        ('', '$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy'),
-        ('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-         '0123456789chars after 72 are ignored',
-                '$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui'),
-        (b('\xa3'),
-                '$2a$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
-        (b('\xff\xa3345'),
-            '$2a$05$/OK.fbVrR/bpIqNJ5ianF.nRht2l/HRhr6zmCp9vYUvvsqynflf9e'),
-        (b('\xa3ab'),
-                '$2a$05$/OK.fbVrR/bpIqNJ5ianF.6IflQkJytoRVc1yuaNtHfiuq.FRlSIS'),
-        (b('\xaa')*72 + b('chars after 72 are ignored as usual'),
-                '$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6'),
-        (b('\xaa\x55'*36),
-                '$2a$05$/OK.fbVrR/bpIqNJ5ianF.R9xrDjiycxMbQE2bp.vgqlYpW5wx2yy'),
-        (b('\x55\xaa\xff'*24),
-                '$2a$05$/OK.fbVrR/bpIqNJ5ianF.9tQZzcJfm3uj2NvJ/n5xkhpqLrMpWCe'),
-
-        # keeping one of their 2y tests, because we are supporting that.
-        (b('\xa3'),
-                '$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
-
-        #
-        # from py-bcrypt tests
-        #
-        ('', '$2a$06$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'),
-        ('a', '$2a$10$k87L/MF28Q673VKh8/cPi.SUl7MU/rWuSiIDDFayrKk/1tBsSQu4u'),
-        ('abc', '$2a$10$WvvTPHKwdBJ3uk0Z37EMR.hLA2W6N9AEBhEgrAOljy2Ae5MtaSIUi'),
-        ('abcdefghijklmnopqrstuvwxyz',
-                '$2a$10$fVH8e28OQRj9tqiDXs1e1uxpsjN0c7II7YPKXua2NAKYvM6iQk7dq'),
-        ('~!@#$%^&*()      ~!@#$%^&*()PNBFRD',
-                '$2a$10$LgfYWkbzEvQ4JakH7rOvHe0y8pHKF9OaFgwUZ2q7W2FFZmZzJYlfS'),
-
-        #
-        # custom test vectors
-        #
-
-        # ensures utf-8 used for unicode
-        (UPASS_TABLE,
-                '$2a$05$Z17AXnnlpzddNUvnC6cZNOSwMA/8oNiKnHTHTwLlBijfucQQlHjaG'),
-        ]
-
-    if enable_option("cover"):
-        #
-        # add some extra tests related to 2/2a
-        #
-        CONFIG_2 = '$2$05$' + '.'*22
-        CONFIG_A = '$2a$05$' + '.'*22
-        known_correct_hashes.extend([
-            ("", CONFIG_2 + 'J2ihDv8vVf7QZ9BsaRrKyqs2tkn55Yq'),
-            ("", CONFIG_A + 'J2ihDv8vVf7QZ9BsaRrKyqs2tkn55Yq'),
-            ("abc", CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-            ("abc", CONFIG_A + 'ev6gDwpVye3oMCUpLY85aTpfBNHD0Ga'),
-            ("abc"*23, CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-            ("abc"*23, CONFIG_A + '2kIdfSj/4/R/Q6n847VTvc68BXiRYZC'),
-            ("abc"*24, CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-            ("abc"*24, CONFIG_A + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-            ("abc"*24+'x', CONFIG_2 + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-            ("abc"*24+'x', CONFIG_A + 'XuQjdH.wPVNUZ/bOfstdW/FqB8QSjte'),
-        ])
-
-    known_correct_configs = [
-        ('$2a$10$Z17AXnnlpzddNUvnC6cZNO', UPASS_TABLE,
-         '$2a$10$Z17AXnnlpzddNUvnC6cZNOl54vBeVTewdrxohbPtcwl.GEZFTGjHe'),
-    ]
-
-    known_unidentified_hashes = [
-        # invalid minor version
-        "$2b$12$EXRkfkdmXnagzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
-        "$2`$12$EXRkfkdmXnagzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
-    ]
-
-    known_malformed_hashes = [
-        # bad char in otherwise correct hash
-        #                 \/
-        "$2a$12$EXRkfkdmXn!gzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
-
-        # unsupported (but recognized) minor version
-        "$2x$12$EXRkfkdmXnagzds2SSitu.MW9.gAVqa9eLS1//RYtYCmB1eLHg.9q",
-
-        # rounds not zero-padded (py-bcrypt rejects this, therefore so do we)
-        '$2a$6$DCq7YPn5Rq63x1Lad4cll.TV4S6ytwfsfvkgY8jIucDrjc8deX1s.'
-
-        #NOTE: salts with padding bits set are technically malformed,
-        #      but we can reliably correct & issue a warning for that.
-        ]
-
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        # linux - some systems
-        # solaris - depends on policy
-    )
-
-    #===============================================================
-    # override some methods
-    #===============================================================
-    def setUpWarnings(self):
-        super(_bcrypt_test, self).setUpWarnings()
-        warnings.filterwarnings("ignore",
-                                "SECURITY WARNING: .*pure-python bcrypt.*")
-
-    def do_genconfig(self, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
-
-        # correct unused bits in provided salts, to silence some warnings.
-        if 'salt' in kwds:
-            from passlib.utils import bcrypt64
-            kwds['salt'] = bcrypt64.repair_unused(kwds['salt'])
-        return self.handler.genconfig(**kwds)
-
-    def do_encrypt(self, secret, **kwds):
-        # override default to speed up tests
-        kwds.setdefault("rounds", 5)
-        return self.handler.encrypt(secret, **kwds)
-
-    #===============================================================
-    # fuzz testing
-    #===============================================================
-    def os_supports_ident(self, hash):
-        "check if OS crypt is expected to support given ident"
-        if hash is None:
-            return True
-        # most OSes won't support 2x/2y
-        # XXX: definitely not the BSDs, but what about the linux variants?
-        if hash.startswith("$2x$") or hash.startswith("$2y$"):
-            return False
-        return True
-
-    def fuzz_verifier_pybcrypt(self):
-        # test against py-bcrypt if available
-        from passlib.utils import to_native_str
-        try:
-            from bcrypt import hashpw
-        except ImportError:
-            return
-        def check_pybcrypt(secret, hash):
-            "pybcrypt"
-            secret = to_native_str(secret, self.fuzz_password_encoding)
-            if hash.startswith("$2y$"):
-                hash = "$2a$" + hash[4:]
-            try:
-                return hashpw(secret, hash) == hash
-            except ValueError:
-                raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
-        return check_pybcrypt
-
-    def fuzz_verifier_bcryptor(self):
-        # test against bcryptor if available
-        from passlib.utils import to_native_str
-        try:
-            from bcryptor.engine import Engine
-        except ImportError:
-            return
-        def check_bcryptor(secret, hash):
-            "bcryptor"
-            secret = to_native_str(secret, self.fuzz_password_encoding)
-            if hash.startswith("$2y$"):
-                hash = "$2a$" + hash[4:]
-            elif hash.startswith("$2$"):
-                # bcryptor doesn't support $2$ hashes; but we can fake it
-                # using the $2a$ algorithm, by repeating the password until
-                # it's 72 chars in length.
-                hash = "$2a$" + hash[3:]
-                if secret:
-                    secret = repeat_string(secret, 72)
-            return Engine(False).hash_key(secret, hash) == hash
-        return check_bcryptor
-
-    def get_fuzz_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(5, 8, 6, 1)
-
-    def get_fuzz_ident(self):
-        ident = super(_bcrypt_test,self).get_fuzz_ident()
-        if ident == u("$2x$"):
-            # just recognized, not currently supported.
-            return None
-        if self.backend == "os_crypt" and not self.using_patched_crypt and not self.os_supports_ident(ident):
-            return None
-        return ident
-
-    #===============================================================
-    # custom tests
-    #===============================================================
-    known_incorrect_padding = [
-        # password, bad hash, good hash
-
-        # 2 bits of salt padding set
-        ("loppux",
-         "$2a$12$oaQbBqq8JnSM1NHRPQGXORm4GCUMqp7meTnkft4zgSnrbhoKdDV0C",
-         "$2a$12$oaQbBqq8JnSM1NHRPQGXOOm4GCUMqp7meTnkft4zgSnrbhoKdDV0C"),
-
-        # all 4 bits of salt padding set
-        ("Passlib11",
-         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVcUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK",
-         "$2a$12$M8mKpW9a2vZ7PYhq/8eJVOUtKxpo6j0zAezu0G/HAMYgMkhPu4fLK"),
-
-        # bad checksum padding
-        ("test",
-         "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIV",
-         "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"),
-    ]
-
-    def test_90_bcrypt_padding(self):
-        "test passlib correctly handles bcrypt padding bits"
-        #
-        # prevents reccurrence of issue 25 (https://code.google.com/p/passlib/issues/detail?id=25)
-        # were some unused bits were incorrectly set in bcrypt salt strings.
-        # (fixed since 1.5.3)
-        #
-        bcrypt = self.handler
-        corr_desc = ".*incorrectly set padding bits"
-
-        #
-        # test encrypt() / genconfig() don't generate invalid salts anymore
-        #
-        def check_padding(hash):
-            assert hash.startswith("$2a$") and len(hash) >= 28
-            self.assertTrue(hash[28] in '.Oeu',
-                            "unused bits incorrectly set in hash: %r" % (hash,))
-        for i in irange(6):
-            check_padding(bcrypt.genconfig())
-        for i in irange(3):
-            check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
-
-        # some things that will raise warnings
-        with catch_warnings(record=True) as wlog:
-            #
-            # test genconfig() corrects invalid salts & issues warning.
-            #
-            hash = bcrypt.genconfig(salt="."*21 + "A.", rounds=5, relaxed=True)
-            self.consumeWarningList(wlog, ["salt too large", corr_desc])
-            self.assertEqual(hash, "$2a$05$" + "." * 22)
-
-            #
-            # make sure genhash() corrects input
-            #
-            samples = self.known_incorrect_padding
-            for pwd, bad, good in samples:
-                self.assertEqual(bcrypt.genhash(pwd, bad), good)
-                self.consumeWarningList(wlog, [corr_desc])
-                self.assertEqual(bcrypt.genhash(pwd, good), good)
-                self.consumeWarningList(wlog)
-
-            #
-            # and that verify() works good & bad
-            #
-            self.assertTrue(bcrypt.verify(pwd, bad))
-            self.consumeWarningList(wlog, [corr_desc])
-            self.assertTrue(bcrypt.verify(pwd, good))
-            self.consumeWarningList(wlog)
-
-            #
-            # test normhash cleans things up correctly
-            #
-            for pwd, bad, good in samples:
-                self.assertEqual(bcrypt.normhash(bad), good)
-                self.consumeWarningList(wlog, [corr_desc])
-                self.assertEqual(bcrypt.normhash(good), good)
-                self.consumeWarningList(wlog)
-            self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
-
-hash.bcrypt._no_backends_msg() #call this for coverage purposes
-
-#create test cases for specific backends
-pybcrypt_bcrypt_test = create_backend_case(_bcrypt_test, "pybcrypt")
-bcryptor_bcrypt_test = create_backend_case(_bcrypt_test, "bcryptor")
-os_crypt_bcrypt_test = create_backend_case(_bcrypt_test, "os_crypt")
-builtin_bcrypt_test = create_backend_case(_bcrypt_test, "builtin")
-
-#=========================================================
-#bigcrypt
-#=========================================================
+#=============================================================================
+# bigcrypt
+#=============================================================================
 class bigcrypt_test(HandlerCase):
     handler = hash.bigcrypt
 
@@ -376,19 +100,28 @@ class bigcrypt_test(HandlerCase):
     ]
 
     known_unidentified_hashes = [
-        # one char short
+        # one char short (10 % 11)
         "qiyh4XPJGsOZ2MEAyLkfWqe"
+
+        # one char too many (1 % 11)
+        "f8.SVpL2fvwjkAnxn8/rgTkwvrif6bjYB5cd"
     ]
 
     # omit des_crypt from known_other since it's a valid bigcrypt hash too.
     known_other_hashes = [row for row in HandlerCase.known_other_hashes
                           if row[0] != "des_crypt"]
 
-#=========================================================
-#bsdi crypt
-#=========================================================
+    def test_90_internal(self):
+        # check that _norm_checksum() also validates checksum size.
+        # (current code uses regex in parser)
+        self.assertRaises(ValueError, hash.bigcrypt, use_defaults=True,
+                          checksum=u('yh4XPJGsOZ'))
+
+#=============================================================================
+# bsdi crypt
+#=============================================================================
 class _bsdi_crypt_test(HandlerCase):
-    "test BSDiCrypt algorithm"
+    """test BSDiCrypt algorithm"""
     handler = hash.bsdi_crypt
 
     known_correct_hashes = [
@@ -426,25 +159,21 @@ class _bsdi_crypt_test(HandlerCase):
         "_K1.!crsmZxOLzfJH8iw"
     ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=False,
-        solaris=False,
-        # darwin ?
-    )
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|darwin", True),
+        ("linux|solaris", False),
+    ]
 
     def setUp(self):
         super(_bsdi_crypt_test, self).setUp()
         warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
 
-os_crypt_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "os_crypt")
-builtin_bsdi_crypt_test = create_backend_case(_bsdi_crypt_test, "builtin")
+bsdi_crypt_os_crypt_test, bsdi_crypt_builtin_test = \
+                   _bsdi_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
+#=============================================================================
 # cisco pix
-#=========================================================
+#=============================================================================
 class cisco_pix_test(UserHandlerMixin, HandlerCase):
     handler = hash.cisco_pix
     secret_size = 16
@@ -502,9 +231,9 @@ class cisco_pix_test(UserHandlerMixin, HandlerCase):
         (UPASS_TABLE, 'CaiIvkLMu2TOHXGT'),
         ]
 
-#=========================================================
+#=============================================================================
 # cisco type 7
-#=========================================================
+#=============================================================================
 class cisco_type7_test(HandlerCase):
     handler = hash.cisco_type7
     salt_bits = 4
@@ -561,7 +290,7 @@ class cisco_type7_test(HandlerCase):
     ]
 
     def test_90_decode(self):
-        "test cisco_type7.decode()"
+        """test cisco_type7.decode()"""
         from passlib.utils import to_unicode, to_bytes
 
         handler = self.handler
@@ -575,20 +304,19 @@ class cisco_type7_test(HandlerCase):
                           '0958EDC8A9F495F6F8A5FD', 'ascii')
 
     def test_91_salt(self):
-        "test salt value border cases"
+        """test salt value border cases"""
         handler = self.handler
         self.assertRaises(TypeError, handler, salt=None)
         handler(salt=None, use_defaults=True)
         self.assertRaises(TypeError, handler, salt='abc')
         self.assertRaises(ValueError, handler, salt=-10)
-        with catch_warnings(record=True) as wlog:
+        with self.assertWarningList("salt/offset must be.*"):
             h = handler(salt=100, relaxed=True)
-            self.consumeWarningList(wlog, ["salt/offset must be.*"])
-            self.assertEqual(h.salt, 52)
+        self.assertEqual(h.salt, 52)
 
-#=========================================================
+#=============================================================================
 # crypt16
-#=========================================================
+#=============================================================================
 class crypt16_test(HandlerCase):
     handler = hash.crypt16
     secret_size = 16
@@ -615,11 +343,11 @@ class crypt16_test(HandlerCase):
         (UPASS_TABLE, 'YeDc9tKkkmDvwP7buzpwhoqQ'),
         ]
 
-#=========================================================
-#des crypt
-#=========================================================
+#=============================================================================
+# des crypt
+#=============================================================================
 class _des_crypt_test(HandlerCase):
-    "test des-crypt algorithm"
+    """test des-crypt algorithm"""
     handler = hash.des_crypt
     secret_size = 8
 
@@ -656,151 +384,18 @@ class _des_crypt_test(HandlerCase):
         'OgAwTx2l6NADIj',
         ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=True,
-        solaris=True,
-        # darwin?
-    )
-
-    def test_90_invalid_secret_chars(self):
-        self.assertRaises(ValueError, self.do_encrypt, 'sec\x00t')
-
-os_crypt_des_crypt_test = create_backend_case(_des_crypt_test, "os_crypt")
-builtin_des_crypt_test = create_backend_case(_des_crypt_test, "builtin")
-
-#=========================================================
-#django
-#=========================================================
-class _DjangoHelper(object):
-    # NOTE: not testing against Django < 1.0 since it doesn't support
-    # most of these hash formats.
-
-    def fuzz_verifier_django(self):
-        from passlib.tests.test_ext_django import has_django1
-        if not has_django1:
-            return None
-        from django.contrib.auth.models import check_password
-        def verify_django(secret, hash):
-            "django check_password()"
-            return check_password(secret, hash)
-        return verify_django
-
-    def test_90_django_reference(self):
-        "run known correct hashes through Django's check_password()"
-        if not self.known_correct_hashes:
-            return self.skipTest("no known correct hashes specified")
-        from passlib.tests.test_ext_django import has_django1
-        if not has_django1:
-            return self.skipTest("Django >= 1.0 not installed")
-        from django.contrib.auth.models import check_password
-        for secret, hash in self.iter_known_hashes():
-            self.assertTrue(check_password(secret, hash))
-            self.assertFalse(check_password('x' + secret, hash))
-
-class django_disabled_test(HandlerCase):
-    "test django_disabled"
-    handler = hash.django_disabled
-    is_disabled_handler = True
-
-    known_correct_hashes = [
-        # *everything* should hash to "!", and nothing should verify
-        ("password", "!"),
-        ("", "!"),
-        (UPASS_TABLE, "!"),
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|linux|solaris|darwin", True),
     ]
 
-class django_des_crypt_test(HandlerCase, _DjangoHelper):
-    "test django_des_crypt"
-    handler = hash.django_des_crypt
-    secret_size = 8
+des_crypt_os_crypt_test, des_crypt_builtin_test = \
+                    _des_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-    known_correct_hashes = [
-        # ensures only first two digits of salt count.
-        ("password",         'crypt$c2$c2M87q...WWcU'),
-        ("password",         'crypt$c2e86$c2M87q...WWcU'),
-        ("passwordignoreme", 'crypt$c2.AZ$c2M87q...WWcU'),
-
-        # ensures utf-8 used for unicode
-        (UPASS_USD, 'crypt$c2e86$c2hN1Bxd6ZiWs'),
-        (UPASS_TABLE, 'crypt$0.aQs$0.wB.TT0Czvlo'),
-        (u("hell\u00D6"), "crypt$sa$saykDgk3BPZ9E"),
-
-        # prevent regression of issue 22
-        ("foo", 'crypt$MNVY.9ajgdvDQ$MNVY.9ajgdvDQ'),
-    ]
-
-    known_unidentified_hashes = [
-        'sha1$aa$bb',
-    ]
-
-    known_malformed_hashes = [
-        # checksum too short
-        'crypt$c2$c2M87q',
-
-        # salt must be >2
-        'crypt$$c2M87q...WWcU',
-        'crypt$f$c2M87q...WWcU',
-
-        # this format duplicates salt inside checksum,
-        # reject any where the two copies don't match
-        'crypt$ffe86$c2M87q...WWcU',
-    ]
-
-class django_salted_md5_test(HandlerCase, _DjangoHelper):
-    "test django_salted_md5"
-    handler = hash.django_salted_md5
-
-    known_correct_hashes = [
-        # test extra large salt
-        ("password",    'md5$123abcdef$c8272612932975ee80e8a35995708e80'),
-
-        # ensures utf-8 used for unicode
-        (UPASS_USD,     'md5$c2e86$92105508419a81a6babfaecf876a2fa0'),
-        (UPASS_TABLE,   'md5$d9eb8$01495b32852bffb27cf5d4394fe7a54c'),
-    ]
-
-    known_unidentified_hashes = [
-        'sha1$aa$bb',
-    ]
-
-    known_malformed_hashes = [
-        # checksum too short
-        'md5$aa$bb',
-    ]
-
-class django_salted_sha1_test(HandlerCase, _DjangoHelper):
-    "test django_salted_sha1"
-    handler = hash.django_salted_sha1
-
-    known_correct_hashes = [
-        # test extra large salt
-        ("password",'sha1$123abcdef$e4a1877b0e35c47329e7ed7e58014276168a37ba'),
-
-        # ensures utf-8 used for unicode
-        (UPASS_USD,     'sha1$c2e86$0f75c5d7fbd100d587c127ef0b693cde611b4ada'),
-        (UPASS_TABLE,   'sha1$6d853$ef13a4d8fb57aed0cb573fe9c82e28dc7fd372d4'),
-
-        # generic password
-        ("MyPassword",  'sha1$54123$893cf12e134c3c215f3a76bd50d13f92404a54d3'),
-    ]
-
-    known_unidentified_hashes = [
-        'md5$aa$bb',
-    ]
-
-    known_malformed_hashes = [
-        # checksum too short
-        'sha1$c2e86$0f75',
-    ]
-
-#=========================================================
-#fshp
-#=========================================================
+#=============================================================================
+# fshp
+#=============================================================================
 class fshp_test(HandlerCase):
-    "test fshp algorithm"
+    """test fshp algorithm"""
     handler = hash.fshp
 
     known_correct_hashes = [
@@ -853,20 +448,20 @@ class fshp_test(HandlerCase):
     ]
 
     def test_90_variant(self):
-        "test variant keyword"
+        """test variant keyword"""
         handler = self.handler
-        kwds = dict(salt=b('a'), rounds=1)
+        kwds = dict(salt=b'a', rounds=1)
 
         # accepts ints
         handler(variant=1, **kwds)
 
         # accepts bytes or unicode
         handler(variant=u('1'), **kwds)
-        handler(variant=b('1'), **kwds)
+        handler(variant=b'1', **kwds)
 
         # aliases
         handler(variant=u('sha256'), **kwds)
-        handler(variant=b('sha256'), **kwds)
+        handler(variant=b'sha256', **kwds)
 
         # rejects None
         self.assertRaises(TypeError, handler, variant=None, **kwds)
@@ -878,9 +473,9 @@ class fshp_test(HandlerCase):
         self.assertRaises(ValueError, handler, variant='9', **kwds)
         self.assertRaises(ValueError, handler, variant=9, **kwds)
 
-#=========================================================
-#hex digests
-#=========================================================
+#=============================================================================
+# hex digests
+#=============================================================================
 class hex_md4_test(HandlerCase):
     handler = hash.hex_md4
     known_correct_hashes = [
@@ -920,9 +515,9 @@ class hex_sha512_test(HandlerCase):
          '29caf'),
     ]
 
-#=========================================================
+#=============================================================================
 # htdigest hash
-#=========================================================
+#=============================================================================
 class htdigest_test(UserHandlerMixin, HandlerCase):
     handler = hash.htdigest
 
@@ -938,11 +533,19 @@ class htdigest_test(UserHandlerMixin, HandlerCase):
             '4dabed2727d583178777fab468dd1f17'),
     ]
 
+    known_unidentified_hashes = [
+        # bad char \/ - currently rejecting upper hex chars, may change
+        '939e7578edAe3c518a452acee763bce9',
+
+        # bad char \/
+        '939e7578edxe3c518a452acee763bce9',
+    ]
+
     def test_80_user(self):
         raise self.skipTest("test case doesn't support 'realm' keyword")
 
-    def _insert_user(self, kwds, secret):
-        "insert username into kwds"
+    def populate_context(self, secret, kwds):
+        """insert username into kwds"""
         if isinstance(secret, tuple):
             secret, user, realm = secret
         else:
@@ -951,9 +554,9 @@ class htdigest_test(UserHandlerMixin, HandlerCase):
         kwds.setdefault("realm", realm)
         return secret
 
-#=========================================================
-#ldap hashes
-#=========================================================
+#=============================================================================
+# ldap hashes
+#=============================================================================
 class ldap_md5_test(HandlerCase):
     handler = hash.ldap_md5
     known_correct_hashes = [
@@ -1017,6 +620,7 @@ class ldap_salted_sha1_test(HandlerCase):
     ]
 
 class ldap_plaintext_test(HandlerCase):
+    # TODO: integrate EncodingHandlerMixin
     handler = hash.ldap_plaintext
     known_correct_hashes = [
         ("password", 'password'),
@@ -1026,7 +630,7 @@ class ldap_plaintext_test(HandlerCase):
     known_unidentified_hashes = [
         "{FOO}bar",
 
-        # XXX: currently we reject empty string as valid for this format.
+        # NOTE: this hash currently rejects the empty string.
         "",
     ]
 
@@ -1035,16 +639,15 @@ class ldap_plaintext_test(HandlerCase):
     ]
 
     def get_fuzz_password(self):
-        # XXX: currently we reject empty string as valid for this format.
-        pwd = None
-        while not pwd:
+        # NOTE: this hash currently rejects the empty string.
+        while True:
             pwd = super(ldap_plaintext_test, self).get_fuzz_password()
-        return pwd
-
-#NOTE: since the ldap_{crypt} handlers are all wrappers,
-# don't need separate test. have just one for end-to-end testing purposes.
+            if pwd:
+                return pwd
 
 class _ldap_md5_crypt_test(HandlerCase):
+    # NOTE: since the ldap_{crypt} handlers are all wrappers, don't need
+    #       separate test; this is just to test the codebase end-to-end
     handler = hash.ldap_md5_crypt
 
     known_correct_hashes = [
@@ -1067,19 +670,38 @@ class _ldap_md5_crypt_test(HandlerCase):
         '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
 
-os_crypt_ldap_md5_crypt_test = create_backend_case(_ldap_md5_crypt_test, "os_crypt")
-builtin_ldap_md5_crypt_test = create_backend_case(_ldap_md5_crypt_test, "builtin")
+ldap_md5_crypt_os_crypt_test, ldap_md5_crypt_builtin_test = \
+                   _ldap_md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
-#ldap_pbkdf2_{digest}
-#=========================================================
-#NOTE: since these are all wrappers for the pbkdf2_{digest} hasehs,
-# they don't extensive separate testing.
+class _ldap_sha1_crypt_test(HandlerCase):
+    # NOTE: this isn't for testing the hash (see ldap_md5_crypt note)
+    # but as a self-test of the os_crypt patching code in HandlerCase.
+    handler = hash.ldap_sha1_crypt
+
+    known_correct_hashes = [
+        ('password', '{CRYPT}$sha1$10$c.mcTzCw$gF8UeYst9yXX7WNZKc5Fjkq0.au7'),
+        (UPASS_TABLE, '{CRYPT}$sha1$10$rnqXlOsF$aGJf.cdRPewJAXo1Rn1BkbaYh0fP'),
+    ]
+
+    def populate_settings(self, kwds):
+        kwds.setdefault("rounds", 10)
+        super(_ldap_sha1_crypt_test, self).populate_settings(kwds)
+
+    def test_77_fuzz_input(self):
+        raise self.skipTest("unneeded")
+
+ldap_sha1_crypt_os_crypt_test, = _ldap_sha1_crypt_test.create_backend_cases(["os_crypt"])
+
+#=============================================================================
+# ldap_pbkdf2_{digest}
+#=============================================================================
+# NOTE: since these are all wrappers for the pbkdf2_{digest} hasehs,
+#       they don't extensive separate testing.
 
 class ldap_pbkdf2_test(TestCase):
 
     def test_wrappers(self):
-        "test ldap pbkdf2 wrappers"
+        """test ldap pbkdf2 wrappers"""
 
         self.assertTrue(
             hash.ldap_pbkdf2_sha1.verify(
@@ -1104,10 +726,10 @@ class ldap_pbkdf2_test(TestCase):
             )
         )
 
-#=========================================================
+#=============================================================================
 # lanman
-#=========================================================
-class lmhash_test(HandlerCase):
+#=============================================================================
+class lmhash_test(EncodingHandlerMixin, HandlerCase):
     handler = hash.lmhash
     secret_size = 14
     secret_case_insensitive = True
@@ -1131,27 +753,34 @@ class lmhash_test(HandlerCase):
         # ensures cp437 used for unicode
         (u('ENCYCLOP\xC6DIA'), 'fed6416bffc9750d48462b9d7aaac065'),
         (u('encyclop\xE6dia'), 'fed6416bffc9750d48462b9d7aaac065'),
-    ]
 
-    # TODO: test encoding keyword.
+        # test various encoding values
+        ((u("\xC6"), None), '25d8ab4a0659c97aaad3b435b51404ee'),
+        ((u("\xC6"), "cp437"), '25d8ab4a0659c97aaad3b435b51404ee'),
+        ((u("\xC6"), "latin-1"), '184eecbbe9991b44aad3b435b51404ee'),
+        ((u("\xC6"), "utf-8"), '00dd240fcfab20b8aad3b435b51404ee'),
+    ]
 
     known_unidentified_hashes = [
         # bad char in otherwise correct hash
         '855c3697d9979e78ac404c4ba2c6653X',
     ]
 
-    # override default list since lmhash uses cp437 as default encoding
-    stock_passwords = [
-        u("test"),
-        b("test"),
-        u("\u00AC\u00BA"),
-    ]
+    def test_90_raw(self):
+        """test lmhash.raw() method"""
+        from binascii import unhexlify
+        from passlib.utils.compat import str_to_bascii
+        lmhash = self.handler
+        for secret, hash in self.known_correct_hashes:
+            kwds = {}
+            secret = self.populate_context(secret, kwds)
+            data = unhexlify(str_to_bascii(hash))
+            self.assertEqual(lmhash.raw(secret, **kwds), data)
+        self.assertRaises(TypeError, lmhash.raw, 1)
 
-    fuzz_password_alphabet = u('qwerty1234<>.@*#! \u00AC')
-
-#=========================================================
-#md5 crypt
-#=========================================================
+#=============================================================================
+# md5 crypt
+#=============================================================================
 class _md5_crypt_test(HandlerCase):
     handler = hash.md5_crypt
 
@@ -1178,7 +807,7 @@ class _md5_crypt_test(HandlerCase):
         ('Compl3X AlphaNu3meric', '$1$nX1e7EeI$ljQn72ZUgt6Wxd9hfvHdV0'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
-        (b('test'), '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
+        (b'test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
         (u('s'), '$1$ssssssss$YgmLTApYTv12qgTwBoj8i/'),
 
         # ensures utf-8 used for unicode
@@ -1193,21 +822,17 @@ class _md5_crypt_test(HandlerCase):
         '$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o.$',
         ]
 
-    platform_crypt_support = dict(
-        freebsd=True,
-        openbsd=True,
-        netbsd=True,
-        linux=True,
-        solaris=True,
-        # darwin?
-    )
+    platform_crypt_support = [
+        ("freebsd|openbsd|netbsd|linux|solaris", True),
+        ("darwin", False),
+    ]
 
-os_crypt_md5_crypt_test = create_backend_case(_md5_crypt_test, "os_crypt")
-builtin_md5_crypt_test = create_backend_case(_md5_crypt_test, "builtin")
+md5_crypt_os_crypt_test, md5_crypt_builtin_test = \
+                   _md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
+#=============================================================================
 # msdcc 1 & 2
-#=========================================================
+#=============================================================================
 class msdcc_test(UserHandlerMixin, HandlerCase):
     handler = hash.msdcc
     user_case_insensitive = True
@@ -1298,9 +923,9 @@ class msdcc2_test(UserHandlerMixin, HandlerCase):
         ((UPASS_TABLE, 'bob'), 'cad511dc9edefcf69201da72efb6bb55'),
     ]
 
-#=========================================================
+#=============================================================================
 # mssql 2000 & 2005
-#=========================================================
+#=============================================================================
 class mssql2000_test(HandlerCase):
     handler = hash.mssql2000
     secret_case_insensitive = "verify-only"
@@ -1384,8 +1009,9 @@ class mssql2000_test(HandlerCase):
     ]
 
     known_malformed_hashes = [
-        # non-hex char ---\/
-        '0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+        # non-hex char -----\/
+        b'0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
+        u('0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
     ]
 
 class mssql2005_test(HandlerCase):
@@ -1479,9 +1105,9 @@ class mssql2005_test(HandlerCase):
         '0x010036D726AE86G34E97F20B198ACD219D60B446AC5E48C54F30',
     ]
 
-#=========================================================
+#=============================================================================
 # mysql 323 & 41
-#=========================================================
+#=============================================================================
 class mysql323_test(HandlerCase):
     handler = hash.mysql323
 
@@ -1507,10 +1133,14 @@ class mysql323_test(HandlerCase):
     ]
 
     def test_90_whitespace(self):
-        "check whitespace is ignored per spec"
+        """check whitespace is ignored per spec"""
         h = self.do_encrypt("mypass")
         h2 = self.do_encrypt("my pass")
         self.assertEqual(h, h2)
+
+    def accept_fuzz_pair(self, secret, other):
+        # override to handle whitespace
+        return secret.replace(" ","") != other.replace(" ","")
 
 class mysql41_test(HandlerCase):
     handler = hash.mysql41
@@ -1531,13 +1161,13 @@ class mysql41_test(HandlerCase):
         (UPASS_TABLE, '*E7AFE21A9CFA2FC9D15D942AE8FB5C240FE5837B'),
     ]
     known_unidentified_hashes = [
-        #bad char in otherwise correct hash
+        # bad char in otherwise correct hash
         '*6Z8989366EAF75BB670AD8EA7A7FC1176A95CEF4',
     ]
 
-#=========================================================
+#=============================================================================
 # NTHASH
-#=========================================================
+#=============================================================================
 class nthash_test(HandlerCase):
     handler = hash.nthash
 
@@ -1557,10 +1187,10 @@ class nthash_test(HandlerCase):
         ('tigger', 'b7e0ea9fbffcf6dd83086e905089effd'),
 
         # utf-8
-        (b('\xC3\xBC'), '8bd6e4fb88e01009818749c5443ea712'),
-        (b('\xC3\xBC\xC3\xBC'), 'cc1260adb6985ca749f150c7e0b22063'),
-        (b('\xE2\x82\xAC'), '030926b781938db4365d46adc7cfbcb8'),
-        (b('\xE2\x82\xAC\xE2\x82\xAC'),'682467b963bb4e61943e170a04f7db46'),
+        (b'\xC3\xBC', '8bd6e4fb88e01009818749c5443ea712'),
+        (b'\xC3\xBC\xC3\xBC', 'cc1260adb6985ca749f150c7e0b22063'),
+        (b'\xE2\x82\xAC', '030926b781938db4365d46adc7cfbcb8'),
+        (b'\xE2\x82\xAC\xE2\x82\xAC','682467b963bb4e61943e170a04f7db46'),
 
         #
         # custom
@@ -1569,7 +1199,7 @@ class nthash_test(HandlerCase):
     ]
 
     known_unidentified_hashes = [
-        #bad char in otherwise correct hash
+        # bad char in otherwise correct hash
         '7f8fe03093cc84b267b109625f6bbfxb',
     ]
 
@@ -1578,17 +1208,17 @@ class bsd_nthash_test(HandlerCase):
 
     known_correct_hashes = [
         ('passphrase', '$3$$7f8fe03093cc84b267b109625f6bbf4b'),
-        (b('\xC3\xBC'), '$3$$8bd6e4fb88e01009818749c5443ea712'),
+        (b'\xC3\xBC', '$3$$8bd6e4fb88e01009818749c5443ea712'),
     ]
 
     known_unidentified_hashes = [
-        #bad char in otherwise correct hash --\/
+        # bad char in otherwise correct hash --\/
             '$3$$7f8fe03093cc84b267b109625f6bbfxb',
     ]
 
-#=========================================================
-#oracle 10 & 11
-#=========================================================
+#=============================================================================
+# oracle 10 & 11
+#=============================================================================
 class oracle10_test(UserHandlerMixin, HandlerCase):
     handler = hash.oracle10
     secret_case_insensitive = True
@@ -1654,9 +1284,9 @@ class oracle11_test(HandlerCase):
         (UPASS_TABLE, 'S:51586343E429A6DF024B8F242F2E9F8507B1096FACD422E29142AA4974B0'),
     ]
 
-#=========================================================
-#pbkdf2 hashes
-#=========================================================
+#=============================================================================
+# pbkdf2 hashes
+#=============================================================================
 class atlassian_pbkdf2_sha1_test(HandlerCase):
     handler = hash.atlassian_pbkdf2_sha1
 
@@ -1686,6 +1316,17 @@ class pbkdf2_sha1_test(HandlerCase):
         ("password", '$pbkdf2$1212$OB.dtnSEXZK8U5cgxU/GYQ$y5LKPOplRmok7CZp/aqVDVg8zGI'),
         (UPASS_WAV,
             '$pbkdf2$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc'),
+    ]
+
+    known_malformed_hashes = [
+        # zero padded rounds field
+        '$pbkdf2$01212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc',
+
+        # empty rounds field
+        '$pbkdf2$$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc',
+
+        # too many field
+        '$pbkdf2$1212$THDqatpidANpadlLeTeOEg$HV3oi1k5C5LQCgG1BMOL.BX4YZc$',
     ]
 
 class pbkdf2_sha256_test(HandlerCase):
@@ -1768,9 +1409,9 @@ class grub_pbkdf2_sha512_test(HandlerCase):
 
         ]
 
-#=========================================================
-#PHPass Portable Crypt
-#=========================================================
+#=============================================================================
+# PHPass Portable Crypt
+#=============================================================================
 class phpass_test(HandlerCase):
     handler = hash.phpass
 
@@ -1779,7 +1420,7 @@ class phpass_test(HandlerCase):
         # from official 0.3 implementation
         # http://www.openwall.com/phpass/
         #
-        ('test12345', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0'), #from the source
+        ('test12345', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0'), # from the source
 
         #
         # from JTR 1.7.9
@@ -1808,10 +1449,11 @@ class phpass_test(HandlerCase):
         '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r!L0',
         ]
 
-#=========================================================
-#plaintext
-#=========================================================
+#=============================================================================
+# plaintext
+#=============================================================================
 class plaintext_test(HandlerCase):
+    # TODO: integrate EncodingHandlerMixin
     handler = hash.plaintext
     accepts_all_hashes = True
 
@@ -1824,9 +1466,9 @@ class plaintext_test(HandlerCase):
         (PASS_TABLE_UTF8, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
     ]
 
-#=========================================================
-#postgres_md5
-#=========================================================
+#=============================================================================
+# postgres_md5
+#=============================================================================
 class postgres_md5_test(UserHandlerMixin, HandlerCase):
     handler = hash.postgres_md5
     known_correct_hashes = [
@@ -1851,9 +1493,9 @@ class postgres_md5_test(UserHandlerMixin, HandlerCase):
         'md54zc31989b20437833f697e485811254b',
     ]
 
-#=========================================================
+#=============================================================================
 # scram hash
-#=========================================================
+#=============================================================================
 class scram_test(HandlerCase):
     handler = hash.scram
 
@@ -1932,12 +1574,16 @@ class scram_test(HandlerCase):
         warnings.filterwarnings("ignore", r"norm_hash_name\(\): unknown hash")
 
     def test_90_algs(self):
-        "test parsing of 'algs' setting"
+        """test parsing of 'algs' setting"""
+        defaults = dict(salt=b'A'*10, rounds=1000)
         def parse(algs, **kwds):
-            return self.handler(algs=algs, use_defaults=True, **kwds).algs
+            for k in defaults:
+                kwds.setdefault(k, defaults[k])
+            return self.handler(algs=algs, **kwds).algs
 
         # None -> default list
-        self.assertEqual(parse(None), ["sha-1","sha-256","sha-512"])
+        self.assertEqual(parse(None, use_defaults=True), hash.scram.default_algs)
+        self.assertRaises(TypeError, parse, None)
 
         # strings should be parsed
         self.assertEqual(parse("sha1"), ["sha-1"])
@@ -1948,24 +1594,37 @@ class scram_test(HandlerCase):
 
         # sha-1 required
         self.assertRaises(ValueError, parse, ["sha-256"])
+        self.assertRaises(ValueError, parse, algs=[], use_defaults=True)
 
         # alg names must be < 10 chars
         self.assertRaises(ValueError, parse, ["sha-1","shaxxx-190"])
 
         # alg & checksum mutually exclusive.
         self.assertRaises(RuntimeError, parse, ['sha-1'],
-                          checksum={"sha-1": b("\x00"*20)})
+                          checksum={"sha-1": b"\x00"*20})
+
+    def test_90_checksums(self):
+        """test internal parsing of 'checksum' keyword"""
+        # check non-bytes checksum values are rejected
+        self.assertRaises(TypeError, self.handler, use_defaults=True,
+                          checksum={'sha-1':  u('X')*20})
+
+        # check sha-1 is required
+        self.assertRaises(ValueError, self.handler, use_defaults=True,
+                          checksum={'sha-256':  b'X'*32})
+
+        # XXX: anything else that's not tested by the other code already?
 
     def test_91_extract_digest_info(self):
-        "test scram.extract_digest_info()"
+        """test scram.extract_digest_info()"""
         edi = self.handler.extract_digest_info
 
         # return appropriate value or throw KeyError
         h = "$scram$10$AAAAAA$sha-1=AQ,bbb=Ag,ccc=Aw"
-        s = b('\x00')*4
-        self.assertEqual(edi(h,"SHA1"), (s,10, b('\x01')))
-        self.assertEqual(edi(h,"bbb"), (s,10, b('\x02')))
-        self.assertEqual(edi(h,"ccc"), (s,10, b('\x03')))
+        s = b'\x00'*4
+        self.assertEqual(edi(h,"SHA1"), (s,10, b'\x01'))
+        self.assertEqual(edi(h,"bbb"), (s,10, b'\x02'))
+        self.assertEqual(edi(h,"ccc"), (s,10, b'\x03'))
         self.assertRaises(KeyError, edi, h, "ddd")
 
         # config strings should cause value error.
@@ -1975,7 +1634,7 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, edi, c, "ddd")
 
     def test_92_extract_digest_algs(self):
-        "test scram.extract_digest_algs()"
+        """test scram.extract_digest_algs()"""
         eda = self.handler.extract_digest_algs
 
         self.assertEqual(eda('$scram$4096$QSXCR.Q6sek8bf92$'
@@ -1993,23 +1652,22 @@ class scram_test(HandlerCase):
                           ["sha-1","sha-256","sha-512"])
 
     def test_93_derive_digest(self):
-        "test scram.derive_digest()"
+        """test scram.derive_digest()"""
         # NOTE: this just does a light test, since derive_digest
         # is used by encrypt / verify, and is tested pretty well via those.
-
         hash = self.handler.derive_digest
 
         # check various encodings of password work.
-        s1 = b('\x01\x02\x03')
-        d1 = b('\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3')
+        s1 = b'\x01\x02\x03'
+        d1 = b'\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3'
         self.assertEqual(hash(u("\u2168"), s1, 1000, 'sha-1'), d1)
-        self.assertEqual(hash(b("\xe2\x85\xa8"), s1, 1000, 'SHA-1'), d1)
+        self.assertEqual(hash(b"\xe2\x85\xa8", s1, 1000, 'SHA-1'), d1)
         self.assertEqual(hash(u("IX"), s1, 1000, 'sha1'), d1)
-        self.assertEqual(hash(b("IX"), s1, 1000, 'SHA1'), d1)
+        self.assertEqual(hash(b"IX", s1, 1000, 'SHA1'), d1)
 
         # check algs
         self.assertEqual(hash("IX", s1, 1000, 'md5'),
-                         b('3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od'))
+                         b'3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od')
         self.assertRaises(ValueError, hash, "IX", s1, 1000, 'sha-666')
 
         # check rounds
@@ -2019,7 +1677,7 @@ class scram_test(HandlerCase):
         self.assertRaises(TypeError, hash, "IX", u('\x01'), 1000, 'md5')
 
     def test_94_saslprep(self):
-        "test encrypt/verify use saslprep"
+        """test encrypt/verify use saslprep"""
         # NOTE: this just does a light test that saslprep() is being
         # called in various places, relying in saslpreps()'s tests
         # to verify full normalization behavior.
@@ -2039,23 +1697,23 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, self.do_verify, u("\uFDD0"), h)
 
     def test_95_context_algs(self):
-        "test handling of 'algs' in context object"
+        """test handling of 'algs' in context object"""
         handler = self.handler
         from passlib.context import CryptContext
         c1 = CryptContext(["scram"], scram__algs="sha1,md5")
 
         h = c1.encrypt("dummy")
         self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
-        self.assertFalse(c1.hash_needs_update(h))
+        self.assertFalse(c1.needs_update(h))
 
         c2 = c1.copy(scram__algs="sha1")
-        self.assertFalse(c2.hash_needs_update(h))
+        self.assertFalse(c2.needs_update(h))
 
         c2 = c1.copy(scram__algs="sha1,sha256")
-        self.assertTrue(c2.hash_needs_update(h))
+        self.assertTrue(c2.needs_update(h))
 
     def test_96_full_verify(self):
-        "test verify(full=True) flag"
+        """test verify(full=True) flag"""
         def vpart(s, h):
             return self.handler.verify(s, h)
         def vfull(s, h):
@@ -2099,9 +1757,9 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, vfull, 'pencil', h)
         self.assertRaises(ValueError, vfull, 'tape', h)
 
-#=========================================================
+#=============================================================================
 # (netbsd's) sha1 crypt
-#=========================================================
+#=============================================================================
 class _sha1_crypt_test(HandlerCase):
     handler = hash.sha1_crypt
 
@@ -2128,26 +1786,21 @@ class _sha1_crypt_test(HandlerCase):
         '$sha1$$uV7PTeux$I9oHnvwPZHMO0Nq6/WgyGV/tDJIH$',
     ]
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=True,
-        linux=False,
-        solaris=False,
-        darwin=False,
-    )
+    platform_crypt_support = [
+        ("netbsd", True),
+        ("freebsd|openbsd|linux|solaris|darwin", False),
+    ]
 
-os_crypt_sha1_crypt_test = create_backend_case(_sha1_crypt_test, "os_crypt")
-builtin_sha1_crypt_test = create_backend_case(_sha1_crypt_test, "builtin")
+sha1_crypt_os_crypt_test, sha1_crypt_builtin_test = \
+                   _sha1_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
-#roundup
-#=========================================================
+#=============================================================================
+# roundup
+#=============================================================================
 
-#NOTE: all roundup hashes use PrefixWrapper,
-# so there's nothing natively to test.
-# so we just have a few quick cases...
-from passlib.handlers import roundup
+# NOTE: all roundup hashes use PrefixWrapper,
+#       so there's nothing natively to test.
+#       so we just have a few quick cases...
 
 class RoundupTest(TestCase):
 
@@ -2181,9 +1834,9 @@ class RoundupTest(TestCase):
             "sekrit",
             '{PBKDF2}5000$7BvbBq.EZzz/O0HuwX3iP.nAG3s$g3oPnFFaga2BJaX5PoPRljl4XIE')
 
-#=========================================================
-#sha256-crypt
-#=========================================================
+#=============================================================================
+# sha256-crypt
+#=============================================================================
 class _sha256_crypt_test(HandlerCase):
     handler = hash.sha256_crypt
 
@@ -2208,7 +1861,7 @@ class _sha256_crypt_test(HandlerCase):
         (u('with unic\u00D6de'), '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
         ]
 
-    if enable_option("cover"):
+    if TEST_MODE("full"):
         # builtin alg was changed in 1.6, and had possibility of fencepost
         # errors near rounds that are multiples of 42. these hashes test rounds
         # 1004..1012 (42*24=1008 +/- 4) to ensure no mistakes were made.
@@ -2231,6 +1884,9 @@ class _sha256_crypt_test(HandlerCase):
 
         # zero-padded rounds
        '$5$rounds=010428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3',
+
+        # extra "$"
+       '$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3$',
     ]
 
     known_correct_configs = [
@@ -2265,21 +1921,19 @@ class _sha256_crypt_test(HandlerCase):
 
     filter_config_warnings = True # rounds too low, salt too small
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=False,
-        linux=True,
+    platform_crypt_support = [
+        ("freebsd(9|1\d)|linux", True),
+        ("freebsd8", None), # added in freebsd 8.3
+        ("freebsd|openbsd|netbsd|darwin", False),
         # solaris - depends on policy
-        # darwin ?,
-    )
+    ]
 
-os_crypt_sha256_crypt_test = create_backend_case(_sha256_crypt_test, "os_crypt")
-builtin_sha256_crypt_test = create_backend_case(_sha256_crypt_test, "builtin")
+sha256_crypt_os_crypt_test, sha256_crypt_builtin_test = \
+                   _sha256_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
-#test sha512-crypt
-#=========================================================
+#=============================================================================
+# test sha512-crypt
+#=============================================================================
 class _sha512_crypt_test(HandlerCase):
     handler = hash.sha512_crypt
 
@@ -2307,9 +1961,9 @@ class _sha512_crypt_test(HandlerCase):
         ]
 
     known_malformed_hashes = [
-        #zero-padded rounds
+        # zero-padded rounds
         '$6$rounds=011021$KsvQipYPWpr93wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1',
-        #bad char in otherwise correct hash
+        # bad char in otherwise correct hash
         '$6$rounds=11021$KsvQipYPWpr9:wWP$v7xjI4X6vyVptJjB1Y02vZC5SaSijBkGmq1uJhPr3cvqvvkd42Xvo48yLVPFt8dvhCsnlUgpX.//Cxn91H4qy1',
     ]
 
@@ -2355,12 +2009,12 @@ class _sha512_crypt_test(HandlerCase):
 
     platform_crypt_support = _sha256_crypt_test.platform_crypt_support
 
-os_crypt_sha512_crypt_test = create_backend_case(_sha512_crypt_test, "os_crypt")
-builtin_sha512_crypt_test = create_backend_case(_sha512_crypt_test, "builtin")
+sha512_crypt_os_crypt_test, sha512_crypt_builtin_test = \
+                   _sha512_crypt_test.create_backend_cases(["os_crypt","builtin"])
 
-#=========================================================
-#sun md5 crypt
-#=========================================================
+#=============================================================================
+# sun md5 crypt
+#=============================================================================
 class sun_md5_crypt_test(HandlerCase):
     handler = hash.sun_md5_crypt
 
@@ -2455,24 +2109,19 @@ class sun_md5_crypt_test(HandlerCase):
         "$md5$RPgLa6IJ$WTvAlUJ7MqH5xak2FMEwS/.",
 
         # 2+ "$" at end of salt in config
-        #NOTE: not sure what correct behavior is, so forbidding format for now.
+        # NOTE: not sure what correct behavior is, so forbidding format for now.
         "$md5$3UqYqndY$$",
 
         # 3+ "$" at end of salt in hash
-        #NOTE: not sure what correct behavior is, so forbidding format for now.
+        # NOTE: not sure what correct behavior is, so forbidding format for now.
         "$md5$RPgLa6IJ$$$WTvAlUJ7MqH5xak2FMEwS/",
 
         ]
 
-    platform_crypt_support = dict(
-        freebsd=False,
-        openbsd=False,
-        netbsd=False,
-        linux=False,
-        solaris=True,
-        darwin=False,
-    )
-
+    platform_crypt_support = [
+        ("solaris", True),
+        ("freebsd|openbsd|netbsd|linux|darwin", False),
+    ]
     def do_verify(self, secret, hash):
         # override to fake error for "$..." hash strings listed in known_config.
         # these have to be hash strings, in order to test bare salt issue.
@@ -2480,12 +2129,12 @@ class sun_md5_crypt_test(HandlerCase):
             raise ValueError("pretending '$.' hash is config string")
         return self.handler.verify(secret, hash)
 
-#=========================================================
-#unix disabled / fallback
-#=========================================================
+#=============================================================================
+# unix disabled / fallback
+#=============================================================================
 class unix_disabled_test(HandlerCase):
     handler = hash.unix_disabled
-    accepts_all_hashes = True
+#    accepts_all_hashes = True # TODO: turn this off.
     is_disabled_handler = True
 
     known_correct_hashes = [
@@ -2495,18 +2144,34 @@ class unix_disabled_test(HandlerCase):
         (UPASS_TABLE, "*"),
     ]
 
-    # TODO: test custom marker support
-    # TODO: test default marker selection
+    known_unidentified_hashes = [
+        # should never identify anything crypt() could return...
+        "$1$xxx",
+        "abc",
+        "./az",
+        "{SHA}xxx",
+    ]
 
-    def test_90_preserves_existing(self):
-        "test preserves existing disabled hash"
+    def test_76_hash_border(self):
+        # so empty strings pass
+        self.accepts_all_hashes = True
+        super(unix_disabled_test, self).test_76_hash_border()
+
+    def test_90_special(self):
+        """test marker option & special behavior"""
         handler = self.handler
 
-        # use marker if no hash
-        self.assertEqual(handler.genhash("stub", None), handler.marker)
-
-        # use hash if provided and valid
+        # preserve hash if provided
         self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
+
+        # use marker if no hash
+        self.assertEqual(handler.genhash("stub", None), handler.default_marker)
+
+        # custom marker
+        self.assertEqual(handler.genhash("stub", None, marker="*xxx"), "*xxx")
+
+        # reject invalid marker
+        self.assertRaises(ValueError, handler.genhash, 'stub', None, marker='abc')
 
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback
@@ -2525,14 +2190,24 @@ class unix_fallback_test(HandlerCase):
         warnings.filterwarnings("ignore", "'unix_fallback' is deprecated")
 
     def test_90_wildcard(self):
-        "test enable_wildcard flag"
+        """test enable_wildcard flag"""
         h = self.handler
         self.assertTrue(h.verify('password','', enable_wildcard=True))
         self.assertFalse(h.verify('password',''))
-        for c in ("!*x"):
+        for c in "!*x":
             self.assertFalse(h.verify('password',c, enable_wildcard=True))
             self.assertFalse(h.verify('password',c))
 
-#=========================================================
-#EOF
-#=========================================================
+    def test_91_preserves_existing(self):
+        """test preserves existing disabled hash"""
+        handler = self.handler
+
+        # use marker if no hash
+        self.assertEqual(handler.genhash("stub", None), "!")
+
+        # use hash if provided and valid
+        self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
+
+#=============================================================================
+# eof
+#=============================================================================

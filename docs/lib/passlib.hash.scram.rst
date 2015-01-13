@@ -4,6 +4,8 @@
 :class:`passlib.hash.scram` - SCRAM Hash
 ===================================================================
 
+.. versionadded:: 1.6
+
 .. currentmodule:: passlib.hash
 
 SCRAM is a password-based challenge response protocol defined by :rfc:`5802`.
@@ -21,7 +23,7 @@ of the hash algorithms the server wishes to support over SCRAM.
 Since this format is PBKDF2-based, it has equivalent security to
 Passlib's other :doc:`pbkdf2 hashes <passlib.hash.pbkdf2_digest>`,
 and can be used to authenticate users using either the normal :ref:`password-hash-api`
-or the SCRAM-specific class methods documentated below.
+or the SCRAM-specific class methods documented below.
 
 .. note::
 
@@ -34,63 +36,58 @@ This class can be used like any other Passlib hash, as follows::
 
     >>> from passlib.hash import scram
 
-    >>> #generate new salt, encrypt password against default list of algorithms
-    >>> h = scram.encrypt("password")
-    >>> h # (output split over multiple lines for readability)
-    '$scram$6400$.Z/znnNOKWUsBaCU$sha-1=cRseQyJpnuPGn3e6d6u6JdJWk.0,sha-256=5G\
-    cjEbRaUIIci1r6NAMdI9OPZbxl9S5CFR6la9CHXYc,sha-512=.DHbIm82ajXbFR196Y.9Ttbs\
+    >>> # generate new salt, encrypt password against default list of algorithms
+    >>> hash = scram.encrypt("password")
+    >>> hash
+    '$scram$6400$.Z/znnNOKWUsBaCU$sha-1=cRseQyJpnuPGn3e6d6u6JdJWk.0,sha-256=5G
+    cjEbRaUIIci1r6NAMdI9OPZbxl9S5CFR6la9CHXYc,sha-512=.DHbIm82ajXbFR196Y.9Ttbs
     gzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw'
 
-    >>> #same, but with explict number of rounds
+    >>> # same, but with an explicit number of rounds
     >>> scram.encrypt("password", rounds=8000)
-    '$scram$8000$Y0zp/R/DeO89h/De$sha-1=eE8dq1f1P1hZm21lfzsr3CMbiEA,sha-256=Nf\
-    kaDFMzn/yHr/HTv7KEFZqaONo6psRu5LBBFLEbZ.o,sha-512=XnGG11X.J2VGSG1qTbkR3FVr\
+    '$scram$8000$Y0zp/R/DeO89h/De$sha-1=eE8dq1f1P1hZm21lfzsr3CMbiEA,sha-256=Nf
+    kaDFMzn/yHr/HTv7KEFZqaONo6psRu5LBBFLEbZ.o,sha-512=XnGG11X.J2VGSG1qTbkR3FVr
     9j5JwsnV5Fd094uuC.GtVDE087m8e7rGoiVEgXnduL48B2fPsUD9grBjURjkiA'
 
-    >>> #check if hash is recognized
-    >>> scram.identify(h)
+    >>> # verify password
+    >>> scram.verify("password", hash)
     True
-    >>> #check if some other hash is recognized
-    >>> scram.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    >>> scram.verify("secret", hash)
     False
 
-    >>> #verify correct password
-    >>> scram.verify("password", h)
-    True
-    >>> scram.verify("secret", h) #verify incorrect password
-    False
+See the generic :ref:`PasswordHash usage examples <password-hash-examples>`
+for more details on how to use the common hash interface.
 
-Additionally, this class provides a number of useful methods
-for SCRAM-specific actions::
+----
 
-    >>> from passlib.hash import scram
-    >>> # generate new salt, encrypt password against default list of algorithms
-    >>> scram.encrypt("password")
-    '$scram$6400$.Z/znnNOKWUsBaCU$sha-1=cRseQyJpnuPGn3e6d6u6JdJWk.0,sha-256=5G\
-    cjEbRaUIIci1r6NAMdI9OPZbxl9S5CFR6la9CHXYc,sha-512=.DHbIm82ajXbFR196Y.9Ttbs\
-    gzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw'
+Additionally, this class provides a number of useful methods for SCRAM-specific actions:
 
-    >>> # generate new salt, encrypt password against specific list of algorithms
-    >>> # and choose explicit number of rounds
-    >>> h = scram.encrypt("password", rounds=1000, algs="sha-1,sha-256,md5")
-    >>> h
-    '$scram$1000$RsgZo7T2/l8rBUBI$md5=iKsH555d3ctn795Za4S7bQ,sha-1=dRcE2AUjALLF\
+* You can override the default list of digests, and/or the number of iterations::
+
+    >>> hash = scram.encrypt("password", rounds=1000, algs="sha-1,sha-256,md5")
+    >>> hash
+    '$scram$1000$RsgZo7T2/l8rBUBI$md5=iKsH555d3ctn795Za4S7bQ,sha-1=dRcE2AUjALLF
     tX5DstdLCXZ9Afw,sha-256=WYE/LF7OntriUUdFXIrYE19OY2yL0N5qsQmdPNFn7JE'
 
-    >>> # given a scram hash, retrieve the information SCRAM needs
-    >>> # to authenticate using a specific mechanism -
-    >>> # returns salt, rounds, digest
-    >>> scram.extact_digest_info(h, "sha-1")
+* Given a scram hash, you can use a single call to extract all the information
+  the SCRAM needs to authenticate against a specific mechanism::
+
+    >>> # this returns (salt_bytes, rounds, digest_bytes)
+    >>> scram.extract_digest_info(hash, "sha-1")
     ('F\xc8\x19\xa3\xb4\xf6\xfe_+\x05@H',
      1000,
      'u\x17\x04\xd8\x05#\x00\xb2\xc5\xb5~C\xb2\xd7K\tv}\x01\xfc')
 
-    >>> # given a scram hash, return list of digest algs present
-    >>> scram.extract_digest_algs(h)
+* Given a scram hash, you can extract the list of digest algorithms
+  it contains information for (``sha-1`` will always be present)::
+
+    >>> scram.extract_digest_algs(hash)
     ["md5", "sha-1", "sha-256"]
 
-    >>> # and a standalone helper that can calculate the SaltedPassword
-    >>> # portion of the SCRAM protocol, taking care of SASLPrep as well.
+* This class also provides a standalone helper which can calculate
+  the ``SaltedPassword`` portion of the SCRAM protocol, taking
+  care of the SASLPrep step as well::
+
     >>> scram.derive_digest("password", b'\x01\x02\x03', 1000, "sha-1")
     b'k\x086vg\xb3\xfciz\xb4\xb4\xe2JRZ\xaet\xe4`\xe7'
 
@@ -98,7 +95,7 @@ Interface
 =========
 .. note::
 
-    This hash format is new in Passlib 1.6, and it's SCRAM-specific API
+    This hash format is new in Passlib 1.6, and its SCRAM-specific API
     may change in the next few releases, depending on user feedback.
 
 .. autoclass:: scram()
@@ -113,7 +110,7 @@ An example scram hash (of the string ``password``) is::
     cjEbRaUIIci1r6NAMdI9OPZbxl9S5CFR6la9CHXYc,sha-512=.DHbIm82ajXbFR196Y.9Ttb
     sgzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw
 
-An scram hash string has the format :samp:`$scram${rounds}${salt}${alg1}={digest1},{alg2}={digest2},{...}`, where:
+An scram hash string has the format :samp:`$scram${rounds}${salt}${alg1}={digest1},{alg2}={digest2},...`, where:
 
 * ``$scram$`` is the prefix used to identify Passlib scram hashes,
   following the :ref:`modular-crypt-format`
@@ -134,13 +131,15 @@ An scram hash string has the format :samp:`$scram${rounds}${salt}${alg1}={digest
 * There will always be one or more :samp:`{alg}={digest}` pairs, separated by a
   comma. Per the SCRAM specification, the algorithm ``sha-1`` should always be present.
 
-There is also an alternate format (:samp:`$scram${rounds}${salt}${alg}{,...}`)
+There is also an alternate format (:samp:`$scram${rounds}${salt}${alg},...`)
 which is used to represent a configuration string that doesn't contain
-any digests. An example would be ``$scram$6400$.Z/znnNOKWUsBaCU$sha-1,sha-256,sha-512``.
+any digests. An example would be::
+
+    $scram$6400$.Z/znnNOKWUsBaCU$sha-1,sha-256,sha-512
 
 The algorithm used to calculate each digest is::
 
-    pbkdf2(salsprep(password).encode("utf-8"), salt, rounds, -1, alg)
+    pbkdf2(salsprep(password).encode("utf-8"), salt, rounds, alg_digest_size, "hmac-"+alg)
 
 ...as laid out in the SCRAM specification [#scram]_. All digests
 should verify against the same password, or the hash is considered malformed.
@@ -160,7 +159,7 @@ always be supported, this will generally be the weakest link, since
 the other digests will generally be stronger ones (e.g. SHA2-256).
 
 None-the-less, since PBKDF2 is sufficiently collision-resistant
-on it's own, any pre-image weakenesses found in SHA1 should be mitigated
+on its own, any pre-image weaknesses found in SHA1 should be mitigated
 by the PBKDF2-HMAC-SHA1 wrapper; and should have no flaws outside of
 brute-force attacks on PBKDF2-HMAC-SHA1.
 

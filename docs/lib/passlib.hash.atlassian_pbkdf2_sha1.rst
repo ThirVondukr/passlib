@@ -3,7 +3,7 @@
 ===========================================================================
 
 .. index::
-    pair: atlassian; pbkdf2 hash
+    pair: Atlassian; pbkdf2 hash
 
 .. currentmodule:: passlib.hash
 
@@ -17,14 +17,11 @@ used in new applications.
 
 .. seealso::
 
-    :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
-    for some other PBKDF2-based hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use this class via the common hash interface.
 
-Usage
-=====
-These classes support both rounds and salts,
-and can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
+    * :doc:`passlib.hash.pbkdf2_{digest} <passlib.hash.pbkdf2_digest>` --
+      for some other PBKDF2-based hashes.
 
 Interface
 =========
@@ -42,11 +39,11 @@ A example hash (of ``password``) is:
 
     ``{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J``
 
-Once decoded, the salt value (in hexdecimal octets) is:
+Once decoded, the salt value (in hexadecimal octets) is:
 
     ``0d0217254d37f2ee0fec576cb854d8ff``
 
-and the checksum value (in hexidecimal octets) is:
+and the checksum value (in hexadecimal octets) is:
 
     ``edf96e6e3591f8d96b9ed4addc47a7632edea176bb2fa8a03fa3179b75b5bf09``
 

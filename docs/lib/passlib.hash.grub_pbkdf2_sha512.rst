@@ -15,14 +15,11 @@ variable length salts, variable number of rounds.
 
 .. seealso::
 
-    * :doc:`passlib.hash.pbkdf2_digest <passlib.hash.pbkdf2_digest>`
-      for some other PBKDF2-based hashes.
+    * :ref:`password hash usage <password-hash-examples>` --
+      for examples of how to use this class via the common hash interface.
 
-Usage
-=====
-These classes support both rounds and salts,
-and can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
+    * :doc:`passlib.hash.pbkdf2_{digest} <passlib.hash.pbkdf2_digest>` --
+      for some other PBKDF2-based hashes.
 
 Interface
 =========
@@ -41,14 +38,14 @@ A example hash (of ``password``) is ::
 
 All of this scheme's hashes have the format :samp:`grub.pbkdf2.sha512.{rounds}.{salt}.{checksum}`,
 where :samp:`{rounds}` is the number of iteration stored in decimal,
-:samp:`{salt}` is the salt string encoded using upper-case hexdecimal,
+:samp:`{salt}` is the salt string encoded using upper-case hexadecimal,
 and :samp:`{checksum}` is the resulting 64-byte derived key, also
-encoded in upper-case hexidecimal. It can be identified by the prefix ``grub.pdkdf2.sha512.``.
+encoded in upper-case hexadecimal. It can be identified by the prefix ``grub.pdkdf2.sha512.``.
 
 The algorithm used is the same as :class:`pbkdf2_sha1`: the password is encoded into UTF-8 if not already encoded,
 and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
 along with the decoded salt, and the number of rounds.
-The result is then encoded into hexidecimal.
+The result is then encoded into hexadecimal.
 
 ..
     Hash Translation
@@ -59,16 +56,16 @@ The result is then encoded into hexidecimal.
 
         >>> from passlib.hash import pbkdf2_sha512, grub_pbkdf2_sha512
 
-        >>> #given a pbkdf2_sha512 hash...
+        >>> # given a pbkdf2_sha512 hash...
         >>> h = pbkdf2_sha512.encrypt("password")
         >>> h
         '$pbkdf2-sha512$6400$y6vYff3SihJiqumIrNXwGw$NobVwyUlVI52/Cvrguwli5fX6XgKHNUf7fWWS2VgoWEevaTCiZx4OCYhwGFwzUAuz/g1zQVSIf.9JEb0BEVEEA'
 
-        >>> #it can be parsed into options
+        >>> # it can be parsed into options
         >>> hobj = pbkdf2_sha512.from_string(h)
         >>> rounds, salt, chk = hobj.rounds, hobj.salt, hobj.checksum
 
-        >>> #and a new grub hash can be created
+        >>> # and a new grub hash can be created
         >>> gobj = grub_pbkdf2_sha512(rounds=rounds, salt=salt, checksum=chk)
         >>> g = gobj.to_string()
         >>> g

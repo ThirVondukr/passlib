@@ -6,10 +6,12 @@
 
 .. currentmodule:: passlib.hash
 
-PassLib provides three custom hash schemes based on the PBKDF2 [#pbkdf2]_ algorithm
+Passlib provides three custom hash schemes based on the PBKDF2 [#pbkdf2]_ algorithm
 which are compatible with the :ref:`modular crypt format <modular-crypt-format>`:
-:class:`!pbkdf2_sha1`, :class:`!pbkdf2_sha256`, :class:`!pbkdf2_sha512`.
-They feature variable length salts, variable rounds.
+
+* :class:`pbkdf2_sha1`
+* :class:`pbkdf2_sha256`
+* :class:`pbkdf2_sha512`
 
 Security-wise, PBKDF2 is currently one of the leading key derivation functions,
 and has no known security issues.
@@ -20,52 +22,45 @@ versions are offered as well.
 PBKDF2-SHA512 is one of the three hashes Passlib
 :ref:`recommends <recommended-hashes>` for new applications.
 
-.. seealso::
+All of these classes can be used directly as follows::
 
-    Alternate version of these hashes - :doc:`LDAP-Compatible Simple PBKDF2 Hashes <passlib.hash.ldap_pbkdf2_digest>`
+    >>> from passlib.hash import pbkdf2_sha256
 
-Usage
-=====
-All of the following classes can be used directly as follows::
-
-    >>> from passlib.hash import pbkdf2_sha256 as engine
-
-    >>> #generate new salt, encrypt password
-    >>> hash = engine.encrypt("password")
+    >>> # generate new salt, encrypt password
+    >>> hash = pbkdf2_sha256.encrypt("password")
     >>> hash
     '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'
 
-    >>> #same, but with explicit number of rounds and salt length
-    >>> engine.encrypt("password", rounds=8000, salt_size=10)
+    >>> # same, but with an explicit number of rounds and salt length
+    >>> pbkdf2_sha256.encrypt("password", rounds=8000, salt_size=10)
     '$pbkdf2-sha256$8000$XAuBMIYQQogxRg$tRRlz8hYn63B9LYiCd6PRo6FMiunY9ozmMMI3srxeRE'
 
-    >>> #check if hash is a pbkdf2-sha256 hash
-    >>> engine.identify(hash)
+    >>> # verify the password
+    >>> pbkdf2_sha256.verify("password", hash)
     True
-    >>> #check if some other hash is recognized
-    >>> engine.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    >>> pbkdf2_sha256.verify("wrong", hash)
     False
 
-    >>> #verify correct password
-    >>> engine.verify("password", hash)
-    True
-    >>> #verify incorrect password
-    >>> engine.verify("wrong", hash)
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`ldap_pbkdf2_{digest} <passlib.hash.ldap_pbkdf2_digest>` --
+      alternate LDAP-compatible versions of these hashes.
 
 Interface
 =========
+.. autoclass:: pbkdf2_sha256()
+
+.. class:: pbkdf2_sha512()
+
+    except for the choice of message digest,
+    this class is the same as :class:`pbkdf2_sha256`.
+
 .. class:: pbkdf2_sha1()
 
     except for the choice of message digest,
-    this class is the same as :class:`pbkdf2_sha512`.
-
-.. class:: pbkdf2_sha256()
-
-    except for the choice of message digest,
-    this class is the same as :class:`pbkdf2_sha512`.
-
-.. autoclass:: pbkdf2_sha512()
+    this class is the same as :class:`pbkdf2_sha256`.
 
 .. _mcf-pbkdf2-format:
 
@@ -78,7 +73,7 @@ An example :class:`!pbkdf2_sha256` hash (of ``password``)::
 All of the pbkdf2 hashes defined by passlib
 follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
-* :samp:`$pbkdf2-{digest}$`` is used as the :ref:`modular-crypt-format` identifier
+* :samp:`$pbkdf2-{digest}$` is used as the :ref:`modular-crypt-format` identifier
   (``$pbkdf2-sha256$`` in the example).
 
 * :samp:`{digest}` - this specifies the particular cryptographic hash
@@ -94,14 +89,14 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
 * :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
   of the raw derived key bytes returned from the PBKDF2 function.
-  Each scheme uses output size of it's specific :samp:`{digest}`
+  Each scheme uses the digest size of its specific hash algorithm (:samp:`{digest}`)
   as the size of the raw derived key. This is enlarged
-  by appromixately 4/3 by the base64 encoding,
-  resulting in a checksum size of 27, 43, and 86 for each of the respective algorithms.
+  by approximately 4/3 by the base64 encoding,
+  resulting in a checksum size of 27, 43, and 86 for each of the respective algorithms listed above.
 
 The algorithm used by all of these schemes is deliberately identical and simple:
 The password is encoded into UTF-8 if not already encoded,
-and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
+and run through :func:`~passlib.utils.pbkdf2.pbkdf2`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
 The result is then encoded using :func:`~passlib.utils.ab64_encode`.

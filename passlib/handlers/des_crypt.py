@@ -1,19 +1,18 @@
 """passlib.handlers.des_crypt - traditional unix (DES) crypt and variants"""
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
-#site
-#libs
-from passlib.utils import classproperty, h64, h64big, safe_crypt, test_crypt, to_unicode
-from passlib.utils.compat import b, bytes, byte_elem_value, u, uascii_to_str, unicode
+# site
+# pkg
+from passlib.utils import h64, h64big, safe_crypt, test_crypt, to_unicode
+from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode
 from passlib.utils.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
-#pkg
-#local
+# local
 __all__ = [
     "des_crypt",
     "bsdi_crypt",
@@ -21,9 +20,11 @@ __all__ = [
     "crypt16",
 ]
 
-#=========================================================
+#=============================================================================
 # pure-python backend for des_crypt family
-#=========================================================
+#=============================================================================
+_BNULL = b'\x00'
+
 def _crypt_secret_to_key(secret):
     """convert secret to 64-bit DES key.
 
@@ -32,30 +33,32 @@ def _crypt_secret_to_key(secret):
     a null parity bit is inserted after every 7th bit of the output.
     """
     # NOTE: this would set the parity bits correctly,
-    # but des_encrypt_int_block() would just ignore them...
+    #       but des_encrypt_int_block() would just ignore them...
     ##return sum(expand_7bit(byte_elem_value(c) & 0x7f) << (56-i*8)
     ##           for i, c in enumerate(secret[:8]))
     return sum((byte_elem_value(c) & 0x7f) << (57-i*8)
                for i, c in enumerate(secret[:8]))
 
 def _raw_des_crypt(secret, salt):
-    "pure-python backed for des_crypt"
+    """pure-python backed for des_crypt"""
     assert len(salt) == 2
 
     # NOTE: some OSes will accept non-HASH64 characters in the salt,
-    # but what value they assign these characters varies wildy,
-    # so just rejecting them outright.
-    # NOTE: the same goes for single-character salts...
-    # some OSes duplicate the char, some insert a '.' char,
-    # and openbsd does something which creates an invalid hash.
-    try:
-        salt_value = h64.decode_int12(salt)
-    except ValueError: #pragma: no cover - always caught by class
-        raise ValueError("invalid chars in salt")
+    #       but what value they assign these characters varies wildy,
+    #       so just rejecting them outright.
+    #       the same goes for single-character salts...
+    #       some OSes duplicate the char, some insert a '.' char,
+    #       and openbsd does (something) which creates an invalid hash.
+    salt_value = h64.decode_int12(salt)
+
+    # gotta do something - no official policy since this predates unicode
+    if isinstance(secret, unicode):
+        secret = secret.encode("utf-8")
+    assert isinstance(secret, bytes)
 
     # forbidding NULL char because underlying crypt() rejects them too.
-    if b('\x00') in secret:
-        raise ValueError("null char in secret")
+    if _BNULL in secret:
+        raise uh.exc.NullPasswordError(des_crypt)
 
     # convert first 8 bytes of secret string into an integer
     key_value = _crypt_secret_to_key(secret)
@@ -67,29 +70,31 @@ def _raw_des_crypt(secret, salt):
     return h64big.encode_int64(result)
 
 def _bsdi_secret_to_key(secret):
-    "covert secret to DES key used by bsdi_crypt"
+    """convert secret to DES key used by bsdi_crypt"""
     key_value = _crypt_secret_to_key(secret)
     idx = 8
     end = len(secret)
     while idx < end:
-        next = idx+8
+        next = idx + 8
         tmp_value = _crypt_secret_to_key(secret[idx:next])
         key_value = des_encrypt_int_block(key_value, key_value) ^ tmp_value
         idx = next
     return key_value
 
 def _raw_bsdi_crypt(secret, rounds, salt):
-    "pure-python backend for bsdi_crypt"
+    """pure-python backend for bsdi_crypt"""
 
     # decode salt
-    try:
-        salt_value = h64.decode_int24(salt)
-    except ValueError: #pragma: no cover - always caught by class
-        raise ValueError("invalid salt")
+    salt_value = h64.decode_int24(salt)
+
+    # gotta do something - no official policy since this predates unicode
+    if isinstance(secret, unicode):
+        secret = secret.encode("utf-8")
+    assert isinstance(secret, bytes)
 
     # forbidding NULL char because underlying crypt() rejects them too.
-    if b('\x00') in secret:
-        raise ValueError("secret must be string without null bytes")
+    if _BNULL in secret:
+        raise uh.exc.NullPasswordError(bsdi_crypt)
 
     # convert secret string into an integer
     key_value = _bsdi_secret_to_key(secret)
@@ -100,31 +105,35 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     # run h64 encode on result
     return h64big.encode_int64(result)
 
-#=========================================================
+#=============================================================================
 # handlers
-#=========================================================
+#=============================================================================
 class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 2 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
 
-    It will use the first available of two possible backends:
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
 
-    * stdlib :func:`crypt()`, if the host OS supports des-crypt (most unix systems).
-    * a pure python implementation of des-crypt
-
-    You can see which backend is in use by calling the :meth:`get_backend()` method.
+        .. versionadded:: 1.6
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     #--GenericHandler--
     name = "des_crypt"
     setting_kwds = ("salt",)
@@ -135,10 +144,10 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
 
-    #=========================================================
+    #===================================================================
     # formatting
-    #=========================================================
-    #FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
+    #===================================================================
+    # FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
     _hash_regex = re.compile(u(r"""
         ^
@@ -156,63 +165,78 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return uascii_to_str(hash)
 
-    #=========================================================
+    #===================================================================
     # backend
-    #=========================================================
+    #===================================================================
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", 'abgOeLfPimXQo')
-
-    def _calc_checksum_builtin(self, secret):
-        # gotta do something - no official policy since des-crypt predates unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", 'abgOeLfPimXQo'):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
-        # NOTE: safe_crypt encodes unicode secret -> utf8
-        # no official policy since des-crypt predates unicode
+        # NOTE: we let safe_crypt() encode unicode secret -> utf8;
+        #       no official policy since des-crypt predates unicode
         hash = safe_crypt(secret, self.salt)
         if hash:
             assert hash.startswith(self.salt) and len(hash) == 13
             return hash[2:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
 
-    #=========================================================
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
+
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 4 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
 
+    :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 5000, must be between 0 and 16777215, inclusive.
+        Defaults to 5001, must be between 1 and 16777215, inclusive.
 
-    It will use the first available of two possible backends:
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
 
-    * stdlib :func:`crypt()`, if the host OS supports bsdi-crypt (most BSD systems).
-    * a pure python implementation of bsdi-crypt
+        .. versionadded:: 1.6
 
-    You can see which backend is in use by calling the :meth:`get_backend()` method.
+    .. versionchanged:: 1.6
+        :meth:`encrypt` will now issue a warning if an even number of rounds is used
+        (see :ref:`bsdi-crypt-security-issues` regarding weak DES keys).
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     #--GenericHandler--
     name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
@@ -232,9 +256,9 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     # NOTE: OpenBSD login.conf reports 7250 as minimum allowed rounds,
     # but that seems to be an OS policy, not a algorithm limitation.
 
-    #=========================================================
+    #===================================================================
     # parsing
-    #=========================================================
+    #===================================================================
     _hash_regex = re.compile(u(r"""
         ^
         _
@@ -261,9 +285,9 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
                              self.salt, self.checksum or u(''))
         return uascii_to_str(hash)
 
-    #=========================================================
+    #===================================================================
     # validation
-    #=========================================================
+    #===================================================================
 
     # flag so CryptContext won't generate even rounds.
     _avoid_even_rounds = True
@@ -278,11 +302,11 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return rounds
 
     @classmethod
-    def _deprecation_detector(cls, **settings):
-        return cls._hash_needs_update
+    def _bind_needs_update(cls, **settings):
+        return cls._needs_update
 
     @classmethod
-    def _hash_needs_update(cls, hash):
+    def _needs_update(cls, hash, secret):
         # mark bsdi_crypt hashes as deprecated if they have even rounds.
         assert cls.identify(hash)
         if isinstance(hash, unicode):
@@ -290,21 +314,19 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         rounds = h64.decode_int24(hash[1:5])
         return not rounds & 1
 
-    #=========================================================
+    #===================================================================
     # backends
-    #=========================================================
+    #===================================================================
     backends = ("os_crypt", "builtin")
 
-    _has_backend_builtin = True
-
-    @classproperty
-    def _has_backend_os_crypt(cls):
-        return test_crypt("test", '_/...lLDAxARksGCHin.')
-
-    def _calc_checksum_builtin(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return _raw_bsdi_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
+    #---------------------------------------------------------------
+    # os_crypt backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_os_crypt(cls):
+        if test_crypt("test", '_/...lLDAxARksGCHin.'):
+            return cls._calc_checksum_os_crypt
+        return None
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string()
@@ -312,41 +334,61 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if hash:
             assert hash.startswith(config[:9]) and len(hash) == 20
             return hash[-11:]
-        else:
-            return self._calc_checksum_builtin(secret)
+        return self._try_alternate_backends(secret)
 
-    #=========================================================
+    #---------------------------------------------------------------
+    # builtin backend
+    #---------------------------------------------------------------
+    @classmethod
+    def _load_backend_builtin(cls):
+        return cls._calc_checksum_builtin
+
+    def _calc_checksum_builtin(self, secret):
+        return _raw_bsdi_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")
+
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 class bigcrypt(uh.HasSalt, uh.GenericHandler):
     """This class implements the BigCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 22 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     #--GenericHandler--
     name = "bigcrypt"
     setting_kwds = ("salt",)
     checksum_chars = uh.HASH64_CHARS
-    #NOTE: checksum chars must be multiple of 11
+    # NOTE: checksum chars must be multiple of 11
 
     #--HasSalt--
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
 
-    #=========================================================
+    #===================================================================
     # internal helpers
-    #=========================================================
+    #===================================================================
     _hash_regex = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
@@ -369,12 +411,12 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     def _norm_checksum(self, value):
         value = super(bigcrypt, self)._norm_checksum(value)
         if value and len(value) % 11:
-            raise uh.exc.InvalidHashError(cls)
+            raise uh.exc.InvalidHashError(self)
         return value
 
-    #=========================================================
+    #===================================================================
     # backend
-    #=========================================================
+    #===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
@@ -387,25 +429,36 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
             idx = next
         return chk.decode("ascii")
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
 class crypt16(uh.HasSalt, uh.GenericHandler):
     """This class implements the crypt16 password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
+    :type salt: str
     :param salt:
         Optional salt string.
         If not specified, one will be autogenerated (this is recommended).
         If specified, it must be 2 characters, drawn from the regexp range ``[./0-9A-Za-z]``.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include
+        ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
-    #=========================================================
+    #===================================================================
     # class attrs
-    #=========================================================
+    #===================================================================
     #--GenericHandler--
     name = "crypt16"
     setting_kwds = ("salt",)
@@ -416,9 +469,9 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
 
-    #=========================================================
+    #===================================================================
     # internal helpers
-    #=========================================================
+    #===================================================================
     _hash_regex = re.compile(u(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
@@ -438,39 +491,39 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         hash = u("%s%s") % (self.salt, self.checksum or u(''))
         return uascii_to_str(hash)
 
-    #=========================================================
+    #===================================================================
     # backend
-    #=========================================================
+    #===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
 
-        #parse salt value
+        # parse salt value
         try:
             salt_value = h64.decode_int12(self.salt.encode("ascii"))
-        except ValueError: #pragma: no cover - caught by class
+        except ValueError: # pragma: no cover - caught by class
             raise ValueError("invalid chars in salt")
 
-        #convert first 8 byts of secret string into an integer,
+        # convert first 8 byts of secret string into an integer,
         key1 = _crypt_secret_to_key(secret)
 
-        #run data through des using input of 0
+        # run data through des using input of 0
         result1 = des_encrypt_int_block(key1, 0, salt_value, 20)
 
-        #convert next 8 bytes of secret string into integer (key=0 if secret < 8 chars)
+        # convert next 8 bytes of secret string into integer (key=0 if secret < 8 chars)
         key2 = _crypt_secret_to_key(secret[8:16])
 
-        #run data through des using input of 0
+        # run data through des using input of 0
         result2 = des_encrypt_int_block(key2, 0, salt_value, 5)
 
-        #done
+        # done
         chk = h64big.encode_int64(result1) + h64big.encode_int64(result2)
         return chk.decode("ascii")
 
-    #=========================================================
+    #===================================================================
     # eoc
-    #=========================================================
+    #===================================================================
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

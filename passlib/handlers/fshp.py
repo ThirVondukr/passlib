@@ -1,35 +1,33 @@
 """passlib.handlers.fshp
 """
 
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from base64 import b64encode, b64decode
 import re
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
-#site
-#libs
+# site
+# pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, u,\
+from passlib.utils.compat import bascii_to_str, iteritems, u,\
                                  unicode
 from passlib.utils.pbkdf2 import pbkdf1
-#pkg
-#local
+# local
 __all__ = [
     'fshp',
 ]
-#=========================================================
-#sha1-crypt
-#=========================================================
+#=============================================================================
+# sha1-crypt
+#=============================================================================
 class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`encrypt()` and :meth:`genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :param salt:
         Optional raw salt string.
@@ -41,7 +39,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 40000, must be between 1 and 4294967295, inclusive.
+        Defaults to 100000, must be between 1 and 4294967295, inclusive.
 
     :param variant:
         Optionally specifies variant of FSHP to use.
@@ -50,11 +48,21 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         * ``1`` - uses SHA-2/256 digest (default).
         * ``2`` - uses SHA-2/384 digest.
         * ``3`` - uses SHA-2/512 digest.
+
+    :type relaxed: bool
+    :param relaxed:
+        By default, providing an invalid value for one of the other
+        keywords will result in a :exc:`ValueError`. If ``relaxed=True``,
+        and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
+        will be issued instead. Correctable errors include ``rounds``
+        that are too small or too large, and ``salt`` strings that are too long.
+
+        .. versionadded:: 1.6
     """
 
-    #=========================================================
-    #class attrs
-    #=========================================================
+    #===================================================================
+    # class attrs
+    #===================================================================
     #--GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
@@ -63,22 +71,22 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # checksum_size is property() that depends on variant
 
     #--HasRawSalt--
-    default_salt_size = 16 #current passlib default, FSHP uses 8
+    default_salt_size = 16 # current passlib default, FSHP uses 8
     min_salt_size = 0
     max_salt_size = None
 
     #--HasRounds--
     # FIXME: should probably use different default rounds
     # based on the variant. setting for default variant (sha256) for now.
-    default_rounds = 50000 #current passlib default, FSHP uses 4096
-    min_rounds = 1 #set by FSHP
+    default_rounds = 100000 # current passlib default, FSHP uses 4096
+    min_rounds = 1 # set by FSHP
     max_rounds = 4294967295 # 32-bit integer limit - not set by FSHP
     rounds_cost = "linear"
 
     #--variants--
     default_variant = 1
     _variant_info = {
-        #variant: (hash name, digest size)
+        # variant: (hash name, digest size)
         0: ("sha1",     20),
         1: ("sha256",   32),
         2: ("sha384",   48),
@@ -89,14 +97,14 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         [(v[0],k) for k,v in iteritems(_variant_info)]
         )
 
-    #=========================================================
-    #instance attrs
-    #=========================================================
+    #===================================================================
+    # instance attrs
+    #===================================================================
     variant = None
 
-    #=========================================================
-    #init
-    #=========================================================
+    #===================================================================
+    # init
+    #===================================================================
     def __init__(self, variant=None, **kwds):
         # NOTE: variant must be set first, since it controls checksum size, etc.
         self.use_defaults = kwds.get("use_defaults") # load this early
@@ -129,9 +137,9 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def checksum_size(self):
         return self._variant_info[self.variant][1]
 
-    #=========================================================
-    #formatting
-    #=========================================================
+    #===================================================================
+    # formatting
+    #===================================================================
 
     _hash_regex = re.compile(u(r"""
             ^
@@ -162,7 +170,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     @property
     def _stub_checksum(self):
-        return b('\x00') * self.checksum_size
+        return b'\x00' * self.checksum_size
 
     def to_string(self):
         chk = self.checksum or self._stub_checksum
@@ -170,16 +178,16 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         data = bascii_to_str(b64encode(salt+chk))
         return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
 
-    #=========================================================
-    #backend
-    #=========================================================
+    #===================================================================
+    # backend
+    #===================================================================
 
     def _calc_checksum(self, secret):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        #NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.
-        #      this has only a minimal impact on security,
-        #      but it is worth noting this deviation.
+        # NOTE: for some reason, FSHP uses pbkdf1 with password & salt reversed.
+        #       this has only a minimal impact on security,
+        #       but it is worth noting this deviation.
         return pbkdf1(
             secret=self.salt,
             salt=secret,
@@ -188,10 +196,10 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             hash=self.checksum_alg,
             )
 
-    #=========================================================
-    #eoc
-    #=========================================================
+    #===================================================================
+    # eoc
+    #===================================================================
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

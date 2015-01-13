@@ -4,50 +4,42 @@
 
 .. index:: fshp
 
+.. note::
+
+    While the SHA-2 variants of PBKDF1 have no critical security vulnerabilities,
+    PBKDF1 itself has been deprecated in favor of its successor, PBKDF2.
+    Furthermore, FSHP has been listed as insecure by its author (for unspecified reasons);
+    so this scheme should probably only be used to support existing hashes.
+
 .. currentmodule:: passlib.hash
 
 The Fairly Secure Hashed Password (FSHP) scheme [#home]_
 is a cross-platform hash based on PBKDF1 [#pbk]_, and uses an LDAP-style hash format.
 It features a variable length salt, variable rounds, and support for cryptographic
 hashes from SHA-1 up to SHA-512.
-
-.. warning::
-
-    While the SHA-2 variants of PBKDF1 have no critical security vulnerabilities,
-    PBKDF1 itself has been deprecated in favor of it's successor, PBKDF2.
-    Furthermore, FSHP has been listed as insecure by it's author (for unspecified reasons);
-    so this scheme should probably only be used to support existing hashes.
-
-Usage
-=====
-This class supports the standard passlib options for rounds and salt,
+This class supports the standard Passlib options for rounds and salt,
 as well as a special digest keyword for selecting the variant of FSHP to use.
-
-This class can be used directly as follows::
+It can be used directly as follows::
 
     >>> from passlib.hash import fshp
 
-    >>> #generate new salt, encrypt password
-    >>> h = fshp.encrypt("password")
-    >>> h
+    >>> # generate new salt, encrypt password
+    >>> hash = fshp.encrypt("password")
+    >>> hash
     '{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C'
 
-    >>> #same, but with explict number of rounds, larger salt, and specific variant
+    >>> # the same, but with an explicit number of rounds, larger salt, and specific variant
     >>> fshp.encrypt("password", rounds=40000, salt_size=32, variant="sha512")
-    '{FSHP3|32|40000}cB8yE/CuADSgUTQZjWy+YTf/cvbU11D/rHNKiUiB6z4dIaO77U/rmNWpgZcZllZbCra5GJ8ZfFRNwCHirPqvYTAnbaQQeFQbWym/frRrRev3buoygFQRYexl4091Pc5m'
+    '{FSHP3|32|40000}cB8yE/CuADSgUTQZjWy+YTf/cvbU11D/rHNKiUiB6z4dIaO77U/rmNW
+    pgZcZllZbCra5GJ8ZfFRNwCHirPqvYTAnbaQQeFQbWym/frRrRev3buoygFQRYexl4091Pc5m'
 
-    >>> #check if hash is recognized
-    >>> fshp.identify(h)
+    >>> # verify password
+    >>> fshp.verify("password", hash)
     True
-    >>> #check if some other hash is recognized
-    >>> fshp.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31')
+    >>> fshp.verify("secret", hash)
     False
 
-    >>> #verify correct password
-    >>> fshp.verify("password", h)
-    True
-    >>> fshp.verify("secret", h) #verify incorrect password
-    False
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========
@@ -76,11 +68,11 @@ A example hash (of ``password``) is:
 * :samp:`{data}` is a base64-encoded string which, when decoded,
   contains a salt string of the specified size, followed
   by the checksum. In the example, the data portion decodes to
-  a salt value (in hexdecimal octets) of:
+  a salt value (in hexadecimal octets) of:
 
     ``3eda2a70651eb66544cbfb91f3bd794c``
 
-  and a checksum value (in hexidecimal octets) of:
+  and a checksum value (in hexadecimal octets) of:
 
     ``da8a6bcfad78c17da993b5940f6524d526d444012cf67ea8f44b7843c7ab2e82``
 
@@ -102,7 +94,7 @@ Security Issues
 * Since PBKDF1 is based on repeated composition of a hash,
   it is vulnerable to any first-preimage attacks on the underlying hash.
   This has led to the deprecation of using SHA-1 or earlier hashes with PBKDF1.
-  In contrast, it's successor PBKDF2 was designed to mitigate
+  In contrast, its successor PBKDF2 was designed to mitigate
   this weakness (among other things), and enjoys much stronger preimage resistance
   when used with the same cryptographic hashes.
 
@@ -117,10 +109,10 @@ Deviations
   as well as all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through FSHP. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 

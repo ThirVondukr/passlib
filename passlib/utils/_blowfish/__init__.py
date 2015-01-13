@@ -18,11 +18,11 @@ This package contains two submodules:
 
 Status
 ------
-This implementation is usuable, but is an order of magnitude too slow to be
-usuable with real security. For "ok" security, BCrypt hashes should have at
+This implementation is usable, but is an order of magnitude too slow to be
+usable with real security. For "ok" security, BCrypt hashes should have at
 least 2**11 rounds (as of 2011). Assuming a desired response time <= 100ms,
 this means a BCrypt implementation should get at least 20 rounds/ms in order
-to be both usuable *and* secure. On a 2 ghz cpu, this implementation gets
+to be both usable *and* secure. On a 2 ghz cpu, this implementation gets
 roughly 0.09 rounds/ms under CPython (220x too slow), and 1.9 rounds/ms
 under PyPy (10x too slow).
 
@@ -47,25 +47,25 @@ released under the BSD license::
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 """
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from itertools import chain
 import struct
-#pkg
+# pkg
 from passlib.utils import bcrypt64, getrandbytes, rng
-from passlib.utils.compat import b, bytes, BytesIO, unicode, u
+from passlib.utils.compat import BytesIO, unicode, u
 from passlib.utils._blowfish.unrolled import BlowfishEngine
-#local
+# local
 __all__ = [
     'BlowfishEngine',
     'raw_bcrypt',
 ]
 
-#=========================================================
+#=============================================================================
 # bcrypt constants
-#=========================================================
+#=============================================================================
 
 # bcrypt constant data "OrpheanBeholderScryDoubt" as 6 integers
 BCRYPT_CDATA = [
@@ -76,26 +76,26 @@ BCRYPT_CDATA = [
 # struct used to encode ciphertext as digest (last output byte discarded)
 digest_struct = struct.Struct(">6I")
 
-#=========================================================
-#base bcrypt helper
+#=============================================================================
+# base bcrypt helper
 #
-#interface designed only for use by passlib.handlers.bcrypt:BCrypt
-#probably not suitable for other purposes
-#=========================================================
-BNULL = b('\x00')
+# interface designed only for use by passlib.handlers.bcrypt:BCrypt
+# probably not suitable for other purposes
+#=============================================================================
+BNULL = b'\x00'
 
 def raw_bcrypt(password, ident, salt, log_rounds):
     """perform central password hashing step in bcrypt scheme.
 
     :param password: the password to hash
-    :param ident: identifier w/ minor version (eg 2, 2a)
+    :param ident: identifier w/ minor version (e.g. 2, 2a)
     :param salt: the binary salt to use (encoded in bcrypt-base64)
-    :param rounds: the log2 of the number of rounds (as int)
+    :param log_rounds: the log2 of the number of rounds (as int)
     :returns: bcrypt-base64 encoded checksum
     """
-    #===========================================================
+    #===================================================================
     # parse inputs
-    #===========================================================
+    #===================================================================
 
     # parse ident
     assert isinstance(ident, unicode)
@@ -131,32 +131,34 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     if log_rounds < 4 or log_rounds > 31:
         raise ValueError("Bad number of rounds")
 
-    #===========================================================
+    #===================================================================
     #
     # run EKS-Blowfish algorithm
     #
     # This uses the "enhanced key schedule" step described by
     # Provos and Mazieres in "A Future-Adaptable Password Scheme"
-    # http:#www.openbsd.org/papers/bcrypt-paper.ps
+    # http://www.openbsd.org/papers/bcrypt-paper.ps
     #
-    #===========================================================
+    #===================================================================
 
     engine = BlowfishEngine()
 
-    # convert password & salt into list of 18 32-bit integers.
+    # convert password & salt into list of 18 32-bit integers (72 bytes total).
     pass_words = engine.key_to_words(password)
     salt_words = engine.key_to_words(salt)
 
+    # truncate salt_words to original 16 byte salt, or loop won't wrap
+    # correctly when passed to .eks_salted_expand()
+    salt_words16 = salt_words[:4]
+
     # do EKS key schedule setup
-    # NOTE: [:4] is due to salt being 16 bytes originally,
-    #       and the list needs to wrap properly
-    engine.eks_expand(pass_words, salt_words[:4])
+    engine.eks_salted_expand(pass_words, salt_words16)
 
     # apply password & salt keys to key schedule a bunch more times.
     rounds = 1<<log_rounds
-    engine.eks_rounds_expand0(pass_words, salt_words, rounds)
+    engine.eks_repeated_expand(pass_words, salt_words, rounds)
 
-    #encipher constant data, and encode to bytes as digest.
+    # encipher constant data, and encode to bytes as digest.
     data = list(BCRYPT_CDATA)
     i = 0
     while i < 6:
@@ -165,6 +167,6 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     raw = digest_struct.pack(*data)[:-1]
     return bcrypt64.encode_bytes(raw)
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

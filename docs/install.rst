@@ -2,29 +2,38 @@
 Installation
 ============
 
+.. index:: Google App Engine; compatibility
+
 Supported Platforms
 ===================
-Passlib requires Python 2 (>= 2.5) or Python 3.
+Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.2).
 It is known to work with the following Python implementations:
 
-* CPython 2 -- v2.5 or newer.
-* CPython 3 -- all versions.
-* PyPy -- v1.5 or newer.
-* Jython -- v2.5 or newer.
+* CPython 2 -- v2.6 or newer.
+* CPython 3 -- v3.2 or newer.
+* PyPy -- v2.0 or newer.
+* PyPy3 -- v2.0 or newer.
+* Jython -- v2.7 or newer.
 
-Passlib should work with all operating systems and enviroments,
-as it contains builtin fallbacks
-for almost all OS-dependant features.
+Passlib should work with all operating systems and environments,
+as it contains builtin fallbacks for almost all OS-dependant features.
 Google App Engine is supported as well.
+
+.. versionchanged:: 1.7
+
+    Support for Python 2.5, 3.0, and 3.1 was dropped.
+    Support for PyPy 1.x was dropped.
+    Support for Python 3.2 may be dropped in the next major release.
 
 .. _optional-libraries:
 
 Optional Libraries
 ==================
-* `py-bcrypt <http://www.mindrot.org/projects/py-bcrypt/>`_ or
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ or
+  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_ or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
-   If either of these packages are installed, they will be used to provide
+   If any of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,
    and your OS does not provide native BCrypt support
@@ -38,53 +47,58 @@ Optional Libraries
 
 Installation Instructions
 =========================
-To download and install using :command:`easy_install`::
-
-    easy_install passlib
-
-To download and install using :command:`pip`::
+To install from PyPi using :command:`pip`::
 
     pip install passlib
 
-To install from a source directory using :command:`setup.py`::
+To install from PyPi using :command:`easy_install`::
+
+    easy_install passlib
+
+To install from the source using :command:`setup.py`::
 
     python setup.py install
 
+.. index::
+    pair: environmental variable; PASSLIB_TEST_MODE
+
+.. rst-class:: html-toggle
+
 Testing
 =======
-PassLib contains a comprehensive set of unittests providing nearly complete coverage.
+Passlib contains a comprehensive set of unittests (about 38% of the total code),
+which provide nearly complete coverage, and verification of the hash
+algorithms using multiple external sources (if detected at runtime).
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
-`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
+`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library
+(as well as the ``unittest2`` library under Python 2.6).
 
-Once PassLib and Nose have been installed, the tests may be run from the source directory::
+Once Passlib and Nose have been installed, the main suite of tests may be run from the source directory::
 
-    # to run the platform-relevant tests...
-    nosetests -v --tests passlib/tests
+    nosetests --tests passlib/tests
 
-    # to run all tests...
-    PASSLIB_TESTS="all" nosetests -v --tests passlib/tests
+To run the full test suite, which includes internal cross-checks and mock-testing
+of features not provided natively by the host OS::
 
-    # to run nose with the optional coverage plugin...
-    # (results will be in build/coverage)
-    PASSLIB_TESTS="all" nosetests -v --tests passlib/tests --with-coverage \
-        --cover-package=passlib --cover-html --cover-html-dir build/coverage
+    PASSLIB_TEST_MODE="full" nosetests --tests passlib/tests
 
-(There will be a large proportion of skipped tests, this is normal).
+Tests may also be run via ``setup.py test`` or the included ``tox.ini`` file.
 
-Documentation
-=============
+.. rst-class:: html-toggle
+
+Building the Documentation
+==========================
 The latest copy of this documentation should always be available
 online at `<http://packages.python.org/passlib>`_.
-
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.0 or better)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_.
-3. Download the PassLib source
-4. From the PassLib source directory, run :samp:`python setup.py build_sphinx`.
-5. Once Sphinx completes it's run, point a web browser to the file at :samp:`{$SOURCE}/build/sphinx/html/index.html`
-   to access the PassLib documentation in html format.
+1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.1 or newer)
+2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.6 or newer).
+3. Download the Passlib source
+4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
+5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
+   to access the Passlib documentation in html format.
 6. Alternately, steps 4 & 5 can be replaced by running :samp:`python setup.py docdist`,
-   which will build a zip file of the documentation in :samp:`{$SOURCE}/dist`.
+   which will build a zip file of the documentation in :samp:`{SOURCE}/dist`.

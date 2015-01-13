@@ -1,27 +1,26 @@
-"update version string during build"
-#=========================================================
+"""update version string during build"""
+#=============================================================================
 # imports
-#=========================================================
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import os
 import re
-import time
 from distutils.dist import Distribution
-#pkg
-#local
+# pkg
+# local
 __all__ = [
     "stamp_source",
     "stamp_distutils_output",
 ]
-#=========================================================
+#=============================================================================
 # helpers
-#=========================================================
+#=============================================================================
 def get_command_class(opts, name):
     return opts['cmdclass'].get(name) or Distribution().get_command_class(name)
 
 def stamp_source(base_dir, version, dry_run=False):
-    "update version string in passlib dist"
+    """update version string in passlib dist"""
     path = os.path.join(base_dir, "passlib", "__init__.py")
     with open(path) as fh:
         input = fh.read()
@@ -52,6 +51,6 @@ def stamp_distutils_output(opts, version):
             stamp_source(base_dir, version, self.dry_run)
     opts['cmdclass']['sdist'] = sdist
 
-#=========================================================
+#=============================================================================
 # eof
-#=========================================================
+#=============================================================================

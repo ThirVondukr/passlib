@@ -2,39 +2,44 @@
 :class:`passlib.hash.des_crypt` - DES Crypt
 =======================================================================
 
-.. currentmodule:: passlib.hash
-
-This class implements the original DES-based Unix Crypt algorithm.
-While no longer in active use in most places,
-it is supported for legacy purposes by many Unix flavors.
-
 .. warning::
 
     This algorithm is extremely weak by modern standards,
     and should not be used if possible.
 
-Usage
-=====
-This class can be used directly as follows::
+.. currentmodule:: passlib.hash
 
-    >>> from passlib.hash import des_crypt as dc
+This class implements the original DES-based Unix Crypt algorithm.
+While no longer in active use in most places,
+it is supported for legacy purposes by many Unix flavors.
+It can used directly as follows::
 
-    >>> dc.encrypt("password") #generate new salt, encrypt password
+    >>> from passlib.hash import des_crypt
+
+    >>> # generate new salt, encrypt password
+    >>> hash = des_crypt.encrypt("password")
     'JQMuyS6H.AGMo'
 
-    >>> dc.identify('JQMuyS6H.AGMo') #check if hash is recognized
+    >>> # verify the password
+    >>> des_crypt.verify("password", hash)
     True
-    >>> dc.identify('$1$3azHgidD$SrJPt7B.9rekpmwJwtON31') #check if some other hash is recognized
+    >>> des_crypt.verify("letmein", hash)
     False
 
-    >>> dc.verify("password", 'JQMuyS6H.AGMo') #verify correct password
-    True
-    >>> dc.verify("secret", 'JQMuyS6H.AGMo') #verify incorrect password
-    False
+.. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
 
 Interface
 =========
 .. autoclass:: des_crypt()
+
+.. note::
+
+    This class will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports DES-Crypt (most Unix systems).
+    * a pure Python implementation of DES-Crypt built into Passlib.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
 
 Format
 ======
@@ -90,7 +95,7 @@ Security Issues
 ===============
 DES-Crypt is no longer considered secure, for a variety of reasons:
 
-* It's use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
+* Its use of the DES stream cipher, which is vulnerable to practical pre-image attacks,
   and considered broken, as well as having too-small key and block sizes.
 
 * The 12-bit salt is considered to small to defeat rainbow-table attacks
@@ -109,7 +114,7 @@ This implementation of des-crypt differs from others in a few ways:
   However, behavior in these cases varies wildly;
   with implementations returning everything from errors
   to incorrect hashes that never validate.
-  To avoid all this, PassLib will throw an "invalid salt" if the provided
+  To avoid all this, Passlib will throw an "invalid salt" if the provided
   salt string is not at least 2 characters.
 
 * Restricted salt string character set:
@@ -119,7 +124,7 @@ This implementation of des-crypt differs from others in a few ways:
   a 12-bit integer. Many implementations of des-crypt will
   accept a salt containing other characters, but
   vary wildly in how they are handled, including errors and implementation-specific value mappings.
-  To avoid all this, PassLib will throw an "invalid salt" if the salt
+  To avoid all this, Passlib will throw an "invalid salt" if the salt
   string contains any non-standard characters.
 
 * Unicode Policy:
@@ -128,11 +133,12 @@ This implementation of des-crypt differs from others in a few ways:
   (as evidenced by the fact that it discards the 8th bit of all password bytes).
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through des-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 
-.. [#] A java implementation of des-crypt, used as base for PassLib's pure-python implementation, is located at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_
+.. [#] A java implementation of des-crypt, used as base for Passlib's pure-python implementation,
+       can be found at `<http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_

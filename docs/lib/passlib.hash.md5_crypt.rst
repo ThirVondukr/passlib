@@ -1,57 +1,69 @@
-.. index:: cisco; type 5 hash
+.. index:: Cisco; Type 5 hash
 
 ==================================================================
 :class:`passlib.hash.md5_crypt` - MD5 Crypt
 ==================================================================
 
+.. warning::
+
+    As of 2012-6-7, this algorithm is "no longer considered safe"
+    by its author [#phk]_, citing the increased
+    speed of the MD5 hash on modern hardware, and MD5-Crypt's
+    lack of a variable time-cost parameter. See Passlib's
+    :ref:`recommended hashes <recommended-hashes>` for a replacement.
+    
 .. currentmodule:: passlib.hash
 
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
 to replace the aging :class:`passlib.hash.des_crypt`.
 It has since been adopted by a wide variety of other Unix flavors, and is found
-in many other contexts as well. Due to it's origins, it's sometimes referred to as "FreeBSD MD5 Crypt".
-Security-wise it is considered to be steadily weakening (due to fixed cost),
-and most unix flavors have since replaced with with stronger schemes,
-such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`.
+in many other contexts as well. Due to its origins, it's sometimes referred to as "FreeBSD MD5 Crypt".
+Security-wise it should now be considered weak,
+and most Unix flavors have since replaced it with stronger schemes
+(such as :class:`~passlib.hash.sha512_crypt` and :class:`~passlib.hash.bcrypt`).
 
-This is also referred to under Cisco IOS systems as a "type 5" hash.
-The format and algorithm are identical, though Cisco seems to require [#cisco]_
+This is also referred to on Cisco IOS systems as a "type 5" hash.
+The format and algorithm are identical, though Cisco seems to require
 4 salt characters instead of the full 8 characters
-used by most systems.
+used by most systems [#cisco]_.
 
-Usage
-=====
-PassLib provides an md5_crypt class, which can be can be used directly as follows::
+The :class:`!md5_crypt` class can be can be used directly as follows::
 
     >>> from passlib.hash import md5_crypt
 
-    >>> #generate new salt, encrypt password
+    >>> # generate new salt, encrypt password
     >>> h = md5_crypt.encrypt("password")
     >>> h
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'
 
-
-    >>> #verify correct password
+    >>> # verify the password
     >>> md5_crypt.verify("password", h)
     True
-    >>> #verify incorrect password
     >>> md5_crypt.verify("secret", h)
-    False
-
-    >>> #check if hash is recognized
-    >>> md5_crypt.identify(h)
-    True
-    >>> #check if some other hash is recognized
-    >>> md5_crypt.identify('JQMuyS6H.AGMo')
     False
 
     >>> # encrypt password using cisco-compatible 4-char salt
     >>> md5_crypt.encrypt("password", salt_size=4)
     '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`apr_md5_crypt <passlib.hash.apr_md5_crypt>` -- Apache's variant of this algorithm.
+
 Interface
 =========
 .. autoclass:: md5_crypt()
+
+.. note::
+
+    This class will use the first available of two possible backends:
+
+    * stdlib :func:`crypt()`, if the host OS supports MD5-Crypt (most Unix systems).
+    * a pure python implementation of MD5-Crypt built into Passlib.
+
+    You can see which backend is in use by calling the :meth:`get_backend()` method.
 
 Format
 ======
@@ -146,29 +158,26 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
 
 Security Issues
 ===============
-MD5-Crypt has a couple of issues which have weakened it,
-though it is not yet considered broken:
+MD5-Crypt has a couple of issues which have weakened severely:
 
 * It relies on the MD5 message digest, for which theoretical pre-image attacks exist [#f2]_.
-  However, not only is this attack still only theoretical, but none of MD5's weaknesses
-  have been show to affect MD5-Crypt's security.
 
-* The fixed number of rounds, combined with the availability
-  of high-throughput MD5 implementations, means this algorithm
+* More seriously, its fixed number of rounds (combined with the availability
+  of high-throughput MD5 implementations) means this algorithm
   is increasingly vulnerable to brute force attacks.
-  It is this issue which has motivated it's replacement
+  It is this issue which has motivated its replacement
   by new algorithms such as :class:`~passlib.hash.bcrypt`
   and :class:`~passlib.hash.sha512_crypt`.
 
 Deviations
 ==========
-PassLib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
+Passlib's implementation of md5-crypt differs from the reference implementation (and others) in two ways:
 
 * Restricted salt string character set:
 
-  The underlying algorithm can unambigously handle salt strings
+  The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
-  However, PassLib strictly limits salts to the
+  However, Passlib strictly limits salts to the
   :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,
@@ -183,10 +192,10 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
   as well as all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through md5-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 .. rubric:: Footnotes
 
@@ -199,3 +208,5 @@ PassLib's implementation of md5-crypt differs from the reference implementation 
 
 .. [#cisco] Note about Cisco Type 5 salt size -
             `<http://serverfault.com/a/46399>`_.
+
+.. [#phk] Deprecation Announcement from Poul-Henning Kamp - `<http://phk.freebsd.dk/sagas/md5crypt_eol.html>`_.

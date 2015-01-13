@@ -1,6 +1,6 @@
-===========================================================
+================================================================
 :samp:`passlib.hash.ldap_{crypt}` - LDAP crypt() Wrappers
-===========================================================
+================================================================
 
 .. currentmodule:: passlib.hash
 
@@ -10,41 +10,40 @@ One of these, identified by RFC 2307 as the ``{CRYPT}`` scheme,
 is somewhat different from the others.
 Instead of specifying a password hashing scheme,
 it's supposed to wrap the host OS's :func:`!crypt()`.
-
 Being host-dependant, the actual hashes supported
 by this scheme may differ greatly between host systems.
 In order to provide uniform support across platforms,
-Passlib defines a corresponding :samp:`ldap_{xxx}_crypt` scheme
+Passlib defines a corresponding :samp:`ldap_{crypt-scheme}` class
 for each of the :ref:`standard unix hashes <standard-unix-hashes>`.
+These classes all wrap the underlying implementations documented
+elsewhere in Passlib, and can be used directly as follows::
+
+    >>> from passlib.hash import ldap_md5_crypt
+
+    >>> # encrypt password
+    >>> hash = ldap_md5_crypt.encrypt("password")
+    >>> hash
+    '{CRYPT}$1$gwvn5BO0$3dyk8j.UTcsNUPrLMsU6/0'
+
+    >>> # verify password
+    >>> ldap_md5_crypt.verify("password", hash)
+    True
+    >>> ldap_md5_crypt.verify("secret", hash)
+    False
+
+    >>> # determine if the underlying crypt() algorithm is supported
+    >>> # by your host OS, or if the builtin Passlib implementation is being used.
+    >>> # "os_crypt" - host supported; "builtin" - passlib version
+    >>> ldap_md5_crypt.get_backend()
+    "os_crypt"
 
 .. seealso::
 
-    * :doc:`passlib.hash.ldap_std` - the other standard LDAP hashes.
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
 
-    * :mod:`!passlib.apps` for a :ref:`list of premade ldap contexts <ldap-contexts>`.
+    * :doc:`ldap_{digest} <passlib.hash.ldap_std>` -- for the other standard LDAP hashes.
 
-Usage
-=====
-These classes all wrap the underlying implementations,
-and are mainly useful only for plugging them into a :class:`~passlib.context.CryptContext`.
-However, they can be used directly as follows::
-
-    >>> from passlib.hash import ldap_md5_crypt as lmc
-
-    >>> #encrypt password
-    >>> h = lmc.encrypt("password")
-    >>> h
-    '{CRYPT}$1$gwvn5BO0$3dyk8j.UTcsNUPrLMsU6/0'
-
-    >>> lmc.identify(h) #check if hash is recognized
-    True
-    >>> lmc.identify('JQMuyS6H.AGMo') #check if some other hash is recognized
-    False
-
-    >>> lmc.verify("password", h) #verify correct password
-    True
-    >>> lmc.verify("secret", h) #verify incorrect password
-    False
+    * :mod:`passlib.apps` -- for a list of :ref:`premade ldap contexts <ldap-contexts>`.
 
 Interface
 =========
@@ -57,13 +56,7 @@ Interface
 .. class:: ldap_sha512_crypt()
 
     All of these classes have the same interface as their corresponding
-    underlying hash (eg :class:`des_crypt`, :class:`md5_crypt`, etc).
-
-.. note::
-
-    In order to determine if a particular hash is actually supported
-    natively by your host OS, use an test such as
-    ``ldap_des_crypt.has_backend("os_crypt")`` or similar.
+    underlying hash (e.g. :class:`des_crypt`, :class:`md5_crypt`, etc).
 
 .. rubric:: Footnotes
 

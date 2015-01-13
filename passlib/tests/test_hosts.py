@@ -1,28 +1,28 @@
 """test passlib.hosts"""
-#=========================================================
-#imports
-#=========================================================
+#=============================================================================
+# imports
+#=============================================================================
 from __future__ import with_statement
-#core
+# core
 import logging; log = logging.getLogger(__name__)
-#site
-#pkg
+# site
+# pkg
 from passlib import hosts, hash as hashmod
 from passlib.utils import unix_crypt_schemes
 from passlib.tests.utils import TestCase
-#module
+# module
 
-#=========================================================
-#test predefined app contexts
-#=========================================================
+#=============================================================================
+# test predefined app contexts
+#=============================================================================
 class HostsTest(TestCase):
-    "perform general tests to make sure contexts work"
-    #NOTE: these tests are not really comprehensive,
-    #      since they would do little but duplicate
-    #      the presets in apps.py
+    """perform general tests to make sure contexts work"""
+    # NOTE: these tests are not really comprehensive,
+    #       since they would do little but duplicate
+    #       the presets in apps.py
     #
-    #      they mainly try to ensure no typos
-    #      or dynamic behavior foul-ups.
+    #       they mainly try to ensure no typos
+    #       or dynamic behavior foul-ups.
 
     def check_unix_disabled(self, ctx):
         for hash in [
@@ -58,7 +58,7 @@ class HostsTest(TestCase):
                 'kAJJz.Rwp0A/I',
             ]:
                 self.assertTrue(ctx.verify("test", hash))
-            h1 = '$2a$10$Ljj0Kgu7Ddob9xWoqzn0ae.uNfxPRofowWdksk.6jCUHKTGYLD.QG'
+            h1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
             if hashmod.bcrypt.has_backend():
                 self.assertTrue(ctx.verify("test", h1))
             else:
@@ -92,6 +92,6 @@ class HostsTest(TestCase):
             if scheme in schemes:
                 self.assertTrue(ctx.verify("test", hash))
 
-#=========================================================
-#eof
-#=========================================================
+#=============================================================================
+# eof
+#=============================================================================

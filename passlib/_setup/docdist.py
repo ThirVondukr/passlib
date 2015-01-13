@@ -1,35 +1,35 @@
-"custom command to build doc.zip file"
-#=========================================================
-#imports
-#=========================================================
-#core
+"""custom command to build doc.zip file"""
+#=============================================================================
+# imports
+#=============================================================================
+# core
 import os
 from distutils import dir_util
 from distutils.cmd import Command
 from distutils.errors import *
 from distutils.spawn import spawn
-#local
+# local
 __all__ = [
     "docdist"
 ]
-#=========================================================
-#command
-#=========================================================
+#=============================================================================
+# command
+#=============================================================================
 class docdist(Command):
 
     description = "create zip file containing standalone html docs"
-    
+
     user_options = [
         ('build-dir=', None, 'Build directory'),
         ('dist-dir=', 'd',
          "directory to put the source distribution archive(s) in "
-         "[default: dist]"),        
+         "[default: dist]"),
         ('format=', 'f',
          "archive format to create (tar, ztar, gztar, zip)"),
         ('sign', 's', 'sign files using gpg'),
         ('identity=', 'i', 'GPG identity used to sign files'),
     ]
-    
+
     def initialize_options(self):
         self.build_dir = None
         self.dist_dir = None
@@ -37,7 +37,7 @@ class docdist(Command):
         self.keep_temp = False
         self.sign = False
         self.identity = None
-        
+
     def finalize_options(self):
         if self.identity and not self.sign:
             raise DistutilsOptionError(
@@ -50,7 +50,7 @@ class docdist(Command):
             self.dist_dir = "dist"
         if not self.format:
             self.format = "zip"
-            
+
     def run(self):
         # call build sphinx to build docs
         self.run_command("build_sphinx")
@@ -77,11 +77,11 @@ class docdist(Command):
                 gpg_args[2:2] = ["--local-user", self.identity]
             spawn(gpg_args,
                   dry_run=self.dry_run)
-            
-        #cleanup
+
+        # cleanup
         if not self.keep_temp:
             dir_util.remove_tree(tmp_dir, dry_run=self.dry_run)
-    
-#=========================================================
-#eof
-#=========================================================
+
+#=============================================================================
+# eof
+#=============================================================================

@@ -1,4 +1,4 @@
-.. index:: solaris; sun_md5_crypt
+.. index:: Solaris; sun_md5_crypt
 
 =================================================================
 :class:`passlib.hash.sun_md5_crypt` - Sun MD5 Crypt
@@ -11,17 +11,16 @@ It was introduced in Solaris 9u2. While based on the MD5 message digest, it has 
 in common with the :class:`~passlib.hash.md5_crypt` algorithm. It supports
 32 bit variable rounds and an 8 character salt.
 
-.. warning::
+.. seealso::
+    :ref:`password hash usage <password-hash-examples>` --
+    for examples of how to use this class via the common hash interface.
+
+.. note::
 
     The original Solaris implementation has some hash encoding quirks
     which may not be properly accounted for in Passlib.
-    For now, this implementation should not be relied on for anything but novelty purposes.
-
-Usage
-=====
-This class supports both rounds and salts,
-and so can be used in the exact same manner
-as :doc:`SHA-512 Crypt <passlib.hash.sha512_crypt>`.
+    Until more user feedback and sample hashes have been gathered,
+    *caveat emptor*.
 
 Interface
 =========
@@ -59,7 +58,7 @@ The algorithm used is based around the MD5 message digest and the "Muffett Coin 
 
 .. _smc-digest-step:
 
-2. an initial MD5 digest is created from the concatentation of the password,
+2. an initial MD5 digest is created from the concatenation of the password,
    and the configuration string (using the format :samp:`$md5,rounds={rounds}${salt}$`,
    or :samp:`$md5${salt}$` if rounds is 0).
 
@@ -121,7 +120,7 @@ using the following formula:
 Bare Salt Issue
 ---------------
 According to the only existing documentation of this algorithm [#mct]_,
-it's hashes were supposed to have the format :samp:`$md5${salt}${checksum}`,
+its hashes were supposed to have the format :samp:`$md5${salt}${checksum}`,
 and include only the bare string :samp:`$md5${salt}` in the salt digest step
 (see :ref:`step 2 <smc-digest-step>`, above).
 
@@ -135,9 +134,9 @@ The documentation hints that this stems from a bug within the production
 implementation's parser. This bug causes the implementation to return
 ``$$``-format hashes when passed a configuration string that ends with ``$``.
 It returns the intended original format & checksum
-only if there is at least one letter after the ``$``, eg :samp:`$md5${salt}$x`.
+only if there is at least one letter after the ``$``, e.g. :samp:`$md5${salt}$x`.
 
-Passlib attempts to accomodate both formats using the special ``bare_salt``
+Passlib attempts to accommodate both formats using the special ``bare_salt``
 keyword. It is set to ``True`` to indicate a configuration or hash string which
 contains only a single ``$``, and does not incorporate it into the hash calculation.
 The ``$$`` hash is encountered more often in production since it seems
@@ -147,7 +146,7 @@ conform to what users are used to.
 
 Deviations
 ==========
-PassLib's implementation of Sun-MD5-Crypt deliberately
+Passlib's implementation of Sun-MD5-Crypt deliberately
 deviates from the official implementation in the following ways:
 
 * Unicode Policy:
@@ -158,19 +157,19 @@ deviates from the official implementation in the following ways:
   is implied by all known reference hashes.
 
   In order to provide support for unicode strings,
-  PassLib will encode unicode passwords using ``utf-8``
+  Passlib will encode unicode passwords using ``utf-8``
   before running them through sun-md5-crypt. If a different
   encoding is desired by an application, the password should be encoded
-  before handing it to PassLib.
+  before handing it to Passlib.
 
 * Rounds encoding
 
-  The underlying scheme implicitly allows rounds to have zero padding (eg ``$md5,rounds=001$abc$``),
+  The underlying scheme implicitly allows rounds to have zero padding (e.g. ``$md5,rounds=001$abc$``),
   and also allows 0 rounds to be specified two ways (``$md5$abc$`` and ``$md5,rounds=0$abc$``).
   Allowing either of these would result in multiple possible checksums
   for the same password & salt. To prevent ambiguity,
   Passlib will throw a :exc:`ValueError` if the rounds value is zero-padded,
-  or specified explicitly as 0 (eg ``$md5,rounds=0$abc$``).
+  or specified explicitly as 0 (e.g. ``$md5,rounds=0$abc$``).
 
 .. _smc-quirks:
 

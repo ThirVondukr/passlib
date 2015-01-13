@@ -5,43 +5,54 @@
 .. module:: passlib.utils
     :synopsis: internal helpers for implementing password hashes
 
-This module contains a number of utility functions used by passlib
-to implement the builtin handlers, and other code within passlib.
-They may also be useful when implementing custom handlers for existing legacy formats.
+.. warning::
+
+    This module is primarily used as an internal support module.
+    Its interface has not been finalized yet, and may be changed somewhat
+    between major releases of Passlib, as the internal code is cleaned up
+    and simplified.
+
+This module primarily contains utility functions used internally by Passlib.
+However, end-user applications may find some of the functions useful,
+in particular:
+
+    * :func:`consteq`
+    * :func:`saslprep`
+    * :func:`generate_password`
 
 Constants
 =========
 
-.. data:: sys_bits
+..
+    .. data:: sys_bits
 
-    Native bit size of host architecture (either 32 or 64 bit).
-    used for various purposes internally.
+        Native bit size of host architecture (either 32 or 64 bit).
+        used for various purposes internally.
 
 .. data:: unix_crypt_schemes
 
-    List of the names of all the handlers in :mod:`passlib.hash`
-    which are supported by the native :func:`crypt()` function
-    of at least one OS.
+    List of the names of all the hashes in :mod:`passlib.hash`
+    which are natively supported by :func:`crypt` on at least one operating
+    system.
 
     For all hashes in this list, the expression
-    ``get_crypt_handler(name).has_backend("os_crypt")``
-    will return ``True`` iff there is native OS support for that hash.
-
+    :samp:`passlib.hash.{alg}.has_backend("os_crypt")`
+    will return ``True`` if the host OS natively supports the hash.
     This list is used by :data:`~passlib.hosts.host_context`
     and :data:`~passlib.apps.ldap_context` to determine
     which hashes are supported by the host.
 
-    See :ref:`mcf-identifiers` for a table of which OSes
-    are known to support which hashes.
+    .. seealso:: :ref:`mcf-identifiers` for a table of which OSes are known to support which hashes.
 
 ..
     PYPY
     JYTHON
     rounds_cost_values
 
-Decorators
-==========
-.. autofunction:: classproperty
+..
+    Decorators
+    ==========
+    .. autofunction:: classproperty
 
 Unicode Helpers
 ===============
@@ -52,10 +63,13 @@ Bytes Helpers
 =============
 .. autofunction:: xor_bytes
 .. autofunction:: render_bytes
+.. autofunction:: int_to_bytes
+.. autofunction:: bytes_to_int
 
 Encoding Helpers
 ================
 .. autofunction:: is_same_codec
+.. autofunction:: is_ascii_codec
 .. autofunction:: is_ascii_safe
 .. autofunction:: to_bytes
 .. autofunction:: to_unicode
@@ -67,7 +81,7 @@ Base64 Encoding
 Base64Engine Class
 ------------------
 Passlib has to deal with a number of different Base64 encodings,
-with varying endianness, as well as wildly different value <-> character
+with varying endianness, as well as wildly different character <-> value
 mappings. This is all encapsulated in the :class:`Base64Engine` class,
 which provides common encoding actions for an arbitrary base64-style encoding
 scheme. There are also a couple of predefined instances which are commonly
@@ -89,8 +103,8 @@ Common Character Maps
     This encoding system appears to have originated with
     :class:`~passlib.hash.des_crypt`, but is used by
     :class:`~passlib.hash.md5_crypt`, :class:`~passlib.hash.sha256_crypt`,
-    and others. Within Passlib, this encoding is referred as ``hash64`` encoding
-    to distinguish it from normal base64 and other encodings.
+    and others. Within Passlib, this encoding is referred as the "hash64" encoding,
+    to distinguish it from normal base64 and others.
 
 .. data:: BCRYPT_CHARS
 
@@ -114,8 +128,10 @@ Predefined Instances
 .. versionchanged:: 1.6
    Previous versions of Passlib contained
    a module named :mod:`!passlib.utils.h64`; As of Passlib 1.6 this
-   was replaced by the the ``h64`` and ``h64big`` instances;
+   was replaced by the the ``h64`` and ``h64big`` instances of
+   the :class:`Base64Engine` class;
    the interface remains mostly unchanged.
+
 
 Other
 -----
@@ -128,7 +144,6 @@ Other
         Variant of standard Base64 character map used by some
         custom Passlib hashes (see :func:`ab64_encode`).
 
-
 ..
     Host OS
     =======
@@ -139,7 +154,7 @@ Randomness
 ==========
 .. data:: rng
 
-    The random number generator used by passlib to generate
+    The random number generator used by Passlib to generate
     salt strings and other things which don't require a
     cryptographically strong source of randomness.
 
@@ -150,7 +165,7 @@ Randomness
 
 .. autofunction:: getrandbytes
 .. autofunction:: getrandstr
-.. autofunction:: generate_password(size=10, charset=<default>)
+.. autofunction:: generate_password(size=10, charset=<default charset>)
 
 Interface Tests
 ===============
@@ -168,7 +183,6 @@ There are also a few sub modules which provide additional utility functions:
 
     passlib.utils.handlers
     passlib.utils.des
-    passlib.utils.md4
     passlib.utils.pbkdf2
 
 ..

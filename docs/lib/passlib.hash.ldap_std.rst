@@ -9,48 +9,36 @@ LDAP hash formats specified by :rfc:`2307`.
 This includes ``{MD5}``, ``{SMD5}``, ``{SHA}``, ``{SSHA}``.
 These schemes range from somewhat to very insecure,
 and should not be used except when required.
-
-.. note::
-
-    RFC 2307 also specifies a ``{CRYPT}`` scheme,
-    which is supposed to wrap the host OS's :func:`!crypt()`.
-    Being host-dependant, this scheme is somewhat different,
-    and is details in :doc:`passlib.hash.ldap_crypt`.
-
-.. seealso::
-
-    * :doc:`passlib.hash.ldap_crypt`
-
-    * :mod:`!passlib.apps` for a :ref:`list of premade ldap contexts <ldap-contexts>`.
-
-Usage
-=====
 These classes all wrap the underlying hashlib implementations,
-and are mainly useful only for plugging them into a :class:`~passlib.context.CryptContext`.
-However, they can be used directly as follows::
+and are can be used directly as follows::
 
     >>> from passlib.hash import ldap_salted_md5 as lsm
 
-    >>> #encrypt password
-    >>> h = lsm.encrypt("password")
-    >>> h
+    >>> # encrypt password
+    >>> hash = lsm.encrypt("password")
+    >>> hash
     '{SMD5}OqsUXNHIhHbznxrqHoIM+ZT8DmE='
 
-    >>> lms.identify(h) #check if hash is recognized
+    >>> # verify password
+    >>> lms.verify("password", hash)
     True
-    >>> lms.identify('JQMuyS6H.AGMo') #check if some other hash is recognized
+    >>> lms.verify("secret", hash)
     False
 
-    >>> lms.verify("password", h) #verify correct password
-    True
-    >>> lms.verify("secret", h) #verify incorrect password
-    False
+.. seealso::
+
+    * :ref:`password hash usage <password-hash-examples>` -- for more usage examples
+
+    * :doc:`ldap_{crypt} <passlib.hash.ldap_crypt>` --
+      LDAP ``{CRYPT}`` wrappers for common Unix hash algorithms.
+
+    * :mod:`passlib.apps` -- for a list of :ref:`premade ldap contexts <ldap-contexts>`.
 
 Plain Hashes
 ============
 .. warning::
 
-    These hashes should be considered secure in any manner,
+    These hashes should not be considered secure in any way,
     as they are nothing but raw MD5 & SHA-1 digests,
     which are extremely vulnerable to brute-force attacks.
 
@@ -62,7 +50,7 @@ Format
 
 These hashes have the format :samp:`{prefix}{checksum}`.
 
-* :samp:`{prefix}` is `{MD5}` for ldap_md5, and `{SHA}` for ldap_sha1.
+* :samp:`{prefix}` is ``{MD5}`` for ldap_md5, and ``{SHA}`` for ldap_sha1.
 * :samp:`{checksum}` is the base64 encoding
   of the raw message digest of the password,
   using the appropriate digest algorithm.
@@ -77,8 +65,8 @@ Salted Hashes
 
 These hashes have the format :samp:`{prefix}{data}`.
 
-* :samp:`{prefix}` is `{SMD5}` for ldap_salted_md5,
-  and `{SSHA}` for ldap_salted_sha1.
+* :samp:`{prefix}` is ``{SMD5}`` for ldap_salted_md5,
+  and ``{SSHA}`` for ldap_salted_sha1.
 * :samp:`{data}` is the base64 encoding of :samp:`{checksum}{salt}`;
   and in turn :samp:`{salt}` is a multi-byte binary salt,
   and :samp:`{checksum}` is the raw digest of the
@@ -122,7 +110,7 @@ Deviations
 
 * The salt size for the salted digests appears to vary between applications.
   While OpenLDAP is fixed at 4 bytes, some systems appear to use 8 or more.
-  Passlib can accept and generate strings with salts between 4-16 bytes,
+  As of 1.6, Passlib can accept and generate strings with salts between 4-16 bytes,
   though various servers may differ in what they can handle.
 
 .. rubric:: Footnotes

@@ -3,37 +3,71 @@
 ==============================================
 
 .. module:: passlib.hash
-    :synopsis: all password hashes provided by PassLib
+    :synopsis: all password hashes provided by Passlib
 
 Overview
 ========
-The :mod:`!passlib.hash` module contains all the password hashes built into Passlib.
-Each object within this package implements a different password hashing scheme,
-but all have the same uniform interface. The hashes in this module can used in two ways:
+The :mod:`!passlib.hash` module contains all the password hash algorithms built into Passlib.
+While each hash has its own options and output format, they all share a common interface,
+documented in detail in the :ref:`password-hash-api`. The following pages
+describe the common interface, and then describe each hash in detail
+(including its format, underlying algorithm, and known security issues).
 
-They can be imported and used directly, as in the following example::
+.. seealso:: :doc:`Quickstart Guide </new_app_quickstart>` -- advice on
+    choosing an appropriately secure hash for your new application.
 
-    >>> from passlib.hash import md5_crypt
-    >>> md5_crypt.encrypt("password")
-    '$1$IU54yC7Y$nI1wF8ltcRvaRHwMIjiJq1'
+Usage
+=====
+All of the hashes in this module can used in two ways:
 
-More commonly, they can be referenced by name
-when constructing a custom :doc:`CryptContext <passlib.context>` object,
-as in the following example::
+1. They can be imported and used directly, as in the following example
+   with the :class:`md5_crypt` hash::
 
-    >>> from passlib.context import CryptContext
-    >>> #note below that md5_crypt and des_crypt are both names of classes in passlib.hash
-    >>> pwd_context = CryptContext(["md5_crypt", "des_crypt"])
-    >>> pwd_context.encrypt("password")
-    '$1$2y72Yi12$o6Yu2OyjN.9FiK.9HJ7i5.'
+        >>> # import the desired hash
+        >>> from passlib.hash import md5_crypt
 
-.. seealso::
+        >>> # hash the password - encrypt() takes care of salt generation, unicode encoding, etc.
+        >>> hash = md5_crypt.encrypt("password")
+        >>> hash
+        '$1$IU54yC7Y$nI1wF8ltcRvaRHwMIjiJq1'
 
-    * :ref:`password-hash-api` -- details the
-      interface used by all password hashes in this module.
+        >>> # verify a password against an existing hash:
+        >>> md5_crypt.verify("password", hash)
+        True
 
-    * :doc:`Quickstart Guide </new_app_quickstart>` --
-      for advice on choosing an appropriately secure hash for your new application.
+2. Alternately, when working with multiple algorithms at once, it is frequently useful
+   to construct a :ref:`CryptContext <context-overview>` object instead;
+   and reference the hashes by name only. For example, the following
+   code creates a :class:`!CryptContext` object which recognizes both
+   the :class:`md5_crypt` and :class:`des_crypt` hash algorithms::
+
+        >>> # import and create the context object
+        >>> from passlib.context import CryptContext
+        >>> pwd_context = CryptContext(schemes=["md5_crypt", "des_crypt"])
+
+        >>> # hash two different passwords (context objects used the first scheme as the default)
+        >>> hash1 = pwd_context.encrypt("password")
+        >>> hash1
+        '$1$2y72Yi12$o6Yu2OyjN.9FiK.9HJ7i5.'
+        >>> hash2 = pwd_context.encrypt("letmein", scheme="des_crypt")
+        >>> hash2
+        '0WMdk/ven8bok'
+
+        >>> # the context object takes care of figuring out which hash belongs to which algorithm.
+        >>> pwd_context.verify("password", hash1)
+        True
+        >>> pwd_context.verify("letmein", hash1)
+        False
+        >>> pwd_context.verify("letmein", hash2)
+        True
+
+For additional details, usage examples, and full documentation of all
+methods and attributes provided by the common hash interface:
+
+.. toctree::
+    :maxdepth: 2
+
+    /password_hash_api
 
 .. _mcf-hashes:
 
@@ -89,6 +123,7 @@ they can be used compatibly along side other modular crypt format hashes.
     :maxdepth: 1
 
     passlib.hash.apr_md5_crypt
+    passlib.hash.bcrypt_sha256
     passlib.hash.phpass
     passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
@@ -114,6 +149,9 @@ LDAP / RFC2307 Hashes
 All of the following hashes use a variant of the password hash format
 used by LDAPv2. Originally specified in :rfc:`2307` and used by OpenLDAP [#openldap]_,
 the basic format ``{SCHEME}HASH`` has seen widespread adoption in a number of programs.
+
+.. [#openldap] OpenLDAP homepage - `<http://www.openldap.org/>`_.
+
 
 .. _standard-ldap-hashes:
 
@@ -163,8 +201,8 @@ but follow the LDAP format:
 
 .. _database-hashes:
 
-Database Hashes
-===============
+SQL Database Hashes
+===================
 The following schemes are used by various SQL databases
 to encode their own user accounts.
 These schemes have encoding and contextual requirements
@@ -181,10 +219,10 @@ not seen outside those specific contexts:
     passlib.hash.oracle10
     passlib.hash.oracle11
 
-.. _other-hashes:
+.. _windows-hashes:
 
-Windows Hashes
-==============
+MS Windows Hashes
+=================
 The following hashes are used in various places by Microsoft Windows.
 As they were designed for "internal" use, they generally contain
 no identifying markers, identifying them is pretty much context-dependant.
@@ -196,6 +234,8 @@ no identifying markers, identifying them is pretty much context-dependant.
     passlib.hash.nthash
     passlib.hash.msdcc
     passlib.hash.msdcc2
+
+.. _other-hashes:
 
 Other Hashes
 ============
@@ -218,7 +258,3 @@ in one of the above categories:
     passlib.hash.grub_pbkdf2_sha512
     passlib.hash.hex_digests
     passlib.hash.plaintext
-
-.. rubric:: Footnotes
-
-.. [#openldap] OpenLDAP homepage - `<http://www.openldap.org/>`_.

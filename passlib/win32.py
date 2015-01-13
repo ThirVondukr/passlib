@@ -27,42 +27,42 @@ warn("the 'passlib.win32' module is deprecated, and will be removed in "
      "'passlib.hash.lmhash' classes instead.",
      DeprecationWarning)
 
-#=========================================================
-#imports
-#=========================================================
-#core
+#=============================================================================
+# imports
+#=============================================================================
+# core
 from binascii import hexlify
-#site
-#pkg
-from passlib.utils.compat import b, unicode
+# site
+# pkg
+from passlib.utils.compat import unicode
 from passlib.utils.des import des_encrypt_block
 from passlib.hash import nthash
-#local
+# local
 __all__ = [
     "nthash",
     "raw_lmhash",
     "raw_nthash",
 ]
-#=========================================================
-#helpers
-#=========================================================
-LM_MAGIC = b("KGS!@#$%")
+#=============================================================================
+# helpers
+#=============================================================================
+LM_MAGIC = b"KGS!@#$%"
 
 raw_nthash = nthash.raw_nthash
 
 def raw_lmhash(secret, encoding="ascii", hex=False):
-    "encode password using des-based LMHASH algorithm; returns string of raw bytes, or unicode hex"
-    #NOTE: various references say LMHASH uses the OEM codepage of the host
-    #      for it's encoding. until a clear reference is found,
-    #      as well as a path for getting the encoding,
-    #      letting this default to "ascii" to prevent incorrect hashes
-    #      from being made w/o user explicitly choosing an encoding.
+    """encode password using des-based LMHASH algorithm; returns string of raw bytes, or unicode hex"""
+    # NOTE: various references say LMHASH uses the OEM codepage of the host
+    #       for its encoding. until a clear reference is found,
+    #       as well as a path for getting the encoding,
+    #       letting this default to "ascii" to prevent incorrect hashes
+    #       from being made w/o user explicitly choosing an encoding.
     if isinstance(secret, unicode):
         secret = secret.encode(encoding)
-    ns = secret.upper()[:14] + b("\x00") * (14-len(secret))
+    ns = secret.upper()[:14] + b"\x00" * (14-len(secret))
     out = des_encrypt_block(ns[:7], LM_MAGIC) + des_encrypt_block(ns[7:], LM_MAGIC)
     return hexlify(out).decode("ascii") if hex else out
 
-#=========================================================
-#eoc
-#=========================================================
+#=============================================================================
+# eoc
+#=============================================================================

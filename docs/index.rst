@@ -1,77 +1,140 @@
+.. image:: _static/masthead.png
+   :align: center
+
 ==========================================
-PassLib |release| documentation
+Passlib |release| documentation
 ==========================================
+
+.. only:: devcopy
+
+   .. warning::
+
+        This is the documentation for a development version of Passlib.
+        For documentation of the latest stable version,
+        see `<https://pythonhosted.com/passlib>`_.
 
 Welcome
 =======
-Passlib is a password hashing library for Python 2 & 3,
-which provides cross-platform implementations of over 20 password hashing algorithms,
-as well as a framework for managing existing password hashes.
-It's designed to be useful for a large range of tasks, including:
+Passlib is a password hashing library for Python 2 & 3, which provides
+cross-platform implementations of over 30 password hashing algorithms, as well
+as a framework for managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow, to
+providing full-strength password hashing for multi-user application.
 
-* quick-start password hashing for new python applications ~
-  :doc:`quickstart guide <new_app_quickstart>`
+As a quick sample, the following code hashes and then verifies a password
+using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
 
-* constructing a configurable hashing policy
-  to match the needs of any python application ~
-  :data:`passlib.context`
+    >>> # import the hash algorithm
+    >>> from passlib.hash import sha256_crypt
 
-* reading & writing Apache htpasswd / htdigest files ~
-  :mod:`passlib.apache`
+    >>> # generate new salt, and hash a password
+    >>> hash = sha256_crypt.encrypt("toomanysecrets")
+    >>> hash
+    '$5$rounds=80000$zvpXD3gCkrt7tw.1$QqeTSolNHEfgryc5oMgiq1o8qCEAcmye3FoMSuvgToC'
 
-* creating & verifying hashes used by MySQL, PostgreSQL, OpenLDAP,
-  and other applications ~
-  :mod:`passlib.apps`
+    >>> # verifying the password
+    >>> sha256_crypt.verify("toomanysecrets", hash)
+    True
+    >>> sha256_crypt.verify("joshua", hash)
+    False
 
-* creating & verifying hashes found in Unix "shadow" files ~
-  :data:`passlib.hosts`
+Content Summary
+===============
 
-See the library overview for more details and usage examples.
+.. rst-class:: floater
 
-Quick Links
-===========
+.. seealso:: :ref:`What's new in Passlib 1.7 <whats-new>`
 
-.. raw:: html
+Introductory Materials
+----------------------
 
-    <table class="contentstable" align="center">
-    <tr>
-        <td width="50%" valign="top">
-            <p class="biglink">
-                <a class="biglink" href="overview.html">Library Overview</a><br>
-                <span class="linkdescr">describes how Passlib is laid out</span>
-            </p>
+    :doc:`install`
+        requirements & installation instructions
 
-            <p class="biglink">
-                <a class="biglink" href="install.html">Installation</a><br>
-                <span class="linkdescr">requirements and installation instructions</span>
-            </p>
-        </td>
-        <td width="50%" valign="top">
-            <p class="biglink">
-                <a class="biglink" href="lib/passlib.hash.html">Supported Hashes</a><br>
-                <span class="linkdescr">complete list of supported password hash algorithms</span>
-            </p>
+    :doc:`overview`
+        describes how Passlib is laid out
 
-            <p class="biglink">
-                <a class="biglink" href="history.html">Changelog</a><br>
-                <span class="linkdescr">history of current and past releases</span>
-            </p>
-        </td>
-    </tr>
-    </table>
+    :doc:`New Application Quickstart <new_app_quickstart>`
+        choosing a password hash for new applications
+
+----
+
+Password Hashing Algorithms
+---------------------------
+    :mod:`passlib.hash`
+        all the password hashes supported by Passlib --
+            - :doc:`Overview <lib/passlib.hash>`
+            - :ref:`mcf-hashes`
+            - :ref:`ldap-hashes`
+            - :ref:`database-hashes`
+            - :ref:`windows-hashes`
+            - :ref:`other-hashes`
+
+    :doc:`PasswordHash interface <password_hash_api>`
+        examples & documentation of the common hash interface
+        used by all the hash algorithms in Passlib.
+
+CryptContext Objects
+--------------------
+    :mod:`passlib.context`
+        provides the :class:`!CryptContext` class, a flexible container
+        for managing and migrating between multiple hash algorithms.
+
+    :mod:`passlib.apps`
+        predefined CryptContext objects for managing the hashes used by
+        MySQL, PostgreSQL, OpenLDAP, and others applications.
+
+    :mod:`passlib.hosts`
+        predefined CryptContext objects for managing the hashes
+        found in Linux & BSD "shadow" files.
+
+Application Helpers
+-------------------
+    :mod:`passlib.apache`
+        classes for manipulating Apache's ``htpasswd`` and ``htdigest`` files.
+
+    :mod:`passlib.ext.django`
+        Django plugin which monkeypatches support for (almost) any hash in Passlib.
+
+    :mod:`passlib.pwd`
+        Password generation helpers.
+
+    :mod:`passlib.totp`
+        TOTP / Two Factor Authentication
+
+..
+    Support Modules
+    ---------------
+        :mod:`passlib.exc`
+
+            custom warnings and exceptions used by Passlib
+    :mod:`passlib.registry`
+    :mod:`passlib.utils`
+
+----
+
+Other Documents
+---------------
+    :doc:`modular_crypt_format`
+        reference listing "modular crypt format" support across Unix systems.
+
+    :doc:`Changelog <history>`
+        Passlib's release history
 
 Online Resources
 ================
 
-    .. rst-class:: html-plain-table
+    .. table::
+        :class: fullwidth
+        :column-alignment: lr
 
-    ================ ===================================================
-    **Homepage**:    `<http://passlib.googlecode.com>`_
-    **Online Docs**: `<http://packages.python.org/passlib>`_
-    **Discussion**:  `<http://groups.google.com/group/passlib-users>`_
-    ---------------- ---------------------------------------------------
-    ---------------- ---------------------------------------------------
-    **PyPI**:        `<http://pypi.python.org/pypi/passlib>`_
-    **Downloads**:   `<http://code.google.com/p/passlib/downloads>`_
-    **Source**:      `<http://code.google.com/p/passlib/source>`_
-    ================ ===================================================
+        ================ ===================================================
+        Homepage:        `<http://passlib.googlecode.com>`_
+        Online Docs:     `<http://packages.python.org/passlib>`_
+        Discussion:      `<http://groups.google.com/group/passlib-users>`_
+        ---------------- ---------------------------------------------------
+        ---------------- ---------------------------------------------------
+        PyPI:            `<http://pypi.python.org/pypi/passlib>`_
+        Downloads:       `<http://code.google.com/p/passlib/downloads>`_
+        Source:          `<http://code.google.com/p/passlib/source>`_
+        ================ ===================================================

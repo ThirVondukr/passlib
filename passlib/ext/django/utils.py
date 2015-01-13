@@ -1,265 +1,502 @@
-"""passlib.ext.django.utils - helper functions for patching Django hashing
-
-.. warning::
-
-    This code is experimental and subject to change
-    (though it should work).
-
-Django 1.4 Notes
-================
-they isolated the hashing code into auth.hashers.
-public interface is check_password(), make_password(), is_password_unusable()
-make_password(None) should return unusable.
-User object uses these stubs.
-will need to refactor monkeypatching quite a bit.
-and their new hashers framework might not require passlib anymore anyways.
-
-as opposed to pre-1.4, which had everything in auth.models -
-a check_password(), and User.set_password / check_password / set_unusable methods.
-so if there is utility for this, will need to rethink.
-"""
-#===================================================================
-#imports
-#===================================================================
-#site
+"""passlib.ext.django.utils - helper functions used by this plugin"""
+#=============================================================================
+# imports
+#=============================================================================
+# core
+import logging; log = logging.getLogger(__name__)
+from weakref import WeakKeyDictionary
 from warnings import warn
-#pkg
+# site
+try:
+    from django import VERSION as DJANGO_VERSION
+    log.debug("found django %r installation", DJANGO_VERSION)
+except ImportError:
+    log.debug("django installation not found")
+    DJANGO_VERSION = ()
+else:
+    if DJANGO_VERSION < (1,4):
+        raise RuntimeError("passlib.ext.django requires django >= 1.4 (as of passlib 1.7)")
+# pkg
+from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils import is_crypt_context
-from passlib.utils.compat import bytes, get_method_function as um
-#local
+from passlib.registry import get_crypt_handler, list_crypt_handlers
+from passlib.utils import classproperty
+from passlib.utils.compat import get_method_function, iteritems, OrderedDict
+# local
 __all__ = [
-    "get_category",
-    "set_django_password_context",
+    "get_preset_config",
+    "get_passlib_hasher",
 ]
 
-#===================================================================
-#lazy imports
-#===================================================================
+#=============================================================================
+# default policies
+#=============================================================================
 
-_has_django0 = None # old 0.9 django - lacks unusable_password support
-_has_django14 = None # new django 1.4 with auth.hashers
-_dam = None #django.contrib.auth.models reference
+# map preset names -> passlib.app attrs
+_preset_map = {
+    "django-1.0": "django10_context",
+    "django-1.4": "django14_context",
+    "django-1.6": "django16_context",
+    "django-latest": "django_context",
+}
 
-def _import_django():
-    global _dam, _has_django0, _has_django4
-    if _dam is None:
-        import django.contrib.auth.models as _dam
-        from django import VERSION
-        _has_django0 = VERSION < (1,0)
-        _has_django14 = VERSION >= (1,4)
-        if _has_django14:
-            # django 1.4 had a large rewrite that adds new stronger schemes,
-            # but changes how things work. our monkeypatching may not jive.
-            warn("passlib.ext.django may not work correctly with django >= 1.4")
-    return _dam
+def get_preset_config(name):
+    """Returns configuration string for one of the preset strings
+    supported by the ``PASSLIB_CONFIG`` setting.
+    Currently supported presets:
 
-#===================================================================
-#constants
-#===================================================================
+    * ``"passlib-default"`` - default config used by this release of passlib.
+    * ``"django-default"`` - config matching currently installed django version.
+    * ``"django-latest"`` - config matching newest django version (currently same as ``"django-1.6"``).
+    * ``"django-1.0"`` - config used by stock Django 1.0 - 1.3 installs
+    * ``"django-1.4"`` - config used by stock Django 1.4 installs
+    * ``"django-1.6"`` - config used by stock Django 1.6 installs
+    """
+    # TODO: add preset which includes HASHERS + PREFERRED_HASHERS,
+    #       after having imported any custom hashers. e.g. "django-current"
+    if name == "django-default":
+        if not DJANGO_VERSION:
+            raise ValueError("can't resolve django-default preset, "
+                             "django not installed")
+        if DJANGO_VERSION < (1,6):
+            name = "django-1.4"
+        else:
+            name = "django-1.6"
+    if name == "passlib-default":
+        return PASSLIB_DEFAULT
+    try:
+        attr = _preset_map[name]
+    except KeyError:
+        raise ValueError("unknown preset config name: %r" % name)
+    import passlib.apps
+    return getattr(passlib.apps, attr).to_string()
 
-#: base context mirroring django's setup
-STOCK_CTX = """
+# default context used by passlib 1.6
+PASSLIB_DEFAULT = """
 [passlib]
+
+; list of schemes supported by configuration
+; currently all django 1.6, 1.4, and 1.0 hashes,
+; and three common modular crypt format hashes.
 schemes =
-    django_salted_sha1, django_salted_md5,
-    django_des_crypt, hex_md5,
-    django_disabled
+    django_pbkdf2_sha256, django_pbkdf2_sha1, django_bcrypt, django_bcrypt_sha256,
+    django_salted_sha1, django_salted_md5, django_des_crypt, hex_md5,
+    sha512_crypt, bcrypt, phpass
 
-default = django_salted_sha1
+; default scheme to use for new hashes
+default = django_pbkdf2_sha256
 
-deprecated = hex_md5
-"""
-
-#: default context used by app
-DEFAULT_CTX = """
-[passlib]
-schemes =
-    sha512_crypt,
-    django_salted_sha1, django_salted_md5,
-    django_des_crypt, hex_md5,
-    django_disabled
-
-default = sha512_crypt
-
+; hashes using these schemes will automatically be re-hashed
+; when the user logs in (currently all django 1.0 hashes)
 deprecated =
-    django_salted_sha1, django_salted_md5,
+    django_pbkdf2_sha1, django_salted_sha1, django_salted_md5,
     django_des_crypt, hex_md5
 
-all__vary_rounds = 5%%
+; sets some common options, including minimum rounds for two primary hashes.
+; if a hash has less than this number of rounds, it will be re-hashed.
+all__vary_rounds = 0.05
+sha512_crypt__min_rounds = 80000
+django_pbkdf2_sha256__min_rounds = 10000
 
-sha512_crypt__default_rounds = 15000
-staff__sha512_crypt__default_rounds = 25000
-superuser__sha512_crypt__default_rounds = 35000
+; set somewhat stronger iteration counts for ``User.is_staff``
+staff__sha512_crypt__default_rounds = 100000
+staff__django_pbkdf2_sha256__default_rounds = 12500
+
+; and even stronger ones for ``User.is_superuser``
+superuser__sha512_crypt__default_rounds = 120000
+superuser__django_pbkdf2_sha256__default_rounds = 15000
 """
 
-#===================================================================
-# helpers
-#===================================================================
+#=============================================================================
+# translating passlib names <-> hasher names
+#=============================================================================
 
-def get_category(user):
-    """default get_category() implementation used by set_django_password_context
+# prefix used to shoehorn passlib's handler names into django hasher namespace;
+# allows get_hasher() to be meaningfully called even if passlib handler
+# is the one being used.
+PASSLIB_HASHER_PREFIX = "passlib_"
 
-    this is the function used if ``settings.PASSLIB_GET_CONTEXT`` is not
-    specified.
+# prefix all the django-specific hash formats are stored under w/in passlib;
+# all of these hashes should expose their hasher name via ``.django_name``.
+DJANGO_PASSLIB_PREFIX = "django_"
 
-    it maps superusers to the ``"superuser"`` category,
-    staff to the ``"staff"`` category,
-    and all others to the default category.
+# non-django-specific hashes which also expose ``.django_name``.
+_other_django_hashes = ["hex_md5"]
+
+def passlib_to_hasher_name(passlib_name):
+    """convert passlib handler name -> hasher name"""
+    handler = get_crypt_handler(passlib_name)
+    if hasattr(handler, "django_name"):
+        return handler.django_name
+    return PASSLIB_HASHER_PREFIX + passlib_name
+
+def hasher_to_passlib_name(hasher_name):
+    """convert hasher name -> passlib handler name"""
+    if hasher_name.startswith(PASSLIB_HASHER_PREFIX):
+        return hasher_name[len(PASSLIB_HASHER_PREFIX):]
+    if hasher_name == "unsalted_sha1":
+        # django 1.4.6+ uses a separate hasher for "sha1$$digest" hashes,
+        # but passlib just reuses the "sha1$salt$digest" handler.
+        hasher_name = "sha1"
+    for name in list_crypt_handlers():
+        if name.startswith(DJANGO_PASSLIB_PREFIX) or name in _other_django_hashes:
+            handler = get_crypt_handler(name)
+            if getattr(handler, "django_name", None) == hasher_name:
+                return name
+    # XXX: this should only happen for custom hashers that have been registered.
+    #      _HasherHandler (below) is work in progress that would fix this.
+    raise ValueError("can't translate hasher name to passlib name: %r" %
+                     hasher_name)
+
+#=============================================================================
+# wrapping passlib handlers as django hashers
+#=============================================================================
+_GEN_SALT_SIGNAL = "--!!!generate-new-salt!!!--"
+
+class _HasherWrapper(object):
+    """helper for wrapping passlib handlers in Hasher-compatible class."""
+
+    # filled in by subclass, drives the other methods.
+    passlib_handler = None
+    iterations = None
+
+    @classproperty
+    def algorithm(cls):
+        assert not hasattr(cls.passlib_handler, "django_name")
+        return PASSLIB_HASHER_PREFIX + cls.passlib_handler.name
+
+    def salt(self):
+        # NOTE: passlib's handler.encrypt() should generate new salt each time,
+        #       so this just returns a special constant which tells
+        #       encode() (below) not to pass a salt keyword along.
+        return _GEN_SALT_SIGNAL
+
+    def verify(self, password, encoded):
+        return self.passlib_handler.verify(password, encoded)
+
+    def encode(self, password, salt=None, iterations=None):
+        kwds = {}
+        if salt is not None and salt != _GEN_SALT_SIGNAL:
+            kwds['salt'] = salt
+        if iterations is not None:
+            kwds['rounds'] = iterations
+        elif self.iterations is not None:
+            kwds['rounds'] = self.iterations
+        return self.passlib_handler.encrypt(password, **kwds)
+
+    _translate_kwds = dict(checksum="hash", rounds="iterations")
+
+    def safe_summary(self, encoded):
+        from django.contrib.auth.hashers import mask_hash
+        from django.utils.translation import ugettext_noop as _
+        handler = self.passlib_handler
+        items = [
+            # since this is user-facing, we're reporting passlib's name,
+            # without the distracting PASSLIB_HASHER_PREFIX prepended.
+            (_('algorithm'), handler.name),
+        ]
+        if hasattr(handler, "parsehash"):
+            kwds = handler.parsehash(encoded, sanitize=mask_hash)
+            for key, value in iteritems(kwds):
+                key = self._translate_kwds.get(key, key)
+                items.append((_(key), value))
+        return OrderedDict(items)
+
+    # added in django 1.6
+    def must_update(self, encoded):
+        # TODO: would like to do something useful here,
+        #       but would require access to password context,
+        #       which would mean a serious recoding of this ext.
+        return False
+
+# cache of hasher wrappers generated by get_passlib_hasher()
+_hasher_cache = WeakKeyDictionary()
+
+def get_passlib_hasher(handler, algorithm=None):
+    """create *Hasher*-compatible wrapper for specified passlib hash.
+
+    This takes in the name of a passlib hash (or the handler object itself),
+    and returns a wrapper instance which should be compatible with
+    Django 1.4's Hashers framework.
+
+    If the named hash corresponds to one of Django's builtin hashers,
+    an instance of the real hasher class will be returned.
+
+    Note that the format of the handler won't be altered,
+    so will probably not be compatible with Django's algorithm format,
+    so the monkeypatch provided by this plugin must have been applied.
     """
-    if user.is_superuser:
-        return "superuser"
-    if user.is_staff:
-        return "staff"
-    return None
+    if isinstance(handler, str):
+        handler = get_crypt_handler(handler)
+    if hasattr(handler, "django_name"):
+        # return native hasher instance
+        # XXX: should add this to _hasher_cache[]
+        name = handler.django_name
+        if name == "sha1" and algorithm == "unsalted_sha1":
+            # django 1.4.6+ uses a separate hasher for "sha1$$digest" hashes,
+            # but passlib just reuses the "sha1$salt$digest" handler.
+            # we want to resolve to correct django hasher.
+            name = algorithm
+        return _get_hasher(name)
+    if handler.name == "django_disabled":
+        raise ValueError("can't wrap unusable-password handler")
+    try:
+        return _hasher_cache[handler]
+    except KeyError:
+        name = "Passlib_%s_PasswordHasher" % handler.name.title()
+        cls = type(name, (_HasherWrapper,), dict(passlib_handler=handler))
+        hasher = _hasher_cache[handler] = cls()
+        return hasher
 
-#===================================================================
-# monkeypatch framework
-#===================================================================
-
-# NOTE: this moneypatcher was written to be useful
-#       outside of this module, and re-invokable,
-#       which is why it tries so hard to maintain
-#       sanity about it's patch state.
-
-_django_patch_state = None #dict holding refs to undo patch
-
-def set_django_password_context(context=None, get_category=get_category):
-    """monkeypatches :mod:`!django.contrib.auth` to use specified password context.
-
-    :arg context:
-        Passlib context to use for Django password hashing.
-        If ``None``, restores original Django functions.
-
-        In order to support existing hashes,
-        any context specified should include
-        all the hashes in :data:`django_context`
-        in addition to custom hashes.
-
-    :param get_category:
-        Optional function to use when mapping Django user ->
-        CryptContext category.
-
-        If a function, should have syntax ``catfunc(user) -> category|None``.
-        If ``None``, no function is used.
-
-        By default, uses a function which returns ``"superuser"``
-        for superusers, and ``"staff"`` for staff.
-
-    This function monkeypatches the following parts of Django:
-
-    * :func:`!django.contrib.auth.models.check_password`
-    * :meth:`!django.contrib.auth.models.User.check_password`
-    * :meth:`!django.contrib.auth.models.User.set_password`
-
-    It also stores the provided context in
-    :data:`!django.contrib.auth.models.User.password_context`,
-    for easy access.
-    """
-    global _django_patch_state, _dam, _has_django0
-    _import_django()
-    state = _django_patch_state
-    User = _dam.User
-
-    # issue warning if something else monkeypatched User
-    # while our patch was applied.
-    if state is not None:
-        if um(User.set_password) is not state['user_set_password']:
-            warn("another library has patched "
-                    "django.contrib.auth.models:User.set_password",
-                    PasslibRuntimeWarning)
-        if um(User.check_password) is not state['user_check_password']:
-            warn("another library has patched"
-                    "django.contrib.auth.models:User.check_password",
-                    PasslibRuntimeWarning)
-        if _dam.check_password is not state['models_check_password']:
-            warn("another library has patched"
-                    "django.contrib.auth.models:check_password",
-                    PasslibRuntimeWarning)
-
-    #check if we should just restore original state
-    if context is None:
-        if state is not None:
-            del User.password_context
-            _dam.check_password = state['orig_models_check_password']
-            User.set_password   = state['orig_user_set_password']
-            User.check_password = state['orig_user_check_password']
-            _django_patch_state = None
-        return
-
-    #validate inputs
-    if not is_crypt_context(context):
-        raise TypeError("context must be CryptContext instance or None: %r" %
-                        (type(context),))
-
-    #backup original state if this is first call
-    if state is None:
-        _django_patch_state = state = dict(
-            orig_user_check_password = um(User.check_password),
-            orig_user_set_password   = um(User.set_password),
-            orig_models_check_password = _dam.check_password,
-        )
-
-    #prepare replacements
-    if _has_django0:
-        UNUSABLE_PASSWORD = "!"
+def _get_hasher(algorithm):
+    """wrapper to call django.contrib.auth.hashers:get_hasher()"""
+    import sys
+    module = sys.modules.get("passlib.ext.django.models")
+    if module is None:
+        # we haven't patched django, so just import directly
+        from django.contrib.auth.hashers import get_hasher
     else:
-        UNUSABLE_PASSWORD = _dam.UNUSABLE_PASSWORD
+        # we've patched django, so have to use patch manager to retrieve
+        # original get_hasher() function...
+        get_hasher = module._manager.getorig("django.contrib.auth.hashers:get_hasher")
+    return get_hasher(algorithm)
 
-    def set_password(user, raw_password):
-        "passlib replacement for User.set_password()"
-        if raw_password is None:
-            if _has_django0:
-                # django 0.9
-                user.password = UNUSABLE_PASSWORD
-            else:
-                user.set_unusable_password()
-        else:
-            cat = get_category(user) if get_category else None
-            user.password = context.encrypt(raw_password, category=cat)
+#=============================================================================
+# adapting django hashers -> passlib handlers
+#=============================================================================
+# TODO: this code probably halfway works, mainly just needs
+#       a routine to read HASHERS and PREFERRED_HASHER.
 
-    def check_password(user, raw_password):
-        "passlib replacement for User.check_password()"
-        if raw_password is None:
-            return False
-        hash = user.password
-        if not hash or hash == UNUSABLE_PASSWORD:
-            return False
-        cat = get_category(user) if get_category else None
-        ok, new_hash = context.verify_and_update(raw_password, hash,
-                                                 category=cat)
-        if ok and new_hash is not None:
-            user.password = new_hash
-            user.save()
-        return ok
-
-    def raw_check_password(raw_password, enc_password):
-        "passlib replacement for check_password()"
-        if not enc_password or enc_password == UNUSABLE_PASSWORD:
-            raise ValueError("no password hash specified")
-        return context.verify(raw_password, enc_password)
-
-    #set new state
-    User.password_context = context
-    User.set_password   = state['user_set_password']   = set_password
-    User.check_password = state['user_check_password'] = check_password
-    _dam.check_password = state['models_check_password'] = raw_check_password
-    state['context' ] = context
-    state['get_category'] = get_category
-
-##def get_django_password_context():
-##    """return current django password context
+##from passlib.registry import register_crypt_handler
+##from passlib.utils import classproperty, to_native_str, to_unicode
+##from passlib.utils.compat import unicode
 ##
-##    This returns the current :class:`~passlib.context.CryptContext` instance
-##    set by :func:`set_django_password_context`.
-##    If not context has been set, returns ``None``.
-##    """
-##    global _django_patch_state
-##    if _django_patch_state:
-##        return _django_patch_state['context']
-##    else:
+##
+##class _HasherHandler(object):
+##    "helper for wrapping Hasher instances as passlib handlers"
+##    # FIXME: this generic wrapper doesn't handle custom settings
+##    # FIXME: genconfig / genhash not supported.
+##
+##    def __init__(self, hasher):
+##        self.django_hasher = hasher
+##        if hasattr(hasher, "iterations"):
+##            # assume encode() accepts an "iterations" parameter.
+##            # fake min/max rounds
+##            self.min_rounds = 1
+##            self.max_rounds = 0xFFFFffff
+##            self.default_rounds = self.django_hasher.iterations
+##            self.setting_kwds += ("rounds",)
+##
+##    # hasher instance - filled in by constructor
+##    django_hasher = None
+##
+##    setting_kwds = ("salt",)
+##    context_kwds = ()
+##
+##    @property
+##    def name(self):
+##        # XXX: need to make sure this wont' collide w/ builtin django hashes.
+##        #      maybe by renaming this to django compatible aliases?
+##        return DJANGO_PASSLIB_PREFIX + self.django_name
+##
+##    @property
+##    def django_name(self):
+##        # expose this so hasher_to_passlib_name() extracts original name
+##        return self.django_hasher.algorithm
+##
+##    @property
+##    def ident(self):
+##        # this should always be correct, as django relies on ident prefix.
+##        return unicode(self.django_name + "$")
+##
+##    @property
+##    def identify(self, hash):
+##        # this should always work, as django relies on ident prefix.
+##        return to_unicode(hash, "latin-1", "hash").startswith(self.ident)
+##
+##    @property
+##    def genconfig(self):
+##        # XXX: not sure how to support this.
 ##        return None
+##
+##    @property
+##    def genhash(self, secret, config):
+##        if config is not None:
+##            # XXX: not sure how to support this.
+##            raise NotImplementedError("genhash() for hashers not implemented")
+##        return self.encrypt(secret)
+##
+##    @property
+##    def encrypt(self, secret, salt=None, **kwds):
+##        # NOTE: from how make_password() is coded, all hashers
+##        #       should have salt param. but only some will have
+##        #       'iterations' parameter.
+##        opts = {}
+##        if 'rounds' in self.setting_kwds and 'rounds' in kwds:
+##            opts['iterations'] = kwds.pop("rounds")
+##        if kwds:
+##            raise TypeError("unexpected keyword arguments: %r" % list(kwds))
+##        if isinstance(secret, unicode):
+##            secret = secret.encode("utf-8")
+##        if salt is None:
+##            salt = self.django_hasher.salt()
+##        return to_native_str(self.django_hasher(secret, salt, **opts))
+##
+##    @property
+##    def verify(self, secret, hash):
+##        hash = to_native_str(hash, "utf-8", "hash")
+##        if isinstance(secret, unicode):
+##            secret = secret.encode("utf-8")
+##        return self.django_hasher.verify(secret, hash)
+##
+##def register_hasher(hasher):
+##    handler = _HasherHandler(hasher)
+##    register_crypt_handler(handler)
+##    return handler
 
-#===================================================================
-#eof
-#===================================================================
+#=============================================================================
+# monkeypatch helpers
+#=============================================================================
+# private singleton indicating lack-of-value
+_UNSET = object()
+
+class _PatchManager(object):
+    """helper to manage monkeypatches and run sanity checks"""
+
+    # NOTE: this could easily use a dict interface,
+    #       but keeping it distinct to make clear that it's not a dict,
+    #       since it has important side-effects.
+
+    #===================================================================
+    # init and support
+    #===================================================================
+    def __init__(self, log=None):
+        # map of key -> (original value, patched value)
+        # original value may be _UNSET
+        self.log = log or logging.getLogger(__name__ + "._PatchManager")
+        self._state = {}
+
+    # bool value tests if any patches are currently applied.
+    __bool__ = __nonzero__ = lambda self: bool(self._state)
+
+    def _import_path(self, path):
+        """retrieve obj and final attribute name from resource path"""
+        name, attr = path.split(":")
+        obj = __import__(name, fromlist=[attr], level=0)
+        while '.' in attr:
+           head, attr = attr.split(".", 1)
+           obj = getattr(obj, head)
+        return obj, attr
+
+    @staticmethod
+    def _is_same_value(left, right):
+        """check if two values are the same (stripping method wrappers, etc)"""
+        return get_method_function(left) == get_method_function(right)
+
+    #===================================================================
+    # reading
+    #===================================================================
+    def _get_path(self, key, default=_UNSET):
+        obj, attr = self._import_path(key)
+        return getattr(obj, attr, default)
+
+    def get(self, path, default=None):
+        """return current value for path"""
+        return self._get_path(path, default)
+
+    def getorig(self, path, default=None):
+        """return original (unpatched) value for path"""
+        try:
+            value, _= self._state[path]
+        except KeyError:
+            value = self._get_path(path)
+        return default if value is _UNSET else value
+
+    def check_all(self, strict=False):
+        """run sanity check on all keys, issue warning if out of sync"""
+        same = self._is_same_value
+        for path, (orig, expected) in iteritems(self._state):
+            if same(self._get_path(path), expected):
+                continue
+            msg = "another library has patched resource: %r" % path
+            if strict:
+                raise RuntimeError(msg)
+            else:
+                warn(msg, PasslibRuntimeWarning)
+
+    #===================================================================
+    # patching
+    #===================================================================
+    def _set_path(self, path, value):
+        obj, attr = self._import_path(path)
+        if value is _UNSET:
+            if hasattr(obj, attr):
+                delattr(obj, attr)
+        else:
+            setattr(obj, attr, value)
+
+    def patch(self, path, value):
+        """monkeypatch object+attr at <path> to have <value>, stores original"""
+        assert value != _UNSET
+        current = self._get_path(path)
+        try:
+            orig, expected = self._state[path]
+        except KeyError:
+            self.log.debug("patching resource: %r", path)
+            orig = current
+        else:
+            self.log.debug("modifying resource: %r", path)
+            if not self._is_same_value(current, expected):
+                warn("overridding resource another library has patched: %r"
+                     % path, PasslibRuntimeWarning)
+        self._set_path(path, value)
+        self._state[path] = (orig, value)
+
+    ##def patch_many(self, **kwds):
+    ##    "override specified resources with new values"
+    ##    for path, value in iteritems(kwds):
+    ##        self.patch(path, value)
+
+    def monkeypatch(self, parent, name=None, enable=True):
+        """function decorator which patches function of same name in <parent>"""
+        def builder(func):
+            if enable:
+                sep = "." if ":" in parent else ":"
+                path = parent + sep + (name or func.__name__)
+                self.patch(path, func)
+            return func
+        return builder
+
+    #===================================================================
+    # unpatching
+    #===================================================================
+    def unpatch(self, path, unpatch_conflicts=True):
+        try:
+            orig, expected = self._state[path]
+        except KeyError:
+            return
+        current = self._get_path(path)
+        self.log.debug("unpatching resource: %r", path)
+        if not self._is_same_value(current, expected):
+            if unpatch_conflicts:
+                warn("reverting resource another library has patched: %r"
+                     % path, PasslibRuntimeWarning)
+            else:
+                warn("not reverting resource another library has patched: %r"
+                     % path, PasslibRuntimeWarning)
+                del self._state[path]
+                return
+        self._set_path(path, orig)
+        del self._state[path]
+
+    def unpatch_all(self, **kwds):
+        for key in list(self._state):
+            self.unpatch(key, **kwds)
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
+#=============================================================================
+# eof
+#=============================================================================
