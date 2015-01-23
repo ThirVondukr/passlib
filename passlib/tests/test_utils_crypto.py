@@ -381,15 +381,14 @@ class _MD4_Test(TestCase):
         self.assertEqual(h.hexdigest(), 'c5225580bfe176f6deeee33dee98732c')
 
 # create subclasses to test with and without native backend
+@skipUnless(has_native_md4, "hashlib lacks ssl support")
 class MD4_SSL_Test(_MD4_Test):
     descriptionPrefix = "MD4 (ssl version)"
-MD4_SSL_TEST = skipUnless(has_native_md4, "hashlib lacks ssl support")(MD4_SSL_Test)
 
+@skipUnless(TEST_MODE("full") or not has_native_md4, "skipped under current test mode")
 class MD4_Builtin_Test(_MD4_Test):
     descriptionPrefix = "MD4 (builtin version)"
     _disable_native = True
-MD4_Builtin_Test = skipUnless(TEST_MODE("full") or not has_native_md4,
-                              "skipped under current test mode")(MD4_Builtin_Test)
 
 #=============================================================================
 # test PBKDF1 support
@@ -632,11 +631,11 @@ class _Pbkdf2_Test(TestCase):
 #------------------------------------------------------------------------
 # create subclasses to test with- and without- m2crypto
 #------------------------------------------------------------------------
+@skipUnless(M2Crypto, "M2Crypto not found")
 class Pbkdf2_M2Crypto_Test(_Pbkdf2_Test):
     descriptionPrefix = "pbkdf2 (m2crypto backend)"
 
-Pbkdf2_M2Crypto_Test = skipUnless(M2Crypto, "M2Crypto not found")(Pbkdf2_M2Crypto_Test)
-
+@skipUnless(TEST_MODE("full") or not M2Crypto, "skipped under current test mode")
 class Pbkdf2_Builtin_Test(_Pbkdf2_Test):
     descriptionPrefix = "pbkdf2 (builtin backend)"
 
@@ -647,9 +646,6 @@ class Pbkdf2_Builtin_Test(_Pbkdf2_Test):
             import passlib.utils.pbkdf2 as mod
             self.addCleanup(setattr, mod, "_EVP", mod._EVP)
             mod._EVP = None
-
-Pbkdf2_Builtin_Test = skipUnless(TEST_MODE("full") or not M2Crypto,
-                                 "skipped under current test mode")(Pbkdf2_Builtin_Test)
 
 #=============================================================================
 # eof

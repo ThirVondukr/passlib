@@ -851,6 +851,7 @@ if has_django:
     else:
         from django.contrib.auth.tests import hashers as _thmod
 
+    @skipUnless(TEST_MODE("default"), "requires >= 'default' test mode")
     class HashersTest(_thmod.TestUtilsHashPass, _ExtensionSupport):
         """run django's hasher unittests against passlib's extension
         and workalike implementations"""
@@ -891,9 +892,6 @@ if has_django:
         def tearDown(self):
             self.unload_extension()
             super(HashersTest, self).tearDown()
-
-    HashersTest = skipUnless(TEST_MODE("default"),
-                             "requires >= 'default' test mode")(HashersTest)
 
 #=============================================================================
 # eof

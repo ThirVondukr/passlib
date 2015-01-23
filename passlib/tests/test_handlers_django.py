@@ -263,6 +263,7 @@ class django_pbkdf2_sha1_test(HandlerCase, _DjangoHelper):
          'pbkdf2_sha1$10000$KZKWwvqb8BfL$rw5pWsxJEU4JrZAQhHTCO+u0f5Y='),
     ]
 
+@skipUnless(hash.bcrypt.has_backend(), "no bcrypt backends available")
 class django_bcrypt_test(HandlerCase, _DjangoHelper):
     """test django_bcrypt"""
     handler = hash.django_bcrypt
@@ -297,9 +298,7 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
         # omit multi-ident tests, only $2a$ counts for this class
         return None
 
-django_bcrypt_test = skipUnless(hash.bcrypt.has_backend(),
-                                "no bcrypt backends available")(django_bcrypt_test)
-
+@skipUnless(hash.bcrypt.has_backend(), "no bcrypt backends available")
 class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     """test django_bcrypt_sha256"""
     handler = hash.django_bcrypt_sha256
@@ -355,9 +354,6 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     def fuzz_setting_ident(self):
         # omit multi-ident tests, only $2a$ counts for this class
         return None
-
-django_bcrypt_sha256_test = skipUnless(hash.bcrypt.has_backend(),
-                                       "no bcrypt backends available")(django_bcrypt_sha256_test)
 
 #=============================================================================
 # eof
