@@ -24,7 +24,7 @@ from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick
 from passlib.utils.compat import iteritems, irange, \
-                                 base_string_types, exc_err, u, unicode, PY2
+                                 base_string_types, u, unicode, PY2
 import passlib.utils.handlers as uh
 # local
 __all__ = [

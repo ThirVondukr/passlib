@@ -31,8 +31,8 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, join_bytes, join_byte_values, \
-                                 join_byte_elems, exc_err, irange, imap, PY3, u, \
-                                 join_unicode, unicode, byte_elem_value, next_method_attr
+                                 join_byte_elems, irange, imap, PY3, u, \
+                                 join_unicode, unicode, byte_elem_value, nextgetter
 # local
 __all__ = [
     # constants
@@ -795,9 +795,9 @@ class Base64Engine(object):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         chunks, tail = divmod(len(source), 3)
         if PY3:
-            next_value = iter(source).__next__
+            next_value = nextgetter(iter(source))
         else:
-            next_value = (ord(elem) for elem in source).next
+            next_value = nextgetter(ord(elem) for elem in source)
         gen = self._encode_bytes(next_value, chunks, tail)
         out = join_byte_elems(imap(self._encode64, gen))
         ##if tail:
@@ -904,11 +904,10 @@ class Base64Engine(object):
         if tail == 1:
             # only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
-        next_value = getattr(imap(self._decode64, source), next_method_attr)
+        next_value = nextgetter(imap(self._decode64, source))
         try:
             return join_byte_values(self._decode_bytes(next_value, chunks, tail))
-        except KeyError:
-            err = exc_err()
+        except KeyError as err:
             raise ValueError("invalid character: %r" % (err.args[0],))
 
     def _decode_bytes_little(self, next_value, chunks, tail):

@@ -10,7 +10,7 @@ import sys
 ##from warnings import warn
 # site
 # pkg
-from passlib.utils.compat import base_string_types
+from passlib.utils.compat import base_string_types, PY26
 # local
 __all__ = [
     "TestCase",
@@ -23,7 +23,7 @@ __all__ = [
 try:
     import unittest2 as unittest
 except ImportError:
-    if sys.version_info < (2,7):
+    if PY26:
         raise ImportError("Passlib's tests require 'unittest2' under Python 2.6 (as of Passlib 1.7)")
     # python 2.7 and python 3.2 both have unittest2 features (at least, the ones we use)
     import unittest

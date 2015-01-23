@@ -18,7 +18,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning
 from passlib.utils import tick, to_unicode
-from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2
+from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2, PY26
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, set_file, TICK_RESOLUTION, quicksleep
 from passlib.registry import (register_crypt_handler_path,
@@ -814,11 +814,10 @@ sha512_crypt__min_rounds = 45000
         dump = ctx.to_string()
 
         # check ctx->string returns canonical format.
-        # NOTE: ConfigParser for PY26 and earlier didn't use OrderedDict,
-        # so to_string() won't get order correct.
-        # so we skip this test.
-        import sys
-        if sys.version_info >= (2,7):
+        # NOTE: ConfigParser for PY26 doesn't use OrderedDict,
+        #       making to_string()'s ordering unpredictable...
+        #       so we skip this test under PY26.
+        if not PY26:
             self.assertEqual(dump, self.sample_1_unicode)
 
         # check ctx->string->ctx->dict returns original

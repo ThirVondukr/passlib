@@ -14,6 +14,8 @@ PY3 = sys.version_info >= (3,0)
 if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
     raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
 
+PY26 = sys.version_info < (2,7)
+
 #------------------------------------------------------------------------
 # python implementation
 #------------------------------------------------------------------------
@@ -40,7 +42,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3',
+    'PY2', 'PY3', 'PY26',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -72,7 +74,7 @@ __all__ = [
     'OrderedDict',
 
     # introspection
-    'exc_err', 'get_method_function', 'add_doc',
+    'get_method_function', 'add_doc',
 ]
 
 # begin accumulating mapping of lazy-loaded attrs,
@@ -85,7 +87,7 @@ _lazy_attrs = dict()
 if PY3:
     unicode = str
 
-    # TODO: drop python 3.2 support, and use u'' again!
+    # TODO: once we drop python 3.2 support, can use u'' again!
     def u(s):
         assert isinstance(s, str)
         return s
@@ -223,8 +225,8 @@ if PY3:
     def itervalues(d):
         return d.values()
 
-    next_method_attr = "__next__"
-
+    def nextgetter(obj):
+        return obj.__next__
 else:
     irange = xrange
     ##lrange = range
@@ -237,7 +239,10 @@ else:
     def itervalues(d):
         return d.itervalues()
 
-    next_method_attr = "next"
+    def nextgetter(obj):
+        return obj.next
+
+add_doc(nextgetter, "return function that yields successive values from iterable")
 
 #=============================================================================
 # typing
@@ -249,10 +254,6 @@ else:
 #=============================================================================
 # introspection
 #=============================================================================
-def exc_err():
-    """return current error object (to avoid try/except syntax change)"""
-    return sys.exc_info()[1]
-
 if PY3:
     method_function_attr = "__func__"
 else:
@@ -270,11 +271,8 @@ if PY3:
         BytesIO="io.BytesIO",
         UnicodeIO="io.StringIO",
         NativeStringIO="io.StringIO",
-        SafeConfigParser="configparser.SafeConfigParser",
+        SafeConfigParser="configparser.ConfigParser",
     )
-    if sys.version_info >= (3,2):
-        # py32 renamed this, removing old ConfigParser
-        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
 
     print_ = getattr(builtins, "print")
 
@@ -331,7 +329,7 @@ else:
 #=============================================================================
 # collections
 #=============================================================================
-if sys.version_info < (2,7):
+if PY26:
     _lazy_attrs['OrderedDict'] = 'passlib.utils._ordered_dict.OrderedDict'
 else:
     _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
