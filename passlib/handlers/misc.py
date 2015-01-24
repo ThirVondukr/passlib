@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, consteq
-from passlib.utils.compat import unicode, u, base_string_types
+from passlib.utils.compat import unicode, u, unicode_or_bytes_types
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -45,7 +45,7 @@ class unix_fallback(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, base_string_types):
+        if isinstance(hash, unicode_or_bytes_types):
             return True
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")
@@ -80,7 +80,7 @@ class unix_fallback(uh.StaticHandler):
     @classmethod
     def verify(cls, secret, hash, enable_wildcard=False):
         uh.validate_secret(secret)
-        if not isinstance(hash, base_string_types):
+        if not isinstance(hash, unicode_or_bytes_types):
             raise uh.exc.ExpectedStringError(hash, "hash")
         elif hash:
             return False
@@ -206,7 +206,7 @@ class plaintext(uh.PasswordHash):
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, base_string_types):
+        if isinstance(hash, unicode_or_bytes_types):
             return True
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")

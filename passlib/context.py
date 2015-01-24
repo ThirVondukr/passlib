@@ -16,7 +16,7 @@ from passlib.utils import rng, tick, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
 from passlib.utils.compat import iteritems, num_types, \
                                  PY2, PY3, unicode, SafeConfigParser, \
-                                 NativeStringIO, BytesIO, base_string_types
+                                 NativeStringIO, BytesIO, unicode_or_bytes_types
 # local
 __all__ = [
     'CryptContext',
@@ -1437,7 +1437,7 @@ class _CryptConfig(object):
         #        unique identifiers will work properly in a CryptContext.
         # XXX: if all handlers have a unique prefix (e.g. all are MCF / LDAP),
         #      could use dict-lookup to speed up this search.
-        if not isinstance(hash, base_string_types):
+        if not isinstance(hash, unicode_or_bytes_types):
             raise ExpectedStringError(hash, "hash")
         # type check of category - handled by _get_record_list()
         for record in self._get_record_list(category):
@@ -1595,7 +1595,7 @@ class CryptContext(object):
 
         .. seealso:: :meth:`to_string`, the inverse of this constructor.
         """
-        if not isinstance(source, base_string_types):
+        if not isinstance(source, unicode_or_bytes_types):
             raise ExpectedTypeError(source, "unicode or bytes", "source")
         self = cls(_autoload=False)
         self.load(source, section=section, encoding=encoding)
@@ -1857,7 +1857,7 @@ class CryptContext(object):
         # autodetect source type, convert to dict
         #-----------------------------------------------------------
         parse_keys = True
-        if isinstance(source, base_string_types):
+        if isinstance(source, unicode_or_bytes_types):
             if PY3:
                 source = to_unicode(source, encoding, param="source")
             else:
@@ -2261,7 +2261,7 @@ class CryptContext(object):
     def _get_or_identify_record(self, hash, scheme=None, category=None):
         """return record based on scheme, or failing that, by identifying hash"""
         if scheme:
-            if not isinstance(hash, base_string_types):
+            if not isinstance(hash, unicode_or_bytes_types):
                 raise ExpectedStringError(hash, "hash")
             return self._get_record(scheme, category)
         else:

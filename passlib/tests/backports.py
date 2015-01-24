@@ -10,7 +10,7 @@ import sys
 ##from warnings import warn
 # site
 # pkg
-from passlib.utils.compat import base_string_types, PY26
+from passlib.utils.compat import PY26
 # local
 __all__ = [
     "TestCase",

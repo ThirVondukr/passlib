@@ -19,7 +19,7 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           MAX_PASSWORD_SIZE
 from passlib.utils.compat import join_byte_values, irange, u, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
-                                 join_unicode, base_string_types, PY2, int_types
+                                 join_unicode, unicode_or_bytes_types, PY2, int_types
 # local
 __all__ = [
     # helpers for implementing MCF handlers
@@ -84,7 +84,7 @@ _UZERO = u("0")
 
 def validate_secret(secret):
     """ensure secret has correct type & size"""
-    if not isinstance(secret, base_string_types):
+    if not isinstance(secret, unicode_or_bytes_types):
         raise exc.ExpectedStringError(secret, "secret")
     if len(secret) > MAX_PASSWORD_SIZE:
         raise exc.PasswordSizeError()

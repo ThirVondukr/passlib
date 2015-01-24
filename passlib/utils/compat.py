@@ -52,7 +52,7 @@ __all__ = [
 ##    'is_mapping',
     'int_types',
     'num_types',
-    'base_string_types',
+    'unicode_or_bytes_types',
 
     # unicode/bytes types & helpers
     'u',
@@ -92,7 +92,7 @@ if PY3:
         assert isinstance(s, str)
         return s
 
-    base_string_types = (unicode, bytes)
+    unicode_or_bytes_types = (unicode, bytes)
 
 else:
     unicode = builtins.unicode
@@ -101,7 +101,7 @@ else:
         assert isinstance(s, str)
         return s.decode("unicode_escape")
 
-    base_string_types = basestring
+    unicode_or_bytes_types = (basestring,)
 
 #=============================================================================
 # unicode & bytes helpers
@@ -304,13 +304,13 @@ else:
         # pick default end sequence
         if end is None:
             end = u("\n") if want_unicode else "\n"
-        elif not isinstance(end, base_string_types):
+        elif not isinstance(end, unicode_or_bytes_types):
             raise TypeError("end must be None or a string")
 
         # pick default separator
         if sep is None:
             sep = u(" ") if want_unicode else " "
-        elif not isinstance(sep, base_string_types):
+        elif not isinstance(sep, unicode_or_bytes_types):
             raise TypeError("sep must be None or a string")
 
         # write to buffer
