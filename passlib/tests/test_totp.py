@@ -26,12 +26,15 @@ __all__ = [
 # helpers
 #=============================================================================
 
-# XXX: python switched up what error base64.b32decode() etc throws.
-#      maybe we should normalize it? for now, using this alias...
+# XXX: python 3 changed what error base64.b16decode() throws, from TypeError to base64.Error().
+#      it wasn't until 3.3 that base32decode() also got changed.
+#      really should normalize this in the code to a single BinaryDecodeError,
+#      predicting this cross-version is getting unmanagable.
+Base32DecodeError = Base16DecodeError = TypeError
+if sys.version_info >= (3,0):
+    from binascii import Error as Base16DecodeError
 if sys.version_info >= (3,3):
-    from binascii import Error as BinaryDecodeError
-else:
-    BinaryDecodeError = TypeError
+    from binascii import Error as Base32DecodeError
 
 PASS1 = "abcdef"
 PASS2 = b"\x00\xFF"
@@ -349,13 +352,13 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(' 4aog gdbb qsyh ntuz ').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(BinaryDecodeError, OTP, 'ao!ggdbbqsyhntuz')
+        self.assertRaises(Base32DecodeError, OTP, 'ao!ggdbbqsyhntuz')
 
         # handle hex encoding
         self.assertEqual(OTP('e01c630c2184b076ce99', 'hex').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(BinaryDecodeError, OTP, 'X01c630c2184b076ce99', 'hex')
+        self.assertRaises(Base16DecodeError, OTP, 'X01c630c2184b076ce99', 'hex')
 
         # handle raw bytes
         self.assertEqual(OTP(KEY1_RAW, "raw").key, KEY1_RAW)
@@ -1210,7 +1213,7 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?digits=6")
 
         # undecodable secret
-        self.assertRaises(BinaryDecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
+        self.assertRaises(Base32DecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
                                                        "secret=JBSWY3DPEHP@3PXP")
 
         #--------------------------------------------------------------------------------
@@ -1902,7 +1905,7 @@ class HotpTest(_BaseOTPTest):
                                                 "counter=123")
 
         # undecodable secret
-        self.assertRaises(BinaryDecodeError, from_uri, "otpauth://hotp/Example:alice@google.com?"
+        self.assertRaises(Base32DecodeError, from_uri, "otpauth://hotp/Example:alice@google.com?"
                                                        "secret=JBSWY3DPEHP@3PXP&counter=123")
 
         #--------------------------------------------------------------------------------
