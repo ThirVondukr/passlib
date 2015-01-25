@@ -28,7 +28,7 @@ __all__ = [
 
 # XXX: python switched up what error base64.b32decode() etc throws.
 #      maybe we should normalize it? for now, using this alias...
-if PY3:
+if sys.version_info >= (3,3):
     from binascii import Error as BinaryDecodeError
 else:
     BinaryDecodeError = TypeError
