@@ -15,7 +15,7 @@ from passlib.exc import PasslibHashWarning
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, xor_bytes, splitcomma
 from passlib.utils.compat import b, bytes, bascii_to_str, iteritems, \
-                                 PY3, u, unicode
+                                 PY3, u, unicode, native_string_types
 from passlib.utils.pbkdf2 import pbkdf2, get_prf, norm_hash_name
 import passlib.utils.handlers as uh
 # local
@@ -332,7 +332,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise RuntimeError("checksum & algs kwds are mutually exclusive")
 
         # parse args value
-        if isinstance(algs, str):
+        if isinstance(algs, native_string_types):
             algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):

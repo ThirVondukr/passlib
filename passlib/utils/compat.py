@@ -97,6 +97,7 @@ if PY3:
         return s.encode("latin-1")
 
     base_string_types = (unicode, bytes)
+    native_string_types = (unicode,)
 
 else:
     unicode = builtins.unicode
@@ -111,6 +112,7 @@ else:
         return s
 
     base_string_types = basestring
+    native_string_types = (basestring,)
 
 #=============================================================================
 # unicode & bytes helpers
