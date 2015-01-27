@@ -1260,6 +1260,11 @@ class HasRounds(GenericHandler):
     max_rounds = None
     rounds_cost = "linear" # default to the common case
 
+    # hack to pass info to _CryptRecord
+    using_rounds_kwds = ("min_desired_rounds", "max_desired_rounds",
+                         "min_rounds", "max_rounds",
+                         "default_rounds", "vary_rounds")
+
     #-----------------
     # desired & default rounds -- configurable via .using() classmethod
     #-----------------

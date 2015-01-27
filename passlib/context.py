@@ -11,7 +11,7 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import rng, tick, to_bytes, deprecated_method, \
+from passlib.utils import handlers as uh, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
 from passlib.utils.compat import iteritems, num_types, \
                                  PY2, PY3, unicode, SafeConfigParser, \
@@ -594,20 +594,16 @@ class _CryptRecord(object):
     #===================================================================
     # init
     #===================================================================
-    def __init__(self, handler, category=None, deprecated=False,
-                 min_rounds=None, max_rounds=None, default_rounds=None,
-                 vary_rounds=None,
-                 **settings):
+    def __init__(self, handler, category=None, deprecated=False, **settings):
 
-        # create customized handler
-        if 'rounds' in handler.setting_kwds and (max_rounds or min_rounds or
-                                                 default_rounds or vary_rounds):
-            settings.update(
-                max_rounds=max_rounds,
-                min_rounds=min_rounds,
-                default_rounds=default_rounds,
-                vary_rounds=vary_rounds)
+        # historically, configs may  specify generic default rounds.
+        # stripping those out for hashes w/o a rounds parameter,
+        # but need to discourage this situation in the future.
+        if 'rounds' not in handler.setting_kwds:
+            for key in uh.HasRounds.using_rounds_kwds:
+                settings.pop(key, None)
 
+        # create custom handler if needed.
         if settings:
             try:
                 custom_handler = handler.using(**settings)
@@ -626,7 +622,7 @@ class _CryptRecord(object):
         # store basic bits
         self.handler = handler
         self.custom_handler = custom_handler
-        self.category = category
+        self.category = category # XXX: could pass this & deprecated to custom handler.
         self.deprecated = deprecated
 
         # init needs_update proxy
