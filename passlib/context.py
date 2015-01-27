@@ -5,7 +5,6 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
-from time import sleep
 from warnings import warn
 # site
 # pkg
