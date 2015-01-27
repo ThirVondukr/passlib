@@ -402,11 +402,14 @@ class CryptPolicy(object):
 
         .. deprecated:: 1.6
             min_verify_time will be removed entirely in passlib 1.8
+
+        .. versionchanged:: 1.7
+            this method now always returns 0.
         """
-        warn("get_min_verify_time() and min_verify_time option is deprecated, "
+        warn("get_min_verify_time() and min_verify_time option is deprecated and ignored, "
              "and will be removed in Passlib 1.8", DeprecationWarning,
              stacklevel=2)
-        return self._context._config.get_context_option_with_flag(category, "min_verify_time")[0] or 0
+        return 0
 
     def get_options(self, name, category=None):
         """return dictionary of options specific to a given handler.
@@ -590,9 +593,6 @@ class _CryptRecord(object):
     # encrypt()/genconfig() attrs
     settings = None # options to be passed directly to encrypt()
 
-    # verify() attrs
-    _min_verify_time = None
-
     # needs_update() attrs
     _needs_update = None # optional callable provided by handler
     _has_rounds_introspection = False # if rounds can be extract from hash
@@ -606,7 +606,7 @@ class _CryptRecord(object):
     #===================================================================
     def __init__(self, handler, category=None, deprecated=False,
                  min_rounds=None, max_rounds=None, default_rounds=None,
-                 vary_rounds=None, min_verify_time=None,
+                 vary_rounds=None,
                  **settings):
         # store basic bits
         self.handler = handler
@@ -620,10 +620,10 @@ class _CryptRecord(object):
 
         # init wrappers for handler methods we modify args to
         self._init_encrypt_and_genconfig()
-        self._init_verify(min_verify_time)
         self._init_needs_update()
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
+        self.verify = self.handler.verify
         self.identify = handler.identify
         self.genhash = handler.genhash
 
@@ -857,40 +857,6 @@ class _CryptRecord(object):
                 kwds['rounds'] = rounds
 
     #===================================================================
-    # verify()
-    #===================================================================
-    # TODO: once min_verify_time is removed, this will just be a clone
-    # of handler.verify()
-
-    def _init_verify(self, mvt):
-        """initialize verify() wrapper - implements min_verify_time"""
-        if mvt:
-            assert isinstance(mvt, (int,float)) and mvt > 0, "CryptPolicy should catch this"
-            self._min_verify_time = mvt
-        else:
-            # no mvt wrapper needed, so just use handler.verify directly
-            self.verify = self.handler.verify
-
-    def verify(self, secret, hash, **context):
-        """verify helper - adds min_verify_time delay"""
-        mvt = self._min_verify_time
-        assert mvt > 0, "wrapper should have been replaced for mvt=0"
-        start = tick()
-        if self.handler.verify(secret, hash, **context):
-            return True
-        end = tick()
-        delta = mvt + start - end
-        if delta > 0:
-            sleep(delta)
-        elif delta < 0:
-            # warn app they exceeded bounds (this might reveal
-            # relative costs of different hashes if under migration)
-            warn("CryptContext: verify exceeded min_verify_time: "
-                 "scheme=%r min_verify_time=%r elapsed=%r" %
-                 (self.scheme, mvt, end-start), PasslibConfigWarning)
-        return False
-
-    #===================================================================
     # needs_update()
     #===================================================================
     def _init_needs_update(self):
@@ -1089,6 +1055,8 @@ class _CryptConfig(object):
                     raise KeyError("'schemes' context option is not allowed "
                                    "per category")
                 key, value = norm_context_option(key, value)
+                if key == "min_verify_time": # ignored in 1.7, to be removed in 1.8
+                    continue
 
                 # store in context_options
                 # map structure: context_options[key][category] = value
@@ -1147,11 +1115,8 @@ class _CryptConfig(object):
                         raise KeyError("deprecated scheme not found "
                                    "in policy: %r" % (scheme,))
         elif key == "min_verify_time":
-            warn("'min_verify_time' is deprecated as of Passlib 1.6, will be "
+            warn("'min_verify_time' was deprecated in Passlib 1.6, is "
                  "ignored in 1.7, and removed in 1.8.", DeprecationWarning)
-            value = float(value)
-            if value < 0:
-                raise ValueError("'min_verify_time' must be >= 0")
         elif key != "schemes":
             raise KeyError("unknown CryptContext keyword: %r" % (key,))
         return key, value
@@ -1344,7 +1309,7 @@ class _CryptConfig(object):
         the options are identical to the options for the default category.
 
         the options dict includes all the scheme-specific settings,
-        as well as optional *deprecated* and *min_verify_time* keywords.
+        as well as optional *deprecated* keyword.
         """
         # get scheme options
         kwds, has_cat_options = self.get_scheme_options_with_flag(scheme, category)
@@ -1353,13 +1318,6 @@ class _CryptConfig(object):
         value, not_inherited = self.is_deprecated_with_flag(scheme, category)
         if value:
             kwds['deprecated'] = True
-        if not_inherited:
-            has_cat_options = True
-
-        # add in min_verify_time setting from context
-        value, not_inherited = self.get_context_option_with_flag(category, "min_verify_time")
-        if value:
-            kwds['min_verify_time'] = value
         if not_inherited:
             has_cat_options = True
 
@@ -2064,7 +2022,6 @@ class CryptContext(object):
     # in any meaningful way that isn't already served by to_dict()
     ##def options(self, scheme, category=None):
     ##    kwds, percat = self._config.get_options(scheme, category)
-    ##    kwds.pop("min_verify_time", None)
     ##    return kwds
 
     def handler(self, scheme=None, category=None):

@@ -81,6 +81,13 @@ Deprecations
   class property and a :samp:`_calc_checksum_{name}` method. Support
   for the older API is deprecated, and will it be removed in Passlib 2.0.
 
+Backwards Incompatibilities
+---------------------------
+* The :ref:`min_verify_time <context-min-verify-time-option>` keyword
+  that was deprecated in release 1.6, is now completely ignored.
+  It was never very useful, and now complicates the internal code needlessly.
+  It will be removed entirely in release 1.8.
+
 Todo
 ----
 
