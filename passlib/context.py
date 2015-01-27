@@ -571,6 +571,11 @@ class _CryptRecord(object):
     this class takes in all the options for a particular (scheme, category)
     combination, and attempts to provide as short a code-path as possible for
     the particular configuration.
+
+    .. note::
+
+        This is a very thin metadata wrapper around PasswordHash.using(),
+        and may go away eventually.
     """
 
     #===================================================================
@@ -578,7 +583,7 @@ class _CryptRecord(object):
     #===================================================================
 
     # informational attrs
-    handler = None # base handler instance this is based off of
+    handler = None # base handler instance this is based off of -- could implement hash.base instead.
     custom_handler = None # handler instance configured w/ appropriate settings
     category = None # user category this applies to
     deprecated = False # set if handler itself has been deprecated in config
