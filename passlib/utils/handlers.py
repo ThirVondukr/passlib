@@ -1527,13 +1527,6 @@ class HasRounds(GenericHandler):
             if lower < upper:
                 rounds = rng.randint(lower, upper)
 
-        # hack for bsdi_crypt - want to avoid even-valued rounds
-        # NOTE: this technically might generate a rounds value 1 larger
-        # than the requested upper bound - but better to err on side of safety.
-        # TODO: could move this to bsdi_crypt class once _generate_rounds() is finalized.
-        if getattr(self, "_avoid_even_rounds", False):
-            rounds |= 1
-
         return rounds
 
     #===================================================================
