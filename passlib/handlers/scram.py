@@ -336,19 +336,21 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return algs
 
     #===================================================================
+    # migration
+    #===================================================================
+    def _calc_needs_update(self, **kwds):
+        # marks hashes as deprecated if they don't include at least all default_algs.
+        # XXX: should we deprecate if they aren't exactly the same,
+        #      to permit removing legacy hashes? probably not while md5 is fixed in the spec :|
+        if not set(self.algs).issuperset(self.default_algs):
+            return True
+
+        # hand off to base implementation
+        return super(scram, self)._calc_needs_update(**kwds)
+
+    #===================================================================
     # digest methods
     #===================================================================
-
-    @classmethod
-    def _bind_needs_update(cls, **settings):
-        """generate a deprecation detector for CryptContext to use"""
-        # generate deprecation hook which marks hashes as deprecated
-        # if they don't support a superset of current algs.
-        algs = frozenset(cls(use_defaults=True, **settings).algs)
-        def detector(hash, secret):
-            return not algs.issubset(cls.from_string(hash).algs)
-        return detector
-
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt

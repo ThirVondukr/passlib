@@ -167,22 +167,25 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         return uascii_to_str(config)
 
     #===================================================================
-    # specialized salt generation - fixes passlib issue 25
+    # migration
     #===================================================================
 
     @classmethod
-    def _bind_needs_update(cls, **settings):
-        return cls._needs_update
-
-    @classmethod
-    def _needs_update(cls, hash, secret):
+    def needs_update(cls, hash, **kwds):
+        # check for incorrect padding bits (passlib issue 25)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        # check for incorrect padding bits (passlib issue 25)
         if hash.startswith(IDENT_2A) and hash[28] not in bcrypt64._padinfo2[1]:
             return True
-        # TODO: try to detect incorrect $2x$ hashes using *secret*
-        return False
+
+        # TODO: try to detect incorrect $2x$ hashes using kwds.get("secret")
+
+        # hand off to base implementation, so HasRounds can check rounds value.
+        return super(bcrypt, cls).needs_update(hash, **kwds)
+
+    #===================================================================
+    # specialized salt generation - fixes passlib issue 25
+    #===================================================================
 
     @classmethod
     def normhash(cls, hash):

@@ -1057,6 +1057,8 @@ class HasSalt(GenericHandler):
     _salt_is_bytes = False
     _salt_unit = "chars"
 
+    # TODO: could support using(min/max_desired_salt_size) via using() and needs_update()
+
     #===================================================================
     # instance attrs
     #===================================================================

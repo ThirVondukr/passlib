@@ -583,18 +583,13 @@ class _CryptRecord(object):
     category = None # user category this applies to
     deprecated = False # set if handler itself has been deprecated in config
 
-    # encrypt()/genconfig() attrs
-    settings = None # options to be passed directly to encrypt()
-
-    # needs_update() attrs
-    _needs_update = None # optional callable provided by handler
-
     # cloned from custom_handler.
     genconfig = None
     encrypt = None
     verify = None
     identify = None
     genhash = None
+    needs_update = None # may be overridden if deprecated=True
 
     #===================================================================
     # init
@@ -633,10 +628,12 @@ class _CryptRecord(object):
         self.custom_handler = custom_handler
         self.category = category
         self.deprecated = deprecated
-        self.settings = settings
 
-        # init wrappers for handler methods we modify args to
-        self._init_needs_update()
+        # init needs_update proxy
+        if deprecated:
+            self.needs_update = lambda hash, secret=None: True
+        else:
+            self.needs_update = custom_handler.needs_update
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
         self.genconfig = custom_handler.genconfig
@@ -664,43 +661,6 @@ class _CryptRecord(object):
 
     def __repr__(self): # pragma: no cover -- debugging
         return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
-
-    #===================================================================
-    # needs_update()
-    #===================================================================
-    def _init_needs_update(self):
-        """initialize state for needs_update()"""
-        # if handler has been deprecated, replace wrapper and skip other checks
-        if self.deprecated:
-            self.needs_update = lambda hash, secret: True
-            return
-
-        # let handler detect hashes with configurations that don't match
-        # current settings. currently do this by calling
-        # ``handler._bind_needs_update(**settings)``, which if defined
-        # should return None or a callable ``needs_update(hash,secret)->bool``.
-        #
-        # NOTE: this interface is still private, because it was hacked in
-        # for the sake of bcrypt & scram, and is subject to change.
-        handler = self.handler
-        const = getattr(handler, "_bind_needs_update", None)
-        if const:
-            self._needs_update = const(**self.settings)
-
-        # XXX: what about a "min_salt_size" deprecator?
-
-    def needs_update(self, hash, secret):
-        # init replaces this method entirely for this case.
-        ### check if handler has been deprecated
-        ##if self.deprecated:
-        ##    return True
-
-        # check handler's detector if it provided one.
-        check = self._needs_update
-        if check and check(hash, secret):
-            return True
-
-        return self.custom_handler.needs_update(hash, secret=secret)
 
     #===================================================================
     # eoc
@@ -2060,7 +2020,7 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
         record = self._get_or_identify_record(hash, scheme, category)
-        return record.needs_update(hash, secret)
+        return record.needs_update(hash, secret=secret)
 
     @deprecated_method(deprecated="1.6", removed="2.0", replacement="CryptContext.needs_update()")
     def hash_needs_update(self, hash, scheme=None, category=None):
@@ -2361,7 +2321,7 @@ class CryptContext(object):
         record = self._get_or_identify_record(hash, scheme, category)
         if not record.verify(secret, hash, **kwds):
             return False, None
-        elif record.needs_update(hash, secret):
+        elif record.needs_update(hash, secret=secret):
             # NOTE: we re-encrypt with default scheme, not current one.
             return True, self.encrypt(secret, None, category, **kwds)
         else:

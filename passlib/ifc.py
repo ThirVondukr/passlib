@@ -171,35 +171,6 @@ class PasswordHash(object):
     ## checksum_size
 
     #---------------------------------------------------------------
-    # CryptContext flags
-    #---------------------------------------------------------------
-
-    # NOTE: soon to be deprecated in favor of HasRounds._generate_rounds()
-    # hack for bsdi_crypt: if True, causes CryptContext to only generate
-    # odd rounds values. assumed False if not defined.
-    ## _avoid_even_rounds = False
-
-    # NOTE: soon to be deprecated in favor of needs_update() (above)
-    ##@classmethod
-    ##def _bind_needs_update(cls, **setting_kwds):
-    ##    """return helper to detect hashes that need updating.
-    ##
-    ##    if this method is defined, the CryptContext constructor
-    ##    will invoke it with the settings specified for the context.
-    ##    this method should return either ``None``, or a callable
-    ##    with the signature ``needs_update(hash,secret)->bool``.
-    ##
-    ##    this ``needs_update`` function should return True if the hash
-    ##    should be re-encrypted, whether due to internal
-    ##    issues or the specified settings.
-    ##
-    ##    CryptContext will automatically take care of deprecating
-    ##    hashes with insufficient rounds for classes which define fromstring()
-    ##    and a rounds attribute - though the requirements for this last
-    ##    part may change at some point.
-    ##    """
-
-    #---------------------------------------------------------------
     # experimental methods
     #---------------------------------------------------------------
 

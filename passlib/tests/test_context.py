@@ -1097,22 +1097,16 @@ sha512_crypt__min_rounds = 45000
         self.assertTrue(cc.needs_update('$5$rounds=3001$QlFHHifXvpFX4PLs$/0ekt7lSs/lOikSerQ0M/1porEHxYq7W/2hdFpxA3fA'))
 
         #--------------------------------------------------------------
-        # test _bind_needs_update() framework
+        # test hash.needs_update() interface
         #--------------------------------------------------------------
-        bind_state = []
         check_state = []
         class dummy(uh.StaticHandler):
             name = 'dummy'
             _hash_prefix = '@'
 
             @classmethod
-            def _bind_needs_update(cls, **settings):
-                bind_state.append(settings)
-                return cls._needs_update
-
-            @classmethod
-            def _needs_update(cls, hash, secret):
-                check_state.append((hash,secret))
+            def needs_update(cls, hash, secret=None):
+                check_state.append((hash, secret))
                 return secret == "nu"
 
             def _calc_checksum(self, secret):
@@ -1121,11 +1115,8 @@ sha512_crypt__min_rounds = 45000
                     secret = secret.encode("utf-8")
                 return str_to_uascii(md5(secret).hexdigest())
 
-        # creating context should call bind function w/ settings
-        ctx = CryptContext([dummy])
-        self.assertEqual(bind_state, [{}])
-
         # calling needs_update should query callback
+        ctx = CryptContext([dummy])
         hash = refhash = dummy.encrypt("test")
         self.assertFalse(ctx.needs_update(hash))
         self.assertEqual(check_state, [(hash,None)])
