@@ -649,18 +649,11 @@ class _CryptRecord(object):
     def scheme(self):
         return self.handler.name
 
-    @property
-    def _errprefix(self):
-        """string used to identify record in error messages"""
-        handler = self.handler
-        category = self.category
-        if category:
-            return "%s %s config" % (handler.name, category)
-        else:
-            return "%s config" % (handler.name,)
-
     def __repr__(self): # pragma: no cover -- debugging
-        return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
+        name = self.handler.name
+        if self.category:
+            name = "%s %s" % (name, self.category)
+        return "<_CryptRecord 0x%x for %s config>" % (id(self), name)
 
     #===================================================================
     # eoc
