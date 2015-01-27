@@ -330,7 +330,7 @@ else:
 # collections
 #=============================================================================
 if PY26:
-    _lazy_attrs['OrderedDict'] = 'passlib.utils._ordered_dict.OrderedDict'
+    _lazy_attrs['OrderedDict'] = 'passlib.utils.compat._ordered_dict.OrderedDict'
 else:
     _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 

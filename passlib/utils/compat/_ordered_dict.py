@@ -1,4 +1,4 @@
-"""passlib.utils._ordered_dict -- backport of collections.OrderedDict for py26
+"""passlib.utils.compat._ordered_dict -- backport of collections.OrderedDict for py26
 
 taken from stdlib-suggested recipe at http://code.activestate.com/recipes/576693/
 

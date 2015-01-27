@@ -138,6 +138,7 @@ setup(
             "passlib.tests",
             "passlib.utils",
                 "passlib.utils._blowfish",
+                "passlib.utils.compat",
             "passlib._setup",
         ],
     package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
