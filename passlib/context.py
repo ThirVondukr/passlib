@@ -4,13 +4,12 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-from math import log as logb, ceil
 import logging; log = logging.getLogger(__name__)
 from time import sleep
 from warnings import warn
 # site
 # pkg
-from passlib.exc import PasslibConfigWarning, ExpectedStringError, ExpectedTypeError
+from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import rng, tick, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
@@ -583,19 +582,11 @@ class _CryptRecord(object):
     category = None # user category this applies to
     deprecated = False # set if handler itself has been deprecated in config
 
-    # rounds management - filled in by _init_rounds_options()
-    _has_rounds_options = False # if _has_rounds_bounds OR _generate_rounds is set
-    _has_rounds_bounds = False # if either min_rounds or max_rounds set
-    _min_rounds = None # minimum rounds allowed by policy, or None
-    _max_rounds = None # maximum rounds allowed by policy, or None
-    _generate_rounds = None # rounds generation function, or None
-
     # encrypt()/genconfig() attrs
     settings = None # options to be passed directly to encrypt()
 
     # needs_update() attrs
     _needs_update = None # optional callable provided by handler
-    _has_rounds_introspection = False # if rounds can be extract from hash
 
     # cloned directly from handler, not affected by config options.
     identify = None
@@ -610,22 +601,28 @@ class _CryptRecord(object):
                  **settings):
         # store basic bits
         self.handler = handler
+        if 'rounds' in handler.setting_kwds and (max_rounds or min_rounds or
+                                                 default_rounds or vary_rounds):
+            custom_handler = handler.using(
+                max_rounds=max_rounds,
+                min_rounds=min_rounds,
+                default_rounds=default_rounds,
+                vary_rounds=vary_rounds)
+        else:
+            custom_handler = handler
+        self.custom_handler = custom_handler
         self.category = category
         self.deprecated = deprecated
         self.settings = settings
-
-        # validate & normalize rounds options
-        self._init_rounds_options(min_rounds, max_rounds, default_rounds,
-                             vary_rounds)
 
         # init wrappers for handler methods we modify args to
         self._init_encrypt_and_genconfig()
         self._init_needs_update()
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
-        self.verify = self.handler.verify
-        self.identify = handler.identify
-        self.genhash = handler.genhash
+        self.verify = custom_handler.verify
+        self.identify = custom_handler.identify
+        self.genhash = custom_handler.genhash
 
     #===================================================================
     # virtual attrs
@@ -648,154 +645,12 @@ class _CryptRecord(object):
         return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
 
     #===================================================================
-    # rounds generation & limits - used by encrypt & deprecation code
-    #===================================================================
-    def _init_rounds_options(self, mn, mx, df, vr):
-        """parse options and compile efficient generate_rounds function"""
-        #----------------------------------------------------
-        # extract hard limits from handler itself
-        #----------------------------------------------------
-        handler = self.handler
-        if 'rounds' not in handler.setting_kwds:
-            # doesn't even support rounds keyword.
-            return
-        hmn = getattr(handler, "min_rounds", None)
-        hmx = getattr(handler, "max_rounds", None)
-
-        def check_against_handler(value, name):
-            """issue warning if value outside handler limits"""
-            if hmn is not None and value < hmn:
-                warn("%s: %s value is below handler minimum %d: %d" %
-                     (self._errprefix, name, hmn, value), PasslibConfigWarning)
-            if hmx is not None and value > hmx:
-                warn("%s: %s value is above handler maximum %d: %d" %
-                     (self._errprefix, name, hmx, value), PasslibConfigWarning)
-
-        #----------------------------------------------------
-        # set policy limits
-        #----------------------------------------------------
-        if mn is not None:
-            if mn < 0:
-                raise ValueError("%s: min_rounds must be >= 0" % self._errprefix)
-            check_against_handler(mn, "min_rounds")
-            self._min_rounds = mn
-            self._has_rounds_bounds = True
-
-        if mx is not None:
-            if mn is not None and mx < mn:
-                raise ValueError("%s: max_rounds must be "
-                                 ">= min_rounds" % self._errprefix)
-            elif mx < 0:
-                raise ValueError("%s: max_rounds must be >= 0" % self._errprefix)
-            check_against_handler(mx, "max_rounds")
-            self._max_rounds = mx
-            self._has_rounds_bounds = True
-
-        #----------------------------------------------------
-        # validate default_rounds
-        #----------------------------------------------------
-        if df is not None:
-            if mn is not None and df < mn:
-                    raise ValueError("%s: default_rounds must be "
-                                     ">= min_rounds" % self._errprefix)
-            if mx is not None and df > mx:
-                    raise ValueError("%s: default_rounds must be "
-                                     "<= max_rounds" % self._errprefix)
-            check_against_handler(df, "default_rounds")
-        elif vr or mx or mn:
-            # need an explicit default to work with
-            df = getattr(handler, "default_rounds", None) or mx or mn
-            assert df is not None, "couldn't find fallback default_rounds"
-        else:
-            # no need for rounds generation
-            self._has_rounds_options = self._has_rounds_bounds
-            return
-
-        # clip default to handler & policy limits *before* vary rounds
-        # is calculated, so that proportion vr values are scaled against
-        # the effective default.
-        def clip(value):
-            """clip value to intersection of policy + handler limits"""
-            if mn is not None and value < mn:
-                value = mn
-            if hmn is not None and value < hmn:
-                value = hmn
-            if mx is not None and value > mx:
-                value = mx
-            if hmx is not None and value > hmx:
-                value = hmx
-            return value
-        df = clip(df)
-
-        #----------------------------------------------------
-        # validate vary_rounds,
-        # coerce df/vr to linear scale,
-        # and setup scale_value() to undo coercion
-        #----------------------------------------------------
-        # NOTE: vr=0 same as if vr not set
-        if vr:
-            if vr < 0:
-                raise ValueError("%s: vary_rounds must be >= 0" %
-                                 self._errprefix)
-            def scale_value(value, upper):
-                return value
-            if isinstance(vr, float):
-                # vr is value from 0..1 expressing fraction of default rounds.
-                if vr > 1:
-                    # XXX: deprecate 1.0 ?
-                    raise ValueError("%s: vary_rounds must be < 1.0" %
-                                     self._errprefix)
-                # calculate absolute vr value based on df & rounds_cost
-                cost_scale = getattr(handler, "rounds_cost", "linear")
-                assert cost_scale in ["log2", "linear"]
-                if cost_scale == "log2":
-                    # convert df & vr to linear scale for limit calc,
-                    # and redefine scale_value() to convert back to log2.
-                    df = 1<<df
-                    def scale_value(value, upper):
-                        if value <= 0:
-                            return 0
-                        elif upper:
-                            return int(logb(value,2))
-                        else:
-                            return int(ceil(logb(value,2)))
-                vr = int(df*vr)
-            elif not isinstance(vr, int):
-                raise TypeError("vary_rounds must be int or float")
-            # else: vr is explicit number of rounds to vary df by.
-
-        #----------------------------------------------------
-        # set up rounds generation function.
-        #----------------------------------------------------
-        if not vr:
-            # fixed rounds value
-            self._generate_rounds = lambda : df
-        else:
-            # randomly generate rounds in range df +/- vr
-            lower = clip(scale_value(df-vr,False))
-            upper = clip(scale_value(df+vr,True))
-            if lower == upper:
-                self._generate_rounds = lambda: upper
-            else:
-                assert lower < upper
-                self._generate_rounds = lambda: rng.randint(lower, upper)
-
-        # hack for bsdi_crypt - want to avoid even-valued rounds
-        # NOTE: this technically might generate a rounds value 1 larger
-        # than the requested upper bound - but better to err on side of safety.
-        if getattr(handler, "_avoid_even_rounds", False):
-            gen = self._generate_rounds
-            self._generate_rounds = lambda : gen()|1
-
-        self._has_rounds_options = True
-
-    #===================================================================
     # encrypt() / genconfig()
     #===================================================================
     def _init_encrypt_and_genconfig(self):
         """initialize genconfig/encrypt wrapper methods"""
         settings = self.settings
-        handler = self.handler
+        handler = self.custom_handler
 
         # check no invalid settings are being set
         keys = handler.setting_kwds
@@ -806,7 +661,7 @@ class _CryptRecord(object):
 
         # if _prepare_settings() has nothing to do, bypass our wrappers
         # with reference to original methods.
-        if not (settings or self._has_rounds_options):
+        if not settings:
             self.genconfig = handler.genconfig
             self.encrypt = handler.encrypt
 
@@ -830,31 +685,6 @@ class _CryptRecord(object):
         else:
             # faster, and the common case
             kwds.update(self.settings)
-
-        # handle rounds
-        if self._has_rounds_options:
-            rounds = kwds.get("rounds")
-            if rounds is None:
-                # fill in default rounds value
-                gen = self._generate_rounds
-                if gen:
-                    kwds['rounds'] = gen()
-            elif self._has_rounds_bounds:
-                # check bounds for application-provided rounds value.
-                # XXX: should this raise an error instead of warning ?
-                # NOTE: stackdepth=4 is so that error matches
-                # where ctx.encrypt() was called by application code.
-                mn = self._min_rounds
-                if mn is not None and rounds < mn:
-                    warn("%s requires rounds >= %d, increasing value from %d" %
-                         (self._errprefix, mn, rounds), PasslibConfigWarning, 4)
-                    rounds = mn
-                mx = self._max_rounds
-                if mx and rounds > mx:
-                    warn("%s requires rounds <= %d, decreasing value from %d" %
-                         (self._errprefix, mx, rounds), PasslibConfigWarning, 4)
-                    rounds = mx
-                kwds['rounds'] = rounds
 
     #===================================================================
     # needs_update()
@@ -880,12 +710,6 @@ class _CryptRecord(object):
 
         # XXX: what about a "min_salt_size" deprecator?
 
-        # set flag if we can extract rounds from hash, allowing
-        # needs_update() to check for rounds that are outside of
-        # the configured range.
-        if self._has_rounds_bounds and hasattr(handler, "from_string"):
-            self._has_rounds_introspection = True
-
     def needs_update(self, hash, secret):
         # init replaces this method entirely for this case.
         ### check if handler has been deprecated
@@ -897,31 +721,7 @@ class _CryptRecord(object):
         if check and check(hash, secret):
             return True
 
-        # XXX: should we use from_string() call below to check
-        #      for config strings, and flag them as needing update?
-        #      or throw an error?
-        #      or leave that as an explicitly undefined border case,
-        #      to keep the codepath simpler & faster?
-
-        # if we can parse rounds parameter, check if it's w/in bounds.
-        if self._has_rounds_introspection:
-            # XXX: this might be a good place to use parsehash()
-            hash_obj = self.handler.from_string(hash)
-            try:
-                rounds = hash_obj.rounds
-            except AttributeError: # pragma: no cover -- sanity check
-                # XXX: all builtin hashes should have rounds attr,
-                #      so should a warning be issues here?
-                pass
-            else:
-                mn = self._min_rounds
-                if mn is not None and rounds < mn:
-                    return True
-                mx = self._max_rounds
-                if mx and rounds > mx:
-                    return True
-
-        return False
+        return self.custom_handler.needs_update(hash, secret=secret)
 
     #===================================================================
     # eoc
@@ -2417,6 +2217,7 @@ class CryptContext(object):
         if record is None:
             return None
         elif resolve:
+            # XXX: which one should we return? .custom_handler, or .handler?
             return record.handler
         else:
             return record.scheme

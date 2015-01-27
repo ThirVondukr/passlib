@@ -28,6 +28,11 @@ Release History
 
         * Potentially reorg the utils module (particularly the crypto bits), it's getting messy.
 
+    * Finish the :meth:`PasswordHash.using` and :meth:`PasswordHash.needs_update` refactoring,
+      aimed at eliminating any need for the internal :class:`passlib.context._CryptRecord` class.
+
+        * FIXME: Default using() method won't work correctly for wrapper handlers just yet.
+
 Requirements
 ------------
 
@@ -80,6 +85,14 @@ Deprecations
   previous (1.6 and earlier) API, which required a :samp:`_has_backend_{name}`
   class property and a :samp:`_calc_checksum_{name}` method. Support
   for the older API is deprecated, and will it be removed in Passlib 2.0.
+
+Internal Changes
+----------------
+* The majority of CryptContext's internal rounds handling & migration code has been
+  moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.using`
+  and :meth:`~passlib.ifc.PasswordHash.needs_update` methods.  This allows much more flexibility
+  when using a hash directly, rather than via CryptContext, as well making it easier for
+  CryptContext to support hash-specific parameters.
 
 Backwards Incompatibilities
 ---------------------------

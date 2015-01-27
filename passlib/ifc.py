@@ -28,6 +28,9 @@ def recreate_with_metaclass(meta):
 #=============================================================================
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+# TODO: make this actually use abstractproperty(),
+#       now that we dropped py25, 'abc' is always available.
+
 @recreate_with_metaclass(ABCMeta)
 class PasswordHash(object):
     """This class describes an abstract interface which all password hashes
@@ -85,6 +88,54 @@ class PasswordHash(object):
         raise NotImplementedError("must be implemented by subclass")
 
     #===================================================================
+    # configuration
+    #===================================================================
+    @classmethod
+    @abstractmethod
+    def using(cls, **kwds):
+        """
+        Return another hasher object (typically a subclass),
+        which integrates the configuration options specified by ``kwds``.
+
+        .. todo::
+
+            document which options are accepted.
+
+        :returns:
+            typically returns a subclass for most hasher implementations.
+
+        .. todo::
+
+            add this method to main documentation.
+        """
+        raise NotImplementedError("must be implemented by subclass")
+
+    #===================================================================
+    # migration
+    #===================================================================
+    @classmethod
+    @abstractmethod
+    def needs_update(cls, hash, secret=None):
+        """
+        check if hash configuration is outside desired bounds.
+
+        :param hash:
+            hash string to examine
+
+        :param secret:
+            optional secret known to have verified against the provided hash.
+            (this is used by some hashes to detect legacy algorithm mistakes).
+
+        :return:
+            whether secret needs re-hashing.
+
+        .. todo::
+
+            add this method to main documentation.
+        """
+        raise NotImplementedError("must be implemented by subclass")
+
+    #===================================================================
     # additional methods
     #===================================================================
     @classmethod
@@ -123,10 +174,12 @@ class PasswordHash(object):
     # CryptContext flags
     #---------------------------------------------------------------
 
+    # NOTE: soon to be deprecated in favor of HasRounds._generate_rounds()
     # hack for bsdi_crypt: if True, causes CryptContext to only generate
     # odd rounds values. assumed False if not defined.
     ## _avoid_even_rounds = False
 
+    # NOTE: soon to be deprecated in favor of needs_update() (above)
     ##@classmethod
     ##def _bind_needs_update(cls, **setting_kwds):
     ##    """return helper to detect hashes that need updating.

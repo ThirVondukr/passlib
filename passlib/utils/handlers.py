@@ -5,6 +5,7 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
+import math
 from warnings import warn
 # site
 # pkg
@@ -385,12 +386,30 @@ class GenericHandler(PasswordHash):
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
 
+    #: private flag used by using() constructor to detect if this is already a subclass.
+    _configured = False
+
     #===================================================================
     # instance attrs
     #===================================================================
     checksum = None # stores checksum
 #    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
 #    relaxed = False # when _norm_xxx() funcs should be strict about inputs
+
+    #===================================================================
+    # configuration interface
+    #===================================================================
+
+    @classmethod
+    def using(cls):
+        # NOTE: this provides the base implementation, which takes care of
+        #       creating the newly configured class. Mixins and subclasses
+        #       should wrap this, and modify the returned class to suit their options.
+        name = cls.__name__
+        if not cls._configured:
+            # TODO: straighten out class naming, repr, and .name attr
+            name = "<customized %s hasher>" % name
+        return type(name, (cls,), dict(__module__=cls.__module__, _configured=True))
 
     #===================================================================
     # init
@@ -564,6 +583,26 @@ class GenericHandler(PasswordHash):
         if chk is None:
             raise exc.MissingDigestError(cls)
         return consteq(self._calc_checksum(secret), chk)
+
+    #===================================================================
+    # migration interface (basde implementation)
+    #===================================================================
+
+    @classmethod
+    def needs_update(cls, hash, secret=None, **kwds):
+        # NOTE: subclasses should generally just wrap _calc_needs_update()
+        #       to check their particular keywords.
+        self = cls.from_string(hash)
+        assert isinstance(self, cls)
+        return self._calc_needs_update(secret=secret, **kwds)
+
+    def _calc_needs_update(self, secret=None):
+        """
+        internal helper for :meth:`needs_update`.
+        """
+        # NOTE: this just provides a stub, subclasses & mixins
+        #       should override this with their own tests.
+        return False
 
     #===================================================================
     # experimental - the following methods are not finished or tested,
@@ -1166,6 +1205,10 @@ class HasRounds(GenericHandler):
         (the default) or ``"log2"``, depending on how the rounds value relates
         to the actual amount of time that will be required.
 
+    Class Methods
+    =============
+    .. todo:: document using() and needs_update() options
+
     Instance Attributes
     ===================
     .. attribute:: rounds
@@ -1180,15 +1223,184 @@ class HasRounds(GenericHandler):
     #===================================================================
     # class attrs
     #===================================================================
+
+    #-----------------
+    # algorithm options -- not application configurable
+    #-----------------
+    # XXX: rename to min_valid_rounds / max_valid_rounds,
+    #      to clarify role compared to min_desired_rounds / max_desired_rounds?
     min_rounds = 0
     max_rounds = None
-    default_rounds = None
     rounds_cost = "linear" # default to the common case
+
+    #-----------------
+    # desired & default rounds -- configurable via .using() classmethod
+    #-----------------
+    min_desired_rounds = None
+    max_desired_rounds = None
+    default_rounds = None
+    vary_rounds = None
 
     #===================================================================
     # instance attrs
     #===================================================================
     rounds = None
+
+    #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, # keyword only...
+              min_desired_rounds=None, max_desired_rounds=None,
+              default_rounds=None, vary_rounds=None, **kwds):
+        # check for aliases used by CryptContext
+        if "min_rounds" in kwds:
+            assert min_desired_rounds is None
+            min_desired_rounds = kwds.pop("min_rounds")
+        if "max_rounds" in kwds:
+            assert max_desired_rounds is None
+            max_desired_rounds = kwds.pop("max_rounds")
+        if "rounds" in kwds:
+            assert default_rounds is None
+            default_rounds = kwds.pop("rounds")
+
+        # generate new subclass
+        subcls = super(HasRounds, cls).using(**kwds)
+        assert issubclass(subcls, cls)
+
+        # replace min_desired_rounds
+        if min_desired_rounds is not None:
+            # TODO: support string coercion
+            if min_desired_rounds < 0:
+                raise ValueError("%s: min_desired_rounds must be >= 0, got %r" %
+                                 (subcls.name, min_desired_rounds))
+            subcls.min_desired_rounds = subcls._clip_to_valid_rounds(min_desired_rounds,
+                                                                     param="min_desired_rounds")
+
+        # replace max_desired_rounds
+        if max_desired_rounds is not None:
+            # TODO: support string coercion
+            if min_desired_rounds and max_desired_rounds < min_desired_rounds:
+                raise ValueError("%s: max_desired_rounds must be >= min_desired_rounds (%r), "
+                                 "got %r" % (subcls.name, min_desired_rounds, max_desired_rounds))
+            elif max_desired_rounds < 0:
+                raise ValueError("%s: max_desired_rounds must be >= 0, got %r" %
+                                 (subcls.name, max_desired_rounds))
+            subcls.max_desired_rounds = subcls._clip_to_valid_rounds(max_desired_rounds,
+                                                                     param="max_desired_rounds")
+
+        # replace default_rounds
+        if default_rounds is not None:
+            # TODO: support string coercion
+            if min_desired_rounds and default_rounds < min_desired_rounds:
+                raise ValueError("%s: default_rounds must be >= min_desired_rounds (%r), got %r" %
+                                 (subcls.name, min_desired_rounds, default_rounds))
+            elif max_desired_rounds and default_rounds > max_desired_rounds:
+                raise ValueError("%s: default_rounds must be <= max_desired_rounds (%r), got %r" %
+                                 (subcls.name, max_desired_rounds, default_rounds))
+            subcls.default_rounds = subcls._clip_to_valid_rounds(default_rounds,
+                                                                 param="default_rounds")
+        elif subcls.default_rounds is not None:
+            # clip existing default rounds to new limits.
+            subcls.default_rounds = subcls._clip_to_desired_rounds(subcls.default_rounds)
+
+        # replace / set vary_rounds
+        if vary_rounds is not None:
+            # TODO: support string coercion
+            if vary_rounds < 0:
+                raise ValueError("%s: vary_rounds must be >= 0, got %r" %
+                                 (subcls.name, vary_rounds))
+            elif isinstance(vary_rounds, float):
+                # TODO: deprecate / disallow vary_rounds=1.0
+                if vary_rounds > 1:
+                    raise ValueError("%s: vary_rounds must be < 1.0: %r" %
+                                     (subcls.name, vary_rounds))
+            elif not isinstance(vary_rounds, int):
+                raise TypeError("vary_rounds must be int or float")
+            subcls.vary_rounds = vary_rounds
+            # XXX: could cache _calc_vary_rounds_range() here if needed.
+
+        return subcls
+
+    @classmethod
+    def _clip_to_valid_rounds(cls, rounds, param=None):
+        """
+        helper for :meth:`using` --
+        clip rounds value to handle limits.
+        if param specified, issues warning if clipping is performed.
+
+        :returns:
+            bool indicating if within limits.
+        """
+        # XXX: could accept strict=True flag to turn this into ValueErrors /
+        #      or relaxed=True to enable warning rather than ValueError behavior.
+        mn = cls.min_rounds
+        if rounds < mn:
+            if param:
+                warn("%s: %s value is below handler minimum %d: %d" %
+                     (cls.name, param, mn, rounds), exc.PasslibConfigWarning)
+            return mn
+        mx = cls.max_rounds
+        if mx and rounds > mx:
+            if param:
+                warn("%s: %s value is above handler maximum %d: %d" %
+                     (cls.name, param, cls.max_rounds, rounds), exc.PasslibConfigWarning)
+            return mx
+        return rounds
+
+    @classmethod
+    def _clip_to_desired_rounds(cls, rounds):
+        """
+        helper for :meth:`_generate_rounds` --
+        clips rounds value to desired min/max set by class (if any)
+        """
+        mnd = cls.min_desired_rounds
+        if rounds < mnd:
+            return mnd
+        mxd = cls.max_desired_rounds
+        if mxd and rounds > mxd:
+            return mxd
+        return rounds
+
+    @classmethod
+    def _calc_vary_rounds_range(cls, default_rounds):
+        """
+        helper for :meth:`_generate_rounds` --
+        returns range for vary rounds generation.
+
+        :returns:
+            (lower, upper) limits suitable for random.randint()
+        """
+        # XXX: could precalculate output of this in using() method, and save per-hash cost.
+        #      but then users patching cls.vary_rounds / cls.default_rounds would get wrong value.
+        assert default_rounds
+        vary_rounds = cls.vary_rounds
+
+        # if vary_rounds specified as % of default, convert it to actual rounds
+        def linear_to_native(value, upper):
+            return value
+        if isinstance(vary_rounds, float):
+            assert 0 <= vary_rounds <= 1 # TODO: deprecate vary_rounds==1
+            if cls.rounds_cost == "log2":
+                # special case -- have to convert default_rounds to linear scale,
+                # apply +/- vary_rounds to that, and convert back to log scale again.
+                # linear_to_native() takes care of the "convert back" step.
+                default_rounds = 1 << default_rounds
+                def linear_to_native(value, upper):
+                    if value <= 0: # log() undefined for <= 0
+                        return 0
+                    elif upper: # use smallest upper bound for start of range
+                        return int(math.log(value, 2))
+                    else: # use greatest lower bound for end of range
+                        return int(math.ceil(math.log(value, 2)))
+            # calculate integer vary rounds based on current default_rounds
+            vary_rounds = int(default_rounds * vary_rounds)
+
+        # calculate bounds based on default_rounds +/- vary_rounds
+        assert vary_rounds >= 0 and isinstance(vary_rounds, int_types)
+        lower = linear_to_native(default_rounds - vary_rounds, False)
+        upper = linear_to_native(default_rounds + vary_rounds, True)
+        return cls._clip_to_desired_rounds(lower), cls._clip_to_desired_rounds(upper)
 
     #===================================================================
     # init
@@ -1201,7 +1413,6 @@ class HasRounds(GenericHandler):
         """helper routine for normalizing rounds
 
         :arg rounds: ``None``, or integer cost parameter.
-
 
         :raises TypeError:
             * if ``use_defaults=False`` and no rounds is specified
@@ -1222,16 +1433,15 @@ class HasRounds(GenericHandler):
         if rounds is None:
             if not self.use_defaults:
                 raise TypeError("no rounds specified")
-            rounds = self.default_rounds
-            if rounds is None:
-                raise TypeError("%s rounds value must be specified explicitly"
-                                 % (self.name,))
+            rounds = self._generate_rounds() # NOTE: will throw ValueError if default not set
+            assert isinstance(rounds, int_types)
 
         # check type
         if not isinstance(rounds, int_types):
             raise exc.ExpectedTypeError(rounds, "integer", "rounds")
 
-        # check bounds
+        # check valid bounds
+        # XXX: combine this with cls._clip_to_valid_rounds() ?
         mn = self.min_rounds
         if rounds < mn:
             msg = "rounds too low (%s requires >= %d rounds)"  % (self.name, mn)
@@ -1250,8 +1460,72 @@ class HasRounds(GenericHandler):
             else:
                 raise ValueError(msg)
 
+        # check desired bounds
+        # (if use_defaults=False, assume we're being called from .verify(),
+        # and don't need to issue warning)
+        if self.use_defaults:
+            # XXX: combine this with _clip_to_desired_rounds()?
+            mnd = self.min_desired_rounds
+            if mnd and rounds < mnd:
+                warn("rounds below desired minimum (%d): %d" % (mnd, rounds),
+                     exc.PasslibConfigWarning)
+                # XXX: remove clipping behavior, and use undesired value if requested to?
+                rounds = mnd
+
+            mxd = self.max_desired_rounds
+            if mxd and rounds > mxd:
+                warn("rounds above desired maximum (%d): %d" % (mxd, rounds),
+                     exc.PasslibConfigWarning)
+                rounds = mxd
+
         return rounds
 
+    def _generate_rounds(self):
+        """
+        internal helper for :meth:`_norm_rounds` --
+        returns default rounds value, incorporating vary_rounds,
+        and any other limitations hash may place on rounds parameter.
+        """
+        # load default rounds
+        rounds = self.default_rounds
+        if rounds is None:
+            raise TypeError("%s rounds value must be specified explicitly" % (self.name,))
+
+        # randomly vary the rounds slightly basic on vary_rounds parameter.
+        # reads default_rounds internally.
+        if self.vary_rounds:
+            lower, upper = self._calc_vary_rounds_range(rounds)
+            assert lower <= rounds <= upper
+            if lower < upper:
+                rounds = rng.randint(lower, upper)
+
+        # hack for bsdi_crypt - want to avoid even-valued rounds
+        # NOTE: this technically might generate a rounds value 1 larger
+        # than the requested upper bound - but better to err on side of safety.
+        # TODO: could move this to bsdi_crypt class once _generate_rounds() is finalized.
+        if getattr(self, "_avoid_even_rounds", False):
+            rounds |= 1
+
+        return rounds
+
+    #===================================================================
+    # migration interface
+    #===================================================================
+    def _calc_needs_update(self, **kwds):
+        """
+        mark hash as needing update if rounds is outside desired bounds.
+        """
+        min_desired_rounds = self.min_desired_rounds
+        if min_desired_rounds and self.rounds < min_desired_rounds:
+            return True
+        max_desired_rounds = self.max_desired_rounds
+        if max_desired_rounds and self.rounds > max_desired_rounds:
+            return True
+        return super(HasRounds, self)._calc_needs_update(**kwds)
+
+    #===================================================================
+    # experimental methods
+    #===================================================================
     @classmethod
     def bitsize(cls, rounds=None, vary_rounds=.1, **kwds):
         """[experimental method] return info about bitsizes of hash"""
