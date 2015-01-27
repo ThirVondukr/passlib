@@ -1455,11 +1455,16 @@ class HasRounds(GenericHandler):
             normalized rounds value
         """
         # fill in default
+        explicit = False
         if rounds is None:
             if not self.use_defaults:
                 raise TypeError("no rounds specified")
             rounds = self._generate_rounds() # NOTE: will throw ValueError if default not set
             assert isinstance(rounds, int_types)
+        elif self.use_defaults:
+            # if rounds is present, was explicitly provided by caller;
+            # whereas if use_defaults=False, we got here from verify() / genhash()
+            explicit = True
 
         # check type
         if not isinstance(rounds, int_types):
@@ -1485,10 +1490,8 @@ class HasRounds(GenericHandler):
             else:
                 raise ValueError(msg)
 
-        # check desired bounds
-        # (if use_defaults=False, assume we're being called from .verify(),
-        # and don't need to issue warning)
-        if self.use_defaults:
+        # if rounds explicitly specified, warn if outside desired bounds
+        if explicit:
             # XXX: combine this with _clip_to_desired_rounds()?
             mnd = self.min_desired_rounds
             if mnd and rounds < mnd:
