@@ -4,6 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
+import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
@@ -577,7 +578,8 @@ class _CryptRecord(object):
     #===================================================================
 
     # informational attrs
-    handler = None # handler instance this is wrapping
+    handler = None # base handler instance this is based off of
+    custom_handler = None # handler instance configured w/ appropriate settings
     category = None # user category this applies to
     deprecated = False # set if handler itself has been deprecated in config
 
@@ -587,7 +589,10 @@ class _CryptRecord(object):
     # needs_update() attrs
     _needs_update = None # optional callable provided by handler
 
-    # cloned directly from handler, not affected by config options.
+    # cloned from custom_handler.
+    genconfig = None
+    encrypt = None
+    verify = None
     identify = None
     genhash = None
 
@@ -598,27 +603,44 @@ class _CryptRecord(object):
                  min_rounds=None, max_rounds=None, default_rounds=None,
                  vary_rounds=None,
                  **settings):
-        # store basic bits
-        self.handler = handler
+
+        # create customized handler
         if 'rounds' in handler.setting_kwds and (max_rounds or min_rounds or
                                                  default_rounds or vary_rounds):
-            custom_handler = handler.using(
+            settings.update(
                 max_rounds=max_rounds,
                 min_rounds=min_rounds,
                 default_rounds=default_rounds,
                 vary_rounds=vary_rounds)
+
+        if settings:
+            try:
+                custom_handler = handler.using(**settings)
+            except TypeError as err:
+                m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
+                if m and m.group(1) in settings:
+                    # translate into KeyError, for backwards compat.
+                    # XXX: push this down to GenericHandler.using() implementation?
+                    key = m.group(1)
+                    raise KeyError("keyword not supported by %s handler: %r" %
+                                   (handler.name, key))
+                raise
         else:
             custom_handler = handler
+
+        # store basic bits
+        self.handler = handler
         self.custom_handler = custom_handler
         self.category = category
         self.deprecated = deprecated
         self.settings = settings
 
         # init wrappers for handler methods we modify args to
-        self._init_encrypt_and_genconfig()
         self._init_needs_update()
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
+        self.genconfig = custom_handler.genconfig
+        self.encrypt = custom_handler.encrypt
         self.verify = custom_handler.verify
         self.identify = custom_handler.identify
         self.genhash = custom_handler.genhash
@@ -642,48 +664,6 @@ class _CryptRecord(object):
 
     def __repr__(self): # pragma: no cover -- debugging
         return "<_CryptRecord 0x%x for %s>" % (id(self), self._errprefix)
-
-    #===================================================================
-    # encrypt() / genconfig()
-    #===================================================================
-    def _init_encrypt_and_genconfig(self):
-        """initialize genconfig/encrypt wrapper methods"""
-        settings = self.settings
-        handler = self.custom_handler
-
-        # check no invalid settings are being set
-        keys = handler.setting_kwds
-        for key in settings:
-            if key not in keys:
-                raise KeyError("keyword not supported by %s handler: %r" %
-                               (handler.name, key))
-
-        # if _prepare_settings() has nothing to do, bypass our wrappers
-        # with reference to original methods.
-        if not settings:
-            self.genconfig = handler.genconfig
-            self.encrypt = handler.encrypt
-
-    def genconfig(self, **kwds):
-        """wrapper for handler.genconfig() which adds custom settings/rounds"""
-        self._prepare_settings(kwds)
-        return self.handler.genconfig(**kwds)
-
-    def encrypt(self, secret, **kwds):
-        """wrapper for handler.encrypt() which adds custom settings/rounds"""
-        self._prepare_settings(kwds)
-        return self.handler.encrypt(secret, **kwds)
-
-    def _prepare_settings(self, kwds):
-        """add default values to settings for encrypt & genconfig"""
-        # load in default values for any settings
-        if kwds:
-            for k,v in iteritems(self.settings):
-                if k not in kwds:
-                    kwds[k] = v
-        else:
-            # faster, and the common case
-            kwds.update(self.settings)
 
     #===================================================================
     # needs_update()

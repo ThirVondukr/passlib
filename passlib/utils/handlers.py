@@ -855,6 +855,10 @@ class HasManyIdents(GenericHandler):
     .. todo::
 
         document this class's usage
+
+    Class Methods
+    =============
+    .. todo:: document using() and needs_update() options
     """
 
     #===================================================================
@@ -874,6 +878,27 @@ class HasManyIdents(GenericHandler):
     # instance attrs
     #===================================================================
     ident = None
+
+    #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, # keyword only...
+              default_ident=None, **kwds):
+        # check for aliases used by CryptContext
+        if 'ident' in kwds:
+            assert default_ident is None
+            default_ident = kwds.pop("ident")
+
+        # create subclasss
+        subcls = super(HasManyIdents, cls).using(**kwds)
+        assert issubclass(subcls, cls)
+
+        # add custom default ident
+        if default_ident is not None:
+            # hack to let us call _norm_ident() even though it's an instance method
+            subcls.default_ident = cls(use_defaults=True)._norm_ident(default_ident)
+        return subcls
 
     #===================================================================
     # init
