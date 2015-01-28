@@ -15,7 +15,7 @@ from passlib.utils import handlers as uh, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
 from passlib.utils.compat import iteritems, num_types, \
                                  PY2, PY3, unicode, SafeConfigParser, \
-                                 NativeStringIO, BytesIO, unicode_or_bytes_types
+                                 NativeStringIO, BytesIO, unicode_or_bytes_types, native_string_types
 # local
 __all__ = [
     'CryptContext',
@@ -717,7 +717,7 @@ class _CryptConfig(object):
         """initialize .handlers and .schemes attributes"""
         handlers  = []
         schemes = []
-        if isinstance(data, str):
+        if isinstance(data, native_string_types):
             data = splitcomma(data)
         for elem in data or ():
             # resolve elem -> handler & scheme
@@ -725,7 +725,7 @@ class _CryptConfig(object):
                 handler = elem
                 scheme = handler.name
                 _validate_handler_name(scheme)
-            elif isinstance(elem, str):
+            elif isinstance(elem, native_string_types):
                 handler = get_crypt_handler(elem)
                 scheme = handler.name
             else:
@@ -815,7 +815,7 @@ class _CryptConfig(object):
             raise KeyError("%r option not allowed in CryptContext "
                            "configuration" % (key,))
         # coerce strings for certain fields (e.g. min_rounds uses ints)
-        if isinstance(value, str):
+        if isinstance(value, native_string_types):
             func = _coerce_scheme_options.get(key)
             if func:
                 value = func(value)
@@ -826,12 +826,12 @@ class _CryptConfig(object):
         if key == "default":
             if hasattr(value, "name"):
                 value = value.name
-            elif not isinstance(value, str):
+            elif not isinstance(value, native_string_types):
                 raise ExpectedTypeError(value, "str", "default")
             if schemes and value not in schemes:
                 raise KeyError("default scheme not found in policy")
         elif key == "deprecated":
-            if isinstance(value, str):
+            if isinstance(value, native_string_types):
                 value = splitcomma(value)
             elif not isinstance(value, (list,tuple)):
                 raise ExpectedTypeError(value, "str or seq", "deprecated")
@@ -842,7 +842,7 @@ class _CryptConfig(object):
             elif schemes:
                 # make sure list of deprecated schemes is subset of configured schemes
                 for scheme in value:
-                    if not isinstance(scheme, str):
+                    if not isinstance(scheme, native_string_types):
                         raise ExpectedTypeError(value, "str", "deprecated element")
                     if scheme not in schemes:
                         raise KeyError("deprecated scheme not found "
@@ -1595,7 +1595,7 @@ class CryptContext(object):
     def _parse_config_key(ckey):
         """helper used to parse ``cat__scheme__option`` keys into a tuple"""
         # split string into 1-3 parts
-        assert isinstance(ckey, str)
+        assert isinstance(ckey, native_string_types)
         parts = ckey.replace(".", "__").split("__")
         count = len(parts)
         if count == 1:
@@ -1826,7 +1826,7 @@ class CryptContext(object):
             else:
                 value = str(value)
 
-        assert isinstance(value, str), \
+        assert isinstance(value, native_string_types), \
                "expected string for key: %r %r" % (key, value)
 
         # escape any percent signs.

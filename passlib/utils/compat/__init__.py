@@ -93,6 +93,7 @@ if PY3:
         return s
 
     unicode_or_bytes_types = (unicode, bytes)
+    native_string_types = (unicode,)
 
 else:
     unicode = builtins.unicode
@@ -102,6 +103,7 @@ else:
         return s.decode("unicode_escape")
 
     unicode_or_bytes_types = (basestring,)
+    native_string_types = (basestring,)
 
 #=============================================================================
 # unicode & bytes helpers

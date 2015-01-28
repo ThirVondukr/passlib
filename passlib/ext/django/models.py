@@ -150,11 +150,16 @@ def _apply_patch():
             scheme = hasher_to_passlib_name(hasher)
         kwds = dict(scheme=scheme)
         handler = password_context.handler(scheme)
-        # NOTE: django make specify an empty string for the salt,
-        #       even if scheme doesn't accept a salt. we omit keyword
-        #       in that case.
-        if salt is not None and (salt or 'salt' in handler.setting_kwds):
-            kwds['salt'] = salt
+        if "salt" in handler.setting_kwds:
+            if hasher.startswith("unsalted_"):
+                # Django 1.4.6+ uses a separate 'unsalted_sha1' hasher for "sha1$$digest",
+                # but passlib just reuses it's "sha1" handler ("sha1$salt$digest"). To make
+                # this work, have to explicitly tell the sha1 handler to use an empty salt.
+                kwds['salt'] = ''
+            elif salt:
+                # Django make_password() autogenerates a salt if salt is bool False (None / ''),
+                # so we only pass the keyword on if there's actually a fixed salt.
+                kwds['salt'] = salt
         return password_context.encrypt(password, **kwds)
 
     @_manager.monkeypatch(HASHERS_PATH)

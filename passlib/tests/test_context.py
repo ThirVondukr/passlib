@@ -196,6 +196,10 @@ sha512_crypt__min_rounds = 45000
         ctx = CryptContext(**self.sample_3_dict)
         self.assertEqual(ctx.to_dict(), self.sample_3_dict)
 
+        # test unicode scheme names (issue 54)
+        ctx = CryptContext(schemes=[u("sha256_crypt")])
+        self.assertEqual(ctx.schemes(), ("sha256_crypt",))
+
     def test_02_from_string(self):
         """test from_string() constructor"""
         # test sample 1 unicode
