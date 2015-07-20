@@ -54,6 +54,15 @@ class HtpasswdFileTest(TestCase):
 
     sample_dup = b('user1:pass1\nuser1:pass2\n')
 
+    # sample with bcrypt & sha256_crypt hashes
+    sample_05 = b('user2:2CHkkwa2AtqGs\n'
+                  'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n'
+                  'user4:pass4\n'
+                  'user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n'
+                  'user5:$2a$12$yktDxraxijBZ360orOyCOePFGhuis/umyPNJoL5EbsLk.s6SWdrRO\n'
+                  'user6:$5$rounds=110000$cCRp/xUUGVgwR4aP$'
+                      'p0.QKFS5qLNRqw1/47lXYiAcgIjJK.WjCO8nrEKuUK.\n')
+
     def test_00_constructor_autoload(self):
         """test constructor autoload"""
         # check with existing file
@@ -156,6 +165,27 @@ class HtpasswdFileTest(TestCase):
         ht.set_password("user1", "pass2")
         self.assertEqual(get_file(path), b("user1:pass2\n"))
 
+    def test_02_set_password_default_scheme(self):
+        """test set_password() -- default_scheme"""
+
+        def check(scheme):
+            ht = apache.HtpasswdFile(default_scheme=scheme)
+            ht.set_password("user1", "pass1")
+            return ht.context.identify(ht.get_hash("user1"))
+
+        # explicit scheme
+        self.assertEqual(check("sha256_crypt"), "sha256_crypt")
+        self.assertEqual(check("des_crypt"), "des_crypt")
+
+        # unknown scheme
+        self.assertRaises(KeyError, check, "xxx")
+
+        # portable alias
+        self.assertEqual(check("portable"), apache.portable_scheme)
+
+        # default -- currently same as portable, will be host-specific under passlib 1.7.
+        self.assertEqual(check(None), "apr_md5_crypt")
+
     def test_03_users(self):
         """test users()"""
         ht = apache.HtpasswdFile.from_string(self.sample_01)
@@ -167,13 +197,16 @@ class HtpasswdFileTest(TestCase):
 
     def test_04_check_password(self):
         """test check_password()"""
-        ht = apache.HtpasswdFile.from_string(self.sample_01)
-        self.assertRaises(TypeError, ht.check_password, 1, 'pass5')
-        self.assertTrue(ht.check_password("user5","pass5") is None)
-        for i in irange(1,5):
+        ht = apache.HtpasswdFile.from_string(self.sample_05)
+        self.assertRaises(TypeError, ht.check_password, 1, 'pass9')
+        self.assertTrue(ht.check_password("user9","pass9") is None)
+
+        # users 1..6 of sample_01 run through all the main hash formats,
+        # to make sure they're recognized.
+        for i in irange(1, 7):
             i = str(i)
             self.assertTrue(ht.check_password("user"+i, "pass"+i))
-            self.assertTrue(ht.check_password("user"+i, "pass5") is False)
+            self.assertTrue(ht.check_password("user"+i, "pass9") is False)
 
         self.assertRaises(ValueError, ht.check_password, "user:", "pass")
 

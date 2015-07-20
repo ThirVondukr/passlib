@@ -370,18 +370,38 @@ class _CommonFile(object):
 # htpasswd editing
 #=============================================================================
 
-# FIXME: apr_md5_crypt technically the default only for windows, netware and tpf.
-# TODO: find out if htpasswd's "crypt" mode is a crypt() *call* or just des_crypt implementation.
-#       if the former, we can support anything supported by passlib.hosts.host_context,
-#       allowing more secure hashes than apr_md5_crypt to be used.
-#       could perhaps add this behavior as an option to the constructor.
+#: default CryptContext used by HtpasswdFile
+# TODO: update this to support everything in host_context (where available),
+#       and note in the documentation that the default is no longer guaranteed to be portable
+#       across platforms.
 #       c.f. http://httpd.apache.org/docs/2.2/programs/htpasswd.html
 htpasswd_context = CryptContext([
-    "apr_md5_crypt", # man page notes supported everywhere, default on Windows, Netware, TPF
-    "des_crypt", # man page notes server does NOT support this on Windows, Netware, TPF
-    "ldap_sha1", # man page notes only for transitioning <-> ldap
-    "plaintext" # man page notes server ONLY supports this on Windows, Netware, TPF
+    # man page notes supported everywhere; is default on Windows, Netware, TPF
+    "apr_md5_crypt",
+
+    # [added in passlib 1.6.3]
+    # apache requires host crypt() support; but can generate natively
+    # (as of https://bz.apache.org/bugzilla/show_bug.cgi?id=49288)
+    "bcrypt",
+
+    # [added in passlib 1.6.3]
+    # apache requires host crypt() support; and can't generate natively
+    "sha256_crypt",
+    "sha512_crypt",
+
+    # man page notes apache does NOT support this on Windows, Netware, TPF
+    "des_crypt",
+
+    # man page notes intended only for transitioning htpasswd <-> ldap
+    "ldap_sha1",
+
+    # man page notes apache ONLY supports this on Windows, Netware, TPF
+    "plaintext"
     ])
+
+#: scheme that will be used when 'portable' is requested.
+portable_scheme = "apr_md5_crypt"
+
 
 class HtpasswdFile(_CommonFile):
     """class for reading & writing Htpasswd files.
@@ -444,12 +464,22 @@ class HtpasswdFile(_CommonFile):
     :type default_scheme: str
     :param default_scheme:
         Optionally specify default scheme to use when encoding new passwords.
-        Must be one of ``"apr_md5_crypt"``, ``"des_crypt"``, ``"ldap_sha1"``,
-        ``"plaintext"``. It defaults to ``"apr_md5_crypt"``.
+        May be any of ``"bcrypt"``, ``"sha256_crypt"``, ``"apr_md5_crypt"``, ``"des_crypt"``,
+        ``"ldap_sha1"``, ``"plaintext"``. It defaults to ``"apr_md5_crypt"``.
+
+        .. note::
+
+            Some hashes are only supported by apache / htpasswd on certain operating systems
+            (e.g. bcrypt on BSD, sha256_crypt on linux).  To get the strongest
+            hash that's still portable, applications can specify ``default_scheme="portable"``.
 
         .. versionadded:: 1.6
             This keyword was previously named ``default``. That alias
             has been deprecated, and will be removed in Passlib 1.8.
+
+        .. versionchanged:: 1.6.3
+
+            Added support for ``"bcrypt"``, ``"sha256_crypt"``, and ``"portable"``.
 
     :type context: :class:`~passlib.context.CryptContext`
     :param context:
@@ -546,6 +576,8 @@ class HtpasswdFile(_CommonFile):
                  DeprecationWarning, stacklevel=2)
             default_scheme = kwds.pop("default")
         if default_scheme:
+            if default_scheme == "portable":
+                default_scheme = portable_scheme
             context = context.copy(default=default_scheme)
         self.context = context
         super(HtpasswdFile, self).__init__(path, **kwds)
