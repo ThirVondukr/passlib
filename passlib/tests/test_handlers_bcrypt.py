@@ -179,13 +179,13 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_bcrypt(self):
         # test against bcrypt, if available
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y
+        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, _detect_pybcrypt
         from passlib.utils import to_native_str, to_bytes
         try:
             import bcrypt
         except ImportError:
             return
-        if not hasattr(bcrypt, "_ffi"):
+        if _detect_pybcrypt():
             return
         def check_bcrypt(secret, hash):
             """bcrypt"""
@@ -208,13 +208,13 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_pybcrypt(self):
         # test against py-bcrypt, if available
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y
+        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, _detect_pybcrypt
         from passlib.utils import to_native_str
         try:
             import bcrypt
         except ImportError:
             return
-        if hasattr(bcrypt, "_ffi"):
+        if not _detect_pybcrypt():
             return
         def check_pybcrypt(secret, hash):
             """pybcrypt"""

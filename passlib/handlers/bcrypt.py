@@ -55,6 +55,40 @@ IDENT_2X = u("$2x$")
 IDENT_2Y = u("$2y$")
 _BNULL = b('\x00')
 
+def _detect_pybcrypt():
+    """
+    internal helper which tries to distinguish pybcrypt vs bcrypt.
+
+    :returns:
+        True if cext-based py-bcrypt,
+        False if ffi-based bcrypt,
+        None if 'bcrypt' module not found.
+
+    .. versionchanged:: 1.7
+
+        Now assuming bcrypt installed, unless py-bcrypt explicitly detected.
+        Previous releases assumed py-bcrypt by default.
+
+        Making this change since py-bcrypt is (apparently) unmaintained and static,
+        whereas bcrypt is being actively maintained, and it's internal structure may shift.
+    """
+    # NOTE: this is also used by the unittests.
+
+    # check for module.
+    try:
+        import bcrypt
+    except ImportError:
+        return None
+
+    # py-bcrypt has a "._bcrypt.__version__" attribute (confirmed for v0.1 - 0.4),
+    # which bcrypt lacks (confirmed for v1.0 - 2.0)
+    # "._bcrypt" alone isn't sufficient, since bcrypt 2.0 now has that attribute.
+    try:
+        from bcrypt._bcrypt import __version__
+    except ImportError:
+        return False
+    return True
+
 #=============================================================================
 # handler
 #=============================================================================
@@ -243,11 +277,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     @classproperty
     def _has_backend_bcrypt(cls):
-        return _bcrypt is not None and hasattr(_bcrypt, "_ffi")
+        return _bcrypt is not None and not _detect_pybcrypt()
 
     @classproperty
     def _has_backend_pybcrypt(cls):
-        return _bcrypt is not None and not hasattr(_bcrypt, "_ffi")
+        return _bcrypt is not None and _detect_pybcrypt()
 
     @classproperty
     def _has_backend_bcryptor(cls):
