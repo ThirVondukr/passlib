@@ -330,9 +330,9 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 # backends without support will throw various errors about unrecognized version
                 # pybcrypt, bcrypt -- raises ValueError
                 # bcryptor -- raises bcryptor.engine.SaltError
-                log.debug("%s backend lacks %s support", backend, ident)
+                log.debug("%r backend lacks %r support", backend, ident)
                 return True
-            assert result, "passlib %r backend %s check failed" % (backend, ident)
+            assert result, "%r backend %r check failed" % (backend, ident)
             return False
 
         # check for native 2 support

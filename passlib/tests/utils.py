@@ -1462,8 +1462,20 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, {})
         return not is_ascii_safe(secret)
 
+    def expect_os_crypt_failure(self, secret):
+        """
+        check if we're expecting potential verify failure due to crypt.crypt() encoding limitation
+        """
+        if PY3 and self.backend == "os_crypt" and isinstance(secret, bytes):
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                return True
+        return False
+
     def test_70_hashes(self):
         """test known hashes"""
+
         # sanity check
         self.assertTrue(self.known_correct_hashes or self.known_correct_configs,
                         "test must set at least one of 'known_correct_hashes' "
@@ -1479,17 +1491,25 @@ class HandlerCase(TestCase):
             self.assertTrue(self.do_identify(hash),
                 "identify() failed to identify hash: %r" % (hash,))
 
-            # secret should verify successfully against hash
-            self.check_verify(secret, hash, "verify() of known hash failed: "
-                              "secret=%r, hash=%r" % (secret, hash))
+            # check if what we're about to do is expected to fail due to crypt.crypt() limitation.
+            expect_os_crypt_failure = self.expect_os_crypt_failure(secret)
+            try:
 
-            # genhash() should reproduce same hash
-            result = self.do_genhash(secret, hash)
-            self.assertIsInstance(result, str,
-                "genhash() failed to return native string: %r" % (result,))
-            self.assertEqual(result, hash,  "genhash() failed to reproduce "
-                "known hash: secret=%r, hash=%r: result=%r" %
-                (secret, hash, result))
+                # secret should verify successfully against hash
+                self.check_verify(secret, hash, "verify() of known hash failed: "
+                                  "secret=%r, hash=%r" % (secret, hash))
+
+                # genhash() should reproduce same hash
+                result = self.do_genhash(secret, hash)
+                self.assertIsInstance(result, str,
+                    "genhash() failed to return native string: %r" % (result,))
+                self.assertEqual(result, hash,  "genhash() failed to reproduce "
+                    "known hash: secret=%r, hash=%r: result=%r" %
+                    (secret, hash, result))
+
+            except MissingBackendError:
+                if not expect_os_crypt_failure:
+                    raise
 
         # would really like all handlers to have at least one 8-bit test vector
         if not saw8bit:
