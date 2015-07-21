@@ -142,7 +142,12 @@ def is_default_backend(handler, backend):
         handler.set_backend(orig)
 
 class temporary_backend(object):
-    """temporarily set handler to specific backend"""
+    """
+    temporarily set handler to specific backend
+    """
+
+    _orig = None
+
     def __init__(self, handler, backend=None):
         self.handler = handler
         self.backend = backend
@@ -769,10 +774,14 @@ class HandlerCase(TestCase):
             yield subcls
 
     @classmethod
-    def find_crypt_replacement(cls):
+    def find_crypt_replacement(cls, fallback=False):
         """find other backend which can be used to mock the os_crypt backend"""
         handler = cls.handler
-        for name in handler.backends:
+        if fallback:
+            idx = handler.backends.index("os_crypt") + 1
+        else:
+            idx = 0
+        for name in handler.backends[idx:]:
             if name != "os_crypt" and handler.has_backend(name):
                 return name
         return None
@@ -1975,12 +1984,23 @@ class OsCryptMixin(HandlerCase):
         alt_backend = self.find_crypt_replacement()
         if not alt_backend:
             raise AssertionError("handler has no available backends!")
+
+        # create subclass of handler, which we swap to an alternate backend.
+        # NOTE: not switching original class's backend, since classes like bcrypt
+        #       run some checks when backend is set, that can cause recursion error
+        #       when orig backend is restored.
+        alt_handler = type('%s_%s_wrapper' % (handler.name, alt_backend), (handler,), {})
+        alt_handler._backend = None  # ensure full backend load into subclass
+        alt_handler.set_backend(alt_backend)
+
         import passlib.utils as mod
+
         def crypt_stub(secret, hash):
-            with temporary_backend(handler, alt_backend):
-                hash = handler.genhash(secret, hash)
+            # with temporary_backend(alt_handler, alt_backend):
+            hash = alt_handler.genhash(secret, hash)
             assert isinstance(hash, str)
             return hash
+
         self.addCleanup(setattr, mod, "_crypt", mod._crypt)
         mod._crypt = crypt_stub
         self.using_patched_crypt = True
@@ -2022,7 +2042,7 @@ class OsCryptMixin(HandlerCase):
         # set safe_crypt to return None
         setter = self._use_mock_crypt()
         setter(None)
-        if self.find_crypt_replacement():
+        if self.find_crypt_replacement(fallback=True):
             # handler should have a fallback to use
             h1 = self.do_encrypt("stub")
             h2 = self.do_genhash("stub", h1)

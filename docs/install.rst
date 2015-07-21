@@ -31,8 +31,8 @@ Google App Engine is supported as well.
 
 Optional Libraries
 ==================
-* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ or
-  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_ or
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ (preferred), or
+  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
    If any of these packages are installed, they will be used to provide

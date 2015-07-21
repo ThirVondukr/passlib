@@ -11,6 +11,7 @@ import time
 # site
 # pkg
 from passlib import apache
+from passlib.exc import MissingBackendError
 from passlib.utils.compat import irange, unicode
 from passlib.tests.utils import TestCase, get_file, set_file, catch_warnings, ensure_mtime_changed
 from passlib.utils.compat import b, bytes, u
@@ -205,8 +206,14 @@ class HtpasswdFileTest(TestCase):
         # to make sure they're recognized.
         for i in irange(1, 7):
             i = str(i)
-            self.assertTrue(ht.check_password("user"+i, "pass"+i))
-            self.assertTrue(ht.check_password("user"+i, "pass9") is False)
+            try:
+                self.assertTrue(ht.check_password("user"+i, "pass"+i))
+                self.assertTrue(ht.check_password("user"+i, "pass9") is False)
+            except MissingBackendError:
+                if i == "5":
+                    # user5 uses bcrypt, which is apparently not available right now
+                    continue
+                raise
 
         self.assertRaises(ValueError, ht.check_password, "user:", "pass")
 

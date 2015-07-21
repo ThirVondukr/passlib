@@ -32,7 +32,6 @@ for new applications. This class can be used directly as follows::
 
     It is strongly recommended that you install
     `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
-    or `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_
     when using this hash.
 
 .. seealso:: the generic :ref:`PasswordHash usage examples <password-hash-examples>`
@@ -46,23 +45,30 @@ Interface
 .. index::
     pair: environmental variable; PASSLIB_BUILTIN_BCRYPT
 
-.. note::
+Bcrypt Backends
+---------------
 
-    This class will use the first available of five possible backends:
+This class will use the first available of five possible backends:
 
-    1. `bcrypt <https://pypi.python.org/pypi/bcrypt>`_, if installed.
-    2. `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, if installed.
-    3. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
-    4. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
-       (primarily BSD-derived systems).
-    5. A pure-python implementation of BCrypt, built into Passlib.
+1. `bcrypt <https://pypi.python.org/pypi/bcrypt>`_, if installed.
+2. `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, if installed.
+3. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
+4. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
+   (primarily BSD-derived systems).
+5. A pure-python implementation of BCrypt, built into Passlib.
 
-    If no backends are available, :meth:`encrypt` and :meth:`verify`
-    will throw :exc:`~passlib.exc.MissingBackendError` when they are invoked.
-    You can check which backend is in use by calling :meth:`!bcrypt.get_backend()`.
+If no backends are available, :meth:`encrypt` and :meth:`verify`
+will throw :exc:`~passlib.exc.MissingBackendError` when they are invoked.
+You can check which backend is in use by calling :meth:`!bcrypt.get_backend()`.
+
+As of Passlib 1.6.3, a one-time check is peformed when the backend is first loaded,
+to detect the backend's capabilities & bugs.  If this check detects a fatal bug,
+a :exc:`~passlib.exc.PasslibSecurityError` will be raised.  This generally means
+you need to upgrade the external package being used as the backend
+(this will be detailed in the error message).
 
 .. warning::
-    The pure-python backend (#5) is disabled by default!
+    *The pure-python backend (#5) is disabled by default!*
 
     That backend is currently too slow to be usable given the number of rounds required
     for security. That said, if you have no other alternative and need to use it,
@@ -70,7 +76,7 @@ Interface
     before importing Passlib.
 
     What's "too slow"? Passlib's :ref:`rounds selection guidelines <rounds-selection-guidelines>`
-    currently require BCrypt be able to do >= 12 cost in <= 300ms. By this standard
+    currently require BCrypt be able to do at least 12 cost in under 300ms. By this standard
     the pure-python backend is 128x too slow under CPython 2.7, and 16x too slow under PyPy 1.8.
     (speedups are welcome!)
 
@@ -171,6 +177,37 @@ This implementation of bcrypt differs from others in a few ways:
   does not support this algorithmic variant either, though it should
   be *very* rarely encountered in practice.
 
+  .. versionchanged:: 1.6.3
+
+        Passlib will now detect, and refuse to use, any backend which is vulnerable
+        to this bug.
+
+* The 'BSD wraparound' bug
+
+  .. _bsd-wraparound-bug:
+
+  OpenBSD <= 5.4, and most bcrypt libraries derived from it's source,
+  are vulnerable to a 'wraparound' bug [#wraparound]_, where passwords larger
+  than 254 characters will be incorrectly hashed using only the first few
+  characters of the string, resulting in a severely weakened hash.
+
+  OpenBSD 5.5 `fixed <http://undeadly.org/cgi?action=article&sid=20140224132743>`_ this flaw,
+  and introduced the ``$2b$`` hash identifier to indicate the hash was generated with the correct
+  algorithm.
+
+  py-bcrypt <= 0.4 is known to be vulnerable to this, as well as the os_crypt
+  backend (if running on a vulnerable operating system).
+
+  Passlib 1.6.3 adds the following:
+
+  * Support for the ``$2b$`` hash format (though for backward compat it has not been made
+    the default yet).
+
+  * Detects if the active backend is vulnerable to the bug, issues a warning,
+    and enables a workaround so that vulnerable passwords will still be hashed correctly.
+    (This does mean that existing hashes suffering this vulnerability will no longer verify
+    using their correct password).
+
 .. rubric:: Footnotes
 
 .. [#f1] the bcrypt format specification -
@@ -181,3 +218,6 @@ This implementation of bcrypt differs from others in a few ways:
 
 .. [#eight] The flaw in pre-1.1 crypt_blowfish is described here -
             `CVE-2011-2483 <http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2011-2483>`_
+
+.. [#wraparound] The wraparound flaw is described here -
+            `<http://www.openwall.com/lists/oss-security/2012/01/02/4>`_

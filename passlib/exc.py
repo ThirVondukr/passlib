@@ -39,6 +39,15 @@ class PasswordSizeError(ValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
+
+class PasslibSecurityError(RuntimeError):
+    """
+    Error raised if critical security issue is detected
+    (e.g. an attempt is made to use a vulnerable version of a bcrypt backend).
+
+    .. versionadded:: 1.6.3
+    """
+
 #=============================================================================
 # warnings
 #=============================================================================
