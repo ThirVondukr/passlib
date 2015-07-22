@@ -1,5 +1,7 @@
 .. -*- restructuredtext -*-
 
+.. _whats-new:
+
 ===============
 Release History
 ===============
@@ -30,43 +32,42 @@ Bugfixes
 --------
 
     * Correctly detect bcrypt 2.0.  Previous releases were incorrectly detecting it as py-bcrypt,
-      causing subsequent errors (:issue:`56`).
+      causing spurious errors (:issue:`56`).
 
     * CryptContext now accepts scheme names as unicode (:issue:`54`).
 
     * :mod:`passlib.ext.django` now works correctly with Django 1.7-1.8. Previous
-      releases had various test failures (:issue:`52`). Passlib 1.7 will drop support
-      for Django 1.5 and older.
+      releases had various test failures (:issue:`52`).
 
     * :class:`passlib.apache.HtpasswdFile` now recognizes bcrypt, sha256_crypt, sha512_crypt
-      hashes (:issue:`55`).  Further changes will be made in Passlib 1.7.
+      hashes (:issue:`55`).
 
 BCrypt Changes
 --------------
 
-    A few changes have been made to :class:`~passlib.hash.bcrypt`:
+    A few changes have been made to the :class:`~passlib.hash.bcrypt` hash:
 
-    * The :class:`!bcrypt` hash now supports the ``$2b$`` hash format.
+    * It now supports the ``$2b$`` hash format.
 
     * It will now issue a :exc:`~passlib.exc.PasslibSecurityWarning` if the active backend
       is vulnerable to the :ref:`wraparound bug <bsd-wraparound-bug>`,
       and automatically enable a workaround (py-bcrypt is known to be vulnerable as of v0.4).
 
     * It will throw a :exc:`~passlib.exc.PasslibSecurityError` if the active backend
-      is vulnerable to the :ref:`8-bit bug <crypt-blowfish-bug>` (none of passlib's
-      backends are known to be vulnerable).
+      is vulnerable to the :ref:`8-bit bug <crypt-blowfish-bug>` (none of Passlib's
+      backends are known to be vulnerable as of 2015-07).
 
-    * Updated documentation to indicate the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+    * Updated documentation to indicate the cffi-based `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
       library is now the recommended bcrypt backend.
 
-    * Internal refactorings so that backend bug & capabilities detection is more flexible
-      and rugged.
+    * Backend capability detection code refactored to rely on runtime detection
+      rather than hardcoded information.
 
 Other Changes
 -------------
 
-    * Source repo's tox.ini updated.  Now assumes python3 by default, and refactored environments
-      to more cleanly delineate the different setups being tested.
+    * Source repo's ``tox.ini`` updated.  Now assumes python3 by default, and refactored test
+      environments to more cleanly delineate the different setups being tested.
 
     * Passlib releases are now published as wheels instead of eggs.
 
@@ -121,8 +122,6 @@ Other Changes
     * *bugfix:* Fixed minor bug in :mod:`!passlib.registry`, should now work correctly under Python 3.3.
 
     * Various documentation updates and corrections.
-
-.. _whats-new:
 
 **1.6** (2012-05-01)
 ====================

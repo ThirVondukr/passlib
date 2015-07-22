@@ -164,13 +164,11 @@ html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
     html_theme_options.update(roottarget=index_doc,
                               issueicon=None,
-                              lighter_decor=True,
-#                              borderless_decor=True,
-                              inline_admonitions=False,
+                              # lighter_decor=True,
+                              borderless_decor=True,
                               sidebar_localtoc_title="Page contents",
-                              sidebarwidth="280px",
-                              max_width="11.5in",
-                              compact_width="11.5in",
+                              max_width="12in",
+                              hyphenation_language="en",
                               )
     if 'for-pypi' in options:
         html_theme_options.update(

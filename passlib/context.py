@@ -2629,7 +2629,7 @@ class LazyCryptContext(CryptContext):
     """CryptContext subclass which doesn't load handlers until needed.
 
     This is a subclass of CryptContext which takes in a set of arguments
-    exactly like CryptContext, but won't load any handlers
+    exactly like CryptContext, but won't import any handlers
     (or even parse its arguments) until
     the first time one of its methods is accessed.
 
@@ -2667,6 +2667,12 @@ class LazyCryptContext(CryptContext):
     As well, it allows constructing a context at *module-init* time,
     but using :func:`!onload()` to provide dynamic configuration
     at *application-run* time.
+
+    .. note:: 
+        This class is only useful if you're referencing handler objects by name,
+        and don't want them imported until runtime. If you want to have the config
+        validated before your application runs, or are passing in already-imported
+        handler instances, you should use :class:`CryptContext` instead.
 
     .. versionadded:: 1.4
     """

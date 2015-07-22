@@ -35,7 +35,7 @@ Content Summary
 
 .. rst-class:: floater
 
-.. seealso:: :ref:`What's new in Passlib 1.6 <whats-new>`
+.. seealso:: :ref:`What's new in Passlib 1.6.3 <whats-new>`
 
 Introductory Materials
 ----------------------
