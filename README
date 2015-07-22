@@ -17,8 +17,9 @@ The latest documentation can be found online at `<http://packages.python.org/pas
 Requirements
 ============
 * Python 2.5 - 2.7 or Python 3.x
-* py-bcrypt or bcryptor (optional; required only if bcrypt support is needed)
-* M2Crypto (optional; accelerates PBKDF2-based hashes)
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_, py-bcrypt, or bcryptor
+  (optional; required only if bcrypt support is needed)
+* M2Crypto (optional; accelerates some PBKDF2-based hashes)
 
 Installation
 ============

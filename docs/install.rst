@@ -29,8 +29,8 @@ Google App Engine is supported as well.
 
 Optional Libraries
 ==================
-* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ or
-  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_ or
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_,
+  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
    If any of these packages are installed, they will be used to provide
@@ -39,10 +39,13 @@ Optional Libraries
    and your OS does not provide native BCrypt support
    via stdlib's :mod:`!crypt` (which includes pretty much all non-BSD systems).
 
+   `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ is currently the recommended
+   option -- it's actively maintained, and compatible with both CPython and PyPy.
+
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
 
    If installed, M2Crypto will be used to accelerate some internal
-   functions used by PBKDF2-based hashes, but it is not required
+   functions used by some PBKDF2-based hashes, but it is not required
    even in that case.
 
 Installation Instructions
@@ -50,10 +53,6 @@ Installation Instructions
 To install from PyPi using :command:`pip`::
 
     pip install passlib
-
-To install from PyPi using :command:`easy_install`::
-
-    easy_install passlib
 
 To install from the source using :command:`setup.py`::
 
@@ -94,8 +93,8 @@ online at `<http://packages.python.org/passlib>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.1 or newer)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.6 or newer).
+1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.3 or newer)
+2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.7 or newer).
 3. Download the Passlib source
 4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
 5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`

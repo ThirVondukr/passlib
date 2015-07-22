@@ -142,7 +142,12 @@ def is_default_backend(handler, backend):
         handler.set_backend(orig)
 
 class temporary_backend(object):
-    """temporarily set handler to specific backend"""
+    """
+    temporarily set handler to specific backend
+    """
+
+    _orig = None
+
     def __init__(self, handler, backend=None):
         self.handler = handler
         self.backend = backend
@@ -766,10 +771,14 @@ class HandlerCase(TestCase):
             yield subcls
 
     @classmethod
-    def find_crypt_replacement(cls):
+    def find_crypt_replacement(cls, fallback=False):
         """find other backend which can be used to mock the os_crypt backend"""
         handler = cls.handler
-        for name in handler.backends:
+        if fallback:
+            idx = handler.backends.index("os_crypt") + 1
+        else:
+            idx = 0
+        for name in handler.backends[idx:]:
             if name != "os_crypt" and handler.has_backend(name):
                 return name
         return None
@@ -1449,8 +1458,20 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, {})
         return not is_ascii_safe(secret)
 
+    def expect_os_crypt_failure(self, secret):
+        """
+        check if we're expecting potential verify failure due to crypt.crypt() encoding limitation
+        """
+        if PY3 and self.backend == "os_crypt" and isinstance(secret, bytes):
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                return True
+        return False
+
     def test_70_hashes(self):
         """test known hashes"""
+
         # sanity check
         self.assertTrue(self.known_correct_hashes or self.known_correct_configs,
                         "test must set at least one of 'known_correct_hashes' "
@@ -1466,17 +1487,25 @@ class HandlerCase(TestCase):
             self.assertTrue(self.do_identify(hash),
                 "identify() failed to identify hash: %r" % (hash,))
 
-            # secret should verify successfully against hash
-            self.check_verify(secret, hash, "verify() of known hash failed: "
-                              "secret=%r, hash=%r" % (secret, hash))
+            # check if what we're about to do is expected to fail due to crypt.crypt() limitation.
+            expect_os_crypt_failure = self.expect_os_crypt_failure(secret)
+            try:
 
-            # genhash() should reproduce same hash
-            result = self.do_genhash(secret, hash)
-            self.assertIsInstance(result, str,
-                "genhash() failed to return native string: %r" % (result,))
-            self.assertEqual(result, hash,  "genhash() failed to reproduce "
-                "known hash: secret=%r, hash=%r: result=%r" %
-                (secret, hash, result))
+                # secret should verify successfully against hash
+                self.check_verify(secret, hash, "verify() of known hash failed: "
+                                  "secret=%r, hash=%r" % (secret, hash))
+
+                # genhash() should reproduce same hash
+                result = self.do_genhash(secret, hash)
+                self.assertIsInstance(result, str,
+                    "genhash() failed to return native string: %r" % (result,))
+                self.assertEqual(result, hash,  "genhash() failed to reproduce "
+                    "known hash: secret=%r, hash=%r: result=%r" %
+                    (secret, hash, result))
+
+            except MissingBackendError:
+                if not expect_os_crypt_failure:
+                    raise
 
         # would really like all handlers to have at least one 8-bit test vector
         if not saw8bit:
@@ -2029,12 +2058,24 @@ class OsCryptMixin(HandlerCase):
         alt_backend = self.find_crypt_replacement()
         if not alt_backend:
             raise AssertionError("handler has no available backends!")
+
+        # create subclass of handler, which we swap to an alternate backend.
+        # NOTE: not switching original class's backend, since classes like bcrypt
+        #       run some checks when backend is set, that can cause recursion error
+        #       when orig backend is restored.
+        # TODO: replace this with a .using() call
+        alt_handler = type('%s_%s_wrapper' % (handler.name, alt_backend), (handler,), {})
+        alt_handler._backend = None  # ensure full backend load into subclass
+        alt_handler.set_backend(alt_backend)
+
         import passlib.utils as mod
+
         def crypt_stub(secret, hash):
-            with temporary_backend(handler, alt_backend):
-                hash = handler.genhash(secret, hash)
+            # with temporary_backend(alt_handler, alt_backend):
+            hash = alt_handler.genhash(secret, hash)
             assert isinstance(hash, str)
             return hash
+
         self.addCleanup(setattr, mod, "_crypt", mod._crypt)
         mod._crypt = crypt_stub
         self.using_patched_crypt = True
@@ -2089,7 +2130,7 @@ class OsCryptMixin(HandlerCase):
         # set safe_crypt to return None
         setter = self._use_mock_crypt()
         setter(None)
-        if self.find_crypt_replacement():
+        if self.find_crypt_replacement(fallback=True):
             # handler should have a fallback to use when os_crypt backend refuses to handle secret.
             h1 = self.do_encrypt("stub")
             h2 = self.do_genhash("stub", h1)
