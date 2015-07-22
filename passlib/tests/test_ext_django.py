@@ -2,7 +2,7 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement
+from __future__ import with_statement, absolute_import
 # core
 import logging; log = logging.getLogger(__name__)
 import sys
@@ -109,7 +109,17 @@ def create_mock_setter():
 # work up stock django config
 #=============================================================================
 sample_hashes = {} # override sample hashes used in test cases
-if DJANGO_VERSION >= (1,6):
+if DJANGO_VERSION >= (1,7):
+    stock_config = django16_context.to_dict()
+    stock_config.update(
+        deprecated="auto",
+        django_pbkdf2_sha1__default_rounds=20000,
+        django_pbkdf2_sha256__default_rounds=20000,
+    )
+    sample_hashes.update(
+        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$20000$arJ31mmmlSmO$XNBTUKe4UCUGPeHTmXpYjaKmJaDGAsevd0LWvBtzP18="),
+    )
+elif DJANGO_VERSION >= (1,6):
     stock_config = django16_context.to_dict()
     stock_config.update(
         deprecated="auto",
@@ -921,14 +931,42 @@ class ContextWithHook(CryptContext):
 
 # hack up the some of the real django tests to run w/ extension loaded,
 # to ensure we mimic their behavior.
-if has_django14:
-    from passlib.tests.utils import patchAttr
-    if DJANGO_VERSION >= (1,6):
-        from django.contrib.auth.tests import test_hashers as _thmod
+# however, the django tests were moved out of the package, and into a source-only location
+# as of django 1.7. so we disable tests from that point on unless test-runner specifies
+test_hashers_mod = None
+hashers_skip_msg = None
+if TEST_MODE(max="quick"):
+    hashers_skip_msg = "requires >= 'default' test mode"
+elif DJANGO_VERSION >= (1, 7):
+    import os
+    import sys
+    source_path = os.environ.get("PASSLIB_TESTS_DJANGO_SOURCE_PATH")
+    if source_path:
+        if not os.path.exists(source_path):
+            raise EnvironmentError("django source path not found: %r" % source_path)
+        if not all(os.path.exists(os.path.join(source_path, name))
+                   for name in ["django", "tests"]):
+            raise EnvironmentError("invalid django source path: %r" % source_path)
+        log.info("using django tests from source path: %r", source_path)
+        tests_path = os.path.join(source_path, "tests")
+        sys.path.insert(0, tests_path)
+        from auth_tests import test_hashers as test_hashers_mod
+        sys.path.remove(tests_path)
     else:
-        from django.contrib.auth.tests import hashers as _thmod
+        hashers_skip_msg = "requires PASSLIB_TESTS_DJANGO_SOURCE_PATH to be set for django 1.7+"
+elif DJANGO_VERSION >= (1, 6):
+    from django.contrib.auth.tests import test_hashers as test_hashers_mod
+elif DJANGO_VERSION >= (1, 4):
+    from django.contrib.auth.tests import hashers as test_hashers_mod
+else:
+    hashers_skip_msg = "requires django 1.4+ to be present"
 
-    class HashersTest(_thmod.TestUtilsHashPass, _ExtensionSupport):
+# hack up the some of the real django tests to run w/ extension loaded,
+# to ensure we mimic their behavior.
+if test_hashers_mod:
+    from passlib.tests.utils import patchAttr
+
+    class HashersTest(test_hashers_mod.TestUtilsHashPass, _ExtensionSupport):
         """run django's hasher unittests against passlib's extension
         and workalike implementations"""
         def setUp(self):
@@ -943,17 +981,17 @@ if has_django14:
                          "check_password",
                          "identify_hasher",
                          "get_hasher"]:
-                patchAttr(self, _thmod, attr, getattr(hashers, attr))
+                patchAttr(self, test_hashers_mod, attr, getattr(hashers, attr))
 
             # django 1.5 tests expect empty django_des_crypt salt field
-            if DJANGO_VERSION > (1,4):
+            if DJANGO_VERSION >= (1,5):
                 from passlib.hash import django_des_crypt
                 patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
 
             # hack: need password_context to keep up to date with hasher.iterations
             if DJANGO_VERSION >= (1,6):
                 def update_hook(self):
-                    rounds = _thmod.get_hasher("pbkdf2_sha256").iterations
+                    rounds = test_hashers_mod.get_hasher("pbkdf2_sha256").iterations
                     self.update(
                         django_pbkdf2_sha256__min_rounds=rounds,
                         django_pbkdf2_sha256__default_rounds=rounds,
@@ -968,9 +1006,12 @@ if has_django14:
         def tearDown(self):
             self.unload_extension()
             super(HashersTest, self).tearDown()
+else:
+    class HashersTest(TestCase):
 
-    HashersTest = skipUnless(TEST_MODE("default"),
-                             "requires >= 'default' test mode")(HashersTest)
+        def test_external_django_hasher_tests(self):
+            """external django hasher tests"""
+            raise self.skipTest(hashers_skip_msg)
 
 #=============================================================================
 # eof
