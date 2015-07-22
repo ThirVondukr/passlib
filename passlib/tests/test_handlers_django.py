@@ -30,6 +30,7 @@ def vstr(version):
 class _DjangoHelper(object):
     # NOTE: not testing against Django < 1.0 since it doesn't support
     # most of these hash formats.
+    __unittest_skip = True
 
     # flag that hash wasn't added until specified version
     min_django_version = ()
@@ -43,11 +44,9 @@ class _DjangoHelper(object):
         from django.contrib.auth.models import check_password
         def verify_django(secret, hash):
             """django/check_password"""
-            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
-                return "skip"
             if self.handler.name == "django_bcrypt" and hash.startswith("bcrypt$$2y$"):
                 hash = hash.replace("$$2y$", "$$2a$")
-            if DJANGO_VERSION >= (1,5) and self.django_has_encoding_glitch and isinstance(secret, bytes):
+            if self.django_has_encoding_glitch and isinstance(secret, bytes):
                 # e.g. unsalted_md5 on 1.5 and higher try to combine
                 # salt + password before encoding to bytes, leading to ascii error.
                 # this works around that issue.
@@ -65,11 +64,6 @@ class _DjangoHelper(object):
         from django.contrib.auth.models import check_password
         assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
-            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
-                # django 1.4-1.5 rejects empty passwords
-                self.assertFalse(check_password(secret, hash),
-                                "empty string should not have verified")
-                continue
             self.assertTrue(check_password(secret, hash),
                             "secret=%r hash=%r failed to verify" %
                             (secret, hash))
@@ -94,7 +88,7 @@ class _DjangoHelper(object):
             secret, other = self.get_fuzz_password_pair()
             if not secret: # django 1.4 rejects empty passwords.
                 continue
-            if DJANGO_VERSION >= (1,5) and self.django_has_encoding_glitch and isinstance(secret, bytes):
+            if self.django_has_encoding_glitch and isinstance(secret, bytes):
                 # e.g. unsalted_md5 on 1.5 and higher try to combine
                 # salt + password before encoding to bytes, leading to ascii error.
                 # this works around that issue.

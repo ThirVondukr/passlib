@@ -3,6 +3,7 @@
 # imports
 #=============================================================================
 # core
+from functools import update_wrapper
 import logging; log = logging.getLogger(__name__)
 from weakref import WeakKeyDictionary
 from warnings import warn
@@ -13,9 +14,6 @@ try:
 except ImportError:
     log.debug("django installation not found")
     DJANGO_VERSION = ()
-else:
-    if DJANGO_VERSION < (1,4):
-        raise RuntimeError("passlib.ext.django requires django >= 1.4 (as of passlib 1.7)")
 # pkg
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
@@ -24,9 +22,14 @@ from passlib.utils import classproperty
 from passlib.utils.compat import get_method_function, iteritems, OrderedDict
 # local
 __all__ = [
+    "DJANGO_VERSION",
+    "MIN_DJANGO_VERSION",
     "get_preset_config",
     "get_passlib_hasher",
 ]
+
+#: minimum version supported by passlib.ext.django
+MIN_DJANGO_VERSION = (1, 6)
 
 #=============================================================================
 # default policies
@@ -58,10 +61,7 @@ def get_preset_config(name):
         if not DJANGO_VERSION:
             raise ValueError("can't resolve django-default preset, "
                              "django not installed")
-        if DJANGO_VERSION < (1,6):
-            name = "django-1.4"
-        else:
-            name = "django-1.6"
+        name = "django-1.6"
     if name == "passlib-default":
         return PASSLIB_DEFAULT
     try:
@@ -435,7 +435,7 @@ class _PatchManager(object):
         else:
             setattr(obj, attr, value)
 
-    def patch(self, path, value):
+    def patch(self, path, value, wrap=False):
         """monkeypatch object+attr at <path> to have <value>, stores original"""
         assert value != _UNSET
         current = self._get_path(path)
@@ -449,6 +449,14 @@ class _PatchManager(object):
             if not self._is_same_value(current, expected):
                 warn("overridding resource another library has patched: %r"
                      % path, PasslibRuntimeWarning)
+        if wrap:
+            assert callable(value)
+            wrapped = orig
+            wrapped_by = value
+            def wrapper(*args, **kwds):
+                return wrapped_by(wrapped, *args, **kwds)
+            update_wrapper(wrapper, value)
+            value = wrapper
         self._set_path(path, value)
         self._state[path] = (orig, value)
 
@@ -457,13 +465,13 @@ class _PatchManager(object):
     ##    for path, value in iteritems(kwds):
     ##        self.patch(path, value)
 
-    def monkeypatch(self, parent, name=None, enable=True):
+    def monkeypatch(self, parent, name=None, enable=True, wrap=False):
         """function decorator which patches function of same name in <parent>"""
         def builder(func):
             if enable:
                 sep = "." if ":" in parent else ":"
                 path = parent + sep + (name or func.__name__)
-                self.patch(path, func)
+                self.patch(path, func, wrap=wrap)
             return func
         return builder
 
