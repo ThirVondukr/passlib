@@ -427,19 +427,19 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     def _load_backend_bcrypt(cls):
         # try to import bcrypt
         global _bcrypt
+        if _detect_pybcrypt():
+            # pybcrypt was installed instead
+            return None
         try:
             import bcrypt as _bcrypt
         except ImportError: # pragma: no cover
             return None
-        if _detect_pybcrypt():
-            # pybcrypt was installed instead
-            _bcrypt = None
-            return None
         try:
-            version = bcrypt.__about__.__version__
+            version = _bcrypt.__about__.__version__
         except:
-            version = "<unknown>"
-        log.debug("found bcrypt version %s", version)
+            log.warning("(trapped) error reading bcrypt version", exc_info=True)
+            version = '<unknown>'
+        log.debug("loaded 'bcrypt' backend, version %r", version)
         return cls._calc_checksum_bcrypt
 
     def _calc_checksum_bcrypt(self, secret, config):
@@ -465,29 +465,28 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     def _load_backend_pybcrypt(cls):
         # try to import pybcrypt
         global _pybcrypt
+        if not _detect_pybcrypt():
+            # not installed, or bcrypt installed instead
+            return None
         try:
             import bcrypt as _pybcrypt
         except ImportError: # pragma: no cover
             return None
-        if not _detect_pybcrypt():
-            # bcrypt was installed instead
-            _pybcrypt = None
-            return None
 
         # determine pybcrypt version
         try:
-            from bcrypt._bcrypt import __version__ as vstr
-        except ImportError:
-            log.warning("couldn't determine pybcrypt version", exc_info=True)
-            vstr = "<unknown>"
-        version = parse_version(vstr) or (0, 0)
-        log.debug("found pybcrypt version %s", vstr)
+            version = _pybcrypt._bcrypt.__version__
+        except:
+            log.warning("(trapped) error reading pybcrypt version", exc_info=True)
+            version = "<unknown>"
+        log.debug("loaded 'pybcrypt' backend, version %r", version)
 
         # return calc function based on version
-        if version < (0,3):
+        vinfo = parse_version(version) or (0, 0)
+        if vinfo < (0, 3):
             warn("py-bcrypt %s has a major security vulnerability, "
                  "you should upgrade to py-bcrypt 0.3 immediately."
-                 % vstr, uh.exc.PasslibSecurityWarning)
+                 % version, uh.exc.PasslibSecurityWarning)
             if cls._calc_lock is None:
                 import threading
                 cls._calc_lock = threading.Lock()
