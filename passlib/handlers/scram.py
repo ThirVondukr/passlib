@@ -285,6 +285,27 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return '$scram$%d$%s$%s' % (self.rounds, salt, chk_str)
 
     #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, default_algs=None, algs=None, **kwds):
+        # parse aliases
+        if algs is not None:
+            assert default_algs is None
+            default_algs = algs
+
+        # create subclass
+        subcls = super(scram, cls).using(**kwds)
+
+        # fill in algs
+        if default_algs is not None:
+            # hack so we can use _norm_algs even though it's an instance method.
+            # XXX: use_defaults is only thing keeping it from being a classmethod.
+            subcls.default_algs = cls(use_defaults=True)._norm_algs(default_algs)
+
+        return subcls
+
+    #===================================================================
     # init
     #===================================================================
     def __init__(self, algs=None, **kwds):
@@ -341,7 +362,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def _calc_needs_update(self, **kwds):
         # marks hashes as deprecated if they don't include at least all default_algs.
         # XXX: should we deprecate if they aren't exactly the same,
-        #      to permit removing legacy hashes? probably not while md5 is fixed in the spec :|
+        #      to permit removing legacy hashes?
         if not set(self.algs).issuperset(self.default_algs):
             return True
 
