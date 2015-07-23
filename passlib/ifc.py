@@ -114,7 +114,6 @@ class PasswordHash(object):
     # migration
     #===================================================================
     @classmethod
-    @abstractmethod
     def needs_update(cls, hash, secret=None):
         """
         check if hash configuration is outside desired bounds.
@@ -133,7 +132,8 @@ class PasswordHash(object):
 
             add this method to main documentation.
         """
-        raise NotImplementedError("must be implemented by subclass")
+        # by default, always report that we don't need update
+        return False
 
     #===================================================================
     # additional methods
