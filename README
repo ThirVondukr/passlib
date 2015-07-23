@@ -50,10 +50,9 @@ This example barely touches on the range of features available.
 
 Online Resources
 ================
-* Homepage -   http://passlib.googlecode.com
+* Homepage -   https://bitbucket.org/ecollins/passlib
 * Docs -       http://packages.python.org/passlib
 * Discussion - http://groups.google.com/group/passlib-users
 
-* PyPI -       http://pypi.python.org/pypi/passlib
-* Downloads -  http://code.google.com/p/passlib/downloads
-* Source -     http://code.google.com/p/passlib/source
+* Downloads -  https://pypi.python.org/pypi/passlib
+* Source -     https://bitbucket.org/ecollins/passlib/src

@@ -134,6 +134,6 @@ Online Resources
         Discussion:      `<http://groups.google.com/group/passlib-users>`_
         ---------------- ---------------------------------------------------
         ---------------- ---------------------------------------------------
-        PyPI:            `<https://pypi.python.org/pypi/passlib>`_
-        Source:          `<https://bitbucket.org/ecollins/passlib>`_
+        Downloads:       `<https://pypi.python.org/pypi/passlib>`_
+        Source:          `<https://bitbucket.org/ecollins/passlib/src>`_
         ================ ===================================================
