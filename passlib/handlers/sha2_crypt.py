@@ -369,7 +369,10 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             cs = self.checksum_size
             assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
             return hash[-cs:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend

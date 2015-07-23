@@ -1824,45 +1824,6 @@ class HasManyBackends(GenericHandler):
         "wrapper for backend, for common code"""
         return self._calc_checksum_backend(secret)
 
-    def _try_alternate_backends(self, secret):
-        """helper for _calc_checksum_backend implementations to hand off
-        to other backends on a per-hash basis.
-
-        :raises MissingBackendError: if *no*  backends can handle secret
-        """
-        # if we're recursing, throw back to higher-level invocation (below)
-        if self.__tab_active:
-            raise exc.MissingBackendError("catch me")
-
-        # backup current backend
-        current = self.get_backend()
-        self.__tab_active = True
-        try:
-            # run through all others until one works
-            for backend in self.backends:
-                if backend == current:
-                    continue
-                try:
-                    # may throw MissingBackendError if unavailable
-                    self.set_backend(backend)
-
-                    # if recurses to this function,
-                    # will also throw MissingBackendError (above)
-                    return self._calc_checksum_backend(secret)
-                except exc.MissingBackendError:
-                    pass
-        finally:
-            # restore previous backend
-            self.__tab_active = False
-            self.set_backend(current)
-
-        # no backend could handle things - give up
-        msg = "%s: password/hash can't be handled by any available backend" % (self.name,)
-        suggestion = self._no_backend_suggestion
-        if suggestion:
-            msg += suggestion
-        raise exc.MissingBackendError(msg)
-
 #=============================================================================
 # wrappers
 #=============================================================================

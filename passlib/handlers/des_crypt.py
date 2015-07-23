@@ -186,7 +186,10 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         if hash:
             assert hash.startswith(self.salt) and len(hash) == 13
             return hash[2:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend
@@ -342,7 +345,10 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if hash:
             assert hash.startswith(config[:9]) and len(hash) == 20
             return hash[-11:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend

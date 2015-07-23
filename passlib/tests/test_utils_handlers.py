@@ -473,52 +473,6 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.set_backend, 'c')
         self.assertRaises(ValueError, d1.has_backend, 'c')
 
-    def test_42_tab(self):
-        """test HasManyBackends._try_alternate_backends() helper"""
-        class d1(uh.HasManyBackends, uh.GenericHandler):
-            name = 'd1'
-            setting_kwds = ()
-
-            backends = ("a", "b", "c")
-
-            @classmethod
-            def _load_backend_a(cls):
-                return cls._calc_a
-
-            def _calc_a(self, secret):
-                if secret == "a":
-                    return "a"
-                return self._try_alternate_backends(secret)
-
-            @classmethod
-            def _load_backend_b(cls):
-                return cls._calc_b
-
-            def _calc_b(self, secret):
-                if secret == "b":
-                    return "b"
-                return self._try_alternate_backends(secret)
-
-            @classmethod
-            def _load_backend_c(cls):
-                return None
-
-        handler = d1()
-
-        # A backend active
-        handler.set_backend("a")
-        self.assertEqual(handler._calc_checksum("a"), "a") # uses a
-        self.assertEqual(handler._calc_checksum("b"), "b") # falls back to b
-        self.assertRaises(uh.exc.MissingBackendError,
-                          handler._calc_checksum, "c") # no fallback
-
-        # B backend active
-        handler.set_backend("b")
-        self.assertEqual(handler._calc_checksum("b"), "b") # uses b
-        self.assertEqual(handler._calc_checksum("a"), "a") # falls back to a
-        self.assertRaises(uh.exc.MissingBackendError,
-                          handler._calc_checksum, "c") # no fallback
-
     def test_50_norm_ident(self):
         """test GenericHandler + HasManyIdents"""
         # setup helpers

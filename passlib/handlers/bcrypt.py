@@ -565,9 +565,6 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 "non-utf8 encoded passwords can't be handled by crypt.crypt() under python3, "
                 "recommend running `pip install bcrypt`.",
                 )
-            # XXX: could call this instead...
-            ##return self._try_alternate_backends(secret)
-
 
     #---------------------------------------------------------------
     # builtin backend

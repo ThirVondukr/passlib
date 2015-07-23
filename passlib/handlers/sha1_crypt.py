@@ -110,7 +110,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 29
             return hash[-28:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend
