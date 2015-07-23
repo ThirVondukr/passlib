@@ -892,7 +892,6 @@ class HasManyIdents(GenericHandler):
 
         # create subclasss
         subcls = super(HasManyIdents, cls).using(**kwds)
-        assert issubclass(subcls, cls)
 
         # add custom default ident
         if default_ident is not None:
@@ -2007,6 +2006,18 @@ class PrefixWrapper(object):
             raise exc.InvalidHashError(self.wrapped)
         wrapped = self.prefix + hash[len(orig_prefix):]
         return uascii_to_str(wrapped)
+
+    def using(self, **kwds):
+        # generate subclass of wrapped handler
+        subcls = self.wrapped.using(**kwds)
+        if subcls is self.wrapped:
+            return self
+        # then create identical wrapper which wraps the new subclass.
+        return PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
+
+    def needs_update(self, hash, **kwds):
+        hash = self._unwrap_hash(hash)
+        return self.wrapped.needs_update(hash, **kwds)
 
     def identify(self, hash):
         hash = to_unicode_for_identify(hash)
