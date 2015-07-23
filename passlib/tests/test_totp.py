@@ -174,7 +174,7 @@ class UtilsTest(TestCase):
         _ = encrypt_key(KEY1_RAW, PASS1)
         delta2 = _time.clock() - start
 
-        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.2)
+        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 
     #=============================================================================
     # client offset helpers

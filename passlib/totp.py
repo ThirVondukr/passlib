@@ -23,7 +23,7 @@ from passlib import exc
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
                            getrandbytes, rng, xor_bytes)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
-                                  irange, byte_elem_value, UnicodeIO)
+                                  irange, byte_elem_value, UnicodeIO, PY26)
 from passlib.utils.pbkdf2 import get_prf, norm_hash_name, pbkdf2
 # local
 __all__ = [
@@ -38,6 +38,19 @@ __all__ = [
     # internal helpers
     "BaseOTP",
 ]
+
+#=============================================================================
+# HACK: python2.6's urlparse() won't parse query strings unless the url scheme
+#       is one of the schemes in the urlparse.uses_query list. 2.7 abandoned
+#       this, and parses query if present, regardless of the scheme.
+#       as a workaround for py2.6, we add "otpauth" to the known list.
+#=============================================================================
+if PY26:
+    from urlparse import uses_query
+    if "otpauth" not in uses_query:
+        uses_query.append("otpauth")
+        log.debug("registered 'otpauth' scheme with urlparse.uses_query")
+    del uses_query
 
 #=============================================================================
 # internal helpers
