@@ -1069,12 +1069,12 @@ class _CryptConfig(object):
             pass
 
         # type check
-        if category is not None and not isinstance(category, str):
+        if category is not None and not isinstance(category, native_string_types):
             if PY2 and isinstance(category, unicode):
                 # for compatibility with unicode-centric py2 apps
                 return self.get_record(scheme, category.encode("utf-8"))
             raise ExpectedTypeError(category, "str or None", "category")
-        if scheme is not None and not isinstance(scheme, str):
+        if scheme is not None and not isinstance(scheme, native_string_types):
             raise ExpectedTypeError(scheme, "str or None", "scheme")
 
         # if scheme=None,
