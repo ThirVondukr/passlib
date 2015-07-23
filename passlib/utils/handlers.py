@@ -1385,7 +1385,7 @@ class HasRounds(GenericHandler):
         helper for :meth:`_generate_rounds` --
         clips rounds value to desired min/max set by class (if any)
         """
-        mnd = cls.min_desired_rounds
+        mnd = cls.min_desired_rounds or 0
         if rounds < mnd:
             return mnd
         mxd = cls.max_desired_rounds
