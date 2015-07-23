@@ -377,7 +377,7 @@ class BaseOTP(object):
     """
     Base class for generating and verifying OTP codes.
 
-    .. rst-class:: inline
+    .. rst-class:: inline-title
 
     .. note::
 
@@ -437,7 +437,7 @@ class BaseOTP(object):
         The number of digits in the generated / accepted tokens. Defaults to ``6``.
         Must be in range [6 .. 10].
 
-        .. rst-class:: inline
+        .. rst-class:: inline-title
         .. caution::
            Due to a limitation of the HOTP algorithm, the 10th digit can only take on values 0 .. 2,
            and thus offers very little extra security.
@@ -1350,7 +1350,7 @@ class HOTP(BaseOTP):
            How many additional steps past ``counter`` to search when looking for a match
            Defaults to 1.
 
-           .. rst-class:: inline
+           .. rst-class:: inline-title
            .. note::
               This is a forward-looking window only, as searching backwards
               would allow token-reuse, defeating the whole purpose of HOTP.
@@ -1401,7 +1401,7 @@ class HOTP(BaseOTP):
            How many additional steps past ``counter`` to search when looking for a match
            Defaults to 1.
 
-           .. rst-class:: inline
+           .. rst-class:: inline-title
            .. note::
               This is a forward-looking window only, as using a backwards window
               would allow token-reuse, defeating the whole purpose of HOTP.

@@ -1616,6 +1616,11 @@ class HasManyBackends(GenericHandler):
     .. automethod:: set_backend
     .. automethod:: has_backend
 
+    .. warning::
+
+        :meth:`set_backend` and :meth:`has_backend` are intended to be called
+        during application startup -- they affect global state, are not threadsafe.
+
     Private API (Subclass Hooks)
     ----------------------------
     The following attributes and methods should be filled in by the subclass
@@ -1634,6 +1639,15 @@ class HasManyBackends(GenericHandler):
           of other backends (e.g. modify ``cls.default_rounds``).
 
         .. versionadded:: 1.7
+
+        .. warning::
+
+            Due to the way passlib's internals are arranged,
+            backends should always store stateful data at the class level
+            (not the module level), and be prepared to be called on subclasses
+            which may be set to a different backend from their parent.
+
+            Idempotent module-level data such as lazy imports are fine.
 
     .. attribute:: _has_backend_{name}
 

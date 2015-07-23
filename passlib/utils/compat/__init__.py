@@ -53,6 +53,7 @@ __all__ = [
     'int_types',
     'num_types',
     'unicode_or_bytes_types',
+    'native_string_types',
 
     # unicode/bytes types & helpers
     'u',
@@ -104,6 +105,11 @@ else:
 
     unicode_or_bytes_types = (basestring,)
     native_string_types = (basestring,)
+
+# unicode -- unicode type, regardless of python version
+# bytes -- bytes type, regardless of python version
+# unicode_or_bytes_types -- types that text can occur in, whether encoded or not
+# native_string_types -- types that native python strings (dict keys etc) can occur in.
 
 #=============================================================================
 # unicode & bytes helpers
