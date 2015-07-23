@@ -91,27 +91,29 @@ def create_mock_setter():
 #=============================================================================
 # work up stock django config
 #=============================================================================
-sample_hashes = {} # override sample hashes used in test cases
-if DJANGO_VERSION >= (1,7):
-    stock_config = django16_context.to_dict()
-    stock_config.update(
-        deprecated="auto",
-        django_pbkdf2_sha1__default_rounds=20000,
-        django_pbkdf2_sha256__default_rounds=20000,
-    )
-    sample_hashes.update(
-        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$20000$arJ31mmmlSmO$XNBTUKe4UCUGPeHTmXpYjaKmJaDGAsevd0LWvBtzP18="),
-    )
-else:
-    stock_config = django16_context.to_dict()
-    stock_config.update(
-        deprecated="auto",
-        django_pbkdf2_sha1__default_rounds=12000,
-        django_pbkdf2_sha256__default_rounds=12000,
-    )
-    sample_hashes.update(
-        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
-    )
+
+# build config dict that matches stock django
+# TODO: move these to passlib.apps
+if DJANGO_VERSION >= (1, 8):
+    stock_rounds = 20000
+elif DJANGO_VERSION >= (1, 7):
+    stock_rounds = 15000
+else:  # 1.6
+    stock_rounds = 12000
+
+stock_config = django16_context.to_dict()
+stock_config.update(
+    deprecated="auto",
+    django_pbkdf2_sha1__default_rounds=stock_rounds,
+    django_pbkdf2_sha256__default_rounds=stock_rounds,
+)
+
+# override sample hashes used in test cases
+from passlib.hash import django_pbkdf2_sha256
+sample_hashes = dict(
+    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256.encrypt("not a password",
+                                 rounds=stock_config.get("django_pbkdf2_sha256__default_rounds")))
+)
 
 #=============================================================================
 # test utils
