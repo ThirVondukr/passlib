@@ -1,1 +1,2 @@
+sphinxcontrib
 hg+https://bitbucket.org/ecollins/cloud_sptheme
