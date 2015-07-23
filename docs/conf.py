@@ -51,6 +51,9 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
 
+    # 3rd part extensions
+    'sphinxcontrib.fulltoc',
+
     # adds extra ids & classes to genindex html, for additional styling
     'cloud_sptheme.ext.index_styling',
 
@@ -170,6 +173,7 @@ if csp.is_cloud_theme(html_theme):
                               borderless_decor=True,
                               sidebar_localtoc_title="Page contents",
                               max_width="12in",
+                              sidebarwidth="3.5in",
                               hyphenation_language="en",
                               )
     if 'for-pypi' in options:
@@ -214,14 +218,14 @@ html_static_path = ['_static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-common_sidebars = ['quicklinks.html', 'searchbox.html']
-html_sidebars = {
-    '**': ['localtoc.html', 'relations.html'] + common_sidebars,
-    'py-modindex': common_sidebars,
-    'genindex': common_sidebars,
-    'search': common_sidebars,
-}
-#html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
+# common_sidebars = ['quicklinks.html', 'searchbox.html']
+# html_sidebars = {
+#     '**': ['localtoc.html', 'relations.html'] + common_sidebars,
+#     'py-modindex': common_sidebars,
+#     'genindex': common_sidebars,
+#     'search': common_sidebars,
+# }
+html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
