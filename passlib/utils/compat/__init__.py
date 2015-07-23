@@ -265,6 +265,10 @@ def get_method_function(func):
     """given (potential) method, return underlying function"""
     return getattr(func, method_function_attr, func)
 
+def get_unbound_method_function(func):
+    """given unbound method, return underlying function"""
+    return func if PY3 else func.__func__
+
 #=============================================================================
 # input/output
 #=============================================================================

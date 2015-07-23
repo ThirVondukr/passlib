@@ -27,6 +27,7 @@ class _bcrypt_test(HandlerCase):
     secret_size = 72
     reduce_default_rounds = True
     fuzz_salts_need_bcrypt_repair = True
+    has_os_crypt_fallback = False
 
     known_correct_hashes = [
         #
@@ -185,18 +186,12 @@ class _bcrypt_test(HandlerCase):
     #===================================================================
     # fuzz testing
     #===================================================================
-    def os_supports_ident(self, hash):
+    def crypt_supports_variant(self, hash):
         """check if OS crypt is expected to support given ident"""
-        if hash is None:
-            return True
-        # most OSes won't support 2x/2y
-        # XXX: definitely not the BSDs, but what about the linux variants?
-        # XXX: replace this all with 'handler._lacks_2{x}_support' feature detection?
-        #      could even just do call to safe_crypt(ident + salt) and see what we get
-        from passlib.handlers.bcrypt import IDENT_2X, IDENT_2Y
-        if hash.startswith(IDENT_2X) or hash.startswith(IDENT_2Y):
-            return False
-        return True
+        from passlib.handlers.bcrypt import bcrypt, IDENT_2X, IDENT_2Y
+        from passlib.utils import safe_crypt
+        ident = bcrypt.from_string(hash)
+        return (safe_crypt("test", ident + "04$5BJqKfqMQvV7nS.yUguNcu") or "").startswith(ident)
 
     def fuzz_verifier_bcrypt(self):
         # test against bcrypt, if available
@@ -212,7 +207,7 @@ class _bcrypt_test(HandlerCase):
             """bcrypt"""
             secret = to_bytes(secret, self.fuzz_password_encoding)
             if hash.startswith(IDENT_2B):
-                # bcrypt <1.1 lacks 2b support
+                # bcrypt <1.1 lacks 2B support
                 hash = IDENT_2A + hash[4:]
             elif hash.startswith(IDENT_2):
                 # bcrypt doesn't support $2$ hashes; but we can fake it
@@ -238,8 +233,8 @@ class _bcrypt_test(HandlerCase):
             return
         if not _detect_pybcrypt():
             return
-        bcrypt._load_backend_pybcrypt()
-        lock = bcrypt._calc_lock # reuse threadlock workaround for pybcrypt 0.2
+        hash.bcrypt._load_backend_pybcrypt()
+        lock = hash.bcrypt._calc_lock # reuse threadlock workaround for pybcrypt 0.2
         def check_pybcrypt(secret, hash):
             """pybcrypt"""
             secret = to_native_str(secret, self.fuzz_password_encoding)
@@ -384,8 +379,11 @@ class _bcrypt_test(HandlerCase):
         self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
 
 # create test cases for specific backends
-bcrypt_bcrypt_test, bcrypt_pybcrypt_test, bcrypt_bcryptor_test, bcrypt_os_crypt_test, bcrypt_builtin_test = \
-               _bcrypt_test.create_backend_cases(["bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin"])
+bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
+bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")
+bcrypt_bcryptor_test = _bcrypt_test.create_backend_case("bcryptor")
+bcrypt_os_crypt_test = _bcrypt_test.create_backend_case("os_crypt")
+bcrypt_builtin_test = _bcrypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # bcrypt
@@ -396,7 +394,8 @@ class _bcrypt_sha256_test(HandlerCase):
     reduce_default_rounds = True
     forbidden_characters = None
     fuzz_salts_need_bcrypt_repair = True
-    fallback_os_crypt_handler = hash.bcrypt
+    alt_safe_crypt_handler = hash.bcrypt
+    has_os_crypt_fallback = True
 
     known_correct_hashes = [
         #
@@ -492,8 +491,11 @@ class _bcrypt_sha256_test(HandlerCase):
         return randintgauss(5, 8, 6, 1)
 
 # create test cases for specific backends
-bcrypt_sha256_bcrypt_test, bcrypt_sha256_pybcrypt_test, bcrypt_sha256_bcryptor_test, bcrypt_sha256_os_crypt_test, bcrypt_sha256_builtin_test = \
-               _bcrypt_sha256_test.create_backend_cases(["bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin"])
+bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
+bcrypt_sha256_pybcrypt_test = _bcrypt_sha256_test.create_backend_case("pybcrypt")
+bcrypt_sha256_bcryptor_test = _bcrypt_sha256_test.create_backend_case("bcryptor")
+bcrypt_sha256_os_crypt_test = _bcrypt_sha256_test.create_backend_case("os_crypt")
+bcrypt_sha256_builtin_test = _bcrypt_sha256_test.create_backend_case("builtin")
 
 #=============================================================================
 # eof

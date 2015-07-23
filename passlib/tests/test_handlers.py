@@ -168,8 +168,9 @@ class _bsdi_crypt_test(HandlerCase):
         super(_bsdi_crypt_test, self).setUp()
         warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
 
-bsdi_crypt_os_crypt_test, bsdi_crypt_builtin_test = \
-                   _bsdi_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+bsdi_crypt_os_crypt_test = _bsdi_crypt_test.create_backend_case("os_crypt")
+bsdi_crypt_builtin_test = _bsdi_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # cisco pix
@@ -388,8 +389,9 @@ class _des_crypt_test(HandlerCase):
         ("freebsd|openbsd|netbsd|linux|solaris|darwin", True),
     ]
 
-des_crypt_os_crypt_test, des_crypt_builtin_test = \
-                    _des_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+des_crypt_os_crypt_test = _des_crypt_test.create_backend_case("os_crypt")
+des_crypt_builtin_test = _des_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # fshp
@@ -670,8 +672,9 @@ class _ldap_md5_crypt_test(HandlerCase):
         '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
 
-ldap_md5_crypt_os_crypt_test, ldap_md5_crypt_builtin_test = \
-                   _ldap_md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+ldap_md5_crypt_os_crypt_test =_ldap_md5_crypt_test.create_backend_case("os_crypt")
+ldap_md5_crypt_builtin_test =_ldap_md5_crypt_test.create_backend_case("builtin")
 
 class _ldap_sha1_crypt_test(HandlerCase):
     # NOTE: this isn't for testing the hash (see ldap_md5_crypt note)
@@ -690,7 +693,8 @@ class _ldap_sha1_crypt_test(HandlerCase):
     def test_77_fuzz_input(self):
         raise self.skipTest("unneeded")
 
-ldap_sha1_crypt_os_crypt_test, = _ldap_sha1_crypt_test.create_backend_cases(["os_crypt"])
+# create test cases for specific backends
+ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("os_crypt")
 
 #=============================================================================
 # ldap_pbkdf2_{digest}
@@ -827,8 +831,9 @@ class _md5_crypt_test(HandlerCase):
         ("darwin", False),
     ]
 
-md5_crypt_os_crypt_test, md5_crypt_builtin_test = \
-                   _md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+md5_crypt_os_crypt_test = _md5_crypt_test.create_backend_case("os_crypt")
+md5_crypt_builtin_test = _md5_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # msdcc 1 & 2
@@ -1791,8 +1796,9 @@ class _sha1_crypt_test(HandlerCase):
         ("freebsd|openbsd|linux|solaris|darwin", False),
     ]
 
-sha1_crypt_os_crypt_test, sha1_crypt_builtin_test = \
-                   _sha1_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha1_crypt_os_crypt_test = _sha1_crypt_test.create_backend_case("os_crypt")
+sha1_crypt_builtin_test = _sha1_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # roundup
@@ -1928,8 +1934,9 @@ class _sha256_crypt_test(HandlerCase):
         # solaris - depends on policy
     ]
 
-sha256_crypt_os_crypt_test, sha256_crypt_builtin_test = \
-                   _sha256_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha256_crypt_os_crypt_test = _sha256_crypt_test.create_backend_case("os_crypt")
+sha256_crypt_builtin_test = _sha256_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # test sha512-crypt
@@ -2009,8 +2016,9 @@ class _sha512_crypt_test(HandlerCase):
 
     platform_crypt_support = _sha256_crypt_test.platform_crypt_support
 
-sha512_crypt_os_crypt_test, sha512_crypt_builtin_test = \
-                   _sha512_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha512_crypt_os_crypt_test = _sha512_crypt_test.create_backend_case("os_crypt")
+sha512_crypt_builtin_test = _sha512_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # sun md5 crypt

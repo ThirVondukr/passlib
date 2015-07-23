@@ -34,6 +34,7 @@ except ImportError:
 skip = unittest.skip
 skipIf = unittest.skipIf
 skipUnless = unittest.skipUnless
+SkipTest = unittest.SkipTest
 
 #=============================================================================
 # custom test harness

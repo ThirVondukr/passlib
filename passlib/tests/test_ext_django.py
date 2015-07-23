@@ -852,11 +852,15 @@ else:
 # if found module, create wrapper to run django's own tests w/ passlib monkeypatched in.
 #
 if test_hashers_mod:
-    from passlib.tests.utils import patchAttr
+    from passlib.utils.compat import get_unbound_method_function
 
     class HashersTest(test_hashers_mod.TestUtilsHashPass, _ExtensionSupport):
         """run django's hasher unittests against passlib's extension
         and workalike implementations"""
+
+        # port patchAttr() helper method from passlib.tests.utils.TestCase
+        patchAttr = get_unbound_method_function(TestCase.patchAttr)
+
         def setUp(self):
             # NOTE: omitted orig setup, want to install our extension,
             #       and load hashers through it instead.
@@ -869,11 +873,11 @@ if test_hashers_mod:
                          "check_password",
                          "identify_hasher",
                          "get_hasher"]:
-                patchAttr(self, test_hashers_mod, attr, getattr(hashers, attr))
+                self.patchAttr(test_hashers_mod, attr, getattr(hashers, attr))
 
             # django tests expect empty django_des_crypt salt field
             from passlib.hash import django_des_crypt
-            patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
+            self.patchAttr(django_des_crypt, "use_duplicate_salt", False)
 
             # hack: need password_context to keep up to date with hasher.iterations
             def update_hook(self):
@@ -883,8 +887,8 @@ if test_hashers_mod:
                     django_pbkdf2_sha256__default_rounds=rounds,
                     django_pbkdf2_sha256__max_rounds=rounds,
                 )
-            patchAttr(self, password_context, "__class__", ContextWithHook)
-            patchAttr(self, password_context, "update_hook", update_hook)
+            self.patchAttr(password_context, "__class__", ContextWithHook)
+            self.patchAttr(password_context, "update_hook", update_hook)
 
         # omitting this test, since it depends on updated to django hasher settings
         test_pbkdf2_upgrade_new_hasher = lambda self: self.skipTest("omitted by passlib")
