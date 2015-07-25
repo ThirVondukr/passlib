@@ -179,8 +179,8 @@ This implementation of bcrypt differs from others in a few ways:
 
   .. versionchanged:: 1.6.3
 
-        Passlib will now detect, and refuse to use, any backend which is vulnerable
-        to this bug.
+        Passlib will now throw a :exc:`~passlib.exc.PasslibSecurityError` if an attempt is
+        made to use any backend which is vulnerable to this bug.
 
 * The 'BSD wraparound' bug
 
