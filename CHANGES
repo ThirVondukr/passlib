@@ -23,8 +23,8 @@ Upcoming in **1.7**
       Applications can explicitly set ``default_scheme="portable"`` to retain the old behavior
       (new in Passlib 1.6.3).
 
-**1.6.3** (NOT YET RELEASED)
-============================
+**1.6.3** (2015-07-25)
+======================
 
     This release rolls up assorted bug & compatibility fixes since 1.6.2.
 
