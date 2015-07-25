@@ -88,6 +88,7 @@ _locations = dict(
     bsd_nthash = "passlib.handlers.windows",
     bsdi_crypt = "passlib.handlers.des_crypt",
     cisco_pix = "passlib.handlers.cisco",
+    cisco_asa = "passlib.handlers.cisco",
     cisco_type7 = "passlib.handlers.cisco",
     cta_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
     crypt16 = "passlib.handlers.des_crypt",

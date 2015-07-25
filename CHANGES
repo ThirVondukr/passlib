@@ -53,6 +53,9 @@ Major Changes
 * New :mod:`passlib.pwd` module added to aid in password generation
   and strength measurement (with contributions from Thomas Waldmann).
 
+* Added :class:`~passlib.hash.cisco_asa` which provides (tentative)
+  support for Cisco ASA 7.0 and newer hashes.
+
 * The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
   hashes have been sped up by ~20% compared to Passlib 1.6.
 

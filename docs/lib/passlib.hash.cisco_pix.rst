@@ -8,13 +8,22 @@
 
 .. warning::
 
-    This hash is not secure, and should not be used for any purposes
-    besides manipulating existing Cisco PIX password hashes.
+    These hashes are not secure, and should not be used for any purposes
+    besides manipulating existing hashes.
+
+.. todo::
+
+    Passlib currently lack a thorough set of test cases for the :class:`cisco_asa` hash
+    For people with access to such a system, verifying passlib's reference vectors
+    would be a great help (see :issue:`51`).
+    In the mean time, there are no guarantees that its behavior correctly replicates
+    the official implementation. *caveat emptor*.
 
 .. currentmodule:: passlib.hash
 
-This class implements the password hash algorithm commonly found on Cisco
-PIX firewalls. This class can be used directly as follows::
+The :class:`cisco_pix` class implements the password hash algorithm commonly found on older Cisco
+PIX firewalls.  The :class:`cisco_asa` class implements a newer variant found Cisco ASA 7.0 and
+newer systems.  They can be used directly as follows::
 
     >>> from passlib.hash import cisco_pix as pix
 
@@ -46,11 +55,14 @@ PIX firewalls. This class can be used directly as follows::
 
 Interface
 =========
+
 .. autoclass:: cisco_pix()
+
+.. autoclass:: cisco_asa()
 
 .. note::
 
-    This hash algorithm has a context-sensitive peculiarity.
+    These hash algorithms have a context-sensitive peculiarity.
     It takes in an optional username, used to salt the hash,
     but with specific restrictions...
 
@@ -65,30 +77,36 @@ Interface
 
 Format & Algorithm
 ==================
-Cisco PIX hashes consist of a 12 byte digest, encoded as a 16 character
+Cisco PIX / ASA hashes consist of a 12 byte digest, encoded as a 16 character
 :data:`HASH64 <passlib.utils.h64>`-encoded string. An example
 hash (of ``"password"``) is ``"NuLKvvWGg.x9HEKO"``.
 
-The digest is calculated as follows:
+The PIX / ASA digests are calculated as follows:
 
 1. The password is encoded using an ``ASCII``-compatible encoding
    (all known references are strict 7-bit ascii, and Passlib uses ``UTF-8``
    to provide unicode support).
-2. If the hash is associated with a user account and provided
-   password is less than 28 characters, append the first four
-   bytes of the user account name to the end of the password.
-   If the hash is NOT associated with a user account (e.g.
-   it's the "enable" password), this step should be omitted.
-3. For password lengths 12 characters or less, the password
-   should be truncated to 16 bytes, or the right side NULL
-   padded to 16 bytes, as appropriate. For PIX/ASA code 7.0
-   or newer, password lengths up to 32 are supported. 
-   Passwords 12 or less characters in length are not altered
-   in operation.  Password of a length of 13 - 32 characters  
-   will be padded or truncated to 32 bytes as appropriate.
+
+2. If the hash is associated with a user account,
+   append the first four bytes of the user account name
+   to the end of the password. If the hash is NOT associated
+   with a user account (e.g. it's the "enable" password),
+   this step should be omitted.
+
+   For :class:`!cisco_asa`,
+   this step is omitted if the password is 28 bytes or more.
+
+3. The password should be truncated to 16 bytes, or the right side NULL
+   padded to 16 bytes, as appropriate.
+
+   For :class:`!cisco_asa`,
+   if the password is 13 or more bytes, the truncate/padding size is increased to 32 bytes.
+
 4. Run the result of step 3 through MD5.
+
 5. Discard every 4th byte of the 16-byte MD5 hash, starting
    with the 4th byte.
+
 6. Encode the 12-byte result using :data:`HASH64 <passlib.utils.h64>`.
 
 Security Issues
@@ -105,7 +123,7 @@ Cisco PIX hashes, due to the following flaws:
   additionally limits the keyspace, and the effectiveness of the username
   as a salt; making pre-computed and brute force attacks much more feasible.
 
-* Since the keyspace of ``user+password`` is still a subset of ascii characters,
+* Since the keyspace of ``password+user`` is still a subset of ascii characters,
   existing MD5 lookup tables have an increased chance of being able to
   reverse common hashes.
 

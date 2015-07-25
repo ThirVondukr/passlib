@@ -247,6 +247,7 @@ in one of the above categories:
     :maxdepth: 1
 
     passlib.hash.cisco_pix
+    passlib.hash.cisco_asa
 
 * *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`
 

@@ -232,6 +232,88 @@ class cisco_pix_test(UserHandlerMixin, HandlerCase):
         (UPASS_TABLE, 'CaiIvkLMu2TOHXGT'),
         ]
 
+def _get_secret(value):
+    """extract secret from secret or (secret, user) tuple"""
+    if isinstance(value, tuple):
+        return value[0]
+    else:
+        return value
+
+class cisco_asa_test(UserHandlerMixin, HandlerCase):
+    handler = hash.cisco_asa
+    secret_size = 32
+    requires_user = False
+
+
+    known_correct_hashes = [
+        # format: ((secret, user), hash)
+
+        #
+        # passlib test vectors
+        # TODO: these have not been confirmed by an outside source,
+        #       nor tested against an official implementation.
+        #       for now, these only confirm we haven't had a regression.
+        #
+
+        # 8 char password -- should be same as pix
+        (('01234567', ''), '0T52THgnYdV1tlOF'),
+        (('01234567', '36'), 'oY0Dh6RVC9KFlopL'),
+        (('01234567', 'user'), 'PNZ4ycbbZ0jp1.j1'),
+        (('01234567', 'user1234'), 'PNZ4ycbbZ0jp1.j1'),
+
+        # 12 char password -- should be same as pix
+        (('0123456789ab', ''), 'S31BxZOGlAigndcJ'),
+        (('0123456789ab', '36'), 'JqCXavOaaaTn9B5y'),
+        (('0123456789ab', 'user'), 'f.T4BKdzdNkjxQl7'),
+        (('0123456789ab', 'user1234'), 'f.T4BKdzdNkjxQl7'),
+
+        # 13 char password -- ASA should switch to larger padding
+        (('0123456789abc', ''), 'XGUn8JhVAnJsaJ69'),  # e.g: cisco_pix is 'eacOpB7vE7ZDukSF'
+        (('0123456789abc', '36'), 'feNbQYEDXynZXMJH'),
+        (('0123456789abc', 'user'), '8Q/FZeam5ai1A47p'),
+        (('0123456789abc', 'user1234'), '8Q/FZeam5ai1A47p'),
+
+        # 16 char password -- verify fencepost
+        (('0123456789abcdef', ''), 'YO.dC.tE77bB35aH'),
+        (('0123456789abcdef', '36'), 'ekOxFx1Mqt8hL3vJ'),
+        (('0123456789abcdef', 'user'), 'IneB.wc9sfRzLPoh'),
+        (('0123456789abcdef', 'user1234'), 'IneB.wc9sfRzLPoh'),
+
+        # 27 char password -- ASA should still append user
+        (('0123456789abcdefqwertyuiopa', ''), '4wp19zS3OCe.2jt5'),
+        (('0123456789abcdefqwertyuiopa', '36'), 'GlGggqfEc19br12c'),
+        (('0123456789abcdefqwertyuiopa', 'user'), 'zynfWw3UtszxLMgL'),
+        (('0123456789abcdefqwertyuiopa', 'user1234'), 'zynfWw3UtszxLMgL'),
+
+        # 28 char password -- ASA shouldn't append user anymore
+        (('0123456789abcdefqwertyuiopas', ''), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', '36'), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', 'user'), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', 'user1234'), 'W6nbOddI0SutTK7m'),
+
+        # 32 char password -- verify fencepost
+        (('0123456789abcdefqwertyuiopasdfgh', ''), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', '36'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', 'user'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', 'user1234'), '5hPT/iC6DnoBxo6a'),
+
+        # 33 char password -- ASA should truncate to 32 (should be same as above)
+        (('0123456789abcdefqwertyuiopasdfghj', ''), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', '36'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', 'user'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', 'user1234'), '5hPT/iC6DnoBxo6a'),
+
+        # unicode password -- assumes cisco will use utf-8 encoding
+        ((u't\xe1ble', ''), 'xQXX755BKYRl0ZpQ'),
+        ((u't\xe1ble', '36'), 'Q/43xXKmIaKLycSj'),
+        ((u't\xe1ble', 'user'), 'Og8fB4NyF0m5Ed9c'),
+        ((u't\xe1ble', 'user1234'), 'Og8fB4NyF0m5Ed9c'),
+    ]
+
+    # append all the cisco_pix hashes w/ password < 13 chars ... those should be the same.
+    known_correct_hashes.extend(row for row in cisco_pix_test.known_correct_hashes
+                                if len(_get_secret(row[0])) < 13)
+
 #=============================================================================
 # cisco type 7
 #=============================================================================
