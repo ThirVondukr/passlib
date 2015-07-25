@@ -147,7 +147,7 @@ modindex_common_prefix = ["passlib."]
 #=============================================================================
 todo_include_todos = True
 keep_warnings = True
-issue_tracker_url = "gc:passlib"
+issue_tracker_url = "bb:ecollins/passlib"
 
 #=============================================================================
 # Options for HTML output
