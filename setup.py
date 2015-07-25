@@ -90,8 +90,8 @@ providing full-strength password hashing for multi-user applications.
 * See the `documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `homepage <http://passlib.googlecode.com>`_
-  for the latest news, more information, and additional downloads.
+* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
+  for the latest news and more information.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
   for a description of what's new in Passlib.
@@ -156,9 +156,8 @@ setup(
     author_email = "elic@assurancetechnologies.com",
     license = "BSD",
 
-    url = "http://passlib.googlecode.com",
+    url = "https://bitbucket.org/ecollins/passlib",
     download_url =
-#        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
         ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 
