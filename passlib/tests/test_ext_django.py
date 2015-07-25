@@ -109,7 +109,7 @@ def create_mock_setter():
 # work up stock django config
 #=============================================================================
 sample_hashes = {} # override sample hashes used in test cases
-if DJANGO_VERSION >= (1,7):
+if DJANGO_VERSION >= (1,8):
     stock_config = django16_context.to_dict()
     stock_config.update(
         deprecated="auto",
@@ -118,6 +118,16 @@ if DJANGO_VERSION >= (1,7):
     )
     sample_hashes.update(
         django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$20000$arJ31mmmlSmO$XNBTUKe4UCUGPeHTmXpYjaKmJaDGAsevd0LWvBtzP18="),
+    )
+elif DJANGO_VERSION >= (1,7):
+    stock_config = django16_context.to_dict()
+    stock_config.update(
+        deprecated="auto",
+        django_pbkdf2_sha1__default_rounds=15000,
+        django_pbkdf2_sha256__default_rounds=15000,
+    )
+    sample_hashes.update(
+        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$15000$xb2YnidpItz1$uHvLChIjUDc5HVUfQnE6lDMbgkTAiSYknGCtjuX4AVo="),
     )
 elif DJANGO_VERSION >= (1,6):
     stock_config = django16_context.to_dict()
@@ -983,8 +993,8 @@ if test_hashers_mod:
                          "get_hasher"]:
                 patchAttr(self, test_hashers_mod, attr, getattr(hashers, attr))
 
-            # django 1.5 tests expect empty django_des_crypt salt field
-            if DJANGO_VERSION >= (1,5):
+            # django 1.4 tests expect empty django_des_crypt salt field
+            if DJANGO_VERSION >= (1,4):
                 from passlib.hash import django_des_crypt
                 patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
 
