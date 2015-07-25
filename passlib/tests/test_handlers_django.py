@@ -13,7 +13,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, b, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 # module
 
@@ -30,6 +30,7 @@ def vstr(version):
 class _DjangoHelper(object):
     # NOTE: not testing against Django < 1.0 since it doesn't support
     # most of these hash formats.
+    __unittest_skip = True
 
     # flag that hash wasn't added until specified version
     min_django_version = ()
@@ -43,11 +44,9 @@ class _DjangoHelper(object):
         from django.contrib.auth.models import check_password
         def verify_django(secret, hash):
             """django/check_password"""
-            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
-                return "skip"
             if self.handler.name == "django_bcrypt" and hash.startswith("bcrypt$$2y$"):
                 hash = hash.replace("$$2y$", "$$2a$")
-            if DJANGO_VERSION >= (1,5) and self.django_has_encoding_glitch and isinstance(secret, bytes):
+            if self.django_has_encoding_glitch and isinstance(secret, bytes):
                 # e.g. unsalted_md5 on 1.5 and higher try to combine
                 # salt + password before encoding to bytes, leading to ascii error.
                 # this works around that issue.
@@ -65,11 +64,6 @@ class _DjangoHelper(object):
         from django.contrib.auth.models import check_password
         assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
-            if (1,4) <= DJANGO_VERSION < (1,6) and not secret:
-                # django 1.4-1.5 rejects empty passwords
-                self.assertFalse(check_password(secret, hash),
-                                "empty string should not have verified")
-                continue
             self.assertTrue(check_password(secret, hash),
                             "secret=%r hash=%r failed to verify" %
                             (secret, hash))
@@ -94,7 +88,7 @@ class _DjangoHelper(object):
             secret, other = self.get_fuzz_password_pair()
             if not secret: # django 1.4 rejects empty passwords.
                 continue
-            if DJANGO_VERSION >= (1,5) and self.django_has_encoding_glitch and isinstance(secret, bytes):
+            if self.django_has_encoding_glitch and isinstance(secret, bytes):
                 # e.g. unsalted_md5 on 1.5 and higher try to combine
                 # salt + password before encoding to bytes, leading to ascii error.
                 # this works around that issue.
@@ -195,10 +189,9 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
         # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
         # for now, we avoid salt_size==0 under 1.4
         handler = self.handler
-        from passlib.tests.test_ext_django import has_django14
         default = handler.default_salt_size
         assert handler.min_salt_size == 0
-        lower = 1 if has_django14 else 0
+        lower = 1
         upper = handler.max_salt_size or default*4
         return randintgauss(lower, upper, default, default*.5)
 
@@ -264,6 +257,7 @@ class django_pbkdf2_sha1_test(HandlerCase, _DjangoHelper):
          'pbkdf2_sha1$10000$KZKWwvqb8BfL$rw5pWsxJEU4JrZAQhHTCO+u0f5Y='),
     ]
 
+@skipUnless(hash.bcrypt.has_backend(), "no bcrypt backends available")
 class django_bcrypt_test(HandlerCase, _DjangoHelper):
     """test django_bcrypt"""
     handler = hash.django_bcrypt
@@ -298,9 +292,7 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
         # omit multi-ident tests, only $2a$ counts for this class
         return None
 
-django_bcrypt_test = skipUnless(hash.bcrypt.has_backend(),
-                                "no bcrypt backends available")(django_bcrypt_test)
-
+@skipUnless(hash.bcrypt.has_backend(), "no bcrypt backends available")
 class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     """test django_bcrypt_sha256"""
     handler = hash.django_bcrypt_sha256
@@ -356,9 +348,6 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     def fuzz_setting_ident(self):
         # omit multi-ident tests, only $2a$ counts for this class
         return None
-
-django_bcrypt_sha256_test = skipUnless(hash.bcrypt.has_backend(),
-                                       "no bcrypt backends available")(django_bcrypt_sha256_test)
 
 #=============================================================================
 # eof

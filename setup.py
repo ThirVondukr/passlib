@@ -15,12 +15,7 @@ import time
 
 py3k = (sys.version_info[0] >= 3)
 
-try:
-    from setuptools import setup
-    has_distribute = True
-except ImportError:
-    from distutils.core import setup
-    has_distribute = False
+from setuptools import setup
 
 #=============================================================================
 # init setup options
@@ -108,7 +103,6 @@ Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Natural Language :: English
 Operating System :: OS Independent
-Programming Language :: Python :: 2.5
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
@@ -144,9 +138,10 @@ setup(
             "passlib.tests",
             "passlib.utils",
                 "passlib.utils._blowfish",
+                "passlib.utils.compat",
             "passlib._setup",
         ],
-    package_data = { "passlib.tests": ["*.cfg"] },
+    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
     zip_safe=True,
 
     # metadata

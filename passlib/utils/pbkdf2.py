@@ -21,7 +21,7 @@ except ImportError:
 # pkg
 from passlib.exc import PasslibRuntimeWarning, ExpectedTypeError
 from passlib.utils import join_bytes, to_native_str, bytes_to_int, int_to_bytes, join_byte_values
-from passlib.utils.compat import b, bytes, BytesIO, irange, callable, int_types, PYPY
+from passlib.utils.compat import BytesIO, irange, int_types
 # local
 __all__ = [
     # hash utils
@@ -167,16 +167,13 @@ def _get_hash_const(name):
     # second, check hashlib.new() in case SSL supports the digest
     try:
         # new() should throw ValueError if alg is unknown
-        tmp = hashlib.new(name, b(""))
-        if PYPY and not tmp.digest():
-            # detect https://bugs.pypy.org/issue957, fixed in PyPy 1.8
-            raise ValueError("not actually supported")
+        tmp = hashlib.new(name, b"")
     except ValueError:
         pass
     else:
         # create wrapper function
         # XXX: find a better way to just return hash constructor
-        def const(msg=b("")):
+        def const(msg=b""):
             return hashlib.new(name, msg)
         const.__name__ = "new(%r)" % name
         const.__module__ = "hashlib"
@@ -229,10 +226,10 @@ def get_hash_info(name):
 # prf lookup
 #=============================================================================
 
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 # sanity check
-_TEST_HMAC_SHA1 = b(',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i')
+_TEST_HMAC_SHA1 = b',\x1cb\xe0H\xa5\x82M\xfb>\xd6\x98\xef\x8e\xf9oQ\x85\xa3i'
 
 # xlat tables used by hmac routines
 _TRANS_5C = join_byte_values((x ^ 0x5C) for x in irange(256))
@@ -258,14 +255,14 @@ def _get_hmac_prf(digest):
     if _EVP:
         # use m2crypto function directly for sha1, since that's its default digest
         if digest == "sha1":
-            if _EVP.hmac(b('x'), b('y')) != _TEST_HMAC_SHA1:
+            if _EVP.hmac(b'x', b'y') != _TEST_HMAC_SHA1:
                 # don't expect to ever get here, but just in case
                 raise RuntimeError("M2Crypto.EVP.hmac() failed sanity check")
             return _EVP.hmac, 20
 
         # else check if it supports given digest as an option
         try:
-            result = _EVP.hmac(b('x'), b('y'), digest)
+            result = _EVP.hmac(b'x', b'y', digest)
         except ValueError:
             pass
         else:
@@ -346,7 +343,7 @@ def get_prf(name):
             raise ValueError("unknown prf algorithm: %r" % (name,))
     elif callable(name):
         # assume it's a callable, use it directly
-        digest_size = len(name(b('x'), b('y')))
+        digest_size = len(name(b'x', b'y'))
         record = (name, digest_size)
     else:
         raise ExpectedTypeError(name, "str or callable", "prf name")

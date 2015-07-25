@@ -163,8 +163,11 @@ Options which directly affect the behavior of the CryptContext instance:
     or fractional number of seconds.
 
     .. deprecated:: 1.6
-        This option has not proved very useful, and will
-        be removed in version 1.8.
+        This option has not proved very useful, is ignored by 1.7,
+        and will be removed in version 1.8.
+
+    .. versionchanged:: 1.7
+        Per deprecation roadmap above, this option is now ignored.
 
 .. _context-algorithm-options:
 

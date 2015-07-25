@@ -52,6 +52,15 @@ A quick summary of its usage::
     someuser:$apr1$T4f7D9ly$EobZDROnHblCNPCtrgh5i/
     anotheruser:$apr1$vBdPWvh1$GrhfbyGvN/7HalW5cS9XB1
 
+.. warning::
+
+    :class:`!HtpasswdFile` currently defaults to using :class:`!apr_md5_crypt`,
+    as this is the only htpasswd hash guaranteed to be portable across operating systems.
+    However, for security reasons Passlib 1.7 will default to using the strongest algorithm
+    available on the host platform (e.g. :class:`!bcrypt` or :class:`!sha256_crypt`).
+    Applications that are relying on the old behavior should specify
+    ``HtpasswdFile(default_scheme="portable")`` (new in Passlib 1.6.3).
+
 .. autoclass:: HtpasswdFile(path=None, new=False, autosave=False, ...)
 
 .. index:: Apache; htdigest

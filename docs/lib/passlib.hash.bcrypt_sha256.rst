@@ -34,7 +34,6 @@ This class can be used directly as follows::
 
     It is strongly recommended that you install
     `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
-    or `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_
     when using this hash. See :doc:`passlib.hash.bcrypt` for more details.
 
 Interface

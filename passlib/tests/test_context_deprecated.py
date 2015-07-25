@@ -22,7 +22,6 @@ except ImportError:
 from passlib import hash
 from passlib.context import CryptContext, CryptPolicy, LazyCryptContext
 from passlib.utils import to_bytes, to_unicode
-from passlib.utils.compat import bytes
 import passlib.utils.handlers as uh
 from passlib.tests.utils import TestCase, set_file
 from passlib.registry import (register_crypt_handler_path,
@@ -504,16 +503,8 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         self.assertEqual(pa.get_min_verify_time('admin'), 0)
 
         pb = pa.replace(min_verify_time=.1)
-        self.assertEqual(pb.get_min_verify_time(), .1)
-        self.assertEqual(pb.get_min_verify_time('admin'), .1)
-
-        pc = pa.replace(admin__context__min_verify_time=.2)
-        self.assertEqual(pc.get_min_verify_time(), 0)
-        self.assertEqual(pc.get_min_verify_time('admin'), .2)
-
-        pd = pb.replace(admin__context__min_verify_time=.2)
-        self.assertEqual(pd.get_min_verify_time(), .1)
-        self.assertEqual(pd.get_min_verify_time('admin'), .2)
+        self.assertEqual(pb.get_min_verify_time(), 0)
+        self.assertEqual(pb.get_min_verify_time('admin'), 0)
 
     #===================================================================
     # serialization

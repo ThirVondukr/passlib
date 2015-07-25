@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import h64, safe_crypt, test_crypt, \
                           repeat_string, to_unicode
-from passlib.utils.compat import b, bytes, byte_elem_value, u, \
+from passlib.utils.compat import byte_elem_value, u, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
@@ -22,7 +22,7 @@ __all__ = [
 # pure-python backend, used by both sha256_crypt & sha512_crypt
 # when crypt.crypt() backend is not available.
 #=============================================================================
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 # pre-calculated offsets used to speed up C digest stage (see notes below).
 # sequence generated using the following:
@@ -369,7 +369,10 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             cs = self.checksum_size
             assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
             return hash[-cs:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend

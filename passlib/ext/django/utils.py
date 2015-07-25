@@ -3,6 +3,7 @@
 # imports
 #=============================================================================
 # core
+from functools import update_wrapper
 import logging; log = logging.getLogger(__name__)
 from weakref import WeakKeyDictionary
 from warnings import warn
@@ -18,12 +19,17 @@ from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler, list_crypt_handlers
 from passlib.utils import classproperty
-from passlib.utils.compat import bytes, get_method_function, iteritems
+from passlib.utils.compat import get_method_function, iteritems, OrderedDict
 # local
 __all__ = [
+    "DJANGO_VERSION",
+    "MIN_DJANGO_VERSION",
     "get_preset_config",
     "get_passlib_hasher",
 ]
+
+#: minimum version supported by passlib.ext.django
+MIN_DJANGO_VERSION = (1, 6)
 
 #=============================================================================
 # default policies
@@ -55,12 +61,7 @@ def get_preset_config(name):
         if not DJANGO_VERSION:
             raise ValueError("can't resolve django-default preset, "
                              "django not installed")
-        if DJANGO_VERSION < (1,4):
-            name = "django-1.0"
-        elif DJANGO_VERSION < (1,6):
-            name = "django-1.4"
-        else:
-            name = "django-1.6"
+        name = "django-1.6"
     if name == "passlib-default":
         return PASSLIB_DEFAULT
     try:
@@ -186,7 +187,8 @@ class _HasherWrapper(object):
     _translate_kwds = dict(checksum="hash", rounds="iterations")
 
     def safe_summary(self, encoded):
-        from django.contrib.auth.hashers import mask_hash, _, SortedDict
+        from django.contrib.auth.hashers import mask_hash
+        from django.utils.translation import ugettext_noop as _
         handler = self.passlib_handler
         items = [
             # since this is user-facing, we're reporting passlib's name,
@@ -198,7 +200,7 @@ class _HasherWrapper(object):
             for key, value in iteritems(kwds):
                 key = self._translate_kwds.get(key, key)
                 items.append((_(key), value))
-        return SortedDict(items)
+        return OrderedDict(items)
 
     # added in django 1.6
     def must_update(self, encoded):
@@ -223,12 +225,7 @@ def get_passlib_hasher(handler, algorithm=None):
     Note that the format of the handler won't be altered,
     so will probably not be compatible with Django's algorithm format,
     so the monkeypatch provided by this plugin must have been applied.
-
-    .. note::
-        This function requires Django 1.4 or later.
     """
-    if DJANGO_VERSION < (1,4):
-        raise RuntimeError("get_passlib_hasher() requires Django >= 1.4")
     if isinstance(handler, str):
         handler = get_crypt_handler(handler)
     if hasattr(handler, "django_name"):
@@ -438,7 +435,7 @@ class _PatchManager(object):
         else:
             setattr(obj, attr, value)
 
-    def patch(self, path, value):
+    def patch(self, path, value, wrap=False):
         """monkeypatch object+attr at <path> to have <value>, stores original"""
         assert value != _UNSET
         current = self._get_path(path)
@@ -452,6 +449,14 @@ class _PatchManager(object):
             if not self._is_same_value(current, expected):
                 warn("overridding resource another library has patched: %r"
                      % path, PasslibRuntimeWarning)
+        if wrap:
+            assert callable(value)
+            wrapped = orig
+            wrapped_by = value
+            def wrapper(*args, **kwds):
+                return wrapped_by(wrapped, *args, **kwds)
+            update_wrapper(wrapper, value)
+            value = wrapper
         self._set_path(path, value)
         self._state[path] = (orig, value)
 
@@ -460,13 +465,13 @@ class _PatchManager(object):
     ##    for path, value in iteritems(kwds):
     ##        self.patch(path, value)
 
-    def monkeypatch(self, parent, name=None, enable=True):
+    def monkeypatch(self, parent, name=None, enable=True, wrap=False):
         """function decorator which patches function of same name in <parent>"""
         def builder(func):
             if enable:
                 sep = "." if ":" in parent else ":"
                 path = parent + sep + (name or func.__name__)
-                self.patch(path, func)
+                self.patch(path, func, wrap=wrap)
             return func
         return builder
 

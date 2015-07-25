@@ -13,22 +13,10 @@ __all__ = [
 ]
 
 #=============================================================================
-# 2.5-3.2 compatibility helpers
+# 2/3 compatibility helpers
 #=============================================================================
-if sys.version_info >= (2,6):
-    from abc import ABCMeta, abstractmethod, abstractproperty
-else:
-    # create stub for python 2.5
-    ABCMeta = type
-    def abstractmethod(func):
-        return func
-#    def abstractproperty():
-#        return None
-
-def create_with_metaclass(meta):
+def recreate_with_metaclass(meta):
     """class decorator that re-creates class using metaclass"""
-    # have to do things this way since abc not present in py25,
-    # and py2/py3 have different ways of doing metaclasses.
     def builder(cls):
         if meta is type(cls):
             return cls
@@ -38,6 +26,12 @@ def create_with_metaclass(meta):
 #=============================================================================
 # PasswordHash interface
 #=============================================================================
+from abc import ABCMeta, abstractmethod, abstractproperty
+
+# TODO: make this actually use abstractproperty(),
+#       now that we dropped py25, 'abc' is always available.
+
+@recreate_with_metaclass(ABCMeta)
 class PasswordHash(object):
     """This class describes an abstract interface which all password hashes
     in Passlib adhere to. Under Python 2.6 and up, this is an actual
@@ -94,6 +88,54 @@ class PasswordHash(object):
         raise NotImplementedError("must be implemented by subclass")
 
     #===================================================================
+    # configuration
+    #===================================================================
+    @classmethod
+    @abstractmethod
+    def using(cls, **kwds):
+        """
+        Return another hasher object (typically a subclass),
+        which integrates the configuration options specified by ``kwds``.
+
+        .. todo::
+
+            document which options are accepted.
+
+        :returns:
+            typically returns a subclass for most hasher implementations.
+
+        .. todo::
+
+            add this method to main documentation.
+        """
+        raise NotImplementedError("must be implemented by subclass")
+
+    #===================================================================
+    # migration
+    #===================================================================
+    @classmethod
+    def needs_update(cls, hash, secret=None):
+        """
+        check if hash configuration is outside desired bounds.
+
+        :param hash:
+            hash string to examine
+
+        :param secret:
+            optional secret known to have verified against the provided hash.
+            (this is used by some hashes to detect legacy algorithm mistakes).
+
+        :return:
+            whether secret needs re-hashing.
+
+        .. todo::
+
+            add this method to main documentation.
+        """
+        # by default, always report that we don't need update
+        return False
+
+    #===================================================================
     # additional methods
     #===================================================================
     @classmethod
@@ -129,33 +171,6 @@ class PasswordHash(object):
     ## checksum_size
 
     #---------------------------------------------------------------
-    # CryptContext flags
-    #---------------------------------------------------------------
-
-    # hack for bsdi_crypt: if True, causes CryptContext to only generate
-    # odd rounds values. assumed False if not defined.
-    ## _avoid_even_rounds = False
-
-    ##@classmethod
-    ##def _bind_needs_update(cls, **setting_kwds):
-    ##    """return helper to detect hashes that need updating.
-    ##
-    ##    if this method is defined, the CryptContext constructor
-    ##    will invoke it with the settings specified for the context.
-    ##    this method should return either ``None``, or a callable
-    ##    with the signature ``needs_update(hash,secret)->bool``.
-    ##
-    ##    this ``needs_update`` function should return True if the hash
-    ##    should be re-encrypted, whether due to internal
-    ##    issues or the specified settings.
-    ##
-    ##    CryptContext will automatically take care of deprecating
-    ##    hashes with insufficient rounds for classes which define fromstring()
-    ##    and a rounds attribute - though the requirements for this last
-    ##    part may change at some point.
-    ##    """
-
-    #---------------------------------------------------------------
     # experimental methods
     #---------------------------------------------------------------
 
@@ -185,8 +200,6 @@ class PasswordHash(object):
     #===================================================================
     # eoc
     #===================================================================
-
-PasswordHash = create_with_metaclass(ABCMeta)(PasswordHash)
 
 #=============================================================================
 # eof

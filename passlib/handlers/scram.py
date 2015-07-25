@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, splitcomma
-from passlib.utils.compat import bytes, bascii_to_str, iteritems, u
+from passlib.utils.compat import bascii_to_str, iteritems, u, native_string_types
 from passlib.utils.pbkdf2 import pbkdf2, norm_hash_name
 import passlib.utils.handlers as uh
 # local
@@ -285,6 +285,27 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return '$scram$%d$%s$%s' % (self.rounds, salt, chk_str)
 
     #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, default_algs=None, algs=None, **kwds):
+        # parse aliases
+        if algs is not None:
+            assert default_algs is None
+            default_algs = algs
+
+        # create subclass
+        subcls = super(scram, cls).using(**kwds)
+
+        # fill in algs
+        if default_algs is not None:
+            # hack so we can use _norm_algs even though it's an instance method.
+            # XXX: use_defaults is only thing keeping it from being a classmethod.
+            subcls.default_algs = cls(use_defaults=True)._norm_algs(default_algs)
+
+        return subcls
+
+    #===================================================================
     # init
     #===================================================================
     def __init__(self, algs=None, **kwds):
@@ -325,7 +346,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise RuntimeError("checksum & algs kwds are mutually exclusive")
 
         # parse args value
-        if isinstance(algs, str):
+        if isinstance(algs, native_string_types):
             algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):
@@ -336,19 +357,21 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return algs
 
     #===================================================================
+    # migration
+    #===================================================================
+    def _calc_needs_update(self, **kwds):
+        # marks hashes as deprecated if they don't include at least all default_algs.
+        # XXX: should we deprecate if they aren't exactly the same,
+        #      to permit removing legacy hashes?
+        if not set(self.algs).issuperset(self.default_algs):
+            return True
+
+        # hand off to base implementation
+        return super(scram, self)._calc_needs_update(**kwds)
+
+    #===================================================================
     # digest methods
     #===================================================================
-
-    @classmethod
-    def _bind_needs_update(cls, **settings):
-        """generate a deprecation detector for CryptContext to use"""
-        # generate deprecation hook which marks hashes as deprecated
-        # if they don't support a superset of current algs.
-        algs = frozenset(cls(use_defaults=True, **settings).algs)
-        def detector(hash, secret):
-            return not algs.issubset(cls.from_string(hash).algs)
-        return detector
-
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt

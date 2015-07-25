@@ -9,22 +9,20 @@
 import sys
 PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
-PY_MAX_25 = sys.version_info < (2,6) # py 2.5 or earlier
-PY27 = sys.version_info[:2] == (2,7) # supports last 2.x release
-PY_MIN_32 = sys.version_info >= (3,2) # py 3.2 or later
+
+# make sure it's not an unsupported version, even if we somehow got this far
+if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
+    raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
+
+PY26 = sys.version_info < (2,7)
 
 #------------------------------------------------------------------------
 # python implementation
 #------------------------------------------------------------------------
-PYPY = hasattr(sys, "pypy_version_info")
 JYTHON = sys.platform.startswith('java')
 
-#------------------------------------------------------------------------
-# capabilities
-#------------------------------------------------------------------------
-
-# __dir__() added in py2.6
-SUPPORTS_DIR_METHOD = not PY_MAX_25 and not (PYPY and sys.pypy_version_info < (1,6))
+if hasattr(sys, "pypy_version_info") and sys.pypy_version_info < (2,0):
+    raise AssertionError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
 #=============================================================================
 # common imports
@@ -44,7 +42,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3', 'PY_MAX_25', 'PY27', 'PY_MIN_32',
+    'PY2', 'PY3', 'PY26',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -52,14 +50,14 @@ __all__ = [
 
     # type detection
 ##    'is_mapping',
-    'callable',
     'int_types',
     'num_types',
-    'base_string_types',
+    'unicode_or_bytes_types',
+    'native_string_types',
 
     # unicode/bytes types & helpers
-    'u', 'b',
-    'unicode', 'bytes',
+    'u',
+    'unicode',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
@@ -73,8 +71,11 @@ __all__ = [
     'iteritems', 'itervalues',
     'next',
 
+    # collections
+    'OrderedDict',
+
     # introspection
-    'exc_err', 'get_method_function', 'add_doc',
+    'get_method_function', 'add_doc',
 ]
 
 # begin accumulating mapping of lazy-loaded attrs,
@@ -86,31 +87,29 @@ _lazy_attrs = dict()
 #=============================================================================
 if PY3:
     unicode = str
-    bytes = builtins.bytes
 
+    # TODO: once we drop python 3.2 support, can use u'' again!
     def u(s):
         assert isinstance(s, str)
         return s
 
-    def b(s):
-        assert isinstance(s, str)
-        return s.encode("latin-1")
-
-    base_string_types = (unicode, bytes)
+    unicode_or_bytes_types = (unicode, bytes)
+    native_string_types = (unicode,)
 
 else:
     unicode = builtins.unicode
-    bytes = str if PY_MAX_25 else builtins.bytes
 
     def u(s):
         assert isinstance(s, str)
         return s.decode("unicode_escape")
 
-    def b(s):
-        assert isinstance(s, str)
-        return s
+    unicode_or_bytes_types = (basestring,)
+    native_string_types = (basestring,)
 
-    base_string_types = basestring
+# unicode -- unicode type, regardless of python version
+# bytes -- bytes type, regardless of python version
+# unicode_or_bytes_types -- types that text can occur in, whether encoded or not
+# native_string_types -- types that native python strings (dict keys etc) can occur in.
 
 #=============================================================================
 # unicode & bytes helpers
@@ -119,7 +118,7 @@ else:
 join_unicode = u('').join
 
 # function to join list of byte strings
-join_bytes = b('').join
+join_bytes = b''.join
 
 if PY3:
     def uascii_to_str(s):
@@ -234,8 +233,8 @@ if PY3:
     def itervalues(d):
         return d.values()
 
-    next_method_attr = "__next__"
-
+    def nextgetter(obj):
+        return obj.__next__
 else:
     irange = xrange
     ##lrange = range
@@ -248,26 +247,10 @@ else:
     def itervalues(d):
         return d.itervalues()
 
-    next_method_attr = "next"
+    def nextgetter(obj):
+        return obj.next
 
-if PY_MAX_25:
-    _undef = object()
-    def next(itr, default=_undef):
-        """compat wrapper for next()"""
-        if default is _undef:
-            return itr.next()
-        try:
-            return itr.next()
-        except StopIteration:
-            return default
-    def chain_from_iterable(itr):
-        for subitr in itr:
-            for elem in subitr:
-                yield elem
-else:
-    from itertools import chain
-    next = builtins.next
-    chain_from_iterable = chain.from_iterable
+add_doc(nextgetter, "return function that yields successive values from iterable")
 
 #=============================================================================
 # typing
@@ -276,21 +259,9 @@ else:
 ##    # non-exhaustive check, enough to distinguish from lists, etc
 ##    return hasattr(obj, "items")
 
-if (3,0) <= sys.version_info < (3,2):
-    # callable isn't dead, it's just resting
-    from collections import Callable
-    def callable(obj):
-        return isinstance(obj, Callable)
-else:
-    callable = builtins.callable
-
 #=============================================================================
 # introspection
 #=============================================================================
-def exc_err():
-    """return current error object (to avoid try/except syntax change)"""
-    return sys.exc_info()[1]
-
 if PY3:
     method_function_attr = "__func__"
 else:
@@ -300,6 +271,10 @@ def get_method_function(func):
     """given (potential) method, return underlying function"""
     return getattr(func, method_function_attr, func)
 
+def get_unbound_method_function(func):
+    """given unbound method, return underlying function"""
+    return func if PY3 else func.__func__
+
 #=============================================================================
 # input/output
 #=============================================================================
@@ -308,11 +283,8 @@ if PY3:
         BytesIO="io.BytesIO",
         UnicodeIO="io.StringIO",
         NativeStringIO="io.StringIO",
-        SafeConfigParser="configparser.SafeConfigParser",
+        SafeConfigParser="configparser.ConfigParser",
     )
-    if sys.version_info >= (3,2):
-        # py32 renamed this, removing old ConfigParser
-        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
 
     print_ = getattr(builtins, "print")
 
@@ -344,13 +316,13 @@ else:
         # pick default end sequence
         if end is None:
             end = u("\n") if want_unicode else "\n"
-        elif not isinstance(end, base_string_types):
+        elif not isinstance(end, unicode_or_bytes_types):
             raise TypeError("end must be None or a string")
 
         # pick default separator
         if sep is None:
             sep = u(" ") if want_unicode else " "
-        elif not isinstance(sep, base_string_types):
+        elif not isinstance(sep, unicode_or_bytes_types):
             raise TypeError("sep must be None or a string")
 
         # write to buffer
@@ -365,6 +337,14 @@ else:
                 arg = str(arg)
             write(arg)
         write(end)
+
+#=============================================================================
+# collections
+#=============================================================================
+if PY26:
+    _lazy_attrs['OrderedDict'] = 'passlib.utils.compat._ordered_dict.OrderedDict'
+else:
+    _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 
 #=============================================================================
 # lazy overlay module

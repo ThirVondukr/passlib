@@ -12,7 +12,7 @@ import re
 # pkg
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, classproperty, to_unicode
-from passlib.utils.compat import b, uascii_to_str, unicode, u
+from passlib.utils.compat import uascii_to_str, unicode, u
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -159,7 +159,7 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
     checksum_size = 16
     _hash_func = md5
     _hash_regex = re.compile(u(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$"))
-    _stub_checksum = b('\x00') * 16
+    _stub_checksum = b'\x00' * 16
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted SHA1 format, and follows the :ref:`password-hash-api`.
@@ -199,7 +199,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
     checksum_size = 20
     _hash_func = sha1
     _hash_regex = re.compile(u(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$"))
-    _stub_checksum = b('\x00') * 20
+    _stub_checksum = b'\x00' * 20
 
 class ldap_plaintext(plaintext):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

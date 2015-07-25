@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import h64, safe_crypt, test_crypt
-from passlib.utils.compat import b, u, unicode, irange
+from passlib.utils.compat import u, unicode, irange
 from passlib.utils.pbkdf2 import get_keyed_prf
 import passlib.utils.handlers as uh
 # local
@@ -19,7 +19,7 @@ __all__ = [
 #=============================================================================
 # sha1-crypt
 #=============================================================================
-_BNULL = b('\x00')
+_BNULL = b'\x00'
 
 class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the SHA1-Crypt password hash, and follows the :ref:`password-hash-api`.
@@ -110,7 +110,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 29
             return hash[-28:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend
