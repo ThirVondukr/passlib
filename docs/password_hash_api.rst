@@ -740,5 +740,5 @@ However, some older algorithms (e.g. :class:`~passlib.hash.bsdi_crypt`) are weak
 a tradeoff must be made, choosing "secure but intolerably slow" over "fast but unacceptably insecure".
 For this reason, it is strongly recommended to not use a value much lower than Passlib's default.
 
-.. [#avgsys] For Passlib 1.6.2, all hashes were retuned to take ~300ms on a
-   system with a 2.5 ghz 64 bit CPU.
+.. [#avgsys] For Passlib 1.6.3, all hashes were retuned to take ~300ms on a
+   system with a 3.0 ghz 64 bit CPU.
