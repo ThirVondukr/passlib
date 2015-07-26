@@ -589,10 +589,14 @@ class SkeletonTest(TestCase):
                          {'checksum': 186, 'salt': 132})
 
         # linear rounds
+        # NOTE: +3 comes from int(math.log(.1,2)),
+        #       where 0.1 = 10% = default allowed variation in rounds
+        self.patchAttr(hash.sha256_crypt, "default_rounds", 1 << (14 + 3))
         self.assertEqual(hash.sha256_crypt.bitsize(),
                          {'checksum': 258, 'rounds': 14, 'salt': 96})
 
         # raw checksum
+        self.patchAttr(hash.pbkdf2_sha1, "default_rounds", 1 << (13 + 3))
         self.assertEqual(hash.pbkdf2_sha1.bitsize(),
                          {'checksum': 160, 'rounds': 13, 'salt': 128})
 
