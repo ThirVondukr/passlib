@@ -18,7 +18,7 @@ from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, to_unicode, \
                           MAX_PASSWORD_SIZE
-from passlib.utils.compat import join_byte_values, irange, u, \
+from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
 # local
@@ -883,20 +883,29 @@ class HasManyIdents(GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def using(cls, # keyword only...
-              default_ident=None, **kwds):
-        # check for aliases used by CryptContext
-        if 'ident' in kwds:
-            assert default_ident is None
-            default_ident = kwds.pop("ident")
+    def using(cls,  # keyword only...
+              default_ident=None, ident=None, **kwds):
+        """
+        This mixin adds support for the following :meth:`~passlib.ifc.PasswordHash.using` keywords:
 
-        # create subclasss
+        :param default_ident:
+            default identifier that will be used by resulting customized hasher.
+
+        :param ident:
+            supported as alternate alias for **default_ident**.
+        """
+        # resolve aliases
+        if ident is not None:
+            if default_ident is not None:
+                raise TypeError("'default_ident' and 'ident' are mutually exclusive")
+            default_ident = ident
+
+        # create subclass
         subcls = super(HasManyIdents, cls).using(**kwds)
 
         # add custom default ident
         if default_ident is not None:
-            # hack to let us call _norm_ident() even though it's an instance method
-            subcls.default_ident = cls(use_defaults=True)._norm_ident(default_ident)
+            subcls.default_ident = cls(ident=default_ident, use_defaults=True).ident
         return subcls
 
     #===================================================================
@@ -907,14 +916,18 @@ class HasManyIdents(GenericHandler):
         self.ident = self._norm_ident(ident)
 
     def _norm_ident(self, ident):
-        # fill in default identifier
+        """
+        helper which normalizes & validates 'ident' value.
+        """
+        # fill in default_ident if needed
         if ident is None:
             if not self.use_defaults:
                 raise TypeError("no ident specified")
             ident = self.default_ident
             assert ident is not None, "class must define default_ident"
 
-        # handle unicode
+        # handle bytes
+        assert ident is not None
         if isinstance(ident, bytes):
             ident = ident.decode('ascii')
 
@@ -953,6 +966,8 @@ class HasManyIdents(GenericHandler):
             if hash.startswith(ident):
                 return ident, hash[len(ident):]
         raise exc.InvalidHashError(cls)
+
+    # XXX: implement a needs_update() helper that marks everything but default_ident as deprecated?
 
     #===================================================================
     # eoc
