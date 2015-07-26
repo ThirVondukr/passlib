@@ -325,15 +325,6 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
         'bcrypt_sha256$xyz$2a$06$/3OeRpbOf8/l6nPPRdZPp.nRiyYqPobEZGdNRBWihQhiFDh1ws1tu',
     ]
 
-    def test_30_HasManyIdents(self):
-        raise self.skipTest("multiple idents not supported")
-
-    def test_30_HasOneIdent(self):
-        # forbidding ident keyword, django doesn't support configuring this
-        handler = self.handler
-        handler(use_defaults=True)
-        self.assertRaises(TypeError, handler, ident="$2a$", use_defaults=True)
-
     # NOTE: the following have been cloned from _bcrypt_test()
 
     def populate_settings(self, kwds):

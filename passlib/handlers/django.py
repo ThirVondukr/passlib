@@ -198,9 +198,6 @@ class django_bcrypt_sha256(bcrypt):
     django_name = "bcrypt_sha256"
     _digest = sha256
 
-    # NOTE: django bcrypt ident locked at "$2a$", so omitting 'ident' support.
-    setting_kwds = ("salt", "rounds")
-
     # sample hash:
     # bcrypt_sha256$$2a$06$/3OeRpbOf8/l6nPPRdZPp.nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
 
@@ -224,12 +221,6 @@ class django_bcrypt_sha256(bcrypt):
         if not bhash.startswith("$2"):
             raise uh.exc.MalformedHashError(cls)
         return super(django_bcrypt_sha256, cls).from_string(bhash)
-
-    def __init__(self, **kwds):
-        if 'ident' in kwds and kwds.get("use_defaults"):
-            raise TypeError("%s does not support the ident keyword" %
-                            self.__class__.__name__)
-        return super(django_bcrypt_sha256, self).__init__(**kwds)
 
     def to_string(self):
         bhash = super(django_bcrypt_sha256, self).to_string()
