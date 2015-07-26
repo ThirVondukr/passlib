@@ -631,6 +631,8 @@ class _CryptRecord(object):
         self.deprecated = deprecated
 
         # init needs_update proxy
+        # XXX: could probably do away with entire _CryptRecord -- just need to
+        #      monkeypatch .needs_update for our subclass
         if deprecated:
             self.needs_update = lambda hash, secret=None: True
         else:
