@@ -2022,9 +2022,11 @@ class PrefixWrapper(object):
         return value
 
     # attrs that should be proxied
+    # XXX: change this to proxy everything that doesn't start with "_"?
     _proxy_attrs = (
                     "setting_kwds", "context_kwds",
                     "default_rounds", "min_rounds", "max_rounds", "rounds_cost",
+                    "min_desired_rounds", "max_desired_rounds",
                     "default_salt_size", "min_salt_size", "max_salt_size",
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
