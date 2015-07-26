@@ -304,10 +304,10 @@ class cisco_asa_test(UserHandlerMixin, HandlerCase):
         (('0123456789abcdefqwertyuiopasdfghj', 'user1234'), '5hPT/iC6DnoBxo6a'),
 
         # unicode password -- assumes cisco will use utf-8 encoding
-        ((u't\xe1ble', ''), 'xQXX755BKYRl0ZpQ'),
-        ((u't\xe1ble', '36'), 'Q/43xXKmIaKLycSj'),
-        ((u't\xe1ble', 'user'), 'Og8fB4NyF0m5Ed9c'),
-        ((u't\xe1ble', 'user1234'), 'Og8fB4NyF0m5Ed9c'),
+        ((u('t\xe1ble'), ''), 'xQXX755BKYRl0ZpQ'),
+        ((u('t\xe1ble'), '36'), 'Q/43xXKmIaKLycSj'),
+        ((u('t\xe1ble'), 'user'), 'Og8fB4NyF0m5Ed9c'),
+        ((u('t\xe1ble'), 'user1234'), 'Og8fB4NyF0m5Ed9c'),
     ]
 
     # append all the cisco_pix hashes w/ password < 13 chars ... those should be the same.

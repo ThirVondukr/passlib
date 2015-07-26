@@ -15,6 +15,7 @@ import time as _time
 # pkg
 from passlib import exc
 from passlib.utils import to_bytes, to_unicode
+from passlib.utils.pbkdf2 import _clear_caches
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase
 # local
@@ -260,6 +261,15 @@ class _BaseOTPTest(TestCase):
     OtpType = None
 
     #=============================================================================
+    # setup
+    #=============================================================================
+    def setUp(self):
+        super(_BaseOTPTest, self).setUp()
+
+        # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
+        _clear_caches()
+
+    #=============================================================================
     # subclass utils
     #=============================================================================
     def randotp(self, **kwds):
@@ -373,7 +383,7 @@ class _BaseOTPTest(TestCase):
 
         # invalid alg
         with self.assertWarningList([
-            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA333")
+            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA-333")
         ]):
             self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
 
@@ -819,7 +829,7 @@ class TotpTest(_BaseOTPTest):
         otp.last_counter = counter + 1
         otp.now = lambda : time
         with self.assertWarningList([
-                dict(message_re=".*earlier than last time.*", category=PasslibSecurityWarning),
+                dict(message_re=".*earlier than last-used time.*", category=PasslibSecurityWarning),
                 ]):
             self.assertTrue(otp.generate_next().token)
         self.assertEqual(otp.last_counter, counter)
@@ -1255,7 +1265,9 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(otp.alg, "sha256")
 
         # unknown alg
-        self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
+        with self.assertWarningList([exc.PasslibRuntimeWarning]):
+            self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?"
+                                                    "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
 
         #--------------------------------------------------------------------------------
         # digit param

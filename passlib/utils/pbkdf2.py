@@ -41,6 +41,7 @@ def _clear_caches():
     """unittest helper -- clears get_hash_info() / get_prf() caches"""
     _ghi_cache.clear()
     _prf_cache.clear()
+    _nhn_cache.clear()
 
 #=============================================================================
 # hash helpers
