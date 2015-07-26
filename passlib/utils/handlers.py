@@ -1752,7 +1752,9 @@ class HasManyBackends(GenericHandler):
         :raises ValueError: if backend name is unknown
 
         :returns:
-            ``True`` if backend is currently supported, else ``False``.
+            ``True`` if backend is currently supported,
+            ``False`` if it's not,
+            and ``None`` if it's present, but won't load due to a security issue.
         """
         if name == "any" or name == "default":
             if cls._backend:
@@ -1760,10 +1762,15 @@ class HasManyBackends(GenericHandler):
             try:
                 cls.set_backend()
                 return True
+            except exc.PasslibSecurityError:
+                return None
             except exc.MissingBackendError:
                 return False
         else:
-            return cls._load_backend(name) is not None
+            try:
+                return cls._load_backend(name) is not None
+            except exc.PasslibSecurityError:
+                return None
 
     @classmethod
     def set_backend(cls, name="any"):
@@ -1795,6 +1802,12 @@ class HasManyBackends(GenericHandler):
             * ... if ``"any"`` or ``"default"`` was specified,
               and *no* backends are currently available.
 
+        :raises passlib.exc.PasslibSecurityError:
+
+            if ``"any"`` or ``"default"`` was specified,
+            but the only backend available has a PasslibSecurityError.
+            may be raised by the loading code, or by a subclassed set_backend() function.
+
         :returns:
             The return value of this function should be ignored.
         """
@@ -1803,12 +1816,23 @@ class HasManyBackends(GenericHandler):
             return cls._backend
         elif name == "any" or name == "default":
             # select default backend
+            failed_name = None
             for name in cls.backends:
-                calc = cls._load_backend(name)
+                try:
+                    calc = cls._load_backend(name)
+                except exc.PasslibSecurityError:
+                    # backend is available, but refuses to load due to security issue.
+                    if failed_name is None:
+                        failed_name = name
+                    continue
                 if calc:
                     break
                 assert calc is None
             else:
+                if failed_name:
+                    # if there was at least one backend, but it had a PasslibSecurityError,
+                    # report that to the user rather than MissingBackendError
+                    cls._load_backend(failed_name)
                 msg = "%s: no backends available" % cls.name
                 if cls._no_backend_suggestion:
                     msg += cls._no_backend_suggestion
@@ -1831,6 +1855,10 @@ class HasManyBackends(GenericHandler):
         """helper used by has_backend() & set_backend(), loads specified backend.
 
         :raises ValueError: if invalid backend name is provided
+
+        :raises passlib.exc.SecurityError:
+            backend code itself is allowed to raise this if backend is available,
+            but a fatal security issue was found.
 
         :returns:
             * ``None`` if backend can't be loaded.
