@@ -597,11 +597,17 @@ class bcrypt_sha256(bcrypt):
     all the same optional keywords as the base :class:`bcrypt` hash.
 
     .. versionadded:: 1.6.2
+
+    .. versionchanged:: 1.7
+
+        Now defaults to '2b' bcrypt algorithm.
     """
     name = "bcrypt_sha256"
 
-    # this is locked at 2a for now.
-    ident_values = (IDENT_2A,)
+    # this is locked at 2a/2b for now.
+    ident_values = (IDENT_2A, IDENT_2B)
+
+    default_ident = IDENT_2B
 
     # sample hash:
     # $bcrypt-sha256$2a,6$/3OeRpbOf8/l6nPPRdZPp.$nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
@@ -675,9 +681,14 @@ class bcrypt_sha256(bcrypt):
 
     # patch set_backend so it modifies bcrypt class, not this one...
     # else the bcrypt.set_backend() tests will call the wrong class.
+    # XXX: move this (and a get_backend wrapper) to bcrypt?
+    #      also having to set this in django_bcrypt wrappers
     @classmethod
     def set_backend(cls, *args, **kwds):
         return bcrypt.set_backend(*args, **kwds)
+
+    # XXX: have _needs_update() mark the $2a$ ones for upgrading?
+    #      so do that after we switch to hex encoding?
 
 #=============================================================================
 # eof
