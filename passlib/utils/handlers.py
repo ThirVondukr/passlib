@@ -1298,100 +1298,140 @@ class HasRounds(GenericHandler):
     @classmethod
     def using(cls, # keyword only...
               min_desired_rounds=None, max_desired_rounds=None,
-              default_rounds=None, vary_rounds=None, **kwds):
+              default_rounds=None, vary_rounds=None,
+              min_rounds=None, max_rounds=None, rounds=None,  # aliases used by CryptContext
+              **kwds):
+
         # check for aliases used by CryptContext
-        if "min_rounds" in kwds:
-            assert min_desired_rounds is None
-            min_desired_rounds = kwds.pop("min_rounds")
-        if "max_rounds" in kwds:
-            assert max_desired_rounds is None
-            max_desired_rounds = kwds.pop("max_rounds")
-        if "rounds" in kwds:
-            assert default_rounds is None
-            default_rounds = kwds.pop("rounds")
+        if min_rounds is not None:
+            if min_desired_rounds is not None:
+                raise TypeError("'min_rounds' and 'min_desired_rounds' aliases are mutually exclusive")
+            min_desired_rounds = min_rounds
+
+        if max_rounds is not None:
+            if max_desired_rounds is not None:
+                raise TypeError("'max_rounds' and 'max_desired_rounds' aliases are mutually exclusive")
+            max_desired_rounds = max_rounds
+
+        if rounds is not None:
+            if default_rounds is not None:
+                raise TypeError("'rounds' and 'default_rounds' aliases are mutually exclusive")
+            default_rounds = rounds
 
         # generate new subclass
         subcls = super(HasRounds, cls).using(**kwds)
-        assert issubclass(subcls, cls)
 
         # replace min_desired_rounds
-        if min_desired_rounds is not None:
-            # TODO: support string coercion
+        if min_desired_rounds is None:
+            explicit_min_rounds = False
+            min_desired_rounds = cls.min_desired_rounds
+        else:
+            explicit_min_rounds = True
+            if isinstance(min_desired_rounds, native_string_types):
+                min_desired_rounds = int(min_desired_rounds)
             if min_desired_rounds < 0:
-                raise ValueError("%s: min_desired_rounds must be >= 0, got %r" %
+                raise ValueError("%s: min_desired_rounds (%r) below 0" %
                                  (subcls.name, min_desired_rounds))
             subcls.min_desired_rounds = subcls._clip_to_valid_rounds(min_desired_rounds,
                                                                      param="min_desired_rounds")
 
         # replace max_desired_rounds
-        if max_desired_rounds is not None:
-            # TODO: support string coercion
+        if max_desired_rounds is None:
+            explicit_max_rounds = False
+            max_desired_rounds = cls.max_desired_rounds
+        else:
+            explicit_max_rounds = True
+            if isinstance(max_desired_rounds, native_string_types):
+                max_desired_rounds = int(max_desired_rounds)
             if min_desired_rounds and max_desired_rounds < min_desired_rounds:
-                raise ValueError("%s: max_desired_rounds must be >= min_desired_rounds (%r), "
-                                 "got %r" % (subcls.name, min_desired_rounds, max_desired_rounds))
+                msg = "%s: max_desired_rounds (%r) below min_desired_rounds (%r)" % \
+                      (subcls.name, max_desired_rounds, min_desired_rounds)
+                if explicit_min_rounds:
+                    raise ValueError(msg)
+                else:
+                    warn(msg, PasslibConfigWarning)
+                    max_desired_rounds = min_desired_rounds
             elif max_desired_rounds < 0:
-                raise ValueError("%s: max_desired_rounds must be >= 0, got %r" %
+                raise ValueError("%s: max_desired_rounds (%r) below 0" %
                                  (subcls.name, max_desired_rounds))
             subcls.max_desired_rounds = subcls._clip_to_valid_rounds(max_desired_rounds,
                                                                      param="max_desired_rounds")
 
         # replace default_rounds
         if default_rounds is not None:
-            # TODO: support string coercion
+            if isinstance(default_rounds, native_string_types):
+                default_rounds = int(default_rounds)
             if min_desired_rounds and default_rounds < min_desired_rounds:
-                raise ValueError("%s: default_rounds must be >= min_desired_rounds (%r), got %r" %
-                                 (subcls.name, min_desired_rounds, default_rounds))
+                raise ValueError("%s: default_rounds (%r) below min_desired_rounds (%r)" %
+                                 (subcls.name, default_rounds, min_desired_rounds))
             elif max_desired_rounds and default_rounds > max_desired_rounds:
-                raise ValueError("%s: default_rounds must be <= max_desired_rounds (%r), got %r" %
-                                 (subcls.name, max_desired_rounds, default_rounds))
+                raise ValueError("%s: default_rounds (%r) above max_desired_rounds (%r)" %
+                                 (subcls.name, default_rounds, max_desired_rounds))
             subcls.default_rounds = subcls._clip_to_valid_rounds(default_rounds,
                                                                  param="default_rounds")
-        elif subcls.default_rounds is not None:
-            # clip existing default rounds to new limits.
+
+        # clip default rounds to new limits.
+        if subcls.default_rounds is not None:
             subcls.default_rounds = subcls._clip_to_desired_rounds(subcls.default_rounds)
 
         # replace / set vary_rounds
         if vary_rounds is not None:
-            # TODO: support string coercion
+            if isinstance(vary_rounds, native_string_types):
+                if vary_rounds.endswith("%"):
+                    vary_rounds = float(vary_rounds[:-1]) * 0.01
+                else:
+                    vary_rounds = int(vary_rounds)
             if vary_rounds < 0:
-                raise ValueError("%s: vary_rounds must be >= 0, got %r" %
+                raise ValueError("%s: vary_rounds (%r) below 0" %
                                  (subcls.name, vary_rounds))
             elif isinstance(vary_rounds, float):
                 # TODO: deprecate / disallow vary_rounds=1.0
                 if vary_rounds > 1:
-                    raise ValueError("%s: vary_rounds must be < 1.0: %r" %
+                    raise ValueError("%s: vary_rounds (%r) above 1.0" %
                                      (subcls.name, vary_rounds))
             elif not isinstance(vary_rounds, int):
                 raise TypeError("vary_rounds must be int or float")
             subcls.vary_rounds = vary_rounds
-            # XXX: could cache _calc_vary_rounds_range() here if needed.
-
+            # XXX: could cache _calc_vary_rounds_range() here if needed,
+            #      but would need to handle user manually changing .default_rounds
         return subcls
 
     @classmethod
-    def _clip_to_valid_rounds(cls, rounds, param=None):
+    def _clip_to_valid_rounds(cls, rounds, param="rounds", relaxed=True):
         """
-        helper for :meth:`using` --
-        clip rounds value to handle limits.
-        if param specified, issues warning if clipping is performed.
+        internal helper --
+        clip rounds value to handler's absolute limits (min_rounds / max_rounds)
+
+        :param relaxed:
+            if ``True`` (the default), issues PasslibHashWarning is rounds are outside allowed range.
+            if ``False``, raises a ValueError instead.
+
+        :param param:
+            optional name of parameter to insert into error/warning messages.
 
         :returns:
-            bool indicating if within limits.
+            clipped rounds value
         """
-        # XXX: could accept strict=True flag to turn this into ValueErrors /
-        #      or relaxed=True to enable warning rather than ValueError behavior.
+        # check minimum
         mn = cls.min_rounds
         if rounds < mn:
-            if param:
-                warn("%s: %s value is below handler minimum %d: %d" %
-                     (cls.name, param, mn, rounds), exc.PasslibConfigWarning)
-            return mn
+            msg = "%s: %s (%r) below min_rounds (%d)" % (cls.name, param, rounds, mn)
+            if relaxed:
+                warn(msg, PasslibHashWarning)
+                rounds = mn
+            else:
+                raise ValueError(msg)
+
+        # check maximum
         mx = cls.max_rounds
         if mx and rounds > mx:
-            if param:
-                warn("%s: %s value is above handler maximum %d: %d" %
-                     (cls.name, param, cls.max_rounds, rounds), exc.PasslibConfigWarning)
-            return mx
+            msg = "%s: %s (%r) above max_rounds (%d)" % (cls.name, param, rounds, mx)
+            if relaxed:
+                warn(msg, PasslibHashWarning)
+                rounds = mx
+            else:
+                raise ValueError(msg)
+
         return rounds
 
     @classmethod
@@ -1400,12 +1440,17 @@ class HasRounds(GenericHandler):
         helper for :meth:`_generate_rounds` --
         clips rounds value to desired min/max set by class (if any)
         """
+        # NOTE: min/max_desired_rounds are None if unset.
+        # check minimum
         mnd = cls.min_desired_rounds or 0
         if rounds < mnd:
             return mnd
+
+        # check maximum
         mxd = cls.max_desired_rounds
         if mxd and rounds > mxd:
             return mxd
+
         return rounds
 
     @classmethod
@@ -1456,9 +1501,10 @@ class HasRounds(GenericHandler):
         self.rounds = self._norm_rounds(rounds)
 
     def _norm_rounds(self, rounds):
-        """helper routine for normalizing rounds
+        """
+        helper for normalizing rounds value.
 
-        :arg rounds: ``None``, or integer cost parameter.
+        :arg rounds: ``None``, or an integer cost parameter.
 
         :raises TypeError:
             * if ``use_defaults=False`` and no rounds is specified
@@ -1475,16 +1521,18 @@ class HasRounds(GenericHandler):
         :returns:
             normalized rounds value
         """
-        # fill in default
+
+        # init rounds attr, using default_rounds (etc) if needed
         explicit = False
         if rounds is None:
             if not self.use_defaults:
                 raise TypeError("no rounds specified")
-            rounds = self._generate_rounds() # NOTE: will throw ValueError if default not set
+            rounds = self._generate_rounds()  # NOTE: will throw ValueError if default not set
             assert isinstance(rounds, int_types)
         elif self.use_defaults:
-            # if rounds is present, was explicitly provided by caller;
-            # whereas if use_defaults=False, we got here from verify() / genhash()
+            # warn if rounds is outside desired bounds only if user provided explicit rounds
+            # to .encrypt() -- hence the .use_defaults check, which will be false if we're
+            # coming from .verify() / .genhash()
             explicit = True
 
         # check type
@@ -1492,41 +1540,19 @@ class HasRounds(GenericHandler):
             raise exc.ExpectedTypeError(rounds, "integer", "rounds")
 
         # check valid bounds
-        # XXX: combine this with cls._clip_to_valid_rounds() ?
-        mn = self.min_rounds
-        if rounds < mn:
-            msg = "rounds too low (%s requires >= %d rounds)"  % (self.name, mn)
-            if self.relaxed:
-                warn(msg, PasslibHashWarning)
-                rounds = mn
-            else:
-                raise ValueError(msg)
+        rounds = self._clip_to_valid_rounds(rounds, relaxed=self.relaxed)
 
-        mx = self.max_rounds
-        if mx and rounds > mx:
-            msg = "rounds too high (%s requires <= %d rounds)"  % (self.name, mx)
-            if self.relaxed:
-                warn(msg, PasslibHashWarning)
-                rounds = mx
-            else:
-                raise ValueError(msg)
-
-        # if rounds explicitly specified, warn if outside desired bounds
+        # if rounds explicitly specified, warn if outside desired bounds, but use it
         if explicit:
-            # XXX: combine this with _clip_to_desired_rounds()?
             mnd = self.min_desired_rounds
             if mnd and rounds < mnd:
-                warn("rounds below desired minimum (%d): %d" % (mnd, rounds),
+                warn("using rounds value (%r) below desired minimum (%d)" % (rounds, mnd),
                      exc.PasslibConfigWarning)
-                # XXX: remove clipping behavior, and use undesired value if requested to?
-                rounds = mnd
 
             mxd = self.max_desired_rounds
             if mxd and rounds > mxd:
-                warn("rounds above desired maximum (%d): %d" % (mxd, rounds),
+                warn("using rounds value (%r) above desired maximum (%d)" % (rounds, mxd),
                      exc.PasslibConfigWarning)
-                rounds = mxd
-
         return rounds
 
     def _generate_rounds(self):

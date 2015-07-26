@@ -9,6 +9,7 @@ if PY3:
     from configparser import NoSectionError
 else:
     from ConfigParser import NoSectionError
+import datetime
 import logging; log = logging.getLogger(__name__)
 import os
 import warnings
@@ -16,7 +17,7 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
-from passlib.exc import PasslibConfigWarning
+from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2, PY26
 import passlib.utils.handlers as uh
@@ -977,7 +978,7 @@ sha512_crypt__min_rounds = 45000
         with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.encrypt("password", rounds=1999, salt="nacl"),
-                '$5$rounds=2000$nacl$9/lTZ5nrfPuz8vphznnmHuDGFuvjSNvOEDsGmGfsS97',
+                '$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609',
                 )
 
         with self.assertWarningList([]):
@@ -1211,6 +1212,11 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
     # rounds options
     #===================================================================
+
+    # TODO: now that rounds generation has moved out of _CryptRecord to HasRounds,
+    #       this should just test that we're passing right options to handler.using()...
+    #       and let HasRounds tests (which are a copy of this) deal with things.
+
     # NOTE: the follow tests check how _CryptRecord handles
     # the min/max/default/vary_rounds options, via the output of
     # genconfig(). it's assumed encrypt() takes the same codepath.
@@ -1228,7 +1234,7 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------
 
         # set below handler minimum
-        with self.assertWarningList([PasslibConfigWarning]*2):
+        with self.assertWarningList([PasslibHashWarning]*2):
             c2 = cc.copy(all__min_rounds=500, all__max_rounds=None,
                             all__default_rounds=500)
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$")
@@ -1237,7 +1243,7 @@ sha512_crypt__min_rounds = 45000
         with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.genconfig(rounds=1999, salt="nacl"),
-                '$5$rounds=2000$nacl$',
+                '$5$rounds=1999$nacl$',
                 )
 
         # equal to policy minimum
@@ -1257,7 +1263,7 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------
 
         # set above handler max
-        with self.assertWarningList([PasslibConfigWarning]*2):
+        with self.assertWarningList([PasslibHashWarning]*2):
             c2 = cc.copy(all__max_rounds=int(1e9)+500, all__min_rounds=None,
                             all__default_rounds=int(1e9)+500)
 
@@ -1268,7 +1274,7 @@ sha512_crypt__min_rounds = 45000
         with self.assertWarningList(PasslibConfigWarning):
             self.assertEqual(
                 cc.genconfig(rounds=3001, salt="nacl"),
-                '$5$rounds=3000$nacl$'
+                '$5$rounds=3001$nacl$'
                 )
 
         # equal policy max
@@ -1326,7 +1332,7 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(ValueError, CryptContext, all__default_rounds='x')
 
         # test bad types rejected
-        bad = NotImplemented
+        bad = datetime.datetime.now()  # picked cause can't be compared to int
         self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__min_rounds=bad)
         self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__max_rounds=bad)
         self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__vary_rounds=bad)

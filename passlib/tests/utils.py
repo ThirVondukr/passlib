@@ -1268,6 +1268,169 @@ class HandlerCase(TestCase):
 
             # TODO: check relaxed mode clips max+1
 
+    def test_has_rounds_using_limits(self):
+        """
+        HasRounds.using() -- desired rounds limits & defaults
+        """
+        self.require_rounds_info()
+
+        #-------------------------------------
+        # helpers
+        #-------------------------------------
+        handler = self.handler
+        def effective_rounds(cls, rounds=None):
+            return cls(rounds=rounds, use_defaults=True).rounds
+
+        # create some fake values to test with
+        orig_min_rounds = handler.min_rounds
+        orig_max_rounds = handler.max_rounds
+        orig_default_rounds = handler.default_rounds
+        medium = ((orig_max_rounds or 9999) + orig_min_rounds) // 2
+        if medium == orig_default_rounds:
+            medium += 1
+        small = (orig_min_rounds + medium) // 2
+        large = ((orig_max_rounds or 9999) + medium) // 2
+
+        # create a subclass with small/medium/large as new default desired values
+        with self.assertWarningList([]):
+            subcls = handler.using(
+                min_desired_rounds=small,
+                max_desired_rounds=large,
+                default_rounds=medium,
+            )
+
+        #-------------------------------------
+        # sanity check that .using() modified things correctly
+        #-------------------------------------
+
+        # shouldn't affect original handler at all
+        self.assertEqual(handler.min_rounds, orig_min_rounds)
+        self.assertEqual(handler.max_rounds, orig_max_rounds)
+        self.assertEqual(handler.min_desired_rounds, None)
+        self.assertEqual(handler.max_desired_rounds, None)
+        self.assertEqual(handler.default_rounds, orig_default_rounds)
+
+        # should affect subcls' desired value, but not hard min/max
+        self.assertEqual(subcls.min_rounds, orig_min_rounds)
+        self.assertEqual(subcls.max_rounds, orig_max_rounds)
+        self.assertEqual(subcls.default_rounds, medium)
+        self.assertEqual(subcls.min_desired_rounds, small)
+        self.assertEqual(subcls.max_desired_rounds, large)
+
+        #-------------------------------------
+        # min_desired_rounds
+        #-------------------------------------
+
+        # .using() should clip values below valid minimum, w/ warning
+        with self.assertWarningList([PasslibHashWarning]):
+            temp = handler.using(min_desired_rounds=orig_min_rounds - 1)
+        self.assertEqual(temp.min_desired_rounds, orig_min_rounds)
+
+        # .using() should clip values above valid maximum, w/ warning
+        if orig_max_rounds:
+            with self.assertWarningList([PasslibHashWarning]):
+                temp = handler.using(min_desired_rounds=orig_max_rounds + 1)
+            self.assertEqual(temp.min_desired_rounds, orig_max_rounds)
+
+        # .using() should allow values below previous desired minimum, w/o warning
+        with self.assertWarningList([]):
+            temp = subcls.using(min_desired_rounds=small - 1)
+        self.assertEqual(temp.min_desired_rounds, small - 1)
+
+        # .using() should allow values w/in previous range
+        temp = subcls.using(min_desired_rounds=small + 2)
+        self.assertEqual(temp.min_desired_rounds, small + 2)
+
+        # .using() should allow values above previous desired maximum, w/o warning
+        with self.assertWarningList([]):
+            temp = subcls.using(min_desired_rounds=large + 1)
+        self.assertEqual(temp.min_desired_rounds, large + 1)
+
+        # encrypt() etc should allow explicit values below desired minimum, w/ warning
+        self.assertEqual(effective_rounds(subcls, small + 1), small + 1)
+        self.assertEqual(effective_rounds(subcls, small), small)
+        with self.assertWarningList([PasslibConfigWarning]):
+            self.assertEqual(effective_rounds(subcls, small - 1), small - 1)
+
+        # TODO: test 'min_rounds' alias is honored
+        # TODO: test strings are accepted, bad values like 'x' rejected
+
+        #-------------------------------------
+        # max_rounds
+        #-------------------------------------
+
+        # .using() should clip values below valid minimum w/ warning
+        with self.assertWarningList([PasslibHashWarning]):
+            temp = handler.using(max_desired_rounds=orig_min_rounds - 1)
+        self.assertEqual(temp.max_desired_rounds, orig_min_rounds)
+
+        # .using() should clip values above valid maximum, w/ warning
+        if orig_max_rounds:
+            with self.assertWarningList([PasslibHashWarning]):
+                temp = handler.using(max_desired_rounds=orig_max_rounds + 1)
+            self.assertEqual(temp.max_desired_rounds, orig_max_rounds)
+
+        # .using() should clip values below previous minimum, w/ warning
+        with self.assertWarningList([PasslibConfigWarning]):
+            temp = subcls.using(max_desired_rounds=small - 1)
+        self.assertEqual(temp.max_desired_rounds, small)
+
+        # .using() should reject explicit min > max
+        self.assertRaises(ValueError, subcls.using,
+                          min_desired_rounds=medium+1,
+                          max_desired_rounds=medium-1)
+
+        # .using() should allow values w/in previous range
+        temp = subcls.using(min_desired_rounds=large - 2)
+        self.assertEqual(temp.min_desired_rounds, large - 2)
+
+        # .using() should allow values above previous desired maximum, w/o warning
+        with self.assertWarningList([]):
+            temp = subcls.using(max_desired_rounds=large + 1)
+        self.assertEqual(temp.max_desired_rounds, large + 1)
+
+        # encrypt() etc should allow explicit values above desired minimum, w/ warning
+        self.assertEqual(effective_rounds(subcls, large - 1), large - 1)
+        self.assertEqual(effective_rounds(subcls, large), large)
+        with self.assertWarningList([PasslibConfigWarning]):
+            self.assertEqual(effective_rounds(subcls, large + 1), large + 1)
+
+        # TODO: test 'max_rounds' alias is honored
+        # TODO: test strings are accepted, bad values like 'x' rejected
+
+        #-------------------------------------
+        # default_rounds
+        #-------------------------------------
+
+        # XXX: are there any other cases that need testing?
+
+        # implicit default rounds -- increase to min_rounds
+        temp = subcls.using(min_rounds=medium+1)
+        self.assertEqual(temp.default_rounds, medium+1)
+
+        # implicit default rounds -- decrease to max_rounds
+        temp = subcls.using(max_rounds=medium-1)
+        self.assertEqual(temp.default_rounds, medium-1)
+
+        # explicit default rounds below desired minimum
+        # XXX: make this a warning if min is implicit?
+        self.assertRaises(ValueError, subcls.using, default_rounds=small-1)
+
+        # explicit default rounds above desired maximum
+        # XXX: make this a warning if max is implicit?
+        if orig_max_rounds:
+            self.assertRaises(ValueError, subcls.using, default_rounds=large+1)
+
+        # encrypt() etc should implicit default rounds, but get overridden
+        self.assertEqual(effective_rounds(subcls), medium)
+        self.assertEqual(effective_rounds(subcls, medium+1), medium+1)
+
+        # TODO: test 'rounds' alias is honored
+        # TODO: test strings are accepted, bad values like 'x' rejected
+
+    # TODO: HasRounds -- using() -- linear & log vary_rounds.
+    #       borrow code from CryptContext's test_51_linear_vary_rounds & friends
+
     #===================================================================
     # idents
     #===================================================================
