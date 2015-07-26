@@ -1902,7 +1902,7 @@ class HandlerCase(TestCase):
     #===================================================================
     # fuzz testing
     #===================================================================
-    def test_77_fuzz_input(self):
+    def test_77_fuzz_input(self, threaded=False):
         """fuzz testing -- random passwords and options
 
         This test attempts to perform some basic fuzz testing of the hash,
@@ -1938,7 +1938,15 @@ class HandlerCase(TestCase):
             return (v.__doc__ or v.__name__).splitlines()[0]
 
         # do as many tests as possible for max_time seconds
-        stop = tick() + max_time
+        if threaded:
+            tname = threading.current_thread().name
+        else:
+            tname = "fuzz test"
+        log.debug("%s: %s: started; max_time=%r verifiers=%d (%s)",
+                  self.descriptionPrefix, tname, max_time, len(verifiers),
+                  ", ".join(vname(v) for v in verifiers))
+        start = tick()
+        stop = start + max_time
         count = 0
         while tick() <= stop:
             # generate random password & options
@@ -1969,11 +1977,10 @@ class HandlerCase(TestCase):
                         raise self.failureException("was able to verify wrong "
                             "password using %s: wrong_secret=%r real_secret=%r "
                             "config=%r hash=%r" % (name, other, secret, kwds, hash))
-            count +=1
+            count += 1
 
-        log.debug("fuzz test: %r checked %d passwords against %d verifiers (%s)",
-                  self.descriptionPrefix,  count, len(verifiers),
-                  ", ".join(vname(v) for v in verifiers))
+        log.debug("%s: %s: done; elapsed=%r count=%r",
+                  self.descriptionPrefix, tname, tick() - start, count)
 
     def test_78_fuzz_threading(self):
         """multithreaded fuzz testing -- random password & options using multiple threads
@@ -2001,7 +2008,7 @@ class HandlerCase(TestCase):
         # if hash has concurrency issues, this should reveal it.
         def wrapper():
             try:
-                self.test_77_fuzz_input()
+                self.test_77_fuzz_input(threaded=True)
             except SkipTest:
                 pass
             except:
@@ -2009,7 +2016,7 @@ class HandlerCase(TestCase):
                     failed[0] += 1
                 raise
         def launch(n):
-            name = "Fuzz-Thread-%d (%s.test_78_fuzz_threading)" % (n, self.__class__.__name__)
+            name = "Fuzz-Thread-%d" % (n,)
             thread = threading.Thread(target=wrapper, name=name)
             thread.setDaemon(True)
             thread.start()
@@ -2017,7 +2024,7 @@ class HandlerCase(TestCase):
         threads = [launch(n) for n in irange(thread_count)]
 
         # wait until all threads exit
-        timeout = self.max_fuzz_time * 4
+        timeout = self.max_fuzz_time * thread_count
         stalled = 0
         for thread in threads:
             thread.join(timeout)
