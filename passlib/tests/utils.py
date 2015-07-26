@@ -368,7 +368,7 @@ class TestCase(_TestCase):
 
         def __exit__(self, *exc_info):
             self.__super.__exit__(*exc_info)
-            if not exc_info:
+            if not exc_info or exc_info[0] is None:
                 self.case.assertWarningList(self.log, **self.kwds)
 
     def assertWarningList(self, wlist=None, desc=None, msg=None):
@@ -749,7 +749,7 @@ class HandlerCase(TestCase):
         skip_reason = cls._get_skip_backend_reason(backend)
         if skip_reason:
             subcls = skip(skip_reason)(subcls)
-        yield subcls
+        return subcls
 
     #===================================================================
     # setup
@@ -1504,7 +1504,7 @@ class HandlerCase(TestCase):
             raise AssertionError("expected to find alternate ident")
 
         def effective_ident(cls):
-            return handler.from_string(self.do_encrypt("test", handler=cls)).ident
+            return cls(use_defaults=True).ident
 
         # keep default if nothing else specified
         subcls = handler.using()
@@ -1883,7 +1883,7 @@ class HandlerCase(TestCase):
     # fuzz testing
     #===================================================================
     def test_77_fuzz_input(self):
-        """test random passwords and options
+        """fuzz testing -- random passwords and options
 
         This test attempts to perform some basic fuzz testing of the hash,
         based on whatever information can be found about it.
@@ -1952,10 +1952,13 @@ class HandlerCase(TestCase):
                   ", ".join(vname(v) for v in verifiers))
 
     def test_78_fuzz_threading(self):
-        """run test_77 simultaneously in multiple threads
+        """multithreaded fuzz testing -- random password & options using multiple threads
+
+        run test_77 simultaneously in multiple threads
         in an attempt to detect any concurrency issues
         (e.g. the bug fixed by pybcrypt 0.3)
         """
+        self.require_TEST_MODE("full")
         import threading
 
         # check if this test should run
