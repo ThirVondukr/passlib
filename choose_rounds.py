@@ -19,7 +19,7 @@ __all__ = [
 #=============================================================================
 # main
 #=============================================================================
-_usage = "usage: python choose_rounds.py <hash_name> [<target_milliseconds>]\n"
+_usage = "usage: python choose_rounds.py <hash_name> [<target_milliseconds>] [<backend>]\n"
 
 def main(*args):
     #---------------------------------------------------------------
@@ -59,6 +59,15 @@ def main(*args):
             return 1
     else:
         target = .350
+
+    # parse backend
+    if args:
+        backend = args.pop(0)
+        if hasattr(hasher, "set_backend"):
+            hasher.set_backend(backend)
+        else:
+            print_error("%s does not support multiple backends")
+            return 1
 
     #---------------------------------------------------------------
     # setup some helper functions
@@ -148,10 +157,12 @@ def main(*args):
         elif (upper_elapsed-target)/target < tolerance:
             print "target rounds...: %d" % upper
         else:
-            print "target rounds...: %d (%dms -- %dms faster than requested)" % \
-                  (lower, lower_elapsed*1000, (target - lower_elapsed) * 1000)
-            print "target rounds...: %d (%dms -- %dms slower than requested)" % \
-                  (upper, upper_elapsed*1000, (upper_elapsed - target) * 1000)
+            faster = (target - lower_elapsed)
+            print "target rounds...: %d (%dms -- %dms/%d%% faster than requested)" % \
+                  (lower, lower_elapsed*1000, faster * 1000, round(100 * faster / target))
+            slower = (upper_elapsed - target)
+            print "target rounds...: %d (%dms -- %dms/%d%% slower than requested)" % \
+                  (upper, upper_elapsed*1000, slower * 1000, round(100 * slower / target))
     else:
         # for linear rounds parameter, just use nearest integer value
         rounds = clamp_rounds(round(rounds))
