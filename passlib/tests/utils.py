@@ -2024,7 +2024,7 @@ class HandlerCase(TestCase):
         threads = [launch(n) for n in irange(thread_count)]
 
         # wait until all threads exit
-        timeout = self.max_fuzz_time * thread_count
+        timeout = self.max_fuzz_time * thread_count * 4
         stalled = 0
         for thread in threads:
             thread.join(timeout)
