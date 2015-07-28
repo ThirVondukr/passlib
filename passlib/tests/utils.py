@@ -777,8 +777,10 @@ class HandlerCase(TestCase):
     def find_crypt_replacement(cls, fallback=False):
         """find other backend which can be used to mock the os_crypt backend"""
         handler = cls.handler
+        assert "os_crypt" in handler.backends, "expected os_crypt to be present"
         if fallback:
-            idx = handler.backends.index("os_crypt") + 1
+            # NOTE: using list() because tuples lack .index under py25 (issue 58)
+            idx = list(handler.backends).index("os_crypt") + 1
         else:
             idx = 0
         for name in handler.backends[idx:]:
