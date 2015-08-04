@@ -91,7 +91,7 @@ index_doc = 'index'
 # General information about the project.
 project = 'Passlib'
 author = "Assurance Technologies, LLC"
-copyright = "2008-2012, " + author
+copyright = "2008-2015, " + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
