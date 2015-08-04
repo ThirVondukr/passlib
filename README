@@ -20,9 +20,8 @@ providing full-strength password hashing for multi-user application.
 
 * Visit `PyPI <https://pypi.python.org/pypi/passlib>`_
   for the latest stable release.
-
-All releases are signed with the gpg key
-`4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+  All releases are signed with the gpg key
+  `4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 
 * Additional questions about usage or features? Feel free to post on our
   `mailing list <http://groups.google.com/group/passlib-users>`_.
@@ -51,8 +50,16 @@ This example barely touches on the range of features available.
 Online Resources
 ================
 * Homepage -   https://bitbucket.org/ecollins/passlib
-* Docs -       http://packages.python.org/passlib
-* Discussion - http://groups.google.com/group/passlib-users
+* Documentation - http://packages.python.org/passlib
+* Mailing list - http://groups.google.com/group/passlib-users
 
 * Downloads -  https://pypi.python.org/pypi/passlib
 * Source -     https://bitbucket.org/ecollins/passlib/src
+* Issues -     https://bitbucket.org/ecollins/passlib/issues
+
+Source
+=========
+Passlib's source repository uses Mercurial.  When building Passlib from an hg clone, note that there are two main branches: ``default`` and ``stable``.
+
+* ``default`` is the bleeding edge of the next major release. It may sometimes be of alpha quality. 
+* ``stable`` is the latest released version plus any pending bugfixes, and should be safe to use in production. 

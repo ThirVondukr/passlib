@@ -113,6 +113,12 @@ Todo
 
 * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
+**1.6.5** (2015-08-04)
+======================
+
+   Fixed some minor bugs in the test suite which were causing erroneous test failures
+   (:issue:`57` and :issue:`58`). The passlib library itself is unchanged.
+   
 **1.6.4** (2015-07-25)
 ======================
 
@@ -163,7 +169,7 @@ Other Changes
 
 .. note::
 
-    '1.6.3' was skipped due to upload issues.
+    Release **1.6.3** was skipped due to upload issues.
 
 **1.6.2** (2013-12-26)
 ======================

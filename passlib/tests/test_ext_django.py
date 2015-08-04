@@ -2,7 +2,10 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement, absolute_import
+# NOTE: double __future__ is workaround for py2.5.0 bug, 
+#       per https://bitbucket.org/ecollins/passlib/issues/58#comment-20589295
+from __future__ import with_statement
+from __future__ import absolute_import
 # core
 import logging; log = logging.getLogger(__name__)
 import sys
