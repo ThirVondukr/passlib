@@ -2,7 +2,7 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import division
+from __future__ import division, print_function
 # core
 import math
 import logging; log = logging.getLogger(__name__)
@@ -27,13 +27,13 @@ def main(*args):
     #---------------------------------------------------------------
     args = list(args)
     def print_error(msg):
-        print "error: %s\n" % msg
+        print("error: %s\n" % msg)
 
     # parse hasher
     if args:
         name = args.pop(0)
         if name == "-h" or name == "--help":
-            print _usage
+            print(_usage)
             return 1
         try:
             hasher = get_crypt_handler(name)
@@ -45,7 +45,7 @@ def main(*args):
             return 1
     else:
         print_error("hash name not specified")
-        print _usage
+        print(_usage)
         return 1
 
     # parse target time
@@ -134,13 +134,13 @@ def main(*args):
     #---------------------------------------------------------------
     if hasattr(hasher, "backends"):
         name = "%s (using %s backend)" % (name, hasher.get_backend())
-    print "hash............: %s" % name
+    print("hash............: %s" % name)
     if speed < 1000:
         speedstr = "%.2f" % speed
     else:
         speedstr = int(speed)
-    print "speed...........: %s iterations/second" % speedstr
-    print "target time.....: %d ms" % (target*1000,)
+    print("speed...........: %s iterations/second" % speedstr)
+    print("target time.....: %d ms" % (target*1000,))
     rounds = cost_to_rounds(speed * target)
     if hasher.rounds_cost == "log2":
         # for log2 rounds parameter, target time will usually fall
@@ -153,21 +153,21 @@ def main(*args):
         lower_elapsed = rounds_to_cost(lower) / speed
         upper_elapsed = rounds_to_cost(upper) / speed
         if (target-lower_elapsed)/target < tolerance:
-            print "target rounds...: %d" % lower
+            print("target rounds...: %d" % lower)
         elif (upper_elapsed-target)/target < tolerance:
-            print "target rounds...: %d" % upper
+            print("target rounds...: %d" % upper)
         else:
             faster = (target - lower_elapsed)
-            print "target rounds...: %d (%dms -- %dms/%d%% faster than requested)" % \
-                  (lower, lower_elapsed*1000, faster * 1000, round(100 * faster / target))
+            prin("target rounds...: %d (%dms -- %dms/%d%% faster than requested)" % \
+                  (lower, lower_elapsed*1000, faster * 1000, round(100 * faster / target)))
             slower = (upper_elapsed - target)
-            print "target rounds...: %d (%dms -- %dms/%d%% slower than requested)" % \
-                  (upper, upper_elapsed*1000, slower * 1000, round(100 * slower / target))
+            print("target rounds...: %d (%dms -- %dms/%d%% slower than requested)" % \
+                  (upper, upper_elapsed*1000, slower * 1000, round(100 * slower / target)))
     else:
         # for linear rounds parameter, just use nearest integer value
         rounds = clamp_rounds(round(rounds))
-        print "target rounds...: %d" % (rounds,)
-    print
+        print("target rounds...: %d" % (rounds,))
+    print()
 
 if __name__ == "__main__":
     sys.exit(main(*sys.argv[1:]))
