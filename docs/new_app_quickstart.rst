@@ -182,7 +182,7 @@ Due to these reasons, SCrypt has not yet been integrated into Passlib.
 
 Creating and Using a CryptContext
 =================================
-One you've chosen what password hash(es) you want to use,
+Once you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
 to manage your hashes, and relating configuration information.
 Insert the following code into your application::
