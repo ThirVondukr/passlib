@@ -136,7 +136,7 @@ via :mod:`crypt`, which will be used by Passlib.
 
 PBKDF2
 ......
-:class:`~passlib.hash.pbkdf2_sha512` is a custom has format designed for Passlib.
+:class:`~passlib.hash.pbkdf2_sha512` is a custom hash format designed for Passlib.
 However, it directly uses the
 `PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
 key derivation function, which was standardized in 2000, and found across a
