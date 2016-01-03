@@ -136,7 +136,7 @@ via :mod:`crypt`, which will be used by Passlib.
 
 PBKDF2
 ......
-:class:`~passlib.hash.pbkdf2_sha512` is a custom has format designed for Passlib.
+:class:`~passlib.hash.pbkdf2_sha512` is a custom hash format designed for Passlib.
 However, it directly uses the
 `PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
 key derivation function, which was standardized in 2000, and found across a
@@ -182,7 +182,7 @@ Due to these reasons, SCrypt has not yet been integrated into Passlib.
 
 Creating and Using a CryptContext
 =================================
-One you've chosen what password hash(es) you want to use,
+Once you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
 to manage your hashes, and relating configuration information.
 Insert the following code into your application::
