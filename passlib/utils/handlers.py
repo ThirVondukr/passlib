@@ -1279,6 +1279,24 @@ class HasRounds(GenericHandler):
             # the time-cost, and can't be randomized.
         return info
 
+    @classmethod
+    def parse_rounds(cls, hash):
+        """
+        [experimental method] returns rounds value from hash
+
+        .. warning::
+
+            this is needed so :class:`passlib.context._CryptRecord` can reliably figure out
+            the rounds being used by a given hash, even if the handler is a PrefixWrapper.
+
+            added in 1.6.6, this is just a stopgap until 1.7 is released, and the whole
+            needs_update() framework has been revamped so _CryptRecord doesn't need to poke
+            into handler internals anymore.
+
+            this method will be removed in 1.7.
+        """
+        return cls.from_string(hash).rounds
+
     #===================================================================
     # eoc
     #===================================================================
@@ -1521,6 +1539,9 @@ class PrefixWrapper(object):
                 raise ValueError("ident must agree with prefix")
             self._ident = ident
 
+        if hasattr(wrapped, "parse_rounds"):
+            self.parse_rounds = self.__parse_rounds
+
     _wrapped_name = None
     _wrapped_handler = None
 
@@ -1661,6 +1682,12 @@ class PrefixWrapper(object):
         hash = to_unicode(hash, "ascii", "hash")
         hash = self._unwrap_hash(hash)
         return self.wrapped.verify(secret, hash, **kwds)
+
+    def __parse_rounds(self, hash):
+        """parse_rounds() wrapper - exposed only if wrapped handler supports it"""
+        hash = to_unicode(hash, "ascii", "hash")
+        hash = self._unwrap_hash(hash)
+        return self.wrapped.parse_rounds(hash)
 
 #=============================================================================
 # eof

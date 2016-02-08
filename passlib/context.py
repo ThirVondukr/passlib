@@ -923,7 +923,7 @@ class _CryptRecord(object):
         # set flag if we can extract rounds from hash, allowing
         # needs_update() to check for rounds that are outside of
         # the configured range.
-        if self._has_rounds_bounds and hasattr(handler, "from_string"):
+        if self._has_rounds_bounds and hasattr(handler, "parse_rounds"):
             self._has_rounds_introspection = True
 
     def needs_update(self, hash, secret):
@@ -945,15 +945,7 @@ class _CryptRecord(object):
 
         # if we can parse rounds parameter, check if it's w/in bounds.
         if self._has_rounds_introspection:
-            # XXX: this might be a good place to use parsehash()
-            hash_obj = self.handler.from_string(hash)
-            try:
-                rounds = hash_obj.rounds
-            except AttributeError: # pragma: no cover -- sanity check
-                # XXX: all builtin hashes should have rounds attr,
-                #      so should a warning be issues here?
-                pass
-            else:
+                rounds = self.handler.parse_rounds(hash)
                 mn = self._min_rounds
                 if mn is not None and rounds < mn:
                     return True

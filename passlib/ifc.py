@@ -182,6 +182,16 @@ class PasswordHash(object):
     ##    components currently include checksum, salt, rounds.
     ##    """
 
+    # temporary helper used by _CryptRecord to check if hash needs updating
+    # due to rounds boundary.  only present if hash supports rounds.
+    # added in 1.6.6, but will be removed in 1.7, as the _CryptRecord internals have
+    # already been refactored in a way that this is no longer required.
+    ##@classmethod
+    ##def parse_rounds(cls, hash):
+    ##    """
+    ##    returns number of rounds configured for hash.
+    ##    """
+
     #===================================================================
     # eoc
     #===================================================================
