@@ -1308,7 +1308,10 @@ class HandlerCase(TestCase):
         max_rounds = handler.max_rounds
         if max_rounds is not None and max_rounds < upper:
             upper = max_rounds
-        return random.randint(min_rounds, upper)
+        rounds = random.randint(min_rounds, upper)
+        if getattr(handler, "_avoid_even_rounds", False):
+            rounds |= 1
+        return rounds
 
     def test_22_parse_rounds(self):
         """test parse_rounds() helper [will be removed in 1.7]"""
