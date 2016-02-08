@@ -23,6 +23,13 @@ Upcoming in **1.7**
       Applications can explicitly set ``default_scheme="portable"`` to retain the old behavior
       (new in Passlib 1.6.3).
 
+**1.6.6** (NOT YET RELEASED)
+============================
+
+    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
+      to the hashes that support them, but ignores them for hashes that don't.  This should
+      fix :issue:`63`.
+
 **1.6.5** (2015-08-04)
 ======================
 
