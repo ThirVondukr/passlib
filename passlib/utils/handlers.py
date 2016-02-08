@@ -1518,8 +1518,7 @@ class PrefixWrapper(object):
         if doc:
             self.__doc__ = doc
         if hasattr(wrapped, "name"):
-            self._check_handler(wrapped)
-            self._wrapped_handler = wrapped
+            self._set_wrapped(wrapped)
         else:
             self._wrapped_name = wrapped
             if not lazy:
@@ -1539,25 +1538,29 @@ class PrefixWrapper(object):
                 raise ValueError("ident must agree with prefix")
             self._ident = ident
 
-        if hasattr(wrapped, "parse_rounds"):
-            self.parse_rounds = self.__parse_rounds
-
     _wrapped_name = None
     _wrapped_handler = None
 
-    def _check_handler(self, handler):
+    def _set_wrapped(self, handler):
+        # check this is a valid handler
         if 'ident' in handler.setting_kwds and self.orig_prefix:
             # TODO: look into way to fix the issues.
             warn("PrefixWrapper: 'orig_prefix' option may not work correctly "
                  "for handlers which have multiple identifiers: %r" %
                  (handler.name,), exc.PasslibRuntimeWarning)
 
+        # store reference
+        self._wrapped_handler = handler
+
+        # init parse_rounds() proxy if applicable
+        if hasattr(handler, "parse_rounds"):
+            self.parse_rounds = self.__parse_rounds
+
     def _get_wrapped(self):
         handler = self._wrapped_handler
         if handler is None:
             handler = get_crypt_handler(self._wrapped_name)
-            self._check_handler(handler)
-            self._wrapped_handler = handler
+            self._set_wrapped(handler)
         return handler
 
     wrapped = property(_get_wrapped)
