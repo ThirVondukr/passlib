@@ -40,7 +40,14 @@ has_django1 = DJANGO_VERSION >= (1,0)
 has_django14 = DJANGO_VERSION >= (1,4)
 
 # import and configure empty django settings
+# NOTE: we don't want to set up entirety of django, so not using django.setup() directly.
+#       instead, manually configuring the settings, and setting it up w/ no apps installed.
+#       in future, may need to alter this so we call django.setup() after setting
+#       DJANGO_SETTINGS_MODULE to a custom settings module w/ a dummy django app.
 if has_django:
+    #
+    # initialize django settings manually
+    #
     from django.conf import settings, LazySettings
 
     if not isinstance(settings, LazySettings):
@@ -55,6 +62,14 @@ if has_django:
             settings._target = UserSettingsHolder(global_settings)
     elif not settings.configured:
         settings.configure()
+
+    #
+    # init django apps w/ NO installed apps.
+    # NOTE: required for django >= 1.9, not compatible with django <= 1.6
+    #
+    if DJANGO_VERSION >= (1,7):
+        from django.apps import apps
+        apps.populate(["django.contrib.contenttypes", "django.contrib.auth"])
 
 #=============================================================================
 # support funcs
@@ -81,6 +96,10 @@ if has_django:
     class FakeUser(User):
         """mock user object for use in testing"""
         # NOTE: this mainly just overrides .save() to test commit behavior.
+
+        # NOTE: .Meta.app_label required for django >= 1.9, ignored for <= 1.6
+        class Meta:
+            app_label = __name__
 
         @memoized_property
         def saved_passwords(self):
@@ -112,7 +131,21 @@ def create_mock_setter():
 # work up stock django config
 #=============================================================================
 sample_hashes = {} # override sample hashes used in test cases
-if DJANGO_VERSION >= (1,8):
+
+# TODO: really should make this just generate reference hash
+#       in automated fashion for django 1.6+, so don't have to patch this for each release.
+
+if DJANGO_VERSION >= (1,9):
+    stock_config = django16_context.to_dict()
+    stock_config.update(
+        deprecated="auto",
+        django_pbkdf2_sha1__default_rounds=24000,
+        django_pbkdf2_sha256__default_rounds=24000,
+    )
+    sample_hashes.update(
+        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$24000$tAXhqCpfKEJY$QDG1EyhMKPKDlcr8oPFAReRMTtWQgUFDp8fjbHlvXKI="),
+    )
+elif DJANGO_VERSION >= (1,8):
     stock_config = django16_context.to_dict()
     stock_config.update(
         deprecated="auto",
@@ -185,8 +218,10 @@ class _ExtensionSupport(object):
         if has_django14:
             from django.contrib.auth import hashers
             model_attrs.append("make_password")
-            objs.append((hashers, ["check_password", "make_password",
-                                   "get_hasher", "identify_hasher"]))
+            hasher_attrs = ["check_password", "make_password", "get_hasher", "identify_hasher"]
+            if DJANGO_VERSION >= (1,8):
+                hasher_attrs.extend(["get_hashers"])
+            objs.append((hashers, hasher_attrs))
         if has_django0:
             user_attrs.extend(["has_usable_password", "set_unusable_password"])
         for obj, patched in objs:
@@ -805,13 +840,13 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assertFalse(hasher.verify("xxxx", encoded))
 
         # test wrapper accepts options
-        encoded = hasher.encode("stub", "abcd"*4, iterations=1234)
+        encoded = hasher.encode("stub", "abcd"*4, rounds=1234)
         self.assertEqual(encoded, "$5$rounds=1234$abcdabcdabcdabcd$"
                                   "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6")
         self.assertEqual(hasher.safe_summary(encoded),
             {'algorithm': 'sha256_crypt',
              'salt': u('abcdab**********'),
-             'iterations': 1234,
+             'rounds': 1234,
              'hash': u('v2RWkZ*************************************'),
              })
 
@@ -942,6 +977,14 @@ class ContextWithHook(CryptContext):
         self.update_hook(self)
         return super(ContextWithHook, self).verify(*args, **kwds)
 
+    def needs_update(self, *args, **kwds):
+        self.update_hook(self)
+        return super(ContextWithHook, self).needs_update(*args, **kwds)
+
+    def verify_and_update(self, *args, **kwds):
+        self.update_hook(self)
+        return super(ContextWithHook, self).verify_and_update(*args, **kwds)
+
 # hack up the some of the real django tests to run w/ extension loaded,
 # to ensure we mimic their behavior.
 # however, the django tests were moved out of the package, and into a source-only location
@@ -983,12 +1026,18 @@ if test_hashers_mod:
         """run django's hasher unittests against passlib's extension
         and workalike implementations"""
         def setUp(self):
+            #
+            # install passlib.ext.django monkeypatches
             # NOTE: omitted orig setup, want to install our extension,
             #       and load hashers through it instead.
+            #
             self.load_extension(PASSLIB_CONTEXT=stock_config, check=False)
             from passlib.ext.django.models import password_context
+            from passlib.ext.django.utils import get_passlib_hasher
 
+            #
             # update test module to use our versions of some hasher funcs
+            #
             from django.contrib.auth import hashers
             for attr in ["make_password",
                          "check_password",
@@ -996,24 +1045,39 @@ if test_hashers_mod:
                          "get_hasher"]:
                 patchAttr(self, test_hashers_mod, attr, getattr(hashers, attr))
 
+            #
             # django 1.4 tests expect empty django_des_crypt salt field
+            #
             if DJANGO_VERSION >= (1,4):
                 from passlib.hash import django_des_crypt
                 patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
 
+            #
             # hack: need password_context to keep up to date with hasher.iterations
+            #
             if DJANGO_VERSION >= (1,6):
-                def update_hook(self):
-                    rounds = test_hashers_mod.get_hasher("pbkdf2_sha256").iterations
-                    self.update(
-                        django_pbkdf2_sha256__min_rounds=rounds,
-                        django_pbkdf2_sha256__default_rounds=rounds,
-                        django_pbkdf2_sha256__max_rounds=rounds,
-                    )
+                def update_hook(context):
+                    """called to sync hasher.rounds to crypt context before any operations"""
+                    for handler in context.schemes(resolve=True):
+                        if 'rounds' not in handler.setting_kwds:
+                            continue
+                        hasher = get_passlib_hasher(handler, native_only=True)
+                        if not hasher:
+                            continue
+                        rounds = getattr(hasher, "rounds", None) or \
+                                 getattr(hasher, "iterations", None)
+                        if rounds is None:
+                            continue
+                        prefix = handler.name + "__"
+                        context.update({prefix + "default_rounds": rounds,
+                                        prefix + "min_rounds": rounds,
+                                        prefix + "max_rounds": rounds})
+
+                self.password_context = password_context
                 patchAttr(self, password_context, "__class__", ContextWithHook)
                 patchAttr(self, password_context, "update_hook", update_hook)
 
-        # omitting this test, since it depends on updated to django hasher settings
+        # NOTE: omitting this test, since tries to reinitialize the hashers on top of our patch.
         test_pbkdf2_upgrade_new_hasher = lambda self: self.skipTest("omitted by passlib")
 
         def tearDown(self):

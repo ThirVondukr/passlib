@@ -166,8 +166,18 @@ def _apply_patch():
         if not is_valid_secret(password) or not is_password_usable(encoded):
             return False
         ok = password_context.verify(password, encoded)
-        if ok and setter and password_context.needs_update(encoded):
-            setter(password)
+        if ok and setter:
+            # django's check_password() won't call setter() on a legacy alg if it's explicitly
+            # chosen via 'preferred' kwd (unless alg itself says hash needs updating, of course).
+            # as a hack to replicate this behavior, the following makes a temp copy of the
+            # active context, to ensure the preferred scheme isn't deprecated.
+            test_context = password_context
+            if preferred != "default":
+                scheme = hasher_to_passlib_name(preferred)
+                if password_context._is_deprecated_scheme(scheme):
+                    test_context = password_context.copy(default=scheme)
+            if test_context.needs_update(encoded):
+                setter(password)
         return ok
 
     #
@@ -198,6 +208,21 @@ def _apply_patch():
                     # so we only pass the keyword on if there's actually a fixed salt.
                     kwds['salt'] = salt
             return password_context.encrypt(password, **kwds)
+
+        if VERSION >= (1, 8):
+            from django.utils import lru_cache
+            from passlib.utils.compat import lmap
+
+            @_manager.monkeypatch(HASHERS_PATH)
+            @lru_cache.lru_cache()
+            def get_hashers():
+                """passlib replacement for get_hashers()"""
+                return lmap(get_passlib_hasher, password_context.schemes(resolve=True))
+
+            # NOTE: leaving get_hashers_by_algorithm() unpatched, since it just
+            #       proxies get_hashers().  but we do want to wipe it's cache...
+            from django.contrib.auth.hashers import reset_hashers
+            reset_hashers(setting="PASSWORD_HASHERS")
 
         @_manager.monkeypatch(HASHERS_PATH)
         @_manager.monkeypatch(FORMS_PATH)
