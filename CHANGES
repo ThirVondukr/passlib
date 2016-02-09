@@ -33,8 +33,6 @@ Release History
 
         * FIXME: Default using() method won't work correctly for wrapper handlers just yet.
 
-    * Remove Django 1.6/1.7 support, bumping minimum to 1.8
-
 Requirements
 ------------
 
@@ -43,8 +41,8 @@ Requirements
      (and Python 3.2 may be dropped in the next major release).
      Support for PyPy 1.x has also been dropped.
 
-   * The :mod:`passlib.ext.django` extension now requires Django 1.6 or better.
-     Django 0.9 .. 1.5 are no longer supported.
+   * The :mod:`passlib.ext.django` extension now requires Django 1.8 or better.
+     Django 0.9 .. 1.7 are no longer supported.
 
 Major Changes
 -------------

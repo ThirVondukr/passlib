@@ -68,12 +68,13 @@ def _apply_patch():
     # import some helpers from hashers module
     #
     from django.contrib.auth.hashers import is_password_usable
+    from django.utils import lru_cache
+    from passlib.utils.compat import lmap
 
     #
     # patch ``User.set_password() & ``User.check_password()`` to use
     # context & get_category (would just leave these as wrappers for hashers
-    # module under django 1.4, but then we couldn't pass User object into
-    # get_category very easily)
+    # module, but then we couldn't pass User object into get_category very easily)
     #
     @_manager.monkeypatch(USER_PATH)
     def set_password(user, password):
@@ -155,20 +156,16 @@ def _apply_patch():
                 kwds['salt'] = salt
         return password_context.encrypt(password, **kwds)
 
-    if VERSION >= (1, 8):
-        from django.utils import lru_cache
-        from passlib.utils.compat import lmap
+    @_manager.monkeypatch(HASHERS_PATH)
+    @lru_cache.lru_cache()
+    def get_hashers():
+        """passlib replacement for get_hashers()"""
+        return lmap(get_passlib_hasher, password_context.schemes(resolve=True))
 
-        @_manager.monkeypatch(HASHERS_PATH)
-        @lru_cache.lru_cache()
-        def get_hashers():
-            """passlib replacement for get_hashers()"""
-            return lmap(get_passlib_hasher, password_context.schemes(resolve=True))
-
-        # NOTE: leaving get_hashers_by_algorithm() unpatched, since it just
-        #       proxies get_hashers().  but we do want to wipe it's cache...
-        from django.contrib.auth.hashers import reset_hashers
-        reset_hashers(setting="PASSWORD_HASHERS")
+    # NOTE: leaving get_hashers_by_algorithm() unpatched, since it just
+    #       proxies get_hashers().  but we do want to wipe it's cache...
+    from django.contrib.auth.hashers import reset_hashers
+    reset_hashers(setting="PASSWORD_HASHERS")
 
     @_manager.monkeypatch(HASHERS_PATH)
     @_manager.monkeypatch(FORMS_PATH)

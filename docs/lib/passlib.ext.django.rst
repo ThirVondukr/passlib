@@ -10,7 +10,7 @@
 
 .. versionchanged:: 1.7
 
-    As of Passlib 1.7, this module requires Django 1.6 or newer.
+    As of Passlib 1.7, this module requires Django 1.8 or newer.
 
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
 overrides all of Django's password hashing functions, replacing them
@@ -40,7 +40,9 @@ of uses:
     This plugin should be considered "release candidate" quality.
     It works, and has good unittest coverage, but has seen only
     limited real-world use. Please report any issues.
-    It has been tested with Django 1.6 - 1.8.
+    It has been tested with Django 1.8 - 1.9.
+
+    (Support for Django 1.0 - 1.7 was dropped after Passlib 1.6).
 
 Installation
 =============

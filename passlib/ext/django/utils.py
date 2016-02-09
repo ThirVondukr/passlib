@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 #: minimum version supported by passlib.ext.django
-MIN_DJANGO_VERSION = (1, 6)
+MIN_DJANGO_VERSION = (1, 8)
 
 #=============================================================================
 # default policies
@@ -318,7 +318,7 @@ def get_passlib_hasher(handler, algorithm=None, native_only=False):
 
     This takes in the name of a passlib hash (or the handler object itself),
     and returns a wrapper instance which should be compatible with
-    Django 1.4's Hashers framework.
+    Django's Hashers framework.
 
     If the named hash corresponds to one of Django's builtin hashers,
     an instance of the real hasher class will be returned.
@@ -358,17 +358,10 @@ def _get_hasher(algorithm):
         # we haven't patched django, so just import directly
         from django.contrib.auth.hashers import get_hasher
         return get_hasher(algorithm)
-    elif DJANGO_VERSION < (1,8):
-        # django < 1.8
-        # we've patched django, so have to use patch manager to retrieve
-        # original get_hasher() function...
-        get_hasher = module._manager.getorig("django.contrib.auth.hashers:get_hasher")
-        return get_hasher(algorithm)
     else:
-        # django >= 1.8
-        # we've patched django, but patched at get_hashers() level...
-        # calling original get_hasher() would only land us back here via patched get_hashers().
-        # as non-ideal workaround, have to use original get_hashers()
+        # We've patched django's get_hashers(), so calling django's get_hasher()
+        # or get_hashers_by_algorithm() would only land us back here via patched get_hashers().
+        # As non-ideal workaround, have to use original get_hashers()...
         get_hashers = module._manager.getorig("django.contrib.auth.hashers:get_hashers")
         for hasher in get_hashers():
             if hasher.algorithm == algorithm:
