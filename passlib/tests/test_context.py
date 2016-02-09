@@ -1209,6 +1209,76 @@ sha512_crypt__min_rounds = 45000
         # bad category values
         self.assertRaises(TypeError, cc.verify_and_update, 'secret', refhash, category=1)
 
+    def test_48_context_kwds(self):
+        """encrypt(), verify(), and verify_and_update() -- discard unused context keywords"""
+
+        # setup test case
+        # NOTE: postgres_md5 hash supports 'user' context kwd, which is used for this test.
+        from passlib.hash import des_crypt, md5_crypt, postgres_md5
+        des_hash = des_crypt.encrypt("stub")
+        pg_root_hash = postgres_md5.encrypt("stub", user="root")
+        pg_admin_hash = postgres_md5.encrypt("stub", user="admin")
+
+        #------------------------------------------------------------
+        # case 1: contextual kwds not supported by any hash in CryptContext
+        #------------------------------------------------------------
+        cc1 = CryptContext([des_crypt, md5_crypt])
+        self.assertEqual(cc1.context_kwds, set())
+
+        # des_scrypt should work w/o any contextual kwds
+        self.assertTrue(des_crypt.identify(cc1.encrypt("stub")), "des_crypt")
+        self.assertTrue(cc1.verify("stub", des_hash))
+        self.assertEqual(cc1.verify_and_update("stub", des_hash), (True, None))
+
+        # des_crypt should throw error due to unknown context keyword
+        self.assertRaises(TypeError, cc1.encrypt, "stub", user="root")
+        self.assertRaises(TypeError, cc1.verify, "stub", des_hash, user="root")
+        self.assertRaises(TypeError, cc1.verify_and_update, "stub", des_hash, user="root")
+
+        #------------------------------------------------------------
+        # case 2: at least one contextual kwd supported by non-default hash
+        #------------------------------------------------------------
+        cc2 = CryptContext([des_crypt, postgres_md5])
+        self.assertEqual(cc2.context_kwds, set(["user"]))
+
+        # verify des_crypt works w/o "user" kwd
+        self.assertTrue(des_crypt.identify(cc2.encrypt("stub")), "des_crypt")
+        self.assertTrue(cc2.verify("stub", des_hash))
+        self.assertEqual(cc2.verify_and_update("stub", des_hash), (True, None))
+
+        # verify des_crypt ignores "user" kwd
+        self.assertTrue(des_crypt.identify(cc2.encrypt("stub", user="root")), "des_crypt")
+        self.assertTrue(cc2.verify("stub", des_hash, user="root"))
+        self.assertEqual(cc2.verify_and_update("stub", des_hash, user="root"), (True, None))
+
+        # verify error with unknown kwd
+        self.assertRaises(TypeError, cc2.encrypt, "stub", badkwd="root")
+        self.assertRaises(TypeError, cc2.verify, "stub", des_hash, badkwd="root")
+        self.assertRaises(TypeError, cc2.verify_and_update, "stub", des_hash, badkwd="root")
+
+        #------------------------------------------------------------
+        # case 3: at least one contextual kwd supported by default hash
+        #------------------------------------------------------------
+        cc3 = CryptContext([postgres_md5, des_crypt], deprecated="auto")
+        self.assertEqual(cc3.context_kwds, set(["user"]))
+
+        # postgres_md5 should have error w/o context kwd
+        self.assertRaises(TypeError, cc3.encrypt, "stub")
+        self.assertRaises(TypeError, cc3.verify, "stub", pg_root_hash)
+        self.assertRaises(TypeError, cc3.verify_and_update, "stub", pg_root_hash)
+
+        # postgres_md5 should work w/ context kwd
+        self.assertEqual(cc3.encrypt("stub", user="root"), pg_root_hash)
+        self.assertTrue(cc3.verify("stub", pg_root_hash, user="root"))
+        self.assertEqual(cc3.verify_and_update("stub", pg_root_hash, user="root"), (True, None))
+
+        # verify_and_update() should fail against wrong user
+        self.assertEqual(cc3.verify_and_update("stub", pg_root_hash, user="admin"), (False, None))
+
+        # verify_and_update() should pass all context kwds through when rehashing
+        self.assertEqual(cc3.verify_and_update("stub", des_hash, user="root"),
+                         (True, pg_root_hash))
+
     #===================================================================
     # rounds options
     #===================================================================

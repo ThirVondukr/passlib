@@ -41,7 +41,10 @@ class _DjangoHelper(object):
         min_django_version = max(self.min_django_version, (1,0))
         if DJANGO_VERSION < min_django_version:
             return None
-        from django.contrib.auth.models import check_password
+        try:
+            from django.contrib.auth.hashers import check_password
+        except ImportError:  # legacy location - required < 1.4, removed 1.9
+            from django.contrib.auth.models import check_password
         def verify_django(secret, hash):
             """django/check_password"""
             if self.handler.name == "django_bcrypt" and hash.startswith("bcrypt$$2y$"):
@@ -61,7 +64,10 @@ class _DjangoHelper(object):
         min_django_version = max(self.min_django_version, (1,0))
         if DJANGO_VERSION < min_django_version:
             raise self.skipTest("Django >= %s not installed" % vstr(min_django_version))
-        from django.contrib.auth.models import check_password
+        try:
+            from django.contrib.auth.hashers import check_password
+        except ImportError:  # legacy location - required < 1.4, removed 1.9
+            from django.contrib.auth.models import check_password
         assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
             self.assertTrue(check_password(secret, hash),

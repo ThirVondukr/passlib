@@ -532,6 +532,8 @@ the hashes in passlib:
 
         .. versionadded:: 1.6
 
+.. _context-keywords:
+
 .. attribute:: PasswordHash.context_kwds
 
     Tuple listing the keywords supported by :meth:`~PasswordHash.encrypt`,

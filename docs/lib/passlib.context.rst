@@ -412,6 +412,7 @@ current configuration:
 .. automethod:: CryptContext.schemes
 .. automethod:: CryptContext.default_scheme
 .. automethod:: CryptContext.handler
+.. autoattribute:: CryptContext.context_kwds
 
 .. rst-class:: html-toggle expanded
 

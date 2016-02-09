@@ -1616,6 +1616,24 @@ class HasRounds(GenericHandler):
             # the time-cost, and can't be randomized.
         return info
 
+    @classmethod
+    def parse_rounds(cls, hash):
+        """
+        [experimental method] returns rounds value from hash
+
+        .. warning::
+
+            this is needed so :class:`passlib.context._CryptRecord` can reliably figure out
+            the rounds being used by a given hash, even if the handler is a PrefixWrapper.
+
+            added in 1.6.6, this is just a stopgap until 1.7 is released, and the whole
+            needs_update() framework has been revamped so _CryptRecord doesn't need to poke
+            into handler internals anymore.
+
+            this method will be removed in 1.7.
+        """
+        return cls.from_string(hash).rounds
+
     #===================================================================
     # eoc
     #===================================================================
@@ -1942,8 +1960,7 @@ class PrefixWrapper(object):
         if doc:
             self.__doc__ = doc
         if hasattr(wrapped, "name"):
-            self._check_handler(wrapped)
-            self._wrapped_handler = wrapped
+            self._set_wrapped(wrapped)
         else:
             self._wrapped_name = wrapped
             if not lazy:
@@ -1966,19 +1983,26 @@ class PrefixWrapper(object):
     _wrapped_name = None
     _wrapped_handler = None
 
-    def _check_handler(self, handler):
+    def _set_wrapped(self, handler):
+        # check this is a valid handler
         if 'ident' in handler.setting_kwds and self.orig_prefix:
             # TODO: look into way to fix the issues.
             warn("PrefixWrapper: 'orig_prefix' option may not work correctly "
                  "for handlers which have multiple identifiers: %r" %
                  (handler.name,), exc.PasslibRuntimeWarning)
 
+        # store reference
+        self._wrapped_handler = handler
+
+        # init parse_rounds() proxy if applicable
+        if hasattr(handler, "parse_rounds"):
+            self.parse_rounds = self.__parse_rounds
+
     def _get_wrapped(self):
         handler = self._wrapped_handler
         if handler is None:
             handler = get_crypt_handler(self._wrapped_name)
-            self._check_handler(handler)
-            self._wrapped_handler = handler
+            self._set_wrapped(handler)
         return handler
 
     wrapped = property(_get_wrapped)
@@ -2117,6 +2141,12 @@ class PrefixWrapper(object):
         hash = to_unicode(hash, "ascii", "hash")
         hash = self._unwrap_hash(hash)
         return self.wrapped.verify(secret, hash, **kwds)
+
+    def __parse_rounds(self, hash):
+        """parse_rounds() wrapper - exposed only if wrapped handler supports it"""
+        hash = to_unicode(hash, "ascii", "hash")
+        hash = self._unwrap_hash(hash)
+        return self.wrapped.parse_rounds(hash)
 
 #=============================================================================
 # eof

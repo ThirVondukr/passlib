@@ -5,6 +5,7 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
+import random
 import re
 import os
 import sys
@@ -1273,6 +1274,55 @@ class HandlerCase(TestCase):
                               rounds=max_rounds+1)
 
             # TODO: check relaxed mode clips max+1
+
+    def _get_rand_rounds(self):
+        handler = self.handler
+        min_rounds = handler.min_rounds
+        upper = (min_rounds or 1) * 2
+        max_rounds = handler.max_rounds
+        if max_rounds is not None and max_rounds < upper:
+            upper = max_rounds
+        rounds = random.randint(min_rounds, upper)
+        if getattr(handler, "_avoid_even_rounds", False):
+            rounds |= 1
+        return rounds
+
+    def test_22_parse_rounds(self):
+        """test parse_rounds() helper [will be removed in 1.7]"""
+        self.require_rounds_info()
+        handler = self.handler
+        for _ in range(5):
+            rounds = self._get_rand_rounds()
+            hash = self.do_encrypt("letmein", rounds=rounds)
+            self.assertEqual(handler.parse_rounds(hash), rounds)
+
+    def test_23_rounds_and_context_needs_update(self):
+        """test rounds + context.needs_update() integration"""
+        self.require_rounds_info()
+        from passlib.context import CryptContext
+        handler = self.handler
+
+        # pick two different rounds values
+        rounds1 = rounds2 = self._get_rand_rounds()
+        while rounds1 == rounds2:
+            rounds2 = self._get_rand_rounds()
+
+        # setup context which considers everything but rounds1 to need updating.
+        prefix = handler.name + "__"
+        context = CryptContext(**{
+            "schemes": [handler],
+            (prefix + "default_rounds"): rounds1,
+            (prefix + "min_rounds"): rounds1,
+            (prefix + "max_rounds"): rounds1,
+        })
+
+        # rounds1 hash should be fine
+        hash = self.do_encrypt("letmein", rounds=rounds1)
+        self.assertFalse(context.needs_update(hash))
+
+        # rounds2 hash should need updating
+        hash = self.do_encrypt("letmein", rounds=rounds2)
+        self.assertTrue(context.needs_update(hash))
 
     def test_has_rounds_using_limits(self):
         """

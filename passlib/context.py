@@ -696,6 +696,9 @@ class _CryptConfig(object):
     # tuple of categories in alphabetical order (not including None)
     categories = None
 
+    # set of all context keywords used by active schemes
+    context_kwds = None
+
     # dict mapping category -> default scheme
     _default_schemes = None
 
@@ -1016,10 +1019,12 @@ class _CryptConfig(object):
         #       so CryptContext throws error immediately rather than later.
         self._record_lists = {}
         records = self._records = {}
+        context_kwds = self.context_kwds = set()
         get_options = self._get_record_options_with_flag
         categories = self.categories
         for handler in self.handlers:
             scheme = handler.name
+            context_kwds.update(handler.context_kwds)
             kwds, _ = get_options(scheme, None)
             records[scheme, None] = _CryptRecord(handler, **kwds)
             for cat in categories:
@@ -1592,6 +1597,12 @@ class CryptContext(object):
         self._config = config
         self._get_record = config.get_record
         self._identify_record = config.identify_record
+        if config.context_kwds:
+            # (re-)enable method for this instance (in case ELSE clause below ran last load).
+            self.__dict__.pop("_strip_unused_context_kwds", None)
+        else:
+            # disable method for this instance, it's not needed.
+            self._strip_unused_context_kwds = None
 
     @staticmethod
     def _parse_config_key(ckey):
@@ -1799,6 +1810,16 @@ class CryptContext(object):
         return tuple(handler for handler in self._config.handlers
                      if not _is_handler_registered(handler))
 
+    @property
+    def context_kwds(self):
+        """
+        return :class:`!set` containing union of all :ref:`contextual keywords <context-keywords>`
+        supported by the handlers in this context.
+
+        .. versionadded:: 1.6.6
+        """
+        return self._config.context_kwds
+
     #===================================================================
     # exporting config
     #===================================================================
@@ -1960,6 +1981,22 @@ class CryptContext(object):
             # hash typecheck handled by identify_record()
             return self._identify_record(hash, category)
 
+    def _strip_unused_context_kwds(self, kwds, record):
+        """
+        helper which removes any context keywords from **kwds**
+        that are known to be used by another scheme in this context,
+        but are NOT supported by handler specified by **record**.
+
+        .. note::
+            as optimization, load() will set this method to None on a per-instance basis
+            if there are no context kwds.
+        """
+        if not kwds:
+            return
+        unused_kwds = self._config.context_kwds.difference(record.handler.context_kwds)
+        for key in unused_kwds:
+            kwds.pop(key, None)
+
     def needs_update(self, hash, scheme=None, category=None, secret=None):
         """Check if hash needs to be replaced for some reason,
         in which case the secret should be re-hashed.
@@ -2113,7 +2150,11 @@ class CryptContext(object):
               method throws an error based on *secret* or the provided *kwds*.
         """
         # XXX: could insert normalization to preferred unicode encoding here
-        return self._get_record(scheme, category).genhash(secret, config, **kwds)
+        record = self._get_record(scheme, category)
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused:
+            strip_unused(kwds, record)
+        return record.genhash(secret, config, **kwds)
 
     def identify(self, hash, category=None, resolve=False, required=False):
         """Attempt to identify which algorithm the hash belongs to.
@@ -2196,7 +2237,11 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: could insert normalization to preferred unicode encoding here
-        return self._get_record(scheme, category).encrypt(secret, **kwds)
+        record = self._get_record(scheme, category)
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused:
+            strip_unused(kwds, record)
+        return record.encrypt(secret, **kwds)
 
     def verify(self, secret, hash, scheme=None, category=None, **kwds):
         """verify secret against an existing hash.
@@ -2249,10 +2294,12 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
-        # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here
         # XXX: what about supporting a setter() callback ala django 1.4 ?
         record = self._get_or_identify_record(hash, scheme, category)
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused:
+            strip_unused(kwds, record)
         return record.verify(secret, hash, **kwds)
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
@@ -2312,10 +2359,15 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
-        # XXX: have record strip context kwds if scheme doesn't use them?
         # XXX: could insert normalization to preferred unicode encoding here.
         record = self._get_or_identify_record(hash, scheme, category)
-        if not record.verify(secret, hash, **kwds):
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused and kwds:
+            clean_kwds = kwds.copy()
+            strip_unused(clean_kwds, record)
+        else:
+            clean_kwds = kwds
+        if not record.verify(secret, hash, **clean_kwds):
             return False, None
         elif record.needs_update(hash, secret=secret):
             # NOTE: we re-encrypt with default scheme, not current one.

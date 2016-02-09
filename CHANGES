@@ -33,6 +33,8 @@ Release History
 
         * FIXME: Default using() method won't work correctly for wrapper handlers just yet.
 
+    * Remove Django 1.6/1.7 support, bumping minimum to 1.8
+
 Requirements
 ------------
 
@@ -112,6 +114,16 @@ Todo
 ----
 
 * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
+
+**1.6.6** (NOT YET RELEASED)
+============================
+
+    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
+      to the hashes that support them, but ignores them for hashes that don't.  This should
+      fix :issue:`63`.
+
+    * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9,
+      and some internal cleanups (fixes :issue:`68`).
 
 **1.6.5** (2015-08-04)
 ======================
