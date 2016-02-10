@@ -134,7 +134,7 @@ class classproperty(object):
         return self.im_func
 
 def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
-                        replacement=None, _is_method=False):
+                        replacement=None, _is_method=False, func_module=None):
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
@@ -157,7 +157,7 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
         msg += "."
     def build(func):
         opts = dict(
-            mod=func.__module__,
+            mod=func_module or func.__module__,
             name=func.__name__,
             deprecated=deprecated,
             removed=removed,

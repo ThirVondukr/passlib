@@ -17,7 +17,7 @@ SCRAM.
 To accomplish this, Passlib provides the following
 :ref:`modular-crypt-format`-compatible password hash scheme which uses the
 ``$scram$`` identifier. This format encodes a salt, rounds settings, and one
-or more :func:`~passlib.utils.pbkdf2.pbkdf2` digests... one digest for each
+or more :func:`~passlib.crypto.digest.pbkdf2_hmac` digests... one digest for each
 of the hash algorithms the server wishes to support over SCRAM.
 
 Since this format is PBKDF2-based, it has equivalent security to

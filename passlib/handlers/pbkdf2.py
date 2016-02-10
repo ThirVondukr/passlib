@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, to_unicode
 from passlib.utils.compat import str_to_bascii, u, uascii_to_str, unicode
-from passlib.utils.pbkdf2 import pbkdf2
+from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -47,7 +47,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     rounds_cost = "linear"
 
     #--this class--
-    _prf = None # subclass specified prf identifier
+    _digest = None # name of subclass-specified hash
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide sanity check.
     #       the underlying pbkdf2 specifies no bounds for either.
@@ -77,26 +77,24 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         return uh.render_mc3(self.ident, self.rounds, salt, chk)
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
+        # NOTE: pbkdf2_hmac() will encode secret & salt using UTF8
+        return pbkdf2_hmac(self._digest, secret, self.salt, self.rounds, self.checksum_size)
 
 def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=__name__):
     """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = 'pbkdf2_' + hash_name
     if ident is None:
         ident = u("$pbkdf2-%s$") % (hash_name,)
-    prf = "hmac-%s" % (hash_name,)
     base = Pbkdf2DigestHandler
     return type(name, (base,), dict(
         __module__=module, # so ABCMeta won't clobber it.
         name=name,
         ident=ident,
-        _prf = prf,
+        _digest = hash_name,
         default_rounds=rounds,
         checksum_size=digest_size,
         encoded_checksum_size=(digest_size*4+2)//3,
-        __doc__="""This class implements a generic ``PBKDF2-%(prf)s``-based password hash, and follows the :ref:`password-hash-api`.
+        __doc__="""This class implements a generic ``PBKDF2-HMAC-%(digest)s``-based password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
 
@@ -111,7 +109,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
     :type salt_size: int
     :param salt_size:
         Optional number of bytes to use when autogenerating new salts.
-        Defaults to 16 bytes, but can be any value between 0 and 1024.
+        Defaults to %(dsc)d bytes, but can be any value between 0 and 1024.
 
     :type rounds: int
     :param rounds:
@@ -127,7 +125,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
         that are too small or too large, and ``salt`` strings that are too long.
 
         .. versionadded:: 1.6
-    """ % dict(prf=prf.upper(), dsc=base.default_salt_size, dr=rounds)
+    """ % dict(digest=hash_name.upper(), dsc=base.default_salt_size, dr=rounds)
     ))
 
 #------------------------------------------------------------------------
@@ -237,9 +235,8 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, 20, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha1", secret, self.salt, self.rounds, 20)
 
     #===================================================================
     # eoc
@@ -337,10 +334,9 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        salt = str_to_bascii(self.to_string(withchk=False))
-        result = pbkdf2(secret, salt, self.rounds, 24, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        salt = self.to_string(withchk=False)
+        result = pbkdf2_hmac("sha1", secret, salt, self.rounds, 24)
         return ab64_encode(result).decode("ascii")
 
     #===================================================================
@@ -401,10 +397,9 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     def _calc_checksum(self, secret):
         # TODO: find out what crowd's policy is re: unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         # crowd seems to use a fixed number of rounds.
-        return pbkdf2(secret, self.salt, 10000, 32, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha1", secret, self.salt, 10000, 32)
 
 #=============================================================================
 # grub
@@ -479,9 +474,8 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     def _calc_checksum(self, secret):
         # TODO: find out what grub's policy is re: unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, 64, "hmac-sha512")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha512", secret, self.salt, self.rounds, 64)
 
 #=============================================================================
 # eof

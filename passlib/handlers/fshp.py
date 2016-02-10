@@ -14,7 +14,7 @@ from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
 from passlib.utils.compat import bascii_to_str, iteritems, u,\
                                  unicode
-from passlib.utils.pbkdf2 import pbkdf1
+from passlib.crypto.digest import pbkdf1
 # local
 __all__ = [
     'fshp',
@@ -189,11 +189,11 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         #       this has only a minimal impact on security,
         #       but it is worth noting this deviation.
         return pbkdf1(
+            digest=self.checksum_alg,
             secret=self.salt,
             salt=secret,
             rounds=self.rounds,
             keylen=self.checksum_size,
-            hash=self.checksum_alg,
             )
 
     #===================================================================

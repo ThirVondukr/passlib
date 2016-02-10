@@ -33,10 +33,6 @@ options = os.environ.get("PASSLIB_DOCS", "").split(",")
 # (https://bitbucket.org/ecollins/cloud_sptheme)
 import cloud_sptheme as csp
 
-# hack to make autodoc generate documentation from the correct class...
-import passlib.utils.md4 as md4_mod
-md4_mod.md4 = md4_mod._builtin_md4
-
 #=============================================================================
 # General configuration
 #=============================================================================

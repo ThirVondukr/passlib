@@ -93,7 +93,7 @@ if PY3:
         assert isinstance(s, str)
         return s
 
-    unicode_or_bytes_types = (unicode, bytes)
+    unicode_or_bytes_types = (str, bytes)
     native_string_types = (unicode,)
 
 else:
@@ -365,7 +365,7 @@ class _LazyOverlayModule(ModuleType):
     that are only needed by certain password hashes,
     yet allow them to be imported from a single location.
 
-    used by :mod:`passlib.utils`, :mod:`passlib.utils.crypto`,
+    used by :mod:`passlib.utils`, :mod:`passlib.crypto`,
     and :mod:`passlib.utils.compat`.
     """
 

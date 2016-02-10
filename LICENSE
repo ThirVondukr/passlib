@@ -60,7 +60,7 @@ which is available under the following license::
 
 DES
 ---
-The source file ``passlib/utils/des.py`` contains code derived from
+The source file ``passlib/crypto/des.py`` contains code derived from
 `UnixCrypt.java <http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_,
 a pure-java implementation of the historic unix-crypt password hash algorithm.
 It is available under the following license::

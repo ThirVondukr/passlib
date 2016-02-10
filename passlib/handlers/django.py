@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.hash import bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, classproperty
 from passlib.utils.compat import str_to_uascii, uascii_to_str, unicode, u
-from passlib.utils.pbkdf2 import pbkdf2
+from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -282,13 +282,11 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     checksum_chars = uh.PADDED_BASE64_CHARS
     checksum_size = 44 # 32 bytes -> base64
     default_rounds = pbkdf2_sha256.default_rounds # NOTE: django 1.6 uses 12000
-    _prf = "hmac-sha256"
+    _digest = "sha256"
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        hash = pbkdf2(secret, self.salt.encode("ascii"), self.rounds,
-                      keylen=None, prf=self._prf)
+        # NOTE: secret & salt will be encoded using UTF-8 by pbkdf2_hmac()
+        hash = pbkdf2_hmac(self._digest, secret, self.salt, self.rounds)
         return b64encode(hash).rstrip().decode("ascii")
 
 class django_pbkdf2_sha1(django_pbkdf2_sha256):
@@ -332,7 +330,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     ident = u('pbkdf2_sha1$')
     checksum_size = 28 # 20 bytes -> base64
     default_rounds = pbkdf2_sha1.default_rounds # NOTE: django 1.6 uses 12000
-    _prf = "hmac-sha1"
+    _digest = "sha1"
 
 #=============================================================================
 # other

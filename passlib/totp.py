@@ -24,7 +24,7 @@ from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
                            getrandbytes, rng, xor_bytes, SequenceMixin)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
                                   irange, byte_elem_value, UnicodeIO, PY26)
-from passlib.utils.pbkdf2 import get_prf, norm_hash_name, pbkdf2
+from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 # local
 __all__ = [
     # frontend classes
@@ -160,8 +160,7 @@ def _raw_encrypt_key(key, password, salt, cost):
     #       (all without needing 'password')
     assert isinstance(key, bytes)
     password = to_bytes(password, param="password")
-    data = pbkdf2(password, salt=salt, rounds=(1<<cost),
-                  keylen=len(key), prf="hmac-sha256")
+    data = pbkdf2_hmac("sha256", password, salt=salt, rounds=(1<<cost), keylen=len(key))
     return xor_bytes(key, data)
 
 def encrypt_key(key, password, cost=None):
@@ -537,9 +536,9 @@ class BaseOTP(object):
         self.dirty = dirty
 
         # validate & normalize alg
-        self.alg = norm_hash_name(alg or self.alg)
-        # XXX: could use get_keyed_prf() instead
-        digest_size = get_prf("hmac-" + self.alg)[1]
+        info = lookup_hash(alg or self.alg)
+        self.alg = info.name
+        digest_size = info.digest_size
         if digest_size < 4:
             raise RuntimeError("%r hash digest too small" % alg)
 
@@ -676,10 +675,6 @@ class BaseOTP(object):
     # token helpers
     #=============================================================================
 
-    @memoized_property
-    def _prf_info(self):
-        return get_prf("hmac-" + self.alg)
-
     def _generate(self, counter):
         """
         implementation of lowlevel HOTP generation algorithm,
@@ -689,9 +684,10 @@ class BaseOTP(object):
         :returns: token as unicode string
         """
         # generate digest
-        prf, digest_size = self._prf_info
         assert isinstance(counter, int_types), "counter must be integer"
-        digest = prf(self.key, struct.pack(">Q", counter))
+        keyed_hmac = compile_hmac(self.alg, self.key)
+        digest = keyed_hmac(struct.pack(">Q", counter))
+        digest_size = keyed_hmac.digest_info.digest_size
         assert len(digest) == digest_size, "digest_size: sanity check failed"
 
         # derive 31-bit token value

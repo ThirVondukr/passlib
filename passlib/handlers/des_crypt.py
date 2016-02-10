@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.utils import h64, h64big, safe_crypt, test_crypt, to_unicode
 from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode
-from passlib.utils.des import des_encrypt_int_block
+from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
 __all__ = [

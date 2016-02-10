@@ -1760,8 +1760,8 @@ class scram_test(HandlerCase):
         # check rounds
         self.assertRaises(ValueError, hash, "IX", s1, 0, 'sha-1')
 
-        # bad types
-        self.assertRaises(TypeError, hash, "IX", u('\x01'), 1000, 'md5')
+        # unicode salts accepted as of passlib 1.7 (previous caused TypeError)
+        self.assertEqual(hash(u("IX"), s1.decode("latin-1"), 1000, 'sha1'), d1)
 
     def test_94_saslprep(self):
         """test encrypt/verify use saslprep"""

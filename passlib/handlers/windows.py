@@ -10,7 +10,8 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode, right_pad_string
 from passlib.utils.compat import unicode
-from passlib.utils.md4 import md4
+from passlib.crypto.digest import lookup_hash
+md4 = lookup_hash("md4").const
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -82,7 +83,7 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
         # some nice empircal data re: different encodings is at...
         # http://www.openwall.com/lists/john-dev/2011/08/01/2
         # http://www.freerainbowtables.com/phpBB3/viewtopic.php?t=387&p=12163
-        from passlib.utils.des import des_encrypt_block
+        from passlib.crypto.des import des_encrypt_block
         MAGIC = cls._magic
         if isinstance(secret, unicode):
             # perform uppercasing while we're still unicode,
@@ -298,11 +299,11 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
 
         :returns: returns string of raw bytes
         """
-        from passlib.utils.pbkdf2 import pbkdf2
+        from passlib.crypto.digest import pbkdf2_hmac
         secret = to_unicode(secret, "utf-8", param="secret").encode("utf-16-le")
         user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         tmp = md4(md4(secret).digest() + user).digest()
-        return pbkdf2(tmp, user, 10240, 16, 'hmac-sha1')
+        return pbkdf2_hmac("sha1", tmp, user, 10240, 16)
 
 #=============================================================================
 # eof

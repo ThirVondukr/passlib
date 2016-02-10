@@ -63,6 +63,17 @@ class TokenReuseError(ValueError):
         self.expire_time = kwds.pop("expire_time", None)
         ValueError.__init__(self, *args, **kwds)
 
+
+class UnknownHashError(ValueError):
+    """Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
+    This exception derives from :exc:`!ValueError`.
+
+    .. versionadded:: 1.7
+    """
+    def __init__(self, name):
+        self.name = name
+        ValueError.__init__(self, "unknown hash algorithm: %r" % name)
+
 #=============================================================================
 # warnings
 #=============================================================================

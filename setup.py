@@ -132,6 +132,7 @@ setup(
     # package info
     packages = [
         "passlib",
+            "passlib.crypto",
             "passlib.ext",
                 "passlib.ext.django",
             "passlib.handlers",

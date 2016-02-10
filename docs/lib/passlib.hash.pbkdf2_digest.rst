@@ -96,7 +96,7 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
 The algorithm used by all of these schemes is deliberately identical and simple:
 The password is encoded into UTF-8 if not already encoded,
-and run through :func:`~passlib.utils.pbkdf2.pbkdf2`
+and run through :func:`~passlib.crypto.digest.pbkdf2_hmac`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
 The result is then encoded using :func:`~passlib.utils.ab64_encode`.

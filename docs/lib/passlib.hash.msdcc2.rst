@@ -69,7 +69,7 @@ The digest is calculated as follows:
    digest from step 2; and the MD4 digest of the result
    is calculated (The result of this is identical to the
    :class:`~passlib.hash.msdcc` digest).
-5. :func:`PBKDF2-HMAC-SHA1 <passlib.utils.pbkdf2.pbkdf2>` is then invoked,
+5. :func:`PBKDF2-HMAC-SHA1 <passlib.crypto.digest.pbkdf2_hmac>` is then invoked,
    using the result of step 4 as the secret, the username from step 3 as
    the salt, 10240 rounds, and resulting in a 16 byte digest.
 6. The result of step 5 is encoded into hexadecimal;

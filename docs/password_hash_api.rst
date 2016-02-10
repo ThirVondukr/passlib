@@ -722,7 +722,7 @@ and the following attributes should be defined:
 
 Choosing the right rounds value
 ===============================
-For hash algorithms with a variable time-cost, 
+For hash algorithms with a variable time-cost,
 Passlib's :attr:`~PasswordHash.default_rounds` values attempt to be secure enough for
 the average [#avgsys]_ system. But the "right" value for a given hash
 is dependant on the server, its cpu, its expected load, and its users.

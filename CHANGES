@@ -19,14 +19,9 @@ Release History
 
     * Finish :mod:`passlib.pwd` -- need to finalize API and document it better.
 
-    * Would strongly like to also add pbkdf2 & bcrypt variants which have support for an external
-      "pepper" to further increase security.
-
     * Internal cleanups:
 
         * Check for additions to Django's hashers as of Django 1.7
-
-        * Potentially reorg the utils module (particularly the crypto bits), it's getting messy.
 
     * Finish the :meth:`PasswordHash.using` and :meth:`PasswordHash.needs_update` refactoring,
       aimed at eliminating any need for the internal :class:`passlib.context._CryptRecord` class.
@@ -56,7 +51,7 @@ Major Changes
 * Added :class:`~passlib.hash.cisco_asa` which provides (tentative)
   support for Cisco ASA 7.0 and newer hashes.
 
-* The :func:`~passlib.utils.pbkdf2.pbkdf2` function and all PBKDF2-based
+* The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
   hashes have been sped up by ~20% compared to Passlib 1.6.
 
 * Passlib will now detect and work around the fatal concurrency bug
@@ -70,9 +65,13 @@ Minor Changes
 * The shared :class:`!PasswordHash` unittests now check all hash handlers for
   basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
 
-* The internal support module :mod:`passlib.utils.pbkdf2` has gained
-  to new helpers: :func:`~passlib.utils.pbkdf2.get_hash_info`
-  and :func:`~passlib.utils.pbkdf2.get_keyed_prf`.
+* Most of passlib's internal cryptography helpers have been moved from
+  :mod:`!passlib.utils` to :mod:`passlib.crypto`, and the APIs refactored.
+  This allowed unification of various hash management routines,
+  some speed ups to the HMAC and PBKDF2 primitives, and opens up the architecture
+  to support more optional backend libraries.
+
+  Compatibility wrappers will be kept in place at the old location until Passlib 2.0.
 
 Deprecations
 ------------
@@ -99,6 +98,10 @@ Internal Changes
 
 Backwards Incompatibilities
 ---------------------------
+
+* :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
+  this was an unused feature, and prevented some useful optimizations.
+
 * The :ref:`min_verify_time <context-min-verify-time-option>` keyword
   that was deprecated in release 1.6, is now completely ignored.
   It was never very useful, and now complicates the internal code needlessly.
@@ -673,7 +676,7 @@ Internal Changes
 ----------------
 
     * Added more handler utility functions to reduce code duplication.
-    * Expanded kdf helpers in :mod:`passlib.utils.pbkdf2`.
+    * Expanded kdf helpers in :mod:`!passlib.utils.pbkdf2`.
     * Removed deprecated parts of :mod:`passlib.utils.handlers`.
     * Various minor changes to
       :class:`passlib.utils.handlers.HasManyBackends`;

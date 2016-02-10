@@ -283,17 +283,17 @@ def test_sha1_crypt():
 #=============================================================================
 @benchmark.constructor()
 def test_pbkdf2_sha1():
-    from passlib.utils.pbkdf2 import pbkdf2
+    from passlib.crypto.digest import pbkdf2_hmac
     def helper():
-        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 20, "hmac-sha1"))
+        result = hexlify(pbkdf2_hmac("sha1", "abracadabra", "open sesame", 10240, 20))
         assert result == 'e45ce658e79b16107a418ad4634836f5f0601ad1', result
     return helper
 
 @benchmark.constructor()
 def test_pbkdf2_sha256():
-    from passlib.utils.pbkdf2 import pbkdf2
+    from passlib.crypto.digest import pbkdf2_hmac
     def helper():
-        result = hexlify(pbkdf2("abracadabra", "open sesame", 10240, 32, "hmac-sha256"))
+        result = hexlify(pbkdf2_hmac("sha256", "abracadabra", "open sesame", 10240, 32))
         assert result == 'fadef97054306c93c55213cd57111d6c0791735dcdde8ac32f9f934b49c5af1e', result
     return helper
 

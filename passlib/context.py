@@ -1014,7 +1014,7 @@ class _CryptConfig(object):
     #===================================================================
     def _init_records(self):
         # NOTE: this step handles final validation of settings,
-        #       checking for violatiions against handler's internal invariants.
+        #       checking for violations against handler's internal invariants.
         #       this is why we create all the records now,
         #       so CryptContext throws error immediately rather than later.
         self._record_lists = {}

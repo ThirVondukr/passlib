@@ -77,7 +77,7 @@ A example hash (of ``password``) is:
     ``da8a6bcfad78c17da993b5940f6524d526d444012cf67ea8f44b7843c7ab2e82``
 
 FSHP is basically just a wrapper around PBKDF1:
-The checksum is calculated using :func:`~passlib.utils.pbkdf2.pbkdf1`,
+The checksum is calculated using :func:`~passlib.crypto.digest.pbkdf1`,
 passing in the password, the decoded salt string, the number of
 rounds, and hash function specified by the variant identifier.
 FSHP has one quirk in that the password is passed in as the pbkdf1 salt,

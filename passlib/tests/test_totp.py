@@ -15,7 +15,6 @@ import time as _time
 # pkg
 from passlib import exc
 from passlib.utils import to_bytes, to_unicode
-from passlib.utils.pbkdf2 import _clear_caches
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase
 # local
@@ -267,7 +266,8 @@ class _BaseOTPTest(TestCase):
         super(_BaseOTPTest, self).setUp()
 
         # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
-        _clear_caches()
+        from passlib.crypto.digest import lookup_hash
+        lookup_hash.clear_cache()
 
     #=============================================================================
     # subclass utils
@@ -382,10 +382,7 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(KEY1, alg="SHA256").alg, "sha256")
 
         # invalid alg
-        with self.assertWarningList([
-            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA-333")
-        ]):
-            self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
+        self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
 
     def test_ctor_w_digits(self):
         """constructor -- 'digits' parameter"""
@@ -1265,9 +1262,8 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(otp.alg, "sha256")
 
         # unknown alg
-        with self.assertWarningList([exc.PasslibRuntimeWarning]):
-            self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?"
-                                                    "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
+        self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?"
+                                                "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
 
         #--------------------------------------------------------------------------------
         # digit param
@@ -1962,12 +1958,9 @@ class HotpTest(_BaseOTPTest):
         self.assertEqual(otp.alg, "sha256")
         
         # unknown alg
-        with self.assertWarningList([
-            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA333")
-        ]):
-            self.assertRaises(ValueError, from_uri, "otpauth://hotp/Example:alice@google.com?"
-                                                    "secret=JBSWY3DPEHPK3PXP&counter=123"
-                                                    "&algorithm=SHA333")
+        self.assertRaises(ValueError, from_uri, "otpauth://hotp/Example:alice@google.com?"
+                                                "secret=JBSWY3DPEHPK3PXP&counter=123"
+                                                "&algorithm=SHA333")
         
         #--------------------------------------------------------------------------------
         # digit param

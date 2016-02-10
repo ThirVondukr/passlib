@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import to_unicode, xor_bytes
 from passlib.utils.compat import irange, u, \
                                  uascii_to_str, unicode, str_to_uascii
-from passlib.utils.des import des_encrypt_block
+from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
 # local
 __all__ = [

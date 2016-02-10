@@ -465,7 +465,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(parse(admin__all__vary_rounds=0.1), result)
         self.assertEqual(parse(**{"admin.all.vary_rounds":0.1}), result)
 
-        # settings not allowed if not in hash.settings_kwds
+        # settings not allowed if not in hash.setting_kwds
         ctx = CryptContext(["phpass", "md5_crypt"], phpass__ident="P")
         self.assertRaises(KeyError, ctx.copy, md5_crypt__ident="P")
 

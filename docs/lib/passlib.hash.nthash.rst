@@ -8,7 +8,7 @@
 
 .. warning::
 
-    This scheme is very weak, the :mod:`~passlib.utils.md4` digest
+    This scheme is very weak, the MD4 digest
     it is based on has been severely compromised for many years.
     It should be used for compatibility with existing systems;
     **do not use** in new code.
@@ -45,7 +45,7 @@ A nthash consists of 32 hexadecimal digits, which encode the digest.
 An example hash (of ``password``) is ``8846f7eaee8fb117ad06bdd830b7586c``.
 
 The digest is calculated by encoding the secret using ``UTF-16-LE``,
-taking the :mod:`~passlib.utils.md4` digest, and then encoding
+taking the MD4 digest, and then encoding
 that as hexadecimal.
 
 FreeBSD Variant

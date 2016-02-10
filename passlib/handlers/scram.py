@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, splitcomma
 from passlib.utils.compat import bascii_to_str, iteritems, u, native_string_types
-from passlib.utils.pbkdf2 import pbkdf2, norm_hash_name
+from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -134,7 +134,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :arg alg:
             Name of digest algorithm (e.g. ``"sha-1"``) requested by client.
 
-            This value is run through :func:`~passlib.utils.pbkdf2.norm_hash_name`,
+            This value is run through :func:`~passlib.crypto.digest.norm_hash_name`,
             so it is case-insensitive, and can be the raw SCRAM
             mechanism name (e.g. ``"SCRAM-SHA-1"``), the IANA name,
             or the hashlib name.
@@ -172,8 +172,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :param format:
             This changes the naming convention used by the
             returned algorithm names. By default the names
-            are IANA-compatible; see :func:`~passlib.utils.pbkdf2.norm_hash_name`
-            for possible values.
+            are IANA-compatible; possible values are ``"iana"`` or ``"hashlib"``.
 
         :returns:
             Returns a list of digest algorithms; e.g. ``["sha-1"]``
@@ -212,13 +211,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         """
         if isinstance(password, bytes):
             password = password.decode("utf-8")
-        password = saslprep(password).encode("utf-8")
-        if not isinstance(salt, bytes):
-            raise TypeError("salt must be bytes")
-        if rounds < 1:
-            raise ValueError("rounds must be >= 1")
-        alg = norm_hash_name(alg, "hashlib")
-        return pbkdf2(password, salt, rounds, None, "hmac-" + alg)
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8,
+        #       and handle normalizing alg name.
+        return pbkdf2_hmac(alg, saslprep(password), salt, rounds)
 
     #===================================================================
     # serialization

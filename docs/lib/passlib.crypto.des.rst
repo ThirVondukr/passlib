@@ -1,14 +1,20 @@
-====================================================
-:mod:`passlib.utils.des` - DES routines [deprecated]
-====================================================
+==============================================
+:mod:`passlib.crypto.des` - DES routines
+==============================================
 
-.. module:: passlib.utils.des
+.. module:: passlib.crypto.des
     :synopsis: routines for performing DES encryption
 
+.. versionchanged:: 1.7
+
+    This module was relocated from :mod:`!passlib.utils.des`;
+    the old location will be removed in Passlib 2.0.
+
 .. warning::
-    This module is deprecated as of Passlib 1.7:
-    It has been relocated to :mod:`passlib.crypto.des`;
-    and the aliases here will be removed in Passlib 2.0.
+
+    NIST has declared DES to be "inadequate" for cryptographic purposes.
+    These routines, and the password hashes based on them,
+    should not be used in new applications.
 
 This module contains routines for encrypting blocks of data using the DES algorithm.
 Note that these functions do not support multi-block operation or decryption,
