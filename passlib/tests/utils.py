@@ -1303,9 +1303,9 @@ class HandlerCase(TestCase):
 
     def _get_rand_rounds(self):
         handler = self.handler
-        min_rounds = handler.min_rounds
-        upper = (min_rounds or 1) * 2
+        min_rounds = handler.min_rounds or 1
         max_rounds = handler.max_rounds
+        upper = min_rounds * 2
         if max_rounds is not None and max_rounds < upper:
             upper = max_rounds
         rounds = random.randint(min_rounds, upper)
@@ -1344,11 +1344,11 @@ class HandlerCase(TestCase):
 
         # rounds1 hash should be fine
         hash = self.do_encrypt("letmein", rounds=rounds1)
-        self.assertFalse(context.needs_update(hash))
+        self.assertFalse(context.needs_update(hash), msg="rounds=%d: hash=%r: " % (rounds1, hash))
 
         # rounds2 hash should need updating
         hash = self.do_encrypt("letmein", rounds=rounds2)
-        self.assertTrue(context.needs_update(hash))
+        self.assertTrue(context.needs_update(hash), msg="rounds=%d (required=%d): hash=%r: " % (rounds2, rounds1, hash))
 
     #===================================================================
     # idents
