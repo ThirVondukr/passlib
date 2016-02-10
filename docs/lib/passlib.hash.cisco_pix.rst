@@ -166,3 +166,6 @@ This implementation differs from the standard in one main way:
 .. [#] Message threads hinting at how username is handled -
        `<http://www.openwall.com/lists/john-users/2010/02/02/7>`_,
        `<www.freerainbowtables.com/phpBB3/viewtopic.php?f=2&t=1441>`_
+
+.. [#] Partial description of ASA algorithm - 
+       `<https://github.com/stekershaw/asa-password-encrypt/blob/master/README.md>`_
