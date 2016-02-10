@@ -21,7 +21,7 @@ from warnings import warn
 # pkg
 from passlib import exc
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
-                           getrandbytes, rng, xor_bytes)
+                           getrandbytes, rng, xor_bytes, SequenceMixin)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
                                   irange, byte_elem_value, UnicodeIO, PY26)
 from passlib.utils.pbkdf2 import get_prf, norm_hash_name, pbkdf2
@@ -55,31 +55,6 @@ if PY26:
 #=============================================================================
 # internal helpers
 #=============================================================================
-class _SequenceMixin(object):
-    """
-    helper which lets result object act like a fixed-length sequence.
-    subclass just needs to provide :meth:`_as_tuple()`.
-    """
-    def _as_tuple(self):
-        raise NotImplemented("implement in subclass")
-
-    def __repr__(self):
-        return repr(self._as_tuple())
-
-    def __getitem__(self, idx):
-        return self._as_tuple()[idx]
-
-    def __iter__(self):
-        return iter(self._as_tuple())
-
-    def __len__(self):
-        return len(self._as_tuple())
-
-    def __eq__(self, other):
-        return self._as_tuple() == other
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 #-----------------------------------------------------------------------------
 # token parsing / rendering helpers
@@ -1138,7 +1113,7 @@ class BaseOTP(object):
 #=============================================================================
 # HOTP helper
 #=============================================================================
-class HotpMatch(_SequenceMixin):
+class HotpMatch(SequenceMixin):
     """
     Object returned by :meth:`HOTP.verify`.
     It can be treated as a tuple of ``(valid, counter)``,
@@ -1482,7 +1457,7 @@ BaseOTP._type_map[HOTP.type] = HOTP
 #=============================================================================
 # TOTP helper
 #=============================================================================
-class TotpToken(_SequenceMixin):
+class TotpToken(SequenceMixin):
     """
     Object returned by :meth:`TOTP.generate` and :meth:`TOTP.generate_next`.
     It can be treated as a sequence of ``(token, expire_time)``,
@@ -1535,7 +1510,7 @@ class TotpToken(_SequenceMixin):
         """whether token is still valid"""
         return bool(self.remaining)
 
-class TotpMatch(_SequenceMixin):
+class TotpMatch(SequenceMixin):
     """
     Object returned by :meth:`TOTP.verify`.
     It can be treated as a sequence of ``(valid, offset)``,

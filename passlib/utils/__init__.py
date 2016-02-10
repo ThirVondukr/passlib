@@ -242,6 +242,32 @@ class memoized_property(object):
 ##    def __func__(self):
 ##        "py3 compatible alias"
 
+class SequenceMixin(object):
+    """
+    helper which lets result object act like a fixed-length sequence.
+    subclass just needs to provide :meth:`_as_tuple()`.
+    """
+    def _as_tuple(self):
+        raise NotImplemented("implement in subclass")
+
+    def __repr__(self):
+        return repr(self._as_tuple())
+
+    def __getitem__(self, idx):
+        return self._as_tuple()[idx]
+
+    def __iter__(self):
+        return iter(self._as_tuple())
+
+    def __len__(self):
+        return len(self._as_tuple())
+
+    def __eq__(self, other):
+        return self._as_tuple() == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 #=============================================================================
 # unicode helpers
 #=============================================================================
