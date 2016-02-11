@@ -46,6 +46,7 @@ extensions = [
     # standard sphinx extensions
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.viewcode',
 
     # 3rd part extensions
     'sphinxcontrib.fulltoc',

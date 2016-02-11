@@ -13,20 +13,35 @@ Release History
 
     The following tasks are blocking the 1.7 release:
 
-    * Finish the :mod:`passlib.totp` module (mainly tests & documentation)
-
-    * Get scrypt hash implemented, or push it to later release (really want to include it)
-
-    * Finish :mod:`passlib.pwd` -- need to finalize API and document it better.
-
-    * Internal cleanups:
-
-        * Check for additions to Django's hashers as of Django 1.7
-
     * Finish the :meth:`PasswordHash.using` and :meth:`PasswordHash.needs_update` refactoring,
       aimed at eliminating any need for the internal :class:`passlib.context._CryptRecord` class.
 
-        * FIXME: Default using() method won't work correctly for wrapper handlers just yet.
+        - FIXME: Default using() method won't work correctly for wrapper handlers just yet.
+        - mainly needs UTs
+        - search CryptContext for anything more we can push into handler api.
+
+    * Get argon2 hash implemented (:issue:`69`).
+
+        - blocking on .using() api
+
+    * Get scrypt hash implemented (:issue:`8`).
+
+        - blocking on .using() api
+
+    * Finish the :mod:`passlib.totp` module (:issue:`44`)
+
+        - tests
+        - narrative documentation
+        - audit encrypted mode code
+
+    * :mod:`passlib.pwd`
+
+        - final length should be adjusted to account for sequence space
+          that's omitted by min_complexity cutoff; or decide this is non-issue.
+
+    * Get :mod:`passlib.apache` context profiles finished & committed.
+
+    * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
 Requirements
 ------------
@@ -37,84 +52,78 @@ Requirements
      Support for PyPy 1.x has also been dropped.
 
    * The :mod:`passlib.ext.django` extension now requires Django 1.8 or better.
-     Django 0.9 .. 1.7 are no longer supported.
+     Django 1.7 and earlier are no longer supported.
 
 Major Changes
 -------------
-* New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
-  on both client and server side. Contains both low-level primitives, and high-level
-  helpers for persisting and tracking client state.
+    * New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
+      on both client and server side. Contains both low-level primitives, and high-level
+      helpers for persisting and tracking client state.
 
-* New :mod:`passlib.pwd` module added to aid in password generation
-  and strength measurement (with contributions from Thomas Waldmann).
+    * New :mod:`passlib.pwd` module added to aid in password generation
+      and strength measurement (with contributions from Thomas Waldmann).
 
-* Added :class:`~passlib.hash.cisco_asa` which provides (tentative)
-  support for Cisco ASA 7.0 and newer hashes.
+    * Added :class:`~passlib.hash.cisco_asa` which provides (tentative)
+      support for Cisco ASA 7.0 and newer hashes.
 
-* The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
-  hashes have been sped up by ~20% compared to Passlib 1.6.
+    * The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
+      hashes have been sped up by ~20% compared to Passlib 1.6.
 
-* Passlib will now detect and work around the fatal concurrency bug
-  in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`
-  will also be issued). Nevertheless, users are *strongly* encouraged
-  to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
-  the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+    * Passlib will now detect and work around the fatal concurrency bug
+      in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`
+      will also be issued). Nevertheless, users are *strongly* encouraged
+      to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
+      the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
 
-Minor Changes
--------------
-* The shared :class:`!PasswordHash` unittests now check all hash handlers for
-  basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
+Minor Internal Changes
+----------------------
+    * The shared :class:`!PasswordHash` unittests now check all hash handlers for
+      basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
 
-* Most of passlib's internal cryptography helpers have been moved from
-  :mod:`!passlib.utils` to :mod:`passlib.crypto`, and the APIs refactored.
-  This allowed unification of various hash management routines,
-  some speed ups to the HMAC and PBKDF2 primitives, and opens up the architecture
-  to support more optional backend libraries.
+    * Most of passlib's internal cryptography helpers have been moved from
+      :mod:`!passlib.utils` to :mod:`passlib.crypto`, and the APIs refactored.
+      This allowed unification of various hash management routines,
+      some speed ups to the HMAC and PBKDF2 primitives, and opens up the architecture
+      to support more optional backend libraries.
 
-  Compatibility wrappers will be kept in place at the old location until Passlib 2.0.
+      Compatibility wrappers will be kept in place at the old location until Passlib 2.0.
+
+    * The majority of CryptContext's internal rounds handling & migration code has been
+      moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.using`
+      and :meth:`~passlib.ifc.PasswordHash.needs_update` methods.  This allows much more flexibility
+      when using a hash directly, rather than via CryptContext, as well making it easier for
+      CryptContext to support hash-specific parameters.
 
 Deprecations
 ------------
-* The :func:`~passlib.utils.generate_secret` function has been deprecated
-  in favor of the new :mod:`passlib.pwd` module, and will be removed
-  in Passlib 2.0.
+    * The :func:`~passlib.utils.generate_secret` function has been deprecated
+      in favor of the new :mod:`passlib.pwd` module, and the old function will be removed
+      in Passlib 2.0.
 
-* :class:`passlib.utils.handlers.HasManyBackends` internal API change
+    * :class:`passlib.utils.handlers.HasManyBackends` internal API changed:
 
-  Applications implementing a custom handler with multiple backends
-  should now provide :samp:`_load_backend_{name}` classmethod for each backend.
-  This is simpler, more flexible, and more explicit than the
-  previous (1.6 and earlier) API, which required a :samp:`_has_backend_{name}`
-  class property and a :samp:`_calc_checksum_{name}` method. Support
-  for the older API is deprecated, and will it be removed in Passlib 2.0.
+      Applications implementing a custom handler with multiple backends
+      should now provide :samp:`_load_backend_{name}` classmethod for each backend.
+      This is simpler, more flexible, and more explicit than the
+      previous (1.6 and earlier) API, which required a :samp:`_has_backend_{name}`
+      class property and a :samp:`_calc_checksum_{name}` method.
 
-Internal Changes
-----------------
-* The majority of CryptContext's internal rounds handling & migration code has been
-  moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.using`
-  and :meth:`~passlib.ifc.PasswordHash.needs_update` methods.  This allows much more flexibility
-  when using a hash directly, rather than via CryptContext, as well making it easier for
-  CryptContext to support hash-specific parameters.
+      Support for the older API is deprecated, and will it be removed in Passlib 2.0.
 
 Backwards Incompatibilities
 ---------------------------
 
-* :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
-  this was an unused feature, and prevented some useful optimizations.
+    * :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
+      this was an unused feature, and prevented some useful optimizations.
 
-* The :ref:`min_verify_time <context-min-verify-time-option>` keyword
-  that was deprecated in release 1.6, is now completely ignored.
-  It was never very useful, and now complicates the internal code needlessly.
-  It will be removed entirely in release 1.8.
+    * The :ref:`min_verify_time <context-min-verify-time-option>` keyword
+      that was deprecated in release 1.6, is now completely ignored.
+      It was never very useful, and now complicates the internal code needlessly.
+      It will be removed entirely in release 1.8.
 
-* New hashes generated by :class:`!HtpasswdFile` now use the strongest
-  algorithm available on the host, rather than one that is guaranteed to be portable.
-  Applications can explicitly set ``default_scheme="portable"`` to retain the old behavior.
-
-Todo
-----
-
-* Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
+    * New hashes generated by :class:`~passlib.apache.HtpasswdFile` now use the strongest
+      algorithm available on the host, rather than one that is guaranteed to be portable.
+      Applications can explicitly set ``default_scheme="portable"`` to retain the old behavior.
 
 **1.6.6** (NOT YET RELEASED)
 ============================
