@@ -1,154 +1,91 @@
-"""passlib.pwd -- password generation helpers.
-
-current api
-===========
-generation
-    * frontend: generate()
-    * backends: PhraseGenerator(), WordGenerator()
-
-strength
-    * strength(), classify()
-    * XXX: consider redo-ing as returning an informational object,
-      ala ``https://github.com/lowe/zxcvbn``'s result object
+"""passlib.pwd -- password generation helpers
 
 TODO
 ====
-This module's design is in flux, and may be changed before release.
-The following known bits remain:
-
-misc
-----
-* the terminology about what's being measured by _average_entropy() etc
-  may not be correct. this needs fixing before the module is released.
-  need to find a good reference on information theory, to make sure terminology
-  and formulas are correct :)
-
-    * when researching, also need to find any papers attempting to measure
-      guessing entropy (w/ respect to cracker's attack model),
-      rather than entropy with respect to a particular password
-      generation algorithm.
-
-* add a "crack time" estimation to generate & classify?
+* XXX: add a "crack time" estimation to generate & classify?
   might be useful to give people better idea of what measurements mean.
 
-generation
-----------
 * unittests for generation code
-* add create_generator() frontend?
+
 * straighten out any unicode issues this code may have.
     - primarily, this should always return unicode (currently doesn't)
+
 * don't like existing wordsets.
     - diceware has some weird bordercases that average users may not like
     - electrum's set isn't large enough for these purposes
     - looking into modified version of wordfrequency.info's 5k list
       (could merge w/ diceware, and remove commonly used passwords)
 
-strength
---------
-* unittests for strength measurement
-* improve api for strength measurement
-    * one issue: need way to indicate when measurement is a lower/upper
-      bound, rather than and/or the accuracy of a given measurement.
-        * need to present this in a way which makes it easy to write
-          a password-strength meter,
-        * yet can have it's scale tweaked if the heuristics are revised.
-        * could look at https://github.com/lowe/zxcvbn for some ideas.
-* add more strength measurement algorithms
-    * NIST 800-63 should be easy
-    * zxcvbn (https://tech.dropbox.com/2012/04/zxcvbn-realistic-password-strength-estimation/)
-      might also be good, and has approach similar to composite approach
-      i was already thinking about.
-    * passfault (https://github.com/c-a-m/passfault) looks *very* thorough,
-      but may have licensing issues, plus porting to python
-      looks like very big job :(
-    * give a look at running things through zlib - might be able to cheaply
-      catch extra redundancies.
+* should recommend zxcvbn in the docs for this module.
 """
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import division
+from __future__ import absolute_import, division, print_function, unicode_literals
 # core
+import codecs
 from collections import defaultdict
-from hashlib import sha256
 from itertools import chain
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
 import os
-import zlib
 # site
 # pkg
-from passlib.utils.compat import PY3, irange, itervalues, u
-from passlib.utils import rng, getrandstr
+from passlib import exc
+from passlib.utils.compat import PY2, irange, itervalues, int_types
+from passlib.utils import rng, getrandstr, to_unicode, memoized_property
 # local
 __all__ = [
-    'generate',
-    'strength',
-    'classify',
+    'genword',
+    'genphrase',
 ]
 
 #=============================================================================
 # constants
 #=============================================================================
 
-#: default entropy amount for generated passwords
-default_entropy = 48
+entropy_aliases = dict(
+    # barest protection from throttled online attack
+    unsafe=12,
 
-#: default threshold for rejecting low self-information sequences,
-#: measured as % of maximum possible self-information for string & alphabet size.
-#: (todo: defend this choice of value -- 'twas picked via experimentation)
-default_min_complexity = 0.4
+    # some protection from unthrottled online attack
+    weak=24,
 
-#: default presets
-default_charset = "safe52"
-default_wordset = "beale"
+    # some protection from offline attacks
+    fair=36,
 
-#: dict of preset characters sets
-charsets = dict(
-    safe52='2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz',
+    # reasonable protection from offline attacks
+    strong=48,
+
+    # very good protection from offline attacks
+    secure=60,
 )
-
-#: dict of preset word sets,
-#: values set to None are lazy-loaded from disk by _load_wordset()
-wordsets = dict(
-    diceware=None,
-    beale=None,
-    electrum=None,
-)
-
-#: sha256 digest for wordset files, used as sanity check by _load_wordset()
-_wordset_checksums = dict(
-    diceware="b39e6c367066a75208424cb591f64f188bb6ad69c61da52195718203c18b93d6",
-    beale="4b3ca06b22094df07b078e28f632845191ef927deb5a7c77b0f788b336fb80e6",
-    electrum="d4975b36cff7002332f6e8dff5477af52089c48ad6535272bbff6fb850ffe206",
-    )
-
-#: misc helper constants
-_PCW_MSG = "`preset`, `charset`, and `wordset` are mutually exclusive"
-_USPACE = u(" ")
-_UEMPTY = u("")
 
 #=============================================================================
 # internal helpers
 #=============================================================================
 
-# XXX: would this be more appropriate as _self_info()?
-def _average_entropy(source, total=False):
-    """returns the rate of self-information in a sequence of symbols,
-    (or total self-information if total=True).
+def _superclasses(obj, cls):
+    """return remaining classes in object's MRO after cls"""
+    mro = type(obj).__mro__
+    return mro[mro.index(cls)+1:]
 
-    this is eqvuialent to the average entropy of a given symbol,
-    using the sequence itself as the symbol probability distribution.
-    if all elements of the source are unique, this should equal
-    ``log(len(source), 2)``.
+
+def _self_info_rate(source):
+    """
+    returns 'rate of self-information' --
+    i.e. average (per-symbol) entropy of the sequence **source**,
+    where probability of a given symbol occurring is calculated based on
+    the number of occurrences within the sequence itself.
+
+    if all elements of the source are unique, this should equal ``log(len(source), 2)``.
 
     :arg source:
         iterable containing 0+ symbols
-    :param total:
-        instead of returning average entropy rate,
-        return total self-information
+        (e.g. list of strings or ints, string of characters, etc).
+
     :returns:
-        float bits
+        float bits of entropy
     """
     try:
         size = len(source)
@@ -165,74 +102,105 @@ def _average_entropy(source, total=False):
         values = itervalues(counts)
     if not size:
         return 0
-    ### NOTE: below code performs the calculation
-    ###       ``- sum(value / size * logf(value / size, 2) for value in values)``,
-    ###       and then multplies by ``size`` if total is True,
-    ###       it just does it with fewer operations.
-    tmp = sum(value * logf(value, 2) for value in values)
-    if total:
-        return size * logf(size, 2) - tmp
-    else:
-        return logf(size, 2) - tmp / size
+    # NOTE: the following performs ``- sum(value / size * logf(value / size, 2) for value in values)``,
+    #       it just does so with as much pulled out of the sum() loop as possible...
+    return logf(size, 2) - sum(value * logf(value, 2) for value in values) / size
 
-def _max_average_entropy(target, source):
-    """calculate maximum _average_entropy() of all possible
-    strings of length <target>, if drawn from a set of symbols
-    of size <source>.
+
+# def _total_self_info(source):
+#     """
+#     return total self-entropy of a sequence
+#     (the average entropy per symbol * size of sequence)
+#     """
+#     return _self_info_rate(source) * len(source)
+
+
+def _max_self_info_rate(alphabet_size, output_size):
     """
-    # NOTE: this accomplishes it's purpose by assuming maximum self-information
-    #       would be a string repeating all symbols ``floor(target/source)``
-    #       times, followed by the first ``target % source`` symbols repeated
-    #       once more.
-    assert target > 0
-    assert source > 0
-    if target < source:
-        # special case of general equation, to prevent intermediate DomainError.
-        return logf(target, 2)
-    else:
-        q, r = divmod(target, source)
-        p1 = (q + 1) / target
-        p2 = q / target
-        return -(r * p1 * logf(p1, 2) + (source - r) * p2 * logf(p2, 2))
-
-def _average_wordset_entropy(wordset):
-    """return the average entropy per character in a given wordset,
-    using each char's frequency in the wordset as the probability of occurrence.
-
-    :arg wordset:
-        iterable containing 1+ words, each of which are themselves
-        iterables containing 1+ characters.
-    :returns:
-        float bits of entropy
+    calculate maximum _self_info_rate() of all strings of length <output_size>
+    created from at most <alphabet_size> symbols (assuming all symbols have equal probability).
     """
-    return _average_entropy(chain.from_iterable(wordset))
+    # NOTE: this accomplishes it's purpose by assuming maximum average entropy
+    #       would be a string repeating all symbols ``output//alphabet`` times,
+    #       and with ``extra = output % alphabet`` symbols repeated one extra time.
+    #       the following code then calculates _self_info_rate() for such a string.
+
+    # sanity check
+    if output_size <= 0:
+        if not output_size:
+            return 0
+        raise ValueError("output size must be positive integer")
+    if alphabet_size <= 0:
+        raise ValueError("alphabet size must be positive integer")
+
+    # all symbols repeated <count> times, and <extra> of them repeated 1 more time.
+    count, extra = divmod(output_size, alphabet_size)
+    # assert 0 <= extra < alphabet_size
+    # assert alphabet_size * count + extra == output_size
+
+    # average entropy contributed by head symbols.
+    # there are <alphabet-extra> of them (all of alphabet but tail symbols),
+    # and each occurs <count> times.
+    if count:
+        prob_head = count / output_size
+        head_bits = (alphabet_size - extra) * prob_head * logf(prob_head, 2)
+    else:
+        # avoid log(0) error when count=0
+        head_bits = 0
+
+    # average entropy contributed by tail symbols.
+    # there are <extra> of them, and each occurs <count+1> times.
+    if extra:
+        prob_tail = (count + 1) / output_size
+        tail_bits = extra * prob_tail * logf(prob_tail, 2)
+    else:
+        tail_bits = 0
+
+    # combine
+    return -(head_bits + tail_bits)
+
+
+# def _self_info_rate_per_char(wordset):
+#     """
+#     return the average *per-character* entropy in a wordset,
+#     using each char's frequency in the wordset as the probability of occurrence.
+#
+#     essentially just treats wordset as one long string,
+#     and calculates :func:`_self_info_rate`.
+#
+#     :arg wordset:
+#         iterable containing 1+ words, each of which are themselves
+#         iterables containing 1+ characters.
+#
+#     :returns:
+#         float bits of entropy
+#     """
+#     return _self_info_rate(chain.from_iterable(wordset))
+
+
+#: path to passlib's data dir
+_data_dir = os.path.join(os.path.dirname(__file__), "_data")
+
 
 def _load_wordset(name):
-    "helper load compressed wordset from package data"
-    # load wordset from data file
-    source = os.path.join(os.path.dirname(__file__), "_data",
-                          "%s.wordset.z" % name)
-    with open(source, "rb") as fh:
-        data = fh.read()
+    """
+    load wordset from compressed datafile within package data.
 
-    # verify against checksum
-    try:
-        checksum = _wordset_checksums[name]
-    except KeyError: # pragma: no cover -- sanity check
-        raise AssertionError("no checksum for wordset: %r" % name)
-    if sha256(data).hexdigest() != checksum:
-        raise RuntimeError("%r wordset file corrupted" % name)
-
-    # decompress and return wordset
-    words = wordsets[name] = zlib.decompress(data).decode("utf-8").splitlines()
+    returns tuple so result can be hashed & randomly accessed.
+    """
+    source = os.path.join(_data_dir, "%s.words.txt" % name)
+    with codecs.open(source, "rt", "utf-8") as fh:
+        gen = (word.strip() for word in fh)
+        words = tuple(word for word in gen if word)
     log.debug("loaded %d-element wordset from %r", len(words), source)
     return words
 
 #=============================================================================
-# password generators
+# base generator class
 #=============================================================================
 class SequenceGenerator(object):
-    """base class used by word & phrase generators.
+    """
+    base class used by word & phrase generators.
 
     These objects take a series of options, corresponding
     to those of the :func:`generate` function.
@@ -247,10 +215,10 @@ class SequenceGenerator(object):
 
         Also exposed as a readonly attribute.
 
-    :param size:
-        Optionally specify the size of password to generate,
+    :param length:
+        Optionally specify the length of password to generate,
         measured in whatever symbols the subclass uses (characters or words).
-        Note that if both ``size`` and ``entropy`` are specified,
+        Note that if both ``length`` and ``entropy`` are specified,
         the larger requested size will be used.
 
         Also exposed as a readonly attribute.
@@ -263,139 +231,346 @@ class SequenceGenerator(object):
         percentage of the maximum possible a given string and alphabet
         size. This defaults to 40%, or ``min_complexity=0.4``.
 
-    .. autoattribute:: entropy_rate
+    .. autoattribute:: length
+    .. autoattribute:: symbol_count
+    .. autoattribute:: entropy_per_symbol
+    .. autoattribute:: entropy
+
+    Subclassing
+    -----------
+    Subclasses must implement the ``.__next__()`` method,
+    and set ``.symbol_count`` before calling base ``__init__`` method.
     """
     #=============================================================================
     # instance attrs
     #=============================================================================
 
-    #: minimum complexity threshold for rejecting generating strings.
-    _min_entropy = None
+    #: requested size of final password
+    length = None
 
-    #: entropy rate per symbol of generated password (character or word)
-    entropy_rate = None
-
-    #: requested size of final passwords
-    size = None
+    #: requested entropy of final password
+    requested_entropy = "strong"
 
     #: random number source to use
     rng = rng
 
+    #: number of potential symbols
+    symbol_count = None
+
+    #: default threshold for rejecting low entropy sequences,
+    #: measured as % of maximum possible average entropy over all
+    #: sequences of given output & alphabet size.
+    #: TODO: defend this default -- it was picked via experimentation
+    min_complexity = 0.1
+
     #=============================================================================
     # init
     #=============================================================================
-    def __init__(self, size=None, entropy=None, rng=None, min_complexity=None,
-                 **kwds):
-        # NOTE: subclass should have already set .entropy_rate
-        if size is None:
-            size = 1
+    def __init__(self, entropy=None, length=None, rng=None, min_complexity=None, **kwds):
+
+        # make sure subclass set things up correctly
+        assert self.symbol_count is not None, "subclass must set .symbol_count"
+
+        # init length & entropy
+        if entropy is not None or length is None:
             if entropy is None:
-                entropy = default_entropy
-        elif size < 1:
-            raise ValueError("`size` must be positive integer")
-        if entropy is not None:
+                entropy = self.requested_entropy
+            entropy = entropy_aliases.get(entropy, entropy)
             if entropy <= 0:
                 raise ValueError("`entropy` must be positive number")
-            size = max(size, int(ceil(entropy / self.entropy_rate)))
-        self.size = size
+            min_length = int(ceil(entropy / self.entropy_per_symbol))
+            if length is None or length < min_length:
+                length = min_length
+
+        self.requested_entropy = entropy
+
+        if length < 1:
+            raise ValueError("`length` must be positive integer")
+        self.length = length
+
+        # init min complexity
+        if min_complexity is None:
+            min_complexity = self.min_complexity
+        if min_complexity < 0 or min_complexity > 1:
+            raise ValueError("`min_complexity` must be between 0 and 1")
+        self.min_complexity = min_complexity
+        # TODO: increase length/entropy to account for min_complexity
+        #       stripping out some possibilities
+
+        # init other common options
         if rng is not None:
             self.rng = rng
-        if min_complexity is None:
-            min_complexity = default_min_complexity
-        if min_complexity < 0 or min_complexity > 1:
-            raise ValueError("min_complexity must be between 0 and 1")
-        self._max_entropy = _max_average_entropy(size, 2**self.entropy_rate)
-        self._min_entropy = min_complexity * self._max_entropy
+
+        # hand off to parent
+        if kwds and _superclasses(self, SequenceGenerator) == (object,):
+            raise TypeError("Unexpected keyword(s): %s" % ", ".join(kwds.keys()))
         super(SequenceGenerator, self).__init__(**kwds)
 
     #=============================================================================
-    # helpers
+    # informational helpers
     #=============================================================================
-    @property
-    def entropy(self):
-        """entropy of generated passwords (
-        measured with respect to the generation scheme)"""
-        return self.size * self.entropy_rate
 
-    def _gen(self):
-        """main generation function"""
+    @memoized_property
+    def entropy_per_symbol(self):
+        """
+        average entropy per symbol (assuming all symbols have equal probability)
+        """
+        return logf(self.symbol_count, 2)
+
+    @memoized_property
+    def entropy(self):
+        """
+        actual entropy of generated passwords.
+        (should always be LCM of entropy_per_symbol >= self.entropy)
+        """
+        return self.length * self.entropy_per_symbol
+
+    @memoized_property
+    def max_self_info_rate(self):
+        """
+        maximum self-info rate acheiveable by a sequence <length>
+        built from <symbol_count> symbols.
+        """
+        return _max_self_info_rate(self.symbol_count, self.length)
+
+    @memoized_property
+    def min_self_info_rate(self):
+        """
+        minimum entropy allowed in a generated password
+        (controlled by min_complexity option)
+        """
+        return self.min_complexity * self.max_self_info_rate
+
+    #=============================================================================
+    # debugging
+    #=============================================================================
+    # def _complexity(self, pwd):
+    #     """
+    #     measure 'complexity' of generated password
+    #     """
+    #     return _average_entropy(pwd) / self.max_self_info_rate
+    #
+    # def _analyze_complexity(self, count=1):
+    #     """
+    #     temporarily helper while exploring additional filters for
+    #     password generation. looking into forbidding above a certain
+    #     threshold of redundancy (as minimum % of max possible average entropy)
+    #     """
+    #     result = [(p, self._complexity(p)) for p in self(count)]
+    #     result.sort(key=lambda elem: (elem[1], elem[0]))
+    #     return result
+
+    #=============================================================================
+    # generation
+    #=============================================================================
+    def __next__(self):
+        """main generation function, should create one password/phrase"""
         raise NotImplementedError("implement in subclass")
 
-    #=============================================================================
-    # iter & callable frontend
-    #=============================================================================
-    def __call__(self, count=None):
-        """create and return passwords"""
-        if count is None:
-            return self._gen()
+    def __call__(self, returns=None):
+        """
+        frontend used by genword() / genphrase() to create passwords
+        """
+        if returns is None:
+            return next(self)
+        elif isinstance(returns, int_types):
+            return [next(self) for _ in irange(returns)]
+        elif returns is iter:
+            return self
         else:
-            return [self._gen() for _ in irange(count)]
+            raise exc.ExpectedTypeError(returns, "<None>, int, or <iter>", "returns")
 
     def __iter__(self):
         return self
 
-    if PY3:
-        def __next__(self):
-            return self._gen()
-    else:
+    if PY2:
         def next(self):
-            return self._gen()
+            return self.__next__()
 
     #=============================================================================
     # eoc
     #=============================================================================
 
+#=============================================================================
+# password generator
+#=============================================================================
 class WordGenerator(SequenceGenerator):
-    """class which generates passwords by randomly choosing
-    from a string of unique characters.
+    """
+    class which generates passwords by randomly choosing from a string of unique characters.
+
+    :param chars:
+        custom character string to draw from.
 
     :param charset:
-        charset to draw from.
-    :param preset:
-        name of preset charset to use instead of explict charset.
+        predefined charset to draw from.
+
     :param \*\*kwds:
         all other keywords passed to :class:`SequenceGenerator`.
 
+    .. autoattribute:: chars
     .. autoattribute:: charset
+    .. autoattribute:: default_charsets
     """
+    #=============================================================================
+    # class attributes
+    #=============================================================================
+
+    #: classwide dict of predefined characters sets
+    default_charsets = dict(
+        # ascii letters, digits, and some punctuation
+        ascii72='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*?/',
+
+        # ascii letters and digits
+        ascii62='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+
+        # ascii50, without visually similar '1IiLl', '0Oo', '5S', '8B'
+        ascii50='234679abcdefghjkmnpqrstuvwxyzACDEFGHJKMNPQRTUVWXYZ',
+
+        # lower case hexadecimal
+        hex='0123456789abcdef',
+    )
+
     #=============================================================================
     # instance attrs
     #=============================================================================
 
-    #: charset used by this generator
-    charset = None
+    #: Predefined character set in use (set to None for instances using custom 'chars')
+    charset = "ascii62"
+
+    #: string of chars to draw from -- usually filled in from charset
+    chars = None
 
     #=============================================================================
     # init
     #=============================================================================
-    def __init__(self, charset=None, preset=None, **kwds):
-        if not (charset or preset):
-            preset = default_charset
-        if preset:
+    def __init__(self, chars=None, charset=None, **kwds):
+
+        # init chars and charset
+        if chars:
             if charset:
-                raise TypeError(_PCW_MSG)
-            charset = charsets[preset]
-        if len(set(charset)) != len(charset):
-            raise ValueError("`charset` cannot contain duplicate elements")
+                raise TypeError("`chars` and `charset` are mutually exclusive")
+        else:
+            if not charset:
+                charset = self.charset
+                assert charset
+            chars = self.default_charsets[charset]
         self.charset = charset
-        self.entropy_rate = logf(len(charset), 2)
+        chars = to_unicode(chars, param="chars")
+        if len(set(chars)) != len(chars):
+            raise ValueError("`chars` cannot contain duplicate elements")
+        self.chars = chars
+
+        # hand off to parent
         super(WordGenerator, self).__init__(**kwds)
-        ##log.debug("WordGenerator(): entropy/char=%r", self.entropy_rate)
+        # log.debug("WordGenerator(): entropy/char=%r", self.entropy_per_symbol)
 
     #=============================================================================
-    # helpers
+    # informational helpers
     #=============================================================================
-    def _gen(self):
+
+    @memoized_property
+    def symbol_count(self):
+        return len(self.chars)
+
+    #=============================================================================
+    # generation
+    #=============================================================================
+
+    def __next__(self):
         while True:
-            secret = getrandstr(self.rng, self.charset, self.size)
+            secret = getrandstr(self.rng, self.chars, self.length)
+
             # check that it satisfies minimum self-information limit
             # set by min_complexity. i.e., reject strings like "aaaaaaaa"
-            if _average_entropy(secret) >= self._min_entropy:
-                return secret
+            # even if they're long enough.
+            if _self_info_rate(secret) < self.min_self_info_rate:
+                continue
+
+            # XXX: could do things like optionally ensure character groups
+            #      (e.g. letters & punctuation) are included.
+
+            return secret
 
     #=============================================================================
     # eoc
     #=============================================================================
+
+
+def genword(entropy=None, length=None, returns=None, **kwds):
+    """Generate one or more random passwords.
+
+    This function uses :mod:`random.SystemRandom` to generate
+    one or more passwords; it can be configured to generate
+    alphanumeric passwords, or full english phrases.
+    The complexity of the password can be specified
+    by size, or by the desired amount of entropy.
+
+    Usage Example::
+
+        >>> # generate a random alphanumeric string with 48 bits of entropy (the default)
+        >>> pwd.genword()
+        'DnBHvDjMK6'
+
+        >>> # generate a random hexadecimal string with 52 bits of entropy
+        >>> pwd.genword(entropy=52, charset="hex")
+        'DnBHvDjMK6'
+
+    :param entropy:
+        Strength of resulting password, measured in bits of Shannon entropy
+        (defaults to 48).  An appropriate **length** value will be calculated
+        based on the requested entropy amount, and the size of the character set.
+
+        If both ``entropy`` and ``length`` are specified,
+        the larger effective length will be used.
+
+        This can also be one of a handful of aliases to predefined
+        entropy amounts: ``"weak"`` (24), ``"fair"`` (36),
+        ``"strong"`` (48), and ``"secure"`` (56).
+
+    :param length:
+        Size of resulting password, measured in characters.
+        If omitted, the size is auto-calculated based on the ``entropy`` parameter.
+
+    :param returns:
+        If ``None`` (the default), this function will generate a single password.
+        If an integer, this function will return a list containing that many passwords.
+        If the ``iter`` constant, will return an iterator that yields passwords.
+
+    :param charset:
+        The character set to draw from, if not specified explicitly by **chars**.
+        Defaults to ``"ascii62"``, but can be any of:
+
+        * ``"ascii62"`` -- all digits and ascii upper & lowercase letters.
+          Provides ~5.95 entropy per character.
+
+        * ``"ascii50"`` -- subset which excludes visually similar characters
+          (``1IiLl0Oo5S8B``). Provides ~5.64 entropy per character.
+
+        * ``"ascii72"`` -- all digits and ascii upper & lowercase letters,
+          as well as some punctuation. Provides ~6.17 entropy per character.
+
+        * ``"hex"`` -- Lower case hexadecimal.  Providers 4 bits of entropy per character.
+
+    :param chars:
+
+        Optionally specify custom charset as a string of characters.
+        This option cannot be combined with **charset**.
+
+    :returns:
+        :class:`!str` containing randomly generated password
+        (or list of 1+ passwords if ``choices`` is specified)
+    """
+    gen = WordGenerator(length=length, entropy=entropy, **kwds)
+    return gen(returns)
+
+#=============================================================================
+# pass phrase generator
+#=============================================================================
+class JOIN(object):
+    """constants for PhraseGenerator join modes"""
+    NONE = "none"
+    SPACE = "space"
+    CAMEL = "camelcase"
 
 class PhraseGenerator(SequenceGenerator):
     """class which generates passphrases by randomly choosing
@@ -413,78 +588,117 @@ class PhraseGenerator(SequenceGenerator):
     .. autoattribute:: wordset
     """
     #=============================================================================
+    # class attrs
+    #=============================================================================
+
+    #: dict of preset word sets,
+    #: values set to None are lazy-loaded from disk by _load_wordset()
+    default_wordsets = dict(
+        diceware=None,
+        beale=None,
+        electrum=None,
+    )
+
+    #=============================================================================
     # instance attrs
     #=============================================================================
 
+    #: predefined wordset to use
+    wordset = "beale"
+
     #: list of words to draw from
-    wordset = None
+    words = None
 
-    #: average entropy per char within wordset
-    _entropy_per_char = None
-
-    #: minimum size string this will output, to prevent low-entropy
-    #: phrases from leaking through.
-    _min_chars = None
+    #: separator to use when joining words
+    sep = " "
 
     #=============================================================================
     # init
     #=============================================================================
-    def __init__(self, wordset=None, preset=None, spaces=True, **kwds):
-        if not (wordset or preset):
-            preset = default_wordset
-        if preset:
-            if wordset:
-                raise TypeError(_PCW_MSG)
-            wordset = wordsets[preset]
-            if wordset is None:
-                wordset = _load_wordset(preset)
-        if len(set(wordset)) != len(wordset):
-            raise ValueError("`wordset` cannot contain duplicate elements")
-        if not isinstance(wordset, (list, tuple)):
-            wordset = tuple(wordset)
-        self.wordset = wordset
-        self.entropy_rate = logf(len(wordset), 2)
-        super(PhraseGenerator, self).__init__(**kwds)
-        # NOTE: regarding min_chars:
-        #       in order to ensure a brute force attack against underlying
-        #       charset isn't more successful than one against the wordset,
-        #       we need to reject any passwords which contain so many short
-        #       words that ``chars_in_phrase * entropy_per_char <
-        #                    words_in_phrase * entropy_per_word``.
-        #       this is done by finding the minimum chars required to invalidate
-        #       the inequality, and then rejecting any phrases that are shorter.
-        self._entropy_per_char = _average_wordset_entropy(wordset)
-        self._min_chars = int(self.entropy / self._entropy_per_char)
-        if spaces:
-            self._min_chars += self.size-1
-            self._sep = _USPACE
+    def __init__(self, wordset=None, words=None, sep=None, **kwds):
+
+        # init words and wordset
+        if words is not None:
+            if wordset is not None:
+                raise TypeError("`words` and `wordset` are mutually exclusive")
         else:
-            self._sep = _UEMPTY
+            if wordset is None:
+                wordset = self.wordset
+                assert wordset
+            words = self.default_wordsets[wordset]
+            if words is None:
+                words = self.default_wordsets[wordset] = _load_wordset(wordset)
+        self.wordset = wordset
+        if not isinstance(words, (list, tuple)):
+            words = tuple(words)
+        if len(set(words)) != len(words):
+            raise ValueError("`words` cannot contain duplicate elements")
+        self.words = words
+
+        # init separator
+        if sep is None:
+            sep = self.sep
+        sep = to_unicode(sep, param="sep")
+        self.sep = sep
+
+        # hand off to parent
+        super(PhraseGenerator, self).__init__(**kwds)
         ##log.debug("PhraseGenerator(): entropy/word=%r entropy/char=%r min_chars=%r",
-        ##          self.entropy_rate, self._entropy_per_char, self._min_chars)
+        ##          self.entropy_per_symbol, self.entropy_per_char, self.min_chars)
 
     #=============================================================================
-    # helpers
+    # informational helpers
     #=============================================================================
-    def _gen(self):
+
+    @memoized_property
+    def symbol_count(self):
+        return len(self.words)
+
+    # @memoized_property
+    # def min_chars(self):
+    #     """
+    #     minimum number of characters allowed in resulting password.
+    #     (see comment in ``.__next__()`` for details).
+    #     """
+    #     chars_in_secret = (self.length * self.min_self_info_rate /
+    #                        _self_info_rate_per_char(self.words))
+    #     return int(ceil(chars_in_secret))
+
+    #=============================================================================
+    # generation
+    #=============================================================================
+
+    def __next__(self):
         while True:
-            symbols = [self.rng.choice(self.wordset) for _ in irange(self.size)]
+            # create random word
+            symbols = [self.rng.choice(self.words) for _ in irange(self.length)]
+
             # check that it satisfies minimum self-information limit
             # set by min_complexity. i.e., reject strings like "aaaaaaaa"
-            if _average_entropy(symbols) > self._min_entropy:
-                secret = self._sep.join(symbols)
-                # check that we don't fall below per-character limit
-                # on self information. see __init__ for explanation
-                if len(secret) >= self._min_chars:
-                    return secret
+            if _self_info_rate(symbols) <= self.min_self_info_rate:
+                continue
+
+            # XXX: this code isn't quite capturing the right calculation,
+            #      so omitting this for now.
+            # # reject any passwords which contain so many short / repetitive words that it's below
+            # # ``chars_in_secret * self_info_rate_per_char < words_in_secret * min_self_info_rate``
+            # # ... where self_info_rate_per_char is determined based on frequency of chars in wordset.
+            # # To do this cheaply, we precalculate minimum chars_in_secret (above)
+            # chars = sum(len(elem) for elem in symbols)
+            # if chars < self.min_chars:
+            #     continue
+
+            # join using separator
+            secret = self.sep.join(symbols)
+
+            return secret
 
     #=============================================================================
     # eoc
     #=============================================================================
 
-def generate(size=None, entropy=None, count=None,
-             preset=None, charset=None, wordset=None,
-             **kwds):
+
+def genphrase(entropy=None, length=None, returns=None, **kwds):
     """Generate one or more random password / passphrases.
 
     This function uses :mod:`random.SystemRandom` to generate
@@ -497,49 +711,34 @@ def generate(size=None, entropy=None, count=None,
 
         >>> # generate random english phrase with 48 bits of entropy
         >>> from passlib import pwd
-        >>> pwd.generate()
+        >>> pwd.genphrase()
         'cairn pen keys flaw'
-
-        >>> # generate a random alphanumeric string with default 52 bits of entropy
-        >>> pwd.generate(entropy=52, preset="safe52")
-        'DnBHvDjMK6'
-
-    :param size:
-        Size of resulting password, measured in characters or words.
-        If omitted, the size is autocalculated based on the ``entropy`` parameter.
 
     :param entropy:
         Strength of resulting password, measured in bits of Shannon entropy
         (defaults to 48).
 
-        Based on the mode in use, the ``size`` parameter will be
+        Based on the mode in use, the ``length`` parameter will be
         autocalculated so that that an attacker will need an average of
         ``2**(entropy-1)`` attempts to correctly guess the password
         (this measurement assumes the attacker knows the mode
         and configuration options in use, but nothing of the RNG state).
 
-        If both ``entropy`` and ``size`` are specified,
+        If both ``entropy`` and ``length`` are specified,
         the larger effective size will be used.
 
-    :param count:
-        By default this generates a single password.
-        However, if ``count`` is specified, it will return a list
-        containing ``count`` passwords instead.
+    :param length:
+        Length of resulting password, measured in words.
+        If omitted, the size is autocalculated based on the ``entropy`` parameter.
 
-    :param preset:
-        Optionally use a pre-defined word-set or character-set
-        when generating a password. This option cannot be combined
-        with ``charset`` or ``wordset``; if all three are omitted,
-        this function defaults to ``preset="beale"``.
+    :param returns:
+        If ``None`` (the default), this function will generate a single password.
+        If an integer, this function will return a list containing that many passwords.
+        If the ``iter`` constant, will return an iterator that yields passwords.
 
-        There are currently three presets available:
-
-        ``"safe52"``
-
-            preset which outputs random alphanumeric passwords,
-            using a 52-element character set containing the characters A-Z and 0-9,
-            except for ``1IiLl0OoS5`` (which were omitted due to their visual similarity).
-            This charset has ~5.7 bits of entropy per character.
+    :param wordset:
+        Optionally use a pre-defined word-set when generating a password.
+        There are currently two presets available, the default is ``"beale"``:
 
         ``"diceware"``
 
@@ -554,99 +753,47 @@ def generate(size=None, entropy=None, count=None,
             Alan Beale, also available from the diceware project.
             This wordset has ~12.9 bits of entropy per word.
 
-    :param charset:
-        Optionally specifies a string of characters to use when randomly
-        generating a password. This option cannot be combined
-        with ``preset`` or ``wordset``.
-
-    :param wordset:
+    :param words:
         Optionally specifies a list/set of words to use when randomly
         generating a passphrase. This option cannot be combined
-        with ``preset`` or ``charset``.
+        with ``wordset``.
 
-    :param spaces:
-        When generating a passphrase, controls whether spaces
-        should be inserted between the words. Defaults to ``True``.
+    :param sep:
+        Optional separator to use when joining words.
+        Defaults to ``" "`` (a space), but can be an empty string, a hyphen, etc.
 
     :returns:
         :class:`!str` containing randomly generated password,
         or list of 1+ passwords if ``count`` is specified.
     """
-    # create generator from options
-    kwds.update(size=size, entropy=entropy)
-    if wordset:
-        # create generator from wordset
-        if preset or charset:
-            raise TypeError(_PCW_MSG)
-        gen = PhraseGenerator(wordset, **kwds)
-    elif charset:
-        # create generator from charset
-        if preset:
-            raise TypeError(_PCW_MSG)
-        gen = WordGenerator(charset, **kwds)
-    else:
-        # create generator from preset
-        kwds.update(preset=preset)
-        if not preset or preset in wordsets:
-            assert preset not in charsets
-            gen = PhraseGenerator(**kwds)
-        elif preset in charsets:
-            gen = WordGenerator(**kwds)
-        else:
-            raise KeyError("unknown preset: %r" % preset)
-
-    # return passwords
-    return gen(count)
+    gen = PhraseGenerator(entropy=entropy, length=length, **kwds)
+    return gen(returns)
 
 #=============================================================================
-# password strength measurement
+# strength measurement
+#
+# NOTE:
+# for a little while, had rough draft of password strength measurement alg here.
+# but not sure if there's value in yet another measurement algorithm,
+# that's not just duplicating the effort of libraries like zxcbn.
+# may revive it later, but for now, leaving some refs to others out there:
+#    * NIST 800-63 has simple alg
+#    * zxcvbn (https://tech.dropbox.com/2012/04/zxcvbn-realistic-password-strength-estimation/)
+#      might also be good, and has approach similar to composite approach i was already thinking about,
+#      but much more well thought out.
+#    * passfault (https://github.com/c-a-m/passfault) looks thorough,
+#      but may have licensing issues, plus porting to python looks like very big job :(
+#    * give a look at running things through zlib - might be able to cheaply
+#      catch extra redundancies.
+# zxcvbn -
+#    after some looking, it's not clear which is latest copy.
+#    * https://github.com/dropbox/python-zxcvbn -- official, not updated since 2013
+#    * https://github.com/rpearl/python-zxcvbn -- fork used by dropbox dev, not updated since 2013
+#           released to pypi - https://pypi.python.org/pypi/zxcvbn/1.0
+#    * https://github.com/moreati/python-zxcvbn -- has some updates as of july 2015
+#           * https://github.com/gordon86/python-zxcvbn (fork of above, released to pypi)
+#               - https://pypi.python.org/pypi/zxcvbn-py3/1.1 [2015-10]
 #=============================================================================
-def strength(symbols):
-    """
-    roughly estimate the strength of the password.
-    this is a bit better than just using len(password).
-
-    param symbols: a sequence of symbols (e.g. password string/unicode)
-    returns: password strength estimate [float]
-    """
-    return _average_entropy(symbols, total=True)
-
-CLASSIFICATIONS = [
-    (10, 0), # everything < 10 returns 0 (weak)
-    (20, 1), # 10 <= s < 20 returns 1 (maybe still too weak)
-    (None, 2), # everything else returns 2
-    # last tuple must be (None, MAXVAL)
-]
-
-def classify(symbols, classifications=CLASSIFICATIONS):
-    """
-    roughly classify the strength of the password.
-    this is a bit better than just using len(password).
-
-    :param symbols:
-        a sequence of symbols (e.g. password string/unicode)
-    :param classifications:
-        list of tuples with the format ``(limit, classification)``.
-
-    :returns:
-        classification value
-
-    Usage Example::
-
-        >>> from passlib import pwd
-        >>> pwd.classify("10011001")
-        0
-        >>> pwd.classify("secret")
-        1
-        >>> pwd.classify("Eer6aiya")
-        2
-    """
-    s = strength(symbols)
-    for limit, classification in classifications:
-        if limit is None or s < limit:
-            return classification
-    else:
-       raise ValueError("classifications needs to end with a (None, MAXVAL) tuple")
 
 #=============================================================================
 # eof

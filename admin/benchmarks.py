@@ -302,13 +302,13 @@ def test_pbkdf2_sha256():
 #=============================================================================
 @benchmark.constructor()
 def test_average_entropy():
-    from passlib.pwd import _average_entropy
+    from passlib.pwd import _self_info_rate
     testc = "abcdef"*100000
     def helper():
-        _average_entropy(testc)
-        _average_entropy(testc, True)
-        _average_entropy(iter(testc))
-        _average_entropy(iter(testc), True)
+        _self_info_rate(testc)
+        _self_info_rate(testc, True)
+        _self_info_rate(iter(testc))
+        _self_info_rate(iter(testc), True)
     return helper
 
 #=============================================================================
