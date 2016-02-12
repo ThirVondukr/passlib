@@ -189,7 +189,7 @@ def _load_wordset(name):
     returns tuple so result can be hashed & randomly accessed.
     """
     source = os.path.join(_data_dir, "%s.words.txt" % name)
-    with codecs.open(source, "rt", "utf-8") as fh:
+    with codecs.open(source, "r", "utf-8") as fh:
         gen = (word.strip() for word in fh)
         words = tuple(word for word in gen if word)
     log.debug("loaded %d-element wordset from %r", len(words), source)
