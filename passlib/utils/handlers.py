@@ -1077,6 +1077,82 @@ class HasSalt(GenericHandler):
     salt = None
 
     #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, # keyword only...
+              default_salt_size=None,
+              salt_size=None, # aliases used by CryptContext
+              **kwds):
+
+        # check for aliases used by CryptContext
+        if salt_size is not None:
+            if default_salt_size is not None:
+                raise TypeError("'salt_size' and 'default_salt_size' aliases are mutually exclusive")
+            default_salt_size = salt_size
+
+        # generate new subclass
+        subcls = super(HasSalt, cls).using(**kwds)
+
+        # replace default_rounds
+        if default_salt_size is not None:
+            if isinstance(default_salt_size, native_string_types):
+                default_salt_size = int(default_salt_size)
+            subcls.default_salt_size = subcls._clip_to_valid_salt_size(default_salt_size,
+                                                                       param="default_salt_size")
+        return subcls
+
+    # XXX: would like to combine w/ _norm_salt() code below, but doesn't quite fit.
+    @classmethod
+    def _clip_to_valid_salt_size(cls, salt_size, param="salt_size", relaxed=True):
+        """
+        internal helper --
+        clip salt size value to handler's absolute limits (min_salt_size / max_salt_size)
+
+        :param relaxed:
+            if ``True`` (the default), issues PasslibHashWarning is rounds are outside allowed range.
+            if ``False``, raises a ValueError instead.
+
+        :param param:
+            optional name of parameter to insert into error/warning messages.
+
+        :returns:
+            clipped rounds value
+        """
+        mn = cls.min_salt_size or 0
+        mx = cls.max_salt_size
+
+        # check if salt size is fixed
+        if mn == mx:
+            if salt_size != mn:
+                msg = "%s: %s (%d) must be exactly %d" % (cls.name, param, salt_size, mn)
+                if relaxed:
+                    warn(msg, PasslibHashWarning)
+                else:
+                    raise ValueError(msg)
+            return mn
+
+        # check min size
+        if salt_size < mn:
+            msg = "%s: %s (%r) below min_salt_size (%d)" % (cls.name, param, salt_size, mn)
+            if relaxed:
+                warn(msg, PasslibHashWarning)
+                salt_size = mn
+            else:
+                raise ValueError(msg)
+
+        # check max size
+        if mx and salt_size > mx:
+            msg = "%s: %s (%r) above max_salt_size (%d)" % (cls.name, param, salt_size, mx)
+            if relaxed:
+                warn(msg, PasslibHashWarning)
+                salt_size = mx
+            else:
+                raise ValueError(msg)
+
+        return salt_size
+
+    #===================================================================
     # init
     #===================================================================
     def __init__(self, salt=None, salt_size=None, **kwds):

@@ -1265,6 +1265,51 @@ class HandlerCase(TestCase):
         if not (salt_type is bytes or (PY2 and salt_type is unicode)):
             self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x')
 
+    def test_using_salt_size(self):
+        """Handler.using() -- default_salt_size"""
+        self.require_salt_info()
+
+        handler = self.handler
+        mn = handler.min_salt_size or 0
+        mx = handler.max_salt_size
+        df = handler.default_salt_size
+
+        # should prevent setting below handler limit
+        with self.assertWarningList([PasslibHashWarning]):
+            temp = handler.using(default_salt_size=-1)
+        self.assertEqual(temp.default_salt_size, mn)
+
+        # should prevent setting above handler limit
+        if mx:
+            with self.assertWarningList([PasslibHashWarning]):
+                temp = handler.using(default_salt_size=mx+1)
+            self.assertEqual(temp.default_salt_size, mx)
+
+        # try setting to explicit value
+        if mn != mx:
+            temp = handler.using(default_salt_size=mn+1)
+            self.assertEqual(temp.default_salt_size, mn+1)
+            self.assertEqual(handler.default_salt_size, df)
+
+            temp = handler.using(default_salt_size=mn+2)
+            self.assertEqual(temp.default_salt_size, mn+2)
+            self.assertEqual(handler.default_salt_size, df)
+
+        # accept strings
+        if mn == mx:
+            ref = mn
+        else:
+            ref = mn + 1
+        temp = handler.using(default_salt_size=str(ref))
+        self.assertEqual(temp.default_salt_size, ref)
+
+        # reject invalid strings
+        self.assertRaises(ValueError, handler.using, default_salt_size=str(ref) + "xxx")
+
+        # honor 'salt_size' alias
+        temp = handler.using(salt_size=ref)
+        self.assertEqual(temp.default_salt_size, ref)
+
     #===================================================================
     # rounds
     #===================================================================
