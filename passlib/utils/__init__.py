@@ -134,7 +134,8 @@ class classproperty(object):
         return self.im_func
 
 def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
-                        replacement=None, _is_method=False, func_module=None):
+                        replacement=None, _is_method=False,
+                        func_module=None):
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
@@ -156,6 +157,10 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             msg += ", use %s instead" % replacement
         msg += "."
     def build(func):
+        is_classmethod = _is_method and isinstance(func, classmethod)
+        if is_classmethod:
+            # NOTE: PY26 doesn't support "classmethod().__func__" directly...
+            func = func.__get__(None, type).__func__
         opts = dict(
             mod=func_module or func.__module__,
             name=func.__name__,
@@ -165,7 +170,7 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
         if _is_method:
             def wrapper(*args, **kwds):
                 tmp = opts.copy()
-                klass = args[0].__class__
+                klass = args[0] if is_classmethod else args[0].__class__
                 tmp.update(klass=klass.__name__, mod=klass.__module__)
                 warn(msg % tmp, DeprecationWarning, stacklevel=2)
                 return func(*args, **kwds)
@@ -190,6 +195,8 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             if not wrapper.__doc__.strip(" ").endswith("\n"):
                 wrapper.__doc__ += "\n"
             wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
+        if is_classmethod:
+            wrapper = classmethod(wrapper)
         return wrapper
     return build
 
@@ -1598,8 +1605,7 @@ def generate_password(size=10, charset=_52charset):
 _handler_attrs = (
         "name",
         "setting_kwds", "context_kwds",
-        "genconfig", "genhash",
-        "verify", "encrypt", "identify",
+        "verify", "hash", "identify",
         )
 
 def is_crypt_handler(obj):

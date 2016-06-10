@@ -247,7 +247,7 @@ class _PasslibHasherWrapper(object):
     # hasher api
     #=====================================================================
     def salt(self):
-        # NOTE: passlib's handler.encrypt() should generate new salt each time,
+        # NOTE: passlib's handler.hash() should generate new salt each time,
         #       so this just returns a special constant which tells
         #       encode() (below) not to pass a salt keyword along.
         return _GEN_SALT_SIGNAL
@@ -267,8 +267,8 @@ class _PasslibHasherWrapper(object):
             else:
                 kwds['rounds'] = self.rounds
         elif rounds is not None or iterations is not None:
-            warn("%s.encrypt(): 'rounds' and 'iterations' are ignored" % self.__name__)
-        return self.passlib_handler.encrypt(password, **kwds)
+            warn("%s.hash(): 'rounds' and 'iterations' are ignored" % self.__name__)
+        return self.passlib_handler.hash(password, **kwds)
 
     def safe_summary(self, encoded):
         from django.contrib.auth.hashers import mask_hash
@@ -422,19 +422,9 @@ def _get_hasher(algorithm):
 ##        return to_unicode(hash, "latin-1", "hash").startswith(self.ident)
 ##
 ##    @property
-##    def genconfig(self):
-##        # XXX: not sure how to support this.
-##        return None
-##
-##    @property
-##    def genhash(self, secret, config):
-##        if config is not None:
-##            # XXX: not sure how to support this.
-##            raise NotImplementedError("genhash() for hashers not implemented")
-##        return self.encrypt(secret)
-##
-##    @property
-##    def encrypt(self, secret, salt=None, **kwds):
+##    def hash(self, secret, config=None, salt=None, **kwds):
+##        if config:
+##            raise NotImplementedError('hash(config) support missing')
 ##        # NOTE: from how make_password() is coded, all hashers
 ##        #       should have salt param. but only some will have
 ##        #       'iterations' parameter.

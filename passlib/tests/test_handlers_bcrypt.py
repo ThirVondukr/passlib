@@ -333,7 +333,7 @@ class _bcrypt_test(HandlerCase):
         corr_desc = ".*incorrectly set padding bits"
 
         #
-        # test encrypt() / genconfig() don't generate invalid salts anymore
+        # test hash() / genconfig() don't generate invalid salts anymore
         #
         def check_padding(hash):
             assert hash.startswith("$2a$") and len(hash) >= 28
@@ -342,14 +342,14 @@ class _bcrypt_test(HandlerCase):
         for i in irange(6):
             check_padding(bcrypt.genconfig())
         for i in irange(3):
-            check_padding(bcrypt.encrypt("bob", rounds=bcrypt.min_rounds))
+            check_padding(bcrypt.hash("bob", rounds=bcrypt.min_rounds))
 
         #
         # test genconfig() corrects invalid salts & issues warning.
         #
         with self.assertWarningList(["salt too large", corr_desc]):
             hash = bcrypt.genconfig(salt="."*21 + "A.", rounds=5, relaxed=True)
-        self.assertEqual(hash, "$2a$05$" + "." * 22)
+        self.assertEqual(hash, "$2a$05$" + "." * (22 + 31))
 
         #
         # test public methods against good & bad hashes

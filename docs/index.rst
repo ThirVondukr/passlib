@@ -28,7 +28,7 @@ using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
     >>> from passlib.hash import sha256_crypt
 
     >>> # generate new salt, and hash a password
-    >>> hash = sha256_crypt.encrypt("toomanysecrets")
+    >>> hash = sha256_crypt.hash("toomanysecrets")
     >>> hash
     '$5$rounds=80000$zvpXD3gCkrt7tw.1$QqeTSolNHEfgryc5oMgiq1o8qCEAcmye3FoMSuvgToC'
 

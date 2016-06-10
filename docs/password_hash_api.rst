@@ -24,7 +24,7 @@ defined by the following abstract base class:
     While it offers a number of methods and attributes,
     but most applications will only need the two primary methods:
 
-    * :meth:`~PasswordHash.encrypt` - generate new salt, return hash of password.
+    * :meth:`~PasswordHash.hash` - generate new salt, return hash of password.
     * :meth:`~PasswordHash.verify` - verify password against existing hash.
 
     While not needed by most applications, the following methods
@@ -47,25 +47,25 @@ Usage Examples
 ==============
 The following code shows how to use the primary
 methods of the :class:`~passlib.ifc.PasswordHash` interface --
-:meth:`~PasswordHash.encrypt` and :meth:`~PasswordHash.verify` --
+:meth:`~PasswordHash.hash` and :meth:`~PasswordHash.verify` --
 using the :class:`~passlib.hash.sha256_crypt` hash as an example::
 
     >>> # import the handler class
     >>> from passlib.hash import sha256_crypt
 
     >>> # hash a password using the default settings:
-    >>> hash = sha256_crypt.encrypt("password")
+    >>> hash = sha256_crypt.hash("password")
     >>> hash
     '$5$rounds=40000$HIo6SCnVL9zqF8TK$y2sUnu13gp4cv0YgLQMW56PfQjWaTyiHjVbXTgleYG9'
 
-    >>> # note that each call to encrypt() generates a new salt,
+    >>> # note that each call to hash() generates a new salt,
     >>> # and thus the contents of the hash will differ, despite using the same password:
-    >>> sha256_crypt.encrypt("password")
+    >>> sha256_crypt.hash("password")
     '$5$rounds=40000$1JfxoiYM5Pxokyh8$ez8uV8jjXW7SjpaTg2vHJmx3Qn36uyZpjhyC9AfBi7B'
 
     >>> # if the hash supports a variable number of iterations (which sha256_crypt does),
     >>> # you can override the default value via the 'rounds' keyword:
-    >>> sha256_crypt.encrypt("password", rounds=12345)
+    >>> sha256_crypt.hash("password", rounds=12345)
     '$5$rounds=12345$UeVpHaN2YFDwBoeJ$NJN8DwVZ4UfQw6.ijJZNWoZtk1Ivi5YfKCDsI2HzSq2'
                ^^^^^
 
@@ -87,7 +87,7 @@ common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
 
     >>> # attempting to call verify() with another algorithm's hash will result in a ValueError:
     >>> from passlib.hash import sha256_crypt, md5_crypt
-    >>> other_hash = md5_crypt.encrypt("password")
+    >>> other_hash = md5_crypt.hash("password")
     >>> sha256_crypt.verify("password", other_hash)
     Traceback (most recent call last):
         <traceback omitted>
@@ -95,20 +95,20 @@ common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
 
     >>> # this can be prevented by using the identify method,
     >>> # determines whether a hash belongs to a given algorithm:
-    >>> hash = sha256_crypt.encrypt("password")
+    >>> hash = sha256_crypt.hash("password")
     >>> sha256_crypt.identify(hash)
     True
     >>> sha256_crypt.identify(other_hash)
     False
 
-While the initial :meth:`~PasswordHash.encrypt` example works for most hashes,
+While the initial :meth:`~PasswordHash.hash` example works for most hashes,
 a small number of algorithms require you provide external data
 (such as a username) every time a hash is calculated.
 An example of this is the :class:`~passlib.hash.oracle10` algorithm::
 
     >>> # for oracle10, encrypt requires a username:
     >>> from passlib.hash import oracle10
-    >>> hash = oracle10.encrypt("secret", user="admin")
+    >>> hash = oracle10.hash("secret", user="admin")
     'B858CE295C95193F'
 
     >>> # the difference between this and something like the rounds setting (above)
@@ -123,7 +123,7 @@ An example of this is the :class:`~passlib.hash.oracle10` algorithm::
     False
 
     >>> # forgetting to include the username when it's required will cause a TypeError:
-    >>> hash = oracle10.encrypt("password")
+    >>> hash = oracle10.hash("password")
     Traceback (most recent call last):
         <traceback omitted>
     TypeError: user must be unicode or bytes, not None
@@ -139,13 +139,13 @@ An example of this is the :class:`~passlib.hash.oracle10` algorithm::
 Primary Methods
 ===============
 Most applications will only need to use two methods:
-:meth:`~PasswordHash.encrypt` to generate new hashes, and :meth:`~PasswordHash.verify`
+:meth:`~PasswordHash.hash` to generate new hashes, and :meth:`~PasswordHash.verify`
 to check passwords against existing hashes.
 These methods provide an easy interface for working with a password hash,
 and abstract away details such as salt generation, hash normalization,
 and hash comparison.
 
-.. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
+.. classmethod:: PasswordHash.hash(secret, \*\*kwds)
 
     Digest password using format-specific algorithm,
     returning resulting hash string.
@@ -164,6 +164,15 @@ and hash comparison.
         are listed under :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
         Examples of common keywords include ``rounds`` and ``salt_size``.
+
+    :type config: str
+    :param config:
+
+        This optional parameter can be used provide an existing password hash,
+        and it's salt & configuration options will be used to hash the new password.
+        This option is mutually exclusive with all :attr:`~PasswordHash.setting_kwds`.
+
+        .. versionadded:: 1.7
 
     :returns:
         Resulting password hash, encoded in an algorithm-specific format.
@@ -199,6 +208,21 @@ and hash comparison.
         clipped (though applications may set :ref:`relaxed=True <relaxed-keyword>`
         to restore the old behavior).
 
+    .. versionchanged:: 1.7
+
+        This method was renamed from :meth:`encrypt`,
+        and the ``config`` parameter was added.
+
+.. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
+
+    Legacy alias for :meth:`hash`.
+
+    .. deprecated:: 1.7
+
+        This method was renamed to :meth:`!hash` in version 1.7.
+        This alias will be removed in version 2.0, and should only
+        be used for compatibility with Passlib 1.3 - 1.6.
+
 .. classmethod:: PasswordHash.verify(secret, hash, \*\*context_kwds)
 
     Verify a secret using an existing hash.
@@ -224,7 +248,7 @@ and hash comparison.
         The ones that do typically require external contextual information
         in order to calculate the digest. For these hashes,
         the values must match the ones passed to the original
-        :meth:`~PasswordHash.encrypt` call when the hash was generated,
+        :meth:`~PasswordHash.hash` call when the hash was generated,
         or the password will not verify.
 
         These additional keywords are algorithm-specific, and will be listed
@@ -243,7 +267,7 @@ and hash comparison.
     :raises ValueError:
         * if ``hash`` does not match this algorithm's format.
         * if the ``secret`` contains forbidden characters (see
-          :meth:`~PasswordHash.encrypt`).
+          :meth:`~PasswordHash.hash`).
         * if a configuration/salt string generated by :meth:`~PasswordHash.genconfig`
           is passed in as the value for ``hash`` (these strings look
           similar to a full hash, but typically lack the digest portion
@@ -289,15 +313,24 @@ using the provided configuration string.
 
 .. seealso::
 
-    Most applications will find :meth:`~PasswordHash.encrypt` much more useful,
+    Most applications will find :meth:`~PasswordHash.hash` much more useful,
     as it combines the functionality of these two methods into one.
 
 .. classmethod:: PasswordHash.genconfig(\*\*setting_kwds)
 
+    .. deprecated:: 1.7
+
+        As of 1.7, this method is deprecated, and slated for complete removal in Passlib 2.0.
+
+        For all known real-world uses, ``.hash("", **settings)``
+        should provide equivalent functionality.
+
+        This deprecation may be reversed if a use-case presents itself in the mean time.
+
     Returns a configuration string encoding settings for hash generation.
 
     This function takes in all the same :attr:`~PasswordHash.setting_kwds`
-    as :meth:`~PasswordHash.encrypt`, fills in suitable defaults,
+    as :meth:`~PasswordHash.hash`, fills in suitable defaults,
     and encodes the settings into a single "configuration" string,
     suitable passing to :meth:`~PasswordHash.genhash`.
 
@@ -313,7 +346,7 @@ using the provided configuration string.
 
     :raises ValueError, TypeError:
         This function raises exceptions for the same
-        reasons as :meth:`~PasswordHash.encrypt`.
+        reasons as :meth:`~PasswordHash.hash`.
 
     .. note::
 
@@ -325,6 +358,13 @@ using the provided configuration string.
 .. classmethod:: PasswordHash.genhash(secret, config, \*\*context_kwds)
 
     Encrypt secret using specified configuration string.
+
+    .. deprecated:: 1.7
+
+        The new :meth:`hash` method added in 1.7 supports a **config** keyword;
+        all calls to :meth:`!genhash` can be replaced with ``.hash(secret, config=config, **context)``.
+        The :meth:`!genhash` method will be removed in version 2.0, and should only
+        be used for compatibility with Passlib 1.3 - 1.6.
 
     This takes in a password and a configuration string,
     and returns a hash for that password.
@@ -349,7 +389,7 @@ using the provided configuration string.
         The ones that do typically require external contextual information
         in order to calculate the digest. For these hashes,
         the values must match the ones passed to the original
-        :meth:`~PasswordHash.encrypt` call when the hash was generated,
+        :meth:`~PasswordHash.hash` call when the hash was generated,
         or the password will not verify.
 
         These additional keywords are algorithm-specific, and will be listed
@@ -363,7 +403,7 @@ using the provided configuration string.
 
     :raises ValueError, TypeError:
         This function raises exceptions for the same
-        reasons as :meth:`~PasswordHash.encrypt`.
+        reasons as :meth:`~PasswordHash.hash`.
 
     .. warning::
 
@@ -440,7 +480,7 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.setting_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.encrypt`
+    Tuple listing the keywords supported by :meth:`~PasswordHash.hash`
     and :meth:`~PasswordHash.genconfig` that control hash generation, and which will
     be encoded into the resulting hash.
 
@@ -519,7 +559,7 @@ the hashes in passlib:
     .. _relaxed-keyword:
 
     ``relaxed``
-        By default, passing an invalid value to :meth:`~PasswordHash.encrypt`
+        By default, passing an invalid value to :meth:`~PasswordHash.hash`
         will result in a :exc:`ValueError`. However, if ``relaxed=True``
         then Passlib will attempt to correct the error and (if successful)
         issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
@@ -536,7 +576,7 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.context_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.encrypt`,
+    Tuple listing the keywords supported by :meth:`~PasswordHash.hash`,
     :meth:`~PasswordHash.verify`, and :meth:`~PasswordHash.genhash` affect the hash, but are
     not encoded within it, and thus must be provided each time
     the hash is calculated.
@@ -644,7 +684,7 @@ and the following attributes should be defined:
 .. attribute:: PasswordHash.default_rounds
 
     The default number of rounds that will be used if none is explicitly
-    provided to :meth:`~PasswordHash.encrypt`.
+    provided to :meth:`~PasswordHash.hash`.
     This will always be an integer between :attr:`~PasswordHash.min_rounds`
     and :attr:`~PasswordHash.max_rounds`.
 

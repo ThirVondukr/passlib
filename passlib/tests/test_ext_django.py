@@ -130,7 +130,7 @@ stock_config.update(
 # override sample hashes used in test cases
 from passlib.hash import django_pbkdf2_sha256
 sample_hashes = dict(
-    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256.encrypt("not a password",
+    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256.hash("not a password",
                                  rounds=stock_config.get("django_pbkdf2_sha256__default_rounds")))
 )
 
@@ -797,9 +797,9 @@ class ContextWithHook(CryptContext):
     def update_hook(self):
         pass
 
-    def encrypt(self, *args, **kwds):
+    def hash(self, *args, **kwds):
         self.update_hook(self)
-        return super(ContextWithHook, self).encrypt(*args, **kwds)
+        return super(ContextWithHook, self).hash(*args, **kwds)
 
     def verify(self, *args, **kwds):
         self.update_hook(self)

@@ -23,7 +23,7 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
 
     It does a single round of hashing, and relies on the username as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keywords:
 
     :type user: str

@@ -20,7 +20,7 @@ all they need to do is the following::
     >>> from passlib.apps import custom_app_context as pwd_context
 
     >>> # encrypting a password...
-    >>> hash = pwd_context.encrypt("somepass")
+    >>> hash = pwd_context.hash("somepass")
 
     >>> # verifying a password...
     >>> ok = pwd_context.verify("somepass", hash)
@@ -29,7 +29,7 @@ all they need to do is the following::
     >>> #            the custom_app_context is preconfigured so that
     >>> #            if the category is set to "admin" instead of None,
     >>> #            it uses a stronger setting of 80000 rounds:
-    >>> hash = pwd_context.encrypt("somepass", category="admin")
+    >>> hash = pwd_context.hash("somepass", category="admin")
 
 For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
@@ -217,7 +217,7 @@ To start using your CryptContext, import the context you created wherever it's n
     >>> from myapp.model.security import pwd_context
 
     >>> # encrypting a password...
-    >>> hash = pwd_context.encrypt("somepass")
+    >>> hash = pwd_context.hash("somepass")
     >>> hash
     '$pbkdf2-sha256$7252$qKFNyMYTmgQDCFDS.jRJDQ$sms3/EWbs4/3k3aOoid5azwq3HPZKVpUUrAsCfjrN6M'
 

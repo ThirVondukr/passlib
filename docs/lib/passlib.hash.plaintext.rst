@@ -13,7 +13,7 @@ It can be used directly as follows::
     >>> from passlib.hash import plaintext as plaintext
 
     >>> # "encrypt" password
-    >>> plaintext.encrypt("password")
+    >>> plaintext.hash("password")
     'password'
 
     >>> # verify password

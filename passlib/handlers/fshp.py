@@ -27,7 +27,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :param salt:
         Optional raw salt string.
@@ -168,12 +168,8 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         chk = data[salt_size:]
         return cls(salt=salt, checksum=chk, rounds=rounds, variant=variant)
 
-    @property
-    def _stub_checksum(self):
-        return b'\x00' * self.checksum_size
-
     def to_string(self):
-        chk = self.checksum or self._stub_checksum
+        chk = self.checksum
         salt = self.salt
         data = bascii_to_str(b64encode(salt+chk))
         return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)

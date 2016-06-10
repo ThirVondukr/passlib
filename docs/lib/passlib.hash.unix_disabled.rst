@@ -14,7 +14,7 @@ It can be used directly as follows::
     >>> from passlib.hash import unix_disabled
 
     >>> # 'encrypting' a password always results in "!" or "*"
-    >>> unix_disabled.encrypt("password")
+    >>> unix_disabled.hash("password")
     '!'
 
     >>> # verifying will fail for all passwords and hashes

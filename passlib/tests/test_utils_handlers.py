@@ -1,4 +1,4 @@
-"""tests for passlib.pwhash -- (c) Assurance Technologies 2003-2009"""
+"""tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 #=============================================================================
 # imports
 #=============================================================================
@@ -75,7 +75,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, d1.identify, 1)
 
         # check default genconfig method
-        self.assertIs(d1.genconfig(), None)
+        self.assertEqual(d1.genconfig(), d1.hash(""))
 
         # check default verify method
         self.assertTrue(d1.verify('s', b'_a'))
@@ -87,8 +87,8 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.verify, 's', u('_c'))
 
         # check default encrypt method
-        self.assertEqual(d1.encrypt('s'), '_a')
-        self.assertEqual(d1.encrypt('s', flag=True), '_b')
+        self.assertEqual(d1.hash('s'), '_a')
+        self.assertEqual(d1.hash('s', flag=True), '_b')
 
     def test_01_calc_checksum_hack(self):
         """test StaticHandler legacy attr"""
@@ -125,7 +125,7 @@ class SkeletonTest(TestCase):
 
         # encrypt should issue api warnings, but everything else should be fine.
         with self.assertWarningList("d1.*should be updated.*_calc_checksum"):
-            hash = d1.encrypt("test")
+            hash = d1.hash("test")
         self.assertEqual(hash, '7c622762588a0e5cc786ad0a143156f9fd38eea3')
 
         self.assertTrue(d1.verify("test", hash))
@@ -133,7 +133,7 @@ class SkeletonTest(TestCase):
 
         # not defining genhash either, however, should cause NotImplementedError
         del d1.genhash
-        self.assertRaises(NotImplementedError, d1.encrypt, 'test')
+        self.assertRaises(NotImplementedError, d1.hash, 'test')
 
     #===================================================================
     # GenericHandler & mixins
@@ -180,7 +180,6 @@ class SkeletonTest(TestCase):
             name = 'd1'
             checksum_size = 4
             checksum_chars = u('xz')
-            _stub_checksum = u('z')*4
 
         def norm_checksum(*a, **k):
             return d1(*a, **k).checksum
@@ -207,14 +206,13 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertIs(norm_checksum(u('zzzz')), None)
+        self.assertEqual(d1()._stub_checksum, u('xxxx'))
 
     def test_12_norm_checksum_raw(self):
         """test GenericHandler + HasRawChecksum mixin"""
         class d1(uh.HasRawChecksum, uh.GenericHandler):
             name = 'd1'
             checksum_size = 4
-            _stub_checksum = b'0'*4
 
         def norm_checksum(*a, **k):
             return d1(*a, **k).checksum
@@ -227,7 +225,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertIs(norm_checksum(b'0'*4), None)
+        self.assertEqual(d1()._stub_checksum, b'\x00'*4)
 
     def test_20_norm_salt(self):
         """test GenericHandler + HasSalt mixin"""
@@ -693,7 +691,7 @@ class PrefixWrapperTest(TestCase):
         lph = "{MD5}X03MO1qnZdYdgyfeuILPmQ=="
 
         # genconfig
-        self.assertIs(d1.genconfig(), None)
+        self.assertEqual(d1.genconfig(), '{XXX}1B2M2Y8AsgTpgAmY7PhCfg==')
 
         # genhash
         self.assertEqual(d1.genhash("password", None), dph)
@@ -701,7 +699,7 @@ class PrefixWrapperTest(TestCase):
         self.assertRaises(ValueError, d1.genhash, "password", lph)
 
         # encrypt
-        self.assertEqual(d1.encrypt("password"), dph)
+        self.assertEqual(d1.hash("password"), dph)
 
         # identify
         self.assertTrue(d1.identify(dph))
@@ -774,7 +772,7 @@ class PrefixWrapperTest(TestCase):
         # shoudl throw InvalidHashError if wrapped hash doesn't begin
         # with orig_prefix.
         h = uh.PrefixWrapper("h2", "md5_crypt", orig_prefix="$6$")
-        self.assertRaises(ValueError, h.encrypt, 'test')
+        self.assertRaises(ValueError, h.hash, 'test')
 
 #=============================================================================
 # sample algorithms - these serve as known quantities
@@ -813,10 +811,8 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
             hash = hash.decode("ascii")
         return cls(salt=hash[5:-40], checksum=hash[-40:])
 
-    _stub_checksum = u('0') * 40
-
     def to_string(self):
-        hash = u("@salt%s%s") % (self.salt, self.checksum or self._stub_checksum)
+        hash = u("@salt%s%s") % (self.salt, self.checksum)
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):
@@ -855,10 +851,9 @@ class SaltedHashTest(HandlerCase):
     ]
 
     def test_bad_kwds(self):
-        self.assertRaises(TypeError, SaltedHash,
-                          checksum=SaltedHash._stub_checksum, salt=None)
-        self.assertRaises(ValueError, SaltedHash,
-                          checksum=SaltedHash._stub_checksum, salt='xxx')
+        stub = SaltedHash(use_defaults=True)._stub_checksum
+        self.assertRaises(TypeError, SaltedHash, checksum=stub, salt=None)
+        self.assertRaises(ValueError, SaltedHash, checksum=stub, salt='xxx')
 
 #=============================================================================
 # eof

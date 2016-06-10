@@ -68,7 +68,7 @@ Options which directly affect the behavior of the CryptContext instance:
 
     The most important option in the constructor,
     This option controls what hashes can be used
-    by the :meth:`~CryptContext.encrypt` method,
+    by the :meth:`~CryptContext.hash` method,
     which hashes will be recognized by :meth:`~CryptContext.verify`
     and :meth:`~CryptContext.identify`, and other effects
     throughout the instance.
@@ -109,23 +109,23 @@ Options which directly affect the behavior of the CryptContext instance:
     You can use the :meth:`~CryptContext.default_scheme` method
     to retrieve the name of the current default scheme.
     As an example, the following demonstrates the effect
-    of this parameter on the :meth:`~CryptContext.encrypt`
+    of this parameter on the :meth:`~CryptContext.hash`
     method::
 
         >>> from passlib.context import CryptContext
         >>> myctx = CryptContext(schemes=["sha256_crypt", "md5_crypt"])
 
-        >>> # encrypt() uses the first scheme
+        >>> # hash() uses the first scheme
         >>> myctx.default_scheme()
         'sha256_crypt'
-        >>> myctx.encrypt("password")
+        >>> myctx.hash("password")
         '$5$rounds=80000$R5ZIZRTNPgbdcWq5$fT/Oeqq/apMa/0fbx8YheYWS6Z3XLTxCzEtutsk2cJ1'
 
         >>> # but setting default causes the second scheme to be used.
         >>> myctx.update(default="md5_crypt")
         >>> myctx.default_scheme()
         'md5_crypt'
-        >>> myctx.encrypt("password")
+        >>> myctx.hash("password")
         '$1$Rr0C.KI8$Kvciy8pqfL9BQ2CJzEzfZ/'
 
     .. seealso:: the :ref:`context-basic-example` example in the tutorial.
@@ -184,7 +184,7 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 :samp:`{scheme}__default_rounds`
 
     Sets the default number of rounds to use with this scheme
-    when generating new hashes (using :meth:`~CryptContext.encrypt`).
+    when generating new hashes (using :meth:`~CryptContext.hash`).
 
     If not set, this will fall back to the an algorithm-specific
     :attr:`~passlib.ifc.PasswordHash.default_rounds`.
@@ -193,15 +193,15 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
         >>> from passlib.context import CryptContext
 
-        >>> # no explicit default_rounds set, so encrypt() uses sha256_crypt's default (80000)
+        >>> # no explicit default_rounds set, so hash() uses sha256_crypt's default (80000)
         >>> myctx = CryptContext(["sha256_crypt"])
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
         >>> # but if a default is specified, it will be used instead.
         >>> myctx = CryptContext(["sha256_crypt"], sha256_crypt__default_rounds=77123)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=77123$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
@@ -211,7 +211,7 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
     Instead of using a fixed rounds value (such as specified by
     ``default_rounds``, above); this option will cause each call
-    to :meth:`~CryptContext.encrypt` to vary the default rounds value
+    to :meth:`~CryptContext.hash` to vary the default rounds value
     by some amount.
 
     This can be an integer value, in which case each call will use a rounds
@@ -223,13 +223,13 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
     As an example of how this parameter operates::
 
-        >>> # without vary_rounds set, encrypt() uses the same amount each time:
+        >>> # without vary_rounds set, hash() uses the same amount each time:
         >>> from passlib.context import CryptContext
         >>> myctx = CryptContext(schemes=["sha256_crypt"],
         ...                      sha256_crypt__default_rounds=80000)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
@@ -238,9 +238,9 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
         >>> myctx = CryptContext(schemes=["sha256_crypt"],
         ...                      sha256_crypt__default_rounds=80000,
         ...                      sha256_crypt__vary_rounds=0.1)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=83966$bMpgQxN2hXo2kVr4$jL4Q3ov41UPgSbO7jYL0PdtsOg5koo4mCa.UEF3zan.'
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=72109$43BBHC/hYPHzL69c$VYvVIdKn3Zdnvu0oJHVlo6rr0WjiMTGmlrZrrH.GxnA'
                    ^^^^^
 
@@ -333,13 +333,13 @@ For example, a CryptContext could be set up as follows::
 
     >>> # In this case, calling encrypt with ``category=None`` would result
     >>> # in a hash that used 77000 sha256-crypt rounds:
-    >>> myctx.encrypt("password", category=None)
+    >>> myctx.hash("password", category=None)
     '$5$rounds=77000$sj3XI0AbKlEydAKt$BhFvyh4.IoxaUeNlW6rvQ.O0w8BtgLQMYorkCOMzf84'
                ^^^^^
 
     >>> # But if the application passed in ``category="staff"`` when an administrative
     >>> # account set their password, 88000 rounds would be used:
-    >>> myctx.encrypt("password", category="staff")
+    >>> myctx.hash("password", category="staff")
     '$5$rounds=88000$w7XIdKfTI9.YLwmA$MIzGvs6NU1QOQuuDHhICLmDsdW/t94Bbdfxdh/6NJl7'
                ^^^^^
 
@@ -353,6 +353,7 @@ purpose is to act as a container for multiple password hashes.
 Most applications will only need to make use two methods in a CryptContext
 instance:
 
+.. automethod:: CryptContext.hash
 .. automethod:: CryptContext.encrypt
 .. automethod:: CryptContext.verify
 .. automethod:: CryptContext.identify

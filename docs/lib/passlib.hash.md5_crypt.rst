@@ -32,7 +32,7 @@ The :class:`!md5_crypt` class can be can be used directly as follows::
     >>> from passlib.hash import md5_crypt
 
     >>> # generate new salt, encrypt password
-    >>> h = md5_crypt.encrypt("password")
+    >>> h = md5_crypt.hash("password")
     >>> h
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'
 
@@ -43,7 +43,7 @@ The :class:`!md5_crypt` class can be can be used directly as follows::
     False
 
     >>> # encrypt password using cisco-compatible 4-char salt
-    >>> md5_crypt.encrypt("password", salt_size=4)
+    >>> md5_crypt.hash("password", salt_size=4)
     '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
 .. seealso::

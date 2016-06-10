@@ -54,7 +54,7 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
 
     It does a single round of hashing, and relies on the username as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keywords:
 
     :type user: str
@@ -106,7 +106,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     It supports a fixed-length salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -133,8 +133,6 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     checksum_size = 40
     checksum_chars = uh.UPPER_HEX_CHARS
 
-    _stub_checksum = u('0') * 40
-
     #--HasSalt--
     min_salt_size = max_salt_size = 20
     salt_chars = uh.UPPER_HEX_CHARS
@@ -155,7 +153,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk.upper())
 
     def to_string(self):
-        chk = (self.checksum or self._stub_checksum)
+        chk = self.checksum
         hash = u("S:%s%s") % (chk.upper(), self.salt.upper())
         return uascii_to_str(hash)
 

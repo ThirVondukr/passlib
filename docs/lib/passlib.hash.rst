@@ -26,8 +26,8 @@ All of the hashes in this module can used in two ways:
         >>> # import the desired hash
         >>> from passlib.hash import md5_crypt
 
-        >>> # hash the password - encrypt() takes care of salt generation, unicode encoding, etc.
-        >>> hash = md5_crypt.encrypt("password")
+        >>> # hash the password - hash() takes care of salt generation, unicode encoding, etc.
+        >>> hash = md5_crypt.hash("password")
         >>> hash
         '$1$IU54yC7Y$nI1wF8ltcRvaRHwMIjiJq1'
 
@@ -46,10 +46,10 @@ All of the hashes in this module can used in two ways:
         >>> pwd_context = CryptContext(schemes=["md5_crypt", "des_crypt"])
 
         >>> # hash two different passwords (context objects used the first scheme as the default)
-        >>> hash1 = pwd_context.encrypt("password")
+        >>> hash1 = pwd_context.hash("password")
         >>> hash1
         '$1$2y72Yi12$o6Yu2OyjN.9FiK.9HJ7i5.'
-        >>> hash2 = pwd_context.encrypt("letmein", scheme="des_crypt")
+        >>> hash2 = pwd_context.hash("letmein", scheme="des_crypt")
         >>> hash2
         '0WMdk/ven8bok'
 

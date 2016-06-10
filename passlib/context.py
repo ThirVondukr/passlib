@@ -590,7 +590,7 @@ class _CryptRecord(object):
 
     # cloned from custom_handler.
     genconfig = None
-    encrypt = None
+    hash = None
     verify = None
     identify = None
     genhash = None
@@ -640,10 +640,9 @@ class _CryptRecord(object):
 
         # these aren't wrapped by _CryptRecord, copy them directly from handler.
         self.genconfig = custom_handler.genconfig
-        self.encrypt = custom_handler.encrypt
+        self.hash = custom_handler.hash
         self.verify = custom_handler.verify
         self.identify = custom_handler.identify
-        self.genhash = custom_handler.genhash
 
     #===================================================================
     # virtual attrs
@@ -1207,7 +1206,7 @@ class _CryptConfig(object):
 # main CryptContext class
 #=============================================================================
 class CryptContext(object):
-    """Helper for encrypting passwords using different algorithms.
+    """Helper for hashing & verifying passwords using multiple algorithms.
 
     Instances of this class allow applications to choose a specific
     set of hash algorithms which they wish to support, set limits and defaults
@@ -1731,7 +1730,7 @@ class CryptContext(object):
         return self._get_record(scheme, category).deprecated
 
     def default_scheme(self, category=None, resolve=False):
-        """return name of scheme that :meth:`encrypt` will use by default.
+        """return name of scheme that :meth:`hash` will use by default.
 
         :type resolve: bool
         :arg resolve:
@@ -2008,7 +2007,7 @@ class CryptContext(object):
         or is otherwise outside of the bounds specified by the policy
         (e.g. the number of rounds is lower than :ref:`min_rounds <context-min-rounds-option>`
         configuration for that algorithm).
-        If so, the password should be re-encrypted using :meth:`encrypt`
+        If so, the password should be re-hashed using :meth:`hash`
         Otherwise, it will return ``False``.
 
         :type hash: unicode or bytes
@@ -2066,95 +2065,31 @@ class CryptContext(object):
         """
         return self.needs_update(hash, scheme, category)
 
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement="CryptContext.hash('', **kwds)")
     def genconfig(self, scheme=None, category=None, **settings):
         """Generate a config string for specified scheme.
 
-        This wraps the :meth:`~passlib.ifc.PasswordHash.genconfig`
-        method of the appropriate algorithm, using the default if
-        one is not specified.
-        The main difference between this and calling a hash's
-        :meth:`!genconfig` method directly is that this way, the CryptContext
-        will add in any hash-specific options, such as the default rounds.
+        .. deprecated:: 1.7
 
-        :type scheme: str or None
-        :param scheme:
-
-            Optional scheme to use. Scheme must be one of the ones
-            configured for this context (see the
-            :ref:`schemes <context-schemes-option>` option).
-            If no scheme is specified, the configured default
-            will be used.
-
-        :type category: str or None
-        :param category:
-            Optional :ref:`user category <user-categories>`.
-            If specified, this will cause any category-specific defaults to
-            be used when hashing the password (e.g. different default scheme,
-            different default rounds values, etc).
-
-        :param \*\*settings:
-            All additional keywords are passed to the appropriate handler,
-            and should match its :attr:`~passlib.ifc.PasswordHash.setting_kwds`.
-
-        :returns:
-            A configuration string suitable for passing to :meth:`~CryptContext.genhash`,
-            encoding all the provided settings and defaults; or ``None``
-            if the selected algorithm doesn't support configuration strings.
-            The return value will always be a :class:`!str`.
+            As of 1.7, all calls to :meth:`!genconfig` should be replaced with
+            ``.hash("", **settings)``.
+            This method will be removed in version 2.0, and should only
+            be used for compatibility with Passlib 1.3 - 1.6.
         """
-        return self._get_record(scheme, category).genconfig(**settings)
+        return self.hash(unicode(""), scheme, category, config=True, **settings)
 
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement="CryptContext.hash(secret, config=config)")
     def genhash(self, secret, config, scheme=None, category=None, **kwds):
         """Generate hash for the specified secret using another hash.
 
-        This wraps the :meth:`~passlib.ifc.PasswordHash.genhash`
-        method of the appropriate algorithm, identifying it based
-        on the provided hash / configuration if a scheme is not specified
-        explicitly.
+        .. deprecated:: 1.7
 
-        :type secret: unicode or bytes
-        :arg secret:
-            the password to hash.
-
-        :type config: unicode or bytes
-        :arg hash:
-            The hash or configuration string to extract the settings and salt
-            from when hashing the password.
-
-        :type scheme: str or None
-        :param scheme:
-
-            Optional scheme to use. Scheme must be one of the ones
-            configured for this context (see the
-            :ref:`schemes <context-schemes-option>` option).
-            If no scheme is specified, it will be identified
-            based on the value of *config*.
-
-        :type category: str or None
-        :param category:
-            Optional :ref:`user category <user-categories>`.
-            Ignored by this function, this parameter
-            is provided for symmetry with the other methods.
-
-        :param \*\*kwds:
-            All additional keywords are passed to the appropriate handler,
-            and should match its :attr:`~passlib.ifc.PasswordHash.context_kwds`.
-
-        :returns:
-            The secret as encoded by the specified algorithm and options.
-            The return value will always be a :class:`!str`.
-
-        :raises TypeError, ValueError:
-            * if any of the arguments have an invalid type or value.
-            * if the selected algorithm's underlying :meth:`~passlib.ifc.PasswordHash.genhash`
-              method throws an error based on *secret* or the provided *kwds*.
+            As of 1.7, the :meth:`hash` function now supports a **hash** keyword;
+            all calls to :meth:`!genhash` can be replaced with ``.hash(secret, config=config, **context)``.
+            This method will be removed in version 2.0, and should only
+            be used for compatibility with Passlib 1.3 - 1.6.
         """
-        # XXX: could insert normalization to preferred unicode encoding here
-        record = self._get_record(scheme, category)
-        strip_unused = self._strip_unused_context_kwds
-        if strip_unused:
-            strip_unused(kwds, record)
-        return record.genhash(secret, config, **kwds)
+        return self.hash(secret, scheme, category, config=config, **kwds)
 
     def identify(self, hash, category=None, resolve=False, required=False):
         """Attempt to identify which algorithm the hash belongs to.
@@ -2198,7 +2133,7 @@ class CryptContext(object):
         else:
             return record.scheme
 
-    def encrypt(self, secret, scheme=None, category=None, **kwds):
+    def hash(self, secret, scheme=None, category=None, **kwds):
         """run secret through selected algorithm, returning resulting hash.
 
         :type secret: unicode or bytes
@@ -2223,7 +2158,7 @@ class CryptContext(object):
 
         :param \*\*kwds:
             All other keyword options are passed to the selected algorithm's
-            :meth:`PasswordHash.encrypt() <passlib.ifc.PasswordHash.encrypt>` method.
+            :meth:`PasswordHash.hash() <passlib.ifc.PasswordHash.hash>` method.
 
         :returns:
             The secret as encoded by the specified algorithm and options.
@@ -2232,16 +2167,32 @@ class CryptContext(object):
         :raises TypeError, ValueError:
             * If any of the arguments have an invalid type or value.
               This includes any keywords passed to the underlying hash's
-              :meth:`PasswordHash.encrypt() <passlib.ifc.PasswordHash.encrypt>` method.
+              :meth:`PasswordHash.hash() <passlib.ifc.PasswordHash.hash>` method.
 
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: could insert normalization to preferred unicode encoding here
+        if scheme is None:
+            config = kwds.get("config")
+            if not (config is None or config is True):
+                scheme = self.identify(config)
         record = self._get_record(scheme, category)
         strip_unused = self._strip_unused_context_kwds
         if strip_unused:
             strip_unused(kwds, record)
-        return record.encrypt(secret, **kwds)
+        return record.hash(secret, **kwds)
+
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement="CryptContext.hash()")
+    def encrypt(self, *args, **kwds):
+        """
+        Legacy alias for :meth:`hash`.
+
+        .. deprecated:: 1.7
+            This method was renamed to :meth:`!hash` in version 1.7.
+            This alias will be removed in version 2.0, and should only
+            be used for compatibility with Passlib 1.3 - 1.6.
+        """
+        return self.hash(*args, **kwds)
 
     def verify(self, secret, hash, scheme=None, category=None, **kwds):
         """verify secret against an existing hash.
@@ -2308,7 +2259,7 @@ class CryptContext(object):
         This is a convenience method which takes care of all the following:
         first it verifies the password (:meth:`~CryptContext.verify`), if this is successfull
         it checks if the hash needs updating (:meth:`~CryptContext.needs_update`), and if so,
-        re-hashes the password (:meth:`~CryptContext.encrypt`), returning the replacement hash.
+        re-hashes the password (:meth:`~CryptContext.hash`), returning the replacement hash.
         This series of steps is a very common task for applications
         which wish to update deprecated hashes, and this call takes
         care of all 3 steps efficiently.
@@ -2370,8 +2321,8 @@ class CryptContext(object):
         if not record.verify(secret, hash, **clean_kwds):
             return False, None
         elif record.needs_update(hash, secret=secret):
-            # NOTE: we re-encrypt with default scheme, not current one.
-            return True, self.encrypt(secret, None, category, **kwds)
+            # NOTE: we re-hash with default scheme, not current one.
+            return True, self.hash(secret, None, category, **kwds)
         else:
             return True, None
 

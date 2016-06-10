@@ -28,7 +28,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     It does a single round of hashing, and relies on the username
     as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
     have the following extra keyword:
 
     :type user: str
@@ -128,7 +128,7 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
     have the following optional keywords:
 
     :type salt: int
@@ -166,18 +166,6 @@ class cisco_type7(uh.GenericHandler):
     #===================================================================
     # methods
     #===================================================================
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config):
-        # special case to handle ``config=None`` in same style as StaticHandler
-        if config is None:
-            return cls.encrypt(secret)
-        else:
-            return super(cisco_type7, cls).genhash(secret, config)
-
     @classmethod
     def from_string(cls, hash):
         hash = to_unicode(hash, "ascii", "hash")

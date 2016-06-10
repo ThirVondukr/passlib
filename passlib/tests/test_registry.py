@@ -1,4 +1,4 @@
-"""tests for passlib.pwhash -- (c) Assurance Technologies 2003-2009"""
+"""tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 #=============================================================================
 # imports
 #=============================================================================

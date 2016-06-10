@@ -111,7 +111,7 @@ class AppsTest(TestCase):
             '$H$8b95CoYQnQ9Y6fSTsACyphNh5yoM02.',
         ]:
             self.assertTrue(ctx.verify("test", hash))
-        self.assertTrue(ctx.encrypt("test").startswith("$H$"))
+        self.assertTrue(ctx.hash("test").startswith("$H$"))
 
     def test_roundup_context(self):
         ctx = apps.roundup_context

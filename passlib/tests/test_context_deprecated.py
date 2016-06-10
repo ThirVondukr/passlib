@@ -608,7 +608,7 @@ class CryptContextTest(TestCase):
         # check constructor...
         cc = CryptContext()
         self.assertRaises(KeyError, cc.identify, 'hash', required=True)
-        self.assertRaises(KeyError, cc.encrypt, 'secret')
+        self.assertRaises(KeyError, cc.hash, 'secret')
         self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
         # check updating policy after the fact...
@@ -617,7 +617,7 @@ class CryptContextTest(TestCase):
         cc.policy = p
 
         self.assertRaises(KeyError, cc.identify, 'hash', required=True)
-        self.assertRaises(KeyError, cc.encrypt, 'secret')
+        self.assertRaises(KeyError, cc.hash, 'secret')
         self.assertRaises(KeyError, cc.verify, 'secret', 'hash')
 
     #===================================================================

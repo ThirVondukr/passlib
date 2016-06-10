@@ -84,7 +84,7 @@ def _apply_patch():
         else:
             # NOTE: pulls _get_category from module globals
             cat = _get_category(user)
-            user.password = password_context.encrypt(password, category=cat)
+            user.password = password_context.hash(password, category=cat)
 
     @_manager.monkeypatch(USER_PATH)
     def check_password(user, password):
@@ -154,7 +154,7 @@ def _apply_patch():
                 # Django make_password() autogenerates a salt if salt is bool False (None / ''),
                 # so we only pass the keyword on if there's actually a fixed salt.
                 kwds['salt'] = salt
-        return password_context.encrypt(password, **kwds)
+        return password_context.hash(password, **kwds)
 
     @_manager.monkeypatch(HASHERS_PATH)
     @lru_cache.lru_cache()

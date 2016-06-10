@@ -90,9 +90,13 @@ class htdigest(uh.PasswordHash):
     default_encoding = "utf-8"
 
     @classmethod
-    def encrypt(cls, secret, user, realm, encoding=None):
+    def hash(cls, secret, user, realm, encoding=None, config=None):
         # NOTE: this was deliberately written so that raw bytes are passed through
         # unchanged, the encoding kwd is only used to handle unicode values.
+        if not (config is None or config is True):
+            # NOTE: 'config' is ignored, as this hash has no salting / other configuration.
+            #       just have to make sure it's valid.
+            cls._norm_hash(config)
         if not encoding:
             encoding = cls.default_encoding
         uh.validate_secret(secret)
@@ -117,7 +121,7 @@ class htdigest(uh.PasswordHash):
     @classmethod
     def verify(cls, secret, hash, user, realm, encoding="utf-8"):
         hash = cls._norm_hash(hash)
-        other = cls.encrypt(secret, user, realm, encoding)
+        other = cls.hash(secret, user, realm, encoding)
         return consteq(hash, other)
 
     @classmethod
@@ -127,16 +131,6 @@ class htdigest(uh.PasswordHash):
         except ValueError:
             return False
         return True
-
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config, user, realm, encoding="utf-8"):
-        if config is not None:
-            cls._norm_hash(config)
-        return cls.encrypt(secret, user, realm, encoding)
 
 #=============================================================================
 # eof

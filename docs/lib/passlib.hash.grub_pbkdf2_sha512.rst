@@ -57,7 +57,7 @@ The result is then encoded into hexadecimal.
         >>> from passlib.hash import pbkdf2_sha512, grub_pbkdf2_sha512
 
         >>> # given a pbkdf2_sha512 hash...
-        >>> h = pbkdf2_sha512.encrypt("password")
+        >>> h = pbkdf2_sha512.hash("password")
         >>> h
         '$pbkdf2-sha512$6400$y6vYff3SihJiqumIrNXwGw$NobVwyUlVI52/Cvrguwli5fX6XgKHNUf7fWWS2VgoWEevaTCiZx4OCYhwGFwzUAuz/g1zQVSIf.9JEb0BEVEEA'
 

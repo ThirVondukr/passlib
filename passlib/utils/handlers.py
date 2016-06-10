@@ -16,7 +16,7 @@ from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
-                          is_crypt_handler, to_unicode, \
+                          is_crypt_handler, to_unicode, deprecated_method, \
                           MAX_PASSWORD_SIZE
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
@@ -318,15 +318,9 @@ class GenericHandler(PasswordHash):
 
     .. attribute:: _stub_checksum
 
-        [optional]
-        If specified, hashes with this checksum will have their checksum
-        normalized to ``None``, treating it like a config string.
-        This is mainly used by hash formats which don't have a concept
-        of a config string, so a unlikely-to-occur checksum (e.g. all zeros)
-        is used by some implementations.
-
-        This should be a string of the same datatype as :attr:`checksum`,
-        or ``None``.
+        Placeholder checksum that will be used by genconfig()
+        in lieu of actually generating a hash for the empty string.
+        This should be a string of the same datatype as :attr:`checksum`.
 
     Instance Attributes
     ===================
@@ -378,10 +372,6 @@ class GenericHandler(PasswordHash):
 
     # if specified, _norm_checksum() will validate this
     checksum_chars = None
-
-    # if specified, hashes with this checksum will be treated
-    # as if no checksum was specified.
-    _stub_checksum = None
 
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
@@ -446,10 +436,6 @@ class GenericHandler(PasswordHash):
                 checksum = checksum.decode("ascii")
             else:
                 raise exc.ExpectedTypeError(checksum, "unicode", "checksum")
-
-        # handle stub
-        if checksum == self._stub_checksum:
-            return None
 
         # check size
         cc = self.checksum_size
@@ -541,16 +527,20 @@ class GenericHandler(PasswordHash):
     #===================================================================
     #'crypt-style' interface (default implementation)
     #===================================================================
-    @classmethod
-    def genconfig(cls, **settings):
-        return cls(use_defaults=True, **settings).to_string()
 
-    @classmethod
-    def genhash(cls, secret, config, **context):
-        validate_secret(secret)
-        self = cls.from_string(config, **context)
-        self.checksum = self._calc_checksum(secret)
-        return self.to_string()
+    @property
+    def _stub_checksum(self):
+        """optional placeholder used by hash(config=True) so it can avoid calculating digest"""
+        if self.checksum_size:
+            if self._checksum_is_bytes:
+                return b'\x00' * self.checksum_size
+            if self.checksum_chars:
+                return self.checksum_chars[0] * self.checksum_size
+            if isinstance(self, HasRounds):
+                # otherwise genconfig() may run for unbounded amount of time
+                raise RuntimeError("%s: must provide stub checksum due to variable time cost" %
+                                   self.name)
+        return None
 
     def _calc_checksum(self, secret): # pragma: no cover
         """given secret; calcuate and return encoded checksum portion of hash
@@ -565,10 +555,28 @@ class GenericHandler(PasswordHash):
     #===================================================================
     #'application' interface (default implementation)
     #===================================================================
+
     @classmethod
-    def encrypt(cls, secret, **kwds):
+    def hash(cls, secret, config=None, **kwds):
         validate_secret(secret)
-        self = cls(use_defaults=True, **kwds)
+        if config is None:
+            # generate new config settings (salt, etc)
+            self = cls(use_defaults=True, **kwds)
+        elif config is True:
+            # NOTE: this is temporary until genconfig() is removed,
+            #       at which point support for 'config=True' will probably be removed entirely.
+            # replacement for genconfig() --
+            # this uses optional stub checksum to bypass potentially expensive digest generation,
+            # when caller just wants the config string.
+            self = cls(use_defaults=True, **kwds)
+            self.checksum = self._stub_checksum
+            if self.checksum:
+                return self.to_string()
+        else:
+            # replacement for genhash() --
+            # reuse config settings from existing hash / config string.
+            # NOTE: 'kwds' should be subset of .context_kwds in this case
+            self = cls.from_string(config, **kwds)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
 
@@ -635,7 +643,7 @@ class GenericHandler(PasswordHash):
         """[experimental method] parse hash into dictionary of settings.
 
         this essentially acts as the inverse of :meth:`encrypt`: for most
-        cases, if ``hash = cls.encrypt(secret, **opts)``, then
+        cases, if ``hash = cls.hash(secret, **opts)``, then
         ``cls.parsehash(hash)`` will return a dict matching the original options
         (with the extra keyword *checksum*).
 
@@ -733,18 +741,6 @@ class StaticHandler(GenericHandler):
         assert self.checksum is not None
         return uascii_to_str(self._hash_prefix + self.checksum)
 
-    @classmethod
-    def genconfig(cls):
-        # since it has no settings, there's no need for a config string.
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config, **context):
-        # since it has no settings, just verify config, and call encrypt()
-        if config is not None and not cls.identify(config):
-            raise exc.InvalidHashError(cls)
-        return cls.encrypt(secret, **context)
-
     # per-subclass: stores dynamically created subclass used by _calc_checksum() stub
     __cc_compat_hack = None
 
@@ -800,13 +796,14 @@ class HasUserContext(GenericHandler):
 
     # wrap funcs to accept 'user' as positional arg for ease of use.
     @classmethod
-    def encrypt(cls, secret, user=None, **context):
-        return super(HasUserContext, cls).encrypt(secret, user=user, **context)
+    def hash(cls, secret, user=None, **context):
+        return super(HasUserContext, cls).hash(secret, user=user, **context)
 
     @classmethod
     def verify(cls, secret, hash, user=None, **context):
         return super(HasUserContext, cls).verify(secret, hash, user=user, **context)
 
+    # NOTE: deprecated
     @classmethod
     def genhash(cls, secret, config, user=None, **context):
         return super(HasUserContext, cls).genhash(secret, config, user=user, **context)
@@ -1531,7 +1528,7 @@ class HasRounds(GenericHandler):
             assert isinstance(rounds, int_types)
         elif self.use_defaults:
             # warn if rounds is outside desired bounds only if user provided explicit rounds
-            # to .encrypt() -- hence the .use_defaults check, which will be false if we're
+            # to .hash() -- hence the .use_defaults check, which will be false if we're
             # coming from .verify() / .genhash()
             explicit = True
 
@@ -1927,6 +1924,7 @@ class HasManyBackends(GenericHandler):
 #=============================================================================
 # wrappers
 #=============================================================================
+# XXX: should this inherit from PasswordHash?
 class PrefixWrapper(object):
     """wraps another handler, adding a constant prefix.
 
@@ -2121,21 +2119,23 @@ class PrefixWrapper(object):
         hash = self._unwrap_hash(hash)
         return self.wrapped.identify(hash)
 
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash('', **settings)")
     def genconfig(self, **kwds):
-        config = self.wrapped.genconfig(**kwds)
-        if config is None:
-            return None
-        else:
-            return self._wrap_hash(config)
+        return self.hash(u(""), config=True, **kwds)
 
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash(config=config)")
     def genhash(self, secret, config, **kwds):
-        if config is not None:
-            config = to_unicode(config, "ascii", "config/hash")
-            config = self._unwrap_hash(config)
-        return self._wrap_hash(self.wrapped.genhash(secret, config, **kwds))
+        return self.hash(secret, config=config, **kwds)
 
+    @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash()")
     def encrypt(self, secret, **kwds):
-        return self._wrap_hash(self.wrapped.encrypt(secret, **kwds))
+        return self.hash(secret, **kwds)
+
+    def hash(self, secret, config=None, **kwds):
+        if not (config is None or config is True):
+            config = to_unicode(config, "ascii", "config/hash")
+            kwds['config'] = self._unwrap_hash(config)
+        return self._wrap_hash(self.wrapped.hash(secret, **kwds))
 
     def verify(self, secret, hash, **kwds):
         hash = to_unicode(hash, "ascii", "hash")

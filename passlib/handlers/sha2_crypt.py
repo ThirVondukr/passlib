@@ -281,7 +281,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
 
     def __init__(self, implicit_rounds=None, **kwds):
         super(_SHA2_Common, self).__init__(**kwds)
-        # if user calls encrypt() w/ 5000 rounds, default to compact form.
+        # if user calls hash() w/ 5000 rounds, default to compact form.
         if implicit_rounds is None:
             implicit_rounds = (self.use_defaults and self.rounds == 5000)
         self.implicit_rounds = implicit_rounds
@@ -394,7 +394,7 @@ class sha256_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -453,7 +453,7 @@ class sha512_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:

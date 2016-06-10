@@ -23,7 +23,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import nthash
 
     >>> # encrypt password
-    >>> h = nthash.encrypt("password")
+    >>> h = nthash.hash("password")
     >>> h
     '8846f7eaee8fb117ad06bdd830b7586c'
 
@@ -66,7 +66,7 @@ NTHASH digest. An example digest (of ``password``) is
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
 
     .. versionchanged:: 1.6
         This hash was named ``nthash`` under previous releases of Passlib.

@@ -201,7 +201,7 @@ def test_context_calls():
         another__vary_rounds=100,
     )
     def helper():
-        hash = ctx.encrypt(SECRET, rounds=2001)
+        hash = ctx.hash(SECRET, rounds=2001)
         ctx.verify(SECRET, hash)
         ctx.verify_and_update(SECRET, hash)
         ctx.verify_and_update(OTHER, hash)
@@ -219,7 +219,7 @@ def test_bcrypt_builtin():
     bcrypt.set_backend("builtin")
     bcrypt.default_rounds = 10
     def helper():
-        hash = bcrypt.encrypt(SECRET)
+        hash = bcrypt.hash(SECRET)
         bcrypt.verify(SECRET, hash)
         bcrypt.verify(OTHER, hash)
     return helper
@@ -231,7 +231,7 @@ def test_bcrypt_ffi():
     bcrypt.set_backend("bcrypt")
     bcrypt.default_rounds = 8
     def helper():
-        hash = bcrypt.encrypt(SECRET)
+        hash = bcrypt.hash(SECRET)
         bcrypt.verify(SECRET, hash)
         bcrypt.verify(OTHER, hash)
     return helper
@@ -242,7 +242,7 @@ def test_md5_crypt_builtin():
     from passlib.hash import md5_crypt
     md5_crypt.set_backend("builtin")
     def helper():
-        hash = md5_crypt.encrypt(SECRET)
+        hash = md5_crypt.hash(SECRET)
         md5_crypt.verify(SECRET, hash)
         md5_crypt.verify(OTHER, hash)
     return helper
@@ -252,7 +252,7 @@ def test_ldap_salted_md5():
     """test ldap_salted_md5"""
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
-        hash = handler.encrypt(SECRET, salt='....')
+        hash = handler.hash(SECRET, salt='....')
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
@@ -263,7 +263,7 @@ def test_phpass():
     from passlib.hash import phpass as handler
     kwds = dict(salt='.'*8, rounds=16)
     def helper():
-        hash = handler.encrypt(SECRET, **kwds)
+        hash = handler.hash(SECRET, **kwds)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
@@ -273,7 +273,7 @@ def test_sha1_crypt():
     from passlib.hash import sha1_crypt as handler
     kwds = dict(salt='.'*8, rounds=10000)
     def helper():
-        hash = handler.encrypt(SECRET, **kwds)
+        hash = handler.hash(SECRET, **kwds)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper

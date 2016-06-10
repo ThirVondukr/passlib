@@ -98,7 +98,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -151,7 +151,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -187,6 +187,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     name = "cta_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = u("$p5k2$")
+    checksum_size = 20
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. underlying algorithm (and reference implementation)
@@ -250,7 +251,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -286,6 +287,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = u("$p5k2$")
+    _stub_checksum = u("0" * 48 + "=")
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. underlying algorithm (and reference implementation)
@@ -351,7 +353,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     It supports a fixed-length salt, and a fixed number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
 
     :type salt: bytes
     :param salt:
@@ -375,8 +377,6 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     ident = u("{PKCS5S2}")
     checksum_size = 32
 
-    _stub_checksum = b"\x00" * 32
-
     #--HasRawSalt--
     min_salt_size = max_salt_size = 16
 
@@ -391,7 +391,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        data = self.salt + (self.checksum or self._stub_checksum)
+        data = self.salt + self.checksum
         hash = self.ident + b64encode(data).decode("ascii")
         return uascii_to_str(hash)
 
@@ -409,7 +409,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -441,6 +441,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     setting_kwds = ("salt", "salt_size", "rounds")
 
     ident = u("grub.pbkdf2.sha512.")
+    checksum_size = 64
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. the underlying pbkdf2 specifies no bounds for either,

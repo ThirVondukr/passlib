@@ -4,6 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
+import contextlib
 import logging; log = logging.getLogger(__name__)
 import random
 import re
@@ -161,6 +162,35 @@ def unwrap_handler(handler):
         handler = handler.wrapped
     return handler
 
+@contextlib.contextmanager
+def patch_calc_min_rounds(handler):
+    """
+    internal helper for test_21_max_rounds() --
+    context manager which temporarily replaces handler's _calc_checksum()
+    with one that uses min_rounds; useful when trying to generate config
+    with high rounds value, but don't care if output is correct.
+    """
+    if isinstance(handler, type) and issubclass(handler, uh.HasRounds):
+        wrapped = handler._calc_checksum
+        def wrapper(self, *args, **kwds):
+            rounds = self.rounds
+            try:
+                self.rounds = self.min_rounds
+                return wrapped(self, *args, **kwds)
+            finally:
+                self.rounds = rounds
+        handler._calc_checksum = wrapper
+        try:
+            yield
+        finally:
+            handler._calc_checksum = wrapped
+    elif isinstance(handler, uh.PrefixWrapper):
+        with patch_calc_min_rounds(handler.wrapped):
+            yield
+    else:
+        yield
+        return
+
 #=============================================================================
 # misc helpers
 #=============================================================================
@@ -274,6 +304,7 @@ class TestCase(_TestCase):
             ctx = reset_warnings()
             ctx.__enter__()
             self.addCleanup(ctx.__exit__)
+            warnings.filterwarnings("ignore", "the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
 
     #---------------------------------------------------------------
     # tweak message formatting so longMessage mode is only enabled
@@ -618,10 +649,6 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     # configuration helpers
     #---------------------------------------------------------------
-    @property
-    def supports_config_string(self):
-        return self.do_genconfig() is not None
-
     @classmethod
     def iter_known_hashes(cls):
         """iterate through known (secret, hash) pairs"""
@@ -690,11 +717,15 @@ class HandlerCase(TestCase):
         """subclassable method allowing 'secret' to be encode context kwds"""
         return secret
 
-    def do_encrypt(self, secret, **kwds):
+    # TODO: rename to do_hash() to match new API
+    def do_encrypt(self, secret, use_encrypt=False, **kwds):
         """call handler's encrypt method with specified options"""
         secret = self.populate_context(secret, kwds)
         self.populate_settings(kwds)
-        return self.handler.encrypt(secret, **kwds)
+        if use_encrypt:
+            return self.handler.encrypt(secret, **kwds)
+        else:
+            return self.handler.hash(secret, **kwds)
 
     def do_verify(self, secret, hash, **kwds):
         """call handler's verify method"""
@@ -707,13 +738,19 @@ class HandlerCase(TestCase):
 
     def do_genconfig(self, **kwds):
         """call handler's genconfig method with specified options"""
+        # NOTE: as of 1.7, all genconfig() calls are just wrappers for .hash(),
+        #       so we have to include context kwds
+        self.populate_context("", kwds)
         self.populate_settings(kwds)
         return self.handler.genconfig(**kwds)
 
-    def do_genhash(self, secret, config, **kwds):
+    def do_genhash(self, secret, config, use_genhash=False, **kwds):
         """call handler's genhash method with specified options"""
         secret = self.populate_context(secret, kwds)
-        return self.handler.genhash(secret, config, **kwds)
+        if use_genhash:
+            return self.handler.genhash(secret, config, **kwds)
+        else:
+            return self.handler.hash(secret, config=config, **kwds)
 
     #---------------------------------------------------------------
     # automatically generate subclasses for testing specific backends,
@@ -815,15 +852,11 @@ class HandlerCase(TestCase):
         and that identify() and genhash() handle the result correctly.
         """
         #
-        # genconfig() should return native string,
-        # or ``None`` if handler does not use a configuration string
-        # (mostly used by static hashes)
+        # genconfig() should return native string.
+        # NOTE: prior to 1.7 could return None, but that's no longer allowed.
         #
         config = self.do_genconfig()
-        if self.supports_config_string:
-            self.check_returned_native_str(config, "genconfig")
-        else:
-            self.assertIs(config, None)
+        self.check_returned_native_str(config, "genconfig")
 
         #
         # genhash() should always accept genconfig()'s output,
@@ -835,27 +868,28 @@ class HandlerCase(TestCase):
         #
         # verify() should never accept config strings
         #
-        if self.supports_config_string:
-            self.assertRaises(ValueError, self.do_verify, 'stub', config,
-                __msg__="verify() failed to reject genconfig() output: %r" %
-                (config,))
-        else:
-            self.assertRaises(TypeError, self.do_verify, 'stub', config)
+
+        # NOTE: changed as of 1.7 -- previously, .verify() should have
+        #       rejected partial config strings returned by genconfig().
+        #       as of 1.7, that feature is deprecated, and genconfig()
+        #       always returns a hash (usually of the empty string)
+        #       so verify should always accept it's output
+        self.do_verify('', config)  # usually true, but not required by protocol
 
         #
         # identify() should positively identify config strings if not None.
         #
-        if self.supports_config_string:
-            self.assertTrue(self.do_identify(config),
-                "identify() failed to identify genconfig() output: %r" %
-                (config,))
-        else:
-            self.assertRaises(TypeError, self.do_identify, config)
 
-    def test_03_hash_workflow(self):
+        # NOTE: changed as of 1.7 -- genconfig() previously might return None,
+        #       now must always return valid hash
+        self.assertTrue(self.do_identify(config),
+            "identify() failed to identify genconfig() output: %r" %
+            (config,))
+
+    def test_03_hash_workflow(self, use_16_legacy=False):
         """test basic hash-string workflow.
 
-        this tests that encrypt()'s hashes are accepted
+        this tests that hash()'s hashes are accepted
         by verify() and identify(), and regenerated correctly by genhash().
         the test is run against a couple of different stock passwords.
         """
@@ -863,10 +897,10 @@ class HandlerCase(TestCase):
         for secret in self.stock_passwords:
 
             #
-            # encrypt() should generate native str hash
+            # hash() should generate native str hash
             #
-            result = self.do_encrypt(secret)
-            self.check_returned_native_str(result, "encrypt")
+            result = self.do_encrypt(secret, use_encrypt=use_16_legacy)
+            self.check_returned_native_str(result, "hash")
 
             #
             # verify() should work only against secret
@@ -877,7 +911,7 @@ class HandlerCase(TestCase):
             #
             # genhash() should reproduce original hash
             #
-            other = self.do_genhash(secret, result)
+            other = self.do_genhash(secret, result, use_genhash=use_16_legacy)
             self.check_returned_native_str(other, "genhash")
             self.assertEqual(other, result, "genhash() failed to reproduce "
                              "hash: secret=%r hash=%r: result=%r" %
@@ -886,7 +920,7 @@ class HandlerCase(TestCase):
             #
             # genhash() should NOT reproduce original hash for wrong password
             #
-            other = self.do_genhash(wrong_secret, result)
+            other = self.do_genhash(wrong_secret, result, use_genhash=use_16_legacy)
             self.check_returned_native_str(other, "genhash")
             if self.is_disabled_handler:
                 self.assertEqual(other, result, "genhash() failed to reproduce "
@@ -902,15 +936,19 @@ class HandlerCase(TestCase):
             #
             self.assertTrue(self.do_identify(result))
 
+    def test_03_legacy_hash_workflow(self):
+        """test hash-string workflow with legacy .encrypt() & .genhash() methods"""
+        self.test_03_hash_workflow(use_16_legacy=True)
+
     def test_04_hash_types(self):
         """test hashes can be unicode or bytes"""
         # this runs through workflow similar to 03, but wraps
         # everything using tonn() so we test unicode under py2,
         # and bytes under py3.
 
-        # encrypt using non-native secret
+        # hash using non-native secret
         result = self.do_encrypt(tonn('stub'))
-        self.check_returned_native_str(result, "encrypt")
+        self.check_returned_native_str(result, "hash")
 
         # verify using non-native hash
         self.check_verify('stub', tonn(result))
@@ -1038,7 +1076,7 @@ class HandlerCase(TestCase):
                    log(len(handler.default_salt_chars), 2))
 
     def test_11_unique_salt(self):
-        """test encrypt() / genconfig() creates new salt each time"""
+        """test hash() / genconfig() creates new salt each time"""
         self.require_salt()
         # odds of picking 'n' identical salts at random is '(.5**salt_bits)**n'.
         # we want to pick the smallest N needed s.t. odds are <1/1000, just
@@ -1059,7 +1097,7 @@ class HandlerCase(TestCase):
         sampler(lambda : self.do_encrypt("stub"))
 
     def test_12_min_salt_size(self):
-        """test encrypt() / genconfig() honors min_salt_size"""
+        """test hash() / genconfig() honors min_salt_size"""
         self.require_salt_info()
 
         handler = self.handler
@@ -1085,7 +1123,7 @@ class HandlerCase(TestCase):
                           salt_size=min_size-1)
 
     def test_13_max_salt_size(self):
-        """test encrypt() / genconfig() honors max_salt_size"""
+        """test hash() / genconfig() honors max_salt_size"""
         self.require_salt_info()
 
         handler = self.handler
@@ -1241,8 +1279,8 @@ class HandlerCase(TestCase):
         if cls.rounds_cost not in rounds_cost_values:
             raise AssertionError("unknown rounds cost constant: %r" % (cls.rounds_cost,))
 
-    def test_21_rounds_limits(self):
-        """test encrypt() / genconfig() honors rounds limits"""
+    def test_21_min_rounds(self):
+        """test hash() / genconfig() honors min_rounds"""
         self.require_rounds_info()
         handler = self.handler
         min_rounds = handler.min_rounds
@@ -1253,27 +1291,29 @@ class HandlerCase(TestCase):
 
         # check min-1 is rejected
         self.assertRaises(ValueError, self.do_genconfig, rounds=min_rounds-1)
-        self.assertRaises(ValueError, self.do_encrypt, 'stub',
-                          rounds=min_rounds-1)
+        self.assertRaises(ValueError, self.do_encrypt, 'stub', rounds=min_rounds-1)
 
         # TODO: check relaxed mode clips min-1
 
-        # handle max rounds
+    def test_21b_max_rounds(self):
+        """test hash() / genconfig() honors max_rounds"""
+        self.require_rounds_info()
+        handler = self.handler
         max_rounds = handler.max_rounds
-        if max_rounds is None:
-            # check large value is accepted
-            self.do_genconfig(rounds=(1<<31)-1)
-        else:
-            # check max is accepted
-            self.do_genconfig(rounds=max_rounds)
 
+        if max_rounds is not None:
             # check max+1 is rejected
-            self.assertRaises(ValueError, self.do_genconfig,
-                              rounds=max_rounds+1)
-            self.assertRaises(ValueError, self.do_encrypt, 'stub',
-                              rounds=max_rounds+1)
+            self.assertRaises(ValueError, self.do_genconfig, rounds=max_rounds+1)
+            self.assertRaises(ValueError, self.do_encrypt, 'stub', rounds=max_rounds+1)
 
-            # TODO: check relaxed mode clips max+1
+        # handle max rounds
+        with patch_calc_min_rounds(handler):
+            if max_rounds is None:
+                self.do_genconfig(rounds=(1<<31)-1)
+            else:
+                self.do_genconfig(rounds=max_rounds)
+
+                # TODO: check relaxed mode clips max+1
 
     def _get_rand_rounds(self):
         handler = self.handler
@@ -1907,15 +1947,15 @@ class HandlerCase(TestCase):
     def test_76_hash_border(self):
         """test non-string hashes are rejected"""
         #
-        # test hash=None is rejected (except if config=None)
+        # test hash=None is handled correctly
         #
         self.assertRaises(TypeError, self.do_identify, None)
         self.assertRaises(TypeError, self.do_verify, 'stub', None)
-        if self.supports_config_string:
-            self.assertRaises(TypeError, self.do_genhash, 'stub', None)
-        else:
-            result = self.do_genhash('stub', None)
-            self.check_returned_native_str(result, "genhash")
+
+        # NOTE: changed in 1.7 -- previously if config string not supported,
+        #       genhash() should throw TypeError; now just proxies .hash(secret, config=config)
+        result = self.do_genhash('stub', None)
+        self.check_returned_native_str(result, "genhash")
 
         #
         # test hash=int is rejected (picked as example of entirely wrong type)
@@ -2520,15 +2560,15 @@ class UserHandlerMixin(HandlerCase):
         """test user context keyword"""
         handler = self.handler
         password = 'stub'
-        hash = handler.encrypt(password, user=self.default_user)
+        hash = handler.hash(password, user=self.default_user)
 
         if self.requires_user:
-            self.assertRaises(TypeError, handler.encrypt, password)
+            self.assertRaises(TypeError, handler.hash, password)
             self.assertRaises(TypeError, handler.genhash, password, hash)
             self.assertRaises(TypeError, handler.verify, password, hash)
         else:
             # e.g. cisco_pix works with or without one.
-            handler.encrypt(password)
+            handler.hash(password)
             handler.genhash(password, hash)
             handler.verify(password, hash)
 

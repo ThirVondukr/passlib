@@ -34,7 +34,7 @@ A quick example of using passlib to integrate into a new application::
     >>> from passlib.apps import custom_app_context as pwd_context
 
     >>> # encrypting a password...
-    >>> hash = pwd_context.encrypt("somepass")
+    >>> hash = pwd_context.hash("somepass")
     >>> hash
     '$6$rounds=36122$kzMjVFTjgSVuPoS.$zx2RoZ2TYRHoKn71Y60MFmyqNPxbNnTZdwYD8y2atgoRIp923WJSbcbQc6Af3osdW96MRfwb5Hk7FymOM6D7J1'
 

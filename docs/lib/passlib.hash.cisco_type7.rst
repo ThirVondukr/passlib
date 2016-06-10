@@ -23,7 +23,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import cisco_type7
 
     >>> # encode password
-    >>> h = cisco_type7.encrypt("password")
+    >>> h = cisco_type7.hash("password")
     >>> h
     '044B0A151C36435C0D'
 

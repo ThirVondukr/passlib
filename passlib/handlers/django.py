@@ -61,18 +61,13 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
     checksum_chars = uh.LOWER_HEX_CHARS
 
-    @classproperty
-    def _stub_checksum(cls):
-        return cls.checksum_chars[0] * cls.checksum_size
-
     @classmethod
     def from_string(cls, hash):
         salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        return uh.render_mc2(self.ident, self.salt,
-                             self.checksum or self._stub_checksum)
+        return uh.render_mc2(self.ident, self.salt, self.checksum)
 
 class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
     """base class providing common code for django hashes w/ variable rounds"""
@@ -86,15 +81,14 @@ class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
     def to_string(self):
-        return uh.render_mc3(self.ident, self.rounds, self.salt,
-                             self.checksum or self._stub_checksum)
+        return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
 class django_salted_sha1(DjangoSaltedHash):
     """This class implements Django's Salted SHA1 hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and uses a single round of SHA1.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -131,7 +125,7 @@ class django_salted_md5(DjangoSaltedHash):
 
     It supports a variable-length salt, and uses a single round of MD5.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -243,7 +237,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -294,7 +288,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -340,7 +334,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
 
     It supports a fixed-length salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -365,7 +359,6 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
     checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 11
     min_salt_size = default_salt_size = 2
-    _stub_checksum = u('.')*11
 
     # NOTE: regarding duplicate salt field:
     #
@@ -403,7 +396,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         salt = self.salt
-        chk = salt[:2] + (self.checksum or self._stub_checksum)
+        chk = salt[:2] + self.checksum
         if self.use_duplicate_salt:
             # filling in salt field, so that we're compatible with django 1.0
             return uh.render_mc2(self.ident, salt, chk)
@@ -438,14 +431,16 @@ class django_disabled(uh.StaticHandler):
     .. versionchanged:: 1.6.2 added Django 1.6 support
     """
     name = "django_disabled"
+    _hash_prefix = u("!")
 
+    # XXX: move this to StaticHandler, or wherever _hash_prefix is being used?
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
-        return hash.startswith(u("!"))
+        return hash.startswith(cls._hash_prefix)
 
     def _calc_checksum(self, secret):
-        return u("!")
+        return u("")  # prefix will get prepended
 
     @classmethod
     def verify(cls, secret, hash):

@@ -1069,11 +1069,6 @@ class mssql2000_test(HandlerCase):
 
     ]
 
-    known_correct_configs = [
-        ('0x010034767D5C00000000000000000000000000000000000000000000000000000000000000000000000000000000',
-         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED2503412FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
-    ]
-
     known_alternate_hashes = [
         # lower case hex
         ('0x01005b20054332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b3',
@@ -1159,11 +1154,6 @@ class mssql2005_test(HandlerCase):
         # ensures utf-8 used for unicode
         (UPASS_USD,   '0x0100624C0961B28E39FEE13FD0C35F57B4523F0DA1861C11D5A5'),
         (UPASS_TABLE, '0x010083104228FAD559BE52477F2131E538BE9734E5C4B0ADEFD7'),
-    ]
-
-    known_correct_configs = [
-        ('0x010034767D5C0000000000000000000000000000000000000000',
-         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED250341'),
     ]
 
     known_alternate_hashes = [
@@ -1797,7 +1787,7 @@ class scram_test(HandlerCase):
         self.assertEqual(subcls.default_algs, ["md5", "sha-1"])
 
         # test encrypt output
-        h1 = subcls.encrypt("dummy")
+        h1 = subcls.hash("dummy")
         self.assertEqual(handler.extract_digest_algs(h1), ["md5", "sha-1"])
 
     def test_94_using_algs(self):
@@ -1809,7 +1799,7 @@ class scram_test(HandlerCase):
         handler1 = self.handler.using(algs="sha1,md5")
 
         # shouldn't need update, has same algs
-        h1 = handler1.encrypt("dummy")
+        h1 = handler1.hash("dummy")
         self.assertFalse(handler1.needs_update(h1))
 
         # *currently* shouldn't need update, has superset of algs required by handler2
@@ -1827,7 +1817,7 @@ class scram_test(HandlerCase):
         from passlib.context import CryptContext
         c1 = CryptContext(["scram"], scram__algs="sha1,md5")
 
-        h = c1.encrypt("dummy")
+        h = c1.hash("dummy")
         self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
         self.assertFalse(c1.needs_update(h))
 
@@ -2204,7 +2194,7 @@ class sun_md5_crypt_test(HandlerCase):
         # should all be treated the same, with one "$" added to salt digest.
         ("$md5$3UqYqndY$",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
-        ("$md5$3UqYqndY$$......................",
+        ("$md5$3UqYqndY$$.................DUMMY",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
 
         # config with no suffix, hash strings with "$" suffix,
@@ -2214,7 +2204,7 @@ class sun_md5_crypt_test(HandlerCase):
         #       within config string.
         ("$md5$3UqYqndY",
             "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
-        ("$md5$3UqYqndY$......................",
+        ("$md5$3UqYqndY$.................DUMMY",
             "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
     ]
 
@@ -2251,10 +2241,10 @@ class sun_md5_crypt_test(HandlerCase):
         ("freebsd|openbsd|netbsd|linux|darwin", False),
     ]
     def do_verify(self, secret, hash):
-        # override to fake error for "$..." hash strings listed in known_config.
-        # these have to be hash strings, in order to test bare salt issue.
-        if isinstance(hash, str) and hash.endswith("$......................"):
-            raise ValueError("pretending '$.' hash is config string")
+        # Override to fake error for "$..." hash string listed in known_correct_configs (above)
+        # These have to be hash strings, in order to test bare salt issue.
+        if isinstance(hash, str) and hash.endswith("$.................DUMMY"):
+            raise ValueError("pretending '$...' stub hash is config string")
         return self.handler.verify(secret, hash)
 
 #=============================================================================

@@ -589,7 +589,7 @@ class HtpasswdFile(_CommonFile):
             The old alias is deprecated, and will be removed in Passlib 1.8.
         """
         user = self._encode_user(user)
-        hash = self.context.encrypt(password)
+        hash = self.context.hash(password)
         if PY3:
             hash = hash.encode(self.encoding)
         existing = (user in self._records)
@@ -916,7 +916,7 @@ class HtdigestFile(_CommonFile):
         realm = self._encode_realm(realm)
         key = (user, realm)
         existing = (key in self._records)
-        hash = htdigest.encrypt(password, user, realm, encoding=self.encoding)
+        hash = htdigest.hash(password, user, realm, encoding=self.encoding)
         if PY3:
             hash = hash.encode(self.encoding)
         self._records[key] = hash

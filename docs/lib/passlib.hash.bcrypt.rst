@@ -14,12 +14,12 @@ for new applications. This class can be used directly as follows::
     >>> from passlib.hash import bcrypt
 
     >>> # generate new salt, encrypt password
-    >>> h = bcrypt.encrypt("password")
+    >>> h = bcrypt.hash("password")
     >>> h
     '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
 
     >>> # the same, but with an explicit number of rounds
-    >>> bcrypt.encrypt("password", rounds=8)
+    >>> bcrypt.hash("password", rounds=8)
     '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
 
     >>> # verify password

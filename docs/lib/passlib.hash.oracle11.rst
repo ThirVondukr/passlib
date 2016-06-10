@@ -11,7 +11,7 @@ This class can be can be used directly as follows::
     >>> from passlib.hash import oracle11 as oracle11
 
     >>> # generate new salt, encrypt password
-    >>> hash = oracle11.encrypt("password")
+    >>> hash = oracle11.hash("password")
     >>> hash
     'S:4143053633E59B4992A8EA17D2FF542C9EDEB335C886EED9C80450C1B4E6'
 
