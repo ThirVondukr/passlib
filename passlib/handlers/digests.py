@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
 from passlib.utils.compat import unicode, str_to_uascii
 import passlib.utils.handlers as uh
-from passlib.utils.md4 import md4
+from passlib.crypto.digest import lookup_hash
 # local
 __all__ = [
     "create_hex_hash",
@@ -50,35 +50,35 @@ class HexDigestHash(uh.StaticHandler):
     # eoc
     #===================================================================
 
-def create_hex_hash(hash, digest_name, module=__name__):
+def create_hex_hash(digest, module=__name__):
     # NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.
-    h = hash()
-    name = "hex_" + digest_name
+    info = lookup_hash(digest)
+    name = "hex_" + info.name
     return type(name, (HexDigestHash,), dict(
         name=name,
         __module__=module, # so ABCMeta won't clobber it
-        _hash_func=staticmethod(hash), # sometimes it's a function, sometimes not. so wrap it.
-        checksum_size=h.digest_size*2,
+        _hash_func=staticmethod(info.const), # sometimes it's a function, sometimes not. so wrap it.
+        checksum_size=info.digest_size*2,
         __doc__="""This class implements a plain hexadecimal %s hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.
-""" % (digest_name,)
+""" % (info.name,)
     ))
 
 #=============================================================================
 # predefined handlers
 #=============================================================================
-hex_md4     = create_hex_hash(md4,              "md4")
-hex_md5     = create_hex_hash(hashlib.md5,      "md5")
+hex_md4     = create_hex_hash("md4")
+hex_md5     = create_hex_hash("md5")
 hex_md5.django_name = "unsalted_md5"
-hex_sha1    = create_hex_hash(hashlib.sha1,     "sha1")
-hex_sha256  = create_hex_hash(hashlib.sha256,   "sha256")
-hex_sha512  = create_hex_hash(hashlib.sha512,   "sha512")
+hex_sha1    = create_hex_hash("sha1")
+hex_sha256  = create_hex_hash("sha256")
+hex_sha512  = create_hex_hash("sha512")
 
 #=============================================================================
 # htdigest
 #=============================================================================
-class htdigest(uh.PasswordHash):
+class htdigest(uh.MinimalHandler):
     """htdigest hash function.
 
     .. todo::
@@ -90,9 +90,13 @@ class htdigest(uh.PasswordHash):
     default_encoding = "utf-8"
 
     @classmethod
-    def encrypt(cls, secret, user, realm, encoding=None):
+    def hash(cls, secret, user, realm, encoding=None, config=None):
         # NOTE: this was deliberately written so that raw bytes are passed through
         # unchanged, the encoding kwd is only used to handle unicode values.
+        if not (config is None or config is True):
+            # NOTE: 'config' is ignored, as this hash has no salting / other configuration.
+            #       just have to make sure it's valid.
+            cls._norm_hash(config)
         if not encoding:
             encoding = cls.default_encoding
         uh.validate_secret(secret)
@@ -117,7 +121,7 @@ class htdigest(uh.PasswordHash):
     @classmethod
     def verify(cls, secret, hash, user, realm, encoding="utf-8"):
         hash = cls._norm_hash(hash)
-        other = cls.encrypt(secret, user, realm, encoding)
+        other = cls.hash(secret, user, realm, encoding)
         return consteq(hash, other)
 
     @classmethod
@@ -127,16 +131,6 @@ class htdigest(uh.PasswordHash):
         except ValueError:
             return False
         return True
-
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config, user, realm, encoding="utf-8"):
-        if config is not None:
-            cls._norm_hash(config)
-        return cls.encrypt(secret, user, realm, encoding)
 
 #=============================================================================
 # eof

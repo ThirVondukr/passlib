@@ -1,9 +1,16 @@
-=============================================================
-:mod:`passlib.utils.pbkdf2` - PBKDF2 key derivation algorithm
-=============================================================
+==========================================================================
+:mod:`passlib.utils.pbkdf2` - PBKDF2 key derivation algorithm [deprecated]
+==========================================================================
 
 .. module:: passlib.utils.pbkdf2
     :synopsis: PBKDF2 and related key derivation algorithms
+
+.. warning::
+
+    This module has been deprecated as of Passlib 1.7,
+    and will be removed in Passlib 2.0.
+    The functions in this module have been replaced by equivalent
+    (but not identical) functions in the :mod:`passlib.crypto` module.
 
 This module provides a couple of key derivation functions,
 as well as supporting utilities.
@@ -26,11 +33,5 @@ PKCS#5 Key Derivation Functions
 Helper Functions
 ================
 .. autofunction:: norm_hash_name
-.. autofunction:: get_hash_info
 
 .. autofunction:: get_prf
-.. autofunction:: get_keyed_prf
-
-..
-    given how this module is expanding in scope,
-    perhaps it should be renamed "kdf" or "crypto"?

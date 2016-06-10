@@ -31,8 +31,8 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import add_doc, join_bytes, join_byte_values, \
-                                 join_byte_elems, exc_err, irange, imap, PY3, u, \
-                                 join_unicode, unicode, byte_elem_value, next_method_attr
+                                 join_byte_elems, irange, imap, PY3, u, \
+                                 join_unicode, unicode, byte_elem_value, nextgetter
 # local
 __all__ = [
     # constants
@@ -134,7 +134,8 @@ class classproperty(object):
         return self.im_func
 
 def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
-                        replacement=None, _is_method=False):
+                        replacement=None, _is_method=False,
+                        func_module=None):
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
@@ -156,8 +157,12 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             msg += ", use %s instead" % replacement
         msg += "."
     def build(func):
+        is_classmethod = _is_method and isinstance(func, classmethod)
+        if is_classmethod:
+            # NOTE: PY26 doesn't support "classmethod().__func__" directly...
+            func = func.__get__(None, type).__func__
         opts = dict(
-            mod=func.__module__,
+            mod=func_module or func.__module__,
             name=func.__name__,
             deprecated=deprecated,
             removed=removed,
@@ -165,7 +170,7 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
         if _is_method:
             def wrapper(*args, **kwds):
                 tmp = opts.copy()
-                klass = args[0].__class__
+                klass = args[0] if is_classmethod else args[0].__class__
                 tmp.update(klass=klass.__name__, mod=klass.__module__)
                 warn(msg % tmp, DeprecationWarning, stacklevel=2)
                 return func(*args, **kwds)
@@ -190,6 +195,8 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             if not wrapper.__doc__.strip(" ").endswith("\n"):
                 wrapper.__doc__ += "\n"
             wrapper.__doc__ += "\n.. deprecated:: %s\n" % (txt,)
+        if is_classmethod:
+            wrapper = classmethod(wrapper)
         return wrapper
     return build
 
@@ -241,6 +248,32 @@ class memoized_property(object):
 ##    @property
 ##    def __func__(self):
 ##        "py3 compatible alias"
+
+class SequenceMixin(object):
+    """
+    helper which lets result object act like a fixed-length sequence.
+    subclass just needs to provide :meth:`_as_tuple()`.
+    """
+    def _as_tuple(self):
+        raise NotImplemented("implement in subclass")
+
+    def __repr__(self):
+        return repr(self._as_tuple())
+
+    def __getitem__(self, idx):
+        return self._as_tuple()[idx]
+
+    def __iter__(self):
+        return iter(self._as_tuple())
+
+    def __len__(self):
+        return len(self._as_tuple())
+
+    def __eq__(self, other):
+        return self._as_tuple() == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 #=============================================================================
 # unicode helpers
@@ -795,9 +828,9 @@ class Base64Engine(object):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         chunks, tail = divmod(len(source), 3)
         if PY3:
-            next_value = iter(source).__next__
+            next_value = nextgetter(iter(source))
         else:
-            next_value = (ord(elem) for elem in source).next
+            next_value = nextgetter(ord(elem) for elem in source)
         gen = self._encode_bytes(next_value, chunks, tail)
         out = join_byte_elems(imap(self._encode64, gen))
         ##if tail:
@@ -904,11 +937,10 @@ class Base64Engine(object):
         if tail == 1:
             # only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
-        next_value = getattr(imap(self._decode64, source), next_method_attr)
+        next_value = nextgetter(imap(self._decode64, source))
         try:
             return join_byte_values(self._decode_bytes(next_value, chunks, tail))
-        except KeyError:
-            err = exc_err()
+        except KeyError as err:
             raise ValueError("invalid character: %r" % (err.args[0],))
 
     def _decode_bytes_little(self, next_value, chunks, tail):
@@ -1544,7 +1576,7 @@ def getrandstr(rng, charset, count):
 _52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 
 @deprecated_function(deprecated="1.7", removed="2.0",
-                     replacement="passlib.pwd.generate()")
+                     replacement="passlib.pwd.genword() / passlib.pwd.genphrase()")
 def generate_password(size=10, charset=_52charset):
     """generate random password using given length & charset
 
@@ -1573,8 +1605,7 @@ def generate_password(size=10, charset=_52charset):
 _handler_attrs = (
         "name",
         "setting_kwds", "context_kwds",
-        "genconfig", "genhash",
-        "verify", "encrypt", "identify",
+        "verify", "hash", "identify",
         )
 
 def is_crypt_handler(obj):

@@ -29,7 +29,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     It supports a fixed-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -40,7 +40,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 17, must be between 7 and 30, inclusive.
+        Defaults to 19, must be between 7 and 30, inclusive.
         This value is logarithmic, the actual number of iterations used will be :samp:`2**{rounds}`.
 
     :type ident: str
@@ -73,7 +73,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     salt_chars = uh.HASH64_CHARS
 
     #--HasRounds--
-    default_rounds = 17
+    default_rounds = 19
     min_rounds = 7
     max_rounds = 30
     rounds_cost = "log2"

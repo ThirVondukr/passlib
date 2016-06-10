@@ -25,7 +25,7 @@ Each of the objects in this module can be imported directly::
 
 Encrypting a password is simple (and salt generation is handled automatically)::
 
-    >>> hash = custom_app_context.encrypt("toomanysecrets")
+    >>> hash = custom_app_context.hash("toomanysecrets")
     >>> hash
     '$5$rounds=84740$fYChCy.52EzebF51$9bnJrmTf2FESI93hgIBFF4qAfysQcKoB0veiI0ZeYU4'
 
@@ -116,7 +116,7 @@ Passlib provides two contexts related to ldap hashes:
         >>> ldap_context = ldap_context.replace(default="ldap_salted_md5")
 
         >>> # the new context object will now default to {SMD5}:
-        >>> ldap_context.encrypt("password")
+        >>> ldap_context.hash("password")
         '{SMD5}T9f89F591P3fFh1jz/YtW4aWD5s='
 
 .. data:: ldap_nocrypt_context
@@ -190,7 +190,7 @@ PostgreSQL
         >>> from passlib.apps import postgres_context
 
         >>> # encrypting a password...
-        >>> postgres_context.encrypt("somepass", user="dbadmin")
+        >>> postgres_context.hash("somepass", user="dbadmin")
         'md578ed0f0ab2be0386645c1b74282917e7'
 
         >>> # verifying a password...
@@ -200,7 +200,7 @@ PostgreSQL
         False
 
         >>> # forgetting the user will result in an error:
-        >>> postgres_context.encrypt("somepass")
+        >>> postgres_context.hash("somepass")
         Traceback (most recent call last):
             <traceback omitted>
         TypeError: user must be unicode or bytes, not None

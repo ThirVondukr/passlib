@@ -226,7 +226,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
 
     It supports a variable-length salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -280,7 +280,10 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         if hash:
             assert hash.startswith(config) and len(hash) == len(config) + 23
             return hash[-22:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend
@@ -301,7 +304,7 @@ class apr_md5_crypt(_MD5_Common):
 
     It supports a variable-length salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:

@@ -23,12 +23,12 @@ __all__ = [
 # cisco pix firewall hash
 #=============================================================================
 class cisco_pix(uh.HasUserContext, uh.StaticHandler):
-    """This class implements the password hash used by Cisco PIX firewalls,
+    """This class implements the password hash used by (older) Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
     It does a single round of hashing, and relies on the username
     as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
     have the following extra keyword:
 
     :type user: str
@@ -42,6 +42,8 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         Conversely, this *must* be omitted or set to ``""`` in order to correctly
         hash passwords which don't have an associated user account
         (such as the "enable" password).
+
+    .. versionadded:: 1.6
     """
     #===================================================================
     # class attrs
@@ -50,26 +52,42 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     checksum_size = 16
     checksum_chars = uh.HASH64_CHARS
 
+    #: control flag signalling cisco_asa mode
+    _is_asa = False
+
     #===================================================================
     # methods
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            # XXX: no idea what unicode policy is, but all examples are
-            # 7-bit ascii compatible, so using UTF-8
-            secret = secret.encode("utf-8")
 
+        # This function handles both the cisco_pix & cisco_asa formats:
+        #   * PIX had a limit of 16 character passwords, and always appended the username.
+        #   * ASA 7.0 (2005) increases this limit to 32, and conditionally appends the username.
+        # The two behaviors are controlled based on the _is_asa class-level flag.
+        asa = self._is_asa
+
+        # XXX: No idea what unicode policy is, but all examples are
+        #      7-bit ascii compatible, so using UTF-8.
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        seclen = len(secret)
+
+        # PIX/ASA: Per-user accounts use the first 4 chars of the username as the salt,
+        #          whereas global "enable" passwords don't have any salt at all.
+        # ASA only: Don't append user if password is 28 or more characters.
         user = self.user
-        if user:
-            # not positive about this, but it looks like per-user
-            # accounts use the first 4 chars of the username as the salt,
-            # whereas global "enable" passwords don't have any salt at all.
+        if user and not (asa and seclen > 27):
             if isinstance(user, unicode):
                 user = user.encode("utf-8")
             secret += user[:4]
 
-        # null-pad or truncate to 16 bytes
-        secret = right_pad_string(secret, 16)
+        # PIX: null-pad or truncate to 16 bytes.
+        # ASA: increase to 32 bytes if password is 13 or more characters.
+        if asa and seclen > 12:
+            padsize = 32
+        else:
+            padsize = 16
+        secret = right_pad_string(secret, padsize)
 
         # md5 digest
         hash = md5(secret).digest()
@@ -84,6 +102,23 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     # eoc
     #===================================================================
 
+
+class cisco_asa(cisco_pix):
+    """
+    This class implements the password hash used by Cisco ASA/PIX 7.0 and newer (2005).
+    Aside from a different internal algorithm, it's use and format is identical
+    to the older :class:`cisco_pix` class.
+
+    For passwords less than 13 characters, this should be identical to :class:`!cisco_pix`,
+    but will generate a different hash for anything larger
+    (See the `Format & Algorithm`_ section for the details).
+
+    .. versionadded:: 1.7
+    """
+    name = "cisco_asa"
+    _is_asa = True
+
+
 #=============================================================================
 # type 7
 #=============================================================================
@@ -93,7 +128,7 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
     have the following optional keywords:
 
     :type salt: int
@@ -131,18 +166,6 @@ class cisco_type7(uh.GenericHandler):
     #===================================================================
     # methods
     #===================================================================
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config):
-        # special case to handle ``config=None`` in same style as StaticHandler
-        if config is None:
-            return cls.encrypt(secret)
-        else:
-            return super(cisco_type7, cls).genhash(secret, config)
-
     @classmethod
     def from_string(cls, hash):
         hash = to_unicode(hash, "ascii", "hash")

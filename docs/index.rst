@@ -28,7 +28,7 @@ using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
     >>> from passlib.hash import sha256_crypt
 
     >>> # generate new salt, and hash a password
-    >>> hash = sha256_crypt.encrypt("toomanysecrets")
+    >>> hash = sha256_crypt.hash("toomanysecrets")
     >>> hash
     '$5$rounds=80000$zvpXD3gCkrt7tw.1$QqeTSolNHEfgryc5oMgiq1o8qCEAcmye3FoMSuvgToC'
 
@@ -41,7 +41,7 @@ using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
 Content Summary
 ===============
 
-.. rst-class:: floater
+.. rst-class:: float-right inline-title
 
 .. seealso:: :ref:`What's new in Passlib 1.7 <whats-new>`
 
@@ -129,12 +129,11 @@ Online Resources
         :column-alignment: lr
 
         ================ ===================================================
-        Homepage:        `<http://passlib.googlecode.com>`_
+        Homepage:        `<https://bitbucket.org/ecollins/passlib>`_
         Online Docs:     `<http://packages.python.org/passlib>`_
         Discussion:      `<http://groups.google.com/group/passlib-users>`_
         ---------------- ---------------------------------------------------
         ---------------- ---------------------------------------------------
-        PyPI:            `<http://pypi.python.org/pypi/passlib>`_
-        Downloads:       `<http://code.google.com/p/passlib/downloads>`_
-        Source:          `<http://code.google.com/p/passlib/source>`_
+        Downloads:       `<https://pypi.python.org/pypi/passlib>`_
+        Source:          `<https://bitbucket.org/ecollins/passlib/src>`_
         ================ ===================================================

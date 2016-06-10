@@ -28,7 +28,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import msdcc
 
     >>> # encrypt password using specified username
-    >>> hash = msdcc.encrypt("password", user="Administrator")
+    >>> hash = msdcc.hash("password", user="Administrator")
     >>> hash
     '25fd08fa89795ed54207e6e8442a6ca0'
 

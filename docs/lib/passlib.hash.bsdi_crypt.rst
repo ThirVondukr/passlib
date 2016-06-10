@@ -17,12 +17,12 @@ It class can be used directly as follows::
     >>> from passlib.hash import bsdi_crypt
 
     >>> # generate new salt, encrypt password
-    >>> hash = bsdi_crypt.encrypt("password")
+    >>> hash = bsdi_crypt.hash("password")
     >>> hash
     '_7C/.Bf/4gZk10RYRs4Y'
 
     >>> # same, but with explict number of rounds
-    >>> bsdi_crypt.encrypt("password", rounds=10001)
+    >>> bsdi_crypt.hash("password", rounds=10001)
     '_FQ0.amG/zwCMip7DnBk'
 
     >>> # verify password

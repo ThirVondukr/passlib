@@ -1,4 +1,4 @@
-"""tests for passlib.pwhash -- (c) Assurance Technologies 2003-2009"""
+"""tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 #=============================================================================
 # imports
 #=============================================================================
@@ -204,6 +204,7 @@ class RegistryTest(TestCase):
         passlib.hash.__dict__["_fake"] = "dummy" # so behavior seen under py2x also
         for name in list_crypt_handlers():
             self.assertFalse(name.startswith("_"), "%r: " % name)
+        unload_handler_name("_fake")
 
     def test_handlers(self):
         """verify we have tests for all builtin handlers"""

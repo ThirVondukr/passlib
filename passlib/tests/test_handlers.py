@@ -168,8 +168,9 @@ class _bsdi_crypt_test(HandlerCase):
         super(_bsdi_crypt_test, self).setUp()
         warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
 
-bsdi_crypt_os_crypt_test, bsdi_crypt_builtin_test = \
-                   _bsdi_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+bsdi_crypt_os_crypt_test = _bsdi_crypt_test.create_backend_case("os_crypt")
+bsdi_crypt_builtin_test = _bsdi_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # cisco pix
@@ -230,6 +231,88 @@ class cisco_pix_test(UserHandlerMixin, HandlerCase):
         # ensures utf-8 used for unicode
         (UPASS_TABLE, 'CaiIvkLMu2TOHXGT'),
         ]
+
+def _get_secret(value):
+    """extract secret from secret or (secret, user) tuple"""
+    if isinstance(value, tuple):
+        return value[0]
+    else:
+        return value
+
+class cisco_asa_test(UserHandlerMixin, HandlerCase):
+    handler = hash.cisco_asa
+    secret_size = 32
+    requires_user = False
+
+
+    known_correct_hashes = [
+        # format: ((secret, user), hash)
+
+        #
+        # passlib test vectors
+        # TODO: these have not been confirmed by an outside source,
+        #       nor tested against an official implementation.
+        #       for now, these only confirm we haven't had a regression.
+        #
+
+        # 8 char password -- should be same as pix
+        (('01234567', ''), '0T52THgnYdV1tlOF'),
+        (('01234567', '36'), 'oY0Dh6RVC9KFlopL'),
+        (('01234567', 'user'), 'PNZ4ycbbZ0jp1.j1'),
+        (('01234567', 'user1234'), 'PNZ4ycbbZ0jp1.j1'),
+
+        # 12 char password -- should be same as pix
+        (('0123456789ab', ''), 'S31BxZOGlAigndcJ'),
+        (('0123456789ab', '36'), 'JqCXavOaaaTn9B5y'),
+        (('0123456789ab', 'user'), 'f.T4BKdzdNkjxQl7'),
+        (('0123456789ab', 'user1234'), 'f.T4BKdzdNkjxQl7'),
+
+        # 13 char password -- ASA should switch to larger padding
+        (('0123456789abc', ''), 'XGUn8JhVAnJsaJ69'),  # e.g: cisco_pix is 'eacOpB7vE7ZDukSF'
+        (('0123456789abc', '36'), 'feNbQYEDXynZXMJH'),
+        (('0123456789abc', 'user'), '8Q/FZeam5ai1A47p'),
+        (('0123456789abc', 'user1234'), '8Q/FZeam5ai1A47p'),
+
+        # 16 char password -- verify fencepost
+        (('0123456789abcdef', ''), 'YO.dC.tE77bB35aH'),
+        (('0123456789abcdef', '36'), 'ekOxFx1Mqt8hL3vJ'),
+        (('0123456789abcdef', 'user'), 'IneB.wc9sfRzLPoh'),
+        (('0123456789abcdef', 'user1234'), 'IneB.wc9sfRzLPoh'),
+
+        # 27 char password -- ASA should still append user
+        (('0123456789abcdefqwertyuiopa', ''), '4wp19zS3OCe.2jt5'),
+        (('0123456789abcdefqwertyuiopa', '36'), 'GlGggqfEc19br12c'),
+        (('0123456789abcdefqwertyuiopa', 'user'), 'zynfWw3UtszxLMgL'),
+        (('0123456789abcdefqwertyuiopa', 'user1234'), 'zynfWw3UtszxLMgL'),
+
+        # 28 char password -- ASA shouldn't append user anymore
+        (('0123456789abcdefqwertyuiopas', ''), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', '36'), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', 'user'), 'W6nbOddI0SutTK7m'),
+        (('0123456789abcdefqwertyuiopas', 'user1234'), 'W6nbOddI0SutTK7m'),
+
+        # 32 char password -- verify fencepost
+        (('0123456789abcdefqwertyuiopasdfgh', ''), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', '36'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', 'user'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfgh', 'user1234'), '5hPT/iC6DnoBxo6a'),
+
+        # 33 char password -- ASA should truncate to 32 (should be same as above)
+        (('0123456789abcdefqwertyuiopasdfghj', ''), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', '36'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', 'user'), '5hPT/iC6DnoBxo6a'),
+        (('0123456789abcdefqwertyuiopasdfghj', 'user1234'), '5hPT/iC6DnoBxo6a'),
+
+        # unicode password -- assumes cisco will use utf-8 encoding
+        ((u('t\xe1ble'), ''), 'xQXX755BKYRl0ZpQ'),
+        ((u('t\xe1ble'), '36'), 'Q/43xXKmIaKLycSj'),
+        ((u('t\xe1ble'), 'user'), 'Og8fB4NyF0m5Ed9c'),
+        ((u('t\xe1ble'), 'user1234'), 'Og8fB4NyF0m5Ed9c'),
+    ]
+
+    # append all the cisco_pix hashes w/ password < 13 chars ... those should be the same.
+    known_correct_hashes.extend(row for row in cisco_pix_test.known_correct_hashes
+                                if len(_get_secret(row[0])) < 13)
 
 #=============================================================================
 # cisco type 7
@@ -388,8 +471,9 @@ class _des_crypt_test(HandlerCase):
         ("freebsd|openbsd|netbsd|linux|solaris|darwin", True),
     ]
 
-des_crypt_os_crypt_test, des_crypt_builtin_test = \
-                    _des_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+des_crypt_os_crypt_test = _des_crypt_test.create_backend_case("os_crypt")
+des_crypt_builtin_test = _des_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # fshp
@@ -670,8 +754,9 @@ class _ldap_md5_crypt_test(HandlerCase):
         '{CRYPT}$1$dOHYPKoP$tnxS1T8Q6VVn3kpV8cN6o!',
         ]
 
-ldap_md5_crypt_os_crypt_test, ldap_md5_crypt_builtin_test = \
-                   _ldap_md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+ldap_md5_crypt_os_crypt_test =_ldap_md5_crypt_test.create_backend_case("os_crypt")
+ldap_md5_crypt_builtin_test =_ldap_md5_crypt_test.create_backend_case("builtin")
 
 class _ldap_sha1_crypt_test(HandlerCase):
     # NOTE: this isn't for testing the hash (see ldap_md5_crypt note)
@@ -690,7 +775,8 @@ class _ldap_sha1_crypt_test(HandlerCase):
     def test_77_fuzz_input(self):
         raise self.skipTest("unneeded")
 
-ldap_sha1_crypt_os_crypt_test, = _ldap_sha1_crypt_test.create_backend_cases(["os_crypt"])
+# create test cases for specific backends
+ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("os_crypt")
 
 #=============================================================================
 # ldap_pbkdf2_{digest}
@@ -827,8 +913,9 @@ class _md5_crypt_test(HandlerCase):
         ("darwin", False),
     ]
 
-md5_crypt_os_crypt_test, md5_crypt_builtin_test = \
-                   _md5_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+md5_crypt_os_crypt_test = _md5_crypt_test.create_backend_case("os_crypt")
+md5_crypt_builtin_test = _md5_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # msdcc 1 & 2
@@ -982,11 +1069,6 @@ class mssql2000_test(HandlerCase):
 
     ]
 
-    known_correct_configs = [
-        ('0x010034767D5C00000000000000000000000000000000000000000000000000000000000000000000000000000000',
-         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED2503412FD54D6119FFF04129A1D72E7C3194F7284A7F3A'),
-    ]
-
     known_alternate_hashes = [
         # lower case hex
         ('0x01005b20054332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b332752e1bc2e7c5df0f9ebfe486e9bee063e8d3b3',
@@ -1072,11 +1154,6 @@ class mssql2005_test(HandlerCase):
         # ensures utf-8 used for unicode
         (UPASS_USD,   '0x0100624C0961B28E39FEE13FD0C35F57B4523F0DA1861C11D5A5'),
         (UPASS_TABLE, '0x010083104228FAD559BE52477F2131E538BE9734E5C4B0ADEFD7'),
-    ]
-
-    known_correct_configs = [
-        ('0x010034767D5C0000000000000000000000000000000000000000',
-         'Test', '0x010034767D5C0CFA5FDCA28C4A56085E65E882E71CB0ED250341'),
     ]
 
     known_alternate_hashes = [
@@ -1673,8 +1750,8 @@ class scram_test(HandlerCase):
         # check rounds
         self.assertRaises(ValueError, hash, "IX", s1, 0, 'sha-1')
 
-        # bad types
-        self.assertRaises(TypeError, hash, "IX", u('\x01'), 1000, 'md5')
+        # unicode salts accepted as of passlib 1.7 (previous caused TypeError)
+        self.assertEqual(hash(u("IX"), s1.decode("latin-1"), 1000, 'sha1'), d1)
 
     def test_94_saslprep(self):
         """test encrypt/verify use saslprep"""
@@ -1696,13 +1773,51 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, self.do_encrypt, u("\uFDD0"))
         self.assertRaises(ValueError, self.do_verify, u("\uFDD0"), h)
 
+    def test_94_using_default_algs(self, param="default_algs"):
+        """using() -- 'default_algs' parameter"""
+        # create subclass
+        handler = self.handler
+        orig = list(handler.default_algs) # in case it's modified in place
+        subcls = handler.using(**{param: "sha1,md5"})
+
+        # shouldn't have changed handler
+        self.assertEqual(handler.default_algs, orig)
+
+        # should have own set
+        self.assertEqual(subcls.default_algs, ["md5", "sha-1"])
+
+        # test encrypt output
+        h1 = subcls.hash("dummy")
+        self.assertEqual(handler.extract_digest_algs(h1), ["md5", "sha-1"])
+
+    def test_94_using_algs(self):
+        """using() -- 'algs' parameter"""
+        self.test_94_using_default_algs(param="algs")
+
+    def test_94_needs_update_algs(self):
+        """needs_update() -- algs setting"""
+        handler1 = self.handler.using(algs="sha1,md5")
+
+        # shouldn't need update, has same algs
+        h1 = handler1.hash("dummy")
+        self.assertFalse(handler1.needs_update(h1))
+
+        # *currently* shouldn't need update, has superset of algs required by handler2
+        # (may change this policy)
+        handler2 = handler1.using(algs="sha1")
+        self.assertFalse(handler2.needs_update(h1))
+
+        # should need update, doesn't have all algs required by handler3
+        handler3 = handler1.using(algs="sha1,sha256")
+        self.assertTrue(handler3.needs_update(h1))
+
     def test_95_context_algs(self):
         """test handling of 'algs' in context object"""
         handler = self.handler
         from passlib.context import CryptContext
         c1 = CryptContext(["scram"], scram__algs="sha1,md5")
 
-        h = c1.encrypt("dummy")
+        h = c1.hash("dummy")
         self.assertEqual(handler.extract_digest_algs(h), ["md5", "sha-1"])
         self.assertFalse(c1.needs_update(h))
 
@@ -1791,8 +1906,9 @@ class _sha1_crypt_test(HandlerCase):
         ("freebsd|openbsd|linux|solaris|darwin", False),
     ]
 
-sha1_crypt_os_crypt_test, sha1_crypt_builtin_test = \
-                   _sha1_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha1_crypt_os_crypt_test = _sha1_crypt_test.create_backend_case("os_crypt")
+sha1_crypt_builtin_test = _sha1_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # roundup
@@ -1928,8 +2044,9 @@ class _sha256_crypt_test(HandlerCase):
         # solaris - depends on policy
     ]
 
-sha256_crypt_os_crypt_test, sha256_crypt_builtin_test = \
-                   _sha256_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha256_crypt_os_crypt_test = _sha256_crypt_test.create_backend_case("os_crypt")
+sha256_crypt_builtin_test = _sha256_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # test sha512-crypt
@@ -2009,8 +2126,9 @@ class _sha512_crypt_test(HandlerCase):
 
     platform_crypt_support = _sha256_crypt_test.platform_crypt_support
 
-sha512_crypt_os_crypt_test, sha512_crypt_builtin_test = \
-                   _sha512_crypt_test.create_backend_cases(["os_crypt","builtin"])
+# create test cases for specific backends
+sha512_crypt_os_crypt_test = _sha512_crypt_test.create_backend_case("os_crypt")
+sha512_crypt_builtin_test = _sha512_crypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # sun md5 crypt
@@ -2076,7 +2194,7 @@ class sun_md5_crypt_test(HandlerCase):
         # should all be treated the same, with one "$" added to salt digest.
         ("$md5$3UqYqndY$",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
-        ("$md5$3UqYqndY$$......................",
+        ("$md5$3UqYqndY$$.................DUMMY",
             "this", "$md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0"),
 
         # config with no suffix, hash strings with "$" suffix,
@@ -2086,7 +2204,7 @@ class sun_md5_crypt_test(HandlerCase):
         #       within config string.
         ("$md5$3UqYqndY",
             "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
-        ("$md5$3UqYqndY$......................",
+        ("$md5$3UqYqndY$.................DUMMY",
             "this", "$md5$3UqYqndY$HIZVnfJNGCPbDZ9nIRSgP1"),
     ]
 
@@ -2123,10 +2241,10 @@ class sun_md5_crypt_test(HandlerCase):
         ("freebsd|openbsd|netbsd|linux|darwin", False),
     ]
     def do_verify(self, secret, hash):
-        # override to fake error for "$..." hash strings listed in known_config.
-        # these have to be hash strings, in order to test bare salt issue.
-        if isinstance(hash, str) and hash.endswith("$......................"):
-            raise ValueError("pretending '$.' hash is config string")
+        # Override to fake error for "$..." hash string listed in known_correct_configs (above)
+        # These have to be hash strings, in order to test bare salt issue.
+        if isinstance(hash, str) and hash.endswith("$.................DUMMY"):
+            raise ValueError("pretending '$...' stub hash is config string")
         return self.handler.verify(secret, hash)
 
 #=============================================================================

@@ -43,7 +43,7 @@ and :samp:`{checksum}` is the resulting 64-byte derived key, also
 encoded in upper-case hexadecimal. It can be identified by the prefix ``grub.pdkdf2.sha512.``.
 
 The algorithm used is the same as :class:`pbkdf2_sha1`: the password is encoded into UTF-8 if not already encoded,
-and passed through :func:`~passlib.utils.pbkdf2.pbkdf2`
+and passed through :func:`~passlib.crypto.digest.pbkdf1`
 along with the decoded salt, and the number of rounds.
 The result is then encoded into hexadecimal.
 
@@ -57,7 +57,7 @@ The result is then encoded into hexadecimal.
         >>> from passlib.hash import pbkdf2_sha512, grub_pbkdf2_sha512
 
         >>> # given a pbkdf2_sha512 hash...
-        >>> h = pbkdf2_sha512.encrypt("password")
+        >>> h = pbkdf2_sha512.hash("password")
         >>> h
         '$pbkdf2-sha512$6400$y6vYff3SihJiqumIrNXwGw$NobVwyUlVI52/Cvrguwli5fX6XgKHNUf7fWWS2VgoWEevaTCiZx4OCYhwGFwzUAuz/g1zQVSIf.9JEb0BEVEEA'
 

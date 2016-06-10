@@ -20,7 +20,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import mssql2000 as m20
 
     >>> # encrypt password
-    >>> h = m20.encrypt("password")
+    >>> h = m20.hash("password")
     >>> h
     '0x0100200420C4988140FD3920894C3EDC188E94F428D57DAD5905F6CC1CBAF950CAD4C63F272B2C91E4DEEB5E6444'
 

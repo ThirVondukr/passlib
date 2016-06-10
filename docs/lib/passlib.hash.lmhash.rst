@@ -25,7 +25,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import lmhash
 
     >>> # encrypt password
-    >>> h = lmhash.encrypt("password")
+    >>> h = lmhash.hash("password")
     >>> h
     'e52cac67419a9a224a3b108f3fa6cb6d'
 
@@ -124,7 +124,7 @@ the handling of non-ASCII characters.
   Thus if an application wishes to provide support for non-ASCII passwords,
   it must decide which encoding to use. Passlib uses ``cp437`` as a
   default, but this may need to be overridden via
-  ``lmhash.encrypt(secret, encoding="some-other-codec")``.
+  ``lmhash.hash(secret, encoding="some-other-codec")``.
   All known encodings are ``us-ascii``-compatible, so for ASCII passwords,
   the default should be sufficient.
 

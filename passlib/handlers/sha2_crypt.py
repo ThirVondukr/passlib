@@ -281,7 +281,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
 
     def __init__(self, implicit_rounds=None, **kwds):
         super(_SHA2_Common, self).__init__(**kwds)
-        # if user calls encrypt() w/ 5000 rounds, default to compact form.
+        # if user calls hash() w/ 5000 rounds, default to compact form.
         if implicit_rounds is None:
             implicit_rounds = (self.use_defaults and self.rounds == 5000)
         self.implicit_rounds = implicit_rounds
@@ -369,7 +369,10 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             cs = self.checksum_size
             assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
             return hash[-cs:]
-        return self._try_alternate_backends(secret)
+        else:
+            # py3's crypt.crypt() can't handle non-utf8 bytes.
+            # fallback to builtin alg, which is always available.
+            return self._calc_checksum_builtin(secret)
 
     #---------------------------------------------------------------
     # builtin backend
@@ -391,7 +394,7 @@ class sha256_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -402,7 +405,7 @@ class sha256_crypt(_SHA2_Common):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 110000, must be between 1000 and 999999999, inclusive.
+        Defaults to 535000, must be between 1000 and 999999999, inclusive.
 
     :type implicit_rounds: bool
     :param implicit_rounds:
@@ -430,7 +433,7 @@ class sha256_crypt(_SHA2_Common):
     ident = u("$5$")
     checksum_size = 43
     # NOTE: using 25/75 weighting of builtin & os_crypt backends
-    default_rounds = 110000
+    default_rounds = 535000
 
     #===================================================================
     # backends
@@ -450,7 +453,7 @@ class sha512_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -461,7 +464,7 @@ class sha512_crypt(_SHA2_Common):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 100000, must be between 1000 and 999999999, inclusive.
+        Defaults to 656000, must be between 1000 and 999999999, inclusive.
 
     :type implicit_rounds: bool
     :param implicit_rounds:
@@ -491,7 +494,7 @@ class sha512_crypt(_SHA2_Common):
     checksum_size = 86
     _cdb_use_512 = True
     # NOTE: using 25/75 weighting of builtin & os_crypt backends
-    default_rounds = 100000
+    default_rounds = 656000
 
     #===================================================================
     # backend

@@ -1,4 +1,4 @@
-"""passlib.utils._blowfish.base - unoptimized pure-python blowfish engine"""
+"""passlib.crypto._blowfish.base - unoptimized pure-python blowfish engine"""
 #=============================================================================
 # imports
 #=============================================================================

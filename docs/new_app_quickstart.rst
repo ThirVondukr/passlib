@@ -20,7 +20,7 @@ all they need to do is the following::
     >>> from passlib.apps import custom_app_context as pwd_context
 
     >>> # encrypting a password...
-    >>> hash = pwd_context.encrypt("somepass")
+    >>> hash = pwd_context.hash("somepass")
 
     >>> # verifying a password...
     >>> ok = pwd_context.verify("somepass", hash)
@@ -29,7 +29,7 @@ all they need to do is the following::
     >>> #            the custom_app_context is preconfigured so that
     >>> #            if the category is set to "admin" instead of None,
     >>> #            it uses a stronger setting of 80000 rounds:
-    >>> hash = pwd_context.encrypt("somepass", category="admin")
+    >>> hash = pwd_context.hash("somepass", category="admin")
 
 For applications which started using this preset, but whose needs
 have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
@@ -136,7 +136,7 @@ via :mod:`crypt`, which will be used by Passlib.
 
 PBKDF2
 ......
-:class:`~passlib.hash.pbkdf2_sha512` is a custom has format designed for Passlib.
+:class:`~passlib.hash.pbkdf2_sha512` is a custom hash format designed for Passlib.
 However, it directly uses the
 `PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
 key derivation function, which was standardized in 2000, and found across a
@@ -182,7 +182,7 @@ Due to these reasons, SCrypt has not yet been integrated into Passlib.
 
 Creating and Using a CryptContext
 =================================
-One you've chosen what password hash(es) you want to use,
+Once you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
 to manage your hashes, and relating configuration information.
 Insert the following code into your application::
@@ -199,11 +199,9 @@ Insert the following code into your application::
         # replace this list with the hash(es) you wish to support.
         # this example sets pbkdf2_sha256 as the default,
         # with support for legacy des_crypt hashes.
-        schemes=["pbkdf2_sha256", "des_crypt" ],
+        schemes=["pbkdf2_sha256", "des_crypt"],
         default="pbkdf2_sha256",
-
-        # vary rounds parameter randomly when creating new hashes...
-        all__vary_rounds = 0.1,
+        deprecated=["auto"],
 
         # set the number of rounds that should be used...
         # (appropriate values may vary for different schemes,
@@ -217,7 +215,7 @@ To start using your CryptContext, import the context you created wherever it's n
     >>> from myapp.model.security import pwd_context
 
     >>> # encrypting a password...
-    >>> hash = pwd_context.encrypt("somepass")
+    >>> hash = pwd_context.hash("somepass")
     >>> hash
     '$pbkdf2-sha256$7252$qKFNyMYTmgQDCFDS.jRJDQ$sms3/EWbs4/3k3aOoid5azwq3HPZKVpUUrAsCfjrN6M'
 

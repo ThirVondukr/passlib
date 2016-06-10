@@ -8,8 +8,8 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, consteq, saslprep, \
                           to_native_str, splitcomma
-from passlib.utils.compat import bascii_to_str, iteritems, u
-from passlib.utils.pbkdf2 import pbkdf2, norm_hash_name
+from passlib.utils.compat import bascii_to_str, iteritems, u, native_string_types
+from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -25,7 +25,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -42,7 +42,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 20000, but must be within ``range(1,1<<32)``.
+        Defaults to 100000, but must be within ``range(1,1<<32)``.
 
     :type algs: list of strings
     :param algs:
@@ -95,7 +95,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     max_salt_size = 1024
 
     #--HasRounds--
-    default_rounds = 20000
+    default_rounds = 100000
     min_rounds = 1
     max_rounds = 2**32-1
     rounds_cost = "linear"
@@ -134,7 +134,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :arg alg:
             Name of digest algorithm (e.g. ``"sha-1"``) requested by client.
 
-            This value is run through :func:`~passlib.utils.pbkdf2.norm_hash_name`,
+            This value is run through :func:`~passlib.crypto.digest.norm_hash_name`,
             so it is case-insensitive, and can be the raw SCRAM
             mechanism name (e.g. ``"SCRAM-SHA-1"``), the IANA name,
             or the hashlib name.
@@ -172,8 +172,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         :param format:
             This changes the naming convention used by the
             returned algorithm names. By default the names
-            are IANA-compatible; see :func:`~passlib.utils.pbkdf2.norm_hash_name`
-            for possible values.
+            are IANA-compatible; possible values are ``"iana"`` or ``"hashlib"``.
 
         :returns:
             Returns a list of digest algorithms; e.g. ``["sha-1"]``
@@ -212,13 +211,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         """
         if isinstance(password, bytes):
             password = password.decode("utf-8")
-        password = saslprep(password).encode("utf-8")
-        if not isinstance(salt, bytes):
-            raise TypeError("salt must be bytes")
-        if rounds < 1:
-            raise ValueError("rounds must be >= 1")
-        alg = norm_hash_name(alg, "hashlib")
-        return pbkdf2(password, salt, rounds, None, "hmac-" + alg)
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8,
+        #       and handle normalizing alg name.
+        return pbkdf2_hmac(alg, saslprep(password), salt, rounds)
 
     #===================================================================
     # serialization
@@ -285,6 +280,27 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return '$scram$%d$%s$%s' % (self.rounds, salt, chk_str)
 
     #===================================================================
+    # variant constructor
+    #===================================================================
+    @classmethod
+    def using(cls, default_algs=None, algs=None, **kwds):
+        # parse aliases
+        if algs is not None:
+            assert default_algs is None
+            default_algs = algs
+
+        # create subclass
+        subcls = super(scram, cls).using(**kwds)
+
+        # fill in algs
+        if default_algs is not None:
+            # hack so we can use _norm_algs even though it's an instance method.
+            # XXX: use_defaults is only thing keeping it from being a classmethod.
+            subcls.default_algs = cls(use_defaults=True)._norm_algs(default_algs)
+
+        return subcls
+
+    #===================================================================
     # init
     #===================================================================
     def __init__(self, algs=None, **kwds):
@@ -325,7 +341,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise RuntimeError("checksum & algs kwds are mutually exclusive")
 
         # parse args value
-        if isinstance(algs, str):
+        if isinstance(algs, native_string_types):
             algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):
@@ -336,19 +352,21 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return algs
 
     #===================================================================
+    # migration
+    #===================================================================
+    def _calc_needs_update(self, **kwds):
+        # marks hashes as deprecated if they don't include at least all default_algs.
+        # XXX: should we deprecate if they aren't exactly the same,
+        #      to permit removing legacy hashes?
+        if not set(self.algs).issuperset(self.default_algs):
+            return True
+
+        # hand off to base implementation
+        return super(scram, self)._calc_needs_update(**kwds)
+
+    #===================================================================
     # digest methods
     #===================================================================
-
-    @classmethod
-    def _bind_needs_update(cls, **settings):
-        """generate a deprecation detector for CryptContext to use"""
-        # generate deprecation hook which marks hashes as deprecated
-        # if they don't support a superset of current algs.
-        algs = frozenset(cls(use_defaults=True, **settings).algs)
-        def detector(hash, secret):
-            return not algs.issubset(cls.from_string(hash).algs)
-        return detector
-
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt

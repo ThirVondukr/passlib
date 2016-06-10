@@ -29,7 +29,7 @@ Each of the objects in this module can be imported directly::
 
 Encrypting a password is simple (and salt generation is handled automatically)::
 
-    >>> hash = linux_context.encrypt("toomanysecrets")
+    >>> hash = linux_context.hash("toomanysecrets")
     >>> hash
     '$5$rounds=84740$fYChCy.52EzebF51$9bnJrmTf2FESI93hgIBFF4qAfysQcKoB0veiI0ZeYU4'
 
@@ -47,7 +47,7 @@ You can also identify hashes::
 Or encrypt using a specific algorithm::
     >>> linux_context.schemes()
     ('sha512_crypt', 'sha256_crypt', 'md5_crypt', 'des_crypt', 'unix_disabled')
-    >>> linux_context.encrypt("password", scheme="des_crypt")
+    >>> linux_context.hash("password", scheme="des_crypt")
     '2fmLLcoHXuQdI'
     >>> linux_context.identify('2fmLLcoHXuQdI')
     'des_crypt'

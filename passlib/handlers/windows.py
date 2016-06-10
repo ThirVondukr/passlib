@@ -10,7 +10,8 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode, right_pad_string
 from passlib.utils.compat import unicode
-from passlib.utils.md4 import md4
+from passlib.crypto.digest import lookup_hash
+md4 = lookup_hash("md4").const
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -29,7 +30,7 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.verify` methods accept a single
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.verify` methods accept a single
     optional keyword:
 
     :type encoding: str
@@ -82,7 +83,7 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
         # some nice empircal data re: different encodings is at...
         # http://www.openwall.com/lists/john-dev/2011/08/01/2
         # http://www.freerainbowtables.com/phpBB3/viewtopic.php?t=387&p=12163
-        from passlib.utils.des import des_encrypt_block
+        from passlib.crypto.des import des_encrypt_block
         MAGIC = cls._magic
         if isinstance(secret, unicode):
             # perform uppercasing while we're still unicode,
@@ -113,7 +114,7 @@ class nthash(uh.StaticHandler):
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
 
     Note that while this class outputs lower-case hexadecimal digests,
     it will accept upper-case digests as well.
@@ -166,7 +167,7 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """)
 
 ##class ntlm_pair(object):
@@ -182,18 +183,10 @@ bsd_nthash = uh.PrefixWrapper("bsd_nthash", nthash, prefix="$3$$", ident="$3$$",
 ##        return len(hash) == 65 and cls._hash_regex.match(hash) is not None
 ##
 ##    @classmethod
-##    def genconfig(cls):
-##        return None
-##
-##    @classmethod
-##    def genhash(cls, secret, config):
+##    def hash(cls, secret, config=None):
 ##        if config is not None and not cls.identify(config):
 ##            raise uh.exc.InvalidHashError(cls)
-##        return cls.encrypt(secret)
-##
-##    @classmethod
-##    def encrypt(cls, secret):
-##        return lmhash.encrypt(secret) + ":" + nthash.encrypt(secret)
+##        return lmhash.hash(secret) + ":" + nthash.hash(secret)
 ##
 ##    @classmethod
 ##    def verify(cls, secret, hash):
@@ -216,7 +209,7 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
     It has a fixed number of rounds, and uses the associated
     username as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
     have the following optional keywords:
 
     :type user: str
@@ -264,7 +257,7 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
     It has a fixed number of rounds, and uses the associated
     username as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
     have the following extra keyword:
 
     :type user: str
@@ -298,11 +291,11 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
 
         :returns: returns string of raw bytes
         """
-        from passlib.utils.pbkdf2 import pbkdf2
+        from passlib.crypto.digest import pbkdf2_hmac
         secret = to_unicode(secret, "utf-8", param="secret").encode("utf-16-le")
         user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         tmp = md4(md4(secret).digest() + user).digest()
-        return pbkdf2(tmp, user, 10240, 16, 'hmac-sha1')
+        return pbkdf2_hmac("sha1", tmp, user, 10240, 16)
 
 #=============================================================================
 # eof

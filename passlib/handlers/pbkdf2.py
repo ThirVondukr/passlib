@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import ab64_decode, ab64_encode, to_unicode
 from passlib.utils.compat import str_to_bascii, u, uascii_to_str, unicode
-from passlib.utils.pbkdf2 import pbkdf2
+from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -47,7 +47,7 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
     rounds_cost = "linear"
 
     #--this class--
-    _prf = None # subclass specified prf identifier
+    _digest = None # name of subclass-specified hash
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide sanity check.
     #       the underlying pbkdf2 specifies no bounds for either.
@@ -77,30 +77,28 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
         return uh.render_mc3(self.ident, self.rounds, salt, chk)
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, self.checksum_size, self._prf)
+        # NOTE: pbkdf2_hmac() will encode secret & salt using UTF8
+        return pbkdf2_hmac(self._digest, secret, self.salt, self.rounds, self.checksum_size)
 
 def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=__name__):
     """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = 'pbkdf2_' + hash_name
     if ident is None:
         ident = u("$pbkdf2-%s$") % (hash_name,)
-    prf = "hmac-%s" % (hash_name,)
     base = Pbkdf2DigestHandler
     return type(name, (base,), dict(
         __module__=module, # so ABCMeta won't clobber it.
         name=name,
         ident=ident,
-        _prf = prf,
+        _digest = hash_name,
         default_rounds=rounds,
         checksum_size=digest_size,
         encoded_checksum_size=(digest_size*4+2)//3,
-        __doc__="""This class implements a generic ``PBKDF2-%(prf)s``-based password hash, and follows the :ref:`password-hash-api`.
+        __doc__="""This class implements a generic ``PBKDF2-HMAC-%(digest)s``-based password hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -111,7 +109,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
     :type salt_size: int
     :param salt_size:
         Optional number of bytes to use when autogenerating new salts.
-        Defaults to 16 bytes, but can be any value between 0 and 1024.
+        Defaults to %(dsc)d bytes, but can be any value between 0 and 1024.
 
     :type rounds: int
     :param rounds:
@@ -127,15 +125,15 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
         that are too small or too large, and ``salt`` strings that are too long.
 
         .. versionadded:: 1.6
-    """ % dict(prf=prf.upper(), dsc=base.default_salt_size, dr=rounds)
+    """ % dict(digest=hash_name.upper(), dsc=base.default_salt_size, dr=rounds)
     ))
 
 #------------------------------------------------------------------------
 # derived handlers
 #------------------------------------------------------------------------
-pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 60000, ident=u("$pbkdf2$"))
-pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32, 20000)
-pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64, 19000)
+pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 131000, ident=u("$pbkdf2$"))
+pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32, 29000)
+pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64, 25000)
 
 ldap_pbkdf2_sha1 = uh.PrefixWrapper("ldap_pbkdf2_sha1", pbkdf2_sha1, "{PBKDF2}", "$pbkdf2$", ident=True)
 ldap_pbkdf2_sha256 = uh.PrefixWrapper("ldap_pbkdf2_sha256", pbkdf2_sha256, "{PBKDF2-SHA256}", "$pbkdf2-sha256$", ident=True)
@@ -153,7 +151,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -189,6 +187,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     name = "cta_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = u("$p5k2$")
+    checksum_size = 20
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. underlying algorithm (and reference implementation)
@@ -237,9 +236,8 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, 20, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha1", secret, self.salt, self.rounds, 20)
 
     #===================================================================
     # eoc
@@ -253,7 +251,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -289,6 +287,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
     ident = u("$p5k2$")
+    _stub_checksum = u("0" * 48 + "=")
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. underlying algorithm (and reference implementation)
@@ -337,10 +336,9 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        salt = str_to_bascii(self.to_string(withchk=False))
-        result = pbkdf2(secret, salt, self.rounds, 24, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        salt = self.to_string(withchk=False)
+        result = pbkdf2_hmac("sha1", secret, salt, self.rounds, 24)
         return ab64_encode(result).decode("ascii")
 
     #===================================================================
@@ -355,7 +353,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
 
     It supports a fixed-length salt, and a fixed number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keyword:
 
     :type salt: bytes
     :param salt:
@@ -379,8 +377,6 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     ident = u("{PKCS5S2}")
     checksum_size = 32
 
-    _stub_checksum = b"\x00" * 32
-
     #--HasRawSalt--
     min_salt_size = max_salt_size = 16
 
@@ -395,16 +391,15 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        data = self.salt + (self.checksum or self._stub_checksum)
+        data = self.salt + self.checksum
         hash = self.ident + b64encode(data).decode("ascii")
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):
         # TODO: find out what crowd's policy is re: unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
         # crowd seems to use a fixed number of rounds.
-        return pbkdf2(secret, self.salt, 10000, 32, "hmac-sha1")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha1", secret, self.salt, 10000, 32)
 
 #=============================================================================
 # grub
@@ -414,7 +409,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -446,6 +441,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     setting_kwds = ("salt", "salt_size", "rounds")
 
     ident = u("grub.pbkdf2.sha512.")
+    checksum_size = 64
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. the underlying pbkdf2 specifies no bounds for either,
@@ -479,9 +475,8 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     def _calc_checksum(self, secret):
         # TODO: find out what grub's policy is re: unicode
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        return pbkdf2(secret, self.salt, self.rounds, 64, "hmac-sha512")
+        # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
+        return pbkdf2_hmac("sha512", secret, self.salt, self.rounds, 64)
 
 #=============================================================================
 # eof

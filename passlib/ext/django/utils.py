@@ -3,6 +3,7 @@
 # imports
 #=============================================================================
 # core
+from functools import update_wrapper
 import logging; log = logging.getLogger(__name__)
 from weakref import WeakKeyDictionary
 from warnings import warn
@@ -13,20 +14,22 @@ try:
 except ImportError:
     log.debug("django installation not found")
     DJANGO_VERSION = ()
-else:
-    if DJANGO_VERSION < (1,4):
-        raise RuntimeError("passlib.ext.django requires django >= 1.4 (as of passlib 1.7)")
 # pkg
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.registry import get_crypt_handler, list_crypt_handlers
-from passlib.utils import classproperty
-from passlib.utils.compat import get_method_function, iteritems, OrderedDict
+from passlib.utils import memoized_property
+from passlib.utils.compat import get_method_function, iteritems, OrderedDict, native_string_types
 # local
 __all__ = [
+    "DJANGO_VERSION",
+    "MIN_DJANGO_VERSION",
     "get_preset_config",
     "get_passlib_hasher",
 ]
+
+#: minimum version supported by passlib.ext.django
+MIN_DJANGO_VERSION = (1, 8)
 
 #=============================================================================
 # default policies
@@ -58,10 +61,7 @@ def get_preset_config(name):
         if not DJANGO_VERSION:
             raise ValueError("can't resolve django-default preset, "
                              "django not installed")
-        if DJANGO_VERSION < (1,6):
-            name = "django-1.4"
-        else:
-            name = "django-1.6"
+        name = "django-1.6"
     if name == "passlib-default":
         return PASSLIB_DEFAULT
     try:
@@ -94,7 +94,6 @@ deprecated =
 
 ; sets some common options, including minimum rounds for two primary hashes.
 ; if a hash has less than this number of rounds, it will be re-hashed.
-all__vary_rounds = 0.05
 sha512_crypt__min_rounds = 80000
 django_pbkdf2_sha256__min_rounds = 10000
 
@@ -153,20 +152,101 @@ def hasher_to_passlib_name(hasher_name):
 #=============================================================================
 _GEN_SALT_SIGNAL = "--!!!generate-new-salt!!!--"
 
-class _HasherWrapper(object):
-    """helper for wrapping passlib handlers in Hasher-compatible class."""
+class ProxyProperty(object):
+    """helper that proxies another attribute"""
 
-    # filled in by subclass, drives the other methods.
+    def __init__(self, attr):
+        self.attr = attr
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            cls = obj
+        return getattr(obj, self.attr)
+
+    def __set__(self, obj, value):
+        setattr(obj, self.attr, value)
+
+    def __delete__(self, obj):
+        delattr(obj, self.attr)
+
+class _PasslibHasherWrapper(object):
+    """
+    adapter which which wraps a :cls:`passlib.ifc.PasswordHash` class,
+    and provides an interface compatible with the Django hasher API.
+
+    :param passlib_handler:
+        passlib hash handler (e.g. :cls:`passlib.hash.sha256_crypt`.
+    """
+
+    #=====================================================================
+    # instance attrs
+    #=====================================================================
+
+    #: passlib handler that we're adapting.
     passlib_handler = None
-    iterations = None
 
-    @classproperty
-    def algorithm(cls):
-        assert not hasattr(cls.passlib_handler, "django_name")
-        return PASSLIB_HASHER_PREFIX + cls.passlib_handler.name
+    # NOTE: 'rounds' attr will store variable rounds, IF handler supports it.
+    #       'iterations' will act as proxy, for compatibility with django pbkdf2 hashers.
+    # rounds = None
+    # iterations = None
 
+    #=====================================================================
+    # init
+    #=====================================================================
+    def __init__(self, passlib_handler):
+        # init handler
+        assert not hasattr(passlib_handler, "django_name"), \
+            "bug in get_passlib_hasher() -- handlers that reflect an official django hasher " \
+            "should be used directly"
+        self.passlib_handler = passlib_handler
+
+        # init rounds support
+        if self._has_rounds:
+            self.rounds = passlib_handler.default_rounds
+            self.iterations = ProxyProperty("rounds")
+
+    #=====================================================================
+    # internal methods
+    #=====================================================================
+    def __repr__(self):
+        return "<PasslibHasherWrapper handler=%r>" % self.passlib_handler
+
+    #=====================================================================
+    # internal properties
+    #=====================================================================
+
+    @memoized_property
+    def __name__(self):
+        return "Passlib_%s_PasswordHasher" % self.passlib_handler.name.title()
+
+    @memoized_property
+    def _has_rounds(self):
+        return "rounds" in self.passlib_handler.setting_kwds
+
+    @memoized_property
+    def _translate_kwds(self):
+        """
+        internal helper for safe_summary() --
+        used to translate passlib hash options -> django keywords
+        """
+        out = dict(checksum="hash")
+        if self._has_rounds and "pbkdf2" in self.passlib_handler.name:
+            out['rounds'] = 'iterations'
+        return out
+
+    #=====================================================================
+    # hasher properties
+    #=====================================================================
+
+    @memoized_property
+    def algorithm(self):
+        return PASSLIB_HASHER_PREFIX + self.passlib_handler.name
+
+    #=====================================================================
+    # hasher api
+    #=====================================================================
     def salt(self):
-        # NOTE: passlib's handler.encrypt() should generate new salt each time,
+        # NOTE: passlib's handler.hash() should generate new salt each time,
         #       so this just returns a special constant which tells
         #       encode() (below) not to pass a salt keyword along.
         return _GEN_SALT_SIGNAL
@@ -174,17 +254,20 @@ class _HasherWrapper(object):
     def verify(self, password, encoded):
         return self.passlib_handler.verify(password, encoded)
 
-    def encode(self, password, salt=None, iterations=None):
+    def encode(self, password, salt=None, rounds=None, iterations=None):
         kwds = {}
         if salt is not None and salt != _GEN_SALT_SIGNAL:
             kwds['salt'] = salt
-        if iterations is not None:
-            kwds['rounds'] = iterations
-        elif self.iterations is not None:
-            kwds['rounds'] = self.iterations
-        return self.passlib_handler.encrypt(password, **kwds)
-
-    _translate_kwds = dict(checksum="hash", rounds="iterations")
+        if self._has_rounds:
+            if rounds is not None:
+                kwds['rounds'] = rounds
+            elif iterations is not None:
+                kwds['rounds'] = iterations
+            else:
+                kwds['rounds'] = self.rounds
+        elif rounds is not None or iterations is not None:
+            warn("%s.hash(): 'rounds' and 'iterations' are ignored" % self.__name__)
+        return self.passlib_handler.hash(password, **kwds)
 
     def safe_summary(self, encoded):
         from django.contrib.auth.hashers import mask_hash
@@ -204,20 +287,37 @@ class _HasherWrapper(object):
 
     # added in django 1.6
     def must_update(self, encoded):
-        # TODO: would like to do something useful here,
-        #       but would require access to password context,
-        #       which would mean a serious recoding of this ext.
+        # TODO: would like access CryptContext, would need caller to pass it to get_passlib_hasher().
+        #       for now (as of passlib 1.6.6), replicating django policy that this returns True
+        #       if 'encoded' hash has different rounds value from self.rounds
+        if self._has_rounds:
+            handler = self.passlib_handler
+            if hasattr(handler, "parse_rounds"):
+                rounds = handler.parse_rounds(encoded)
+                if rounds != self.rounds:
+                    return True
+            # TODO: for passlib 1.7, could check .needs_update() method.
+            #       could also have this whole class create a handler subclass,
+            #       which we can proxy the .rounds attr for.  this would allow
+            #       replacing entirety of the (above) rounds check
         return False
+
+    #=====================================================================
+    # eoc
+    #=====================================================================
+
+#: legacy alias for < 1.6.6
+_HasherWrapper = _PasslibHasherWrapper
 
 # cache of hasher wrappers generated by get_passlib_hasher()
 _hasher_cache = WeakKeyDictionary()
 
-def get_passlib_hasher(handler, algorithm=None):
+def get_passlib_hasher(handler, algorithm=None, native_only=False):
     """create *Hasher*-compatible wrapper for specified passlib hash.
 
     This takes in the name of a passlib hash (or the handler object itself),
     and returns a wrapper instance which should be compatible with
-    Django 1.4's Hashers framework.
+    Django's Hashers framework.
 
     If the named hash corresponds to one of Django's builtin hashers,
     an instance of the real hasher class will be returned.
@@ -226,7 +326,7 @@ def get_passlib_hasher(handler, algorithm=None):
     so will probably not be compatible with Django's algorithm format,
     so the monkeypatch provided by this plugin must have been applied.
     """
-    if isinstance(handler, str):
+    if isinstance(handler, native_string_types):
         handler = get_crypt_handler(handler)
     if hasattr(handler, "django_name"):
         # return native hasher instance
@@ -238,14 +338,15 @@ def get_passlib_hasher(handler, algorithm=None):
             # we want to resolve to correct django hasher.
             name = algorithm
         return _get_hasher(name)
+    if native_only:
+        # caller doesn't want any wrapped hashers.
+        return None
     if handler.name == "django_disabled":
         raise ValueError("can't wrap unusable-password handler")
     try:
         return _hasher_cache[handler]
     except KeyError:
-        name = "Passlib_%s_PasswordHasher" % handler.name.title()
-        cls = type(name, (_HasherWrapper,), dict(passlib_handler=handler))
-        hasher = _hasher_cache[handler] = cls()
+        hasher = _hasher_cache[handler] = _PasslibHasherWrapper(handler)
         return hasher
 
 def _get_hasher(algorithm):
@@ -255,11 +356,16 @@ def _get_hasher(algorithm):
     if module is None:
         # we haven't patched django, so just import directly
         from django.contrib.auth.hashers import get_hasher
+        return get_hasher(algorithm)
     else:
-        # we've patched django, so have to use patch manager to retrieve
-        # original get_hasher() function...
-        get_hasher = module._manager.getorig("django.contrib.auth.hashers:get_hasher")
-    return get_hasher(algorithm)
+        # We've patched django's get_hashers(), so calling django's get_hasher()
+        # or get_hashers_by_algorithm() would only land us back here via patched get_hashers().
+        # As non-ideal workaround, have to use original get_hashers()...
+        get_hashers = module._manager.getorig("django.contrib.auth.hashers:get_hashers")
+        for hasher in get_hashers():
+            if hasher.algorithm == algorithm:
+                return hasher
+        raise ValueError("unknown hasher: %r" % algorithm)
 
 #=============================================================================
 # adapting django hashers -> passlib handlers
@@ -315,19 +421,9 @@ def _get_hasher(algorithm):
 ##        return to_unicode(hash, "latin-1", "hash").startswith(self.ident)
 ##
 ##    @property
-##    def genconfig(self):
-##        # XXX: not sure how to support this.
-##        return None
-##
-##    @property
-##    def genhash(self, secret, config):
-##        if config is not None:
-##            # XXX: not sure how to support this.
-##            raise NotImplementedError("genhash() for hashers not implemented")
-##        return self.encrypt(secret)
-##
-##    @property
-##    def encrypt(self, secret, salt=None, **kwds):
+##    def hash(self, secret, config=None, salt=None, **kwds):
+##        if config:
+##            raise NotImplementedError('hash(config) support missing')
 ##        # NOTE: from how make_password() is coded, all hashers
 ##        #       should have salt param. but only some will have
 ##        #       'iterations' parameter.
@@ -435,7 +531,7 @@ class _PatchManager(object):
         else:
             setattr(obj, attr, value)
 
-    def patch(self, path, value):
+    def patch(self, path, value, wrap=False):
         """monkeypatch object+attr at <path> to have <value>, stores original"""
         assert value != _UNSET
         current = self._get_path(path)
@@ -449,6 +545,14 @@ class _PatchManager(object):
             if not self._is_same_value(current, expected):
                 warn("overridding resource another library has patched: %r"
                      % path, PasslibRuntimeWarning)
+        if wrap:
+            assert callable(value)
+            wrapped = orig
+            wrapped_by = value
+            def wrapper(*args, **kwds):
+                return wrapped_by(wrapped, *args, **kwds)
+            update_wrapper(wrapper, value)
+            value = wrapper
         self._set_path(path, value)
         self._state[path] = (orig, value)
 
@@ -457,13 +561,13 @@ class _PatchManager(object):
     ##    for path, value in iteritems(kwds):
     ##        self.patch(path, value)
 
-    def monkeypatch(self, parent, name=None, enable=True):
+    def monkeypatch(self, parent, name=None, enable=True, wrap=False):
         """function decorator which patches function of same name in <parent>"""
         def builder(func):
             if enable:
                 sep = "." if ":" in parent else ":"
                 path = parent + sep + (name or func.__name__)
-                self.patch(path, func)
+                self.patch(path, func, wrap=wrap)
             return func
         return builder
 

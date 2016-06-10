@@ -22,7 +22,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import msdcc2
 
     >>> # encrypt password using specified username
-    >>> hash = msdcc2.encrypt("password", user="Administrator")
+    >>> hash = msdcc2.hash("password", user="Administrator")
     >>> hash
     '4c253e4b65c007a8cd683ea57bc43c76'
 
@@ -69,7 +69,7 @@ The digest is calculated as follows:
    digest from step 2; and the MD4 digest of the result
    is calculated (The result of this is identical to the
    :class:`~passlib.hash.msdcc` digest).
-5. :func:`PBKDF2-HMAC-SHA1 <passlib.utils.pbkdf2.pbkdf2>` is then invoked,
+5. :func:`PBKDF2-HMAC-SHA1 <passlib.crypto.digest.pbkdf2_hmac>` is then invoked,
    using the result of step 4 as the secret, the username from step 3 as
    the salt, 10240 rounds, and resulting in a 16 byte digest.
 6. The result of step 5 is encoded into hexadecimal;

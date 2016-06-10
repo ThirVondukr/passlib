@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, consteq
-from passlib.utils.compat import unicode, u, base_string_types
+from passlib.utils.compat import unicode, u, unicode_or_bytes_types
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -45,7 +45,7 @@ class unix_fallback(uh.StaticHandler):
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, base_string_types):
+        if isinstance(hash, unicode_or_bytes_types):
             return True
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")
@@ -58,17 +58,6 @@ class unix_fallback(uh.StaticHandler):
         super(unix_fallback, self).__init__(**kwds)
         self.enable_wildcard = enable_wildcard
 
-    @classmethod
-    def genhash(cls, secret, config):
-        # override default to preserve checksum
-        if config is None:
-            return cls.encrypt(secret)
-        else:
-            uh.validate_secret(secret)
-            self = cls.from_string(config)
-            self.checksum = self._calc_checksum(secret)
-            return self.to_string()
-
     def _calc_checksum(self, secret):
         if self.checksum:
             # NOTE: hash will generally be "!", but we want to preserve
@@ -80,7 +69,7 @@ class unix_fallback(uh.StaticHandler):
     @classmethod
     def verify(cls, secret, hash, enable_wildcard=False):
         uh.validate_secret(secret)
-        if not isinstance(hash, base_string_types):
+        if not isinstance(hash, unicode_or_bytes_types):
             raise uh.exc.ExpectedStringError(hash, "hash")
         elif hash:
             return False
@@ -90,14 +79,14 @@ class unix_fallback(uh.StaticHandler):
 _MARKER_CHARS = u("*!")
 _MARKER_BYTES = b"*!"
 
-class unix_disabled(uh.PasswordHash):
+class unix_disabled(uh.MinimalHandler):
     """This class provides disabled password behavior for unix shadow files,
     and follows the :ref:`password-hash-api`.
 
     This class does not implement a hash, but instead matches the "disabled account"
     strings found in ``/etc/shadow`` on most Unix variants. "encrypting" a password
     will simply return the disabled account marker. It will reject all passwords,
-    no matter the hash string. The :meth:`~passlib.ifc.PasswordHash.encrypt`
+    no matter the hash string. The :meth:`~passlib.ifc.PasswordHash.hash`
     method supports one optional keyword:
 
     :type marker: str
@@ -116,6 +105,8 @@ class unix_disabled(uh.PasswordHash):
     name = "unix_disabled"
     setting_kwds = ("marker",)
     context_kwds = ()
+
+    # XXX: could subclass using() to allow setting custom default_marker
 
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
         default_marker = u("*")
@@ -149,10 +140,6 @@ class unix_disabled(uh.PasswordHash):
         return not hash or hash[0] in start
 
     @classmethod
-    def encrypt(cls, secret, marker=None):
-        return cls.genhash(secret, None, marker)
-
-    @classmethod
     def verify(cls, secret, hash):
         uh.validate_secret(secret)
         if not cls.identify(hash): # handles typecheck
@@ -160,17 +147,13 @@ class unix_disabled(uh.PasswordHash):
         return False
 
     @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config, marker=None):
+    def hash(cls, secret, config=None, marker=None):
         uh.validate_secret(secret)
-        if config is not None and not cls.identify(config): # handles typecheck
-            raise uh.exc.InvalidHashError(cls)
-        if config:
+        if not (config is None or config is True):
             # we want to preserve the existing str,
             # since it might contain a disabled password hash ("!" + hash)
+            if not cls.identify(config):
+                raise uh.exc.InvalidHashError(cls)
             return to_native_str(config, param="config")
         # if None or empty string, replace with marker
         if marker:
@@ -181,10 +164,10 @@ class unix_disabled(uh.PasswordHash):
             assert marker and cls.identify(marker)
         return to_native_str(marker, param="marker")
 
-class plaintext(uh.PasswordHash):
+class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the
     following additional contextual keyword:
 
     :type encoding: str
@@ -206,13 +189,16 @@ class plaintext(uh.PasswordHash):
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, base_string_types):
+        if isinstance(hash, unicode_or_bytes_types):
             return True
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
-    def encrypt(cls, secret, encoding=None):
+    def hash(cls, secret, encoding=None, config=None):
+        # NOTE: 'config' is ignored, as this hash has no salting / etc
+        if not (config is None or config is True or cls.identify(config)):
+            raise uh.exc.InvalidHashError(cls)
         uh.validate_secret(secret)
         if not encoding:
             encoding = cls.default_encoding
@@ -225,17 +211,7 @@ class plaintext(uh.PasswordHash):
         hash = to_native_str(hash, encoding, "hash")
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
-        return consteq(cls.encrypt(secret, encoding), hash)
-
-    @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, hash, encoding=None):
-        if hash is not None and not cls.identify(hash):
-            raise uh.exc.InvalidHashError(cls)
-        return cls.encrypt(secret, encoding)
+        return consteq(cls.hash(secret, encoding), hash)
 
 #=============================================================================
 # eof

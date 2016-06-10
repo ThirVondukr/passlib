@@ -9,6 +9,7 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedTypeError, PasslibWarning
 from passlib.utils import is_crypt_handler
+from passlib.utils.compat import native_string_types
 # local
 __all__ = [
     "register_crypt_handler_path",
@@ -87,6 +88,7 @@ _locations = dict(
     bsd_nthash = "passlib.handlers.windows",
     bsdi_crypt = "passlib.handlers.des_crypt",
     cisco_pix = "passlib.handlers.cisco",
+    cisco_asa = "passlib.handlers.cisco",
     cisco_type7 = "passlib.handlers.cisco",
     cta_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
     crypt16 = "passlib.handlers.des_crypt",
@@ -311,7 +313,7 @@ def get_crypt_handler(name, default=_UNSET):
         pass
 
     # normalize name (and if changed, check dict again)
-    assert isinstance(name, str), "name must be str instance"
+    assert isinstance(name, native_string_types), "name must be string instance"
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names should be lower-case, and use underscores instead "

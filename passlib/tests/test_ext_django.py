@@ -2,7 +2,10 @@
 #=============================================================================
 # imports
 #=============================================================================
+# NOTE: double __future__ is workaround for py2.5.0 bug, 
+#       per https://bitbucket.org/ecollins/passlib/issues/58#comment-20589295
 from __future__ import with_statement
+from __future__ import absolute_import
 # core
 import logging; log = logging.getLogger(__name__)
 import sys
@@ -21,18 +24,20 @@ from passlib.tests.test_handlers import get_handler_case
 #=============================================================================
 # configure django settings for testcases
 #=============================================================================
-from passlib.ext.django.utils import DJANGO_VERSION
+from passlib.ext.django.utils import DJANGO_VERSION, MIN_DJANGO_VERSION
 
-# disable all Django integration tests under py3,
-# since Django doesn't support py3 yet.
-if PY3 and DJANGO_VERSION < (1,5):
-    DJANGO_VERSION = ()
-
-# convert django version to some cheap flags
-has_django = bool(DJANGO_VERSION)
+# whether we have supported django version
+has_min_django = DJANGO_VERSION >= MIN_DJANGO_VERSION
 
 # import and configure empty django settings
-if has_django:
+# NOTE: we don't want to set up entirety of django, so not using django.setup() directly.
+#       instead, manually configuring the settings, and setting it up w/ no apps installed.
+#       in future, may need to alter this so we call django.setup() after setting
+#       DJANGO_SETTINGS_MODULE to a custom settings module w/ a dummy django app.
+if has_min_django:
+    #
+    # initialize django settings manually
+    #
     from django.conf import settings, LazySettings
 
     if not isinstance(settings, LazySettings):
@@ -43,6 +48,13 @@ if has_django:
     # else configure a blank settings instance for the unittests
     if not settings.configured:
         settings.configure()
+
+    #
+    # init django apps w/ NO installed apps.
+    # NOTE: required for django >= 1.9
+    #
+    from django.apps import apps
+    apps.populate(["django.contrib.contenttypes", "django.contrib.auth"])
 
 #=============================================================================
 # support funcs
@@ -60,12 +72,16 @@ def update_settings(**kwds):
         else:
             setattr(settings, k, v)
 
-if has_django:
+if has_min_django:
     from django.contrib.auth.models import User
 
     class FakeUser(User):
         """mock user object for use in testing"""
         # NOTE: this mainly just overrides .save() to test commit behavior.
+
+        # NOTE: .Meta.app_label required for django >= 1.9
+        class Meta:
+            app_label = __name__
 
         @memoized_property
         def saved_passwords(self):
@@ -96,24 +112,27 @@ def create_mock_setter():
 #=============================================================================
 # work up stock django config
 #=============================================================================
-sample_hashes = {} # override sample hashes used in test cases
-if DJANGO_VERSION >= (1,6):
-    stock_config = django16_context.to_dict()
-    stock_config.update(
-        deprecated="auto",
-        django_pbkdf2_sha1__default_rounds=12000,
-        django_pbkdf2_sha256__default_rounds=12000,
-    )
-    sample_hashes.update(
-        django_pbkdf2_sha256=("not a password", "pbkdf2_sha256$12000$rpUPFQOVetrY$cEcWG4DjjDpLrDyXnduM+XJUz25U63RcM3//xaFnBnw="),
-    )
-else:
-    stock_config = django14_context.to_dict()
-    stock_config.update(
-        deprecated="auto",
-        django_pbkdf2_sha1__default_rounds=10000,
-        django_pbkdf2_sha256__default_rounds=10000,
-    )
+
+# build config dict that matches stock django
+# TODO: move these to passlib.apps
+if DJANGO_VERSION >= (1, 9):
+    stock_rounds = 24000
+else:  # 1.8
+    stock_rounds = 20000
+
+stock_config = django16_context.to_dict()
+stock_config.update(
+    deprecated="auto",
+    django_pbkdf2_sha1__default_rounds=stock_rounds,
+    django_pbkdf2_sha256__default_rounds=stock_rounds,
+)
+
+# override sample hashes used in test cases
+from passlib.hash import django_pbkdf2_sha256
+sample_hashes = dict(
+    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256.hash("not a password",
+                                 rounds=stock_config.get("django_pbkdf2_sha256__default_rounds")))
+)
 
 #=============================================================================
 # test utils
@@ -138,9 +157,11 @@ class _ExtensionSupport(object):
         from django.contrib.auth import models, hashers
         user_attrs = ["check_password", "set_password"]
         model_attrs = ["check_password", "make_password"]
+        hasher_attrs = ["check_password", "make_password", "get_hasher", "identify_hasher",
+                        "get_hashers"]
         objs = [(models, model_attrs),
                 (models.User, user_attrs),
-                (hashers, ["check_password", "make_password", "get_hasher", "identify_hasher"]),
+                (hashers, hasher_attrs),
         ]
         for obj, patched in objs:
             for attr in dir(obj):
@@ -237,8 +258,10 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
 
         self.require_TEST_MODE("default")
 
-        if not has_django:
+        if not DJANGO_VERSION:
             raise self.skipTest("Django not installed")
+        elif not has_min_django:
+            raise self.skipTest("Django version too old")
 
         # reset to baseline, and verify it worked
         self.unload_extension()
@@ -266,11 +289,7 @@ class DjangoBehaviorTest(_ExtensionTest):
 
     def assert_unusable_password(self, user):
         """check that user object is set to 'unusable password' constant"""
-        if DJANGO_VERSION >= (1,6):
-            # 1.6 on adds a random(?) suffix
-            self.assertTrue(user.password.startswith("!"))
-        else:
-            self.assertEqual(user.password, "!")
+        self.assertTrue(user.password.startswith("!"))
         self.assertFalse(user.has_usable_password())
         self.assertEqual(user.pop_saved_passwords(), [])
 
@@ -319,16 +338,9 @@ class DjangoBehaviorTest(_ExtensionTest):
         PASS1 = "toomanysecrets"
         WRONG1 = "letmein"
 
-        has_identify_hasher = False
         from passlib.ext.django.utils import hasher_to_passlib_name, passlib_to_hasher_name
-        from django.contrib.auth.hashers import check_password, make_password, is_password_usable
-        if patched or DJANGO_VERSION >= (1,5):
-            # identify_hasher()
-            #   django 1.4 -- not present
-            #   django 1.5 -- present (added in django ticket 18184)
-            #   passlib integration -- present even under 1.4
-            from django.contrib.auth.hashers import identify_hasher
-            has_identify_hasher = True
+        from django.contrib.auth.hashers import (check_password, make_password,
+                                                 is_password_usable, identify_hasher)
 
         #=======================================================
         # make sure extension is configured correctly
@@ -363,42 +375,22 @@ class DjangoBehaviorTest(_ExtensionTest):
         #=======================================================
         # empty password behavior
         #=======================================================
-        if DJANGO_VERSION < (1,6):
-            # NOTE: django 1.4-1.5 treat empty password as invalid
 
-            # User.set_password() should set unusable flag
-            user = FakeUser()
-            user.set_password('')
-            self.assert_unusable_password(user)
+        # User.set_password() should use default alg
+        user = FakeUser()
+        user.set_password('')
+        hash = user.password
+        self.assertTrue(ctx.handler().verify('', hash))
+        self.assert_valid_password(user, hash)
 
-            # User.check_password() should never return True
-            user = FakeUser()
-            user.password = hash = ctx.encrypt("")
-            self.assertFalse(user.check_password(""))
-            self.assert_valid_password(user, hash)
+        # User.check_password() should return True
+        self.assertTrue(user.check_password(""))
+        self.assert_valid_password(user, hash)
 
-            # make_password() should reject empty passwords
-            self.assertEqual(make_password(""), "!")
+        # no make_password()
 
-            # check_password() should never return True
-            self.assertFalse(check_password("", hash))
-
-        else:
-            # User.set_password() should use default alg
-            user = FakeUser()
-            user.set_password('')
-            hash = user.password
-            self.assertTrue(ctx.handler().verify('', hash))
-            self.assert_valid_password(user, hash)
-
-            # User.check_password() should return True
-            self.assertTrue(user.check_password(""))
-            self.assert_valid_password(user, hash)
-
-            # no make_password()
-
-            # check_password() should return True
-            self.assertTrue(check_password("", hash))
+        # check_password() should return True
+        self.assertTrue(check_password("", hash))
 
         #=======================================================
         # 'unusable flag' behavior
@@ -423,18 +415,14 @@ class DjangoBehaviorTest(_ExtensionTest):
         self.assert_unusable_password(user)
 
         # make_password() should also set flag
-        if DJANGO_VERSION >= (1,6):
-            self.assertTrue(make_password(None).startswith("!"))
-        else:
-            self.assertEqual(make_password(None), "!")
+        self.assertTrue(make_password(None).startswith("!"))
 
         # check_password() should return False (didn't handle disabled under 1.3)
         self.assertFalse(check_password(PASS1, '!'))
 
         # identify_hasher() and is_password_usable() should reject it
         self.assertFalse(is_password_usable(user.password))
-        if has_identify_hasher:
-            self.assertRaises(ValueError, identify_hasher, user.password)
+        self.assertRaises(ValueError, identify_hasher, user.password)
 
         #=======================================================
         # hash=None
@@ -453,8 +441,7 @@ class DjangoBehaviorTest(_ExtensionTest):
         self.assertFalse(check_password(PASS1, None))
 
         # identify_hasher() - error
-        if has_identify_hasher:
-            self.assertRaises(TypeError, identify_hasher, None)
+        self.assertRaises(TypeError, identify_hasher, None)
 
         #=======================================================
         # empty & invalid hash values
@@ -467,49 +454,25 @@ class DjangoBehaviorTest(_ExtensionTest):
             # User.set_password() - n/a
 
             # User.check_password()
-            #   empty
-            #   -----
-            #   django 1.4 -- blank threw error (fixed in 1.5)
-            #   django 1.5 -- blank hash returns False
-            #
-            #   invalid
-            #   -------
-            #   django 1.4 -- invalid hash threw error (fixed in 1.5)
-            #   django 1.5 -- invalid hash returns False
+            # As of django 1.5, blank OR invalid hash returns False
             user = FakeUser()
             user.password = hash
-            if DJANGO_VERSION >= (1,5):
-                # returns False for hash
-                self.assertFalse(user.check_password(PASS1))
-            else:
-                # throws error for hash
-                self.assertRaises(ValueError, user.check_password, PASS1)
+            self.assertFalse(user.check_password(PASS1))
 
             # verify hash wasn't changed/upgraded during check_password() call
             self.assertEqual(user.password, hash)
             self.assertEqual(user.pop_saved_passwords(), [])
 
             # User.has_usable_password()
-            #   django 1.4 -- invalid/empty usable (fixed in 1.5)
-            #   django 1.5 -- invalid/empty no longer usable
-            if DJANGO_VERSION < (1,5):
-                self.assertTrue(user.has_usable_password())
-            else:
-                self.assertFalse(user.has_usable_password())
+            self.assertFalse(user.has_usable_password())
 
             # make_password() - n/a
 
             # check_password()
-            #   django 1.4 -- invalid/empty hash threw error (fixed in 1.5)
-            #   django 1.5 -- invalid/empty hash now returns False
-            if DJANGO_VERSION < (1,5):
-                self.assertRaises(ValueError, check_password, PASS1, hash)
-            else:
-                self.assertFalse(check_password(PASS1, hash))
+            self.assertFalse(check_password(PASS1, hash))
 
             # identify_hasher() - throws error
-            if has_identify_hasher:
-                self.assertRaises(ValueError, identify_hasher, hash)
+            self.assertRaises(ValueError, identify_hasher, hash)
 
         #=======================================================
         # run through all the schemes in the context,
@@ -540,7 +503,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             except KeyError:
                 while True:
                     secret, hash = testcase('setUp').get_sample_hash()
-                    if secret: # don't select blank passwords, especially under django 1.4/1.5
+                    if secret:  # don't select blank passwords
                         break
             other = 'dontletmein'
 
@@ -593,7 +556,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertFalse(check_password(other, hash, setter=setter))
             self.assertEqual(setter.popstate(), [])
 
-            ### check preferred kwd is ignored (django 1.4 feature we don't support)
+            ### check preferred kwd is ignored (feature we don't currently support fully)
             ##self.assertTrue(check_password(secret, hash, setter=setter, preferred='fooey'))
             ##self.assertEqual(setter.popstate(), [secret])
 
@@ -602,10 +565,9 @@ class DjangoBehaviorTest(_ExtensionTest):
             #-------------------------------------------------------
             # identify_hasher() recognizes known hash
             #-------------------------------------------------------
-            if has_identify_hasher:
-                self.assertTrue(is_password_usable(hash))
-                name = hasher_to_passlib_name(identify_hasher(hash).algorithm)
-                self.assertEqual(name, scheme)
+            self.assertTrue(is_password_usable(hash))
+            name = hasher_to_passlib_name(identify_hasher(hash).algorithm)
+            self.assertEqual(name, scheme)
 
 class ExtensionBehaviorTest(DjangoBehaviorTest):
     """test model to verify passlib.ext.django conforms to it"""
@@ -707,13 +669,13 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assertFalse(hasher.verify("xxxx", encoded))
 
         # test wrapper accepts options
-        encoded = hasher.encode("stub", "abcd"*4, iterations=1234)
+        encoded = hasher.encode("stub", "abcd"*4, rounds=1234)
         self.assertEqual(encoded, "$5$rounds=1234$abcdabcdabcdabcd$"
                                   "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6")
         self.assertEqual(hasher.safe_summary(encoded),
             {'algorithm': 'sha256_crypt',
              'salt': u('abcdab**********'),
-             'iterations': 1234,
+             'rounds': 1234,
              'hash': u('v2RWkZ*************************************'),
              })
 
@@ -735,10 +697,7 @@ class DjangoExtensionTest(_ExtensionTest):
         """test PASSLIB_CONFIG='<preset>'"""
         # test django presets
         self.load_extension(PASSLIB_CONTEXT="django-default", check=False)
-        if DJANGO_VERSION >= (1,6):
-            ctx = django16_context
-        else:
-            ctx = django14_context
+        ctx = django16_context
         self.assert_patched(ctx)
 
         self.load_extension(PASSLIB_CONFIG="django-1.0", check=False)
@@ -826,6 +785,10 @@ class DjangoExtensionTest(_ExtensionTest):
     # eoc
     #===================================================================
 
+#=============================================================================
+# helpers for HashersTest below
+#=============================================================================
+
 from passlib.context import CryptContext
 class ContextWithHook(CryptContext):
     """subclass which invokes update_hook(self) before major actions"""
@@ -834,66 +797,145 @@ class ContextWithHook(CryptContext):
     def update_hook(self):
         pass
 
-    def encrypt(self, *args, **kwds):
+    def hash(self, *args, **kwds):
         self.update_hook(self)
-        return super(ContextWithHook, self).encrypt(*args, **kwds)
+        return super(ContextWithHook, self).hash(*args, **kwds)
 
     def verify(self, *args, **kwds):
         self.update_hook(self)
         return super(ContextWithHook, self).verify(*args, **kwds)
 
+    def needs_update(self, *args, **kwds):
+        self.update_hook(self)
+        return super(ContextWithHook, self).needs_update(*args, **kwds)
+
+    def verify_and_update(self, *args, **kwds):
+        self.update_hook(self)
+        return super(ContextWithHook, self).verify_and_update(*args, **kwds)
+
+#=============================================================================
+# HashersTest --
 # hack up the some of the real django tests to run w/ extension loaded,
 # to ensure we mimic their behavior.
-if has_django:
-    from passlib.tests.utils import patchAttr
-    if DJANGO_VERSION >= (1,6):
-        from django.contrib.auth.tests import test_hashers as _thmod
-    else:
-        from django.contrib.auth.tests import hashers as _thmod
+# however, the django tests were moved out of the package, and into a source-only location
+# as of django 1.7. so we disable tests from that point on unless test-runner specifies
+#=============================================================================
 
-    class HashersTest(_thmod.TestUtilsHashPass, _ExtensionSupport):
+#
+# try to load django's tests/auth_tests/test_hasher.py module,
+# or note why we failed.
+#
+
+test_hashers_mod = None
+hashers_skip_msg = None
+
+if TEST_MODE(max="quick"):
+    hashers_skip_msg = "requires >= 'default' test mode"
+
+elif has_min_django:
+    import os
+    import sys
+    source_path = os.environ.get("PASSLIB_TESTS_DJANGO_SOURCE_PATH")
+
+    if source_path:
+        if not os.path.exists(source_path):
+            raise EnvironmentError("django source path not found: %r" % source_path)
+        if not all(os.path.exists(os.path.join(source_path, name))
+                   for name in ["django", "tests"]):
+            raise EnvironmentError("invalid django source path: %r" % source_path)
+        log.info("using django tests from source path: %r", source_path)
+        tests_path = os.path.join(source_path, "tests")
+        sys.path.insert(0, tests_path)
+        from auth_tests import test_hashers as test_hashers_mod
+        sys.path.remove(tests_path)
+
+    else:
+        hashers_skip_msg = "requires PASSLIB_TESTS_DJANGO_SOURCE_PATH to be set"
+
+elif DJANGO_VERSION:
+    hashers_skip_msg = "django version too old"
+
+else:
+    hashers_skip_msg = "django not installed"
+
+#
+# if found module, create wrapper to run django's own tests w/ passlib monkeypatched in.
+#
+if test_hashers_mod:
+    from passlib.utils.compat import get_unbound_method_function
+
+    class HashersTest(test_hashers_mod.TestUtilsHashPass, _ExtensionSupport):
         """run django's hasher unittests against passlib's extension
         and workalike implementations"""
+
+        # port patchAttr() helper method from passlib.tests.utils.TestCase
+        patchAttr = get_unbound_method_function(TestCase.patchAttr)
+
         def setUp(self):
+            #
+            # install passlib.ext.django monkeypatches
             # NOTE: omitted orig setup, want to install our extension,
             #       and load hashers through it instead.
+            #
             self.load_extension(PASSLIB_CONTEXT=stock_config, check=False)
             from passlib.ext.django.models import password_context
+            from passlib.ext.django.utils import get_passlib_hasher
 
+            #
             # update test module to use our versions of some hasher funcs
+            #
             from django.contrib.auth import hashers
             for attr in ["make_password",
                          "check_password",
                          "identify_hasher",
                          "get_hasher"]:
-                patchAttr(self, _thmod, attr, getattr(hashers, attr))
+                self.patchAttr(test_hashers_mod, attr, getattr(hashers, attr))
 
-            # django 1.5 tests expect empty django_des_crypt salt field
-            if DJANGO_VERSION >= (1,5):
-                from passlib.hash import django_des_crypt
-                patchAttr(self, django_des_crypt, "use_duplicate_salt", False)
+            #
+            # django tests expect empty django_des_crypt salt field
+            #
+            from passlib.hash import django_des_crypt
+            self.patchAttr(django_des_crypt, "use_duplicate_salt", False)
 
+            #
             # hack: need password_context to keep up to date with hasher.iterations
-            if DJANGO_VERSION >= (1,6):
-                def update_hook(self):
-                    rounds = _thmod.get_hasher("pbkdf2_sha256").iterations
-                    self.update(
-                        django_pbkdf2_sha256__min_rounds=rounds,
-                        django_pbkdf2_sha256__default_rounds=rounds,
-                        django_pbkdf2_sha256__max_rounds=rounds,
-                    )
-                patchAttr(self, password_context, "__class__", ContextWithHook)
-                patchAttr(self, password_context, "update_hook", update_hook)
+            #
+            def update_hook(context):
+                """called to sync hasher.rounds to crypt context before any operations"""
+                for handler in context.schemes(resolve=True):
+                    if 'rounds' not in handler.setting_kwds:
+                        continue
+                    hasher = get_passlib_hasher(handler, native_only=True)
+                    if not hasher:
+                        continue
+                    rounds = getattr(hasher, "rounds", None) or \
+                             getattr(hasher, "iterations", None)
+                    if rounds is None:
+                        continue
+                    prefix = handler.name + "__"
+                    context.update({prefix + "default_rounds": rounds,
+                                    prefix + "min_rounds": rounds,
+                                    prefix + "max_rounds": rounds})
 
-        # omitting this test, since it depends on updated to django hasher settings
+            self.password_context = password_context
+            self.patchAttr(password_context, "__class__", ContextWithHook)
+            self.patchAttr(password_context, "update_hook", update_hook)
+
+        # NOTE: omitting this test, since tries to reinitialize the hashers on top of our patch.
         test_pbkdf2_upgrade_new_hasher = lambda self: self.skipTest("omitted by passlib")
 
         def tearDown(self):
             self.unload_extension()
             super(HashersTest, self).tearDown()
 
-    HashersTest = skipUnless(TEST_MODE("default"),
-                             "requires >= 'default' test mode")(HashersTest)
+else:
+    # otherwise leave a stub so test log tells why test was skipped.
+
+    class HashersTest(TestCase):
+
+        def test_external_django_hasher_tests(self):
+            """external django hasher tests"""
+            raise self.skipTest(hashers_skip_msg)
 
 #=============================================================================
 # eof

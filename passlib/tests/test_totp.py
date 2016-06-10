@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from passlib.utils.compat import PY3
 import base64
 import datetime
+from functools import partial
 import logging; log = logging.getLogger(__name__)
 import random
 import sys
@@ -16,7 +17,7 @@ import time as _time
 from passlib import exc
 from passlib.utils import to_bytes, to_unicode
 from passlib.utils.compat import unicode, u
-from passlib.tests.utils import TestCase
+from passlib.tests.utils import TestCase, time_call
 # local
 __all__ = [
     "EngineTest",
@@ -26,12 +27,15 @@ __all__ = [
 # helpers
 #=============================================================================
 
-# XXX: python switched up what error base64.b32decode() etc throws.
-#      maybe we should normalize it? for now, using this alias...
-if PY3:
-    from binascii import Error as BinaryDecodeError
-else:
-    BinaryDecodeError = TypeError
+# XXX: python 3 changed what error base64.b16decode() throws, from TypeError to base64.Error().
+#      it wasn't until 3.3 that base32decode() also got changed.
+#      really should normalize this in the code to a single BinaryDecodeError,
+#      predicting this cross-version is getting unmanagable.
+Base32DecodeError = Base16DecodeError = TypeError
+if sys.version_info >= (3,0):
+    from binascii import Error as Base16DecodeError
+if sys.version_info >= (3,3):
+    from binascii import Error as Base32DecodeError
 
 PASS1 = "abcdef"
 PASS2 = b"\x00\xFF"
@@ -70,44 +74,64 @@ class UtilsTest(TestCase):
     #=============================================================================
     def test_decrypt_key(self):
         """decrypt_key()"""
-        from passlib.totp import decrypt_key
+        from passlib.totp import decrypt_key, ENCRYPTED_TOTP
 
-        # reference
-        CIPHER1 = '1-C-EISCJBCQVL2V4C7B-KTTAWJP2RT4MYGWR'
-        self.assertEqual(decrypt_key(CIPHER1, PASS1), KEY1_RAW)
+        # reference v2 key
+        CIPHER1 = '2-D-6D7N7W53O7HHS37NLUFQ-MHCTEGSNPFN5CGBJ'
+        if ENCRYPTED_TOTP:
+            self.assertEqual(decrypt_key(CIPHER1, PASS1), KEY1_RAW)
+        else:
+            self.assertRaises(RuntimeError, decrypt_key, CIPHER1, PASS1)
+            raise self.skipTest("'cryptography' package not installed")
 
         # base32, should be case insensitive
         self.assertEqual(decrypt_key(CIPHER1.lower(), PASS1), KEY1_RAW)
 
         # different salt
-        CIPHER1b = '1-C-IHEFSS5J2UNGG3BN-UIIN2VVHHNF6ZM4L'
-        self.assertEqual(decrypt_key(CIPHER1b, PASS1), KEY1_RAW)
+        CIPHER2 = '2-D-SPZJ54Y6IPUD2BYA4C6A-ZGDXXTVQOWYLC2AU'
+        self.assertEqual(decrypt_key(CIPHER2, PASS1), KEY1_RAW)
 
         # different sized key, password, and cost
-        CIPHER2 = '1-8-5HOZXE2SVJ2Q5QPY-ZI2WYDXLIMTPU5UIMFSJJOEPJLSI2Q6Q'
-        self.assertEqual(decrypt_key(CIPHER2, PASS2), KEY2_RAW)
+        CIPHER3 = '2-8-FCCTARTIJWE7CPQHUDKA-D2DRS32YESGHHINWFFCELKN7Z6NAHM4M'
+        self.assertEqual(decrypt_key(CIPHER3, PASS2), KEY2_RAW)
 
-        # wrong password should silently result in wrong key
+        # wrong password should silently result in wrong key, rather than throwing error
         other = decrypt_key(CIPHER1, PASS2)
-        self.assertEqual(other, b'\x06\x88\xd2\xc6\xb0j\xa0\x1d\xc9\xa2')
+        self.assertEqual(other, b'\xafD6.F7\xeb\x19\x05Q')
 
         # malformed strings
         def assert_malformed(enckey):
             self.assertRaisesRegex(ValueError, "malformed .* data", decrypt_key, enckey, PASS1)
         assert_malformed("abc") # unrecognized string
-        assert_malformed('1-C-EISCJBCQVL2V4C7') # too few sections
-        assert_malformed('1-C-EISCJBCQVL2V4C7-KTTAWJP2RT4MYGWR-FOO') # too many sections
-        assert_malformed('1-C-EISCJBCQVL2V4C@-KTTAWJP2RT4MYGWR') # invalid char in salt
-        assert_malformed('1-C-EISCJBCQVL2V4C-KTTAWJP2RT4MYGWR') # invalid size of b32 encoded salt
-        self.assertRaisesRegex(ValueError, "unknown .* version", decrypt_key, '0' + CIPHER1[1:], PASS1) # unknown version
+        assert_malformed('2-C-EISCJBCQVL2V4C7') # too few sections
+        assert_malformed('2-C-EISCJBCQVL2V4C7-KTTAWJP2RT4MYGWR-FOO') # too many sections
+        assert_malformed('2-C-EISCJBCQVL2V4C@-KTTAWJP2RT4MYGWR') # invalid char in salt
+        assert_malformed('2-C-EISCJBCQVL2V4C-KTTAWJP2RT4MYGWR') # invalid size of b32 encoded salt
+        self.assertRaisesRegex(ValueError, "unknown .* version", decrypt_key, '9' + CIPHER1[1:], PASS1) # unknown version
+
+    def test_decrypt_key_using_v1(self):
+        """decrypt_key() -- legacy formats"""
+        from passlib.totp import decrypt_key
+
+        # v1 encoding of KEY1
+        CIPHER = '1-C-EISCJBCQVL2V4C7B-KTTAWJP2RT4MYGWR'
+        self.assertEqual(decrypt_key(CIPHER, PASS1), KEY1_RAW)
+
+        # v1 encoding of KEY2
+        CIPHER = '1-8-5HOZXE2SVJ2Q5QPY-ZI2WYDXLIMTPU5UIMFSJJOEPJLSI2Q6Q'
+        self.assertEqual(decrypt_key(CIPHER, PASS2), KEY2_RAW)
 
     def test_encrypt_key(self):
         """encrypt_key()"""
-        from passlib.totp import encrypt_key, decrypt_key
+        from passlib.totp import encrypt_key, decrypt_key, ENCRYPTED_TOTP
+
+        if not ENCRYPTED_TOTP:
+            self.assertRaises(RuntimeError, encrypt_key, KEY1_RAW, PASS1)
+            raise self.skipTest("'cryptography' package not installed")
 
         def test(key, pwd, **k):
             result = encrypt_key(key, pwd, **k)
-            self.assertRegex(result, "^1-[A-F0-9]+-[A-Z0-9]+-[A-Z0-9]+$") # has right format
+            self.assertRegex(result, "^2-[A-F0-9]+-[A-Z0-9]+-[A-Z0-9]+$") # has right format
             self.assertEqual(decrypt_key(result, pwd), key) # decrypts correctly
             return result
 
@@ -121,7 +145,7 @@ class UtilsTest(TestCase):
 
         # custom cost
         result = test(KEY1_RAW, PASS1, cost=10)
-        self.assertTrue(result.startswith("1-A-"))
+        self.assertTrue(result.startswith("2-A-"))
 
         # larger key
         result2 = test(KEY2_RAW, PASS1)
@@ -140,8 +164,11 @@ class UtilsTest(TestCase):
 
     def test_encrypt_key_salt_size(self):
         """ENCRYPT_SALT_SIZE"""
-        from passlib.totp import encrypt_key
+        from passlib.totp import encrypt_key, ENCRYPTED_TOTP
         from passlib import totp
+
+        if not ENCRYPTED_TOTP:
+            raise self.skipTest("'cryptography' package not installed")
 
         self.addCleanup(setattr, totp, "ENCRYPT_SALT_SIZE", totp.ENCRYPT_SALT_SIZE)
 
@@ -155,23 +182,23 @@ class UtilsTest(TestCase):
 
     def test_encrypt_key_cost(self):
         """ENCRYPT_COST"""
-        from passlib.totp import encrypt_key
+        from passlib.totp import encrypt_key, ENCRYPTED_TOTP
         from passlib import totp
+
+        if not ENCRYPTED_TOTP:
+            raise self.skipTest("'cryptography' package not installed")
 
         self.addCleanup(setattr, totp, "ENCRYPT_COST", totp.ENCRYPT_COST)
 
         # time default cost
-        start = _time.clock()
-        _ = encrypt_key(KEY1_RAW, PASS1)
-        delta = _time.clock() - start
+        totp.ENCRYPT_COST -= 2
+        delta, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
 
-        # this should take 8x as long
+        # this should take (2**3=8) times as long
         totp.ENCRYPT_COST += 3
-        start = _time.clock()
-        _ = encrypt_key(KEY1_RAW, PASS1)
-        delta2 = _time.clock() - start
+        delta2, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
 
-        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)/10)
+        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 
     #=============================================================================
     # client offset helpers
@@ -255,6 +282,16 @@ class _BaseOTPTest(TestCase):
 
     #: BaseOTP subclass we're testing.
     OtpType = None
+
+    #=============================================================================
+    # setup
+    #=============================================================================
+    def setUp(self):
+        super(_BaseOTPTest, self).setUp()
+
+        # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
+        from passlib.crypto.digest import lookup_hash
+        lookup_hash.clear_cache()
 
     #=============================================================================
     # subclass utils
@@ -349,13 +386,13 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(' 4aog gdbb qsyh ntuz ').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(BinaryDecodeError, OTP, 'ao!ggdbbqsyhntuz')
+        self.assertRaises(Base32DecodeError, OTP, 'ao!ggdbbqsyhntuz')
 
         # handle hex encoding
         self.assertEqual(OTP('e01c630c2184b076ce99', 'hex').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(BinaryDecodeError, OTP, 'X01c630c2184b076ce99', 'hex')
+        self.assertRaises(Base16DecodeError, OTP, 'X01c630c2184b076ce99', 'hex')
 
         # handle raw bytes
         self.assertEqual(OTP(KEY1_RAW, "raw").key, KEY1_RAW)
@@ -369,10 +406,7 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(KEY1, alg="SHA256").alg, "sha256")
 
         # invalid alg
-        with self.assertWarningList([
-            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA333")
-        ]):
-            self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
+        self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
 
     def test_ctor_w_digits(self):
         """constructor -- 'digits' parameter"""
@@ -816,7 +850,7 @@ class TotpTest(_BaseOTPTest):
         otp.last_counter = counter + 1
         otp.now = lambda : time
         with self.assertWarningList([
-                dict(message_re=".*earlier than last time.*", category=PasslibSecurityWarning),
+                dict(message_re=".*earlier than last-used time.*", category=PasslibSecurityWarning),
                 ]):
             self.assertTrue(otp.generate_next().token)
         self.assertEqual(otp.last_counter, counter)
@@ -1210,7 +1244,7 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?digits=6")
 
         # undecodable secret
-        self.assertRaises(BinaryDecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
+        self.assertRaises(Base32DecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
                                                        "secret=JBSWY3DPEHP@3PXP")
 
         #--------------------------------------------------------------------------------
@@ -1252,7 +1286,8 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(otp.alg, "sha256")
 
         # unknown alg
-        self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
+        self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?"
+                                                "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333")
 
         #--------------------------------------------------------------------------------
         # digit param
@@ -1902,7 +1937,7 @@ class HotpTest(_BaseOTPTest):
                                                 "counter=123")
 
         # undecodable secret
-        self.assertRaises(BinaryDecodeError, from_uri, "otpauth://hotp/Example:alice@google.com?"
+        self.assertRaises(Base32DecodeError, from_uri, "otpauth://hotp/Example:alice@google.com?"
                                                        "secret=JBSWY3DPEHP@3PXP&counter=123")
 
         #--------------------------------------------------------------------------------
@@ -1947,12 +1982,9 @@ class HotpTest(_BaseOTPTest):
         self.assertEqual(otp.alg, "sha256")
         
         # unknown alg
-        with self.assertWarningList([
-            dict(category=exc.PasslibRuntimeWarning, message_re="unknown hash.*SHA333")
-        ]):
-            self.assertRaises(ValueError, from_uri, "otpauth://hotp/Example:alice@google.com?"
-                                                    "secret=JBSWY3DPEHPK3PXP&counter=123"
-                                                    "&algorithm=SHA333")
+        self.assertRaises(ValueError, from_uri, "otpauth://hotp/Example:alice@google.com?"
+                                                "secret=JBSWY3DPEHPK3PXP&counter=123"
+                                                "&algorithm=SHA333")
         
         #--------------------------------------------------------------------------------
         # digit param

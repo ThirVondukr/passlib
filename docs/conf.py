@@ -24,6 +24,8 @@ sys.path.insert(0, os.path.abspath(os.pardir))
 # imports
 #=============================================================================
 
+import datetime
+
 # build option flags:
 # "for-pypi" -- enable analytics tracker for pypi documentation
 options = os.environ.get("PASSLIB_DOCS", "").split(",")
@@ -33,16 +35,12 @@ options = os.environ.get("PASSLIB_DOCS", "").split(",")
 # (https://bitbucket.org/ecollins/cloud_sptheme)
 import cloud_sptheme as csp
 
-# hack to make autodoc generate documentation from the correct class...
-import passlib.utils.md4 as md4_mod
-md4_mod.md4 = md4_mod._builtin_md4
-
 #=============================================================================
 # General configuration
 #=============================================================================
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.1'
+needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -50,6 +48,11 @@ extensions = [
     # standard sphinx extensions
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.viewcode',
+
+    # 3rd part extensions
+    'sphinxcontrib.fulltoc',
 
     # adds extra ids & classes to genindex html, for additional styling
     'cloud_sptheme.ext.index_styling',
@@ -91,7 +94,7 @@ index_doc = 'index'
 # General information about the project.
 project = 'Passlib'
 author = "Assurance Technologies, LLC"
-copyright = "2008-2012, " + author
+copyright = "2008-%d, %s" % (datetime.date.today().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -149,7 +152,7 @@ modindex_common_prefix = ["passlib."]
 #=============================================================================
 todo_include_todos = True
 keep_warnings = True
-issue_tracker_url = "gc:passlib"
+issue_tracker_url = "bb:ecollins/passlib"
 
 #=============================================================================
 # Options for HTML output
@@ -166,13 +169,12 @@ html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
     html_theme_options.update(roottarget=index_doc,
                               issueicon=None,
-                              lighter_decor=True,
-#                              borderless_decor=True,
-                              inline_admonitions=False,
+                              # lighter_decor=True,
+                              borderless_decor=True,
                               sidebar_localtoc_title="Page contents",
-                              sidebarwidth="280px",
-                              max_width="11.5in",
-                              compact_width="11.5in",
+                              max_width="12in",
+                              sidebarwidth="3.5in",
+                              hyphenation_language="en",
                               )
     if 'for-pypi' in options:
         html_theme_options.update(
@@ -216,14 +218,14 @@ html_static_path = ['_static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-common_sidebars = ['quicklinks.html', 'searchbox.html']
-html_sidebars = {
-    '**': ['localtoc.html', 'relations.html'] + common_sidebars,
-    'py-modindex': common_sidebars,
-    'genindex': common_sidebars,
-    'search': common_sidebars,
-}
-#html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
+# common_sidebars = ['quicklinks.html', 'searchbox.html']
+# html_sidebars = {
+#     '**': ['localtoc.html', 'relations.html'] + common_sidebars,
+#     'py-modindex': common_sidebars,
+#     'genindex': common_sidebars,
+#     'search': common_sidebars,
+# }
+html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

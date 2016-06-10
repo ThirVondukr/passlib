@@ -27,12 +27,12 @@ All of these classes can be used directly as follows::
     >>> from passlib.hash import pbkdf2_sha256
 
     >>> # generate new salt, encrypt password
-    >>> hash = pbkdf2_sha256.encrypt("password")
+    >>> hash = pbkdf2_sha256.hash("password")
     >>> hash
     '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'
 
     >>> # same, but with an explicit number of rounds and salt length
-    >>> pbkdf2_sha256.encrypt("password", rounds=8000, salt_size=10)
+    >>> pbkdf2_sha256.hash("password", rounds=8000, salt_size=10)
     '$pbkdf2-sha256$8000$XAuBMIYQQogxRg$tRRlz8hYn63B9LYiCd6PRo6FMiunY9ozmMMI3srxeRE'
 
     >>> # verify the password
@@ -96,7 +96,7 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
 
 The algorithm used by all of these schemes is deliberately identical and simple:
 The password is encoded into UTF-8 if not already encoded,
-and run through :func:`~passlib.utils.pbkdf2.pbkdf2`
+and run through :func:`~passlib.crypto.digest.pbkdf2_hmac`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
 The result is then encoded using :func:`~passlib.utils.ab64_encode`.

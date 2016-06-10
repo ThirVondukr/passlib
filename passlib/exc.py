@@ -39,6 +39,15 @@ class PasswordSizeError(ValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
+
+class PasslibSecurityError(RuntimeError):
+    """
+    Error raised if critical security issue is detected
+    (e.g. an attempt is made to use a vulnerable version of a bcrypt backend).
+
+    .. versionadded:: 1.6.3
+    """
+
 class TokenReuseError(ValueError):
     """Error raised by various methods in :mod:`passlib.totp` if a token is reused.
     This exception derives from :exc:`!ValueError`.
@@ -53,6 +62,17 @@ class TokenReuseError(ValueError):
     def __init__(self, *args, **kwds):
         self.expire_time = kwds.pop("expire_time", None)
         ValueError.__init__(self, *args, **kwds)
+
+
+class UnknownHashError(ValueError):
+    """Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
+    This exception derives from :exc:`!ValueError`.
+
+    .. versionadded:: 1.7
+    """
+    def __init__(self, name):
+        self.name = name
+        ValueError.__init__(self, "unknown hash algorithm: %r" % name)
 
 #=============================================================================
 # warnings

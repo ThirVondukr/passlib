@@ -17,7 +17,7 @@ It can used directly as follows::
     >>> from passlib.hash import des_crypt
 
     >>> # generate new salt, encrypt password
-    >>> hash = des_crypt.encrypt("password")
+    >>> hash = des_crypt.hash("password")
     'JQMuyS6H.AGMo'
 
     >>> # verify the password

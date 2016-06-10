@@ -12,7 +12,7 @@ from django.conf import settings
 from passlib.context import CryptContext
 from passlib.exc import ExpectedTypeError
 from passlib.ext.django.utils import _PatchManager, hasher_to_passlib_name, \
-                                     get_passlib_hasher, get_preset_config
+                                     get_passlib_hasher, get_preset_config, MIN_DJANGO_VERSION
 from passlib.utils.compat import unicode
 # local
 __all__ = ["password_context"]
@@ -50,63 +50,47 @@ def _apply_patch():
     assumes the caller will configure the object.
     """
     #
-    # setup constants
+    # setup environment & patch-paths
     #
+    if VERSION < MIN_DJANGO_VERSION:
+        raise RuntimeError("passlib.ext.django requires django >= %s" % (MIN_DJANGO_VERSION,))
+
     log.debug("preparing to monkeypatch 'django.contrib.auth' ...")
     global _patched
     assert not _patched, "monkeypatching already applied"
+
     HASHERS_PATH = "django.contrib.auth.hashers"
     MODELS_PATH = "django.contrib.auth.models"
     USER_PATH = MODELS_PATH + ":User"
     FORMS_PATH = "django.contrib.auth.forms"
 
     #
-    # import UNUSABLE_PASSWORD and is_password_usable() helpers
+    # import some helpers from hashers module
     #
-    assert VERSION >= (1,4), "sanity check, should have been caught by passlib.ext.django.utils"
-    if VERSION < (1,6):
-        from django.contrib.auth.hashers import UNUSABLE_PASSWORD, is_password_usable
-
-        # NOTE: 1.4 .. 1.5 - empty passwords not valid.
-        def is_valid_secret(secret):
-            return bool(secret)
-
-        def make_unusable_password():
-            return UNUSABLE_PASSWORD
-    else:
-        from django.contrib.auth.hashers import is_password_usable, make_password
-
-        # 1.6 - empty passwords valid again
-        def is_valid_secret(secret):
-            return secret is not None
-
-        def make_unusable_password():
-            return make_password(None)
-
-    # django 1.4.6+ uses a separate hasher for "sha1$$digest" hashes
-    has_unsalted_sha1 = (VERSION >= (1,4,6))
+    from django.contrib.auth.hashers import is_password_usable
+    from django.utils import lru_cache
+    from passlib.utils.compat import lmap
 
     #
     # patch ``User.set_password() & ``User.check_password()`` to use
     # context & get_category (would just leave these as wrappers for hashers
-    # module under django 1.4, but then we couldn't pass User object into
-    # get_category very easily)
+    # module, but then we couldn't pass User object into get_category very easily)
     #
     @_manager.monkeypatch(USER_PATH)
     def set_password(user, password):
         """passlib replacement for User.set_password()"""
-        if is_valid_secret(password):
+        if password is None:
+            user.set_unusable_password()
+        else:
             # NOTE: pulls _get_category from module globals
             cat = _get_category(user)
-            user.password = password_context.encrypt(password, category=cat)
-        else:
-            user.set_unusable_password()
+            user.password = password_context.hash(password, category=cat)
 
     @_manager.monkeypatch(USER_PATH)
     def check_password(user, password):
         """passlib replacement for User.check_password()"""
         hash = user.password
-        if not is_valid_secret(password) or not is_password_usable(hash):
+        if password is None or not is_password_usable(hash):
             return False
         # NOTE: pulls _get_category from module globals
         cat = _get_category(user)
@@ -127,35 +111,61 @@ def _apply_patch():
         """passlib replacement for check_password()"""
         # XXX: this currently ignores "preferred" keyword, since its purpose
         #      was for hash migration, and that's handled by the context.
-        if not is_valid_secret(password) or not is_password_usable(encoded):
+        if password is None or not is_password_usable(encoded):
             return False
         ok = password_context.verify(password, encoded)
-        if ok and setter and password_context.needs_update(encoded):
-            setter(password)
+        if ok and setter:
+            # django's check_password() won't call setter() on a legacy alg if it's explicitly
+            # chosen via 'preferred' kwd (unless alg itself says hash needs updating, of course).
+            # as a hack to replicate this behavior, the following makes a temp copy of the
+            # active context, to ensure the preferred scheme isn't deprecated.
+            test_context = password_context
+            if preferred != "default":
+                scheme = hasher_to_passlib_name(preferred)
+                if password_context._is_deprecated_scheme(scheme):
+                    test_context = password_context.copy(default=scheme)
+            if test_context.needs_update(encoded):
+                setter(password)
         return ok
 
     #
     # patch the other functions defined in the ``hashers`` module, as well
     # as any other known locations where they're imported within ``contrib.auth``
     #
-    @_manager.monkeypatch(HASHERS_PATH)
-    @_manager.monkeypatch(MODELS_PATH)
-    def make_password(password, salt=None, hasher="default"):
+    @_manager.monkeypatch(HASHERS_PATH, wrap=True)
+    @_manager.monkeypatch(MODELS_PATH, wrap=True)
+    def make_password(__wrapped__, password, salt=None, hasher="default"):
         """passlib replacement for make_password()"""
-        if not is_valid_secret(password):
-            return make_unusable_password()
+        if password is None:
+            return __wrapped__(None)
         if hasher == "default":
             scheme = None
         else:
             scheme = hasher_to_passlib_name(hasher)
         kwds = dict(scheme=scheme)
         handler = password_context.handler(scheme)
-        # NOTE: django make specify an empty string for the salt,
-        #       even if scheme doesn't accept a salt. we omit keyword
-        #       in that case.
-        if salt is not None and (salt or 'salt' in handler.setting_kwds):
-            kwds['salt'] = salt
-        return password_context.encrypt(password, **kwds)
+        if "salt" in handler.setting_kwds:
+            if hasher.startswith("unsalted_"):
+                # Django 1.4.6+ uses a separate 'unsalted_sha1' hasher for "sha1$$digest",
+                # but passlib just reuses it's "sha1" handler ("sha1$salt$digest"). To make
+                # this work, have to explicitly tell the sha1 handler to use an empty salt.
+                kwds['salt'] = ''
+            elif salt:
+                # Django make_password() autogenerates a salt if salt is bool False (None / ''),
+                # so we only pass the keyword on if there's actually a fixed salt.
+                kwds['salt'] = salt
+        return password_context.hash(password, **kwds)
+
+    @_manager.monkeypatch(HASHERS_PATH)
+    @lru_cache.lru_cache()
+    def get_hashers():
+        """passlib replacement for get_hashers()"""
+        return lmap(get_passlib_hasher, password_context.schemes(resolve=True))
+
+    # NOTE: leaving get_hashers_by_algorithm() unpatched, since it just
+    #       proxies get_hashers().  but we do want to wipe it's cache...
+    from django.contrib.auth.hashers import reset_hashers
+    reset_hashers(setting="PASSWORD_HASHERS")
 
     @_manager.monkeypatch(HASHERS_PATH)
     @_manager.monkeypatch(FORMS_PATH)
@@ -181,8 +191,7 @@ def _apply_patch():
         handler = password_context.identify(encoded, resolve=True,
                                             required=True)
         algorithm = None
-        if (has_unsalted_sha1 and handler.name == "django_salted_sha1" and
-                encoded.startswith("sha1$$")):
+        if handler.name == "django_salted_sha1" and encoded.startswith("sha1$$"):
             # django 1.4.6+ uses a separate hasher for "sha1$$digest" hashes,
             # but passlib just reuses the "sha1$salt$digest" handler.
             # we want to resolve to correct django hasher.

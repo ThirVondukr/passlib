@@ -14,6 +14,8 @@ PY3 = sys.version_info >= (3,0)
 if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
     raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
 
+PY26 = sys.version_info < (2,7)
+
 #------------------------------------------------------------------------
 # python implementation
 #------------------------------------------------------------------------
@@ -40,7 +42,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3',
+    'PY2', 'PY3', 'PY26',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -50,7 +52,8 @@ __all__ = [
 ##    'is_mapping',
     'int_types',
     'num_types',
-    'base_string_types',
+    'unicode_or_bytes_types',
+    'native_string_types',
 
     # unicode/bytes types & helpers
     'u',
@@ -72,7 +75,7 @@ __all__ = [
     'OrderedDict',
 
     # introspection
-    'exc_err', 'get_method_function', 'add_doc',
+    'get_method_function', 'add_doc',
 ]
 
 # begin accumulating mapping of lazy-loaded attrs,
@@ -85,12 +88,13 @@ _lazy_attrs = dict()
 if PY3:
     unicode = str
 
-    # TODO: drop python 3.2 support, and use u'' again!
+    # TODO: once we drop python 3.2 support, can use u'' again!
     def u(s):
         assert isinstance(s, str)
         return s
 
-    base_string_types = (unicode, bytes)
+    unicode_or_bytes_types = (str, bytes)
+    native_string_types = (unicode,)
 
 else:
     unicode = builtins.unicode
@@ -99,7 +103,13 @@ else:
         assert isinstance(s, str)
         return s.decode("unicode_escape")
 
-    base_string_types = basestring
+    unicode_or_bytes_types = (basestring,)
+    native_string_types = (basestring,)
+
+# unicode -- unicode type, regardless of python version
+# bytes -- bytes type, regardless of python version
+# unicode_or_bytes_types -- types that text can occur in, whether encoded or not
+# native_string_types -- types that native python strings (dict keys etc) can occur in.
 
 #=============================================================================
 # unicode & bytes helpers
@@ -223,8 +233,8 @@ if PY3:
     def itervalues(d):
         return d.values()
 
-    next_method_attr = "__next__"
-
+    def nextgetter(obj):
+        return obj.__next__
 else:
     irange = xrange
     ##lrange = range
@@ -237,7 +247,10 @@ else:
     def itervalues(d):
         return d.itervalues()
 
-    next_method_attr = "next"
+    def nextgetter(obj):
+        return obj.next
+
+add_doc(nextgetter, "return function that yields successive values from iterable")
 
 #=============================================================================
 # typing
@@ -249,10 +262,6 @@ else:
 #=============================================================================
 # introspection
 #=============================================================================
-def exc_err():
-    """return current error object (to avoid try/except syntax change)"""
-    return sys.exc_info()[1]
-
 if PY3:
     method_function_attr = "__func__"
 else:
@@ -262,6 +271,10 @@ def get_method_function(func):
     """given (potential) method, return underlying function"""
     return getattr(func, method_function_attr, func)
 
+def get_unbound_method_function(func):
+    """given unbound method, return underlying function"""
+    return func if PY3 else func.__func__
+
 #=============================================================================
 # input/output
 #=============================================================================
@@ -270,11 +283,8 @@ if PY3:
         BytesIO="io.BytesIO",
         UnicodeIO="io.StringIO",
         NativeStringIO="io.StringIO",
-        SafeConfigParser="configparser.SafeConfigParser",
+        SafeConfigParser="configparser.ConfigParser",
     )
-    if sys.version_info >= (3,2):
-        # py32 renamed this, removing old ConfigParser
-        _lazy_attrs["SafeConfigParser"] = "configparser.ConfigParser"
 
     print_ = getattr(builtins, "print")
 
@@ -306,13 +316,13 @@ else:
         # pick default end sequence
         if end is None:
             end = u("\n") if want_unicode else "\n"
-        elif not isinstance(end, base_string_types):
+        elif not isinstance(end, unicode_or_bytes_types):
             raise TypeError("end must be None or a string")
 
         # pick default separator
         if sep is None:
             sep = u(" ") if want_unicode else " "
-        elif not isinstance(sep, base_string_types):
+        elif not isinstance(sep, unicode_or_bytes_types):
             raise TypeError("sep must be None or a string")
 
         # write to buffer
@@ -331,8 +341,8 @@ else:
 #=============================================================================
 # collections
 #=============================================================================
-if sys.version_info < (2,7):
-    _lazy_attrs['OrderedDict'] = 'passlib.utils._ordered_dict.OrderedDict'
+if PY26:
+    _lazy_attrs['OrderedDict'] = 'passlib.utils.compat._ordered_dict.OrderedDict'
 else:
     _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 
@@ -355,7 +365,7 @@ class _LazyOverlayModule(ModuleType):
     that are only needed by certain password hashes,
     yet allow them to be imported from a single location.
 
-    used by :mod:`passlib.utils`, :mod:`passlib.utils.crypto`,
+    used by :mod:`passlib.utils`, :mod:`passlib.crypto`,
     and :mod:`passlib.utils.compat`.
     """
 

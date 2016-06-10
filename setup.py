@@ -15,7 +15,7 @@ import time
 
 py3k = (sys.version_info[0] >= 3)
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 #=============================================================================
 # init setup options
@@ -85,8 +85,8 @@ providing full-strength password hashing for multi-user applications.
 * See the `documentation <http://packages.python.org/passlib>`_
   for details, installation instructions, and examples.
 
-* See the `homepage <http://passlib.googlecode.com>`_
-  for the latest news, more information, and additional downloads.
+* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
+  for the latest news and more information.
 
 * See the `changelog <http://packages.python.org/passlib/history.html>`_
   for a description of what's new in Passlib.
@@ -103,7 +103,6 @@ Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Natural Language :: English
 Operating System :: OS Independent
-Programming Language :: Python :: 2.5
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
@@ -131,16 +130,7 @@ else:
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     # package info
-    packages = [
-        "passlib",
-            "passlib.ext",
-                "passlib.ext.django",
-            "passlib.handlers",
-            "passlib.tests",
-            "passlib.utils",
-                "passlib.utils._blowfish",
-            "passlib._setup",
-        ],
+    packages = find_packages(root_dir),
     package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
     zip_safe=True,
 
@@ -151,9 +141,8 @@ setup(
     author_email = "elic@assurancetechnologies.com",
     license = "BSD",
 
-    url = "http://passlib.googlecode.com",
+    url = "https://bitbucket.org/ecollins/passlib",
     download_url =
-#        ("http://passlib.googlecode.com/files/passlib-" + VERSION + ".tar.gz")
         ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 

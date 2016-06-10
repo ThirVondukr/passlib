@@ -2,7 +2,7 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import division
+from __future__ import absolute_import, division, print_function
 from passlib.utils.compat import PY3
 # core
 import base64
@@ -18,13 +18,24 @@ else:
     from urllib import quote, unquote
     from urlparse import urlparse, parse_qsl
 from warnings import warn
+# site
+try:
+    # TOTP encrypted keys only supported if cryptography (https://cryptography.io) is installed
+    from cryptography.hazmat.backends import default_backend as _cg_default_backend
+    import cryptography.hazmat.primitives.ciphers.algorithms
+    import cryptography.hazmat.primitives.ciphers.modes
+    from cryptography.hazmat.primitives import ciphers as _cg_ciphers
+    del cryptography
+except ImportError:
+    log.debug("can't import 'cryptography' package, totp encryption disabled")
+    _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
-                           getrandbytes, rng, xor_bytes)
+                           getrandbytes, rng, xor_bytes, SequenceMixin)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
-                                  irange, byte_elem_value, UnicodeIO)
-from passlib.utils.pbkdf2 import get_prf, norm_hash_name, pbkdf2
+                                  irange, byte_elem_value, UnicodeIO, PY26)
+from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 # local
 __all__ = [
     # frontend classes
@@ -40,33 +51,21 @@ __all__ = [
 ]
 
 #=============================================================================
+# HACK: python2.6's urlparse() won't parse query strings unless the url scheme
+#       is one of the schemes in the urlparse.uses_query list. 2.7 abandoned
+#       this, and parses query if present, regardless of the scheme.
+#       as a workaround for py2.6, we add "otpauth" to the known list.
+#=============================================================================
+if PY26:
+    from urlparse import uses_query
+    if "otpauth" not in uses_query:
+        uses_query.append("otpauth")
+        log.debug("registered 'otpauth' scheme with urlparse.uses_query")
+    del uses_query
+
+#=============================================================================
 # internal helpers
 #=============================================================================
-class _SequenceMixin(object):
-    """
-    helper which lets result object act like a fixed-length sequence.
-    subclass just needs to provide :meth:`_as_tuple()`.
-    """
-    def _as_tuple(self):
-        raise NotImplemented("implement in subclass")
-
-    def __repr__(self):
-        return repr(self._as_tuple())
-
-    def __getitem__(self, idx):
-        return self._as_tuple()[idx]
-
-    def __iter__(self):
-        return iter(self._as_tuple())
-
-    def __len__(self):
-        return len(self._as_tuple())
-
-    def __eq__(self, other):
-        return self._as_tuple() == other
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 #-----------------------------------------------------------------------------
 # token parsing / rendering helpers
@@ -155,34 +154,70 @@ def _decode_bytes(key, format):
 # encryption helpers -- used by to_json() / from_json() methods
 #-----------------------------------------------------------------------------
 
+#: flag for detecting if encrypted totp support is present
+ENCRYPTED_TOTP = bool(_cg_ciphers)
+
 #: default salt size for encrypt_key() output
 ENCRYPT_SALT_SIZE = 12
 
 #: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
 ENCRYPT_COST = 13
 
-def _raw_encrypt_key(key, password, salt, cost):
+# NOTE: this pbkdf2+xor method was using internally during initial coding, but after considering
+#       issues with this construction (e.g. http://crypto.stackexchange.com/questions/1957/can-pbkdf2-be-used-to-create-an-xor-cipher-key-to-encrypt-random-plaintext)
+#       it was deprecated while the TOTP code was still in alpha stage.
+#       it's kept here to support decrypting existing values that used an alpha release,
+#       but once those are migrated, will probably be removed entirely in a future release.
+def _raw_cipher_v1_key(value, password, salt, cost, decrypt=False):
     """
     internal helper for encrypt_key() & decrypt_key() --
-    runs password through pbkdf2-hmac-sha256,
-    and XORs key with the resulting bytes.
+    uses naive & insecure alg of ``content XOR pbkdf2-hmac-sha256(password, salt, cost)``.
+    only present to support some legacy values.
     """
     # NOTE: have to have a unique salt here, otherwise attacker can use known plaintext attack
     #       to figure out 'data', and trivially decrypt other keys in the database,
     #       (all without needing 'password')
-    assert isinstance(key, bytes)
+    assert isinstance(value, bytes)
     password = to_bytes(password, param="password")
-    data = pbkdf2(password, salt=salt, rounds=(1<<cost),
-                  keylen=len(key), prf="hmac-sha256")
-    return xor_bytes(key, data)
+    data = pbkdf2_hmac("sha256", password, salt=salt, rounds=(1<<cost), keylen=len(value))
+    return xor_bytes(value, data)
+
+def _raw_cipher_v2_key(value, password, salt, cost, decrypt=False):
+    """
+    internal helper for encrypt_key() & decrypt_key() --
+    uses PBKDF2-HMAC-SHA256 to derive key, and encrypts/decrypts value
+    using AES-256-CTR, with the salt being re-used as the IV.
+    """
+    if _cg_ciphers is None:
+        raise RuntimeError("TOTP encryption requires 'cryptography' package "
+                           "(https://cryptography.io)")
+
+    # use pbkdf2 to derive both key (32 bytes) & iv (16 bytes)
+    # NOTE: this requires 2 sha256 blocks to be calculated.
+    keyiv = pbkdf2_hmac("sha256", password, salt=salt, rounds=(1<<cost), keylen=48)
+
+    # NOTE: CTR mode was chosen over CBC because the main attack scenario here
+    #       is that the attacker has stolen the database, and is trying to decrypt a TOTP key
+    #       (the plaintext value here).  To make it hard for them, we want every password
+    #       to decrypt to a potentially valid key -- thus need to avoid any authentication
+    #       or padding oracle attacks.  While some random padding construction could be devised
+    #       to make this work for CBC mode, a stream cipher mode is just plain simpler.
+    #       OFB/CFB modes would also work here, but seeing as they have malleability
+    #       and cyclic issues (though remote and barely relevant here), CTR was chosen.
+
+    cipher = _cg_ciphers.Cipher(_cg_ciphers.algorithms.AES(keyiv[:32]),
+                                _cg_ciphers.modes.CTR(keyiv[32:]),
+                                _cg_default_backend())
+    ctx = cipher.decryptor() if decrypt else cipher.encryptor()
+    return ctx.update(value) + ctx.finalize()
 
 def encrypt_key(key, password, cost=None):
     """
     Helper used to encrypt TOTP keys for storage.
 
-    Since keys will typically be small (<= 32 bytes), this just runs the password
-    through PBKDF2-HMAC-SHA256, and XORs the result with the key (rather than using AES).
     A version number and the cost parameter value is prepended.
+    The current version runs the password & salt through PBKDF2-HMAC-SHA256,
+    and uses AES-256-CTR to encrypt the key.
 
     :arg key: raw key as bytes
     :arg password: password for encryption, as bytes
@@ -190,19 +225,24 @@ def encrypt_key(key, password, cost=None):
     :returns:
         encrypted key, using format :samp:`{version}-{cost}-{salt}-{data}`.
         ``version`` and ``cost`` are hex integers, ``salt`` and ``data`` are base32 encoded bytes.
+
+    .. note::
+
+        This function requires installation of the external
+        `cryptography <https://cryptography.io>`_ package.
     """
     if not key:
         raise ValueError("no key provided")
     if cost is None:
         cost = ENCRYPT_COST
     salt = getrandbytes(rng, ENCRYPT_SALT_SIZE)
-    rawenckey = _raw_encrypt_key(key, password, salt, cost)
+    rawenckey = _raw_cipher_v2_key(key, password, salt, cost)
     # NOTE: * no checksum, to save space and to make things harder on attacker
     #       * considered storing as binary string, and then encoding, but no real space savings,
     #         and this is more transparent about it's structure.
     #       * since this is internal, could use base64 here, but keeping w/ base32 to be
     #         consistent w/ OTP, and that would only save ~4 bytes anyways.
-    return "%X-%X-%s-%s" % (1, cost, b32encode(salt), b32encode(rawenckey))
+    return "2-%X-%s-%s" % (cost, b32encode(salt), b32encode(rawenckey))
 
 def decrypt_key(enckey, password):
     """
@@ -215,8 +255,12 @@ def decrypt_key(enckey, password):
         ver, tail = enckey.split("-", 1)
     except ValueError:
         raise _malformed_error()
-    if ver != "1":
-        raise ValueError("unknown encrypt_key() version")
+    if ver == "1":
+        cipher_helper = _raw_cipher_v1_key
+    elif ver == "2":
+        cipher_helper = _raw_cipher_v2_key
+    else:
+        raise ValueError("unknown encrypt_key() version: %r" % ver)
     try:
         cost, salt, enckey = tail.split("-")
     except ValueError:
@@ -229,7 +273,8 @@ def decrypt_key(enckey, password):
         if str(err).lower() in ["incorrect padding", "non-base32 digit found"]:
              raise _malformed_error()
         raise
-    return _raw_encrypt_key(rawenckey, password, salt, cost)
+
+    return cipher_helper(rawenckey, password, salt, cost, decrypt=True)
 
 #-----------------------------------------------------------------------------
 # offset / clock drift helpers
@@ -364,7 +409,7 @@ class BaseOTP(object):
     """
     Base class for generating and verifying OTP codes.
 
-    .. rst-class:: inline
+    .. rst-class:: inline-title
 
     .. note::
 
@@ -424,7 +469,7 @@ class BaseOTP(object):
         The number of digits in the generated / accepted tokens. Defaults to ``6``.
         Must be in range [6 .. 10].
 
-        .. rst-class:: inline
+        .. rst-class:: inline-title
         .. caution::
            Due to a limitation of the HOTP algorithm, the 10th digit can only take on values 0 .. 2,
            and thus offers very little extra security.
@@ -549,9 +594,9 @@ class BaseOTP(object):
         self.dirty = dirty
 
         # validate & normalize alg
-        self.alg = norm_hash_name(alg or self.alg)
-        # XXX: could use get_keyed_prf() instead
-        digest_size = get_prf("hmac-" + self.alg)[1]
+        info = lookup_hash(alg or self.alg)
+        self.alg = info.name
+        digest_size = info.digest_size
         if digest_size < 4:
             raise RuntimeError("%r hash digest too small" % alg)
 
@@ -688,10 +733,6 @@ class BaseOTP(object):
     # token helpers
     #=============================================================================
 
-    @memoized_property
-    def _prf_info(self):
-        return get_prf("hmac-" + self.alg)
-
     def _generate(self, counter):
         """
         implementation of lowlevel HOTP generation algorithm,
@@ -701,9 +742,10 @@ class BaseOTP(object):
         :returns: token as unicode string
         """
         # generate digest
-        prf, digest_size = self._prf_info
         assert isinstance(counter, int_types), "counter must be integer"
-        digest = prf(self.key, struct.pack(">Q", counter))
+        keyed_hmac = compile_hmac(self.alg, self.key)
+        digest = keyed_hmac(struct.pack(">Q", counter))
+        digest_size = keyed_hmac.digest_info.digest_size
         assert len(digest) == digest_size, "digest_size: sanity check failed"
 
         # derive 31-bit token value
@@ -1125,7 +1167,7 @@ class BaseOTP(object):
 #=============================================================================
 # HOTP helper
 #=============================================================================
-class HotpMatch(_SequenceMixin):
+class HotpMatch(SequenceMixin):
     """
     Object returned by :meth:`HOTP.verify`.
     It can be treated as a tuple of ``(valid, counter)``,
@@ -1337,7 +1379,7 @@ class HOTP(BaseOTP):
            How many additional steps past ``counter`` to search when looking for a match
            Defaults to 1.
 
-           .. rst-class:: inline
+           .. rst-class:: inline-title
            .. note::
               This is a forward-looking window only, as searching backwards
               would allow token-reuse, defeating the whole purpose of HOTP.
@@ -1388,7 +1430,7 @@ class HOTP(BaseOTP):
            How many additional steps past ``counter`` to search when looking for a match
            Defaults to 1.
 
-           .. rst-class:: inline
+           .. rst-class:: inline-title
            .. note::
               This is a forward-looking window only, as using a backwards window
               would allow token-reuse, defeating the whole purpose of HOTP.
@@ -1469,7 +1511,7 @@ BaseOTP._type_map[HOTP.type] = HOTP
 #=============================================================================
 # TOTP helper
 #=============================================================================
-class TotpToken(_SequenceMixin):
+class TotpToken(SequenceMixin):
     """
     Object returned by :meth:`TOTP.generate` and :meth:`TOTP.generate_next`.
     It can be treated as a sequence of ``(token, expire_time)``,
@@ -1522,7 +1564,7 @@ class TotpToken(_SequenceMixin):
         """whether token is still valid"""
         return bool(self.remaining)
 
-class TotpMatch(_SequenceMixin):
+class TotpMatch(SequenceMixin):
     """
     Object returned by :meth:`TOTP.verify`.
     It can be treated as a sequence of ``(valid, offset)``,

@@ -14,7 +14,7 @@ from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
 from passlib.utils.compat import bascii_to_str, iteritems, u,\
                                  unicode
-from passlib.utils.pbkdf2 import pbkdf1
+from passlib.crypto.digest import pbkdf1
 # local
 __all__ = [
     'fshp',
@@ -27,7 +27,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :param salt:
         Optional raw salt string.
@@ -39,7 +39,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 100000, must be between 1 and 4294967295, inclusive.
+        Defaults to 480000, must be between 1 and 4294967295, inclusive.
 
     :param variant:
         Optionally specifies variant of FSHP to use.
@@ -78,7 +78,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #--HasRounds--
     # FIXME: should probably use different default rounds
     # based on the variant. setting for default variant (sha256) for now.
-    default_rounds = 100000 # current passlib default, FSHP uses 4096
+    default_rounds = 480000 # current passlib default, FSHP uses 4096
     min_rounds = 1 # set by FSHP
     max_rounds = 4294967295 # 32-bit integer limit - not set by FSHP
     rounds_cost = "linear"
@@ -168,12 +168,8 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         chk = data[salt_size:]
         return cls(salt=salt, checksum=chk, rounds=rounds, variant=variant)
 
-    @property
-    def _stub_checksum(self):
-        return b'\x00' * self.checksum_size
-
     def to_string(self):
-        chk = self.checksum or self._stub_checksum
+        chk = self.checksum
         salt = self.salt
         data = bascii_to_str(b64encode(salt+chk))
         return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
@@ -189,11 +185,11 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         #       this has only a minimal impact on security,
         #       but it is worth noting this deviation.
         return pbkdf1(
+            digest=self.checksum_alg,
             secret=self.salt,
             salt=secret,
             rounds=self.rounds,
             keylen=self.checksum_size,
-            hash=self.checksum_alg,
             )
 
     #===================================================================

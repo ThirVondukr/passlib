@@ -35,7 +35,7 @@ from binascii import hexlify
 # site
 # pkg
 from passlib.utils.compat import unicode
-from passlib.utils.des import des_encrypt_block
+from passlib.crypto.des import des_encrypt_block
 from passlib.hash import nthash
 # local
 __all__ = [

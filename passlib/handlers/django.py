@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.hash import bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, classproperty
 from passlib.utils.compat import str_to_uascii, uascii_to_str, unicode, u
-from passlib.utils.pbkdf2 import pbkdf2
+from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -61,18 +61,13 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
 
     checksum_chars = uh.LOWER_HEX_CHARS
 
-    @classproperty
-    def _stub_checksum(cls):
-        return cls.checksum_chars[0] * cls.checksum_size
-
     @classmethod
     def from_string(cls, hash):
         salt, chk = uh.parse_mc2(hash, cls.ident, handler=cls)
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        return uh.render_mc2(self.ident, self.salt,
-                             self.checksum or self._stub_checksum)
+        return uh.render_mc2(self.ident, self.salt, self.checksum)
 
 class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
     """base class providing common code for django hashes w/ variable rounds"""
@@ -86,15 +81,14 @@ class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
     def to_string(self):
-        return uh.render_mc3(self.ident, self.rounds, self.salt,
-                             self.checksum or self._stub_checksum)
+        return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
 class django_salted_sha1(DjangoSaltedHash):
     """This class implements Django's Salted SHA1 hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and uses a single round of SHA1.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -131,7 +125,7 @@ class django_salted_md5(DjangoSaltedHash):
 
     It supports a variable-length salt, and uses a single round of MD5.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -198,9 +192,6 @@ class django_bcrypt_sha256(bcrypt):
     django_name = "bcrypt_sha256"
     _digest = sha256
 
-    # NOTE: django bcrypt ident locked at "$2a$", so omitting 'ident' support.
-    setting_kwds = ("salt", "rounds")
-
     # sample hash:
     # bcrypt_sha256$$2a$06$/3OeRpbOf8/l6nPPRdZPp.nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
 
@@ -225,12 +216,6 @@ class django_bcrypt_sha256(bcrypt):
             raise uh.exc.MalformedHashError(cls)
         return super(django_bcrypt_sha256, cls).from_string(bhash)
 
-    def __init__(self, **kwds):
-        if 'ident' in kwds and kwds.get("use_defaults"):
-            raise TypeError("%s does not support the ident keyword" %
-                            self.__class__.__name__)
-        return super(django_bcrypt_sha256, self).__init__(**kwds)
-
     def to_string(self):
         bhash = super(django_bcrypt_sha256, self).to_string()
         return uascii_to_str(self.django_prefix) + bhash
@@ -252,7 +237,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -268,7 +253,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 20000, but must be within ``range(1,1<<32)``.
+        Defaults to 29000, but must be within ``range(1,1<<32)``.
 
     :type relaxed: bool
     :param relaxed:
@@ -291,13 +276,11 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     checksum_chars = uh.PADDED_BASE64_CHARS
     checksum_size = 44 # 32 bytes -> base64
     default_rounds = pbkdf2_sha256.default_rounds # NOTE: django 1.6 uses 12000
-    _prf = "hmac-sha256"
+    _digest = "sha256"
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            secret = secret.encode("utf-8")
-        hash = pbkdf2(secret, self.salt.encode("ascii"), self.rounds,
-                      keylen=None, prf=self._prf)
+        # NOTE: secret & salt will be encoded using UTF-8 by pbkdf2_hmac()
+        hash = pbkdf2_hmac(self._digest, secret, self.salt, self.rounds)
         return b64encode(hash).rstrip().decode("ascii")
 
 class django_pbkdf2_sha1(django_pbkdf2_sha256):
@@ -305,7 +288,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -321,7 +304,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     :type rounds: int
     :param rounds:
         Optional number of rounds to use.
-        Defaults to 60000, but must be within ``range(1,1<<32)``.
+        Defaults to 131000, but must be within ``range(1,1<<32)``.
 
     :type relaxed: bool
     :param relaxed:
@@ -341,7 +324,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     ident = u('pbkdf2_sha1$')
     checksum_size = 28 # 20 bytes -> base64
     default_rounds = pbkdf2_sha1.default_rounds # NOTE: django 1.6 uses 12000
-    _prf = "hmac-sha1"
+    _digest = "sha1"
 
 #=============================================================================
 # other
@@ -351,7 +334,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
 
     It supports a fixed-length salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -376,7 +359,6 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
     checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 11
     min_salt_size = default_salt_size = 2
-    _stub_checksum = u('.')*11
 
     # NOTE: regarding duplicate salt field:
     #
@@ -414,7 +396,7 @@ class django_des_crypt(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         salt = self.salt
-        chk = salt[:2] + (self.checksum or self._stub_checksum)
+        chk = salt[:2] + self.checksum
         if self.use_duplicate_salt:
             # filling in salt field, so that we're compatible with django 1.0
             return uh.render_mc2(self.ident, salt, chk)
@@ -449,14 +431,16 @@ class django_disabled(uh.StaticHandler):
     .. versionchanged:: 1.6.2 added Django 1.6 support
     """
     name = "django_disabled"
+    _hash_prefix = u("!")
 
+    # XXX: move this to StaticHandler, or wherever _hash_prefix is being used?
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
-        return hash.startswith(u("!"))
+        return hash.startswith(cls._hash_prefix)
 
     def _calc_checksum(self, secret):
-        return u("!")
+        return u("")  # prefix will get prepended
 
     @classmethod
     def verify(cls, secret, hash):
