@@ -1334,10 +1334,8 @@ class HasRounds(GenericHandler):
 
         # replace max_desired_rounds
         if max_desired_rounds is None:
-            explicit_max_rounds = False
             max_desired_rounds = cls.max_desired_rounds
         else:
-            explicit_max_rounds = True
             if isinstance(max_desired_rounds, native_string_types):
                 max_desired_rounds = int(max_desired_rounds)
             if min_desired_rounds and max_desired_rounds < min_desired_rounds:
@@ -1376,6 +1374,8 @@ class HasRounds(GenericHandler):
             if isinstance(vary_rounds, native_string_types):
                 if vary_rounds.endswith("%"):
                     vary_rounds = float(vary_rounds[:-1]) * 0.01
+                elif "." in vary_rounds:
+                    vary_rounds = float(vary_rounds)
                 else:
                     vary_rounds = int(vary_rounds)
             if vary_rounds < 0:
@@ -2048,7 +2048,7 @@ class PrefixWrapper(object):
     _proxy_attrs = (
                     "setting_kwds", "context_kwds",
                     "default_rounds", "min_rounds", "max_rounds", "rounds_cost",
-                    "min_desired_rounds", "max_desired_rounds",
+                    "min_desired_rounds", "max_desired_rounds", "vary_rounds",
                     "default_salt_size", "min_salt_size", "max_salt_size",
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",

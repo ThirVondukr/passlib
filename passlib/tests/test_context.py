@@ -1288,8 +1288,9 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
 
     # TODO: now that rounds generation has moved out of _CryptRecord to HasRounds,
-    #       this should just test that we're passing right options to handler.using()...
-    #       and let HasRounds tests (which are a copy of this) deal with things.
+    #       this should just test that we're passing right options to handler.using(),
+    #       and that resulting handler has right settings.
+    #       Can then just let HasRounds tests (which are a copy of this) deal with things.
 
     # NOTE: the follow tests check how _CryptRecord handles
     # the min/max/default/vary_rounds options, via the output of
@@ -1305,6 +1306,15 @@ sha512_crypt__min_rounds = 45000
 
         # stub digest returned by sha256_crypt's genconfig calls..
         STUB = '...........................................'
+
+        #--------------------------------------------------
+        # settings should have been applied to custom handler,
+        # it should take care of the rest
+        #--------------------------------------------------
+        custom_handler = cc._get_record("sha256_crypt", None).custom_handler
+        self.assertEqual(custom_handler.min_desired_rounds, 2000)
+        self.assertEqual(custom_handler.max_desired_rounds, 3000)
+        self.assertEqual(custom_handler.default_rounds, 2500)
 
         #--------------------------------------------------
         # min_rounds
@@ -1416,21 +1426,27 @@ sha512_crypt__min_rounds = 45000
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 0)
         self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
 
         c2 = cc.copy(all__vary_rounds="0%")
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 0)
         self.assert_rounds_range(c2, "sha256_crypt", 2000, 2000)
 
         # test absolute
         c2 = cc.copy(all__vary_rounds=1)
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 1)
         self.assert_rounds_range(c2, "sha256_crypt", 1999, 2001)
         c2 = cc.copy(all__vary_rounds=100)
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 100)
         self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
 
         # test relative
         c2 = cc.copy(all__vary_rounds="0.1%")
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 0.001)
         self.assert_rounds_range(c2, "sha256_crypt", 1998, 2002)
         c2 = cc.copy(all__vary_rounds="100%")
+        self.assertEqual(c2._get_record("sha256_crypt", None).custom_handler.vary_rounds, 1.0)
         self.assert_rounds_range(c2, "sha256_crypt", 1995, 2005)
 
     def test_52_log2_vary_rounds(self):
@@ -1448,28 +1464,36 @@ sha512_crypt__min_rounds = 45000
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 0)
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="0%")
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 0)
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         # test absolute
         c2 = cc.copy(all__vary_rounds=1)
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 1)
         self.assert_rounds_range(c2, "bcrypt", 19, 21)
         c2 = cc.copy(all__vary_rounds=100)
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 100)
         self.assert_rounds_range(c2, "bcrypt", 15, 25)
 
         # test relative - should shift over at 50% mark
         c2 = cc.copy(all__vary_rounds="1%")
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 0.01)
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="49%")
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 0.49)
         self.assert_rounds_range(c2, "bcrypt", 20, 20)
 
         c2 = cc.copy(all__vary_rounds="50%")
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 0.5)
         self.assert_rounds_range(c2, "bcrypt", 19, 20)
 
         c2 = cc.copy(all__vary_rounds="100%")
+        self.assertEqual(c2._get_record("bcrypt", None).custom_handler.vary_rounds, 1.0)
         self.assert_rounds_range(c2, "bcrypt", 15, 21)
 
     def assert_rounds_range(self, context, scheme, lower, upper):

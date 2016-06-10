@@ -116,6 +116,11 @@ def has_relaxed_setting(handler):
     return 'relaxed' in handler.setting_kwds or issubclass(handler,
                                                            uh.GenericHandler)
 
+def get_effective_rounds(handler, rounds=None):
+    """get effective rounds value from handler"""
+    handler = unwrap_handler(handler)
+    return handler(rounds=rounds, use_defaults=True).rounds
+
 def has_active_backend(handler):
     """return active backend for handler, if any"""
     if not hasattr(handler, "get_backend"):
@@ -1364,15 +1369,14 @@ class HandlerCase(TestCase):
         hash = self.do_encrypt("letmein", rounds=rounds2)
         self.assertTrue(context.needs_update(hash), msg="rounds=%d (required=%d): hash=%r: " % (rounds2, rounds1, hash))
 
-    def test_has_rounds_using_limits(self):
+    #--------------------------------------------------------------------------------------
+    # HasRounds.using() / .needs_update() -- desired rounds limits
+    #--------------------------------------------------------------------------------------
+    def _create_using_rounds_helper(self):
         """
-        HasRounds.using() -- desired rounds limits & defaults
+        setup test helpers for testing handler.using()'s rounds parameters.
         """
         self.require_rounds_info()
-
-        #-------------------------------------
-        # helpers
-        #-------------------------------------
         handler = self.handler
 
         if handler.name == "bsdi_crypt":
@@ -1380,10 +1384,6 @@ class HandlerCase(TestCase):
             orig_handler = handler
             handler = handler.using()
             handler._generate_rounds = lambda self: super(orig_handler, self)._generate_rounds()
-
-        def effective_rounds(cls, rounds=None):
-            cls = unwrap_handler(cls)
-            return cls(rounds=rounds, use_defaults=True).rounds
 
         # create some fake values to test with
         orig_min_rounds = handler.min_rounds
@@ -1395,6 +1395,12 @@ class HandlerCase(TestCase):
         small = (orig_min_rounds + medium) // 2
         large = ((orig_max_rounds or 9999) + medium) // 2
 
+        if handler.name == "bsdi_crypt":
+            # hack to avoid even numbered rounds
+            small |= 1
+            medium |= 1
+            large |= 1
+
         # create a subclass with small/medium/large as new default desired values
         with self.assertWarningList([]):
             subcls = handler.using(
@@ -1403,9 +1409,20 @@ class HandlerCase(TestCase):
                 default_rounds=medium,
             )
 
-        #-------------------------------------
-        # sanity check that .using() modified things correctly
-        #-------------------------------------
+        # return helpers
+        return handler, subcls, small, medium, large
+
+    def test_has_rounds_using_harness(self):
+        """
+        HasRounds.using() -- sanity check test harness
+        """
+        # setup helpers
+        self.require_rounds_info()
+        handler = self.handler
+        orig_min_rounds = handler.min_rounds
+        orig_max_rounds = handler.max_rounds
+        orig_default_rounds = handler.default_rounds
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
 
         # shouldn't affect original handler at all
         self.assertEqual(handler.min_rounds, orig_min_rounds)
@@ -1421,9 +1438,15 @@ class HandlerCase(TestCase):
         self.assertEqual(subcls.min_desired_rounds, small)
         self.assertEqual(subcls.max_desired_rounds, large)
 
-        #-------------------------------------
-        # min_desired_rounds
-        #-------------------------------------
+    def test_has_rounds_using_min_rounds(self):
+        """
+        HasRounds.using() -- min_rounds / min_desired_rounds
+        """
+        # setup helpers
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+        orig_min_rounds = handler.min_rounds
+        orig_max_rounds = handler.max_rounds
+        orig_default_rounds = handler.default_rounds
 
         # .using() should clip values below valid minimum, w/ warning
         if orig_min_rounds > 0:
@@ -1451,18 +1474,31 @@ class HandlerCase(TestCase):
             temp = subcls.using(min_desired_rounds=large + 1)
         self.assertEqual(temp.min_desired_rounds, large + 1)
 
-        # encrypt() etc should allow explicit values below desired minimum, w/ warning
-        self.assertEqual(effective_rounds(subcls, small + 1), small + 1)
-        self.assertEqual(effective_rounds(subcls, small), small)
+        # hash() etc should allow explicit values below desired minimum, w/ warning
+        self.assertEqual(get_effective_rounds(subcls, small + 1), small + 1)
+        self.assertEqual(get_effective_rounds(subcls, small), small)
         with self.assertWarningList([PasslibConfigWarning]):
-            self.assertEqual(effective_rounds(subcls, small - 1), small - 1)
+            self.assertEqual(get_effective_rounds(subcls, small - 1), small - 1)
 
-        # TODO: test 'min_rounds' alias is honored
-        # TODO: test strings are accepted, bad values like 'x' rejected
+        # 'min_rounds' should be treated as alias for 'min_desired_rounds'
+        temp = handler.using(min_rounds=small)
+        self.assertEqual(temp.min_desired_rounds, small)
 
-        #-------------------------------------
-        # max_rounds
-        #-------------------------------------
+        # should be able to specify strings
+        temp = handler.using(min_rounds=str(small))
+        self.assertEqual(temp.min_desired_rounds, small)
+
+        # invalid strings should cause error
+        self.assertRaises(ValueError, handler.using, min_rounds=str(small) + "xxx")
+
+    def test_has_rounds_using_max_rounds(self):
+        """
+        HasRounds.using() -- max_rounds / max_desired_rounds
+        """
+        # setup helpers
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+        orig_min_rounds = handler.min_rounds
+        orig_max_rounds = handler.max_rounds
 
         # .using() should clip values below valid minimum w/ warning
         if orig_min_rounds > 0:
@@ -1495,18 +1531,30 @@ class HandlerCase(TestCase):
             temp = subcls.using(max_desired_rounds=large + 1)
         self.assertEqual(temp.max_desired_rounds, large + 1)
 
-        # encrypt() etc should allow explicit values above desired minimum, w/ warning
-        self.assertEqual(effective_rounds(subcls, large - 1), large - 1)
-        self.assertEqual(effective_rounds(subcls, large), large)
+        # hash() etc should allow explicit values above desired minimum, w/ warning
+        self.assertEqual(get_effective_rounds(subcls, large - 1), large - 1)
+        self.assertEqual(get_effective_rounds(subcls, large), large)
         with self.assertWarningList([PasslibConfigWarning]):
-            self.assertEqual(effective_rounds(subcls, large + 1), large + 1)
+            self.assertEqual(get_effective_rounds(subcls, large + 1), large + 1)
 
-        # TODO: test 'max_rounds' alias is honored
-        # TODO: test strings are accepted, bad values like 'x' rejected
+        # 'max_rounds' should be treated as alias for 'max_desired_rounds'
+        temp = handler.using(max_rounds=large)
+        self.assertEqual(temp.max_desired_rounds, large)
 
-        #-------------------------------------
-        # default_rounds
-        #-------------------------------------
+        # should be able to specify strings
+        temp = handler.using(max_desired_rounds=str(large))
+        self.assertEqual(temp.max_desired_rounds, large)
+
+        # invalid strings should cause error
+        self.assertRaises(ValueError, handler.using, max_desired_rounds=str(large) + "xxx")
+
+    def test_has_rounds_using_default_rounds(self):
+        """
+        HasRounds.using() -- default_rounds
+        """
+        # setup helpers
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+        orig_max_rounds = handler.max_rounds
 
         # XXX: are there any other cases that need testing?
 
@@ -1527,17 +1575,117 @@ class HandlerCase(TestCase):
         if orig_max_rounds:
             self.assertRaises(ValueError, subcls.using, default_rounds=large+1)
 
-        # encrypt() etc should implicit default rounds, but get overridden
-        self.assertEqual(effective_rounds(subcls), medium)
-        self.assertEqual(effective_rounds(subcls, medium+1), medium+1)
+        # hash() etc should implicit default rounds, but get overridden
+        self.assertEqual(get_effective_rounds(subcls), medium)
+        self.assertEqual(get_effective_rounds(subcls, medium+1), medium+1)
 
-        # TODO: test 'rounds' alias is honored
-        # TODO: test strings are accepted, bad values like 'x' rejected
+        # 'rounds' should be treated as alias for 'default_rounds'
+        temp = handler.using(rounds=medium)
+        self.assertEqual(temp.default_rounds, medium)
 
-    # TODO: HasRounds -- using() -- linear & log vary_rounds.
-    #       borrow code from CryptContext's test_51_linear_vary_rounds & friends
+        # should be able to specify strings
+        temp = handler.using(default_rounds=str(medium))
+        self.assertEqual(temp.default_rounds, medium)
 
-    # TODO: HasRounds.needs_update() -- min_desired_rounds / max_desired_rounds checks.
+        # invalid strings should cause error
+        self.assertRaises(ValueError, handler.using, default_rounds=str(medium) + "xxx")
+
+    def test_has_rounds_using_vary_rounds_parsing(self):
+        """
+        HasRounds.using() -- vary_rounds parsing
+        """
+        # setup helpers
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+
+        def parse(value):
+            return subcls.using(vary_rounds=value).vary_rounds
+
+        # floats should be preserved
+        self.assertEqual(parse(0.1), 0.1)
+        self.assertEqual(parse('0.1'), 0.1)
+
+        # 'xx%' should be converted to float
+        self.assertEqual(parse('10%'), 0.1)
+
+        # ints should be preserved
+        self.assertEqual(parse(1000), 1000)
+        self.assertEqual(parse('1000'), 1000)
+
+        # float bounds should be enforced
+        self.assertRaises(ValueError, parse, -0.1)
+        self.assertRaises(ValueError, parse, 1.1)
+
+    def assert_rounds_range(self, cls, lower, upper):
+        """
+        helper to check vary_rounds covers specified range
+        """
+        # NOTE: this runs enough times the min and max *should* be hit,
+        #       though there's a faint chance it will randomly fail.
+        seen = set(get_effective_rounds(cls) for _ in irange(500))
+
+    def test_has_rounds_using_vary_rounds_generation(self):
+        """
+        HasRounds.using() -- vary_rounds generation
+        """
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+
+        def get_effective_range(cls):
+            seen = set(get_effective_rounds(cls) for _ in irange(1000))
+            return min(seen), max(seen)
+
+        def assert_rounds_range(vary_rounds, lower, upper):
+            temp = subcls.using(vary_rounds=vary_rounds)
+            seen_lower, seen_upper = get_effective_range(temp)
+            self.assertEqual(seen_lower, lower, "vary_rounds had wrong lower limit:")
+            self.assertEqual(seen_upper, upper, "vary_rounds had wrong upper limit:")
+
+        # test static
+        assert_rounds_range(0, medium, medium)
+        assert_rounds_range("0%", medium, medium)
+
+        # test absolute
+        assert_rounds_range(1, medium - 1, medium + 1)
+        assert_rounds_range(50, max(small, medium - 50), min(large, medium + 50))
+
+        # test relative - should shift over at 50% mark
+        if handler.rounds_cost == "log2":
+            # log rounds "50%" variance should only increase/decrease by 1 cost value
+            assert_rounds_range("1%", medium, medium)
+            assert_rounds_range("49%", medium, medium)
+            assert_rounds_range("50%", medium - 1, medium)
+        else:
+            # for linear rounds, range is frequently so huge, won't ever see ends.
+            # so we just check it's within an expected range.
+            lower, upper = get_effective_range(subcls.using(vary_rounds="50%"))
+
+            self.assertGreaterEqual(lower, max(small, medium * 0.5))
+            self.assertLessEqual(lower, max(small, medium * 0.8))
+
+            self.assertGreaterEqual(upper, min(large, medium * 1.2))
+            self.assertLessEqual(upper, min(large, medium * 1.5))
+
+    def test_has_rounds_using_needs_update(self):
+        """
+        HasRounds.using() -- desired_rounds + needs_update()
+        """
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+
+        temp = subcls.using(min_desired_rounds=small+2, max_desired_rounds=large-2)
+
+        with patch_calc_min_rounds(subcls):
+            small_hash = subcls.genconfig(rounds=small)
+            medium_hash = subcls.genconfig(rounds=medium)
+            large_hash = subcls.genconfig(rounds=large)
+
+        # everything should be w/in bounds for original handler
+        self.assertFalse(subcls.needs_update(small_hash))
+        self.assertFalse(subcls.needs_update(medium_hash))
+        self.assertFalse(subcls.needs_update(large_hash))
+
+        # small & large should require update for temp handler
+        self.assertTrue(temp.needs_update(small_hash))
+        self.assertFalse(temp.needs_update(medium_hash))
+        self.assertTrue(temp.needs_update(large_hash))
 
     #===================================================================
     # idents
