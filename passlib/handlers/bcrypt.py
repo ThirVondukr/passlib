@@ -574,7 +574,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             return None
         global _builtin_bcrypt
         if _builtin_bcrypt is None:
-            from passlib.utils._blowfish import raw_bcrypt as _builtin_bcrypt
+            from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
         return cls._calc_checksum_builtin
 
     def _calc_checksum_builtin(self, secret, config):

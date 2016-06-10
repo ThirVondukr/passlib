@@ -83,7 +83,7 @@ It is available under the following license::
 
 jBCrypt
 -------
-The source file ``passlib/utils/_blowfish/base.py`` contains code derived
+The source file ``passlib/crypto/_blowfish/base.py`` contains code derived
 from `jBcrypt 0.2 <http://www.mindrot.org/projects/jBCrypt/>`_, a Java
 implementation of the BCrypt password hash algorithm. It is available under
 a BSD/ISC license::

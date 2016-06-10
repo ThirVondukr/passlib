@@ -1,4 +1,4 @@
-"""passlib.utils._blowfish - pure-python eks-blowfish implementation for bcrypt
+"""passlib.crypto._blowfish - pure-python eks-blowfish implementation for bcrypt
 
 This is a pure-python implementation of the EKS-Blowfish algorithm described by
 Provos and Mazieres in `A Future-Adaptable Password Scheme
@@ -56,7 +56,7 @@ import struct
 # pkg
 from passlib.utils import bcrypt64, getrandbytes, rng
 from passlib.utils.compat import BytesIO, unicode, u, native_string_types
-from passlib.utils._blowfish.unrolled import BlowfishEngine
+from passlib.crypto._blowfish.unrolled import BlowfishEngine
 # local
 __all__ = [
     'BlowfishEngine',

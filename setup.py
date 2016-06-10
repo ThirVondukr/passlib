@@ -15,7 +15,7 @@ import time
 
 py3k = (sys.version_info[0] >= 3)
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 #=============================================================================
 # init setup options
@@ -130,18 +130,7 @@ else:
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     # package info
-    packages = [
-        "passlib",
-            "passlib.crypto",
-            "passlib.ext",
-                "passlib.ext.django",
-            "passlib.handlers",
-            "passlib.tests",
-            "passlib.utils",
-                "passlib.utils._blowfish",
-                "passlib.utils.compat",
-            "passlib._setup",
-        ],
+    packages = find_packages(root_dir),
     package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
     zip_safe=True,
 
