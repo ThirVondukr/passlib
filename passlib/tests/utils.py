@@ -1652,16 +1652,33 @@ class HandlerCase(TestCase):
         self.assertEqual(get_effective_rounds(subcls), medium)
         self.assertEqual(get_effective_rounds(subcls, medium+1), medium+1)
 
-        # 'rounds' should be treated as alias for 'default_rounds'
-        temp = handler.using(rounds=medium)
-        self.assertEqual(temp.default_rounds, medium)
-
         # should be able to specify strings
         temp = handler.using(default_rounds=str(medium))
         self.assertEqual(temp.default_rounds, medium)
 
         # invalid strings should cause error
         self.assertRaises(ValueError, handler.using, default_rounds=str(medium) + "xxx")
+
+    def test_has_rounds_using_rounds(self):
+        """
+        HasRounds.using() -- rounds
+        """
+        # setup helpers
+        handler, subcls, small, medium, large = self._create_using_rounds_helper()
+        orig_max_rounds = handler.max_rounds
+
+        # 'rounds' should be treated as fallback for min, max, and default
+        temp = subcls.using(rounds=medium+1)
+        self.assertEqual(temp.min_desired_rounds, medium+1)
+        self.assertEqual(temp.default_rounds, medium+1)
+        self.assertEqual(temp.max_desired_rounds, medium+1)
+
+        # 'rounds' should be treated as fallback for min, max, and default
+        temp = subcls.using(rounds=medium+1, min_rounds=small+1,
+                            default_rounds=medium, max_rounds=large-1)
+        self.assertEqual(temp.min_desired_rounds, small+1)
+        self.assertEqual(temp.default_rounds, medium)
+        self.assertEqual(temp.max_desired_rounds, large-1)
 
     def test_has_rounds_using_vary_rounds_parsing(self):
         """

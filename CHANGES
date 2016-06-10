@@ -13,11 +13,6 @@ Release History
 
     The following tasks are blocking the 1.7 release:
 
-    * Finish the :meth:`PasswordHash.using` and :meth:`PasswordHash.needs_update` refactoring,
-      aimed at eliminating any need for the internal :class:`passlib.context._CryptRecord` class.
-
-        - search CryptContext for anything more we can push into handler api.
-
     * Get argon2 hash implemented (:issue:`69`).
 
         - blocking on .using() api
@@ -38,8 +33,6 @@ Release History
           that's omitted by min_complexity cutoff; or decide this is non-issue.
 
     * Get :mod:`passlib.apache` context profiles finished & committed.
-
-    * Thread safety audit and tests for CryptContext, HasManyBackends, and lazy-init subclasses.
 
 Requirements
 ------------

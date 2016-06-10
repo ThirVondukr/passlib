@@ -79,8 +79,7 @@ schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
 default = md5_crypt
 ; this is using %...
 all__vary_rounds = 10%%
-; this is using 'rounds' instead of 'default_rounds'
-bsdi_crypt__rounds = 25000
+bsdi_crypt__default_rounds = 25000
 bsdi_crypt__max_rounds = 30000
 sha512_crypt__max_rounds = 50000
 sha512_crypt__min_rounds = 40000

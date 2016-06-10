@@ -1403,10 +1403,14 @@ class HasRounds(GenericHandler):
                 raise TypeError("'max_rounds' and 'max_desired_rounds' aliases are mutually exclusive")
             max_desired_rounds = max_rounds
 
+        # use 'rounds' as fallback for min, max, AND default
         if rounds is not None:
-            if default_rounds is not None:
-                raise TypeError("'rounds' and 'default_rounds' aliases are mutually exclusive")
-            default_rounds = rounds
+            if min_desired_rounds is None:
+                min_desired_rounds = rounds
+            if max_desired_rounds is None:
+                max_desired_rounds = rounds
+            if default_rounds is None:
+                default_rounds = rounds
 
         # generate new subclass
         subcls = super(HasRounds, cls).using(**kwds)

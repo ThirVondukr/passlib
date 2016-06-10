@@ -731,12 +731,7 @@ class _CryptConfig(object):
 
     def _norm_scheme_option(self, key, value):
         # check for invalid options
-        if key == "rounds":
-            # for now, translating this to 'default_rounds' to be helpful.
-            # need to pick one of the two names as official,
-            # and deprecate the other one.
-            key = "default_rounds"
-        elif key in _forbidden_scheme_options:
+        if key in _forbidden_scheme_options:
             raise KeyError("%r option not allowed in CryptContext "
                            "configuration" % (key,))
         # coerce strings for certain fields (e.g. min_rounds uses ints)
@@ -963,6 +958,7 @@ class _CryptConfig(object):
         # historically, configs may specify generic default rounds.
         # stripping those out for hashes w/o a rounds parameter,
         # but need to discourage this situation in the future.
+        # TODO: once 'all' prefix support is removed (Passlib 2.0), this can be stripped out
         if 'rounds' not in handler.setting_kwds:
             for key in uh.HasRounds.using_rounds_kwds:
                 settings.pop(key, None)

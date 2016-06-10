@@ -181,6 +181,21 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
 .. _context-default-rounds-option:
 
+:samp:`{scheme}__rounds`
+
+    Set the number of rounds required for this scheme
+    when generating new hashes (using :meth:`~CryptContext.hash`).
+    Existing hashes which have a different number of rounds will be marked
+    as deprecated.
+
+    This essentially sets ``default_rounds``, ``min_rounds``, and ``max_rounds`` all at once.
+    If any of those options are also specified, they will override the value specified
+    by ``rounds``.
+
+    .. versionadded:: 1.7
+
+        Previous releases of Passlib treated this as an alias for ``default_rounds``.
+
 :samp:`{scheme}__default_rounds`
 
     Sets the default number of rounds to use with this scheme
