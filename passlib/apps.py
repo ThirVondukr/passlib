@@ -74,7 +74,6 @@ custom_app_context = LazyCryptContext(
 
     # set some useful global options
     default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
-    all__vary_rounds = 0.1,
 
     # set a good starting point for rounds selection
     sha512_crypt__min_rounds = 535000,

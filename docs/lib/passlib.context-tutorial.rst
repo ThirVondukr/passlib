@@ -42,9 +42,8 @@ Tutorial / Walkthrough
 * `Full Integration Example`_
 
 .. todo::
-    This tutorial doesn't yet cover the ``vary_rounds`` option,
-    or the :ref:`user-categories` system; and a few other parts
-    could use elaboration.
+    This tutorial doesn't yet cover the :ref:`user-categories` system;
+    and a few other parts could use elaboration.
 
 .. _context-basic-example:
 
@@ -415,11 +414,7 @@ All of the documented :ref:`context-options` are allowed.
     pbkdf2_sha256__max_rounds = 50000
 
     ; set the default rounds to use when encrypting new passwords.
-    ; the 'vary' field will cause each new hash to randomly vary
-    ; from the default by the specified % of the default (in this case,
-    ; 15000 +/- 10% or between 13500 and 16500 rounds).
     pbkdf2_sha1__default_rounds = 15000
-    pbkdf2_sha1__vary_rounds = 0.1
 
     ; applications can choose to treat certain user accounts differently,
     ; by assigning different types of account to a 'user category',

@@ -209,6 +209,12 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
 :samp:`{scheme}__vary_rounds`
 
+    .. deprecated:: 1.7
+
+        This option has been deprecated as of Passlib 1.7, and will be removed in Passlib 2.0.
+        The (very minimal) security benefit it provides was judged to not be worth code complexity
+        it requires.
+
     Instead of using a fixed rounds value (such as specified by
     ``default_rounds``, above); this option will cause each call
     to :meth:`~CryptContext.hash` to vary the default rounds value

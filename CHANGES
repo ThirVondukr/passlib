@@ -94,8 +94,8 @@ Minor Internal Changes
 
 Deprecations
 ------------
-    * The :class:`~passlib.context.CryptContext` object, and the :class:`~passlib.ifc.PasswordHash` api 
-      used by all hashes in passlib, have had a number of cleanups made:
+    * The :class:`~passlib.ifc.PasswordHash` API (used by all hashes in passlib),
+      has had a number of cleanups made:
 
         * :meth:`!encrypt` has been renamed to :meth:`~passlib.ifc.PasswordHash.hash`,
           to clarify that it's performing one-way hashing rather than encryption.
@@ -109,6 +109,15 @@ Deprecations
         * In order for :meth:`~passlib.ifc.PasswordHash.hash` to take over the job
           previously performed by :meth:`~passlib.ifc.PasswordHash.genhash`, it now accepts
           a keyword ``"config"``, which specifies an existing hash to extract configuration from.
+
+    * The :class:`~passlib.context.CryptContext` object has a number of cleanups made:
+
+        * :meth:`!encrypt` was renamed to :meth:`!hash` to match the
+          :class:`~passlib.ifc.PasswordHash` API changes listed above.
+
+        * The ``vary_rounds`` option has been deprecated,
+          and will be removed in Passlib 2.0.  It provided very little security benefit,
+          and was judged not worth the additional code complexity it requires.
 
     * The :func:`~passlib.utils.generate_secret` function has been deprecated
       in favor of the new :mod:`passlib.pwd` module, and the old function will be removed

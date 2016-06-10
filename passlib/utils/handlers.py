@@ -1465,6 +1465,9 @@ class HasRounds(GenericHandler):
                                      (subcls.name, vary_rounds))
             elif not isinstance(vary_rounds, int):
                 raise TypeError("vary_rounds must be int or float")
+            if vary_rounds:
+                warn("The 'vary_rounds' option is deprecated as of Passlib 1.7, "
+                     "and will be removed in Passlib 2.0", PasslibConfigWarning)
             subcls.vary_rounds = vary_rounds
             # XXX: could cache _calc_vary_rounds_range() here if needed,
             #      but would need to handle user manually changing .default_rounds

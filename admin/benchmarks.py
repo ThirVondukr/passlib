@@ -168,7 +168,6 @@ def test_context_init():
         default="another",
         blank__min_rounds=1500,
         blank__max_rounds=2500,
-        another__vary_rounds=100,
     )
     def helper():
         CryptContext(**kwds)

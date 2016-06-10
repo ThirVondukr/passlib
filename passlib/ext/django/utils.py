@@ -94,7 +94,6 @@ deprecated =
 
 ; sets some common options, including minimum rounds for two primary hashes.
 ; if a hash has less than this number of rounds, it will be re-hashed.
-all__vary_rounds = 0.05
 sha512_crypt__min_rounds = 80000
 django_pbkdf2_sha256__min_rounds = 10000
 

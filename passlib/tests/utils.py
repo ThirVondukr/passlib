@@ -328,6 +328,7 @@ class TestCase(_TestCase):
             ctx.__enter__()
             self.addCleanup(ctx.__exit__)
             warnings.filterwarnings("ignore", "the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
+            warnings.filterwarnings("ignore", "the 'vary_rounds' option is deprecated")
 
     #---------------------------------------------------------------
     # tweak message formatting so longMessage mode is only enabled
