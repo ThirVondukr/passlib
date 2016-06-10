@@ -24,6 +24,8 @@ sys.path.insert(0, os.path.abspath(os.pardir))
 # imports
 #=============================================================================
 
+import datetime
+
 # build option flags:
 # "for-pypi" -- enable analytics tracker for pypi documentation
 options = os.environ.get("PASSLIB_DOCS", "").split(",")
@@ -38,7 +40,7 @@ import cloud_sptheme as csp
 #=============================================================================
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.1'
+needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -46,6 +48,7 @@ extensions = [
     # standard sphinx extensions
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
 
     # 3rd part extensions
@@ -91,7 +94,7 @@ index_doc = 'index'
 # General information about the project.
 project = 'Passlib'
 author = "Assurance Technologies, LLC"
-copyright = "2008-2015, " + author
+copyright = "2008-%d, %s" % (datetime.date.today().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

@@ -37,9 +37,8 @@ Release History
 Requirements
 ------------
 
-   * **Passlib now requires Python 2.6, 2.7, or >= 3.2**.
-     Support for Python versions 2.5, 3.0, and 3.1 has been dropped
-     (and Python 3.2 may be dropped in the next major release).
+   * **Passlib now requires Python 2.6, 2.7, or >= 3.3**.
+     Support for Python versions 2.5 and 3.0 - 3.2 have been dropped.
      Support for PyPy 1.x has also been dropped.
 
    * The :mod:`passlib.ext.django` extension now requires Django 1.8 or better.
