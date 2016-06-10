@@ -901,6 +901,7 @@ class HasManyIdents(GenericHandler):
         subcls = super(HasManyIdents, cls).using(**kwds)
 
         # add custom default ident
+        # (NOTE: creates instance to run value through _norm_ident())
         if default_ident is not None:
             subcls.default_ident = cls(ident=default_ident, use_defaults=True).ident
         return subcls

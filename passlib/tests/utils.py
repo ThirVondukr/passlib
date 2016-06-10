@@ -1789,8 +1789,11 @@ class HandlerCase(TestCase):
         # forbid both at same time
         self.assertRaises(TypeError, handler.using, default_ident=alt_ident, ident=alt_ident)
 
-        # TODO: * could check ident aliases are being honored
-        #       * could check ident types are being restricted
+        # check ident aliases are being honored
+        if handler.ident_aliases:
+            for alias, ident in handler.ident_aliases.items():
+                subcls = handler.using(ident=alias)
+                self.assertEqual(subcls.default_ident, ident, msg="alias %r:" % alias)
 
     #===================================================================
     # passwords

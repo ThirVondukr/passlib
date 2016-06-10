@@ -607,6 +607,9 @@ class bcrypt_sha256(bcrypt):
     # this is locked at 2a/2b for now.
     ident_values = (IDENT_2A, IDENT_2B)
 
+    # clone bcrypt's ident aliases so they can be used here as well...
+    ident_aliases = (lambda ident_values: dict(item for item in bcrypt.ident_aliases.items()
+                                               if item[1] in ident_values))(ident_values)
     default_ident = IDENT_2B
 
     # sample hash:
