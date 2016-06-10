@@ -25,6 +25,7 @@ except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
 from passlib.utils.compat import u, print_, unicode
+from passlib.tests.utils import time_call
 # local
 
 #=============================================================================
@@ -69,24 +70,7 @@ class benchmark:
         else:
             raise ValueError("invalid mode: %r" % (mode,))
 
-    @staticmethod
-    def measure(func, setup=None, maxtime=1, bestof=3):
-        """timeit() wrapper which tries to get as accurate a measurement as
-        possible w/in maxtime seconds.
-
-        :returns:
-            ``(avg_seconds_per_call, log10_number_of_repetitions)``
-        """
-        from timeit import Timer
-        from math import log
-        timer = Timer(func, setup=setup or '')
-        number = 1
-        while True:
-            delta = min(timer.repeat(bestof, number))
-            maxtime -= delta*bestof
-            if maxtime < 0:
-                return delta/number, int(log(number, 10))
-            number *= 10
+    measure = staticmethod(time_call)
 
     @staticmethod
     def pptime(secs, precision=3):

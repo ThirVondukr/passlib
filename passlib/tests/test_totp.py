@@ -7,16 +7,16 @@ from __future__ import unicode_literals
 from passlib.utils.compat import PY3
 import base64
 import datetime
+from functools import partial
 import logging; log = logging.getLogger(__name__)
 import random
 import sys
-import time as _time
 # site
 # pkg
 from passlib import exc
 from passlib.utils import to_bytes, to_unicode
 from passlib.utils.compat import unicode, u
-from passlib.tests.utils import TestCase
+from passlib.tests.utils import TestCase, time_call
 # local
 __all__ = [
     "EngineTest",
@@ -190,15 +190,12 @@ class UtilsTest(TestCase):
         self.addCleanup(setattr, totp, "ENCRYPT_COST", totp.ENCRYPT_COST)
 
         # time default cost
-        start = _time.clock()
-        _ = encrypt_key(KEY1_RAW, PASS1)
-        delta = _time.clock() - start
+        totp.ENCRYPT_COST -= 2
+        delta, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
 
-        # this should take 8x as long
+        # this should take (2**3=8) times as long
         totp.ENCRYPT_COST += 3
-        start = _time.clock()
-        _ = encrypt_key(KEY1_RAW, PASS1)
-        delta2 = _time.clock() - start
+        delta2, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
 
         self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 

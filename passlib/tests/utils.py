@@ -240,6 +240,24 @@ def quicksleep(delay):
     while tick()-start < delay:
         pass
 
+def time_call(func, setup=None, maxtime=1, bestof=3):
+    """
+    timeit() wrapper which tries to get as accurate a measurement as possible w/in maxtime seconds.
+
+    :returns:
+        ``(avg_seconds_per_call, log10_number_of_repetitions)``
+    """
+    from timeit import Timer
+    from math import log
+    timer = Timer(func, setup=setup or '')
+    number = 1
+    while True:
+        delta = min(timer.repeat(bestof, number))
+        maxtime -= delta*bestof
+        if maxtime < 0:
+            return delta/number, int(log(number, 10))
+        number *= 10
+
 #=============================================================================
 # custom test harness
 #=============================================================================
