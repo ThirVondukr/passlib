@@ -299,6 +299,11 @@ Global Algorithm Options
     option for all the schemes where it was not overridden with an
     explicit :samp:`{scheme}__vary_rounds` option.
 
+    .. deprecated:: 1.7
+
+        This special scheme is deprecated as of Passlib 1.7, and will be removed in Passlib 2.0.
+        It's only legitimate use was for ``vary_rounds``, which is also being removed in Passlib 2.0.
+
 .. _user-categories:
 
 .. rst-class:: html-toggle

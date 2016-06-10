@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.exc import ExpectedStringError, ExpectedTypeError
+from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import handlers as uh, to_bytes, deprecated_method, \
                           to_unicode, splitcomma
@@ -66,6 +66,9 @@ def _always_needs_update(hash, secret=None):
     when hash alg has been deprecated for context.
     """
     return True
+
+#: list of keys allowed under wildcard "all" scheme w/o a security warning
+_global_safe_options = ["vary_rounds"]
 
 #=============================================================================
 # crypt policy
@@ -679,6 +682,18 @@ class _CryptConfig(object):
                 # normalize scheme option
                 key, value = norm_scheme_option(key, value)
 
+                # this scheme is going away in 2.0;
+                # but most keys deserve an extra warning since it impacts security.
+                if scheme == "all":
+                    if key not in _global_safe_options:
+                        # e.g. things like "min_rounds" should never be set cross-scheme
+                        warn("The '%s' option should be configured per-algorithm, and not set "
+                             "globally using the 'all' scheme" % (key,), PasslibConfigWarning)
+
+                    warn("The 'all' scheme is deprecated as of Passlib 1.7, "
+                         "and will be removed in Passlib 2.0; Please configure "
+                         "options on a per-algorithm basis.", DeprecationWarning)
+
                 # store in scheme_options
                 # map structure: scheme_options[scheme][category][key] = value
                 try:
@@ -746,6 +761,8 @@ class _CryptConfig(object):
             elif not isinstance(value, (list,tuple)):
                 raise ExpectedTypeError(value, "str or seq", "deprecated")
             if 'auto' in value:
+                # XXX: have any statements been made about when this is default?
+                #      should do it in 1.8 at latest.
                 if len(value) > 1:
                     raise ValueError("cannot list other schemes if "
                                      "``deprecated=['auto']`` is used")

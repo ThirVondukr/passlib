@@ -119,6 +119,10 @@ Deprecations
           and will be removed in Passlib 2.0.  It provided very little security benefit,
           and was judged not worth the additional code complexity it requires.
 
+        * The special wildcard ``all`` scheme name
+          has been deprecated, and will be removed in Passlib 2.0.  The only legitimate use
+          was to support ``vary_rounds``, which itself will be removed in 2.0.
+
     * The :func:`~passlib.utils.generate_secret` function has been deprecated
       in favor of the new :mod:`passlib.pwd` module, and the old function will be removed
       in Passlib 2.0.

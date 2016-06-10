@@ -172,6 +172,13 @@ sha512_crypt__min_rounds = 45000
     )
 
     #===================================================================
+    # setup
+    #===================================================================
+    def setUp(self):
+        super(CryptContextTest, self).setUp()
+        warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
+
+    #===================================================================
     # constructors
     #===================================================================
     def test_01_constructor(self):
@@ -1299,9 +1306,9 @@ sha512_crypt__min_rounds = 45000
     def test_50_rounds_limits(self):
         """test rounds limits"""
         cc = CryptContext(schemes=["sha256_crypt"],
-                          all__min_rounds=2000,
-                          all__max_rounds=3000,
-                          all__default_rounds=2500,
+                          sha256_crypt__min_rounds=2000,
+                          sha256_crypt__max_rounds=3000,
+                          sha256_crypt__default_rounds=2500,
                           )
 
         # stub digest returned by sha256_crypt's genconfig calls..
@@ -1322,8 +1329,8 @@ sha512_crypt__min_rounds = 45000
 
         # set below handler minimum
         with self.assertWarningList([PasslibHashWarning]*2):
-            c2 = cc.copy(all__min_rounds=500, all__max_rounds=None,
-                            all__default_rounds=500)
+            c2 = cc.copy(sha256_crypt__min_rounds=500, sha256_crypt__max_rounds=None,
+                            sha256_crypt__default_rounds=500)
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$" + STUB)
 
         # below policy minimum
@@ -1345,8 +1352,8 @@ sha512_crypt__min_rounds = 45000
 
         # set above handler max
         with self.assertWarningList([PasslibHashWarning]*2):
-            c2 = cc.copy(all__max_rounds=int(1e9)+500, all__min_rounds=None,
-                            all__default_rounds=int(1e9)+500)
+            c2 = cc.copy(sha256_crypt__max_rounds=int(1e9)+500, sha256_crypt__min_rounds=None,
+                            sha256_crypt__default_rounds=int(1e9)+500)
 
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=999999999$nacl$" + STUB)
 
@@ -1372,20 +1379,20 @@ sha512_crypt__min_rounds = 45000
 
         # fallback default rounds - use handler's
         df = hash.sha256_crypt.default_rounds
-        c2 = cc.copy(all__default_rounds=None, all__max_rounds=df<<1)
+        c2 = cc.copy(sha256_crypt__default_rounds=None, sha256_crypt__max_rounds=df<<1)
         self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=%d$nacl$%s' % (df, STUB))
 
         # fallback default rounds - use handler's, but clipped to max rounds
-        c2 = cc.copy(all__default_rounds=None, all__max_rounds=3000)
+        c2 = cc.copy(sha256_crypt__default_rounds=None, sha256_crypt__max_rounds=3000)
         self.assertEqual(c2.genconfig(salt="nacl"), '$5$rounds=3000$nacl$' + STUB)
 
         # TODO: test default falls back to mx / mn if handler has no default.
 
         # default rounds - out of bounds
-        self.assertRaises(ValueError, cc.copy, all__default_rounds=1999)
-        cc.copy(all__default_rounds=2000)
-        cc.copy(all__default_rounds=3000)
-        self.assertRaises(ValueError, cc.copy, all__default_rounds=3001)
+        self.assertRaises(ValueError, cc.copy, sha256_crypt__default_rounds=1999)
+        cc.copy(sha256_crypt__default_rounds=2000)
+        cc.copy(sha256_crypt__default_rounds=3000)
+        self.assertRaises(ValueError, cc.copy, sha256_crypt__default_rounds=3001)
 
         #--------------------------------------------------
         # border cases
@@ -1393,30 +1400,30 @@ sha512_crypt__min_rounds = 45000
 
         # invalid min/max bounds
         c2 = CryptContext(schemes=["sha256_crypt"])
-        self.assertRaises(ValueError, c2.copy, all__min_rounds=-1)
-        self.assertRaises(ValueError, c2.copy, all__max_rounds=-1)
-        self.assertRaises(ValueError, c2.copy, all__min_rounds=2000,
-                          all__max_rounds=1999)
+        self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=-1)
+        self.assertRaises(ValueError, c2.copy, sha256_crypt__max_rounds=-1)
+        self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=2000,
+                          sha256_crypt__max_rounds=1999)
 
         # test bad values
-        self.assertRaises(ValueError, CryptContext, all__min_rounds='x')
-        self.assertRaises(ValueError, CryptContext, all__max_rounds='x')
+        self.assertRaises(ValueError, CryptContext, sha256_crypt__min_rounds='x')
+        self.assertRaises(ValueError, CryptContext, sha256_crypt__max_rounds='x')
         self.assertRaises(ValueError, CryptContext, all__vary_rounds='x')
-        self.assertRaises(ValueError, CryptContext, all__default_rounds='x')
+        self.assertRaises(ValueError, CryptContext, sha256_crypt__default_rounds='x')
 
         # test bad types rejected
         bad = datetime.datetime.now()  # picked cause can't be compared to int
-        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__min_rounds=bad)
-        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__max_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", sha256_crypt__min_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", sha256_crypt__max_rounds=bad)
         self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__vary_rounds=bad)
-        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__default_rounds=bad)
+        self.assertRaises(TypeError, CryptContext, "sha256_crypt", sha256_crypt__default_rounds=bad)
 
     def test_51_linear_vary_rounds(self):
         """test linear vary rounds"""
         cc = CryptContext(schemes=["sha256_crypt"],
-                          all__min_rounds=1995,
-                          all__max_rounds=2005,
-                          all__default_rounds=2000,
+                          sha256_crypt__min_rounds=1995,
+                          sha256_crypt__max_rounds=2005,
+                          sha256_crypt__default_rounds=2000,
                           )
 
         # test negative
@@ -1452,9 +1459,9 @@ sha512_crypt__min_rounds = 45000
     def test_52_log2_vary_rounds(self):
         """test log2 vary rounds"""
         cc = CryptContext(schemes=["bcrypt"],
-                          all__min_rounds=15,
-                          all__max_rounds=25,
-                          all__default_rounds=20,
+                          bcrypt__min_rounds=15,
+                          bcrypt__max_rounds=25,
+                          bcrypt__default_rounds=20,
                           )
 
         # test negative
