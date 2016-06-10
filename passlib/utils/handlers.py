@@ -241,9 +241,43 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
     return uascii_to_str(join_unicode(parts))
 
 #=============================================================================
+# MinimalHandler
+#=============================================================================
+class MinimalHandler(PasswordHash):
+    """
+    helper class for implementing hash handlers.
+    provides nothing besides a base implementation of the .using() subclass constructor.
+    """
+    #===================================================================
+    # class attr
+    #===================================================================
+
+    #: private flag used by using() constructor to detect if this is already a subclass.
+    _configured = False
+
+    #===================================================================
+    # configuration interface
+    #===================================================================
+
+    @classmethod
+    def using(cls):
+        # NOTE: this provides the base implementation, which takes care of
+        #       creating the newly configured class. Mixins and subclasses
+        #       should wrap this, and modify the returned class to suit their options.
+        name = cls.__name__
+        if not cls._configured:
+            # TODO: straighten out class naming, repr, and .name attr
+            name = "<customized %s hasher>" % name
+        return type(name, (cls,), dict(__module__=cls.__module__, _configured=True))
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
+#=============================================================================
 # GenericHandler
 #=============================================================================
-class GenericHandler(PasswordHash):
+class GenericHandler(MinimalHandler):
     """helper class for implementing hash handlers.
 
     GenericHandler-derived classes will have (at least) the following
@@ -376,30 +410,12 @@ class GenericHandler(PasswordHash):
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
 
-    #: private flag used by using() constructor to detect if this is already a subclass.
-    _configured = False
-
     #===================================================================
     # instance attrs
     #===================================================================
     checksum = None # stores checksum
 #    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
 #    relaxed = False # when _norm_xxx() funcs should be strict about inputs
-
-    #===================================================================
-    # configuration interface
-    #===================================================================
-
-    @classmethod
-    def using(cls):
-        # NOTE: this provides the base implementation, which takes care of
-        #       creating the newly configured class. Mixins and subclasses
-        #       should wrap this, and modify the returned class to suit their options.
-        name = cls.__name__
-        if not cls._configured:
-            # TODO: straighten out class naming, repr, and .name attr
-            name = "<customized %s hasher>" % name
-        return type(name, (cls,), dict(__module__=cls.__module__, _configured=True))
 
     #===================================================================
     # init

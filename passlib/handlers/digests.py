@@ -78,7 +78,7 @@ hex_sha512  = create_hex_hash("sha512")
 #=============================================================================
 # htdigest
 #=============================================================================
-class htdigest(uh.PasswordHash):
+class htdigest(uh.MinimalHandler):
     """htdigest hash function.
 
     .. todo::

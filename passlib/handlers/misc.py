@@ -79,7 +79,7 @@ class unix_fallback(uh.StaticHandler):
 _MARKER_CHARS = u("*!")
 _MARKER_BYTES = b"*!"
 
-class unix_disabled(uh.PasswordHash):
+class unix_disabled(uh.MinimalHandler):
     """This class provides disabled password behavior for unix shadow files,
     and follows the :ref:`password-hash-api`.
 
@@ -105,6 +105,8 @@ class unix_disabled(uh.PasswordHash):
     name = "unix_disabled"
     setting_kwds = ("marker",)
     context_kwds = ()
+
+    # XXX: could subclass using() to allow setting custom default_marker
 
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
         default_marker = u("*")
@@ -162,7 +164,7 @@ class unix_disabled(uh.PasswordHash):
             assert marker and cls.identify(marker)
         return to_native_str(marker, param="marker")
 
-class plaintext(uh.PasswordHash):
+class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
 
     The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods all require the

@@ -910,6 +910,15 @@ class HandlerCase(TestCase):
             "identify() failed to identify genconfig() output: %r" %
             (config,))
 
+    def test_02_using_workflow(self):
+        """test basic using() workflow"""
+        handler = self.handler
+        subcls = handler.using()
+        self.assertIsNot(subcls, handler)
+        self.assertEqual(subcls.name, handler.name)
+        # NOTE: other info attrs should match as well, just testing basic behavior.
+        # NOTE: mixin-specific args like using(min_rounds=xxx) tested later.
+
     def test_03_hash_workflow(self, use_16_legacy=False):
         """test basic hash-string workflow.
 
