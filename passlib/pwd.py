@@ -195,6 +195,21 @@ def _load_wordset(name):
     log.debug("loaded %d-element wordset from %r", len(words), source)
     return words
 
+def _dup_repr(source):
+    """return repr of duplicates in string/list, for use in error message"""
+    seen = set()
+    dups = set()
+    for elem in source:
+        (dups if elem in seen else seen).add(elem)
+    dups = sorted(dups)
+    trunc = 8
+    if len(dups) > trunc:
+        trunc = 5
+    dup_repr = ", ".join(repr(str(word)) for word in dups[:trunc])
+    if len(dups) > trunc:
+        dup_repr += ", ... plus %d others" % (len(dups) - trunc)
+    return dup_repr
+
 #=============================================================================
 # base generator class
 #=============================================================================
@@ -632,7 +647,7 @@ class PhraseGenerator(SequenceGenerator):
         if not isinstance(words, (list, tuple)):
             words = tuple(words)
         if len(set(words)) != len(words):
-            raise ValueError("`words` cannot contain duplicate elements")
+            raise ValueError("`words` cannot contain duplicate elements: " + _dup_repr(words))
         self.words = words
 
         # init separator
