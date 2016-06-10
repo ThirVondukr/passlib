@@ -212,6 +212,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
                                 r"The CryptPolicy class has been deprecated")
         warnings.filterwarnings("ignore",
                                 r"the method.*hash_needs_update.*is deprecated")
+        warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
 
     def test_00_constructor(self):
         """test CryptPolicy() constructor"""
