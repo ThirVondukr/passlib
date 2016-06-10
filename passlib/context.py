@@ -30,8 +30,6 @@ __all__ = [
 # private object to detect unset params
 _UNSET = object()
 
-# TODO: merge the following helpers into _CryptConfig
-
 def _coerce_vary_rounds(value):
     """parse vary_rounds string to percent as [0,1) float, or integer"""
     if value.endswith("%"):
@@ -46,8 +44,9 @@ def _coerce_vary_rounds(value):
 _forbidden_scheme_options = set(["salt"])
     # 'salt' - not allowed since a fixed salt would defeat the purpose.
 
-# dict containing funcs used to coerce strings to correct type
-# for scheme option keys.
+# dict containing funcs used to coerce strings to correct type for scheme option keys.
+# NOTE: this isn't really needed any longer, since Handler.using() handles the actual parsing.
+#       keeping this around for now, though, since it makes context.to_dict() output cleaner.
 _coerce_scheme_options = dict(
     min_rounds=int,
     max_rounds=int,
@@ -59,6 +58,14 @@ _coerce_scheme_options = dict(
 def _is_handler_registered(handler):
     """detect if handler is registered or a custom handler"""
     return get_crypt_handler(handler.name, None) is handler
+
+@staticmethod
+def _always_needs_update(hash, secret=None):
+    """
+    dummy function patched into handler.needs_update() by _CryptConfig
+    when hash alg has been deprecated for context.
+    """
+    return True
 
 #=============================================================================
 # crypt policy
@@ -561,107 +568,6 @@ class CryptPolicy(object):
     #===================================================================
 
 #=============================================================================
-# _CryptRecord helper class
-#=============================================================================
-class _CryptRecord(object):
-    """wraps a handler and automatically applies various options.
-
-    this is a helper used internally by CryptContext in order to reduce the
-    amount of work that needs to be done by CryptContext.verify().
-    this class takes in all the options for a particular (scheme, category)
-    combination, and attempts to provide as short a code-path as possible for
-    the particular configuration.
-
-    .. note::
-
-        This is a very thin metadata wrapper around PasswordHash.using(),
-        and may go away eventually.
-    """
-
-    #===================================================================
-    # instance attrs
-    #===================================================================
-
-    # informational attrs
-    handler = None # base handler instance this is based off of -- could implement hash.base instead.
-    custom_handler = None # handler instance configured w/ appropriate settings
-    category = None # user category this applies to
-    deprecated = False # set if handler itself has been deprecated in config
-
-    # cloned from custom_handler.
-    genconfig = None
-    hash = None
-    verify = None
-    identify = None
-    genhash = None
-    needs_update = None # may be overridden if deprecated=True
-
-    #===================================================================
-    # init
-    #===================================================================
-    def __init__(self, handler, category=None, deprecated=False, **settings):
-
-        # historically, configs may  specify generic default rounds.
-        # stripping those out for hashes w/o a rounds parameter,
-        # but need to discourage this situation in the future.
-        if 'rounds' not in handler.setting_kwds:
-            for key in uh.HasRounds.using_rounds_kwds:
-                settings.pop(key, None)
-
-        # create custom handler if needed.
-        if settings:
-            try:
-                custom_handler = handler.using(**settings)
-            except TypeError as err:
-                m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
-                if m and m.group(1) in settings:
-                    # translate into KeyError, for backwards compat.
-                    # XXX: push this down to GenericHandler.using() implementation?
-                    key = m.group(1)
-                    raise KeyError("keyword not supported by %s handler: %r" %
-                                   (handler.name, key))
-                raise
-        else:
-            custom_handler = handler
-
-        # store basic bits
-        self.handler = handler
-        self.custom_handler = custom_handler
-        self.category = category # XXX: could pass this & deprecated to custom handler.
-        self.deprecated = deprecated
-
-        # init needs_update proxy
-        # XXX: could probably do away with entire _CryptRecord -- just need to
-        #      monkeypatch .needs_update for our subclass
-        if deprecated:
-            self.needs_update = lambda hash, secret=None: True
-        else:
-            self.needs_update = custom_handler.needs_update
-
-        # these aren't wrapped by _CryptRecord, copy them directly from handler.
-        self.genconfig = custom_handler.genconfig
-        self.hash = custom_handler.hash
-        self.verify = custom_handler.verify
-        self.identify = custom_handler.identify
-
-    #===================================================================
-    # virtual attrs
-    #===================================================================
-    @property
-    def scheme(self):
-        return self.handler.name
-
-    def __repr__(self): # pragma: no cover -- debugging
-        name = self.handler.name
-        if self.category:
-            name = "%s %s" % (name, self.category)
-        return "<_CryptRecord 0x%x for %s config>" % (id(self), name)
-
-    #===================================================================
-    # eoc
-    #===================================================================
-
-#=============================================================================
 # _CryptConfig helper class
 #=============================================================================
 class _CryptConfig(object):
@@ -701,10 +607,10 @@ class _CryptConfig(object):
     # dict mapping category -> default scheme
     _default_schemes = None
 
-    # dict mapping (scheme, category) -> _CryptRecord
+    # dict mapping (scheme, category) -> custom handler
     _records = None
 
-    # dict mapping category -> list of _CryptRecord instances for that category,
+    # dict mapping category -> list of custom handler instances for that category,
     # in order of schemes(). populated on demand by _get_record_list()
     _record_lists = None
 
@@ -1025,15 +931,50 @@ class _CryptConfig(object):
             scheme = handler.name
             context_kwds.update(handler.context_kwds)
             kwds, _ = get_options(scheme, None)
-            records[scheme, None] = _CryptRecord(handler, **kwds)
+            records[scheme, None] = self._create_record(handler, **kwds)
             for cat in categories:
                 kwds, has_cat_options = get_options(scheme, cat)
                 if has_cat_options:
-                    records[scheme, cat] = _CryptRecord(handler, cat, **kwds)
+                    records[scheme, cat] = self._create_record(handler, cat, **kwds)
                 # NOTE: if handler has no category-specific opts, get_record()
                 # will automatically use the default category's record.
         # NOTE: default records for specific category stored under the
         # key (None,category); these are populated on-demand by get_record().
+
+    @staticmethod
+    def _create_record(handler, category=None, deprecated=False, **settings):
+        # historically, configs may specify generic default rounds.
+        # stripping those out for hashes w/o a rounds parameter,
+        # but need to discourage this situation in the future.
+        if 'rounds' not in handler.setting_kwds:
+            for key in uh.HasRounds.using_rounds_kwds:
+                settings.pop(key, None)
+
+        # create custom handler if needed.
+        try:
+            subcls = handler.using(**settings)
+        except TypeError as err:
+            m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
+            if m and m.group(1) in settings:
+                # translate into KeyError, for backwards compat.
+                # XXX: push this down to GenericHandler.using() implementation?
+                key = m.group(1)
+                raise KeyError("keyword not supported by %s handler: %r" %
+                               (handler.name, key))
+            raise
+
+        # using private attrs to store some extra metadata in custom handler
+        assert subcls is not handler, "expected unique variant of handler"
+        ##subcls._Context__category = category
+        subcls._Context__orig_handler = handler
+        subcls._Context__deprecated = deprecated
+
+        # if whole alg is deprecated, patch it's needs_update() method.
+        # XXX: could do this check at context level, and remove need for patch.
+        if deprecated:
+            subcls.needs_update = _always_needs_update
+
+        return subcls
 
     def _get_record_options_with_flag(self, scheme, category):
         """return composite dict of options for given scheme + category.
@@ -1042,7 +983,7 @@ class _CryptConfig(object):
         of its output may eventually be made public.
 
         given a scheme & category, it returns two things:
-        a set of all the keyword options to pass to the _CryptRecord constructor,
+        a set of all the keyword options to pass to :meth:`_create_record`,
         and a bool flag indicating whether any of these options
         were specific to the named category. if this flag is false,
         the options are identical to the options for the default category.
@@ -1124,7 +1065,7 @@ class _CryptConfig(object):
         return value
 
     def identify_record(self, hash, category, required=True):
-        """internal helper to identify appropriate _CryptRecord for hash"""
+        """internal helper to identify appropriate custom handler for hash"""
         # NOTE: this is part of the critical path shared by
         #       all of CryptContext's PasswordHash methods,
         #       hence all the caching and error checking.
@@ -1727,7 +1668,7 @@ class CryptContext(object):
     #      is_deprecated(), or a just add a schemes(deprecated=True) flag.
     def _is_deprecated_scheme(self, scheme, category=None):
         """helper used by unittests to check if scheme is deprecated"""
-        return self._get_record(scheme, category).deprecated
+        return self._get_record(scheme, category)._Context__deprecated
 
     def default_scheme(self, category=None, resolve=False):
         """return name of scheme that :meth:`hash` will use by default.
@@ -1751,7 +1692,7 @@ class CryptContext(object):
         """
         # type check of category - handled by _get_record()
         record = self._get_record(None, category)
-        return record.handler if resolve else record.scheme
+        return record._Context__orig_handler if resolve else record.name
 
     # XXX: need to decide if exposing this would be useful in any way
     ##def categories(self):
@@ -1794,7 +1735,7 @@ class CryptContext(object):
             This was previously available as ``CryptContext().policy.get_handler()``
         """
         try:
-            return self._get_record(scheme, category).handler
+            return self._get_record(scheme, category)._Context__orig_handler
         except KeyError:
             pass
         if self._config.handlers:
@@ -1958,11 +1899,11 @@ class CryptContext(object):
     #===================================================================
 
     # NOTE: all the following methods do is look up the appropriate
-    #       _CryptRecord for a given (scheme,category) combination,
-    #       and hand off the real work to the record's methods,
-    #       which are optimized for the specific (scheme,category) configuration.
+    #       custom handler for a given (scheme,category) combination,
+    #       and hand off the real work to the handler itself,
+    #       which is optimized for the specific (scheme,category) configuration.
     #
-    #       The record objects are cached inside the _CryptConfig
+    #       The custom handlers are cached inside the _CryptConfig
     #       instance stored in self._config, and are retrieved
     #       via get_record() and identify_record().
     #
@@ -1992,7 +1933,7 @@ class CryptContext(object):
         """
         if not kwds:
             return
-        unused_kwds = self._config.context_kwds.difference(record.handler.context_kwds)
+        unused_kwds = self._config.context_kwds.difference(record.context_kwds)
         for key in unused_kwds:
             kwds.pop(key, None)
 
@@ -2128,10 +2069,10 @@ class CryptContext(object):
         if record is None:
             return None
         elif resolve:
-            # XXX: which one should we return? .custom_handler, or .handler?
-            return record.handler
+            # XXX: which one should we return? custom_handler (record), or orig handler?
+            return record._Context__orig_handler
         else:
-            return record.scheme
+            return record.name
 
     def hash(self, secret, scheme=None, category=None, **kwds):
         """run secret through selected algorithm, returning resulting hash.

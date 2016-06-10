@@ -119,6 +119,7 @@ class PasswordHash(object):
         """
         Return another hasher object (typically a subclass of the current one),
         which integrates the configuration options specified by ``kwds``.
+        This should *always* return a new object, even if no configuration options are changed.
 
         .. todo::
 

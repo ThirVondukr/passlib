@@ -2180,8 +2180,7 @@ class PrefixWrapper(object):
     def using(self, **kwds):
         # generate subclass of wrapped handler
         subcls = self.wrapped.using(**kwds)
-        if subcls is self.wrapped:
-            return self
+        assert subcls is not self.wrapped
         # then create identical wrapper which wraps the new subclass.
         return PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
 
