@@ -22,20 +22,20 @@ for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user application.
 
 As a quick sample, the following code hashes and then verifies a password
-using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
+using the :doc:`PBKDF2-SHA256 </lib/passlib.hash.pbkdf2_sha256>` algorithm::
 
     >>> # import the hash algorithm
-    >>> from passlib.hash import sha256_crypt
+    >>> from passlib.hash import pbkdf2_sha256
 
     >>> # generate new salt, and hash a password
-    >>> hash = sha256_crypt.hash("toomanysecrets")
+    >>> hash = pbkdf2_sha256.hash("toomanysecrets")
     >>> hash
-    '$5$rounds=80000$zvpXD3gCkrt7tw.1$QqeTSolNHEfgryc5oMgiq1o8qCEAcmye3FoMSuvgToC'
+    '$pbkdf2-sha256$29000$N2YMIWQsBWBMae09x1jrPQ$1t8iyB2A.WF/Z5JZv.lfCIhXXN33N23OSgQYThBYRfk'
 
     >>> # verifying the password
-    >>> sha256_crypt.verify("toomanysecrets", hash)
+    >>> pbkdf2_sha256.verify("toomanysecrets", hash)
     True
-    >>> sha256_crypt.verify("joshua", hash)
+    >>> pbkdf2_sha256.verify("joshua", hash)
     False
 
 Content Summary

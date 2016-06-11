@@ -122,6 +122,9 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
+*While this algorithm is still considered secure, it has fallen slightly out of favor
+in comparison to bcrypt & pbkdf2, due to it's non-standard construction.*
+
 .. index:: Google App Engine; recommended hash algorithm
 
 :class:`~passlib.hash.sha512_crypt` is probably the best choice for Google App Engine,
@@ -198,7 +201,7 @@ Insert the following code into your application::
         # set the number of rounds that should be used...
         # (appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
-        pbkdf2_sha256__default_rounds = 8000,
+        pbkdf2_sha256__default_rounds = 29000,
         )
 
 To start using your CryptContext, import the context you created wherever it's needed::
@@ -209,7 +212,7 @@ To start using your CryptContext, import the context you created wherever it's n
     >>> # encrypting a password...
     >>> hash = pwd_context.hash("somepass")
     >>> hash
-    '$pbkdf2-sha256$7252$qKFNyMYTmgQDCFDS.jRJDQ$sms3/EWbs4/3k3aOoid5azwq3HPZKVpUUrAsCfjrN6M'
+    '$pbkdf2-sha256$29000$BSBkLEXIeS9FKMW4F.I85w$SJMzqVU7fw49NDOJZHt2o9vKIfDUVM4cKlAD4MxIgD0'
 
     >>> # verifying a password...
     >>> pwd_context.verify("somepass", hash)
@@ -225,8 +228,8 @@ To start using your CryptContext, import the context you created wherever it's n
 
 .. rubric:: Footnotes
 
-.. [#choices] BCrypt, SHA-512 Crypt, and PBKDF2 are the most commonly
-              used password hashes as of Aug 2012, when this document
+.. [#choices] BCrypt and PBKDF2, followed by SHA512-Crypt, are the most commonly
+              used password hashes as of June 2016, when this document
               last updated. You should make sure you are reading a current
               copy of the Passlib documentation, in case the state
               of things has changed.

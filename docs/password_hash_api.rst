@@ -48,32 +48,32 @@ Usage Examples
 The following code shows how to use the primary
 methods of the :class:`~passlib.ifc.PasswordHash` interface --
 :meth:`~PasswordHash.hash` and :meth:`~PasswordHash.verify` --
-using the :class:`~passlib.hash.sha256_crypt` hash as an example::
+using the :class:`~passlib.hash.pbkdf2_sha256` hash as an example::
 
     >>> # import the handler class
-    >>> from passlib.hash import sha256_crypt
+    >>> from passlib.hash import pbkdf2_sha256
 
     >>> # hash a password using the default settings:
-    >>> hash = sha256_crypt.hash("password")
+    >>> hash = pbkdf2_sha256.hash("password")
     >>> hash
-    '$5$rounds=40000$HIo6SCnVL9zqF8TK$y2sUnu13gp4cv0YgLQMW56PfQjWaTyiHjVbXTgleYG9'
+    '$pbkdf2-sha256$29000$791b633vXau19h4jxPj/Pw$qyzGzFapr0oDhS60GR8Ss40Y/wwd8AcaJoJ5/KKnnN8'
 
     >>> # note that each call to hash() generates a new salt,
     >>> # and thus the contents of the hash will differ, despite using the same password:
-    >>> sha256_crypt.hash("password")
-    '$5$rounds=40000$1JfxoiYM5Pxokyh8$ez8uV8jjXW7SjpaTg2vHJmx3Qn36uyZpjhyC9AfBi7B'
+    >>> pbkdf2_sha256.hash("password")
+    '$pbkdf2-sha256$29000$njNmDCGEUIoRwvi/1/ofQw$nYU.7v.fvG9UyT.7sTMbWSG98KSm/Tr4rS9Ob5UkYPw
 
-    >>> # if the hash supports a variable number of iterations (which sha256_crypt does),
+    >>> # if the hash supports a variable number of iterations (which pbkdf2_sha256 does),
     >>> # you can override the default value via the 'rounds' keyword:
-    >>> sha256_crypt.hash("password", rounds=12345)
-    '$5$rounds=12345$UeVpHaN2YFDwBoeJ$NJN8DwVZ4UfQw6.ijJZNWoZtk1Ivi5YfKCDsI2HzSq2'
-               ^^^^^
+    >>> pbkdf2_sha256.hash("password", rounds=12345)
+    '$pbkdf2-sha256$12345$QwjBmJPSOsf4HyNE6L239g$8m1pnP69EYeOiKKb5sNSiYw9M8pJMyeW.CSm0KKO.GI'
+                    ^^^^^
 
     >>> # on the other end of things, the verify() method takes care of
     >>> # checking if a password matches an existing hash string:
-    >>> sha256_crypt.verify("password", hash)
+    >>> pbkdf2_sha256.verify("password", hash)
     True
-    >>> sha256_crypt.verify("letmeinplz", hash)
+    >>> pbkdf2_sha256.verify("letmeinplz", hash)
     False
 
 .. note::
@@ -86,19 +86,19 @@ That concludes the most basic example, but there are a few more
 common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
 
     >>> # attempting to call verify() with another algorithm's hash will result in a ValueError:
-    >>> from passlib.hash import sha256_crypt, md5_crypt
+    >>> from passlib.hash import pbkdf2_sha256, md5_crypt
     >>> other_hash = md5_crypt.hash("password")
-    >>> sha256_crypt.verify("password", other_hash)
+    >>> pbkdf2_sha256.verify("password", other_hash)
     Traceback (most recent call last):
         <traceback omitted>
-    ValueError: not a valid sha256_crypt hash
+    ValueError: not a valid pbkdf2_sha256 hash
 
     >>> # this can be prevented by using the identify method,
     >>> # determines whether a hash belongs to a given algorithm:
-    >>> hash = sha256_crypt.hash("password")
-    >>> sha256_crypt.identify(hash)
+    >>> hash = pbkdf2_sha256.hash("password")
+    >>> pbkdf2_sha256.identify(hash)
     True
-    >>> sha256_crypt.identify(other_hash)
+    >>> pbkdf2_sha256.identify(other_hash)
     False
 
 While the initial :meth:`~PasswordHash.hash` example works for most hashes,
