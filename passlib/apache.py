@@ -14,7 +14,7 @@ from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import render_bytes, to_bytes, deprecated_method, is_ascii_codec
-from passlib.utils.compat import join_bytes, unicode, BytesIO, PY3, OrderedDict
+from passlib.utils.compat import join_bytes, unicode, BytesIO, PY3
 # local
 __all__ = [
     'HtpasswdFile',
@@ -27,6 +27,7 @@ __all__ = [
 _UNSET = object()
 
 _BCOLON = b":"
+_BHASH = b"#"
 
 # byte values that aren't allowed in fields.
 _INVALID_FIELD_CHARS = b":\n\r\t\x00"
@@ -231,7 +232,7 @@ class _CommonFile(object):
             #       lines with only whitespace, or with "#" as first non-whitespace char,
             #       are left alone / ignored.
             tmp = line.lstrip()
-            if not tmp or tmp.startswith("#"):
+            if not tmp or tmp.startswith(_BHASH):
                 skipped += line
                 continue
 
