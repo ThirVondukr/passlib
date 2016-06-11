@@ -21,8 +21,10 @@ PY26 = sys.version_info < (2,7)
 #------------------------------------------------------------------------
 JYTHON = sys.platform.startswith('java')
 
-if hasattr(sys, "pypy_version_info") and sys.pypy_version_info < (2,0):
-    raise AssertionError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
+PYPY = hasattr(sys, "pypy_version_info")
+
+if PYPY and sys.pypy_version_info < (2,0):
+    raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
 #=============================================================================
 # common imports
@@ -235,12 +237,15 @@ if PY3:
 
     def nextgetter(obj):
         return obj.__next__
+
+    izip = zip
+
 else:
     irange = xrange
     ##lrange = range
 
     lmap = map
-    from itertools import imap
+    from itertools import imap, izip
 
     def iteritems(d):
         return d.iteritems()

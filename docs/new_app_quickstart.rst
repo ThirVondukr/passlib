@@ -166,19 +166,11 @@ standard format for encoding password hashes using this algorithm
 
 What about SCrypt?
 ..................
-`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the leading contender
-to be the next-generation password hash algorithm. It offers many advances
-over all of the above hashes; the primary feature being that it has
-a variable *memory* cost as well as time cost. It is incredibly well designed,
-and looks to likely replace all the others in this section.
-
-However, it is still young by comparison to the others; and has not been as thoroughly
-tested, or widely implemented. The only Python wrapper that exists
-does not even expose the underlying :func:`!scrypt` function,
-but is rather a file encryption tool.
-Due to these reasons, SCrypt has not yet been integrated into Passlib.
-
-.. seealso:: :issue:`8` of the Passlib bugtracker, for the current status of Passlib's SCrypt support.
+`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the first in a class of "memory-hard"
+key derivation functions.  Passlib supports hashing passwords with SCrypt via the
+:class:`~passlib.hash.scrypt` password hash.  However, it is not currently recommended for use
+unless you know what you're doing, as selection of an appropriate secure set of rounds parameters
+is very dependant on your serve load, and may frequently not be possible.
 
 Creating and Using a CryptContext
 =================================

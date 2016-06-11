@@ -73,6 +73,9 @@ Major Changes
       to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
       the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
 
+    * :class:`~passlib.hash.scrypt` -- New password hash format which uses
+      the SCrypt KDF (:issue:`8`).
+
 Minor Internal Changes
 ----------------------
     * The shared :class:`!PasswordHash` unittests now check all hash handlers for

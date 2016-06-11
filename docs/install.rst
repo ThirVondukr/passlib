@@ -48,6 +48,11 @@ Optional Libraries
    functions used by some PBKDF2-based hashes, but it is not required
    even in that case.
 
+* `SCrypt <https://pypi.python.org/pypi/scrypt>`_
+
+   If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
+   hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.
+
 Installation Instructions
 =========================
 To install from PyPi using :command:`pip`::
