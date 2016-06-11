@@ -6,6 +6,14 @@
 Release History
 ===============
 
+**DEV BRANCH**
+    
+    This development branch contains a pure-python implementation
+    of the scrypt kdf primitive (passlib/utils/_slow_scrypt.py).
+    It's currently of interest as a curiosity only,
+    and may never be fast enough to be useful (in which case
+    this branch may be closed).
+
 **1.7** (NOT YET RELEASED)
 ==========================
 
@@ -14,10 +22,6 @@ Release History
     The following tasks are blocking the 1.7 release:
 
     * Get argon2 hash implemented (:issue:`69`).
-
-        - blocking on .using() api
-
-    * Get scrypt hash implemented (:issue:`8`).
 
         - blocking on .using() api
 
@@ -64,6 +68,9 @@ Major Changes
       will also be issued). Nevertheless, users are *strongly* encouraged
       to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
       the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+
+    * :class:`~passlib.hash.scrypt` -- New password hash format which uses
+      the SCrypt KDF (:issue:`8`).
 
 Minor Internal Changes
 ----------------------

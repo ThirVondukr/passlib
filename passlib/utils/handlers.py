@@ -188,6 +188,48 @@ def parse_mc3(hash, prefix, sep=_UDOLLAR, rounds_base=10,
     # return result
     return rounds, salt, chk or None
 
+def parse_mc3_long(hash, prefix, sep=_UDOLLAR, handler=None):
+    """
+    parse hash using 3-part modular crypt format,
+    with complex settings string instead of simple rounds.
+    otherwise works same as :func:`parse_mc3`
+    """
+    # detect prefix
+    hash = to_unicode(hash, "ascii", "hash")
+    assert isinstance(prefix, unicode)
+    if not hash.startswith(prefix):
+        raise exc.InvalidHashError(handler)
+
+    # parse 3-part hash or 2-part config string
+    assert isinstance(sep, unicode)
+    parts = hash[len(prefix):].split(sep)
+    if len(parts) == 3:
+        return parts
+    elif len(parts) == 2:
+        settings, salt = parts
+        return settings, salt, None
+    else:
+        raise exc.MalformedHashError(handler)
+
+def parse_int(source, base=10, default=None, param="value", handler=None):
+    """
+    helper to parse an integer config field
+
+    :arg source: unicode source string
+    :param base: numeric base
+    :param default: optional default if source is empty
+    :param param: name of variable, for error msgs
+    :param handler: handler class, for error msgs
+    """
+    if source.startswith(_UZERO) and source != _UZERO:
+        raise exc.MalformedHashError(handler, "zero-padded %s field" % param)
+    elif source:
+        return int(source, base)
+    elif default is None:
+        raise exc.MalformedHashError(handler, "empty %s field" % param)
+    else:
+        return default
+
 #=============================================================================
 # formatting helpers
 #=============================================================================
@@ -640,6 +682,7 @@ class GenericHandler(MinimalHandler):
         return (key for key in cls.setting_kwds
                 if key not in cls._unparsed_settings)
 
+    # XXX: make this a global function?
     @staticmethod
     def _sanitize(value, char=u("*")):
         """default method to obscure sensitive fields"""
@@ -1836,9 +1879,6 @@ class HasManyBackends(GenericHandler):
     #: when no backends are available.
     _no_backend_suggestion = None
 
-    #: flag used by _try_alternate_backend to prevent recursion
-    __tab_active = None
-
     @classmethod
     def get_backend(cls):
         """return name of currently active backend.
@@ -1960,6 +2000,9 @@ class HasManyBackends(GenericHandler):
                 raise exc.MissingBackendError("%s: backend not available: %s" %
                                               (cls.name, name))
         # load backend into class
+        # NOTE: not overwriting _calc_checksum() directly, so that classes can provide
+        #       common behavior in that method,
+        #       and then invoke _calc_checksum_backend() to do the work.
         assert callable(calc)
         cls._calc_checksum_backend = calc
         cls._backend = name
