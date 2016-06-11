@@ -64,6 +64,9 @@ Major Changes
     * :class:`~passlib.hash.scrypt` -- New password hash format which uses
       the SCrypt KDF (:issue:`8`).
 
+    * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
+      rather than choking on them (:issue:`73`).
+
 Minor Internal Changes
 ----------------------
     * The shared :class:`!PasswordHash` unittests now check all hash handlers for

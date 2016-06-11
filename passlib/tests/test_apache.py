@@ -13,6 +13,7 @@ from passlib.exc import MissingBackendError
 from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
 from passlib.utils.compat import u
+from passlib.utils import to_bytes
 # module
 log = getLogger(__name__)
 
@@ -191,8 +192,7 @@ class HtpasswdFileTest(TestCase):
         ht.set_password("user5", "pass5")
         ht.delete("user3")
         ht.set_password("user3", "pass3")
-        self.assertEqual(ht.users(), ["user2", "user4", "user1", "user5",
-                                      "user3"])
+        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user3", "user4", "user5"])
 
     def test_04_check_password(self):
         """test check_password()"""
@@ -335,6 +335,53 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
                           b'', path=None)
 
+    def test_13_whitespace(self):
+        """whitespace & comment handling"""
+
+        # per htpasswd source (https://github.com/apache/httpd/blob/trunk/support/htpasswd.c),
+        # lines that match "^\s*(#.*)?$" should be ignored
+        source = to_bytes(
+            '\n'
+            'user2:pass2\n'
+            'user4:pass4\n'
+            'user7:pass7\r\n'
+            ' \t \n'
+            'user1:pass1\n'
+            ' # legacy users\n'
+            '#user6:pass6\n'
+            'user5:pass5\n\n'
+        )
+
+        # loading should see all users (except user6, who was commented out)
+        ht = apache.HtpasswdFile.from_string(source)
+        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"])
+
+        # update existing user
+        ht.set_hash("user4", "althash4")
+        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"])
+
+        # add a new user
+        ht.set_hash("user6", "althash6")
+        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6", "user7"])
+
+        # delete existing user
+        ht.delete("user7")
+        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6"])
+
+        # re-serialization should preserve whitespace
+        target = to_bytes(
+            '\n'
+            'user2:pass2\n'
+            'user4:althash4\n'
+            ' \t \n'
+            'user1:pass1\n'
+            ' # legacy users\n'
+            '#user6:pass6\n'
+            'user5:pass5\n'
+            'user6:althash6\n'
+        )
+        self.assertEqual(ht.to_string(), target)
+
     #===================================================================
     # eoc
     #===================================================================
@@ -448,7 +495,7 @@ class HtdigestFileTest(TestCase):
         ht.set_password("user5", "realm", "pass5")
         ht.delete("user3", "realm")
         ht.set_password("user3", "realm", "pass3")
-        self.assertEqual(ht.users("realm"), ["user2", "user4", "user1", "user5", "user3"])
+        self.assertEqual(sorted(ht.users("realm")), ["user1", "user2", "user3", "user4", "user5"])
 
         self.assertRaises(TypeError, ht.users, 1)
 

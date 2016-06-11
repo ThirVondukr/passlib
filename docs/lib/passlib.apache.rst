@@ -13,8 +13,11 @@ htpasswd and htdigest files; though the use of two helper classes.
     and to have less ambiguous method names.
     The old method and keyword names are deprecated, and
     will be removed in Passlib 1.8.
-    No more backwards-incompatible changes are currently planned
-    for these classes.
+
+.. versionchanged:: 1.7
+
+    These classes will now preserve blank lines & "#" comments when updating
+    htpasswd files; previous releases would throw a parse error.
 
 .. index:: Apache; htpasswd
 
