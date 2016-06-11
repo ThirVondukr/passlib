@@ -137,7 +137,8 @@ def is_default_backend(handler, backend):
     except MissingBackendError:
         return False
     try:
-        return handler.set_backend("default") == backend
+        handler.set_backend("default")
+        return handler.get_backend() == backend
     finally:
         handler.set_backend(orig)
 
