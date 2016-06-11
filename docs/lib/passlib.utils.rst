@@ -56,7 +56,40 @@ Constants
 
 Unicode Helpers
 ===============
-.. autofunction:: consteq
+.. function:: consteq(left, right)
+
+    Check two strings/bytes for equality.
+
+    This is functionally equivalent to ``left == right``,
+    but attempts to take constant time relative to the size of the righthand input.
+
+    The purpose of this function is to help prevent timing attacks
+    during digest comparisons: the standard ``==`` operator aborts
+    after the first mismatched character, causing its runtime to be
+    proportional to the longest prefix shared by the two inputs.
+    If an attacker is able to predict and control one of the two
+    inputs, repeated queries can be leveraged to reveal information about
+    the content of the second argument. To minimize this risk, :func:`!consteq`
+    is designed to take ``THETA(len(right))`` time, regardless
+    of the contents of the two strings.
+    It is recommended that the attacker-controlled input
+    be passed in as the left-hand value.
+
+    .. warning::
+
+        This function is *not* perfect. Various VM-dependant issues
+        (e.g. the VM's integer object instantiation algorithm, internal unicode representation, etc),
+        may still cause the function's run time to be affected by the inputs,
+        though in a less predictable manner.
+        *To minimize such risks, this function should not be passed* :class:`unicode`
+        *inputs that might contain non-* ``ASCII`` *characters*.
+
+    .. versionadded:: 1.6
+
+    .. versionchanged:: 1.7
+
+        This is an alias for stdlib's :func:`hmac.compare_digest` under Python 3.3 and up.
+
 .. autofunction:: saslprep
 
 Bytes Helpers

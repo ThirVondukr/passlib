@@ -86,6 +86,9 @@ Minor Internal Changes
       when using a hash directly, rather than via CryptContext, as well making it easier for
       CryptContext to support hash-specific parameters.
 
+    * :func:`~passlib.utils.consteq` is now an alias for stdlib's :func:`hmac.compare_digest`
+      under python 3.3 and up.
+
 Deprecations
 ------------
     * The :class:`~passlib.ifc.PasswordHash` API (used by all hashes in passlib),

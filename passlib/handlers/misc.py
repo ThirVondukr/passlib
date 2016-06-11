@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import to_native_str, consteq
+from passlib.utils import to_native_str, str_consteq
 from passlib.utils.compat import unicode, u, unicode_or_bytes_types
 import passlib.utils.handlers as uh
 # local
@@ -211,7 +211,7 @@ class plaintext(uh.MinimalHandler):
         hash = to_native_str(hash, encoding, "hash")
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
-        return consteq(cls.hash(secret, encoding), hash)
+        return str_consteq(cls.hash(secret, encoding), hash)
 
 #=============================================================================
 # eof

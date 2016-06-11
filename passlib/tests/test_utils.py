@@ -9,6 +9,7 @@ import warnings
 # site
 # pkg
 # module
+from passlib.utils import is_ascii_safe
 from passlib.utils.compat import irange, PY3, u, unicode, join_bytes
 from passlib.tests.utils import TestCase
 
@@ -217,7 +218,7 @@ class MiscTest(TestCase):
         """test consteq()"""
         # NOTE: this test is kind of over the top, but that's only because
         # this is used for the critical task of comparing hashes for equality.
-        from passlib.utils import consteq
+        from passlib.utils import consteq, str_consteq
 
         # ensure error raises for wrong types
         self.assertRaises(TypeError, consteq, u(''), b'')
@@ -239,7 +240,12 @@ class MiscTest(TestCase):
                 u("abc"),
                 u("\xff\xa2\x12\x00")*10,
             ]:
-            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            if consteq is str_consteq or is_ascii_safe(value):
+                self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            else:
+                self.assertRaises(TypeError, consteq, value, value)
+            self.assertTrue(str_consteq(value, value), "value %r:" % (value,))
+
             value = value.encode("latin-1")
             self.assertTrue(consteq(value, value), "value %r:" % (value,))
 
@@ -259,8 +265,15 @@ class MiscTest(TestCase):
                 (u("abc"),    u("defabc")),
                 (u("qwertyuiopasdfghjklzxcvbnm"), u("abc")),
             ]:
-            self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
-            self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
+            if consteq is str_consteq or is_ascii_safe(l):
+                self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
+                self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
+            else:
+                self.assertRaises(TypeError, consteq, l, r)
+                self.assertRaises(TypeError, consteq, r, l)
+            self.assertFalse(str_consteq(l, r), "values %r %r:" % (l,r))
+            self.assertFalse(str_consteq(r, l), "values %r %r:" % (r,l))
+
             l = l.encode("latin-1")
             r = r.encode("latin-1")
             self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
