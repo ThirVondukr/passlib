@@ -6,6 +6,7 @@ from __future__ import with_statement, division
 # core
 from binascii import hexlify, unhexlify
 import hashlib
+import re
 import warnings
 # site
 # pkg
@@ -22,6 +23,7 @@ def hb(source):
 
     usage: ``hb("deadbeef23")``
     """
+    source = re.sub("\s", "", source)
     if PY3:
         source = source.encode("ascii")
     return unhexlify(source)
