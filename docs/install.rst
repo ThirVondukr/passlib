@@ -6,11 +6,11 @@ Installation
 
 Supported Platforms
 ===================
-Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.2).
+Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.3).
 It is known to work with the following Python implementations:
 
 * CPython 2 -- v2.6 or newer.
-* CPython 3 -- v3.2 or newer.
+* CPython 3 -- v3.3 or newer.
 * PyPy -- v2.0 or newer.
 * PyPy3 -- v2.0 or newer.
 * Jython -- v2.7 or newer.
@@ -21,9 +21,8 @@ Google App Engine is supported as well.
 
 .. versionchanged:: 1.7
 
-    Support for Python 2.5, 3.0, and 3.1 was dropped.
+    Support for Python 2.5, 3.0-3.2 was dropped.
     Support for PyPy 1.x was dropped.
-    Support for Python 3.2 may be dropped in the next major release.
 
 .. _optional-libraries:
 
@@ -41,6 +40,11 @@ Optional Libraries
 
    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ is currently the recommended
    option -- it's actively maintained, and compatible with both CPython and PyPy.
+
+* `Cryptography <https://pypi.python.org/pypi/cryptography>`_
+
+   If installed, will be used to enable encryption of TOTP secrets for storage
+   (see :mod:`passlib.totp`).
 
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
 

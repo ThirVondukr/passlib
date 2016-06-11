@@ -25,10 +25,6 @@ Release History
 
         - blocking on .using() api
 
-    * Get scrypt hash implemented (:issue:`8`).
-
-        - blocking on .using() api
-
     * Finish the :mod:`passlib.totp` module (:issue:`44`)
 
         - tests
