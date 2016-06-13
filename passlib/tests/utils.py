@@ -1406,15 +1406,6 @@ class HandlerCase(TestCase):
             rounds |= 1
         return rounds
 
-    def test_22_parse_rounds(self):
-        """test parse_rounds() helper [will be removed in 1.7]"""
-        self.require_rounds_info()
-        handler = self.handler
-        for _ in range(5):
-            rounds = self._get_rand_rounds()
-            hash = self.do_encrypt("letmein", rounds=rounds)
-            self.assertEqual(handler.parse_rounds(hash), rounds)
-
     def test_23_rounds_and_context_needs_update(self):
         """test rounds + context.needs_update() integration"""
         self.require_rounds_info()

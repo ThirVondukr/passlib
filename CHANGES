@@ -152,6 +152,8 @@ Backwards Incompatibilities
       will now always return a valid hash, rather than a truncated configuration
       hash or ``None``.  This should affect nearly 0 applications.
 
+    * The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
+
 **1.6.6** (NOT YET RELEASED)
 ============================
 
