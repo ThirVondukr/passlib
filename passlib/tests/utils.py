@@ -171,12 +171,13 @@ def unwrap_handler(handler):
 @contextlib.contextmanager
 def patch_calc_min_rounds(handler):
     """
-    internal helper for test_21_max_rounds() --
+    internal helper for do_config_encrypt() --
     context manager which temporarily replaces handler's _calc_checksum()
     with one that uses min_rounds; useful when trying to generate config
     with high rounds value, but don't care if output is correct.
     """
     if isinstance(handler, type) and issubclass(handler, uh.HasRounds):
+        # XXX: also require GenericHandler for this branch?
         wrapped = handler._calc_checksum
         def wrapper(self, *args, **kwds):
             rounds = self.rounds
@@ -763,19 +764,24 @@ class HandlerCase(TestCase):
 
     def do_genconfig(self, **kwds):
         """call handler's genconfig method with specified options"""
-        # NOTE: as of 1.7, all genconfig() calls are just wrappers for .hash(),
-        #       so we have to include context kwds
-        self.populate_context("", kwds)
         self.populate_settings(kwds)
         return self.handler.genconfig(**kwds)
 
-    def do_genhash(self, secret, config, use_genhash=False, **kwds):
+    def do_genhash(self, secret, config, **kwds):
         """call handler's genhash method with specified options"""
         secret = self.populate_context(secret, kwds)
-        if use_genhash:
-            return self.handler.genhash(secret, config, **kwds)
-        else:
-            return self.handler.hash(secret, config=config, **kwds)
+        return self.handler.genhash(secret, config, **kwds)
+
+    def do_stub_encrypt(self, handler=None, **kwds):
+        """
+        return sample hash for handler, w/o caring if digest is valid
+        (uses some monkeypatching to minimize digest calculation cost)
+        """
+        if handler is None:
+            handler = self.handler
+        secret = self.populate_context("", kwds)
+        with patch_calc_min_rounds(handler):
+            return handler.hash(secret, **kwds)
 
     #---------------------------------------------------------------
     # automatically generate subclasses for testing specific backends,
@@ -945,7 +951,7 @@ class HandlerCase(TestCase):
             #
             # genhash() should reproduce original hash
             #
-            other = self.do_genhash(secret, result, use_genhash=use_16_legacy)
+            other = self.do_genhash(secret, result)
             self.check_returned_native_str(other, "genhash")
             self.assertEqual(other, result, "genhash() failed to reproduce "
                              "hash: secret=%r hash=%r: result=%r" %
@@ -954,7 +960,7 @@ class HandlerCase(TestCase):
             #
             # genhash() should NOT reproduce original hash for wrong password
             #
-            other = self.do_genhash(wrong_secret, result, use_genhash=use_16_legacy)
+            other = self.do_genhash(wrong_secret, result)
             self.check_returned_native_str(other, "genhash")
             if self.is_disabled_handler:
                 self.assertEqual(other, result, "genhash() failed to reproduce "
@@ -1126,8 +1132,7 @@ class HandlerCase(TestCase):
                     return
             raise self.failureException("failed to find different salt after "
                                         "%d samples" % (samples,))
-        if self.do_genconfig() is not None: # cisco_type7 has salt & no config
-            sampler(self.do_genconfig)
+        sampler(self.do_genconfig)
         sampler(lambda : self.do_encrypt("stub"))
 
     def test_12_min_salt_size(self):
@@ -1170,43 +1175,42 @@ class HandlerCase(TestCase):
             # with an unreasonably large salt.
             #
             s1 = salt_char * 1024
-            c1 = self.do_genconfig(salt=s1)
-            c2 = self.do_genconfig(salt=s1 + salt_char)
+            c1 = self.do_stub_encrypt(salt=s1)
+            c2 = self.do_stub_encrypt(salt=s1 + salt_char)
             self.assertNotEqual(c1, c2)
 
-            self.do_encrypt('stub', salt_size=1024)
+            self.do_stub_encrypt(salt_size=1024)
 
         else:
             #
             # check max size is accepted
             #
             s1 = salt_char * max_size
-            c1 = self.do_genconfig(salt=s1)
+            c1 = self.do_stub_encrypt(salt=s1)
 
-            self.do_encrypt('stub', salt_size=max_size)
+            self.do_stub_encrypt(salt_size=max_size)
 
             #
             # check max size + 1 is rejected
             #
             s2 = s1 + salt_char
-            self.assertRaises(ValueError, self.do_genconfig, salt=s2)
+            self.assertRaises(ValueError, self.do_stub_encrypt, salt=s2)
 
-            self.assertRaises(ValueError, self.do_encrypt, 'stub',
-                              salt_size=max_size+1)
+            self.assertRaises(ValueError, self.do_stub_encrypt, salt_size=max_size + 1)
 
             #
             # should accept too-large salt in relaxed mode
             #
             if has_relaxed_setting(handler):
                 with warnings.catch_warnings(record=True): # issues passlibhandlerwarning
-                    c2 = self.do_genconfig(salt=s2, relaxed=True)
+                    c2 = self.do_stub_encrypt(salt=s2, relaxed=True)
                 self.assertEqual(c2, c1)
 
             #
             # if min_salt supports it, check smaller than mx is NOT truncated
             #
             if handler.min_salt_size < max_size:
-                c3 = self.do_genconfig(salt=s1[:-1])
+                c3 = self.do_stub_encrypt(salt=s1[:-1])
                 self.assertNotEqual(c3, c1)
 
     # whether salt should be passed through bcrypt repair function
@@ -1220,7 +1224,7 @@ class HandlerCase(TestCase):
         return salt
 
     def test_14_salt_chars(self):
-        """test genconfig() honors salt_chars"""
+        """test encrypt() honors salt_chars"""
         self.require_salt_info()
 
         handler = self.handler
@@ -1236,7 +1240,7 @@ class HandlerCase(TestCase):
             if len(salt) < mn:
                 salt = (salt*(mn//len(salt)+1))[:chunk]
             salt = self.prepare_salt(salt)
-            self.do_genconfig(salt=salt)
+            self.do_stub_encrypt(salt=salt)
 
         # check some invalid salt chars, make sure they're rejected
         source = u('\x00\xff')
@@ -1245,7 +1249,7 @@ class HandlerCase(TestCase):
         chunk = max(mn, 1)
         for c in source:
             if c not in cs:
-                self.assertRaises(ValueError, self.do_genconfig, salt=c*chunk,
+                self.assertRaises(ValueError, self.do_stub_encrypt, salt=c*chunk,
                                   __msg__="invalid salt char %r:" % (c,))
 
     @property
@@ -1386,13 +1390,12 @@ class HandlerCase(TestCase):
             self.assertRaises(ValueError, self.do_encrypt, 'stub', rounds=max_rounds+1)
 
         # handle max rounds
-        with patch_calc_min_rounds(handler):
-            if max_rounds is None:
-                self.do_genconfig(rounds=(1<<31)-1)
-            else:
-                self.do_genconfig(rounds=max_rounds)
+        if max_rounds is None:
+            self.do_stub_encrypt(rounds=(1 << 31) - 1)
+        else:
+            self.do_stub_encrypt(rounds=max_rounds)
 
-                # TODO: check relaxed mode clips max+1
+            # TODO: check relaxed mode clips max+1
 
     def _get_rand_rounds(self):
         handler = self.handler
@@ -1754,10 +1757,10 @@ class HandlerCase(TestCase):
 
         temp = subcls.using(min_desired_rounds=small+2, max_desired_rounds=large-2)
 
-        with patch_calc_min_rounds(subcls):
-            small_hash = subcls.genconfig(rounds=small)
-            medium_hash = subcls.genconfig(rounds=medium)
-            large_hash = subcls.genconfig(rounds=large)
+        # generate some sample hashes
+        small_hash = self.do_stub_encrypt(subcls, rounds=small)
+        medium_hash = self.do_stub_encrypt(subcls, rounds=medium)
+        large_hash = self.do_stub_encrypt(subcls, rounds=large)
 
         # everything should be w/in bounds for original handler
         self.assertFalse(subcls.needs_update(small_hash))
@@ -1924,6 +1927,7 @@ class HandlerCase(TestCase):
         verify_insensitive = self.secret_case_insensitive in [True,
                                                               "verify-only"]
 
+        # test hashing lower-case verifies against lower & upper
         lower = 'test'
         upper = 'TEST'
         h1 = self.do_encrypt(lower)
@@ -1934,6 +1938,19 @@ class HandlerCase(TestCase):
             self.assertFalse(self.do_verify(upper, h1),
                              "verify() should be case sensitive")
 
+        # test hashing upper-case verifies against lower & upper
+        h2 = self.do_encrypt(upper)
+        if verify_insensitive and not self.is_disabled_handler:
+            self.assertTrue(self.do_verify(lower, h2),
+                            "verify() should not be case sensitive")
+        else:
+            self.assertFalse(self.do_verify(lower, h2),
+                             "verify() should be case sensitive")
+
+        # test genhash
+        # XXX: 2.0: what about 'verify-only' hashes once genhash() is removed?
+        #      won't have easy way to recreate w/ same config to see if hash differs.
+        #      (though only hash this applies to is mssql2000)
         h2 = self.do_genhash(upper, h1)
         if hash_insensitive or self.is_disabled_handler:
             self.assertEqual(h2, h1,
@@ -2185,10 +2202,8 @@ class HandlerCase(TestCase):
         self.assertRaises(TypeError, self.do_identify, None)
         self.assertRaises(TypeError, self.do_verify, 'stub', None)
 
-        # NOTE: changed in 1.7 -- previously if config string not supported,
-        #       genhash() should throw TypeError; now just proxies .hash(secret, config=config)
-        result = self.do_genhash('stub', None)
-        self.check_returned_native_str(result, "genhash")
+        # NOTE: changed in 1.7 -- previously 'None' would be accepted when config strings not supported.
+        self.assertRaises(TypeError, self.do_genhash, 'stub', None)
 
         #
         # test hash=int is rejected (picked as example of entirely wrong type)
@@ -2819,7 +2834,7 @@ class UserHandlerMixin(HandlerCase):
 
     def test_82_user_salt(self):
         """test user used as salt"""
-        config = self.do_genconfig()
+        config = self.do_stub_encrypt()
         h1 = self.do_genhash('stub', config, user='admin')
         h2 = self.do_genhash('stub', config, user='admin')
         self.assertEqual(h2, h1)

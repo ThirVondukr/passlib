@@ -417,9 +417,7 @@ def _get_hasher(algorithm):
 ##        return to_unicode(hash, "latin-1", "hash").startswith(self.ident)
 ##
 ##    @property
-##    def hash(self, secret, config=None, salt=None, **kwds):
-##        if config:
-##            raise NotImplementedError('hash(config) support missing')
+##    def hash(self, secret, salt=None, **kwds):
 ##        # NOTE: from how make_password() is coded, all hashers
 ##        #       should have salt param. but only some will have
 ##        #       'iterations' parameter.

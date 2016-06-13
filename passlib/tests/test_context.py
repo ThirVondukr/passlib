@@ -903,7 +903,7 @@ sha512_crypt__min_rounds = 45000
         # override scheme & custom settings
         self.assertEqual(
             cc.genconfig(scheme="phpass", salt='.'*8, rounds=8, ident='P'),
-            '$P$6........howoEQCILTCSAH3X4azem0',
+            '$P$6........22zGEuacuPOqEpYPDeR0R/',  # NOTE: config string generated w/ rounds=1
             )
 
         #--------------------------------------------------------------
@@ -944,18 +944,18 @@ sha512_crypt__min_rounds = 45000
         for secret, kwds in self.nonstring_vectors:
             self.assertRaises(TypeError, cc.genhash, secret, hash, **kwds)
 
-        # rejects non-string hashes
+        # rejects non-string config strings
         cc = CryptContext(["des_crypt"])
-        for hash, kwds in self.nonstring_vectors:
+        for config, kwds in self.nonstring_vectors:
             if hash is None:
                 # NOTE: as of 1.7, genhash is just wrapper for hash(),
                 #       and handles genhash(secret, None) fine.
                 continue
-            self.assertRaises(TypeError, cc.genhash, 'secret', hash, **kwds)
+            self.assertRaises(TypeError, cc.genhash, 'secret', config, **kwds)
 
-        # .. but should accept None if default scheme lacks config string
+        # rejects config=None, even if default scheme lacks config string
         cc = CryptContext(["mysql323"])
-        self.assertIsInstance(cc.genhash("stub", None), str)
+        self.assertRaises(TypeError, cc.genhash, "stub", None)
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genhash, 'secret', 'hash')

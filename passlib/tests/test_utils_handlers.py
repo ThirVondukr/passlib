@@ -108,15 +108,18 @@ class SkeletonTest(TestCase):
                 except ValueError:
                     return False
                 return True
+
             @classmethod
             def genhash(cls, secret, hash):
                 if secret is None:
                     raise TypeError("no secret provided")
                 if isinstance(secret, unicode):
                     secret = secret.encode("utf-8")
+                # NOTE: have to support hash=None since this is test of legacy 1.5 api
                 if hash is not None and not cls.identify(hash):
                     raise ValueError("invalid hash")
                 return hashlib.sha1(b"xyz" + secret).hexdigest()
+
             @classmethod
             def verify(cls, secret, hash):
                 if hash is None:
@@ -694,7 +697,7 @@ class PrefixWrapperTest(TestCase):
         self.assertEqual(d1.genconfig(), '{XXX}1B2M2Y8AsgTpgAmY7PhCfg==')
 
         # genhash
-        self.assertEqual(d1.genhash("password", None), dph)
+        self.assertRaises(TypeError, d1.genhash, "password", None)
         self.assertEqual(d1.genhash("password", dph), dph)
         self.assertRaises(ValueError, d1.genhash, "password", lph)
 

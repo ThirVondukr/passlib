@@ -148,9 +148,12 @@ Backwards Incompatibilities
       algorithm available on the host, rather than one that is guaranteed to be portable.
       Applications can explicitly set ``default_scheme="portable"`` to retain the old behavior.
 
-    * The little-used method :meth:`~passlib.ifc.PasswordHash.genconfig` method
+    * The little-used method :meth:`~passlib.ifc.PasswordHash.genconfig`
       will now always return a valid hash, rather than a truncated configuration
-      hash or ``None``.  This should affect nearly 0 applications.
+      hash or ``None``.
+
+    * The little-used method :meth:`~passlib.ifc.PasswordHash.genhash` no longer accepts
+      ``None`` as a config argument.
 
     * The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
 

@@ -90,13 +90,9 @@ class htdigest(uh.MinimalHandler):
     default_encoding = "utf-8"
 
     @classmethod
-    def hash(cls, secret, user, realm, encoding=None, config=None):
+    def hash(cls, secret, user, realm, encoding=None):
         # NOTE: this was deliberately written so that raw bytes are passed through
         # unchanged, the encoding kwd is only used to handle unicode values.
-        if not (config is None or config is True):
-            # NOTE: 'config' is ignored, as this hash has no salting / other configuration.
-            #       just have to make sure it's valid.
-            cls._norm_hash(config)
         if not encoding:
             encoding = cls.default_encoding
         uh.validate_secret(secret)
@@ -131,6 +127,19 @@ class htdigest(uh.MinimalHandler):
         except ValueError:
             return False
         return True
+
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
+    @classmethod
+    def genconfig(cls):
+        return cls.hash("", "", "")
+
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
+    @classmethod
+    def genhash(cls, secret, config, user, realm, encoding=None):
+        # NOTE: 'config' is ignored, as this hash has no salting / other configuration.
+        #       just have to make sure it's valid.
+        cls._norm_hash(config)
+        return cls.hash(secret, user, realm, encoding)
 
 #=============================================================================
 # eof

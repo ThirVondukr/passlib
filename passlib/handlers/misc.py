@@ -147,14 +147,8 @@ class unix_disabled(uh.MinimalHandler):
         return False
 
     @classmethod
-    def hash(cls, secret, config=None, marker=None):
+    def hash(cls, secret, marker=None):
         uh.validate_secret(secret)
-        if not (config is None or config is True):
-            # we want to preserve the existing str,
-            # since it might contain a disabled password hash ("!" + hash)
-            if not cls.identify(config):
-                raise uh.exc.InvalidHashError(cls)
-            return to_native_str(config, param="config")
         # if None or empty string, replace with marker
         if marker:
             if not cls.identify(marker):
@@ -163,6 +157,18 @@ class unix_disabled(uh.MinimalHandler):
             marker = cls.default_marker
             assert marker and cls.identify(marker)
         return to_native_str(marker, param="marker")
+
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
+    @classmethod
+    def genhash(cls, secret, config, marker=None):
+        if not cls.identify(config):
+            raise uh.exc.InvalidHashError(cls)
+        elif config:
+            # preserve the existing str,since it might contain a disabled password hash ("!" + hash)
+            uh.validate_secret(secret)
+            return to_native_str(config, param="config")
+        else:
+            return cls.hash(secret, marker=marker)
 
 class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
@@ -195,10 +201,7 @@ class plaintext(uh.MinimalHandler):
             raise uh.exc.ExpectedStringError(hash, "hash")
 
     @classmethod
-    def hash(cls, secret, encoding=None, config=None):
-        # NOTE: 'config' is ignored, as this hash has no salting / etc
-        if not (config is None or config is True or cls.identify(config)):
-            raise uh.exc.InvalidHashError(cls)
+    def hash(cls, secret, encoding=None):
         uh.validate_secret(secret)
         if not encoding:
             encoding = cls.default_encoding
@@ -212,6 +215,19 @@ class plaintext(uh.MinimalHandler):
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
         return str_consteq(cls.hash(secret, encoding), hash)
+
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
+    @classmethod
+    def genconfig(cls):
+        return cls.hash("")
+
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
+    @classmethod
+    def genhash(cls, secret, config, encoding=None):
+        # NOTE: 'config' is ignored, as this hash has no salting / etc
+        if not cls.identify(config):
+            raise uh.exc.InvalidHashError(cls)
+        return cls.hash(secret, encoding=encoding)
 
 #=============================================================================
 # eof

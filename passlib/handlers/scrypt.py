@@ -26,7 +26,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     It supports a variable-length salt, a variable number of rounds,
     as well as some custom tuning parameters unique to scrypt (see below).
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
 
     :type salt: str
     :param salt:

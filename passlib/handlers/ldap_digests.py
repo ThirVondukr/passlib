@@ -223,6 +223,7 @@ class ldap_plaintext(plaintext):
     name = "ldap_plaintext"
     _2307_pat = re.compile(u(r"^\{\w+\}.*$"))
 
+    @uh.deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
     def genconfig(cls):
         # Overridding plaintext.genconfig() since it returns "",

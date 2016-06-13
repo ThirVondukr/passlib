@@ -80,12 +80,10 @@ class PasswordHash(object):
     @classmethod
     @abstractmethod
     def hash(cls, secret,  # *
-               config=None, **setting_and_context_kwds):  # pragma: no cover -- abstract method
+             **setting_and_context_kwds):  # pragma: no cover -- abstract method
         """encrypt secret, returning resulting hash"""
         # FIXME:  need stub for classes that define .encrypt() instead ...
         #         this should call .encrypt(), and check for recursion back to here.
-        # NOTE: as stopgap until genconfig() is removed, implementations
-        #       should support 'config=True' to generate config string & bypass digest generation
         raise NotImplementedError("must be implemented by subclass")
 
     @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash()")
@@ -183,11 +181,14 @@ class PasswordHash(object):
 
             This deprecation may be reversed if a use-case presents itself in the mean time.
         """
-        # NOTE: as stopgap, builting .hash() implementations support "config=True"
-        #       to replicate genconfig()'s behavior. this will be removed along with .genconfig()
-        return cls.hash(unicode(""), config=True, **setting_kwds)
+        # NOTE: this fallback runs full hash alg, w/ whatever cost param is passed along.
+        #       implementations (esp ones w/ variable cost) will want to subclass this
+        #       with a constant-time implementation that just renders a config string.
+        if cls.context_kwds:
+            raise NotImplementedError("must be implemented by subclass")
+        return cls.hash("", **setting_kwds)
 
-    @deprecated_method(deprecated="1.7", removed="2.0", replacement=".hash(config=config)")
+    @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
     def genhash(cls, secret, config, **context):
         """
@@ -195,12 +196,12 @@ class PasswordHash(object):
 
         .. deprecated:: 1.7
 
-            As of 1.7, the :meth:`digest` function now supports a **config** keyword;
-            all calls to :meth:`!genhash` can be replaced with ``.hash(secret, config=config, **context_kwds)``.
-            This method will be removed in version 2.0, and should only
-            be used for compatibility with Passlib 1.3 - 1.6.
+            As of 1.7, this method is deprecated, and slated for complete removal in Passlib 2.0.
+
+            This deprecation may be reversed if a use-case presents itself in the mean time.
         """
-        return cls.hash(secret, config=config, **context)
+        # XXX: if hashes reliably offered a .parse() method, could make a fallback for this.
+        raise NotImplementedError("must be implemented by subclass")
 
     #===================================================================
     # undocumented methods / attributes

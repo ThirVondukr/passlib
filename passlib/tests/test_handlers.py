@@ -2366,13 +2366,16 @@ class unix_disabled_test(HandlerCase):
         self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
 
         # use marker if no hash
-        self.assertEqual(handler.genhash("stub", None), handler.default_marker)
+        self.assertEqual(handler.genhash("stub", ""), handler.default_marker)
+        self.assertEqual(handler.hash("stub"), handler.default_marker)
 
         # custom marker
-        self.assertEqual(handler.genhash("stub", None, marker="*xxx"), "*xxx")
+        self.assertEqual(handler.genhash("stub", "", marker="*xxx"), "*xxx")
+        self.assertEqual(handler.hash("stub", marker="*xxx"), "*xxx")
 
         # reject invalid marker
-        self.assertRaises(ValueError, handler.genhash, 'stub', None, marker='abc')
+        self.assertRaises(ValueError, handler.genhash, 'stub', "", marker='abc')
+        self.assertRaises(ValueError, handler.hash, 'stub', marker='abc')
 
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback
@@ -2404,7 +2407,8 @@ class unix_fallback_test(HandlerCase):
         handler = self.handler
 
         # use marker if no hash
-        self.assertEqual(handler.genhash("stub", None), "!")
+        self.assertEqual(handler.genhash("stub", ""), "!")
+        self.assertEqual(handler.hash("stub"), "!")
 
         # use hash if provided and valid
         self.assertEqual(handler.genhash("stub", "!asd"), "!asd")

@@ -2019,7 +2019,7 @@ class CryptContext(object):
         """
         return self.needs_update(hash, scheme, category)
 
-    @deprecated_method(deprecated="1.7", removed="2.0", replacement="CryptContext.hash('', **kwds)")
+    @deprecated_method(deprecated="1.7", removed="2.0")
     def genconfig(self, scheme=None, category=None, **settings):
         """Generate a config string for specified scheme.
 
@@ -2030,9 +2030,13 @@ class CryptContext(object):
             This method will be removed in version 2.0, and should only
             be used for compatibility with Passlib 1.3 - 1.6.
         """
-        return self.hash(unicode(""), scheme, category, config=True, **settings)
+        record = self._get_record(scheme, category)
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused:
+            strip_unused(settings, record)
+        return record.genconfig(**settings)
 
-    @deprecated_method(deprecated="1.7", removed="2.0", replacement="CryptContext.hash(secret, config=config)")
+    @deprecated_method(deprecated="1.7", removed="2.0")
     def genhash(self, secret, config, scheme=None, category=None, **kwds):
         """Generate hash for the specified secret using another hash.
 
@@ -2043,7 +2047,11 @@ class CryptContext(object):
             This method will be removed in version 2.0, and should only
             be used for compatibility with Passlib 1.3 - 1.6.
         """
-        return self.hash(secret, scheme, category, config=config, **kwds)
+        record = self._get_or_identify_record(config, scheme, category)
+        strip_unused = self._strip_unused_context_kwds
+        if strip_unused:
+            strip_unused(kwds, record)
+        return record.genhash(secret, config, **kwds)
 
     def identify(self, hash, category=None, resolve=False, required=False):
         """Attempt to identify which algorithm the hash belongs to.
@@ -2126,10 +2134,6 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: could insert normalization to preferred unicode encoding here
-        if scheme is None:
-            config = kwds.get("config")
-            if not (config is None or config is True):
-                scheme = self.identify(config)
         record = self._get_record(scheme, category)
         strip_unused = self._strip_unused_context_kwds
         if strip_unused:

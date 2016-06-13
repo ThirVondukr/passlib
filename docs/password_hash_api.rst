@@ -27,13 +27,6 @@ defined by the following abstract base class:
     * :meth:`~PasswordHash.hash` - generate new salt, return hash of password.
     * :meth:`~PasswordHash.verify` - verify password against existing hash.
 
-    While not needed by most applications, the following methods
-    provide an interface that mimics the traditional Unix :func:`crypt`
-    function:
-
-    * :meth:`~PasswordHash.genconfig` - create configuration string from salt & other options.
-    * :meth:`~PasswordHash.genhash` - hash password using existing hash or configuration string.
-
     One additional support method is provided:
 
     * :meth:`~PasswordHash.identify` - check if hash belongs to this algorithm.
@@ -165,15 +158,6 @@ and hash comparison.
         and :attr:`~PasswordHash.context_kwds`.
         Examples of common keywords include ``rounds`` and ``salt_size``.
 
-    :type config: str
-    :param config:
-
-        This optional parameter can be used provide an existing password hash,
-        and it's salt & configuration options will be used to hash the new password.
-        This option is mutually exclusive with all :attr:`~PasswordHash.setting_kwds`.
-
-        .. versionadded:: 1.7
-
     :returns:
         Resulting password hash, encoded in an algorithm-specific format.
         This will always be an instance of :class:`!str`
@@ -210,8 +194,7 @@ and hash comparison.
 
     .. versionchanged:: 1.7
 
-        This method was renamed from :meth:`encrypt`,
-        and the ``config`` parameter was added.
+        This method was renamed from :meth:`encrypt`.
 
 .. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
 
@@ -341,19 +324,17 @@ using the provided configuration string.
         Examples of common keywords include ``salt`` and ``rounds``.
 
     :returns:
-        A configuration string (as :class:`!str`), or ``None`` if the scheme
-        does not support a separate configuration.
+        A configuration string (as :class:`!str`).
 
     :raises ValueError, TypeError:
         This function raises exceptions for the same
         reasons as :meth:`~PasswordHash.hash`.
 
-    .. note::
+    .. versionchanged:: 1.7
 
-        This configuration string is typically the same as the full hash string,
-        except that it lacks the final portion containing the digested password.
-        This is sometimes referred to as a "salt" string, though it typically
-        contains much more than just the salt parameter.
+        This should now always return a full hash string, even in cases
+        where previous releases would return a truncated "configuration only" string,
+        or ``None``.
 
 .. classmethod:: PasswordHash.genhash(secret, config, \*\*context_kwds)
 
@@ -361,10 +342,9 @@ using the provided configuration string.
 
     .. deprecated:: 1.7
 
-        The new :meth:`hash` method added in 1.7 supports a **config** keyword;
-        all calls to :meth:`!genhash` can be replaced with ``.hash(secret, config=config, **context)``.
-        The :meth:`!genhash` method will be removed in version 2.0, and should only
-        be used for compatibility with Passlib 1.3 - 1.6.
+        As of 1.7, this method is deprecated, and slated for complete removal in Passlib 2.0.
+
+        This deprecation may be reversed if a use-case presents itself in the mean time.
 
     This takes in a password and a configuration string,
     and returns a hash for that password.
@@ -373,15 +353,17 @@ using the provided configuration string.
     :arg secret:
         string containing the password to be encrypted.
 
-    :type config: unicode or bytes or ``None``
+    :type config: unicode or bytes
     :arg config:
         configuration string to use when encrypting secret.
         this can either be an existing hash that was previously
         returned by :meth:`~PasswordHash.genhash`, or a configuration string
         that was previously created by :meth:`~PasswordHash.genconfig`.
 
-        ``None`` is accepted *only* for the hashes which lack a configuration
-        string (for which :meth:`~PasswordHash.genconfig` always returns ``None``).
+        .. versionchanged:: 1.7
+
+            ``None`` is no longer accepted for hashes which (prior to 1.7)
+            lacked a configuration string format.
 
     :param \*\*kwds:
         Very few hashes will have additional keywords.
