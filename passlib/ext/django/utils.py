@@ -291,15 +291,11 @@ class _PasslibHasherWrapper(object):
         #       for now (as of passlib 1.6.6), replicating django policy that this returns True
         #       if 'encoded' hash has different rounds value from self.rounds
         if self._has_rounds:
-            handler = self.passlib_handler
-            if hasattr(handler, "parse_rounds"):
-                rounds = handler.parse_rounds(encoded)
-                if rounds != self.rounds:
-                    return True
-            # TODO: for passlib 1.7, could check .needs_update() method.
-            #       could also have this whole class create a handler subclass,
-            #       which we can proxy the .rounds attr for.  this would allow
-            #       replacing entirety of the (above) rounds check
+            # XXX: could cache this subclass somehow (would have to intercept writes to self.rounds)
+            # TODO: always call subcls/handler.needs_update() in case there's other things to check
+            subcls = self.passlib_handler.using(min_rounds=self.rounds, max_rounds=self.rounds)
+            if subcls.needs_update(encoded):
+                return True
         return False
 
     #=====================================================================
