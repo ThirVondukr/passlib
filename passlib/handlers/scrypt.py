@@ -110,7 +110,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     max_rounds = 31  # limited by scrypt alg
     rounds_cost = "log2"
 
-    # TODO: make default block size & parallel count configurable via using(),
+    # TODO: make default block size & parallel count configurable via replace(),
     #       and deprecatable via .needs_update()
 
     #===================================================================

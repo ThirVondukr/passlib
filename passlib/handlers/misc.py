@@ -106,7 +106,7 @@ class unix_disabled(uh.MinimalHandler):
     setting_kwds = ("marker",)
     context_kwds = ()
 
-    # XXX: could subclass using() to allow setting custom default_marker
+    # XXX: could subclass replace() to allow setting custom default_marker
 
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
         default_marker = u("*")

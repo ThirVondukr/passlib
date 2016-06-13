@@ -1294,7 +1294,7 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
 
     # TODO: now that rounds generation has moved out of _CryptRecord to HasRounds,
-    #       this should just test that we're passing right options to handler.using(),
+    #       this should just test that we're passing right options to handler.replace(),
     #       and that resulting handler has right settings.
     #       Can then just let HasRounds tests (which are a copy of this) deal with things.
 

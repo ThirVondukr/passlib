@@ -177,10 +177,6 @@ and hash comparison.
         * if a ``kwd`` argument has an incorrect type.
         * if an algorithm-specific required ``kwd`` is not provided.
 
-    *(Note that the name of this method is a misnomer: nearly all
-    password hashes use an irreversible cryptographic digest,
-    rather than a reversible cipher. see* :issue:`21` *).*
-
     .. versionchanged:: 1.6
         Hashes now raise :exc:`TypeError` if a required keyword is missing,
         rather than :exc:`ValueError` like in previous releases; in order
@@ -260,6 +256,32 @@ and hash comparison.
         This function now raises :exc:`ValueError` if ``None`` or a config string is provided
         instead of a properly-formed hash; previous releases were inconsistent
         in their handling of these two border cases.
+
+.. classmethod:: PasswordHash.replace(\*\*settings)
+
+    This method takes in a set of algorithm-specific settings,
+    and returns a new handler object which uses the specified default settings instead.
+
+    :param \*\*kwds:
+
+        All keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though many of the more common keywords
+        are listed under :attr:`~PasswordHash.setting_kwds`.
+        Examples of common keywords include ``rounds`` and ``salt_size``.
+
+    :returns:
+        A new object which adheres to :class:`!PasswordHash` api.
+
+    :raises ValueError:
+
+        * If a ``kwd``'s value is invalid (e.g. if a ``salt`` string
+          is too small, or a ``rounds`` value is out of range).
+
+    :raises TypeError:
+
+        * if a ``kwd`` argument has an incorrect type.
+
+    .. versionadd:: 1.7
 
 .. _hash-unicode-behavior:
 

@@ -1773,12 +1773,12 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, self.do_encrypt, u("\uFDD0"))
         self.assertRaises(ValueError, self.do_verify, u("\uFDD0"), h)
 
-    def test_94_using_default_algs(self, param="default_algs"):
-        """using() -- 'default_algs' parameter"""
+    def test_94_replace_w_default_algs(self, param="default_algs"):
+        """replace() -- 'default_algs' parameter"""
         # create subclass
         handler = self.handler
         orig = list(handler.default_algs) # in case it's modified in place
-        subcls = handler.using(**{param: "sha1,md5"})
+        subcls = handler.replace(**{param: "sha1,md5"})
 
         # shouldn't have changed handler
         self.assertEqual(handler.default_algs, orig)
@@ -1790,13 +1790,13 @@ class scram_test(HandlerCase):
         h1 = subcls.hash("dummy")
         self.assertEqual(handler.extract_digest_algs(h1), ["md5", "sha-1"])
 
-    def test_94_using_algs(self):
-        """using() -- 'algs' parameter"""
+    def test_94_replace_w_algs(self):
+        """replace() -- 'algs' parameter"""
         self.test_94_using_default_algs(param="algs")
 
     def test_94_needs_update_algs(self):
         """needs_update() -- algs setting"""
-        handler1 = self.handler.using(algs="sha1,md5")
+        handler1 = self.handler.replace(algs="sha1,md5")
 
         # shouldn't need update, has same algs
         h1 = handler1.hash("dummy")
@@ -1804,11 +1804,11 @@ class scram_test(HandlerCase):
 
         # *currently* shouldn't need update, has superset of algs required by handler2
         # (may change this policy)
-        handler2 = handler1.using(algs="sha1")
+        handler2 = handler1.replace(algs="sha1")
         self.assertFalse(handler2.needs_update(h1))
 
         # should need update, doesn't have all algs required by handler3
-        handler3 = handler1.using(algs="sha1,sha256")
+        handler3 = handler1.replace(algs="sha1,sha256")
         self.assertTrue(handler3.needs_update(h1))
 
     def test_95_context_algs(self):

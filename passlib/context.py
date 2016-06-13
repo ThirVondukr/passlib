@@ -45,7 +45,7 @@ _forbidden_scheme_options = set(["salt"])
     # 'salt' - not allowed since a fixed salt would defeat the purpose.
 
 # dict containing funcs used to coerce strings to correct type for scheme option keys.
-# NOTE: this isn't really needed any longer, since Handler.using() handles the actual parsing.
+# NOTE: this isn't really needed any longer, since Handler.replace() handles the actual parsing.
 #       keeping this around for now, though, since it makes context.to_dict() output cleaner.
 _coerce_scheme_options = dict(
     min_rounds=int,
@@ -965,12 +965,12 @@ class _CryptConfig(object):
 
         # create custom handler if needed.
         try:
-            subcls = handler.using(**settings)
+            subcls = handler.replace(**settings)
         except TypeError as err:
             m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
             if m and m.group(1) in settings:
                 # translate into KeyError, for backwards compat.
-                # XXX: push this down to GenericHandler.using() implementation?
+                # XXX: push this down to GenericHandler.replace() implementation?
                 key = m.group(1)
                 raise KeyError("keyword not supported by %s handler: %r" %
                                (handler.name, key))

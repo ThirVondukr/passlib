@@ -283,14 +283,14 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def using(cls, default_algs=None, algs=None, **kwds):
+    def replace(cls, default_algs=None, algs=None, **kwds):
         # parse aliases
         if algs is not None:
             assert default_algs is None
             default_algs = algs
 
         # create subclass
-        subcls = super(scram, cls).using(**kwds)
+        subcls = super(scram, cls).replace(**kwds)
 
         # fill in algs
         if default_algs is not None:

@@ -288,13 +288,13 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
 class MinimalHandler(PasswordHash):
     """
     helper class for implementing hash handlers.
-    provides nothing besides a base implementation of the .using() subclass constructor.
+    provides nothing besides a base implementation of the .replace() subclass constructor.
     """
     #===================================================================
     # class attr
     #===================================================================
 
-    #: private flag used by using() constructor to detect if this is already a subclass.
+    #: private flag used by replace() constructor to detect if this is already a subclass.
     _configured = False
 
     #===================================================================
@@ -302,7 +302,7 @@ class MinimalHandler(PasswordHash):
     #===================================================================
 
     @classmethod
-    def using(cls):
+    def replace(cls):
         # NOTE: this provides the base implementation, which takes care of
         #       creating the newly configured class. Mixins and subclasses
         #       should wrap this, and modify the returned class to suit their options.
@@ -940,7 +940,7 @@ class HasManyIdents(GenericHandler):
 
     Class Methods
     =============
-    .. todo:: document using() and needs_update() options
+    .. todo:: document replace() and needs_update() options
     """
 
     #===================================================================
@@ -965,10 +965,10 @@ class HasManyIdents(GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def using(cls,  # keyword only...
+    def replace(cls,  # keyword only...
               default_ident=None, ident=None, **kwds):
         """
-        This mixin adds support for the following :meth:`~passlib.ifc.PasswordHash.using` keywords:
+        This mixin adds support for the following :meth:`~passlib.ifc.PasswordHash.replace` keywords:
 
         :param default_ident:
             default identifier that will be used by resulting customized hasher.
@@ -983,7 +983,7 @@ class HasManyIdents(GenericHandler):
             default_ident = ident
 
         # create subclass
-        subcls = super(HasManyIdents, cls).using(**kwds)
+        subcls = super(HasManyIdents, cls).replace(**kwds)
 
         # add custom default ident
         # (NOTE: creates instance to run value through _norm_ident())
@@ -1154,7 +1154,7 @@ class HasSalt(GenericHandler):
     _salt_is_bytes = False
     _salt_unit = "chars"
 
-    # TODO: could support using(min/max_desired_salt_size) via using() and needs_update()
+    # TODO: could support replace(min/max_desired_salt_size) via using() and needs_update()
 
     #===================================================================
     # instance attrs
@@ -1165,7 +1165,7 @@ class HasSalt(GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def using(cls, # keyword only...
+    def replace(cls, # keyword only...
               default_salt_size=None,
               salt_size=None, # aliases used by CryptContext
               **kwds):
@@ -1177,7 +1177,7 @@ class HasSalt(GenericHandler):
             default_salt_size = salt_size
 
         # generate new subclass
-        subcls = super(HasSalt, cls).using(**kwds)
+        subcls = super(HasSalt, cls).replace(**kwds)
 
         # replace default_rounds
         if default_salt_size is not None:
@@ -1407,7 +1407,7 @@ class HasRounds(GenericHandler):
 
     Class Methods
     =============
-    .. todo:: document using() and needs_update() options
+    .. todo:: document replace() and needs_update() options
 
     Instance Attributes
     ===================
@@ -1439,7 +1439,7 @@ class HasRounds(GenericHandler):
                          "default_rounds", "vary_rounds")
 
     #-----------------
-    # desired & default rounds -- configurable via .using() classmethod
+    # desired & default rounds -- configurable via .replace() classmethod
     #-----------------
     min_desired_rounds = None
     max_desired_rounds = None
@@ -1455,7 +1455,7 @@ class HasRounds(GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def using(cls, # keyword only...
+    def replace(cls, # keyword only...
               min_desired_rounds=None, max_desired_rounds=None,
               default_rounds=None, vary_rounds=None,
               min_rounds=None, max_rounds=None, rounds=None,  # aliases used by CryptContext
@@ -1473,6 +1473,8 @@ class HasRounds(GenericHandler):
             max_desired_rounds = max_rounds
 
         # use 'rounds' as fallback for min, max, AND default
+        # XXX: would it be better to make 'default_rounds' and 'rounds'
+        #      aliases, and have a separate 'require_rounds' parameter for this behavior?
         if rounds is not None:
             if min_desired_rounds is None:
                 min_desired_rounds = rounds
@@ -1482,7 +1484,7 @@ class HasRounds(GenericHandler):
                 default_rounds = rounds
 
         # generate new subclass
-        subcls = super(HasRounds, cls).using(**kwds)
+        subcls = super(HasRounds, cls).replace(**kwds)
 
         # replace min_desired_rounds
         if min_desired_rounds is None:
@@ -1628,7 +1630,7 @@ class HasRounds(GenericHandler):
         :returns:
             (lower, upper) limits suitable for random.randint()
         """
-        # XXX: could precalculate output of this in using() method, and save per-hash cost.
+        # XXX: could precalculate output of this in replace() method, and save per-hash cost.
         #      but then users patching cls.vary_rounds / cls.default_rounds would get wrong value.
         assert default_rounds
         vary_rounds = cls.vary_rounds
@@ -2247,9 +2249,9 @@ class PrefixWrapper(object):
         wrapped = self.prefix + hash[len(orig_prefix):]
         return uascii_to_str(wrapped)
 
-    def using(self, **kwds):
+    def replace(self, **kwds):
         # generate subclass of wrapped handler
-        subcls = self.wrapped.using(**kwds)
+        subcls = self.wrapped.replace(**kwds)
         assert subcls is not self.wrapped
         # then create identical wrapper which wraps the new subclass.
         return PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
