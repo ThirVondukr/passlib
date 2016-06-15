@@ -150,12 +150,11 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
                    salt=salt,
                    checksum=chk)
 
-    def to_string(self, withchk=True):
-        tail = ab64_encode(self.salt).decode("ascii")
-        if withchk and self.checksum:
-            tail = u("%s$%s") % (tail, ab64_encode(self.checksum).decode("ascii"))
-        hash = u("%s%d,%d,%d$%s") % (self.ident, self.rounds, self.block_size,
-                                     self.parallel_count, tail)
+    def to_string(self):
+        hash = u("%s%d,%d,%d$%s$%s") % (self.ident, self.rounds,
+                                        self.block_size, self.parallel_count,
+                                        ab64_encode(self.salt).decode("ascii"),
+                                        ab64_encode(self.checksum).decode("ascii"))
         return uascii_to_str(hash)
 
     #===================================================================

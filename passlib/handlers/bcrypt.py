@@ -188,8 +188,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         )
 
     def to_string(self):
-        hash = u("%s%02d$%s%s") % (self.ident, self.rounds, self.salt,
-                                   self.checksum or u(''))
+        hash = u("%s%02d$%s%s") % (self.ident, self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
 
     # NOTE: this should be kept separate from to_string()
@@ -662,10 +661,8 @@ class bcrypt_sha256(bcrypt):
                    )
 
     def to_string(self):
-        hash = u("%s%s,%d$%s") % (self.prefix, self.ident.strip(_UDOLLAR),
-                                  self.rounds, self.salt)
-        if self.checksum:
-            hash = u("%s$%s") % (hash, self.checksum)
+        hash = u("%s%s,%d$%s$%s") % (self.prefix, self.ident.strip(_UDOLLAR),
+                                     self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):

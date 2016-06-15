@@ -327,17 +327,16 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             bare_salt=bare_salt,
         )
 
-    def to_string(self, withchk=True):
+    def to_string(self, _withchk=True):
         ss = u('') if self.bare_salt else u('$')
         rounds = self.rounds
         if rounds > 0:
             hash = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
         else:
             hash = u("$md5$%s%s") % (self.salt, ss)
-        if withchk:
+        if _withchk:
             chk = self.checksum
-            if chk:
-                hash = u("%s$%s") % (hash, chk)
+            hash = u("%s$%s") % (hash, chk)
         return uascii_to_str(hash)
 
     #===================================================================
@@ -352,7 +351,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # NOTE: no reference for how sun_md5_crypt handles unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        config = str_to_bascii(self.to_string(withchk=False))
+        config = str_to_bascii(self.to_string(_withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
     #===================================================================

@@ -267,16 +267,13 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             algs=algs,
         )
 
-    def to_string(self, withchk=True):
+    def to_string(self):
         salt = bascii_to_str(ab64_encode(self.salt))
         chkmap = self.checksum
-        if withchk and chkmap:
-            chk_str = ",".join(
-                "%s=%s" % (alg, bascii_to_str(ab64_encode(chkmap[alg])))
-                for alg in self.algs
-            )
-        else:
-            chk_str = ",".join(self.algs)
+        chk_str = ",".join(
+            "%s=%s" % (alg, bascii_to_str(ab64_encode(chkmap[alg])))
+            for alg in self.algs
+        )
         return '$scram$%d$%s$%s' % (self.rounds, salt, chk_str)
 
     #===================================================================

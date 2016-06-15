@@ -162,7 +162,7 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk or None)
 
     def to_string(self):
-        hash = u("%s%s") % (self.salt, self.checksum or u(''))
+        hash = u("%s%s") % (self.salt, self.checksum)
         return uascii_to_str(hash)
 
     #===================================================================
@@ -285,7 +285,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     def to_string(self):
         hash = u("_%s%s%s") % (h64.encode_int24(self.rounds).decode("ascii"),
-                             self.salt, self.checksum or u(''))
+                               self.salt, self.checksum)
         return uascii_to_str(hash)
 
     #===================================================================
@@ -419,7 +419,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        hash = u("%s%s") % (self.salt, self.checksum or u(''))
+        hash = u("%s%s") % (self.salt, self.checksum)
         return uascii_to_str(hash)
 
     def _norm_checksum(self, value):
@@ -502,7 +502,7 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
         return cls(salt=salt, checksum=chk)
 
     def to_string(self):
-        hash = u("%s%s") % (self.salt, self.checksum or u(''))
+        hash = u("%s%s") % (self.salt, self.checksum)
         return uascii_to_str(hash)
 
     #===================================================================

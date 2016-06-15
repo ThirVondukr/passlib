@@ -814,7 +814,6 @@ class StaticHandler(GenericHandler):
         return hash
 
     def to_string(self):
-        assert self.checksum is not None
         return uascii_to_str(self._hash_prefix + self.checksum)
 
     # per-subclass: stores dynamically created subclass used by _calc_checksum() stub

@@ -68,12 +68,9 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
             chk = ab64_decode(chk.encode("ascii"))
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
-    def to_string(self, withchk=True):
+    def to_string(self):
         salt = ab64_encode(self.salt).decode("ascii")
-        if withchk and self.checksum:
-            chk = ab64_encode(self.checksum).decode("ascii")
-        else:
-            chk = None
+        chk = ab64_encode(self.checksum).decode("ascii")
         return uh.render_mc3(self.ident, self.rounds, salt, chk)
 
     def _calc_checksum(self, secret):
@@ -224,12 +221,9 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
             chk = b64decode(chk.encode("ascii"), CTA_ALTCHARS)
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
-    def to_string(self, withchk=True):
+    def to_string(self):
         salt = b64encode(self.salt, CTA_ALTCHARS).decode("ascii")
-        if withchk and self.checksum:
-            chk = b64encode(self.checksum, CTA_ALTCHARS).decode("ascii")
-        else:
-            chk = None
+        chk = b64encode(self.checksum, CTA_ALTCHARS).decode("ascii")
         return uh.render_mc3(self.ident, self.rounds, salt, chk, rounds_base=16)
 
     #===================================================================
@@ -324,20 +318,24 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                                          default_rounds=400, handler=cls)
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
-    def to_string(self, withchk=True):
+    def to_string(self):
         rounds = self.rounds
         if rounds == 400:
             rounds = None # omit rounds measurement if == 400
-        return uh.render_mc3(self.ident, rounds, self.salt,
-                             checksum=self.checksum if withchk else None,
-                             rounds_base=16)
+        return uh.render_mc3(self.ident, rounds, self.salt, self.checksum, rounds_base=16)
+
+    def _get_config(self):
+        rounds = self.rounds
+        if rounds == 400:
+            rounds = None # omit rounds measurement if == 400
+        return uh.render_mc3(self.ident, rounds, self.salt, None, rounds_base=16)
 
     #===================================================================
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
-        salt = self.to_string(withchk=False)
+        salt = self._get_config()
         result = pbkdf2_hmac("sha1", secret, salt, self.rounds, 24)
         return ab64_encode(result).decode("ascii")
 
@@ -465,12 +463,9 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
             chk = unhexlify(chk.encode("ascii"))
         return cls(rounds=rounds, salt=salt, checksum=chk)
 
-    def to_string(self, withchk=True):
+    def to_string(self):
         salt = hexlify(self.salt).decode("ascii").upper()
-        if withchk and self.checksum:
-            chk = hexlify(self.checksum).decode("ascii").upper()
-        else:
-            chk = None
+        chk = hexlify(self.checksum).decode("ascii").upper()
         return uh.render_mc3(self.ident, self.rounds, salt, chk, sep=u("."))
 
     def _calc_checksum(self, secret):
