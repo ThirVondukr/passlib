@@ -1225,6 +1225,8 @@ class HasSalt(GenericHandler):
             salt = subcls._norm_salt(salt, relaxed=relaxed)
             subcls._generate_salt = staticmethod(lambda: salt)
 
+        return subcls
+
     # XXX: would like to combine w/ _norm_salt() code below, but doesn't quite fit.
     @classmethod
     def _clip_to_valid_salt_size(cls, salt_size, param="salt_size", relaxed=True):
