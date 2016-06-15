@@ -294,7 +294,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         # this is treated as FATAL, because it can easily result in seriously malformed hashes,
         # and we can't correct for it ourselves.
         # test cases from <http://cvsweb.openwall.com/cgi/cvsweb.cgi/Owl/packages/glibc/crypt_blowfish/wrapper.c.diff?r1=1.9;r2=1.10>
-        # NOTE: reference hash taken from above url, and is the incorrectly generate 2x hash.
+        # NOTE: reference hash is the incorrectly generated $2x$ hash taken from above url
         if cls.verify(u("\xA3"),
                       "$2a$05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e"):
             raise PasslibSecurityError(
@@ -314,8 +314,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                       "$2a$04$R1lJ2gkNaoPGdafE.H.16.nVyh2niHsGJhayOHLMiXlI45o8/DU.6"):
             warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
                  "the bsd wraparound bug, "
-                 "and should be upgraded or replaced with another backend "
-                 "(this warning will be fatal under passlib 1.7)" % backend)
+                 "and should be upgraded or replaced with another backend." % backend, 
+                 uh.exc.PasslibSecurityWarning)
             cls._has_wraparound_bug = True
 
         def _detect_lacks_variant(ident, refhash):
