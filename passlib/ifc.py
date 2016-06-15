@@ -113,7 +113,7 @@ class PasswordHash(object):
     #===================================================================
     @classmethod
     @abstractmethod
-    def replace(cls, **kwds):
+    def replace(cls, relaxed=False, **kwds):
         """
         Return another hasher object (typically a subclass of the current one),
         which integrates the configuration options specified by ``kwds``.

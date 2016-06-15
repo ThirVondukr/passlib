@@ -965,7 +965,9 @@ class _CryptConfig(object):
 
         # create custom handler if needed.
         try:
-            subcls = handler.replace(**settings)
+            # XXX: relaxed=True is mostly here to retain backwards-compat behavior.
+            #      could make this optional flag in future.
+            subcls = handler.replace(relaxed=True, **settings)
         except TypeError as err:
             m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
             if m and m.group(1) in settings:

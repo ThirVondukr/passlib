@@ -302,10 +302,12 @@ class MinimalHandler(PasswordHash):
     #===================================================================
 
     @classmethod
-    def replace(cls):
+    def replace(cls, relaxed=False):
         # NOTE: this provides the base implementation, which takes care of
         #       creating the newly configured class. Mixins and subclasses
         #       should wrap this, and modify the returned class to suit their options.
+        # NOTE: 'relaxed' keyword is ignored here, but parsed so that subclasses
+        #       can check for it as argument, and modify their parsing behavior accordingly.
         name = cls.__name__
         if not cls._configured:
             # TODO: straighten out class naming, repr, and .name attr
@@ -1183,7 +1185,9 @@ class HasSalt(GenericHandler):
             if isinstance(default_salt_size, native_string_types):
                 default_salt_size = int(default_salt_size)
             subcls.default_salt_size = subcls._clip_to_valid_salt_size(default_salt_size,
-                                                                       param="default_salt_size")
+                                                                       param="salt_size",
+                                                                       relaxed=kwds.get("relaxed"))
+
         return subcls
 
     # XXX: would like to combine w/ _norm_salt() code below, but doesn't quite fit.
@@ -1486,6 +1490,7 @@ class HasRounds(GenericHandler):
         subcls = super(HasRounds, cls).replace(**kwds)
 
         # replace min_desired_rounds
+        relaxed = kwds.get("relaxed")
         if min_desired_rounds is None:
             explicit_min_rounds = False
             min_desired_rounds = cls.min_desired_rounds
@@ -1496,8 +1501,9 @@ class HasRounds(GenericHandler):
             if min_desired_rounds < 0:
                 raise ValueError("%s: min_desired_rounds (%r) below 0" %
                                  (subcls.name, min_desired_rounds))
-            subcls.min_desired_rounds = subcls._clip_to_valid_rounds(min_desired_rounds,
-                                                                     param="min_desired_rounds")
+            subcls.min_desired_rounds = subcls._norm_rounds(min_desired_rounds,
+                                                            param="min_desired_rounds",
+                                                            relaxed=relaxed)
 
         # replace max_desired_rounds
         if max_desired_rounds is None:
@@ -1516,8 +1522,9 @@ class HasRounds(GenericHandler):
             elif max_desired_rounds < 0:
                 raise ValueError("%s: max_desired_rounds (%r) below 0" %
                                  (subcls.name, max_desired_rounds))
-            subcls.max_desired_rounds = subcls._clip_to_valid_rounds(max_desired_rounds,
-                                                                     param="max_desired_rounds")
+            subcls.max_desired_rounds = subcls._norm_rounds(max_desired_rounds,
+                                                            param="max_desired_rounds",
+                                                            relaxed=relaxed)
 
         # replace default_rounds
         if default_rounds is not None:
@@ -1529,8 +1536,9 @@ class HasRounds(GenericHandler):
             elif max_desired_rounds and default_rounds > max_desired_rounds:
                 raise ValueError("%s: default_rounds (%r) above max_desired_rounds (%r)" %
                                  (subcls.name, default_rounds, max_desired_rounds))
-            subcls.default_rounds = subcls._clip_to_valid_rounds(default_rounds,
-                                                                 param="default_rounds")
+            subcls.default_rounds = subcls._norm_rounds(default_rounds,
+                                                        param="default_rounds",
+                                                        relaxed=relaxed)
 
         # clip default rounds to new limits.
         if subcls.default_rounds is not None:

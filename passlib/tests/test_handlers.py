@@ -1792,7 +1792,7 @@ class scram_test(HandlerCase):
 
     def test_94_replace_w_algs(self):
         """replace() -- 'algs' parameter"""
-        self.test_94_using_default_algs(param="algs")
+        self.test_94_replace_w_default_algs(param="algs")
 
     def test_94_needs_update_algs(self):
         """needs_update() -- algs setting"""

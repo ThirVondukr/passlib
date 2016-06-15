@@ -1290,14 +1290,16 @@ class HandlerCase(TestCase):
         df = handler.default_salt_size
 
         # should prevent setting below handler limit
+        self.assertRaises(ValueError, handler.replace, default_salt_size=-1)
         with self.assertWarningList([PasslibHashWarning]):
-            temp = handler.replace(default_salt_size=-1)
+            temp = handler.replace(default_salt_size=-1, relaxed=True)
         self.assertEqual(temp.default_salt_size, mn)
 
         # should prevent setting above handler limit
         if mx:
+            self.assertRaises(ValueError, handler.replace, default_salt_size=mx+1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(default_salt_size=mx+1)
+                temp = handler.replace(default_salt_size=mx+1, relaxed=True)
             self.assertEqual(temp.default_salt_size, mx)
 
         # try setting to explicit value
@@ -1518,14 +1520,16 @@ class HandlerCase(TestCase):
 
         # .replace() should clip values below valid minimum, w/ warning
         if orig_min_rounds > 0:
+            self.assertRaises(ValueError, handler.replace, min_desired_rounds=orig_min_rounds - 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(min_desired_rounds=orig_min_rounds - 1)
+                temp = handler.replace(min_desired_rounds=orig_min_rounds - 1, relaxed=True)
             self.assertEqual(temp.min_desired_rounds, orig_min_rounds)
 
         # .replace() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
+            self.assertRaises(ValueError, handler.replace, min_desired_rounds=orig_max_rounds + 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(min_desired_rounds=orig_max_rounds + 1)
+                temp = handler.replace(min_desired_rounds=orig_max_rounds + 1, relaxed=True)
             self.assertEqual(temp.min_desired_rounds, orig_max_rounds)
 
         # .replace() should allow values below previous desired minimum, w/o warning
@@ -1542,7 +1546,8 @@ class HandlerCase(TestCase):
             temp = subcls.replace(min_desired_rounds=large + 1)
         self.assertEqual(temp.min_desired_rounds, large + 1)
 
-        # hash() etc should allow explicit values below desired minimum, w/ warning
+        # hash() etc should allow explicit values below desired minimum
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
         self.assertEqual(get_effective_rounds(subcls, small + 1), small + 1)
         self.assertEqual(get_effective_rounds(subcls, small), small)
         with self.assertWarningList([PasslibConfigWarning]):
@@ -1570,14 +1575,16 @@ class HandlerCase(TestCase):
 
         # .replace() should clip values below valid minimum w/ warning
         if orig_min_rounds > 0:
+            self.assertRaises(ValueError, handler.replace, max_desired_rounds=orig_min_rounds - 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(max_desired_rounds=orig_min_rounds - 1)
+                temp = handler.replace(max_desired_rounds=orig_min_rounds - 1, relaxed=True)
             self.assertEqual(temp.max_desired_rounds, orig_min_rounds)
 
         # .replace() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
+            self.assertRaises(ValueError, handler.replace, max_desired_rounds=orig_max_rounds + 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(max_desired_rounds=orig_max_rounds + 1)
+                temp = handler.replace(max_desired_rounds=orig_max_rounds + 1, relaxed=True)
             self.assertEqual(temp.max_desired_rounds, orig_max_rounds)
 
         # .replace() should clip values below previous minimum, w/ warning
