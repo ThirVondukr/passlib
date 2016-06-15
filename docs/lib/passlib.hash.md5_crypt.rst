@@ -43,7 +43,7 @@ The :class:`!md5_crypt` class can be can be used directly as follows::
     False
 
     >>> # encrypt password using cisco-compatible 4-char salt
-    >>> md5_crypt.hash("password", salt_size=4)
+    >>> md5_crypt.replace(salt_size=4).hash("password")
     '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
 .. seealso::

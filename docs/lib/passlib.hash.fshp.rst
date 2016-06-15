@@ -29,7 +29,7 @@ It can be used directly as follows::
     '{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C'
 
     >>> # the same, but with an explicit number of rounds, larger salt, and specific variant
-    >>> fshp.hash("password", rounds=40000, salt_size=32, variant="sha512")
+    >>> fshp.replace(rounds=40000, salt_size=32, variant="sha512").hash("password")
     '{FSHP3|32|40000}cB8yE/CuADSgUTQZjWy+YTf/cvbU11D/rHNKiUiB6z4dIaO77U/rmNW
     pgZcZllZbCra5GJ8ZfFRNwCHirPqvYTAnbaQQeFQbWym/frRrRev3buoygFQRYexl4091Pc5m'
 

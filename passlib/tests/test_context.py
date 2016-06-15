@@ -985,7 +985,7 @@ sha512_crypt__min_rounds = 45000
         # NOTE: more thorough job of rounds limits done below.
 
         # min rounds
-        with self.assertWarningList(PasslibConfigWarning):
+        with self.assertWarningList([]):
             self.assertEqual(
                 cc.hash("password", rounds=1999, salt="nacl"),
                 '$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609',
@@ -1333,7 +1333,8 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=1000$nacl$" + STUB)
 
         # below policy minimum
-        with self.assertWarningList(PasslibConfigWarning):
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
+        with self.assertWarningList([]):
             self.assertEqual(
                 cc.genconfig(rounds=1999, salt="nacl"), '$5$rounds=1999$nacl$' + STUB)
 
@@ -1357,7 +1358,8 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(c2.genconfig(salt="nacl"), "$5$rounds=999999999$nacl$" + STUB)
 
         # above policy max
-        with self.assertWarningList(PasslibConfigWarning):
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
+        with self.assertWarningList([]):
             self.assertEqual(
                 cc.genconfig(rounds=3001, salt="nacl"), '$5$rounds=3001$nacl$' + STUB)
 

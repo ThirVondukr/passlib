@@ -393,9 +393,14 @@ class cisco_type7_test(HandlerCase):
         handler(salt=None, use_defaults=True)
         self.assertRaises(TypeError, handler, salt='abc')
         self.assertRaises(ValueError, handler, salt=-10)
+        self.assertRaises(ValueError, handler, salt=100)
+
+        self.assertRaises(TypeError, handler.replace, salt='abc')
+        self.assertRaises(ValueError, handler.replace, salt=-10)
+        self.assertRaises(ValueError, handler.replace, salt=100)
         with self.assertWarningList("salt/offset must be.*"):
-            h = handler(salt=100, relaxed=True)
-        self.assertEqual(h.salt, 52)
+            subcls = handler.replace(salt=100, relaxed=True)
+        self.assertEqual(subcls(use_defaults=True).salt, 52)
 
 #=============================================================================
 # crypt16
@@ -2368,14 +2373,17 @@ class unix_disabled_test(HandlerCase):
         # use marker if no hash
         self.assertEqual(handler.genhash("stub", ""), handler.default_marker)
         self.assertEqual(handler.hash("stub"), handler.default_marker)
+        self.assertEqual(handler.replace().default_marker, handler.default_marker)
 
         # custom marker
         self.assertEqual(handler.genhash("stub", "", marker="*xxx"), "*xxx")
         self.assertEqual(handler.hash("stub", marker="*xxx"), "*xxx")
+        self.assertEqual(handler.replace(marker="*xxx").hash("stub"), "*xxx")
 
         # reject invalid marker
         self.assertRaises(ValueError, handler.genhash, 'stub', "", marker='abc')
         self.assertRaises(ValueError, handler.hash, 'stub', marker='abc')
+        self.assertRaises(ValueError, handler.replace, marker='abc')
 
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback

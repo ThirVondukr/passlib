@@ -1453,7 +1453,7 @@ class HandlerCase(TestCase):
             # hack to bypass bsdi-crypt's "odd rounds only" behavior, messes up this test
             orig_handler = handler
             handler = handler.replace()
-            handler._generate_rounds = lambda self: super(orig_handler, self)._generate_rounds()
+            handler._generate_rounds = classmethod(lambda cls: super(orig_handler, cls)._generate_rounds())
 
         # create some fake values to test with
         orig_min_rounds = handler.min_rounds
@@ -1550,7 +1550,7 @@ class HandlerCase(TestCase):
         # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
         self.assertEqual(get_effective_rounds(subcls, small + 1), small + 1)
         self.assertEqual(get_effective_rounds(subcls, small), small)
-        with self.assertWarningList([PasslibConfigWarning]):
+        with self.assertWarningList([]):
             self.assertEqual(get_effective_rounds(subcls, small - 1), small - 1)
 
         # 'min_rounds' should be treated as alias for 'min_desired_rounds'
@@ -1606,10 +1606,11 @@ class HandlerCase(TestCase):
             temp = subcls.replace(max_desired_rounds=large + 1)
         self.assertEqual(temp.max_desired_rounds, large + 1)
 
-        # hash() etc should allow explicit values above desired minimum, w/ warning
+        # hash() etc should allow explicit values above desired minimum, w/o warning
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
         self.assertEqual(get_effective_rounds(subcls, large - 1), large - 1)
         self.assertEqual(get_effective_rounds(subcls, large), large)
-        with self.assertWarningList([PasslibConfigWarning]):
+        with self.assertWarningList([]):
             self.assertEqual(get_effective_rounds(subcls, large + 1), large + 1)
 
         # 'max_rounds' should be treated as alias for 'max_desired_rounds'

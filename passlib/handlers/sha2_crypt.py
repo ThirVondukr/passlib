@@ -286,6 +286,14 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             implicit_rounds = (self.use_defaults and self.rounds == 5000)
         self.implicit_rounds = implicit_rounds
 
+    def _parse_salt(self, salt):
+        # required per SHA2-crypt spec -- truncate config salts rather than throwing error
+        return self._norm_salt(salt, relaxed=self.checksum is None)
+
+    def _parse_rounds(self, rounds):
+        # required per SHA2-crypt spec -- clip config rounds rather than throwing error
+        return self._norm_rounds(rounds, relaxed=self.checksum is None)
+
     @classmethod
     def from_string(cls, hash):
         # basic format this parses -
@@ -329,9 +337,6 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             salt=salt,
             checksum=chk or None,
             implicit_rounds=implicit_rounds,
-            relaxed=not chk, # NOTE: relaxing parsing for config strings
-                             # so that out-of-range rounds are clipped,
-                             # since SHA2-Crypt spec treats them this way.
             )
 
     def to_string(self):
@@ -394,7 +399,7 @@ class sha256_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -453,7 +458,7 @@ class sha512_crypt(_SHA2_Common):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:

@@ -237,7 +237,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -288,7 +288,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:

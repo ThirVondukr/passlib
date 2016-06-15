@@ -21,7 +21,7 @@ This class can be used directly as follows::
     '$bcrypt-sha256$2a,12$LrmaIX5x4TRtAwEfwJZa1.$2ehnw6LvuIUTM0iz4iz9hTxv21B6KFO'
 
     >>> # the same, but with an explicit number of rounds
-    >>> bcrypt.hash("password", rounds=8)
+    >>> bcrypt.replace(rounds=8).hash("password")
     '$bcrypt-sha256$2a,8$UE3dIZ.0I6XZtA/LdMrrle$Ag04/5zYu./12.OSqInXZnJ.WZoh1ua'
 
     >>> # verify password

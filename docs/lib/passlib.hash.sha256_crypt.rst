@@ -23,7 +23,7 @@ This class can be used directly as follows::
     '$5$rounds=80000$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5'
 
     >>> # same, but with explict number of rounds
-    >>> sha256_crypt.hash("password", rounds=12345)
+    >>> sha256_crypt.replace(rounds=12345).hash("password")
     '$5$rounds=12345$q3hvJE5mn5jKRsW.$BbbYTFiaImz9rTy03GGi.Jf9YY5bmxN0LU3p3uI1iUB'
 
     >>> # verify password

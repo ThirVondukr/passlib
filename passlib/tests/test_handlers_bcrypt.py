@@ -342,7 +342,7 @@ class _bcrypt_test(HandlerCase):
         for i in irange(6):
             check_padding(bcrypt.genconfig())
         for i in irange(3):
-            check_padding(bcrypt.hash("bob", rounds=bcrypt.min_rounds))
+            check_padding(bcrypt.replace(rounds=bcrypt.min_rounds).hash("bob"))
 
         #
         # test genconfig() corrects invalid salts & issues warning.

@@ -103,7 +103,7 @@ def main(*args):
         """estimate speed using specified # of rounds"""
         # time a single verify() call
         secret = "S0m3-S3Kr1T"
-        hash = hasher.hash(secret, rounds=rounds)
+        hash = hasher.replace(rounds=rounds).hash(secret)
         def helper():
             start = tick()
             hasher.verify(secret, hash)

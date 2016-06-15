@@ -184,8 +184,8 @@ class SkeletonTest(TestCase):
             checksum_size = 4
             checksum_chars = u('xz')
 
-        def norm_checksum(*a, **k):
-            return d1(*a, **k).checksum
+        def norm_checksum(checksum=None, **k):
+            return d1(checksum=checksum, **k).checksum
 
         # too small
         self.assertRaises(ValueError, norm_checksum, u('xxx'))
@@ -204,9 +204,10 @@ class SkeletonTest(TestCase):
         self.assertRaises(TypeError, norm_checksum, b'xxyx')
 
         # relaxed
-        with self.assertWarningList("checksum should be unicode"):
-            self.assertEqual(norm_checksum(b'xxzx', relaxed=True), u('xxzx'))
-        self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
+        # NOTE: this could be turned back on if we test _norm_checksum() directly...
+        #with self.assertWarningList("checksum should be unicode"):
+        #    self.assertEqual(norm_checksum(b'xxzx', relaxed=True), u('xxzx'))
+        #self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
 
         # test _stub_checksum behavior
         self.assertEqual(d1()._stub_checksum, u('xxxx'))
@@ -225,7 +226,9 @@ class SkeletonTest(TestCase):
 
         # test unicode
         self.assertRaises(TypeError, norm_checksum, u('xxyx'))
-        self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
+
+        # NOTE: this could be turned back on if we test _norm_checksum() directly...
+        # self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
 
         # test _stub_checksum behavior
         self.assertEqual(d1()._stub_checksum, b'\x00'*4)
@@ -245,7 +248,7 @@ class SkeletonTest(TestCase):
             return d1(**k).salt
 
         def gen_salt(sz, **k):
-            return d1(use_defaults=True, salt_size=sz, **k).salt
+            return d1.replace(salt_size=sz, **k)(use_defaults=True).salt
 
         salts2 = _makelang('ab', 2)
         salts3 = _makelang('ab', 3)
@@ -274,9 +277,6 @@ class SkeletonTest(TestCase):
             self.assertRaises(ValueError, norm_salt, salt='aaaabb')
             self.consumeWarningList(wlog)
 
-            self.assertEqual(norm_salt(salt='aaaabb', relaxed=True), 'aaaa')
-            self.consumeWarningList(wlog, PasslibHashWarning)
-
         # check generated salts
         with warnings.catch_warnings(record=True) as wlog:
 
@@ -296,7 +296,7 @@ class SkeletonTest(TestCase):
             self.consumeWarningList(wlog)
 
             self.assertIn(gen_salt(5, relaxed=True), salts4)
-            self.consumeWarningList(wlog, ["salt too large"])
+            self.consumeWarningList(wlog, ["salt_size.*above max_salt_size"])
 
         # test with max_salt_size=None
         del d1.max_salt_size
@@ -306,7 +306,7 @@ class SkeletonTest(TestCase):
 
     # TODO: test HasRawSalt mixin
 
-    def test_30_norm_rounds(self):
+    def test_30_init_rounds(self):
         """test GenericHandler + HasRounds mixin"""
         # setup helpers
         class d1(uh.HasRounds, uh.GenericHandler):
@@ -316,6 +316,7 @@ class SkeletonTest(TestCase):
             max_rounds = 3
             default_rounds = 2
 
+        # NOTE: really is testing _init_rounds(), could dup to test _norm_rounds() via .replace
         def norm_rounds(**k):
             return d1(**k).rounds
 
@@ -333,9 +334,6 @@ class SkeletonTest(TestCase):
             self.assertRaises(ValueError, norm_rounds, rounds=0)
             self.consumeWarningList(wlog)
 
-            self.assertEqual(norm_rounds(rounds=0, relaxed=True), 1)
-            self.consumeWarningList(wlog, PasslibHashWarning)
-
             # just right
             self.assertEqual(norm_rounds(rounds=1), 1)
             self.assertEqual(norm_rounds(rounds=2), 2)
@@ -345,9 +343,6 @@ class SkeletonTest(TestCase):
             # too large
             self.assertRaises(ValueError, norm_rounds, rounds=4)
             self.consumeWarningList(wlog)
-
-            self.assertEqual(norm_rounds(rounds=4, relaxed=True), 3)
-            self.consumeWarningList(wlog, PasslibHashWarning)
 
         # check no default rounds
         d1.default_rounds = None

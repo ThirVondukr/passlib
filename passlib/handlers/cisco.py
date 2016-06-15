@@ -128,8 +128,7 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
-    have the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: int
     :param salt:
@@ -167,6 +166,14 @@ class cisco_type7(uh.GenericHandler):
     # methods
     #===================================================================
     @classmethod
+    def replace(cls, salt=None, **kwds):
+        subcls = super(cisco_type7, cls).replace(**kwds)
+        if salt is not None:
+            salt = subcls._norm_salt(salt, relaxed=kwds.get("relaxed"))
+            subcls._generate_salt = staticmethod(lambda: salt)
+        return subcls
+
+    @classmethod
     def from_string(cls, hash):
         hash = to_unicode(hash, "ascii", "hash")
         if len(hash) < 2:
@@ -176,29 +183,35 @@ class cisco_type7(uh.GenericHandler):
 
     def __init__(self, salt=None, **kwds):
         super(cisco_type7, self).__init__(**kwds)
-        self.salt = self._norm_salt(salt)
+        if salt is not None:
+            salt = self._norm_salt(salt)
+        elif self.use_defaults:
+            salt = self._generate_salt()
+            assert self._norm_salt(salt) == salt, "generated invalid salt: %r" % (salt,)
+        else:
+            raise TypeError("no salt specified")
+        self.salt = salt
 
-    def _norm_salt(self, salt):
-        """the salt for this algorithm is an integer 0-52, not a string"""
-        # XXX: not entirely sure that values >15 are valid, so for
-        # compatibility we don't output those values, but we do accept them.
-        if salt is None:
-            if self.use_defaults:
-                salt = self._generate_salt()
-            else:
-                raise TypeError("no salt specified")
+    @classmethod
+    def _norm_salt(cls, salt, relaxed=False):
+        """
+        validate & normalize salt value.
+        .. note::
+            the salt for this algorithm is an integer 0-52, not a string
+        """
         if not isinstance(salt, int):
             raise uh.exc.ExpectedTypeError(salt, "integer", "salt")
-        if salt < 0 or salt > self.max_salt_value:
-            msg = "salt/offset must be in 0..52 range"
-            if self.relaxed:
-                warn(msg, uh.PasslibHashWarning)
-                salt = 0 if salt < 0 else self.max_salt_value
-            else:
-                raise ValueError(msg)
-        return salt
+        if 0 <= salt <= cls.max_salt_value:
+            return salt
+        msg = "salt/offset must be in 0..52 range"
+        if relaxed:
+            warn(msg, uh.PasslibHashWarning)
+            return 0 if salt < 0 else cls.max_salt_value
+        else:
+            raise ValueError(msg)
 
-    def _generate_salt(self):
+    @staticmethod
+    def _generate_salt():
         return uh.rng.randint(0, 15)
 
     def to_string(self):

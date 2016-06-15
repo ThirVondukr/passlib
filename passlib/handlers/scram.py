@@ -25,7 +25,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -304,9 +304,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         super(scram, self).__init__(**kwds)
         self.algs = self._norm_algs(algs)
 
-    def _norm_checksum(self, checksum):
-        if checksum is None:
-            return None
+    def _norm_checksum(self, checksum, relaxed=False):
+        if not isinstance(checksum, dict):
+            raise uh.exc.ExpectedTypeError(checksum, "dict", "checksum")
         for alg, digest in iteritems(checksum):
             if alg != norm_hash_name(alg, 'iana'):
                 raise ValueError("malformed algorithm name in scram hash: %r" %

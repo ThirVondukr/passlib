@@ -106,8 +106,7 @@ class unix_disabled(uh.MinimalHandler):
     setting_kwds = ("marker",)
     context_kwds = ()
 
-    # XXX: could subclass replace() to allow setting custom default_marker
-
+    # TODO: rename attr to 'marker'...
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
         default_marker = u("*")
     else:
@@ -115,6 +114,15 @@ class unix_disabled(uh.MinimalHandler):
         # (glibc also supports adding old hash after the marker
         # so it can be restored later).
         default_marker = u("!")
+
+    @classmethod
+    def replace(cls, marker=None, **kwds):
+        subcls = super(unix_disabled, cls).replace(**kwds)
+        if marker is not None:
+            if not cls.identify(marker):
+                raise ValueError("invalid marker: %r" % marker)
+            subcls.default_marker = marker
+        return subcls
 
     @classmethod
     def identify(cls, hash):
@@ -147,15 +155,13 @@ class unix_disabled(uh.MinimalHandler):
         return False
 
     @classmethod
-    def hash(cls, secret, marker=None):
+    def hash(cls, secret, **kwds):
+        if kwds:
+            uh.warn_hash_settings_deprecation(cls, kwds)
+            return cls.replace(**kwds).hash(secret)
         uh.validate_secret(secret)
-        # if None or empty string, replace with marker
-        if marker:
-            if not cls.identify(marker):
-                raise ValueError("invalid marker: %r" % marker)
-        else:
-            marker = cls.default_marker
-            assert marker and cls.identify(marker)
+        marker = cls.default_marker
+        assert marker and cls.identify(marker)
         return to_native_str(marker, param="marker")
 
     @uh.deprecated_method(deprecated="1.7", removed="2.0")
@@ -168,7 +174,9 @@ class unix_disabled(uh.MinimalHandler):
             uh.validate_secret(secret)
             return to_native_str(config, param="config")
         else:
-            return cls.hash(secret, marker=marker)
+            if marker is not None:
+                cls = cls.replace(marker=marker)
+            return cls.hash(secret)
 
 class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.

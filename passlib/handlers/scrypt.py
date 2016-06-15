@@ -26,7 +26,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     It supports a variable-length salt, a variable number of rounds,
     as well as some custom tuning parameters unique to scrypt (see below).
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -177,7 +177,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         return self._norm_integer(parallel_count, self.parallel_count, "parallel_count")
 
     # XXX: this might be generally useful, could move to utils.handlers...
-    def _norm_integer(self, value, default, param, min=1, max=None):
+    def _norm_integer(self, value, default, param, min=1, max=None, relaxed=False):
         """
         helper to normalize and validate an integer value
 
@@ -203,7 +203,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         # check min bound
         if value < min:
             msg = "%s too low (%s requires %s >= %d)" % (param, self.name, param, min)
-            if self.relaxed:
+            if relaxed:
                 warn(msg, uh.exc.PasslibHashWarning)
                 value = min
             else:
@@ -212,7 +212,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         # check max bound
         if max and value > max:
             msg = "%s too high (%s requires  %s <= %d)" % (param, self.name, param, max)
-            if self.relaxed:
+            if relaxed:
                 warn(msg, uh.exc.PasslibHashWarning)
                 value = max
             else:

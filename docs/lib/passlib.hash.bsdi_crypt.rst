@@ -22,7 +22,7 @@ It class can be used directly as follows::
     '_7C/.Bf/4gZk10RYRs4Y'
 
     >>> # same, but with explict number of rounds
-    >>> bsdi_crypt.hash("password", rounds=10001)
+    >>> bsdi_crypt.replace(rounds=10001).hash("password")
     '_FQ0.amG/zwCMip7DnBk'
 
     >>> # verify password

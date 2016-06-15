@@ -91,6 +91,10 @@ Minor Internal Changes
 
 Deprecations
 ------------
+    Passlib 1.7 has undergone a large number of deprecations, as part of a long range plan
+    to restructure and simplify both the API and the internals of Passlib 2.0.  There will be
+    at least one more major release (1.8 or 1.9) before Passlib 2.0 is released.
+
     * The :class:`~passlib.ifc.PasswordHash` API (used by all hashes in passlib),
       has had a number of cleanups made:
 
@@ -103,9 +107,11 @@ Deprecations
           :meth:`~passlib.ifc.PasswordHash.genconfig` have been deprecated.
           Compatibility aliases will remain in place until Passlib 2.0.
 
-        * In order for :meth:`~passlib.ifc.PasswordHash.hash` to take over the job
-          previously performed by :meth:`~passlib.ifc.PasswordHash.genhash`, it now accepts
-          a keyword ``"config"``, which specifies an existing hash to extract configuration from.
+        * Settings options like ``rounds`` and ``salt_size`` should no longer be passed to
+          :meth:`!hash`. Instead, callers should use the new :meth:`~passlib.ifc.PasswordHash.replace`
+          method: for example, ``sha256_crypt.hash("secret", rounds=12345)`` should now be
+          ``sha256_crypt.replace(rounds=12345).hash("secret")``.  Support for the old method
+          will be removed in Passlib 2.0.
 
     * The :class:`~passlib.context.CryptContext` object has a number of cleanups made:
 

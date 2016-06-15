@@ -180,11 +180,12 @@ def test_context_calls():
         schemes=[BlankHandler, AnotherHandler],
         default="another",
         blank__min_rounds=1500,
+        blank__default_rounds=2001,
         blank__max_rounds=2500,
         another__vary_rounds=100,
     )
     def helper():
-        hash = ctx.hash(SECRET, rounds=2001)
+        hash = ctx.hash(SECRET)
         ctx.verify(SECRET, hash)
         ctx.verify_and_update(SECRET, hash)
         ctx.verify_and_update(OTHER, hash)
@@ -200,11 +201,11 @@ def test_bcrypt_builtin():
     import os
     os.environ['PASSLIB_BUILTIN_BCRYPT'] = 'enabled'
     bcrypt.set_backend("builtin")
-    bcrypt.default_rounds = 10
+    handler = bcrypt.replace(rounds = 10)
     def helper():
-        hash = bcrypt.hash(SECRET)
-        bcrypt.verify(SECRET, hash)
-        bcrypt.verify(OTHER, hash)
+        hash = handler.hash(SECRET)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
     return helper
 
 @benchmark.constructor()
@@ -212,11 +213,11 @@ def test_bcrypt_ffi():
     "test bcrypt 'bcrypt' backend"
     from passlib.hash import bcrypt
     bcrypt.set_backend("bcrypt")
-    bcrypt.default_rounds = 8
+    handler = bcrypt.replace(rounds=8)
     def helper():
-        hash = bcrypt.hash(SECRET)
-        bcrypt.verify(SECRET, hash)
-        bcrypt.verify(OTHER, hash)
+        hash = handler.hash(SECRET)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
     return helper
 
 @benchmark.constructor()
@@ -235,7 +236,7 @@ def test_ldap_salted_md5():
     """test ldap_salted_md5"""
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
-        hash = handler.hash(SECRET, salt='....')
+        hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
@@ -243,20 +244,20 @@ def test_ldap_salted_md5():
 @benchmark.constructor()
 def test_phpass():
     """test phpass"""
-    from passlib.hash import phpass as handler
-    kwds = dict(salt='.'*8, rounds=16)
+    from passlib.hash import phpass
+    handler = phpass.replace(salt='.'*8, rounds=16)
     def helper():
-        hash = handler.hash(SECRET, **kwds)
+        hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
 
 @benchmark.constructor()
 def test_sha1_crypt():
-    from passlib.hash import sha1_crypt as handler
-    kwds = dict(salt='.'*8, rounds=10000)
+    from passlib.hash import sha1_crypt
+    handler = sha1_crypt.replace(salt='.'*8, rounds=10000)
     def helper():
-        hash = handler.hash(SECRET, **kwds)
+        hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper

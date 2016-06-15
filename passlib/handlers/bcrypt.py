@@ -87,7 +87,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
 
     It supports a fixed-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -227,14 +227,16 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         else:
             return hash
 
-    def _generate_salt(self, salt_size):
+    @classmethod
+    def _generate_salt(cls):
         # generate random salt as normal,
         # but repair last char so the padding bits always decode to zero.
-        salt = super(bcrypt, self)._generate_salt(salt_size)
+        salt = super(bcrypt, cls)._generate_salt()
         return bcrypt64.repair_unused(salt)
 
-    def _norm_salt(self, salt, **kwds):
-        salt = super(bcrypt, self)._norm_salt(salt, **kwds)
+    @classmethod
+    def _norm_salt(cls, salt, **kwds):
+        salt = super(bcrypt, cls)._norm_salt(salt, **kwds)
         assert salt is not None, "HasSalt didn't generate new salt!"
         changed, salt = bcrypt64.check_repair_unused(salt)
         if changed:
@@ -247,10 +249,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                 PasslibHashWarning)
         return salt
 
-    def _norm_checksum(self, checksum):
-        checksum = super(bcrypt, self)._norm_checksum(checksum)
-        if not checksum:
-            return None
+    def _norm_checksum(self, checksum, relaxed=False):
+        checksum = super(bcrypt, self)._norm_checksum(checksum, relaxed=relaxed)
         changed, checksum = bcrypt64.check_repair_unused(checksum)
         if changed:
             warn(

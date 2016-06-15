@@ -81,7 +81,27 @@ class PasswordHash(object):
     @abstractmethod
     def hash(cls, secret,  # *
              **setting_and_context_kwds):  # pragma: no cover -- abstract method
-        """encrypt secret, returning resulting hash"""
+        """
+        Hash secret, returning result.
+        Should handle generating salt, etc, and should return string
+        containing identifier, salt & other configuration, as well as digest.
+
+        :param \*\*settings_kwds:
+
+            Pass in settings to customize configuration of resulting hash.
+
+            .. deprecated:: 1.7
+
+                Starting with Passlib 1.7, callers should no longer pass settings keywords
+                (e.g. ``rounds`` or ``salt`` directly to :meth:`!hash`); should use
+                ``.replace(**settings).hash(secret)`` construction instead.
+
+                Support will be removed in Passlib 2.0.
+
+        :param \*\*context_kwds:
+
+            Specific algorithms may require context-specific information (such as the user login).
+        """
         # FIXME:  need stub for classes that define .encrypt() instead ...
         #         this should call .encrypt(), and check for recursion back to here.
         raise NotImplementedError("must be implemented by subclass")

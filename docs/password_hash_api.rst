@@ -57,8 +57,8 @@ using the :class:`~passlib.hash.pbkdf2_sha256` hash as an example::
     '$pbkdf2-sha256$29000$njNmDCGEUIoRwvi/1/ofQw$nYU.7v.fvG9UyT.7sTMbWSG98KSm/Tr4rS9Ob5UkYPw
 
     >>> # if the hash supports a variable number of iterations (which pbkdf2_sha256 does),
-    >>> # you can override the default value via the 'rounds' keyword:
-    >>> pbkdf2_sha256.hash("password", rounds=12345)
+    >>> # you can override the default using the replace() method and the 'rounds' keyword:
+    >>> pbkdf2_sha256.replace(rounds=12345).hash("password")
     '$pbkdf2-sha256$12345$QwjBmJPSOsf4HyNE6L239g$8m1pnP69EYeOiKKb5sNSiYw9M8pJMyeW.CSm0KKO.GI'
                     ^^^^^
 
@@ -156,7 +156,15 @@ and hash comparison.
         in that hash's documentation; though many of the more common keywords
         are listed under :attr:`~PasswordHash.setting_kwds`
         and :attr:`~PasswordHash.context_kwds`.
-        Examples of common keywords include ``rounds`` and ``salt_size``.
+
+        .. deprecated:: 1.7
+
+            Passing :attr:`~PasswordHash.setting_kwds` such as ``rounds`` and ``salt_size``
+            directly into the :meth:`hash` method is deprecated.  Callers should instead
+            use ``handler.replace(**settings).hash(secret)``.  Support for the old method
+            is is tentatively scheduled for removal in Passlib 2.0.
+
+            Context keywords such as ``user`` should still be provided to :meth:`!hash`.
 
     :returns:
         Resulting password hash, encoded in an algorithm-specific format.
@@ -191,6 +199,7 @@ and hash comparison.
     .. versionchanged:: 1.7
 
         This method was renamed from :meth:`encrypt`.
+        Deprecated support for passing settings directly into :meth:`!hash`.
 
 .. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
 
@@ -257,12 +266,12 @@ and hash comparison.
         instead of a properly-formed hash; previous releases were inconsistent
         in their handling of these two border cases.
 
-.. classmethod:: PasswordHash.replace(\*\*settings)
+.. classmethod:: PasswordHash.replace(relaxed=False, \*\*settings)
 
     This method takes in a set of algorithm-specific settings,
     and returns a new handler object which uses the specified default settings instead.
 
-    :param \*\*kwds:
+    :param \*\*settings:
 
         All keywords are algorithm-specific, and will be listed
         in that hash's documentation; though many of the more common keywords
@@ -274,14 +283,14 @@ and hash comparison.
 
     :raises ValueError:
 
-        * If a ``kwd``'s value is invalid (e.g. if a ``salt`` string
+        * If a keywords's value is invalid (e.g. if a ``salt`` string
           is too small, or a ``rounds`` value is out of range).
 
     :raises TypeError:
 
         * if a ``kwd`` argument has an incorrect type.
 
-    .. versionadd:: 1.7
+    .. versionadded:: 1.7
 
 .. _hash-unicode-behavior:
 
@@ -484,9 +493,11 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.setting_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.hash`
-    and :meth:`~PasswordHash.genconfig` that control hash generation, and which will
-    be encoded into the resulting hash.
+    Tuple listing the keywords supported by :meth:`~PasswordHash.replace` control hash generation,
+    and which will be encoded into the resulting hash.
+
+    (These keywords will also be accepted by :meth:`~PasswordHash.hash` and :meth:`~PasswordHash.genconfig`,
+     though that behavior is deprecated as of Passlib 1.7; and will be removed in Passlib 2.0).
 
     This list commonly includes keywords for controlling salt generation,
     adjusting time-cost parameters, etc. Most of these settings are optional,
@@ -563,7 +574,7 @@ the hashes in passlib:
     .. _relaxed-keyword:
 
     ``relaxed``
-        By default, passing an invalid value to :meth:`~PasswordHash.hash`
+        By default, passing an invalid value to :meth:`~PasswordHash.replace`
         will result in a :exc:`ValueError`. However, if ``relaxed=True``
         then Passlib will attempt to correct the error and (if successful)
         issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
@@ -572,8 +583,6 @@ the hashes in passlib:
         and ``salt_size`` values that are too low or too high, ``salt``
         strings that are too large.
 
-        This option is supported by most of the hashes in Passlib.
-
         .. versionadded:: 1.6
 
 .. _context-keywords:
@@ -581,14 +590,16 @@ the hashes in passlib:
 .. attribute:: PasswordHash.context_kwds
 
     Tuple listing the keywords supported by :meth:`~PasswordHash.hash`,
-    :meth:`~PasswordHash.verify`, and :meth:`~PasswordHash.genhash` affect the hash, but are
-    not encoded within it, and thus must be provided each time
+    :meth:`~PasswordHash.verify`, and :meth:`~PasswordHash.genhash`.
+    These keywords are different from the settings kwds in that the context keywords
+    affect the hash, but are not encoded within it, and thus must be provided each time
     the hash is calculated.
 
     This list commonly includes a user account, http realm identifier,
     etc. Most of these keywords are required by the hashes which support them,
     as they are frequently used in place of an embedded salt parameter.
-    This is typically an empty tuple for most of the hashes in passlib.
+
+    *Most hash algorithms in Passlib will have no context keywords.*
 
     While the documentation for each hash should have a complete list of
     the specific context keywords the hash uses,
