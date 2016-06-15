@@ -25,7 +25,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -280,14 +280,14 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # variant constructor
     #===================================================================
     @classmethod
-    def replace(cls, default_algs=None, algs=None, **kwds):
+    def using(cls, default_algs=None, algs=None, **kwds):
         # parse aliases
         if algs is not None:
             assert default_algs is None
             default_algs = algs
 
         # create subclass
-        subcls = super(scram, cls).replace(**kwds)
+        subcls = super(scram, cls).using(**kwds)
 
         # fill in algs
         if default_algs is not None:

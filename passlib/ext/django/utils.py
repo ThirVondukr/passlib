@@ -293,7 +293,7 @@ class _PasslibHasherWrapper(object):
         if self._has_rounds:
             # XXX: could cache this subclass somehow (would have to intercept writes to self.rounds)
             # TODO: always call subcls/handler.needs_update() in case there's other things to check
-            subcls = self.passlib_handler.replace(min_rounds=self.rounds, max_rounds=self.rounds)
+            subcls = self.passlib_handler.using(min_rounds=self.rounds, max_rounds=self.rounds)
             if subcls.needs_update(encoded):
                 return True
         return False

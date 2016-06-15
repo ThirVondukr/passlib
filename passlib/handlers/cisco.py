@@ -128,7 +128,7 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: int
     :param salt:
@@ -166,8 +166,8 @@ class cisco_type7(uh.GenericHandler):
     # methods
     #===================================================================
     @classmethod
-    def replace(cls, salt=None, **kwds):
-        subcls = super(cisco_type7, cls).replace(**kwds)
+    def using(cls, salt=None, **kwds):
+        subcls = super(cisco_type7, cls).using(**kwds)
         if salt is not None:
             salt = subcls._norm_salt(salt, relaxed=kwds.get("relaxed"))
             subcls._generate_salt = staticmethod(lambda: salt)

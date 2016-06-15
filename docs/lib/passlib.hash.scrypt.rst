@@ -27,7 +27,7 @@ This class can be used directly as follows::
     '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
 
     >>> # the same, but with an explicit number of rounds
-    >>> scrypt.replace(rounds=8).hash("password")
+    >>> scrypt.using(rounds=8).hash("password")
     '$scrypt$16,8,1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD.iCs5E'
 
     >>> # verify password

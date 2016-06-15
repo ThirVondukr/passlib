@@ -15,7 +15,7 @@ Release History
 
     * Get argon2 hash implemented (:issue:`69`).
 
-        - blocking on .replace() api
+        - blocking on .using() api
 
     * Finish the :mod:`passlib.totp` module (:issue:`44`)
 
@@ -81,7 +81,7 @@ Minor Internal Changes
       Compatibility wrappers will be kept in place at the old location until Passlib 2.0.
 
     * The majority of CryptContext's internal rounds handling & migration code has been
-      moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.replace`
+      moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.using`
       and :meth:`~passlib.ifc.PasswordHash.needs_update` methods.  This allows much more flexibility
       when using a hash directly, rather than via CryptContext, as well making it easier for
       CryptContext to support hash-specific parameters.
@@ -108,9 +108,9 @@ Deprecations
           Compatibility aliases will remain in place until Passlib 2.0.
 
         * Settings options like ``rounds`` and ``salt_size`` should no longer be passed to
-          :meth:`!hash`. Instead, callers should use the new :meth:`~passlib.ifc.PasswordHash.replace`
+          :meth:`!hash`. Instead, callers should use the new :meth:`~passlib.ifc.PasswordHash.using`
           method: for example, ``sha256_crypt.hash("secret", rounds=12345)`` should now be
-          ``sha256_crypt.replace(rounds=12345).hash("secret")``.  Support for the old method
+          ``sha256_crypt.using(rounds=12345).hash("secret")``.  Support for the old method
           will be removed in Passlib 2.0.
 
     * The :class:`~passlib.context.CryptContext` object has a number of cleanups made:

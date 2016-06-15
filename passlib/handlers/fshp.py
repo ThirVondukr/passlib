@@ -27,7 +27,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     It supports a variable-length salt, and a variable number of rounds.
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :param salt:
         Optional raw salt string.
@@ -101,8 +101,8 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # configuration
     #===================================================================
     @classmethod
-    def replace(cls, variant=None, **kwds):
-        subcls = super(fshp, cls).replace(**kwds)
+    def using(cls, variant=None, **kwds):
+        subcls = super(fshp, cls).using(**kwds)
         if variant is not None:
             subcls.default_variant = cls(use_defaults=True)._norm_variant(variant)
         return subcls

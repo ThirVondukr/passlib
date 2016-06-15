@@ -124,7 +124,7 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
 
     It supports a 4-16 byte salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: bytes
     :param salt:
@@ -163,7 +163,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
 
     It supports a 4-16 byte salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: bytes
     :param salt:

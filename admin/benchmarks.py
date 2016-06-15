@@ -201,7 +201,7 @@ def test_bcrypt_builtin():
     import os
     os.environ['PASSLIB_BUILTIN_BCRYPT'] = 'enabled'
     bcrypt.set_backend("builtin")
-    handler = bcrypt.replace(rounds = 10)
+    handler = bcrypt.using(rounds = 10)
     def helper():
         hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
@@ -213,7 +213,7 @@ def test_bcrypt_ffi():
     "test bcrypt 'bcrypt' backend"
     from passlib.hash import bcrypt
     bcrypt.set_backend("bcrypt")
-    handler = bcrypt.replace(rounds=8)
+    handler = bcrypt.using(rounds=8)
     def helper():
         hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
@@ -245,7 +245,7 @@ def test_ldap_salted_md5():
 def test_phpass():
     """test phpass"""
     from passlib.hash import phpass
-    handler = phpass.replace(salt='.'*8, rounds=16)
+    handler = phpass.using(salt='.'*8, rounds=16)
     def helper():
         hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
@@ -255,7 +255,7 @@ def test_phpass():
 @benchmark.constructor()
 def test_sha1_crypt():
     from passlib.hash import sha1_crypt
-    handler = sha1_crypt.replace(salt='.'*8, rounds=10000)
+    handler = sha1_crypt.using(salt='.'*8, rounds=10000)
     def helper():
         hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)

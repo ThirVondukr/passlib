@@ -94,7 +94,7 @@ class PasswordHash(object):
 
                 Starting with Passlib 1.7, callers should no longer pass settings keywords
                 (e.g. ``rounds`` or ``salt`` directly to :meth:`!hash`); should use
-                ``.replace(**settings).hash(secret)`` construction instead.
+                ``.using(**settings).hash(secret)`` construction instead.
 
                 Support will be removed in Passlib 2.0.
 
@@ -133,7 +133,7 @@ class PasswordHash(object):
     #===================================================================
     @classmethod
     @abstractmethod
-    def replace(cls, relaxed=False, **kwds):
+    def using(cls, relaxed=False, **kwds):
         """
         Return another hasher object (typically a subclass of the current one),
         which integrates the configuration options specified by ``kwds``.

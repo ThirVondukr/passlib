@@ -248,7 +248,7 @@ class SkeletonTest(TestCase):
             return d1(**k).salt
 
         def gen_salt(sz, **k):
-            return d1.replace(salt_size=sz, **k)(use_defaults=True).salt
+            return d1.using(salt_size=sz, **k)(use_defaults=True).salt
 
         salts2 = _makelang('ab', 2)
         salts3 = _makelang('ab', 3)

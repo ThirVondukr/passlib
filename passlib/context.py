@@ -45,7 +45,7 @@ _forbidden_scheme_options = set(["salt"])
     # 'salt' - not allowed since a fixed salt would defeat the purpose.
 
 # dict containing funcs used to coerce strings to correct type for scheme option keys.
-# NOTE: this isn't really needed any longer, since Handler.replace() handles the actual parsing.
+# NOTE: this isn't really needed any longer, since Handler.using() handles the actual parsing.
 #       keeping this around for now, though, since it makes context.to_dict() output cleaner.
 _coerce_scheme_options = dict(
     min_rounds=int,
@@ -967,12 +967,12 @@ class _CryptConfig(object):
         try:
             # XXX: relaxed=True is mostly here to retain backwards-compat behavior.
             #      could make this optional flag in future.
-            subcls = handler.replace(relaxed=True, **settings)
+            subcls = handler.using(relaxed=True, **settings)
         except TypeError as err:
             m = re.match(r".* unexpected keyword argument '(.*)'$", str(err))
             if m and m.group(1) in settings:
                 # translate into KeyError, for backwards compat.
-                # XXX: push this down to GenericHandler.replace() implementation?
+                # XXX: push this down to GenericHandler.using() implementation?
                 key = m.group(1)
                 raise KeyError("keyword not supported by %s handler: %r" %
                                (handler.name, key))
@@ -1325,7 +1325,7 @@ class CryptContext(object):
 
     def replace(self, **kwds):
         """deprecated alias of :meth:`copy`"""
-        warn("CryptContext().replace() has been deprecated in Passlib 1.6, "
+        warn("CryptContext().using() has been deprecated in Passlib 1.6, "
              "and will be removed in Passlib 1.8, "
              "it has been renamed to CryptContext().copy()",
              DeprecationWarning, stacklevel=2)
@@ -2027,8 +2027,6 @@ class CryptContext(object):
 
         .. deprecated:: 1.7
 
-            As of 1.7, all calls to :meth:`!genconfig` should be replaced with
-            ``.hash("", **settings)``.
             This method will be removed in version 2.0, and should only
             be used for compatibility with Passlib 1.3 - 1.6.
         """
@@ -2044,8 +2042,6 @@ class CryptContext(object):
 
         .. deprecated:: 1.7
 
-            As of 1.7, the :meth:`hash` function now supports a **hash** keyword;
-            all calls to :meth:`!genhash` can be replaced with ``.hash(secret, config=config, **context)``.
             This method will be removed in version 2.0, and should only
             be used for compatibility with Passlib 1.3 - 1.6.
         """

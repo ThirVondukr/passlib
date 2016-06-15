@@ -26,7 +26,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     It supports a variable-length salt, a variable number of rounds,
     as well as some custom tuning parameters unique to scrypt (see below).
 
-    The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: str
     :param salt:
@@ -110,7 +110,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     max_rounds = 31  # limited by scrypt alg
     rounds_cost = "log2"
 
-    # TODO: make default block size & parallel count configurable via replace(),
+    # TODO: make default block size & parallel count configurable via using(),
     #       and deprecatable via .needs_update()
 
     #===================================================================

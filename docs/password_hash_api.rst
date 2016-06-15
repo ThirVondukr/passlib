@@ -58,7 +58,7 @@ using the :class:`~passlib.hash.pbkdf2_sha256` hash as an example::
 
     >>> # if the hash supports a variable number of iterations (which pbkdf2_sha256 does),
     >>> # you can override the default using the replace() method and the 'rounds' keyword:
-    >>> pbkdf2_sha256.replace(rounds=12345).hash("password")
+    >>> pbkdf2_sha256.using(rounds=12345).hash("password")
     '$pbkdf2-sha256$12345$QwjBmJPSOsf4HyNE6L239g$8m1pnP69EYeOiKKb5sNSiYw9M8pJMyeW.CSm0KKO.GI'
                     ^^^^^
 
@@ -161,7 +161,7 @@ and hash comparison.
 
             Passing :attr:`~PasswordHash.setting_kwds` such as ``rounds`` and ``salt_size``
             directly into the :meth:`hash` method is deprecated.  Callers should instead
-            use ``handler.replace(**settings).hash(secret)``.  Support for the old method
+            use ``handler.using(**settings).hash(secret)``.  Support for the old method
             is is tentatively scheduled for removal in Passlib 2.0.
 
             Context keywords such as ``user`` should still be provided to :meth:`!hash`.
@@ -266,7 +266,7 @@ and hash comparison.
         instead of a properly-formed hash; previous releases were inconsistent
         in their handling of these two border cases.
 
-.. classmethod:: PasswordHash.replace(relaxed=False, \*\*settings)
+.. classmethod:: PasswordHash.using(relaxed=False, \*\*settings)
 
     This method takes in a set of algorithm-specific settings,
     and returns a new handler object which uses the specified default settings instead.
@@ -493,7 +493,7 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.setting_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.replace` control hash generation,
+    Tuple listing the keywords supported by :meth:`~PasswordHash.using` control hash generation,
     and which will be encoded into the resulting hash.
 
     (These keywords will also be accepted by :meth:`~PasswordHash.hash` and :meth:`~PasswordHash.genconfig`,
@@ -574,7 +574,7 @@ the hashes in passlib:
     .. _relaxed-keyword:
 
     ``relaxed``
-        By default, passing an invalid value to :meth:`~PasswordHash.replace`
+        By default, passing an invalid value to :meth:`~PasswordHash.using`
         will result in a :exc:`ValueError`. However, if ``relaxed=True``
         then Passlib will attempt to correct the error and (if successful)
         issue a :exc:`~passlib.exc.PasslibHashWarning` instead.

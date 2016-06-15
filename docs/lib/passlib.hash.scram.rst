@@ -44,7 +44,7 @@ This class can be used like any other Passlib hash, as follows::
     gzvGjbMeuWCtKve8TPjRMNoZK9EGyHQ6y0lW9OtWdHZrDZbBUhB9ou./VI2mlw'
 
     >>> # same, but with an explicit number of rounds
-    >>> scram.replace(rounds=8000).hash("password")
+    >>> scram.using(rounds=8000).hash("password")
     '$scram$8000$Y0zp/R/DeO89h/De$sha-1=eE8dq1f1P1hZm21lfzsr3CMbiEA,sha-256=Nf
     kaDFMzn/yHr/HTv7KEFZqaONo6psRu5LBBFLEbZ.o,sha-512=XnGG11X.J2VGSG1qTbkR3FVr
     9j5JwsnV5Fd094uuC.GtVDE087m8e7rGoiVEgXnduL48B2fPsUD9grBjURjkiA'
@@ -64,7 +64,7 @@ Additionally, this class provides a number of useful methods for SCRAM-specific 
 
 * You can override the default list of digests, and/or the number of iterations::
 
-    >>> hash = scram.replace(rounds=1000, algs="sha-1,sha-256,md5").hash("password")
+    >>> hash = scram.using(rounds=1000, algs="sha-1,sha-256,md5").hash("password")
     >>> hash
     '$scram$1000$RsgZo7T2/l8rBUBI$md5=iKsH555d3ctn795Za4S7bQ,sha-1=dRcE2AUjALLF
     tX5DstdLCXZ9Afw,sha-256=WYE/LF7OntriUUdFXIrYE19OY2yL0N5qsQmdPNFn7JE'

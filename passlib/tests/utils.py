@@ -917,14 +917,14 @@ class HandlerCase(TestCase):
             "identify() failed to identify genconfig() output: %r" %
             (config,))
 
-    def test_02_replace_workflow(self):
-        """test basic replace() workflow"""
+    def test_02_using_workflow(self):
+        """test basic using() workflow"""
         handler = self.handler
-        subcls = handler.replace()
+        subcls = handler.using()
         self.assertIsNot(subcls, handler)
         self.assertEqual(subcls.name, handler.name)
         # NOTE: other info attrs should match as well, just testing basic behavior.
-        # NOTE: mixin-specific args like replace(min_rounds=xxx) tested later.
+        # NOTE: mixin-specific args like using(min_rounds=xxx) tested later.
 
     def test_03_hash_workflow(self, use_16_legacy=False):
         """test basic hash-string workflow.
@@ -1280,8 +1280,8 @@ class HandlerCase(TestCase):
         if not (salt_type is bytes or (PY2 and salt_type is unicode)):
             self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x')
 
-    def test_replace_w_salt_size(self):
-        """Handler.replace() -- default_salt_size"""
+    def test_using_salt_size(self):
+        """Handler.using() -- default_salt_size"""
         self.require_salt_info()
 
         handler = self.handler
@@ -1290,25 +1290,25 @@ class HandlerCase(TestCase):
         df = handler.default_salt_size
 
         # should prevent setting below handler limit
-        self.assertRaises(ValueError, handler.replace, default_salt_size=-1)
+        self.assertRaises(ValueError, handler.using, default_salt_size=-1)
         with self.assertWarningList([PasslibHashWarning]):
-            temp = handler.replace(default_salt_size=-1, relaxed=True)
+            temp = handler.using(default_salt_size=-1, relaxed=True)
         self.assertEqual(temp.default_salt_size, mn)
 
         # should prevent setting above handler limit
         if mx:
-            self.assertRaises(ValueError, handler.replace, default_salt_size=mx+1)
+            self.assertRaises(ValueError, handler.using, default_salt_size=mx+1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(default_salt_size=mx+1, relaxed=True)
+                temp = handler.using(default_salt_size=mx+1, relaxed=True)
             self.assertEqual(temp.default_salt_size, mx)
 
         # try setting to explicit value
         if mn != mx:
-            temp = handler.replace(default_salt_size=mn+1)
+            temp = handler.using(default_salt_size=mn+1)
             self.assertEqual(temp.default_salt_size, mn+1)
             self.assertEqual(handler.default_salt_size, df)
 
-            temp = handler.replace(default_salt_size=mn+2)
+            temp = handler.using(default_salt_size=mn+2)
             self.assertEqual(temp.default_salt_size, mn+2)
             self.assertEqual(handler.default_salt_size, df)
 
@@ -1317,14 +1317,14 @@ class HandlerCase(TestCase):
             ref = mn
         else:
             ref = mn + 1
-        temp = handler.replace(default_salt_size=str(ref))
+        temp = handler.using(default_salt_size=str(ref))
         self.assertEqual(temp.default_salt_size, ref)
 
         # reject invalid strings
-        self.assertRaises(ValueError, handler.replace, default_salt_size=str(ref) + "xxx")
+        self.assertRaises(ValueError, handler.using, default_salt_size=str(ref) + "xxx")
 
         # honor 'salt_size' alias
-        temp = handler.replace(salt_size=ref)
+        temp = handler.using(salt_size=ref)
         self.assertEqual(temp.default_salt_size, ref)
 
     #===================================================================
@@ -1440,11 +1440,11 @@ class HandlerCase(TestCase):
         self.assertTrue(context.needs_update(hash), msg="rounds=%d (required=%d): hash=%r: " % (rounds2, rounds1, hash))
 
     #--------------------------------------------------------------------------------------
-    # HasRounds.replace() / .needs_update() -- desired rounds limits
+    # HasRounds.using() / .needs_update() -- desired rounds limits
     #--------------------------------------------------------------------------------------
     def _create_using_rounds_helper(self):
         """
-        setup test helpers for testing handler.replace()'s rounds parameters.
+        setup test helpers for testing handler.using()'s rounds parameters.
         """
         self.require_rounds_info()
         handler = self.handler
@@ -1452,7 +1452,7 @@ class HandlerCase(TestCase):
         if handler.name == "bsdi_crypt":
             # hack to bypass bsdi-crypt's "odd rounds only" behavior, messes up this test
             orig_handler = handler
-            handler = handler.replace()
+            handler = handler.using()
             handler._generate_rounds = classmethod(lambda cls: super(orig_handler, cls)._generate_rounds())
 
         # create some fake values to test with
@@ -1473,7 +1473,7 @@ class HandlerCase(TestCase):
 
         # create a subclass with small/medium/large as new default desired values
         with self.assertWarningList([]):
-            subcls = handler.replace(
+            subcls = handler.using(
                 min_desired_rounds=small,
                 max_desired_rounds=large,
                 default_rounds=medium,
@@ -1482,9 +1482,9 @@ class HandlerCase(TestCase):
         # return helpers
         return handler, subcls, small, medium, large
 
-    def test_has_rounds_replace_harness(self):
+    def test_has_rounds_using_harness(self):
         """
-        HasRounds.replace() -- sanity check test harness
+        HasRounds.using() -- sanity check test harness
         """
         # setup helpers
         self.require_rounds_info()
@@ -1508,9 +1508,9 @@ class HandlerCase(TestCase):
         self.assertEqual(subcls.min_desired_rounds, small)
         self.assertEqual(subcls.max_desired_rounds, large)
 
-    def test_has_rounds_replace_w_min_rounds(self):
+    def test_has_rounds_using_w_min_rounds(self):
         """
-        HasRounds.replace() -- min_rounds / min_desired_rounds
+        HasRounds.using() -- min_rounds / min_desired_rounds
         """
         # setup helpers
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
@@ -1518,115 +1518,115 @@ class HandlerCase(TestCase):
         orig_max_rounds = handler.max_rounds
         orig_default_rounds = handler.default_rounds
 
-        # .replace() should clip values below valid minimum, w/ warning
+        # .using() should clip values below valid minimum, w/ warning
         if orig_min_rounds > 0:
-            self.assertRaises(ValueError, handler.replace, min_desired_rounds=orig_min_rounds - 1)
+            self.assertRaises(ValueError, handler.using, min_desired_rounds=orig_min_rounds - 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(min_desired_rounds=orig_min_rounds - 1, relaxed=True)
+                temp = handler.using(min_desired_rounds=orig_min_rounds - 1, relaxed=True)
             self.assertEqual(temp.min_desired_rounds, orig_min_rounds)
 
-        # .replace() should clip values above valid maximum, w/ warning
+        # .using() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
-            self.assertRaises(ValueError, handler.replace, min_desired_rounds=orig_max_rounds + 1)
+            self.assertRaises(ValueError, handler.using, min_desired_rounds=orig_max_rounds + 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(min_desired_rounds=orig_max_rounds + 1, relaxed=True)
+                temp = handler.using(min_desired_rounds=orig_max_rounds + 1, relaxed=True)
             self.assertEqual(temp.min_desired_rounds, orig_max_rounds)
 
-        # .replace() should allow values below previous desired minimum, w/o warning
+        # .using() should allow values below previous desired minimum, w/o warning
         with self.assertWarningList([]):
-            temp = subcls.replace(min_desired_rounds=small - 1)
+            temp = subcls.using(min_desired_rounds=small - 1)
         self.assertEqual(temp.min_desired_rounds, small - 1)
 
-        # .replace() should allow values w/in previous range
-        temp = subcls.replace(min_desired_rounds=small + 2)
+        # .using() should allow values w/in previous range
+        temp = subcls.using(min_desired_rounds=small + 2)
         self.assertEqual(temp.min_desired_rounds, small + 2)
 
-        # .replace() should allow values above previous desired maximum, w/o warning
+        # .using() should allow values above previous desired maximum, w/o warning
         with self.assertWarningList([]):
-            temp = subcls.replace(min_desired_rounds=large + 1)
+            temp = subcls.using(min_desired_rounds=large + 1)
         self.assertEqual(temp.min_desired_rounds, large + 1)
 
         # hash() etc should allow explicit values below desired minimum
-        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
         self.assertEqual(get_effective_rounds(subcls, small + 1), small + 1)
         self.assertEqual(get_effective_rounds(subcls, small), small)
         with self.assertWarningList([]):
             self.assertEqual(get_effective_rounds(subcls, small - 1), small - 1)
 
         # 'min_rounds' should be treated as alias for 'min_desired_rounds'
-        temp = handler.replace(min_rounds=small)
+        temp = handler.using(min_rounds=small)
         self.assertEqual(temp.min_desired_rounds, small)
 
         # should be able to specify strings
-        temp = handler.replace(min_rounds=str(small))
+        temp = handler.using(min_rounds=str(small))
         self.assertEqual(temp.min_desired_rounds, small)
 
         # invalid strings should cause error
-        self.assertRaises(ValueError, handler.replace, min_rounds=str(small) + "xxx")
+        self.assertRaises(ValueError, handler.using, min_rounds=str(small) + "xxx")
 
     def test_has_rounds_replace_w_max_rounds(self):
         """
-        HasRounds.replace() -- max_rounds / max_desired_rounds
+        HasRounds.using() -- max_rounds / max_desired_rounds
         """
         # setup helpers
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
         orig_min_rounds = handler.min_rounds
         orig_max_rounds = handler.max_rounds
 
-        # .replace() should clip values below valid minimum w/ warning
+        # .using() should clip values below valid minimum w/ warning
         if orig_min_rounds > 0:
-            self.assertRaises(ValueError, handler.replace, max_desired_rounds=orig_min_rounds - 1)
+            self.assertRaises(ValueError, handler.using, max_desired_rounds=orig_min_rounds - 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(max_desired_rounds=orig_min_rounds - 1, relaxed=True)
+                temp = handler.using(max_desired_rounds=orig_min_rounds - 1, relaxed=True)
             self.assertEqual(temp.max_desired_rounds, orig_min_rounds)
 
-        # .replace() should clip values above valid maximum, w/ warning
+        # .using() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
-            self.assertRaises(ValueError, handler.replace, max_desired_rounds=orig_max_rounds + 1)
+            self.assertRaises(ValueError, handler.using, max_desired_rounds=orig_max_rounds + 1)
             with self.assertWarningList([PasslibHashWarning]):
-                temp = handler.replace(max_desired_rounds=orig_max_rounds + 1, relaxed=True)
+                temp = handler.using(max_desired_rounds=orig_max_rounds + 1, relaxed=True)
             self.assertEqual(temp.max_desired_rounds, orig_max_rounds)
 
-        # .replace() should clip values below previous minimum, w/ warning
+        # .using() should clip values below previous minimum, w/ warning
         with self.assertWarningList([PasslibConfigWarning]):
-            temp = subcls.replace(max_desired_rounds=small - 1)
+            temp = subcls.using(max_desired_rounds=small - 1)
         self.assertEqual(temp.max_desired_rounds, small)
 
-        # .replace() should reject explicit min > max
-        self.assertRaises(ValueError, subcls.replace,
+        # .using() should reject explicit min > max
+        self.assertRaises(ValueError, subcls.using,
                           min_desired_rounds=medium+1,
                           max_desired_rounds=medium-1)
 
-        # .replace() should allow values w/in previous range
-        temp = subcls.replace(min_desired_rounds=large - 2)
+        # .using() should allow values w/in previous range
+        temp = subcls.using(min_desired_rounds=large - 2)
         self.assertEqual(temp.min_desired_rounds, large - 2)
 
-        # .replace() should allow values above previous desired maximum, w/o warning
+        # .using() should allow values above previous desired maximum, w/o warning
         with self.assertWarningList([]):
-            temp = subcls.replace(max_desired_rounds=large + 1)
+            temp = subcls.using(max_desired_rounds=large + 1)
         self.assertEqual(temp.max_desired_rounds, large + 1)
 
         # hash() etc should allow explicit values above desired minimum, w/o warning
-        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .replace()
+        # NOTE: formerly issued a warning in passlib 1.6, now just a wrapper for .using()
         self.assertEqual(get_effective_rounds(subcls, large - 1), large - 1)
         self.assertEqual(get_effective_rounds(subcls, large), large)
         with self.assertWarningList([]):
             self.assertEqual(get_effective_rounds(subcls, large + 1), large + 1)
 
         # 'max_rounds' should be treated as alias for 'max_desired_rounds'
-        temp = handler.replace(max_rounds=large)
+        temp = handler.using(max_rounds=large)
         self.assertEqual(temp.max_desired_rounds, large)
 
         # should be able to specify strings
-        temp = handler.replace(max_desired_rounds=str(large))
+        temp = handler.using(max_desired_rounds=str(large))
         self.assertEqual(temp.max_desired_rounds, large)
 
         # invalid strings should cause error
-        self.assertRaises(ValueError, handler.replace, max_desired_rounds=str(large) + "xxx")
+        self.assertRaises(ValueError, handler.using, max_desired_rounds=str(large) + "xxx")
 
-    def test_has_rounds_replace_w_default_rounds(self):
+    def test_has_rounds_using_w_default_rounds(self):
         """
-        HasRounds.replace() -- default_rounds
+        HasRounds.using() -- default_rounds
         """
         # setup helpers
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
@@ -1635,63 +1635,63 @@ class HandlerCase(TestCase):
         # XXX: are there any other cases that need testing?
 
         # implicit default rounds -- increase to min_rounds
-        temp = subcls.replace(min_rounds=medium+1)
+        temp = subcls.using(min_rounds=medium+1)
         self.assertEqual(temp.default_rounds, medium+1)
 
         # implicit default rounds -- decrease to max_rounds
-        temp = subcls.replace(max_rounds=medium-1)
+        temp = subcls.using(max_rounds=medium-1)
         self.assertEqual(temp.default_rounds, medium-1)
 
         # explicit default rounds below desired minimum
         # XXX: make this a warning if min is implicit?
-        self.assertRaises(ValueError, subcls.replace, default_rounds=small-1)
+        self.assertRaises(ValueError, subcls.using, default_rounds=small-1)
 
         # explicit default rounds above desired maximum
         # XXX: make this a warning if max is implicit?
         if orig_max_rounds:
-            self.assertRaises(ValueError, subcls.replace, default_rounds=large+1)
+            self.assertRaises(ValueError, subcls.using, default_rounds=large+1)
 
         # hash() etc should implicit default rounds, but get overridden
         self.assertEqual(get_effective_rounds(subcls), medium)
         self.assertEqual(get_effective_rounds(subcls, medium+1), medium+1)
 
         # should be able to specify strings
-        temp = handler.replace(default_rounds=str(medium))
+        temp = handler.using(default_rounds=str(medium))
         self.assertEqual(temp.default_rounds, medium)
 
         # invalid strings should cause error
-        self.assertRaises(ValueError, handler.replace, default_rounds=str(medium) + "xxx")
+        self.assertRaises(ValueError, handler.using, default_rounds=str(medium) + "xxx")
 
-    def test_has_rounds_replace_w_rounds(self):
+    def test_has_rounds_using_w_rounds(self):
         """
-        HasRounds.replace() -- rounds
+        HasRounds.using() -- rounds
         """
         # setup helpers
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
         orig_max_rounds = handler.max_rounds
 
         # 'rounds' should be treated as fallback for min, max, and default
-        temp = subcls.replace(rounds=medium+1)
+        temp = subcls.using(rounds=medium+1)
         self.assertEqual(temp.min_desired_rounds, medium+1)
         self.assertEqual(temp.default_rounds, medium+1)
         self.assertEqual(temp.max_desired_rounds, medium+1)
 
         # 'rounds' should be treated as fallback for min, max, and default
-        temp = subcls.replace(rounds=medium+1, min_rounds=small+1,
+        temp = subcls.using(rounds=medium+1, min_rounds=small+1,
                             default_rounds=medium, max_rounds=large-1)
         self.assertEqual(temp.min_desired_rounds, small+1)
         self.assertEqual(temp.default_rounds, medium)
         self.assertEqual(temp.max_desired_rounds, large-1)
 
-    def test_has_rounds_replace_w_vary_rounds_parsing(self):
+    def test_has_rounds_using_w_vary_rounds_parsing(self):
         """
-        HasRounds.replace() -- vary_rounds parsing
+        HasRounds.using() -- vary_rounds parsing
         """
         # setup helpers
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
 
         def parse(value):
-            return subcls.replace(vary_rounds=value).vary_rounds
+            return subcls.using(vary_rounds=value).vary_rounds
 
         # floats should be preserved
         self.assertEqual(parse(0.1), 0.1)
@@ -1716,9 +1716,9 @@ class HandlerCase(TestCase):
         #       though there's a faint chance it will randomly fail.
         seen = set(get_effective_rounds(cls) for _ in irange(500))
 
-    def test_has_rounds_replace_w_vary_rounds_generation(self):
+    def test_has_rounds_using_w_vary_rounds_generation(self):
         """
-        HasRounds.replace() -- vary_rounds generation
+        HasRounds.using() -- vary_rounds generation
         """
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
 
@@ -1727,7 +1727,7 @@ class HandlerCase(TestCase):
             return min(seen), max(seen)
 
         def assert_rounds_range(vary_rounds, lower, upper):
-            temp = subcls.replace(vary_rounds=vary_rounds)
+            temp = subcls.using(vary_rounds=vary_rounds)
             seen_lower, seen_upper = get_effective_range(temp)
             self.assertEqual(seen_lower, lower, "vary_rounds had wrong lower limit:")
             self.assertEqual(seen_upper, upper, "vary_rounds had wrong upper limit:")
@@ -1749,7 +1749,7 @@ class HandlerCase(TestCase):
         else:
             # for linear rounds, range is frequently so huge, won't ever see ends.
             # so we just check it's within an expected range.
-            lower, upper = get_effective_range(subcls.replace(vary_rounds="50%"))
+            lower, upper = get_effective_range(subcls.using(vary_rounds="50%"))
 
             self.assertGreaterEqual(lower, max(small, medium * 0.5))
             self.assertLessEqual(lower, max(small, medium * 0.8))
@@ -1757,13 +1757,13 @@ class HandlerCase(TestCase):
             self.assertGreaterEqual(upper, min(large, medium * 1.2))
             self.assertLessEqual(upper, min(large, medium * 1.5))
 
-    def test_has_rounds_replace_and_needs_update(self):
+    def test_has_rounds_using_and_needs_update(self):
         """
-        HasRounds.replace() -- desired_rounds + needs_update()
+        HasRounds.using() -- desired_rounds + needs_update()
         """
         handler, subcls, small, medium, large = self._create_using_rounds_helper()
 
-        temp = subcls.replace(min_desired_rounds=small+2, max_desired_rounds=large-2)
+        temp = subcls.using(min_desired_rounds=small+2, max_desired_rounds=large-2)
 
         # generate some sample hashes
         small_hash = self.do_stub_encrypt(subcls, rounds=small)
@@ -1839,8 +1839,8 @@ class HandlerCase(TestCase):
 
     # TODO: check various supported idents
 
-    def test_has_many_idents_replace(self):
-        """HasManyIdents.replace() -- 'default_ident' and 'ident' keywords"""
+    def test_has_many_idents_using(self):
+        """HasManyIdents.using() -- 'default_ident' and 'ident' keywords"""
         self.require_many_idents()
 
         # pick alt ident to test with
@@ -1858,11 +1858,11 @@ class HandlerCase(TestCase):
             return cls(use_defaults=True).ident
 
         # keep default if nothing else specified
-        subcls = handler.replace()
+        subcls = handler.using()
         self.assertEqual(subcls.default_ident, orig_ident)
 
         # accepts alt ident
-        subcls = handler.replace(default_ident=alt_ident)
+        subcls = handler.using(default_ident=alt_ident)
         self.assertEqual(subcls.default_ident, alt_ident)
         self.assertEqual(handler.default_ident, orig_ident)
 
@@ -1872,20 +1872,20 @@ class HandlerCase(TestCase):
         self.assertEqual(effective_ident(handler), orig_ident)
 
         # rejects bad ident
-        self.assertRaises(ValueError, handler.replace, default_ident='xXx')
+        self.assertRaises(ValueError, handler.using, default_ident='xXx')
 
         # honor 'ident' alias
-        subcls = handler.replace(ident=alt_ident)
+        subcls = handler.using(ident=alt_ident)
         self.assertEqual(subcls.default_ident, alt_ident)
         self.assertEqual(handler.default_ident, orig_ident)
 
         # forbid both at same time
-        self.assertRaises(TypeError, handler.replace, default_ident=alt_ident, ident=alt_ident)
+        self.assertRaises(TypeError, handler.using, default_ident=alt_ident, ident=alt_ident)
 
         # check ident aliases are being honored
         if handler.ident_aliases:
             for alias, ident in handler.ident_aliases.items():
-                subcls = handler.replace(ident=alias)
+                subcls = handler.using(ident=alias)
                 self.assertEqual(subcls.default_ident, ident, msg="alias %r:" % alias)
 
     #===================================================================
@@ -2448,7 +2448,7 @@ class HandlerCase(TestCase):
         # NOTE: using subclass so we can load alt backend in threadsafe manner
         if hasattr(handler, "backends") and TEST_MODE("full"):
             def maker(backend):
-                sub_handler = handler.replace()
+                sub_handler = handler.using()
                 sub_handler.set_backend(backend)
                 def func(secret, hash):
                     return sub_handler.verify(secret, hash)
@@ -2631,7 +2631,7 @@ class OsCryptMixin(HandlerCase):
             raise AssertionError("handler has no available alternate backends!")
 
         # create subclass of handler, which we swap to an alternate backend
-        alt_handler = handler.replace()
+        alt_handler = handler.using()
         alt_handler.set_backend(alt_backend)
 
         def crypt_stub(secret, hash):

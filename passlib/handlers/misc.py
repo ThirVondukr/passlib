@@ -116,8 +116,8 @@ class unix_disabled(uh.MinimalHandler):
         default_marker = u("!")
 
     @classmethod
-    def replace(cls, marker=None, **kwds):
-        subcls = super(unix_disabled, cls).replace(**kwds)
+    def using(cls, marker=None, **kwds):
+        subcls = super(unix_disabled, cls).using(**kwds)
         if marker is not None:
             if not cls.identify(marker):
                 raise ValueError("invalid marker: %r" % marker)
@@ -158,7 +158,7 @@ class unix_disabled(uh.MinimalHandler):
     def hash(cls, secret, **kwds):
         if kwds:
             uh.warn_hash_settings_deprecation(cls, kwds)
-            return cls.replace(**kwds).hash(secret)
+            return cls.using(**kwds).hash(secret)
         uh.validate_secret(secret)
         marker = cls.default_marker
         assert marker and cls.identify(marker)
@@ -175,7 +175,7 @@ class unix_disabled(uh.MinimalHandler):
             return to_native_str(config, param="config")
         else:
             if marker is not None:
-                cls = cls.replace(marker=marker)
+                cls = cls.using(marker=marker)
             return cls.hash(secret)
 
 class plaintext(uh.MinimalHandler):
