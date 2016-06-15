@@ -96,9 +96,8 @@ of simultaneous logon attempts (e.g. web apps).
 .. note::
 
     For BCrypt support on non-BSD systems,
-    Passlib requires the C-extension provided by
-    `py-bcrypt <http://code.google.com/p/py-bcrypt/>`_.
-    (py-bcrypt does not currently support Python 3).
+    Passlib requires the C-extension provided by the
+    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ package.
 
 SHA512-Crypt
 ............
@@ -115,7 +114,7 @@ on 32 bit processors; as well as LDAP-formatted versions of these (
 
 Issues: Like :class:`~passlib.hash.md5_crypt`, its algorithm
 composes the underlying message digest hash in a baroque
-and somewhat arbitrary set combinations.
+and somewhat arbitrary set of combinations.
 So far this "kitchen sink" design has been successful in its
 primary purpose: to prevent any attempts to create an optimized
 version for use in a pre-computed or brute-force search.
