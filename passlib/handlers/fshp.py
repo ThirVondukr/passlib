@@ -104,7 +104,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def using(cls, variant=None, **kwds):
         subcls = super(fshp, cls).using(**kwds)
         if variant is not None:
-            subcls.default_variant = cls(use_defaults=True)._norm_variant(variant)
+            subcls.default_variant = cls._norm_variant(variant)
         return subcls
 
     #===================================================================
@@ -118,24 +118,28 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def __init__(self, variant=None, **kwds):
         # NOTE: variant must be set first, since it controls checksum size, etc.
         self.use_defaults = kwds.get("use_defaults") # load this early
-        self.variant = self._norm_variant(variant)
+        if variant is not None:
+            variant = self._norm_variant(variant)
+        elif self.use_defaults:
+            variant = self.default_variant
+            assert self._norm_variant(variant) == variant, "invalid default variant: %r" % (variant,)
+        else:
+            raise TypeError("no variant specified")
+        self.variant = variant
         super(fshp, self).__init__(**kwds)
 
-    def _norm_variant(self, variant):
-        if variant is None:
-            if not self.use_defaults:
-                raise TypeError("no variant specified")
-            variant = self.default_variant
+    @classmethod
+    def _norm_variant(cls, variant):
         if isinstance(variant, bytes):
             variant = variant.decode("ascii")
         if isinstance(variant, unicode):
             try:
-                variant = self._variant_aliases[variant]
+                variant = cls._variant_aliases[variant]
             except KeyError:
                 raise ValueError("invalid fshp variant")
         if not isinstance(variant, int):
             raise TypeError("fshp variant must be int or known alias")
-        if variant not in self._variant_info:
+        if variant not in cls._variant_info:
             raise ValueError("invalid fshp variant")
         return variant
 
