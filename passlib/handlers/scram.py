@@ -291,10 +291,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         # fill in algs
         if default_algs is not None:
-            # hack so we can use _norm_algs even though it's an instance method.
-            # XXX: use_defaults is only thing keeping it from being a classmethod.
-            subcls.default_algs = cls(use_defaults=True)._norm_algs(default_algs)
-
+            subcls.default_algs = cls._norm_algs(default_algs)
         return subcls
 
     #===================================================================
@@ -302,7 +299,22 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #===================================================================
     def __init__(self, algs=None, **kwds):
         super(scram, self).__init__(**kwds)
-        self.algs = self._norm_algs(algs)
+
+        # init algs
+        digest_map = self.checksum
+        if algs is not None:
+            if digest_map is not None:
+                raise RuntimeError("checksum & algs kwds are mutually exclusive")
+            algs = self._norm_algs(algs)
+        elif digest_map is not None:
+            # derive algs list from digest map (if present).
+            algs = self._norm_algs(digest_map.keys())
+        elif self.use_defaults:
+            algs = list(self.default_algs)
+            assert self._norm_algs(algs) == algs, "invalid default algs: %r" % (algs,)
+        else:
+            raise TypeError("no algs list specified")
+        self.algs = algs
 
     def _norm_checksum(self, checksum, relaxed=False):
         if not isinstance(checksum, dict):
@@ -322,22 +334,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return checksum
 
-    def _norm_algs(self, algs):
+    @classmethod
+    def _norm_algs(cls, algs):
         """normalize algs parameter"""
-        # determine default algs value
-        if algs is None:
-            # derive algs list from checksum (if present).
-            chk = self.checksum
-            if chk is not None:
-                return sorted(chk)
-            elif self.use_defaults:
-                return list(self.default_algs)
-            else:
-                raise TypeError("no algs list specified")
-        elif self.checksum is not None:
-            raise RuntimeError("checksum & algs kwds are mutually exclusive")
-
-        # parse args value
         if isinstance(algs, native_string_types):
             algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
