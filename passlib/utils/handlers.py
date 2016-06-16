@@ -1026,31 +1026,35 @@ class HasManyIdents(GenericHandler):
     #===================================================================
     def __init__(self, ident=None, **kwds):
         super(HasManyIdents, self).__init__(**kwds)
-        self.ident = self._norm_ident(ident)
 
-    def _norm_ident(self, ident):
+        # init ident
+        if ident is not None:
+            ident = self._norm_ident(ident)
+        elif self.use_defaults:
+            ident = self.default_ident
+            assert ident is not None, "class must define default_ident"
+            assert self._norm_ident(ident) == ident, "invalid default ident: %r" % (ident,)
+        else:
+            raise TypeError("no ident specified")
+        self.ident = ident
+
+    @classmethod
+    def _norm_ident(cls, ident):
         """
         helper which normalizes & validates 'ident' value.
         """
-        # fill in default_ident if needed
-        if ident is None:
-            if not self.use_defaults:
-                raise TypeError("no ident specified")
-            ident = self.default_ident
-            assert ident is not None, "class must define default_ident"
-
         # handle bytes
         assert ident is not None
         if isinstance(ident, bytes):
             ident = ident.decode('ascii')
 
         # check if identifier is valid
-        iv = self.ident_values
+        iv = cls.ident_values
         if ident in iv:
             return ident
 
         # resolve aliases, and recheck against ident_values
-        ia = self.ident_aliases
+        ia = cls.ident_aliases
         if ia:
             try:
                 value = ia[ident]
