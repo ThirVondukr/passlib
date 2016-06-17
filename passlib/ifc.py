@@ -206,7 +206,7 @@ class PasswordHash(object):
         #       with a constant-time implementation that just renders a config string.
         if cls.context_kwds:
             raise NotImplementedError("must be implemented by subclass")
-        return cls.hash("", **setting_kwds)
+        return cls.using(**setting_kwds).hash("")
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
