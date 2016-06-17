@@ -233,7 +233,7 @@ class _bcrypt_test(HandlerCase):
             return
         if not _detect_pybcrypt():
             return
-        hash.bcrypt._load_backend_pybcrypt()
+        hash.bcrypt._load_backend_pybcrypt()  # called for side-effect of init'ing lock
         lock = hash.bcrypt._calc_lock # reuse threadlock workaround for pybcrypt 0.2
         def check_pybcrypt(secret, hash):
             """pybcrypt"""

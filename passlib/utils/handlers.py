@@ -4,6 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
+from functools import partial
 import inspect
 import logging; log = logging.getLogger(__name__)
 import math
@@ -18,7 +19,7 @@ from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, to_unicode, deprecated_method, \
-                          MAX_PASSWORD_SIZE
+                          MAX_PASSWORD_SIZE, accepts_keyword
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
@@ -1815,24 +1816,10 @@ class HasRounds(GenericHandler):
 #------------------------------------------------------------------------
 # backend mixin & helpers
 #------------------------------------------------------------------------
-##def _clear_backend(cls):
-##    "restore HasManyBackend subclass to unloaded state - used by unittests"
-##    assert issubclass(cls, HasManyBackends) and cls is not HasManyBackends
-##    if cls._backend:
-##        del cls._backend
-##        del cls._calc_checksum
-
-class HasManyBackends(GenericHandler):
-    """GenericHandler mixin which provides selecting from multiple backends.
-
-    .. todo::
-
-        finish documenting this class's usage
-
-    For hashes which need to select from multiple backends,
-    depending on the host environment, this class
-    offers a way to specify alternate :meth:`_calc_checksum` methods,
-    and will dynamically chose the best one at runtime.
+class BackendMixin(PasswordHash):
+    """
+    PasswordHash mixin which provides generic framework for supporting multiple backends
+    within the class.
 
     Public API
     ----------
@@ -1850,36 +1837,269 @@ class HasManyBackends(GenericHandler):
 
     .. warning::
 
-        :meth:`set_backend` and :meth:`has_backend` are intended to be called
-        during application startup -- they affect global state, are not threadsafe.
+        :meth:`set_backend` is intended to be called during application startup --
+        it affects global state, and switching backends is not guaranteed threadsafe.
 
     Private API (Subclass Hooks)
     ----------------------------
-    The following attributes and methods should be filled in by the subclass
-    which is using :class:`HasManyBackends` as a mixin:
+    Subclasses should set the :attr:`!backends` attribute to a tuple of the backends
+    they wish to support.  They should also define one method:
 
-    .. attribute:: _load_backend_{name}
+    .. classmethod:: _load_backend_{name}(dryrun=False)
 
-        private class method that should try to load the specified backend,
-        one of which should be provided for each backend listed in :attr:`backends`.
+        One copy of this method should be defined for each :samp:`name` within :attr:`!backends`.
 
-        * if backend isn't available, it should return ``None``.
-        * if backend is available, it should return a callable
-          which implements :meth:`_calc_checksum`.
-        * it may also do things like import modules, run tests, issue warnings,
-          etc; though it should avoid doing things which would change the operation
-          of other backends (e.g. modify ``cls.default_rounds``).
+        It will be called in order to load the backend, and should take care of whatever
+        is needed to enable the backend.  This may include importing modules, running tests,
+        issuing warnings, etc.
 
-        .. versionadded:: 1.7
+        :param dryrun:
+            if True, this should be treated as a dry run -- the method should perform
+            all setup actions *except* switching the class over to the new backend.
+            it should default to False.
+
+            this keyword is optional, methods can omit it if they are stateless.
+
+        :raises passlib.exc.PasslibSecurityError:
+            if the backend is available, but cannot be loaded due to a security issue.
+
+        :returns:
+            None / False if backend not available.
+            Otherwise it can return any boolean-true value,
+            which will be passed on to :meth:`!_finalize_backend`,
+            (to be ignored or used however is appropriate for the class).
 
         .. warning::
 
             Due to the way passlib's internals are arranged,
-            backends should always store stateful data at the class level
+            backends should generally store stateful data at the class level
             (not the module level), and be prepared to be called on subclasses
             which may be set to a different backend from their parent.
 
-            Idempotent module-level data such as lazy imports are fine.
+            (Idempotent module-level data such as lazy imports are fine).
+
+    .. automethod:: _finalize_backend
+
+    .. versionadded:: 1.7
+    """
+    #===================================================================
+    # class attrs
+    #===================================================================
+
+    #: list of backend names, provided by subclass.
+    backends = None
+
+    #: private attr mixin uses to hold currently loaded backend (or ``None``)
+    __backend = None
+
+    #: optional class-specific text containing suggestion about what to do
+    #: when no backends are available.
+    _no_backend_suggestion = None
+
+    #: optionally non-inherited flag used to detect which class 'owns' the backend
+    _backend_owner = False
+
+    #===================================================================
+    # public api
+    #===================================================================
+
+    @classmethod
+    def get_backend(cls):
+        """
+        Return name of currently active backend.
+        if no backend has been loaded, loads and returns name of default backend.
+
+        :raises passlib.exc.MissingBackendError:
+            if no backends are available.
+
+        :returns:
+            name of active backend
+        """
+        if not cls.__backend:
+            cls.set_backend()
+            assert cls.__backend, "set_backend() failed to load a default backend"
+        return cls.__backend
+
+    @classmethod
+    def has_backend(cls, name="any"):
+        """
+        Check if support is currently available for specified backend.
+
+        :arg name:
+            name of backend to check for.
+            can be any string accepted by :meth:`set_backend`.
+
+        :raises ValueError:
+            if backend name is unknown
+
+        :returns:
+            * ``True`` if backend is available.
+            * ``False`` if it's not.
+            * ``None`` if it's present, but won't load due to a security issue.
+        """
+        try:
+            cls.set_backend(name, dryrun=True)
+            return True
+        except exc.MissingBackendError:
+            return False
+        except exc.PasslibSecurityError:
+            return None
+
+    @classmethod
+    def set_backend(cls, name="any", dryrun=False):
+        """
+        Load specified backend.
+
+        :arg name:
+            name of backend to load, can be any of the following:
+
+            * ``"any"`` -- use current backend if one is loaded,
+              otherwise load the first available backend.
+
+            * ``"default"`` -- use the first available backend.
+
+            * any string in :attr:`backends`, loads specified backend.
+
+        :param dryrun:
+            If True, this perform all setup actions *except* switching over to the new backend.
+            (this flag is used to implement :meth:`has_backend`).
+
+            .. versionadded:: 1.7
+
+        :raises ValueError:
+            If backend name is unknown.
+
+        :raises passlib.exc.MissingBackendError:
+            If specific backend is missing;
+            or in the case of ``"any"`` / ``"default"``, if *no* backends are available.
+
+        :raises passlib.exc.PasslibSecurityError:
+
+            If ``"any"`` or ``"default"`` was specified,
+            but the only backend available has a PasslibSecurityError.
+        """
+        # check if active backend is acceptable
+        if (name == "any" and cls.__backend) or (name and name == cls.__backend):
+            return cls.__backend
+
+        # check if parent class set marker indicating it should always be used to set backend
+        # (and not a subclass)
+        if cls._backend_owner and not cls.__dict__.get("_backend_owner"):
+            for base in cls.__mro__:
+                if base.__dict__.get("_backend_owner"):
+                    return base.set_backend(name, dryrun=dryrun)
+            raise AssertionError("expected to find class w/ '_backend_owner' set")
+
+        # pick first available backend
+        if name == "any" or name == "default":
+            default_error = None
+            for name in cls.backends:
+                try:
+                    return cls.set_backend(name, dryrun=dryrun)
+                except exc.MissingBackendError:
+                    continue
+                except exc.PasslibSecurityError as err:
+                    # backend is available, but refuses to load due to security issue.
+                    if default_error is None:
+                        default_error = err
+                    continue
+            if default_error is None:
+                msg = "%s: no backends available" % cls.name
+                if cls._no_backend_suggestion:
+                    msg += cls._no_backend_suggestion
+                default_error = exc.MissingBackendError(msg)
+            raise default_error
+
+        # validate name
+        if name not in cls.backends:
+            raise ValueError("%s: unknown backend: %r" % (cls.name, name))
+
+        # hand off to loader
+        loader = cls._get_backend_loader(name)
+        if accepts_keyword(loader, "dryrun"):
+            result = loader(dryrun=dryrun)
+        else:
+            result = loader()
+        if not result:
+            raise exc.MissingBackendError("%s: backend not available: %s" % (cls.name, name))
+        cls._finalize_backend(name, result, dryrun=dryrun)
+        if not dryrun:
+            # XXX: would it be better to do this in _finalize_backend()? might simplify bcrypt handler
+            cls.__backend = name
+        # return name
+
+    #===================================================================
+    # subclass hooks
+    #===================================================================
+
+    @classmethod
+    def _get_backend_loader(cls, name):
+        """
+        helper to support legacy HasManyBackends;
+        this hook may be removed in passlib 2.0.
+        """
+        return getattr(cls, "_load_backend_" + name)
+
+    @classmethod
+    def _finalize_backend(cls, name, result, dryrun=False):
+        """
+        hook called by :meth:`set_backend` after loader returns.
+        it should perform common tests & finalization.
+        this may be subclassed in order to perform class-specific actions
+        with the result of a backend.
+
+        :param name:
+            name of backend
+
+        :param result:
+            value returned by backend
+
+        :param dryrun:
+            dryrun flag passed to set_backend()
+        """
+        pass
+
+    @classmethod
+    def _stub_requires_backend(cls):
+        """
+        helper for subclasses to create stub methods which auto-load backend.
+        """
+        if cls.__backend:
+            raise AssertionError("%s: _finalize_backend(%r) failed to replace lazy loader" %
+                                 (cls.name, cls.__backend))
+        cls.set_backend()
+        if not cls.__backend:
+            raise AssertionError("%s: set_backend() failed to load a default backend" %
+                                 (cls.name))
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
+class HasManyBackends(BackendMixin, GenericHandler):
+    """
+    GenericHandler mixin which provides selecting from multiple backends.
+
+    .. todo::
+
+        finish documenting this class's usage
+
+    For hashes which need to select from multiple backends,
+    depending on the host environment, this class
+    offers a way to specify alternate :meth:`_calc_checksum` methods,
+    and will dynamically chose the best one at runtime.
+
+    .. versionchanged:: 1.7
+
+        This class now derives from :class:`BackendMixin`, which abstracts
+        out a more generic framework for supporting multiple backends.
+        The public api (:meth:`!get_backend`, :meth:`!has_backend`, :meth:`!set_backend`)
+        is roughly the same.
+
+    Private API (Subclass Hooks)
+    ----------------------------
+    As of version 1.7, classes should implement :meth:`!_load_backend_{name}`, per
+    :class:`BackendMixin`.  The following api is deprecated:
 
     .. attribute:: _has_backend_{name}
 
@@ -1903,200 +2123,78 @@ class HasManyBackends(GenericHandler):
         .. deprecated:: 1.7
 
             use :attr:`_load_backend_{name}` instead.
-            this attribute will be ignored in Passlib 2.0.
+            this attribute will not have special meaning in Passlib 2.0.
     """
-    backends = None # list of backend names, provided by subclass.
+    #===================================================================
+    # digest calculation
+    #===================================================================
 
-    _backend = None # holds currently loaded backend (if any) or None
-
-    #: optional class-specific text containing suggestion about what to do
-    #: when no backends are available.
-    _no_backend_suggestion = None
-
-    @classmethod
-    def get_backend(cls):
-        """return name of currently active backend.
-
-        if no backend has been loaded,
-        loads and returns name of default backend.
-
-        :raises passlib.exc.MissingBackendError: if no backends are available.
-
-        :returns: name of active backend
-        """
-        if not cls._backend:
-            cls.set_backend()
-            assert cls._backend, "set_backend() failed to load a default backend"
-        return cls._backend
-
-    @classmethod
-    def has_backend(cls, name="any"):
-        """check if support is currently available for specified backend.
-
-        :arg name:
-            name of backend to check for.
-            defaults to ``"any"``,
-            but can be any string accepted by :meth:`set_backend`.
-
-        :raises ValueError: if backend name is unknown
-
-        :returns:
-            ``True`` if backend is currently supported,
-            ``False`` if it's not,
-            and ``None`` if it's present, but won't load due to a security issue.
-        """
-        if name == "any" or name == "default":
-            if cls._backend:
-                return True
-            try:
-                cls.set_backend()
-                return True
-            except exc.PasslibSecurityError:
-                return None
-            except exc.MissingBackendError:
-                return False
-        else:
-            try:
-                return cls._load_backend(name) is not None
-            except exc.PasslibSecurityError:
-                return None
-
-    @classmethod
-    def set_backend(cls, name="any"):
-        """load specified backend to be used for future _calc_checksum() calls
-
-        this method replaces :meth:`_calc_checksum` with a method
-        which uses the specified backend.
-
-        :arg name:
-            name of backend to load, defaults to ``"any"``.
-            this can be any of the following values:
-
-            * any string in :attr:`backends`,
-              indicating the specific backend to use.
-
-            * the special string ``"default"``, which means to use
-              the preferred backend on the given host
-              (this is generally the first backend in :attr:`backends`
-              which can be loaded).
-
-            * the special string ``"any"``, which means to use
-              the current backend if one has been loaded,
-              else acts like ``"default"``.
-
-        :raises passlib.exc.MissingBackendError:
-            * ... if a specific backend was requested,
-              but is not currently available.
-
-            * ... if ``"any"`` or ``"default"`` was specified,
-              and *no* backends are currently available.
-
-        :raises passlib.exc.PasslibSecurityError:
-
-            if ``"any"`` or ``"default"`` was specified,
-            but the only backend available has a PasslibSecurityError.
-            may be raised by the loading code, or by a subclassed set_backend() function.
-
-        :returns:
-            The return value of this function should be ignored.
-        """
-        if name == "any" and cls._backend:
-            # keep active backend
-            return cls._backend
-        elif name == "any" or name == "default":
-            # select default backend
-            failed_name = None
-            for name in cls.backends:
-                try:
-                    calc = cls._load_backend(name)
-                except exc.PasslibSecurityError:
-                    # backend is available, but refuses to load due to security issue.
-                    if failed_name is None:
-                        failed_name = name
-                    continue
-                if calc:
-                    break
-                assert calc is None
-            else:
-                if failed_name:
-                    # if there was at least one backend, but it had a PasslibSecurityError,
-                    # report that to the user rather than MissingBackendError
-                    cls._load_backend(failed_name)
-                msg = "%s: no backends available" % cls.name
-                if cls._no_backend_suggestion:
-                    msg += cls._no_backend_suggestion
-                raise exc.MissingBackendError(msg)
-        else:
-            # select specific backend
-            calc = cls._load_backend(name)
-            if not calc:
-                assert calc is None
-                raise exc.MissingBackendError("%s: backend not available: %s" %
-                                              (cls.name, name))
-        # load backend into class
+    def _calc_checksum(self, secret):
+        "wrapper for backend, for common code"""
         # NOTE: not overwriting _calc_checksum() directly, so that classes can provide
         #       common behavior in that method,
         #       and then invoke _calc_checksum_backend() to do the work.
-        assert callable(calc)
-        cls._calc_checksum_backend = calc
-        cls._backend = name
-        return name
+        return self._calc_checksum_backend(secret)
 
-    @classmethod
-    def _load_backend(cls, name):
-        """helper used by has_backend() & set_backend(), loads specified backend.
-
-        :raises ValueError: if invalid backend name is provided
-
-        :raises passlib.exc.SecurityError:
-            backend code itself is allowed to raise this if backend is available,
-            but a fatal security issue was found.
-
-        :returns:
-            * ``None`` if backend can't be loaded.
-            * backend-specific ``_calc_checksum()`` callable on success.
+    def _calc_checksum_backend(self, secret):
         """
-        # validate name
-        if name not in cls.backends:
-            raise ValueError("%s: unknown backend: %r" % (cls.name, name))
+        stub for _calc_checksum_backend() --
+        should load backend if one hasn't been loaded;
+        if one has been loaded, this method should have been monkeypatched by _finalize_backend().
+        """
+        self._stub_requires_backend()
+        return self._calc_checksum_backend(secret)
 
-        # new in v1.7: check for _load_backend_xxx() function
-        load = getattr(cls, "_load_backend_" + name, None)
-        if load is not None:
+    #===================================================================
+    # BackendMixin hooks
+    #===================================================================
+    @classmethod
+    def _get_backend_loader(cls, name):
+        """
+        subclassed to support legacy 1.6 HasManyBackends api.
+        (will be removed in passlib 2.0)
+        """
+        # check for 1.7 loader
+        loader = getattr(cls, "_load_backend_" + name, None)
+        if loader is None:
+            # fallback to pre-1.7 _has_backend_xxx + _calc_checksum_xxx() api
+            loader = partial(cls._load_legacy_backend, name)
+        else:
+            # make sure 1.6 api isn't defined at same time
             assert not hasattr(cls, "_has_backend_" + name), (
                 "%s: can't specify both ._load_backend_%s() "
                 "and ._has_backend_%s" % (cls.name, name, name)
                 )
-            return load()
+        return loader
 
-        # fallback to _has_backend_xxx + _calc_checksum_xxx() style
+    @classmethod
+    def _load_legacy_backend(cls, name):
         value = getattr(cls, "_has_backend_" + name)
         warn("%s: support for ._has_backend_%s is deprecated as of Passlib 1.7, "
-             "and will be removed in Passlib 2.0, please implement "
+             "and will be removed in Passlib 1.9/2.0, please implement "
              "._load_backend_%s() instead" % (cls.name, name, name),
              DeprecationWarning,
              )
         if value:
             return getattr(cls, "_calc_checksum_" + name)
         else:
-            return None
+            return False
 
-    def _calc_checksum_backend(self, secret):
+    @classmethod
+    def _finalize_backend(cls, name, result, dryrun=False):
         """
-        stub for _calc_checksum_backend(),
-        the default backend will be selected the first time stub is called.
+        subclass to implement the common behavior used by the HasManyBackend subclasses --
+        backends should return a callable for use as _calc_checksum_backend()
         """
-        # if we got here, no backend has been loaded; so load default backend
-        assert not self._backend, "set_backend() failed to replace lazy loader"
-        self.set_backend()
-        assert self._backend, "set_backend() failed to load a default backend"
+        if not callable(result):
+            raise RuntimeError("%s: backend %r returned invalid callable: %r" %
+                               (cls.name, name, result))
+        cls._calc_checksum_backend = result
+        return super(HasManyBackends, cls)._finalize_backend(name, result, dryrun=dryrun)
 
-        # this should now invoke the backend-specific version, so call it again.
-        return self._calc_checksum_backend(secret)
-
-    def _calc_checksum(self, secret):
-        "wrapper for backend, for common code"""
-        return self._calc_checksum_backend(secret)
+    #===================================================================
+    # eoc
+    #===================================================================
 
 #=============================================================================
 # wrappers

@@ -356,13 +356,22 @@ class SkeletonTest(TestCase):
 
             backends = ("a", "b")
 
+            _enable_a = False
+            _enable_b = False
+
             @classmethod
             def _load_backend_a(cls):
-                return None
+                if cls._enable_a:
+                    return cls._calc_checksum_a
+                else:
+                    return None
 
             @classmethod
             def _load_backend_b(cls):
-                return None
+                if cls._enable_b:
+                    return cls._calc_checksum_b
+                else:
+                    return None
 
             def _calc_checksum_a(self, secret):
                 return 'a'
@@ -378,7 +387,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.has_backend())
 
         # enable 'b' backend
-        d1._load_backend_b = classmethod(lambda cls: cls._calc_checksum_b)
+        d1._enable_b = True
 
         # test lazy load
         obj = d1()
@@ -395,7 +404,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.has_backend('a'))
 
         # enable 'a' backend also
-        d1._load_backend_a = classmethod(lambda cls: cls._calc_checksum_a)
+        d1._enable_a = True
 
         # test explicit
         self.assertTrue(d1.has_backend())

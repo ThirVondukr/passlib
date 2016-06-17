@@ -230,25 +230,21 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     def backends(cls):
         return _scrypt.backend_values
 
-    @classproperty
-    def backend(cls):
+    @classmethod
+    def get_backend(cls):
         return _scrypt.backend
 
     @classmethod
-    def get_backend(cls):
-        return cls.backend
-
-    @classmethod
     def has_backend(cls, name="any"):
-        if name == "any" or name == "default":
+        try:
+            cls.set_backend(name, dryrun=True)
             return True
-        else:
-            return _scrypt._load_backend(name) is not None
+        except uh.exc.MissingBackendError:
+            return False
 
     @classmethod
-    def set_backend(cls, name="any"):
-        if name != "any":
-            _scrypt._set_backend(name)
+    def set_backend(cls, name="any", dryrun=False):
+        _scrypt._set_backend(name, dryrun=dryrun)
 
     #===================================================================
     # calc checksum

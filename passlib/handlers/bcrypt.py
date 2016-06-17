@@ -279,16 +279,21 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     # backend capability/bug detection
     #---------------------------------------------------------------
     @classmethod
-    def set_backend(cls, *a, **k):
-        backend = super(bcrypt, cls).set_backend(*a, **k)
-        cls._scan_backend(backend)
-        return backend
+    def set_backend(cls, name="any", dryrun=False):
+        """
+        subclass hook to handle workaround detection
+        """
+        super(bcrypt, cls).set_backend(name, dryrun=dryrun)
+        if not dryrun:
+            cls._configure_workarounds()
 
     @classmethod
-    def _scan_backend(cls, backend):
+    def _configure_workarounds(cls, backend):
         """
-        check for known bugs & feature support once backend is loaded
+        detect & configure workarounds for specific backend
         """
+        backend = cls.get_backend()
+
         # check for cryptblowfish 8bit bug (fixed in 2y/2b);
         # even though it's not known to be present in any of passlib's backends.
         # this is treated as FATAL, because it can easily result in seriously malformed hashes,
@@ -438,7 +443,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         except:
             log.warning("(trapped) error reading bcrypt version", exc_info=True)
             version = '<unknown>'
-        log.debug("loaded 'bcrypt' backend, version %r", version)
+        log.debug("detected 'bcrypt' backend, version %r", version)
         return cls._calc_checksum_bcrypt
 
     def _calc_checksum_bcrypt(self, secret, config):
@@ -478,7 +483,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         except:
             log.warning("(trapped) error reading pybcrypt version", exc_info=True)
             version = "<unknown>"
-        log.debug("loaded 'pybcrypt' backend, version %r", version)
+        log.debug("detected 'pybcrypt' backend, version %r", version)
 
         # return calc function based on version
         vinfo = parse_version(version) or (0, 0)
@@ -570,10 +575,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     @classmethod
     def _load_backend_builtin(cls):
         if os.environ.get("PASSLIB_BUILTIN_BCRYPT") not in ["enable","enabled"]:
+            log.debug("bcrypt 'builtin' backend not enabled via $PASSLIB_BUILTIN_BCRYPT")
             return None
         global _builtin_bcrypt
-        if _builtin_bcrypt is None:
-            from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
+        from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
         return cls._calc_checksum_builtin
 
     def _calc_checksum_builtin(self, secret, config):

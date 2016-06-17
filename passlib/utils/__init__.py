@@ -7,6 +7,7 @@ from passlib.utils.compat import JYTHON
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
+import inspect
 import logging; log = logging.getLogger(__name__)
 import math
 import os
@@ -274,6 +275,11 @@ class SequenceMixin(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+def accepts_keyword(func, key):
+    """test if function accepts specified keyword"""
+    spec = inspect.getargspec(get_method_function(func))
+    return key in spec.args or spec.keywords is not None
 
 #=============================================================================
 # unicode helpers

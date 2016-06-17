@@ -162,7 +162,7 @@ def _load_backend(name):
         return _builtin_first_run
     raise ValueError("unknown scrypt backend %r" % name)
 
-def _set_backend(name):
+def _set_backend(name, dryrun=False):
     """
     set backend for scrypt(). if name not specified, loads first available.
 
@@ -170,20 +170,23 @@ def _set_backend(name):
 
     .. note:: mainly intended to be called by unittests, and scrypt hash handler
     """
-    if name == "default":
+    if name == "any":
+        return True
+    elif name == "default":
         for name in backend_values:
-            hash = _load_backend(name)
-            if hash:
-                break
-        else:
-            raise exc.MissingBackendError("no scrypt backends available")
+            try:
+                _set_backend(name, dryrun=dryrun)
+                return
+            except exc.MissingBackendError:
+                continue
+        raise exc.MissingBackendError("no scrypt backends available")
     else:
         hash = _load_backend(name)
         if not hash:
             raise exc.MissingBackendError("scrypt backend %r not available" % name)
-    global _scrypt, backend
-    backend = name
-    _scrypt = hash
+        global _scrypt, backend
+        backend = name
+        _scrypt = hash
 
 # initialize backend
 _set_backend("default")

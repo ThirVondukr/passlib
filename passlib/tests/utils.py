@@ -2445,13 +2445,15 @@ class HandlerCase(TestCase):
                     verifiers.append(func)
 
         # create verifiers for any other available backends
-        # NOTE: using subclass so we can load alt backend in threadsafe manner
         if hasattr(handler, "backends") and TEST_MODE("full"):
             def maker(backend):
-                sub_handler = handler.using()
-                sub_handler.set_backend(backend)
                 def func(secret, hash):
-                    return sub_handler.verify(secret, hash)
+                    orig_backend = handler.get_backend()
+                    try:
+                        handler.set_backend(backend)
+                        return handler.verify(secret, hash)
+                    finally:
+                        handler.set_backend(orig_backend)
                 func.__name__ = "check_" + backend + "_backend"
                 func.__doc__ = backend + "-backend"
                 return func
