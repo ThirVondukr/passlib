@@ -4,7 +4,6 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-from functools import partial
 import inspect
 import logging; log = logging.getLogger(__name__)
 import math
@@ -2250,7 +2249,8 @@ class HasManyBackends(BackendMixin, GenericHandler):
         loader = getattr(cls, "_load_backend_" + name, None)
         if loader is None:
             # fallback to pre-1.7 _has_backend_xxx + _calc_checksum_xxx() api
-            loader = partial(cls._load_legacy_backend, name)
+            def loader():
+                return cls._load_legacy_backend(name)
         else:
             # make sure 1.6 api isn't defined at same time
             assert not hasattr(cls, "_has_backend_" + name), (
