@@ -130,6 +130,7 @@ they can be used compatibly along side other modular crypt format hashes.
     passlib.hash.dlitz_pbkdf2_sha1
     passlib.hash.scram
     passlib.hash.scrypt
+    passlib.hash.argon2
 
 * :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible :doc:`nthash <passlib.hash.nthash>` encoding
 

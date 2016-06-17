@@ -1175,7 +1175,8 @@ class HandlerCase(TestCase):
         max_size = handler.max_salt_size
         salt_char = handler.salt_chars[0:1]
 
-        if max_size is None:
+        # NOTE: skipping this for hashes like argon2 since max_salt_size takes WAY too much memory
+        if max_size is None or max_size > (1 << 20):
             #
             # if it's not set, salt should never be truncated; so test it
             # with an unreasonably large salt.

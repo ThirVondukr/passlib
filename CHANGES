@@ -13,10 +13,6 @@ Release History
 
     The following tasks are blocking the 1.7 release:
 
-    * Get argon2 hash implemented (:issue:`69`).
-
-        - blocking on .using() api
-
     * Finish the :mod:`passlib.totp` module (:issue:`44`)
 
         - tests
@@ -63,6 +59,8 @@ Major Changes
 
     * :class:`~passlib.hash.scrypt` -- New password hash format which uses
       the SCrypt KDF (:issue:`8`).
+
+    * :class:`~passlib.hash.argon2` -- Support for the Argon2 password hash (:issue:`69`).
 
     * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
       rather than choking on them (:issue:`73`).

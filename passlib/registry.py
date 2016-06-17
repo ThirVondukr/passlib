@@ -81,6 +81,7 @@ _locations = dict(
     # NOTE: this is a hardcoded list of the handlers built into passlib,
     #       applications should call register_crypt_handler_path()
     apr_md5_crypt = "passlib.handlers.md5_crypt",
+    argon2 = "passlib.handlers.argon2",
     atlassian_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
     bcrypt = "passlib.handlers.bcrypt",
     bcrypt_sha256 = "passlib.handlers.bcrypt",

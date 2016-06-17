@@ -41,6 +41,14 @@ Optional Libraries
    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ is currently the recommended
    option -- it's actively maintained, and compatible with both CPython and PyPy.
 
+* `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_, or
+  `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_
+
+   If any of these packages are installed, they will be used to provide
+   support for the :class:`~passlib.hash.argon2` hash algorithm.
+   `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_  is currently the recommended
+   option.
+
 * `Cryptography <https://pypi.python.org/pypi/cryptography>`_
 
    If installed, will be used to enable encryption of TOTP secrets for storage

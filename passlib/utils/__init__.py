@@ -31,9 +31,10 @@ from warnings import warn
 # site
 # pkg
 from passlib.exc import ExpectedStringError
-from passlib.utils.compat import add_doc, join_bytes, join_byte_values, \
-                                 join_byte_elems, irange, imap, PY3, u, \
-                                 join_unicode, unicode, byte_elem_value, nextgetter
+from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
+                                  join_byte_elems, irange, imap, PY3, u,
+                                  join_unicode, unicode, byte_elem_value, nextgetter,
+                                  get_method_function)
 # local
 __all__ = [
     # constants
@@ -1355,6 +1356,29 @@ def ab64_decode(data):
         return b64decode(data + _A64_PAD1, _A64_ALTCHARS)
     else: # off == 1
         raise ValueError("invalid base64 input")
+
+def b64s_encode(data):
+    """
+    base64 encoder which omits trailing padding & whitespace.
+    otherwise uses default ``+/`` altchars.
+    """
+    return b64encode(data).strip(_A64_STRIP)
+
+def b64s_decode(data):
+    """
+    base64 decoder which omits trailing padding & whitespace.
+    otherwise uses default ``+/`` altchars.
+    """
+    off = len(data) & 3
+    if off == 0:
+        pass
+    elif off == 2:
+        data += _A64_PAD2
+    elif off == 3:
+        data += _A64_PAD1
+    else:  # off == 1
+        raise ValueError("invalid base64 input")
+    return b64decode(data)
 
 #=============================================================================
 # host OS helpers
