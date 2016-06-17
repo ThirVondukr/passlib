@@ -520,7 +520,7 @@ class _CommonScryptTest(TestCase):
         self.assertRaises(ValueError, run_scrypt, (1<<30) / 2, p=2)
 
     def test_p_param(self):
-        """'p' (parallel_count) parameter"""
+        """'p' (parallelism) parameter"""
         def run_scrypt(p, n=2, r=2):
             return hexstr(scrypt_mod.scrypt("secret", "salt", n, r, p, 16))
 

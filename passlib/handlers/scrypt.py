@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.crypto import scrypt as _scrypt
 from passlib.utils import ab64_decode, ab64_encode, to_bytes, classproperty
-from passlib.utils.compat import int_types, u, uascii_to_str
+from passlib.utils.compat import int_types, u, uascii_to_str, suppress_cause
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -20,7 +20,8 @@ __all__ = [
 #=============================================================================
 # handler
 #=============================================================================
-class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
+class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt,
+             uh.GenericHandler):
     """This class implements an SCrypt-based password [#scrypt-home]_ hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, a variable number of rounds,
@@ -55,9 +56,9 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         Useful for tuning scrypt to optimal performance for your CPU architecture.
         Defaults to 8.
 
-    :type parallel_count: int
-    :param parallel_count:
-        Optional parallel_count to pass to scrypt hash function (the ``p`` parameter).
+    :type parallelism: int
+    :param parallelism:
+        Optional parallelism to pass to scrypt hash function (the ``p`` parameter).
         Defaults to 1.
 
     :type relaxed: bool
@@ -76,12 +77,12 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
 
         * ``linear_rounds = 2**<some positive integer>``
         * ``linear_rounds < 2**(16 * block_size)``
-        * ``block_size * parallel_count <= 2**30-1``
+        * ``block_size * parallelism <= 2**30-1``
 
     .. todo::
 
         This class currently does not support configuring default values
-        for ``block_size`` or ``parallel_count`` via a :class:`~passlib.context.CryptContext`
+        for ``block_size`` or ``parallelism`` via a :class:`~passlib.context.CryptContext`
         configuration.
     """
 
@@ -96,7 +97,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     #       pbkdf2-hmac-sha256 before returning, and this could be raised eventually...
     #       but a 256-bit digest is more than sufficient for password hashing.
     checksum_size = 32
-    setting_kwds = ("salt", "salt_size", "rounds")
+    setting_kwds = ("salt", "salt_size", "rounds", "block_size", "parallelism")
 
     #--HasSalt--
     default_salt_size = 16
@@ -117,9 +118,31 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     # instance attrs
     #===================================================================
 
+    #: default parallelism setting (min=1 currently hardcoded in mixin)
+    parallelism = 1
+
+    #: default block size setting
     block_size = 8
 
-    parallel_count = 1
+    #===================================================================
+    # variant constructor
+    #===================================================================
+
+    @classmethod
+    def using(cls, block_size=None, **kwds):
+        subcls = super(scrypt, cls).using(**kwds)
+        if block_size is not None:
+            if isinstance(block_size, uh.native_string_types):
+                block_size = int(block_size)
+            subcls.block_size = subcls._norm_block_size(block_size, relaxed=kwds.get("relaxed"))
+
+        # make sure param combination is valid for scrypt()
+        try:
+            _scrypt.validate(1 << cls.default_rounds, cls.block_size, cls.parallelism)
+        except ValueError as err:
+            raise suppress_cause(ValueError("scrypt: invalid settings combination: " + str(err)))
+
+        return subcls
 
     #===================================================================
     # formatting
@@ -130,7 +153,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     #   nExp, r, p -- decimal-encoded positive integer, no zero-padding
     #   nExp -- log cost setting
     #   r -- block size setting (usually 8)
-    #   p -- parallel_count setting (usually 1)
+    #   p -- parallelism setting (usually 1)
     #   salt, checksum -- ab64 encoded
 
     @classmethod
@@ -146,13 +169,13 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
             chk = ab64_decode(chk.encode("ascii"))
         return cls(rounds=uh.parse_int(nexp, param="rounds", handler=cls),
                    block_size=uh.parse_int(r, param="block_size", handler=cls),
-                   parallel_count=uh.parse_int(p, param="parallel_count", handler=cls),
+                   parallelism=uh.parse_int(p, param="parallelism", handler=cls),
                    salt=salt,
                    checksum=chk)
 
     def to_string(self):
         hash = u("%s%d,%d,%d$%s$%s") % (self.ident, self.rounds,
-                                        self.block_size, self.parallel_count,
+                                        self.block_size, self.parallelism,
                                         ab64_encode(self.salt).decode("ascii"),
                                         ab64_encode(self.checksum).decode("ascii"))
         return uascii_to_str(hash)
@@ -160,7 +183,7 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     #===================================================================
     # init
     #===================================================================
-    def __init__(self, block_size=None, parallel_count=None, **kwds):
+    def __init__(self, block_size=None, **kwds):
         super(scrypt, self).__init__(**kwds)
 
         # init block size
@@ -170,25 +193,12 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         else:
             self.block_size = self._norm_block_size(block_size)
 
-        # init parallel_count
-        if parallel_count is None:
-            assert uh.validate_default_value(self, self.parallel_count, self._norm_parallel_count,
-                                             param="parallel_count")
-        else:
-            self.parallel_count = self._norm_parallel_count(parallel_count)
-
-        _scrypt.validate(self.linear_rounds, self.block_size, self.parallel_count)
-
-    @property
-    def linear_rounds(self):
-        return 1 << self.rounds
+        # NOTE: if hash contains invalid complex constraint, relying on error
+        #       being raised by scrypt call in _calc_checksum()
 
     @classmethod
-    def _norm_block_size(cls, block_size):
-        return uh.norm_integer(cls, block_size, min=1, param="block_size")
-
-    def _norm_parallel_count(self, parallel_count):
-        return uh.norm_integer(cls, parallel_count, min=1, "parallel_count")
+    def _norm_block_size(cls, block_size, relaxed=False):
+        return uh.norm_integer(cls, block_size, min=1, param="block_size", relaxed=relaxed)
 
     #===================================================================
     # backend configuration
@@ -217,12 +227,25 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
         _scrypt._set_backend(name, dryrun=dryrun)
 
     #===================================================================
-    # calc checksum
+    # digest calculation
     #===================================================================
     def _calc_checksum(self, secret):
         secret = to_bytes(secret, param="secret")
-        return _scrypt.scrypt(secret, self.salt, n=self.linear_rounds, r=self.block_size,
-                              p=self.parallel_count, keylen=self.checksum_size)
+        return _scrypt.scrypt(secret, self.salt, n=(1 << self.rounds), r=self.block_size,
+                              p=self.parallelism, keylen=self.checksum_size)
+
+    #===================================================================
+    # hash migration
+    #===================================================================
+
+    def _calc_needs_update(self, **kwds):
+        """
+        mark hash as needing update if rounds is outside desired bounds.
+        """
+        # XXX: for now, marking all hashes which don't have matching block_size setting
+        if self.block_size != type(self).block_size:
+            return True
+        return super(scrypt, self)._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc
