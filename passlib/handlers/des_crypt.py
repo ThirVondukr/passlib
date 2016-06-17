@@ -234,7 +234,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         .. versionadded:: 1.6
 
     .. versionchanged:: 1.6
-        :meth:`encrypt` will now issue a warning if an even number of rounds is used
+        :meth:`hash` will now issue a warning if an even number of rounds is used
         (see :ref:`bsdi-crypt-security-issues` regarding weak DES keys).
     """
     #===================================================================

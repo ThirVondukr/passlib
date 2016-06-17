@@ -8,7 +8,7 @@ BCrypt was developed to replace :class:`~passlib.hash.md5_crypt` for BSD systems
 It uses a modified version of the Blowfish stream cipher. Featuring
 a large salt and variable number of rounds, it's currently the default
 password hash for many systems (notably BSD), and has no known weaknesses.
-It is one of the three hashes Passlib :ref:`recommends <recommended-hashes>`
+It is one of the four hashes Passlib :ref:`recommends <recommended-hashes>`
 for new applications. This class can be used directly as follows::
 
     >>> from passlib.hash import bcrypt
@@ -57,7 +57,7 @@ This class will use the first available of five possible backends:
    (primarily BSD-derived systems).
 5. A pure-python implementation of BCrypt, built into Passlib.
 
-If no backends are available, :meth:`encrypt` and :meth:`verify`
+If no backends are available, :meth:`hash` and :meth:`verify`
 will throw :exc:`~passlib.exc.MissingBackendError` when they are invoked.
 You can check which backend is in use by calling :meth:`!bcrypt.get_backend()`.
 

@@ -225,7 +225,7 @@ and hash comparison.
     :type secret: unicode or bytes
     :param hash:
         A string containing the hash to check against,
-        such as returned by :meth:`~encrypt`.
+        such as returned by :meth:`~hash`.
 
         Hashes may be specified as :class:`!unicode` or
         ``ascii``-encoded :class:`!bytes`.
@@ -752,7 +752,7 @@ and the following attributes should be defined:
     .. method:: PasswordHash.get_backend()
 
         This method should return the name of the currently active backend
-        that will be used by :meth:`!encrypt` and :meth:`!verify`.
+        that will be used by :meth:`!hash` and :meth:`!verify`.
 
         :raises passlib.exc.MissingBackendError:
             in the rare case that *no* backends can be loaded.

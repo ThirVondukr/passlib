@@ -299,7 +299,7 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 :samp:`{scheme}__{other-option}`
 
     Finally, any other options are assumed to correspond to one of the
-    that algorithm's :meth:`!encrypt` :attr:`settings <~passlib.ifc.PasswordHash.setting_kwds>`,
+    that algorithm's :meth:`!hash` :attr:`settings <~passlib.ifc.PasswordHash.setting_kwds>`,
     such as setting a ``salt_size``.
 
     .. seealso:: the :ref:`context-default-settings-example` example in the tutorial.

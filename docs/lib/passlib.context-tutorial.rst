@@ -116,7 +116,7 @@ While encrypting and verifying hashes is useful enough, it's not much
 more than could be done by importing the objects into a list.
 The next feature of the :class:`!CryptContext` class is that it
 can store various customized settings for the different algorithms,
-instead of hardcoding them into each :meth:`!encrypt` call.
+instead of hardcoding them into each :meth:`!hash` call.
 As an example, the :class:`sha256_crypt <passlib.hash.sha256_crypt>`
 algorithm supports a ``rounds`` parameter which defaults to 80000,
 and the :class:`ldap_salted_md5 <passlib.hash.ldap_salted_md5>` algorithm uses

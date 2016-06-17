@@ -425,7 +425,7 @@ class GenericHandler(MinimalHandler):
         cost parameters, etc.
 
         This is typically only set to ``True`` when the constructor
-        is called by :meth:`encrypt`, allowing user-provided values
+        is called by :meth:`hash`, allowing user-provided values
         to be handled in a more permissive manner.
 
     :param relaxed:
@@ -799,7 +799,7 @@ class GenericHandler(MinimalHandler):
     def parsehash(cls, hash, checksum=True, sanitize=False):
         """[experimental method] parse hash into dictionary of settings.
 
-        this essentially acts as the inverse of :meth:`encrypt`: for most
+        this essentially acts as the inverse of :meth:`hash`: for most
         cases, if ``hash = cls.hash(secret, **opts)``, then
         ``cls.parsehash(hash)`` will return a dict matching the original options
         (with the extra keyword *checksum*).
