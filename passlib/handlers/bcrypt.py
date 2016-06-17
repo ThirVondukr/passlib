@@ -288,7 +288,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             cls._configure_workarounds()
 
     @classmethod
-    def _configure_workarounds(cls, backend):
+    def _configure_workarounds(cls):
         """
         detect & configure workarounds for specific backend
         """

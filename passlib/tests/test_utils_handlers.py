@@ -416,6 +416,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.has_backend, 'c')
 
         # test error thrown if _has & _load are mixed
+        d1.set_backend("b")  # switch away from 'a' so next call actually checks loader
         class d2(d1):
             _has_backend_a = True
         self.assertRaises(AssertionError, d2.has_backend, "a")
