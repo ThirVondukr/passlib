@@ -276,18 +276,18 @@ class _bcrypt_test(HandlerCase):
         return check_bcryptor
 
     def get_fuzz_settings(self):
-        secret, other, kwds = super(_bcrypt_test,self).get_fuzz_settings()
+        secret, other, settings, context = super(_bcrypt_test,self).get_fuzz_settings()
         from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
         from passlib.utils import to_bytes
-        ident = kwds.get('ident')
+        ident = settings.get('ident')
         if ident == IDENT_2X:
             # 2x is just recognized, not supported. don't test with it.
-            del kwds['ident']
+            del settings['ident']
         elif ident == IDENT_2 and other and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
             # avoid false failure due to flaw in 0-revision bcrypt:
             # repeated strings like 'abc' and 'abcabc' hash identically.
             other = self.get_fuzz_password()
-        return secret, other, kwds
+        return secret, other, settings, context
 
     def fuzz_setting_rounds(self):
         # decrease default rounds for fuzz testing to speed up volume.

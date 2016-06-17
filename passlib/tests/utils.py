@@ -744,14 +744,19 @@ class HandlerCase(TestCase):
         return secret
 
     # TODO: rename to do_hash() to match new API
-    def do_encrypt(self, secret, use_encrypt=False, **kwds):
-        """call handler's encrypt method with specified options"""
-        secret = self.populate_context(secret, kwds)
-        self.populate_settings(kwds)
+    def do_encrypt(self, secret, use_encrypt=False, handler=None, context=None, **settings):
+        """call handler's hash() method with specified options"""
+        self.populate_settings(settings)
+        if context is None:
+            context = {}
+        secret = self.populate_context(secret, context)
         if use_encrypt:
-            return self.handler.encrypt(secret, **kwds)
+            # use legacy 1.6 api
+            context.update(**settings)
+            return (handler or self.handler).encrypt(secret, **context)
         else:
-            return self.handler.hash(secret, **kwds)
+            # use 1.7 api
+            return (handler or self.handler).using(**settings).hash(secret, **context)
 
     def do_verify(self, secret, hash, **kwds):
         """call handler's verify method"""
@@ -772,16 +777,17 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, kwds)
         return self.handler.genhash(secret, config, **kwds)
 
-    def do_stub_encrypt(self, handler=None, **kwds):
+    def do_stub_encrypt(self, handler=None, context=None, **settings):
         """
         return sample hash for handler, w/o caring if digest is valid
         (uses some monkeypatching to minimize digest calculation cost)
         """
-        if handler is None:
-            handler = self.handler
-        secret = self.populate_context("", kwds)
+        handler = (handler or self.handler).using(**settings)
+        if context is None:
+            context = {}
+        secret = self.populate_context("", context)
         with patch_calc_min_rounds(handler):
-            return handler.hash(secret, **kwds)
+            return handler.hash(secret, **context)
 
     #---------------------------------------------------------------
     # automatically generate subclasses for testing specific backends,
@@ -2296,11 +2302,12 @@ class HandlerCase(TestCase):
         count = 0
         while tick() <= stop:
             # generate random password & options
-            secret, other, kwds = self.get_fuzz_settings()
-            ctx = dict((k,kwds[k]) for k in handler.context_kwds if k in kwds)
+            secret, other, settings, ctx = self.get_fuzz_settings()
+            if ctx:
+                settings['context'] = ctx
 
             # create new hash
-            hash = self.do_encrypt(secret, **kwds)
+            hash = self.do_encrypt(secret, **settings)
             ##log.debug("fuzz test: hash=%r secret=%r other=%r",
             ##          hash, secret, other)
 
@@ -2314,7 +2321,7 @@ class HandlerCase(TestCase):
                 if not result:
                     raise self.failureException("failed to verify against %s: "
                                                 "secret=%r config=%r hash=%r" %
-                                                (name, secret, kwds, hash))
+                                                (name, secret, settings, hash))
                 # occasionally check that some other secrets WON'T verify
                 # against this hash.
                 if rng.random() < .1:
@@ -2322,7 +2329,7 @@ class HandlerCase(TestCase):
                     if result and result != "skip":
                         raise self.failureException("was able to verify wrong "
                             "password using %s: wrong_secret=%r real_secret=%r "
-                            "config=%r hash=%r" % (name, other, secret, kwds, hash))
+                            "config=%r hash=%r" % (name, other, secret, settings, hash))
             count += 1
 
         log.debug("%s: %s: done; elapsed=%r count=%r",
@@ -2477,15 +2484,24 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     def get_fuzz_settings(self):
         """generate random password and options for fuzz testing"""
-        prefix = "fuzz_setting_"
-        kwds = {}
+        settings_prefix = "fuzz_setting_"
+        context_prefix = "fuzz_context_"
+        settings = {}
+        context = {}
         for name in dir(self):
-            if name.startswith(prefix):
-                value = getattr(self, name)()
-                if value is not None:
-                    kwds[name[len(prefix):]] = value
+            if name.startswith(settings_prefix):
+                prefix = settings_prefix
+                kwds = settings
+            elif name.startswith(context_prefix):
+                prefix = context_prefix
+                kwds = context
+            else:
+                continue
+            value = getattr(self, name)()
+            if value is not None:
+                kwds[name[len(prefix):]] = value
         secret, other = self.get_fuzz_password_pair()
-        return secret, other, kwds
+        return secret, other, settings, context
 
     def fuzz_setting_rounds(self):
         handler = self.handler
@@ -2834,7 +2850,7 @@ class UserHandlerMixin(HandlerCase):
         """test user case sensitivity"""
         lower = self.default_user.lower()
         upper = lower.upper()
-        hash = self.do_encrypt('stub', user=lower)
+        hash = self.do_encrypt('stub', context=dict(user=lower))
         if self.user_case_insensitive:
             self.assertTrue(self.do_verify('stub', hash, user=upper),
                             "user should not be case sensitive")
@@ -2873,7 +2889,7 @@ class UserHandlerMixin(HandlerCase):
     #===================================================================
     fuzz_user_alphabet = u("asdQWE123")
 
-    def fuzz_setting_user(self):
+    def fuzz_context_user(self):
         if not self.requires_user and rng.random() < .1:
             return None
         return getrandstr(rng, self.fuzz_user_alphabet, rng.randint(2,10))
