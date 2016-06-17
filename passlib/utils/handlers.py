@@ -316,6 +316,55 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
     return uascii_to_str(join_unicode(parts))
 
 #=============================================================================
+# parameter helpers
+#=============================================================================
+
+def validate_default_value(handler, default, norm, param="value"):
+    """
+    assert helper that quickly validates default value.
+    designed to get out of the way and reduce overhead when asserts are stripped.
+    """
+    assert default is not None, "%s lacks default %s" % (handler.name, param)
+    assert norm(default) == default, "%s: invalid default %s: %r" % (handler.name, param, default)
+    return True
+
+def norm_integer(handler, value, min=1, max=None, # *
+                 param="value", relaxed=False):
+    """
+    helper to normalize and validate an integer value (e.g. rounds, salt_size)
+
+    :arg value: value provided to constructor
+    :arg default: default value if none provided. if set to ``None``, value is required.
+    :arg param: name of parameter (xxx: move to first arg?)
+    :param min: minimum value (defaults to 1)
+    :param max: maximum value (default ``None`` means no maximum)
+    :returns: validated value
+    """
+    # check type
+    if not isinstance(value, int_types):
+        raise exc.ExpectedTypeError(value, "integer", param)
+
+    # check minimum
+    if value < min:
+        msg = "%s: %s (%d) is too low, must be at least %d" % (handler.name, param, value, min)
+        if relaxed:
+            warn(msg, exc.PasslibHashWarning)
+            value = min
+        else:
+            raise ValueError(msg)
+
+    # check maximum
+    if max and value > max:
+        msg = "%s: %s (%d) is too large, cannot be more than %d" % (handler.name, param, value, max)
+        if relaxed:
+            warn(msg, exc.PasslibHashWarning)
+            value = max
+        else:
+            raise ValueError(msg)
+
+    return value
+
+#=============================================================================
 # MinimalHandler
 #=============================================================================
 class MinimalHandler(PasswordHash):
@@ -1033,8 +1082,7 @@ class HasManyIdents(GenericHandler):
             ident = self._norm_ident(ident)
         elif self.use_defaults:
             ident = self.default_ident
-            assert ident is not None, "class must define default_ident"
-            assert self._norm_ident(ident) == ident, "invalid default ident: %r" % (ident,)
+            assert validate_default_value(self, ident, self._norm_ident, param="default_ident")
         else:
             raise TypeError("no ident specified")
         self.ident = ident
@@ -1479,7 +1527,7 @@ class HasRounds(GenericHandler):
     max_rounds = None
     rounds_cost = "linear" # default to the common case
 
-    # hack to pass info to _CryptRecord
+    # hack to pass info to _CryptRecord (will be removed in passlib 2.0)
     using_rounds_kwds = ("min_desired_rounds", "max_desired_rounds",
                          "min_rounds", "max_rounds",
                          "default_rounds", "vary_rounds")
@@ -1721,31 +1769,8 @@ class HasRounds(GenericHandler):
         :returns:
             normalized rounds value
         """
-        # check type
-        if not isinstance(rounds, int_types):
-            raise exc.ExpectedTypeError(rounds, "integer", param)
-
-        # check minimum
-        mn = cls.min_rounds
-        if rounds < mn:
-            msg = "%s: %s (%r) below min_rounds (%d)" % (cls.name, param, rounds, mn)
-            if relaxed:
-                warn(msg, PasslibHashWarning)
-                rounds = mn
-            else:
-                raise ValueError(msg)
-
-        # check maximum
-        mx = cls.max_rounds
-        if mx and rounds > mx:
-            msg = "%s: %s (%r) above max_rounds (%d)" % (cls.name, param, rounds, mx)
-            if relaxed:
-                warn(msg, PasslibHashWarning)
-                rounds = mx
-            else:
-                raise ValueError(msg)
-
-        return rounds
+        return norm_integer(cls, rounds, cls.min_rounds, cls.max_rounds,
+                            param=param, relaxed=relaxed)
 
     @classmethod
     def _generate_rounds(cls):

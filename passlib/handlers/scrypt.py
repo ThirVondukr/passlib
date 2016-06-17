@@ -162,63 +162,33 @@ class scrypt(uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt, uh.GenericHandler):
     #===================================================================
     def __init__(self, block_size=None, parallel_count=None, **kwds):
         super(scrypt, self).__init__(**kwds)
-        self.block_size = self._norm_block_size(block_size)
-        self.parallel_count = self._norm_parallel_count(parallel_count)
+
+        # init block size
+        if block_size is None:
+            assert uh.validate_default_value(self, self.block_size, self._norm_block_size,
+                                             param="block_size")
+        else:
+            self.block_size = self._norm_block_size(block_size)
+
+        # init parallel_count
+        if parallel_count is None:
+            assert uh.validate_default_value(self, self.parallel_count, self._norm_parallel_count,
+                                             param="parallel_count")
+        else:
+            self.parallel_count = self._norm_parallel_count(parallel_count)
+
         _scrypt.validate(self.linear_rounds, self.block_size, self.parallel_count)
 
     @property
     def linear_rounds(self):
         return 1 << self.rounds
 
-    def _norm_block_size(self, block_size):
-        return self._norm_integer(block_size, self.block_size, "block_size")
+    @classmethod
+    def _norm_block_size(cls, block_size):
+        return uh.norm_integer(cls, block_size, min=1, param="block_size")
 
     def _norm_parallel_count(self, parallel_count):
-        return self._norm_integer(parallel_count, self.parallel_count, "parallel_count")
-
-    # XXX: this might be generally useful, could move to utils.handlers...
-    def _norm_integer(self, value, default, param, min=1, max=None, relaxed=False):
-        """
-        helper to normalize and validate an integer value
-
-        :arg value: value provided to constructor
-        :arg default: default value if none provided. if set to ``None``, value is required.
-        :arg param: name of parameter (xxx: move to first arg?)
-        :param min: minimum value (defaults to 1)
-        :param max: maximum value (default ``None`` means no maximum)
-        :returns: validated value
-        """
-        # fill in default
-        if value is None:
-            if not self.use_defaults:
-                raise TypeError("no %s specified" % param)
-            if default is None:
-                raise TypeError("%s %s value must be specified explicitly" % (self.name, param))
-            value = default
-
-        # check type
-        if not isinstance(value, int_types):
-            raise uh.exc.ExpectedTypeError(value, "integer", param)
-
-        # check min bound
-        if value < min:
-            msg = "%s too low (%s requires %s >= %d)" % (param, self.name, param, min)
-            if relaxed:
-                warn(msg, uh.exc.PasslibHashWarning)
-                value = min
-            else:
-                raise ValueError(msg)
-
-        # check max bound
-        if max and value > max:
-            msg = "%s too high (%s requires  %s <= %d)" % (param, self.name, param, max)
-            if relaxed:
-                warn(msg, uh.exc.PasslibHashWarning)
-                value = max
-            else:
-                raise ValueError(msg)
-
-        return value
+        return uh.norm_integer(cls, parallel_count, min=1, "parallel_count")
 
     #===================================================================
     # backend configuration
