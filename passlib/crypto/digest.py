@@ -10,6 +10,7 @@ from __future__ import division
 import hashlib
 import logging; log = logging.getLogger(__name__)
 import re
+import os
 from struct import Struct
 from warnings import warn
 # site
@@ -19,9 +20,8 @@ except ImportError:
     _m2crypto_pbkdf2_hmac_sha1 = None
 # pkg
 from passlib import exc
-from passlib.utils import join_bytes, to_native_str, bytes_to_int, int_to_bytes, \
-    join_byte_values, to_bytes, SequenceMixin
-from passlib.utils.compat import irange, int_types, unicode_or_bytes_types
+from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, SequenceMixin
+from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, PY3
 # local
 __all__ = [
     # hash utils
@@ -559,6 +559,9 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
 #=============================================================================
 # pbkdf2
 #=============================================================================
+
+_pack_uint4 = Struct(">L").pack
+
 def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     """pkcs#5 password-based key derivation v2.0 using HMAC + arbitrary digest.
 
@@ -622,24 +625,184 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     if block_count >= MAX_UINT4:
         raise ValueError("keylen too long for digest")
 
-    # build up result from blocks
-    # TODO: consider some alternatives to speed up loop:
-    #       int.to_bytes / int.from_bytes for py3
-    #       struct Q/L for digest sizes <= 32/64
-    #       C-accelerated xor_bytes helper, if available (e.g. PyCrypto's Crypto.Util.strxor.strxor)
-    pack_uint4 = Struct(">L").pack
-    def gen():
-        for i in irange(block_count):
-            digest = keyed_hmac(salt + pack_uint4(i+1))
-            accum = bytes_to_int(digest)
-            # --- begin speed-critical loop ---
-            # NOTE: currently converting digests to integers since that XORs faster.
-            for _ in irange(rounds-1):
-                digest = keyed_hmac(digest)
-                accum ^= bytes_to_int(digest)
-            # --- end speed critical loop ---
-            yield int_to_bytes(accum, digest_size)
-    return join_bytes(gen())[:keylen]
+    # get helper to calculate blocks, and return result
+    calc_block = _get_pbkdf2_looper(digest_size)
+    return join_bytes(
+        calc_block(keyed_hmac, keyed_hmac(salt + _pack_uint4(i)), rounds)
+        for i in irange(1, block_count + 1)
+    )[:keylen]
+
+#-------------------------------------------------------------------------------------
+# pick best choice for pure-python helper
+# TODO: consider some alternatives, such as C-accelerated xor_bytes helper if available
+#-------------------------------------------------------------------------------------
+# NOTE: this env var is only present to support the admin/benchmark_pbkdf2 script
+_force_backend = os.environ.get("PASSLIB_PBKDF2_BACKEND") or "any"
+
+if PY3 and _force_backend in ["any", "from_bytes"]:
+    from functools import partial
+
+    def _get_pbkdf2_looper(digest_size):
+        return partial(_pbkdf2_looper, digest_size)
+
+    def _pbkdf2_looper(digest_size, keyed_hmac, digest, rounds):
+        """
+        py3-only implementation of pbkdf2 inner loop;
+        uses 'int.from_bytes' + integer XOR
+        """
+        from_bytes = int.from_bytes
+        BIG = "big"  # endianess doesn't matter, just has to be consistent
+        accum = from_bytes(digest, BIG)
+        for _ in irange(rounds - 1):
+            digest = keyed_hmac(digest)
+            accum ^= from_bytes(digest, BIG)
+        return accum.to_bytes(digest_size, BIG)
+
+    _builtin_backend = "from_bytes"
+
+elif _force_backend in ["any", "unpack", "from_bytes"]:
+    from struct import Struct
+    from passlib.utils import sys_bits
+
+    _have_64_bit = (sys_bits >= 64)
+
+    #: cache used by _get_pbkdf2_looper
+    _looper_cache = {}
+
+    def _get_pbkdf2_looper(digest_size):
+        """
+        We want a helper function which performs equivalent of the following::
+
+          def helper(keyed_hmac, digest, rounds):
+              accum = digest
+              for _ in irange(rounds - 1):
+                  digest = keyed_hmac(digest)
+                  accum ^= digest
+              return accum
+
+        However, no efficient way to implement "bytes ^ bytes" in python.
+        Instead, using approach where we dynamically compile a helper function based
+        on digest size.  Instead of a single `accum` var, this helper breaks the digest
+        into a series of integers.
+
+        It stores these in a series of`accum_<i>` vars, and performs `accum ^= digest`
+        by unpacking digest and perform xor for each "accum_<i> ^= digest_<i>".
+        this keeps everything in locals, avoiding excessive list creation, encoding or decoding,
+        etc.
+
+        :param digest_size:
+            digest size to compile for, in bytes. (must be multiple of 4).
+
+        :return:
+            helper function with call signature outlined above.
+        """
+        #
+        # cache helpers
+        #
+        try:
+            return _looper_cache[digest_size]
+        except KeyError:
+            pass
+
+        #
+        # figure out most efficient struct format to unpack digest into list of native ints
+        #
+        if _have_64_bit and not digest_size & 0x7:
+            # digest size multiple of 8, on a 64 bit system -- use array of UINT8
+            count = (digest_size >> 3)
+            fmt = "=%dQ" % count
+        elif not digest_size & 0x3:
+            if _have_64_bit:
+                # digest size multiple of 4, on a 64 bit system -- use array of UINT8 + 1 UINT4
+                count = (digest_size >> 3)
+                fmt = "=%dQI" % count
+                count += 1
+            else:
+                # digest size multiple of 4, on a 32 bit system -- use array of UINT4
+                count = (digest_size >> 2)
+                fmt = "=%dI" % count
+        else:
+            # stopping here, cause no known hashes have digest size that isn't multiple of 4 bytes.
+            # if needed, could go crazy w/ "H" & "B"
+            raise NotImplementedError("unsupported digest size: %d" % digest_size)
+        struct = Struct(fmt)
+
+        #
+        # build helper source
+        #
+        tdict = dict(
+            digest_size=digest_size,
+            accum_vars=", ".join("acc_%d" % i for i in irange(count)),
+            digest_vars=", ".join("dig_%d" % i for i in irange(count)),
+        )
+
+        # head of function
+        source = (
+                        "def helper(keyed_hmac, digest, rounds):\n"
+                        "    '''pbkdf2 loop helper for digest_size={digest_size}'''\n"
+                        "    unpack_digest = struct.unpack\n"
+                        "    {accum_vars} = unpack_digest(digest)\n"
+                        "    for _ in irange(1, rounds):\n"
+                        "        digest = keyed_hmac(digest)\n"
+                        "        {digest_vars} = unpack_digest(digest)\n"
+        ).format(**tdict)
+
+        # xor digest
+        for i in irange(count):
+            source +=   "        acc_%d ^= dig_%d\n" % (i, i)
+
+        # return result
+        source +=       "    return struct.pack({accum_vars})\n".format(**tdict)
+
+        #
+        # compile helper
+        #
+        code = compile(source, "<generated by passlib.crypto.digest._get_pbkdf2_looper()>", "exec")
+        gdict = dict(irange=irange, struct=struct)
+        ldict = dict()
+        eval(code, gdict, ldict)
+        helper = ldict['helper']
+        helper.__source__ = source
+
+        #
+        # store in cache
+        #
+        _looper_cache[digest_size] = helper
+        return helper
+
+    _builtin_backend = "unpack"
+
+else:
+    assert _force_backend in ["any", "hexlify"]
+
+    # XXX: older & slower approach that used int(hexlify()),
+    #      keeping it around for a little while just for benchmarking.
+
+    from binascii import hexlify as _hexlify
+    from passlib.utils import int_to_bytes
+
+    def _get_pbkdf2_looper(digest_size):
+        return _pbkdf2_looper
+
+    def _pbkdf2_looper(keyed_hmac, digest, rounds):
+        hexlify = _hexlify
+        accum = int(hexlify(digest), 16)
+        for _ in irange(rounds - 1):
+            digest = keyed_hmac(digest)
+            accum ^= int(hexlify(digest), 16)
+        return int_to_bytes(accum, len(digest))
+
+    _builtin_backend = "hexlify"
+
+# helper for benchmark script -- disable m2crypto support if builtin requested
+if _force_backend == _builtin_backend:
+    _m2crypto_pbkdf2_hmac_sha1 = None
+
+# expose info about what backends are active
+PBKDF2_BACKENDS = ",".join(b for b in [
+    "m2crypto-sha1" if _m2crypto_pbkdf2_hmac_sha1 else None,
+    "builtin/" + _builtin_backend
+] if b is not None)
 
 #=============================================================================
 # eof
