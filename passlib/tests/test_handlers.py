@@ -41,7 +41,7 @@ def get_handler_case(scheme):
         name = "%s_%s_test" % (scheme, backend)
     else:
         name = "%s_test" % scheme
-    for suffix in ("handlers", "handlers_django", "handlers_bcrypt"):
+    for suffix in ("handlers", "handlers_django", "handlers_bcrypt", "handlers_argon2"):
         modname = "passlib.tests.test_" + suffix
         __import__(modname)
         mod = sys.modules[modname]
