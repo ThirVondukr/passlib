@@ -486,7 +486,7 @@ class SkeletonTest(TestCase):
             name = 'd1'
             setting_kwds = ('ident',)
             default_ident = u("!A")
-            ident_values = [ u("!A"), u("!B") ]
+            ident_values = (u("!A"), u("!B"))
             ident_aliases = { u("A"): u("!A")}
 
         def norm_ident(**k):
@@ -748,7 +748,7 @@ class PrefixWrapperTest(TestCase):
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
         self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, [ u("{XXX}$P$"), u("{XXX}$H$") ])
+        self.assertEqual(h.ident_values, (u("{XXX}$P$"), u("{XXX}$H$")))
 
         # test ident=True means use prefix even if hash has no ident.
         h = uh.PrefixWrapper("h5", "des_crypt", "{XXX}", ident=True)

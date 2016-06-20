@@ -80,7 +80,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     #--HasManyIdents--
     default_ident = u("$P$")
-    ident_values = [u("$P$"), u("$H$")]
+    ident_values = (u("$P$"), u("$H$"))
     ident_aliases = {u("P"):u("$P$"), u("H"):u("$H$")}
 
     #===================================================================

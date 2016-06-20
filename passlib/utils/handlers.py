@@ -2398,7 +2398,7 @@ class PrefixWrapper(object):
                 wrapped = self.wrapped
                 idents = getattr(wrapped, "ident_values", None)
                 if idents:
-                    value = [ self._wrap_hash(ident) for ident in idents ]
+                    value = tuple(self._wrap_hash(ident) for ident in idents)
                 ##else:
                 ##    ident = self.ident
                 ##    if ident is not None:
