@@ -132,7 +132,7 @@ class _base_argon2_test(HandlerCase):
         # missing 'm' param
         "$argon2i$v=19$t=2,p=4$c29tZXNhbHQAAAAAAAAAAA$QWLzI4TY9HkL2ZTLc8g6SinwdhZewYrzz9zxCo0bkGY",
 
-        # 't' param > 32 bit uint
+        # 't' param > max uint32
         "$argon2i$v=19$m=65536,t=8589934592,p=4$c29tZXNhbHQAAAAAAAAAAA$QWLzI4TY9HkL2ZTLc8g6SinwdhZewYrzz9zxCo0bkGY",
 
         # unexpected param

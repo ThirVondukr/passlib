@@ -27,6 +27,7 @@ _argon2_cffi = None  # loaded below
 _argon2pure = None  # dynamically imported by _load_backend_argon2pure()
 # pkg
 from passlib import exc
+from passlib.crypto.digest import MAX_UINT32
 from passlib.utils import classproperty, to_bytes, b64s_encode, b64s_decode
 from passlib.utils.compat import u, bascii_to_str, get_unbound_method_function
 import passlib.utils.handlers as uh
@@ -84,8 +85,6 @@ else:
         salt_len = 16
         hash_len = 16
     _default_version = 0x13
-
-MAX_UINT4 = (1 << 32) - 1
 
 #=============================================================================
 # handler
@@ -183,7 +182,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     #------------------------
     default_salt_size = _default_settings.salt_len
     min_salt_size = 8
-    max_salt_size = MAX_UINT4
+    max_salt_size = MAX_UINT32
 
     #------------------------
     # HasRounds
@@ -192,7 +191,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     #------------------------
     default_rounds = _default_settings.time_cost
     min_rounds = 1
-    max_rounds = MAX_UINT4
+    max_rounds = MAX_UINT32
     rounds_cost = "linear"
 
     #------------------------
@@ -271,7 +270,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             if isinstance(digest_size, uh.native_string_types):
                 digest_size = int(digest_size)
             # NOTE: this isn't *really* digest size minimum, but want to enforce secure minimum.
-            subcls.checksum_size = uh.norm_integer(subcls, digest_size, min=16, max=MAX_UINT4,
+            subcls.checksum_size = uh.norm_integer(subcls, digest_size, min=16, max=MAX_UINT32,
                                                    param="digest_size", relaxed=relaxed)
 
         # set memory cost

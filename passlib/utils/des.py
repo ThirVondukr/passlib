@@ -30,7 +30,7 @@ des_encrypt_int_block = deprecated_function(deprecated="1.7", removed="1.8",
 # deprecated functions -- not carried over to passlib.crypto.des
 #=============================================================================
 import struct
-_unpack_uint8 = struct.Struct(">Q").unpack
+_unpack_uint64 = struct.Struct(">Q").unpack
 
 @deprecated_function(deprecated="1.6", removed="1.8",
                      replacement="passlib.crypto.des.des_encrypt_int_block()")
@@ -38,7 +38,7 @@ def mdes_encrypt_int_block(key, input, salt=0, rounds=1): # pragma: no cover -- 
     if isinstance(key, bytes):
         if len(key) == 7:
             key = expand_des_key(key)
-        key = _unpack_uint8(key)[0]
+        key = _unpack_uint64(key)[0]
     return des_encrypt_int_block(key, input, salt, rounds)
 
 #=============================================================================

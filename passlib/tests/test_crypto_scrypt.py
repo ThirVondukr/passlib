@@ -32,8 +32,8 @@ def hexstr(data):
     """return bytes as hex str"""
     return bascii_to_str(hexlify(data))
 
-def unpack_int4_list(data, check_count=None):
-    """unpack bytes as list of uint4 values"""
+def unpack_uint32_list(data, check_count=None):
+    """unpack bytes as list of uint32 values"""
     count = len(data) // 4
     assert check_count is None or check_count == count
     return struct.unpack("<%dI" % count, data)
@@ -97,7 +97,7 @@ class ScryptEngineTest(TestCase):
         """bmix()"""
         from passlib.crypto.scrypt._builtin import ScryptEngine
 
-        # NOTE: bmix() call signature currently takes in list of 32*r uint4 elements,
+        # NOTE: bmix() call signature currently takes in list of 32*r uint32 elements,
         #       and writes to target buffer of same size.
 
         def check_bmix(r, input, output):
@@ -125,9 +125,9 @@ class ScryptEngineTest(TestCase):
         # NOTE: this pair corresponds to the first input & output pair
         #       from the test vector in test_smix(), above.
         # NOTE: original reference lists input & output as two separate 64 byte blocks.
-        #       current internal representation used by bmix() uses single 2*r*16 array of uint4,
+        #       current internal representation used by bmix() uses single 2*r*16 array of uint32,
         #       combining all the B blocks into a single flat array.
-        input = unpack_int4_list(hb("""
+        input = unpack_uint32_list(hb("""
                 f7 ce 0b 65 3d 2d 72 a4 10 8c f5 ab e9 12 ff dd
                 77 76 16 db bb 27 a7 0e 82 04 f3 ae 2d 0f 6f ad
                 89 f6 8f 48 11 d1 e8 7b cc 3b d7 40 0a 9f fd 29
@@ -139,7 +139,7 @@ class ScryptEngineTest(TestCase):
                 7f 4d 1c ad 6a 52 3c da 77 0e 67 bc ea af 7e 89
             """), 32)
 
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
                 a4 1f 85 9c 66 08 cc 99 3b 81 ca cb 02 0c ef 05
                 04 4b 21 81 a2 fd 33 7d fd 7b 1c 63 96 68 2f 29
                 b4 39 31 68 e3 c9 e6 bc fe 6b c5 b7 a0 6d 96 ba
@@ -159,9 +159,9 @@ class ScryptEngineTest(TestCase):
         #-----------------------------------------------------------------------
 
         r = 2
-        input = unpack_int4_list(seed_bytes("bmix with r=2", 128 * r))
+        input = unpack_uint32_list(seed_bytes("bmix with r=2", 128 * r))
 
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
             ba240854954f4585f3d0573321f10beee96f12acdc1feb498131e40512934fd7
             43e8139c17d0743c89d09ac8c3582c273c60ab85db63e410d049a9e17a42c6a1
 
@@ -183,9 +183,9 @@ class ScryptEngineTest(TestCase):
         #-----------------------------------------------------------------------
 
         r = 3
-        input = unpack_int4_list(seed_bytes("bmix with r=3", 128 * r))
+        input = unpack_uint32_list(seed_bytes("bmix with r=3", 128 * r))
 
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
             11ddd8cf60c61f59a6e5b128239bdc77b464101312c88bd1ccf6be6e75461b29
             7370d4770c904d0b09c402573cf409bf2db47b91ba87d5a3de469df8fb7a003c
 
@@ -213,9 +213,9 @@ class ScryptEngineTest(TestCase):
         #-----------------------------------------------------------------------
 
         r = 4
-        input = unpack_int4_list(seed_bytes("bmix with r=4", 128 * r))
+        input = unpack_uint32_list(seed_bytes("bmix with r=4", 128 * r))
 
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
             803fcf7362702f30ef43250f20bc6b1b8925bf5c4a0f5a14bbfd90edce545997
             3047bd81655f72588ca93f5c2f4128adaea805e0705a35e14417101fdb1c498c
 
@@ -247,8 +247,8 @@ class ScryptEngineTest(TestCase):
         """salsa20()"""
         from passlib.crypto.scrypt._builtin import salsa20
 
-        # NOTE: salsa2() currently operates on lists of 16 uint4 elements,
-        #       which is what unpack_int4_list(hb(() is for...
+        # NOTE: salsa2() currently operates on lists of 16 uint32 elements,
+        #       which is what unpack_uint32_list(hb(() is for...
 
         #-----------------------------------------------------------------------
         # test vector from (expired) scrypt rfc draft
@@ -258,14 +258,14 @@ class ScryptEngineTest(TestCase):
         # NOTE: this pair corresponds to the first input & output pair
         #       from the test vector in test_bmix(), above.
 
-        input = unpack_int4_list(hb("""
+        input = unpack_uint32_list(hb("""
             7e 87 9a 21 4f 3e c9 86 7c a9 40 e6 41 71 8f 26
             ba ee 55 5b 8c 61 c1 b5 0d f8 46 11 6d cd 3b 1d
             ee 24 f3 19 df 9b 3d 85 14 12 1e 4b 5a c5 aa 32
             76 02 1d 29 09 c7 48 29 ed eb c6 8d b8 b8 c2 5e
             """))
 
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
             a4 1f 85 9c 66 08 cc 99 3b 81 ca cb 02 0c ef 05
             04 4b 21 81 a2 fd 33 7d fd 7b 1c 63 96 68 2f 29
             b4 39 31 68 e3 c9 e6 bc fe 6b c5 b7 a0 6d 96 ba
@@ -278,7 +278,7 @@ class ScryptEngineTest(TestCase):
         # used to check for salsa20() breakage while optimizing _gen_files output.
         #-----------------------------------------------------------------------
         input = list(range(16))
-        output = unpack_int4_list(hb("""
+        output = unpack_uint32_list(hb("""
             f518dd4fb98883e0a87954c05cab867083bb8808552810752285a05822f56c16
             9d4a2a0fd2142523d758c60b36411b682d53860514b871d27659042a5afa475d
             """))

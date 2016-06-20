@@ -42,10 +42,10 @@ __all__ = [
 #=============================================================================
 
 #: max 32-bit value
-MAX_UINT4 = (1<<32)-1
+MAX_UINT32 = (1 << 32) - 1
 
 #: max 64-bit value
-MAX_UINT8 = (1<<64)-1
+MAX_UINT64 = (1 << 64) - 1
 
 #=============================================================================
 # hash utils
@@ -560,7 +560,7 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
 # pbkdf2
 #=============================================================================
 
-_pack_uint4 = Struct(">L").pack
+_pack_uint32 = Struct(">L").pack
 
 def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     """pkcs#5 password-based key derivation v2.0 using HMAC + arbitrary digest.
@@ -628,7 +628,7 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     # get helper to calculate blocks, and return result
     calc_block = _get_pbkdf2_looper(digest_size)
     return join_bytes(
-        calc_block(keyed_hmac, keyed_hmac(salt + _pack_uint4(i)), rounds)
+        calc_block(keyed_hmac, keyed_hmac(salt + _pack_uint32(i)), rounds)
         for i in irange(1, block_count + 1)
     )[:keylen]
 
@@ -708,17 +708,17 @@ elif _force_backend in ["any", "unpack", "from_bytes"]:
         # figure out most efficient struct format to unpack digest into list of native ints
         #
         if _have_64_bit and not digest_size & 0x7:
-            # digest size multiple of 8, on a 64 bit system -- use array of UINT8
+            # digest size multiple of 8, on a 64 bit system -- use array of UINT64
             count = (digest_size >> 3)
             fmt = "=%dQ" % count
         elif not digest_size & 0x3:
             if _have_64_bit:
-                # digest size multiple of 4, on a 64 bit system -- use array of UINT8 + 1 UINT4
+                # digest size multiple of 4, on a 64 bit system -- use array of UINT64 + 1 UINT32
                 count = (digest_size >> 3)
                 fmt = "=%dQI" % count
                 count += 1
             else:
-                # digest size multiple of 4, on a 32 bit system -- use array of UINT4
+                # digest size multiple of 4, on a 32 bit system -- use array of UINT32
                 count = (digest_size >> 2)
                 fmt = "=%dI" % count
         else:
