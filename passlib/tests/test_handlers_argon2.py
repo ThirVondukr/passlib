@@ -256,7 +256,7 @@ class _base_argon2_test(HandlerCase):
             raise self.skipTest("handler uses wrong version for sample hashes")
 
         # 8 byte salt
-        salt = 'somesalt'
+        salt = b'somesalt'
         temp = handler.using(memory_cost=65536, time_cost=2, parallelism=4, salt=salt,
                              checksum_size=32)
         hash = temp.hash("password")
@@ -265,7 +265,7 @@ class _base_argon2_test(HandlerCase):
                                "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4")
 
         # 16 byte salt
-        salt = 'somesalt\x00\x00\x00\x00\x00\x00\x00\x00'
+        salt = b'somesalt\x00\x00\x00\x00\x00\x00\x00\x00'
         temp = handler.using(memory_cost=65536, time_cost=2, parallelism=4, salt=salt,
                              checksum_size=32)
         hash = temp.hash("password")

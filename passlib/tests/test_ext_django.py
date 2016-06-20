@@ -18,7 +18,7 @@ from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
 from passlib.utils import memoized_property
 # tests
 from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend
-from passlib.tests.test_handlers import get_handler_case
+from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
 # local
 
 #=============================================================================
@@ -488,7 +488,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             try:
                 testcase = get_handler_case(scheme)
             except exc.MissingBackendError:
-                assert scheme == "bcrypt"
+                assert scheme in conditionally_available_hashes
                 continue
             assert testcase.handler is handler
             if testcase.is_disabled_handler:

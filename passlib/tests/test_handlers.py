@@ -52,6 +52,10 @@ def get_handler_case(scheme):
             pass
     raise KeyError("test case %r not found" % name)
 
+#: hashes which there may not be a backend available for,
+#: and get_handler_case() may (correctly) throw a MissingBackendError
+conditionally_available_hashes = ["argon2", "bcrypt", "bcrypt_sha256"]
+
 #=============================================================================
 # apr md5 crypt
 #=============================================================================

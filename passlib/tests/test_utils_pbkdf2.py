@@ -283,13 +283,15 @@ class Pbkdf2_Test(TestCase):
         helper()
 
         # invalid rounds
+        self.assertRaises(ValueError, helper, rounds=-1)
         self.assertRaises(ValueError, helper, rounds=0)
         self.assertRaises(TypeError, helper, rounds='x')
 
         # invalid keylen
-        helper(keylen=0)
         self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=20*(2**32-1)+1)
+        self.assertRaises(ValueError, helper, keylen=0)
+        helper(keylen=1)
+        self.assertRaises(OverflowError, helper, keylen=20*(2**32-1)+1)
         self.assertRaises(TypeError, helper, keylen='x')
 
         # invalid secret/salt type

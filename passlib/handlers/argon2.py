@@ -28,8 +28,8 @@ _argon2pure = None  # dynamically imported by _load_backend_argon2pure()
 # pkg
 from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
-from passlib.utils import classproperty, to_bytes, b64s_encode, b64s_decode
-from passlib.utils.compat import u, bascii_to_str, get_unbound_method_function
+from passlib.utils import to_bytes, b64s_encode, b64s_decode
+from passlib.utils.compat import u, unicode, bascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -381,11 +381,11 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         type, version, memory_cost, time_cost, parallelism, keyid, data, salt, digest = \
             m.group("type", "version", "memory_cost", "time_cost", "parallelism",
                     "keyid", "data", "salt", "digest")
-        assert type in ["i", "d"]
+        assert type in [b"i", b"d"], "unexpected type code: %r" % (type,)
         if keyid:
             raise NotImplementedError("argon2 'keyid' parameter not supported")
         return cls(
-            type_d=(type == "d"),
+            type_d=(type == b"d"),
             version=int(version) if version else 0x10,
             memory_cost=int(memory_cost),
             rounds=int(time_cost),

@@ -209,7 +209,7 @@ class RegistryTest(TestCase):
     def test_handlers(self):
         """verify we have tests for all builtin handlers"""
         from passlib.registry import list_crypt_handlers
-        from passlib.tests.test_handlers import get_handler_case
+        from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
         for name in list_crypt_handlers():
             # skip some wrappers that don't need independant testing
             if name.startswith("ldap_") and name[5:] in list_crypt_handlers():
@@ -220,7 +220,7 @@ class RegistryTest(TestCase):
             try:
                 self.assertTrue(get_handler_case(name))
             except exc.MissingBackendError:
-                if name in ["bcrypt", "bcrypt_sha256"]: # expected to fail on some setups
+                if name in conditionally_available_hashes # expected to fail on some setups
                     continue
                 raise
 

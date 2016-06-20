@@ -10,7 +10,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe
-from passlib.utils.compat import irange, PY3, u, unicode, join_bytes
+from passlib.utils.compat import irange, PY3, u, unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase
 
 #=============================================================================
@@ -234,13 +234,18 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, consteq, 1, u(''))
         self.assertRaises(TypeError, consteq, 1, b'')
 
+        def consteq_supports_string(value):
+            # NOTE: CPython's compare_digest() only supports ascii unicode strings;
+            #       whereas pypy's compare_digest() and our builtin handle general unicode.
+            return consteq is str_consteq or PYPY or is_ascii_safe(value)
+
         # check equal inputs compare correctly
         for value in [
                 u("a"),
                 u("abc"),
                 u("\xff\xa2\x12\x00")*10,
             ]:
-            if consteq is str_consteq or is_ascii_safe(value):
+            if consteq_supports_string(value):
                 self.assertTrue(consteq(value, value), "value %r:" % (value,))
             else:
                 self.assertRaises(TypeError, consteq, value, value)
@@ -265,7 +270,7 @@ class MiscTest(TestCase):
                 (u("abc"),    u("defabc")),
                 (u("qwertyuiopasdfghjklzxcvbnm"), u("abc")),
             ]:
-            if consteq is str_consteq or is_ascii_safe(l):
+            if consteq_supports_string(l) and consteq_supports_string(r):
                 self.assertFalse(consteq(l, r), "values %r %r:" % (l,r))
                 self.assertFalse(consteq(r, l), "values %r %r:" % (r,l))
             else:
