@@ -89,6 +89,9 @@ Minor Internal Changes
     * :func:`~passlib.utils.consteq` is now an alias for stdlib's :func:`hmac.compare_digest`
       under python 3.3 and up.
 
+    * M2Crypto no longer used to accelerate pbkdf2-hmac-sha1; applications which need this
+      should use the `fastpbkdf2 <https://pypi.python.org/pypi/fastpbkdf2>`_ backend instead.
+
 Deprecations
 ------------
     Passlib 1.7 has undergone a large number of deprecations, as part of a long range plan

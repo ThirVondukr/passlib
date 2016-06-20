@@ -89,10 +89,6 @@ def get_prf(name):
         32
         >>> digest = hmac_sha256('password', 'message')
 
-    This function will attempt to return the fastest implementation
-    it can find. Primarily, if M2Crypto is present, and supports the specified PRF,
-    :func:`M2Crypto.EVP.hmac` will be used behind the scenes.
-
     .. deprecated:: 1.7
 
         This function is deprecated, and will be removed in Passlib 2.0.

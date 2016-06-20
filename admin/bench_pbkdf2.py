@@ -120,21 +120,6 @@ def main():
         na("hashlib")
 
     #--------------------------------------------------------------
-    # test m2crypto
-    #--------------------------------------------------------------
-    try:
-        from M2Crypto.EVP import pbkdf2
-    except ImportError:
-        pbkdf2 = None
-    if pbkdf2:
-        benchmark("m2crypto",
-                  "from M2Crypto.EVP import pbkdf2",
-                  "assert {alg!r} == 'sha1'; pbkdf2({secret!r}, {salt!r}, {rounds}, 20)",
-                  supported=["sha1"])
-    else:
-        na("m2crypto")
-
-    #--------------------------------------------------------------
     # test passlib backends
     #--------------------------------------------------------------
 

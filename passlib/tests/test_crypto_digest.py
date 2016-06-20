@@ -230,8 +230,10 @@ class Pbkdf1_Test(TestCase):
 # import the test subject
 from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
 
-class _Common_Pbkdf2_Test(TestCase):
+# NOTE: relying on tox to verify this works under all the various backends.
+class Pbkdf2Test(TestCase):
     """test pbkdf2() support"""
+    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <backends: %s>" % ", ".join(PBKDF2_BACKENDS)
 
     pbkdf2_test_vectors = [
         # (result, secret, salt, rounds, keylen, digest="sha1")
@@ -506,33 +508,6 @@ class _Common_Pbkdf2_Test(TestCase):
             return pbkdf2_hmac(digest, secret, salt, rounds, keylen)
         self.assertEqual(len(helper(digest='sha1')), 20)
         self.assertEqual(len(helper(digest='sha256')), 32)
-
-#------------------------------------------------------------------------
-# create subclasses to test with- and without- m2crypto
-#------------------------------------------------------------------------
-
-def has_m2crypto():
-    try:
-        import M2Crypto
-        return True
-    except ImportError:
-        return False
-
-@skipUnless(has_m2crypto(), "M2Crypto not found")
-class Pbkdf2_M2Crypto_Test(_Common_Pbkdf2_Test):
-    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <m2crypto backend>"
-
-@skipUnless(TEST_MODE("full") or not has_m2crypto(), "skipped under current test mode")
-class Pbkdf2_Builtin_Test(_Common_Pbkdf2_Test):
-    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <backends: %s>" % ", ".join(PBKDF2_BACKENDS)
-
-    def setUp(self):
-        super(Pbkdf2_Builtin_Test, self).setUp()
-        # make sure m2crypto support is disabled, to force pure-python backend
-        import passlib.crypto.digest as mod
-        self.addCleanup(setattr, mod, "_m2crypto_pbkdf2_hmac_sha1",
-                        mod._m2crypto_pbkdf2_hmac_sha1)
-        mod._m2crypto_pbkdf2_hmac_sha1 = None
 
 #=============================================================================
 # eof

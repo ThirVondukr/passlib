@@ -59,12 +59,6 @@ Optional Libraries
    If installed, will be used to greatly speed up :func:`~passlib.crypto.digest.pbkdf2_hmac`,
    and any pbkdf2-based hashes.
 
-* `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
-
-   If installed, M2Crypto will be used to accelerate some internal
-   functions used by some PBKDF2-based hashes, but it is not required
-   even in that case.
-
 * `SCrypt <https://pypi.python.org/pypi/scrypt>`_
 
    If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
@@ -73,6 +67,7 @@ Optional Libraries
 .. versiochanged:: 1.7
 
     Added fastpbkdf2, cryptography, argon2_cffi, argon2pure, and scrypt support.
+    Removed M2Crypto support.
 
 Installation Instructions
 =========================

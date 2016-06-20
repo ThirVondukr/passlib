@@ -25,10 +25,6 @@ from struct import Struct
 from warnings import warn
 # site
 try:
-    from M2Crypto.EVP import pbkdf2 as _m2crypto_pbkdf2_hmac_sha1
-except ImportError:
-    _m2crypto_pbkdf2_hmac_sha1 = None
-try:
     # https://pypi.python.org/pypi/fastpbkdf2/
     from fastpbkdf2 import pbkdf2_hmac as _fast_pbkdf2_hmac
 except ImportError:
@@ -685,14 +681,6 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     if digest_info.supported_by_hashlib_pbkdf2:
         return _stdlib_pbkdf2_hmac(digest_info.name, secret, salt, rounds, keylen)
 
-    # m2crypto's pbkdf2-hmac-sha1 is faster than ours, so use it if available.
-    # NOTE: as of 2012-4-4, m2crypto has buffer overflow issue which frequently
-    #       causes segfaults if keylen > 32 (EVP_MAX_KEY_LENGTH).
-    #       therefore we're avoiding m2crypto for large keys until that's fixed.
-    #       (https://bugzilla.osafoundation.org/show_bug.cgi?id=13052)
-    if digest == "sha1" and _m2crypto_pbkdf2_hmac_sha1 and keylen < 32:
-        return _m2crypto_pbkdf2_hmac_sha1(secret, salt, rounds, keylen)
-
     #
     # otherwise use our own implementation
     #
@@ -872,15 +860,14 @@ else:
 
     _builtin_backend = "hexlify"
 
-# helper for benchmark script -- disable hashlib, fastpbkdf2 & m2crypto support if builtin requested
+# helper for benchmark script -- disable hashlib, fastpbkdf2 support if builtin requested
 if _force_backend == _builtin_backend:
-    _fast_pbkdf2_hmac = _m2crypto_pbkdf2_hmac_sha1 = _stdlib_pbkdf2_hmac = None
+    _fast_pbkdf2_hmac = _stdlib_pbkdf2_hmac = None
 
 # expose info about what backends are active
 PBKDF2_BACKENDS = [b for b in [
     "fastpbkdf2" if _fast_pbkdf2_hmac else None,
     "hashlib-ssl" if _stdlib_pbkdf2_hmac else None,
-    "m2crypto-sha1" if _m2crypto_pbkdf2_hmac_sha1 else None,
     "builtin-" + _builtin_backend
 ] if b]
 
