@@ -42,7 +42,7 @@ Optional Libraries
    option -- it's actively maintained, and compatible with both CPython and PyPy.
 
 * `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_, or
-  `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_
+  `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_ (>= 1.2.2)
 
    If any of these packages are installed, they will be used to provide
    support for the :class:`~passlib.hash.argon2` hash algorithm.

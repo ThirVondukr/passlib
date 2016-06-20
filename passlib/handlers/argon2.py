@@ -681,26 +681,13 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         except ImportError:
             return None
 
-        # get default / max supported version (probably will be in v1.3,
-        # assuming https://github.com/bwesterb/argon2pure/pull/2 is accepted)
+        # get default / max supported version -- added in v1.2.2
         try:
             from argon2pure import ARGON2_DEFAULT_VERSION as max_version
         except ImportError:
-            max_version = None
-        if max_version is None:
-            # if not present, we have <= v1.2; check for 'version' keyword
-            import inspect
-            spec = inspect.getargspec(_argon2pure.argon2)
-            for key, value in zip(reversed(spec.args), reversed(spec.defaults)):
-                if key == "version":
-                    assert isinstance(value, int) and value >= 0x10
-                    max_version = value
-                    break
-            else:
-                # if 'version' keyword not present, we have <= v1.1.1, which only supported 0x10
-                max_version = 0x10
-
-        cls._argon2pure_supports_version = (max_version >= 0x13)
+            log.warning("detected 'argon2pure' backend, but package is too old "
+                        "(passlib requires argon2pure >= 1.2.2)")
+            return None
 
         log.debug("detected 'argon2pure' backend, with support for 0x%x argon2 hashes",
                   max_version)
@@ -732,15 +719,10 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             parallelism=self.parallelism,
             tag_length=self.checksum_size,
             type_code=type,
+            version=self.version,
         )
         if self.data:
             kwds['associated_data'] = self.data
-        if self._argon2pure_supports_version:
-            kwds['version'] = self.version
-        else:
-            # _load_backend() should set max version at 0x10 in this case,
-            # and _norm_version() should prevent __init__() from accepting this value.
-            assert self.version == 0x10, "_norm_version() check failed"
         # NOTE: should return raw bytes
         # NOTE: this may raise _argon2pure.Argon2ParameterError,
         #       but it if does that, there's a bug in our own parameter checking code.
