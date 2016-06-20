@@ -5,12 +5,11 @@
 from __future__ import with_statement, absolute_import
 # core
 import logging; log = logging.getLogger(__name__)
-from warnings import warn
 # site
 # pkg
 from passlib.crypto import scrypt as _scrypt
-from passlib.utils import ab64_decode, ab64_encode, to_bytes, classproperty
-from passlib.utils.compat import int_types, u, uascii_to_str, suppress_cause
+from passlib.utils import h64, to_bytes, classproperty, b64s_decode, b64s_encode
+from passlib.utils.compat import u, bascii_to_str, suppress_cause
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -18,9 +17,18 @@ __all__ = [
 ]
 
 #=============================================================================
+# scrypt format identifiers
+#=============================================================================
+
+IDENT_SCRYPT = u("$scrypt$")  # identifier used by passlib
+IDENT_7 = u("$7$")  # used by official scrypt spec
+
+_UDOLLAR = u("$")
+
+#=============================================================================
 # handler
 #=============================================================================
-class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt,
+class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.HasManyIdents,
              uh.GenericHandler):
     """This class implements an SCrypt-based password [#scrypt-home]_ hash, and follows the :ref:`password-hash-api`.
 
@@ -89,30 +97,45 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt
     #===================================================================
     # class attrs
     #===================================================================
-    #--GenericHandler--
-    name = "scrypt"
-    ident = u("$scrypt$")
 
+    #------------------------
+    # PasswordHash
+    #------------------------
+    name = "scrypt"
+    setting_kwds = ("ident", "salt", "salt_size", "rounds", "block_size", "parallelism")
+
+    #------------------------
+    # GenericHandler
+    #------------------------
     # NOTE: scrypt supports arbitrary output sizes. since it's output runs through
     #       pbkdf2-hmac-sha256 before returning, and this could be raised eventually...
     #       but a 256-bit digest is more than sufficient for password hashing.
+    # XXX: make checksum size configurable? could merge w/ argon2 code that does this.
     checksum_size = 32
-    setting_kwds = ("salt", "salt_size", "rounds", "block_size", "parallelism")
 
-    #--HasSalt--
+    #------------------------
+    # HasManyIdents
+    #------------------------
+    default_ident = IDENT_SCRYPT
+    ident_values = (IDENT_SCRYPT, IDENT_7)
+
+    #------------------------
+    # HasRawSalt
+    #------------------------
     default_salt_size = 16
     min_salt_size = 0
     max_salt_size = 1024
 
-    #--HasRounds--
+    #------------------------
+    # HasRounds
+    #------------------------
     # TODO: would like to dynamically pick this based on system
     default_rounds = 16
     min_rounds = 1
     max_rounds = 31  # limited by scrypt alg
     rounds_cost = "log2"
 
-    # TODO: make default block size & parallel count configurable via using(),
-    #       and deprecatable via .needs_update()
+    # TODO: make default block size configurable via using(), and deprecatable via .needs_update()
 
     #===================================================================
     # instance attrs
@@ -145,40 +168,135 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt
         return subcls
 
     #===================================================================
-    # formatting
+    # parsing
     #===================================================================
-
-    # format:
-    #   $scrypt$<nExp>,<r>,<p>$<salt>[$<checksum>]
-    #   nExp, r, p -- decimal-encoded positive integer, no zero-padding
-    #   nExp -- log cost setting
-    #   r -- block size setting (usually 8)
-    #   p -- parallelism setting (usually 1)
-    #   salt, checksum -- ab64 encoded
 
     @classmethod
     def from_string(cls, hash):
-        settings, salt, chk = uh.parse_mc3_long(hash, cls.ident, handler=cls)
-        parts = settings.split(",")
+        return cls(**cls.parse(hash))
+
+    @classmethod
+    def parse(cls, hash):
+        ident, suffix = cls._parse_ident(hash)
+        func = getattr(cls, "_parse_%s_string" % ident.strip(_UDOLLAR), None)
+        if func:
+            return func(suffix)
+        else:
+            raise uh.exc.InvalidHashError(cls)
+
+    #
+    # passlib's format:
+    #   $scrypt$ln=<logN>,r=<r>,p=<p>$<salt>[$<digest>]
+    # where:
+    #   logN, r, p -- decimal-encoded positive integer, no zero-padding
+    #   logN -- log cost setting
+    #   r -- block size setting (usually 8)
+    #   p -- parallelism setting (usually 1)
+    #   salt, digest -- b64-nopad encoded bytes
+    #
+
+    @classmethod
+    def _parse_scrypt_string(cls, suffix):
+        # break params, salt, and digest sections
+        parts = suffix.split("$")
         if len(parts) == 3:
-            nexp, r, p = parts
+            params, salt, digest = parts
+        elif len(parts) == 2:
+            params, salt = parts
+            digest = None
+        else:
+            raise uh.exc.MalformedHashError(cls, "malformed hash")
+
+        # break params apart
+        parts = params.split(",")
+        if len(parts) == 3:
+            nstr, bstr, pstr = parts
+            assert nstr.startswith("ln=")
+            assert bstr.startswith("r=")
+            assert pstr.startswith("p=")
         else:
             raise uh.exc.MalformedHashError(cls, "malformed settings field")
-        salt = ab64_decode(salt.encode("ascii"))
-        if chk:
-            chk = ab64_decode(chk.encode("ascii"))
-        return cls(rounds=uh.parse_int(nexp, param="rounds", handler=cls),
-                   block_size=uh.parse_int(r, param="block_size", handler=cls),
-                   parallelism=uh.parse_int(p, param="parallelism", handler=cls),
-                   salt=salt,
-                   checksum=chk)
 
+        return dict(
+            ident=IDENT_SCRYPT,
+            rounds=int(nstr[3:]),
+            block_size=int(bstr[2:]),
+            parallelism=int(pstr[2:]),
+            salt=b64s_decode(salt.encode("ascii")),
+            checksum=b64s_decode(digest.encode("ascii")) if digest else None,
+            )
+
+    #
+    # official format specification defined at
+    #   https://gitlab.com/jas/scrypt-unix-crypt/blob/master/unix-scrypt.txt
+    # format:
+    #   $7$<N><rrrrr><ppppp><salt...>[$<digest>]
+    #       0  12345  67890  1
+    # where:
+    #   All bytes use h64-little-endian encoding
+    #   N: 6-bit log cost setting
+    #   r: 30-bit block size setting
+    #   p: 30-bit parallelism setting
+    #   salt: variable length salt bytes
+    #   digest: fixed 32-byte digest
+    #
+
+    @classmethod
+    def _parse_7_string(cls, suffix):
+        # XXX: annoyingly, official spec embeds salt *raw*, yet doesn't specify a hash encoding.
+        #      so assuming only h64 chars are valid for salt, and are ASCII encoded.
+
+        # split into params & digest
+        parts = suffix.encode("ascii").split(b"$")
+        if len(parts) == 2:
+            params, digest = parts
+        elif len(parts) == 1:
+            params, = parts
+            digest = None
+        else:
+            raise uh.exc.MalformedHashError()
+
+        # parse params & return
+        if len(params) < 11:
+            raise uh.exc.MalformedHashError(cls, "params field too short")
+        return dict(
+            ident=IDENT_7,
+            rounds=h64.decode_int6(params[:1]),
+            block_size=h64.decode_int30(params[1:6]),
+            parallelism=h64.decode_int30(params[6:11]),
+            salt=params[11:],
+            checksum=h64.decode_bytes(digest) if digest else None,
+        )
+
+    #===================================================================
+    # formatting
+    #===================================================================
     def to_string(self):
-        hash = u("%s%d,%d,%d$%s$%s") % (self.ident, self.rounds,
-                                        self.block_size, self.parallelism,
-                                        ab64_encode(self.salt).decode("ascii"),
-                                        ab64_encode(self.checksum).decode("ascii"))
-        return uascii_to_str(hash)
+        ident = self.ident
+        if ident == IDENT_SCRYPT:
+            return "$scrypt$ln=%d,r=%d,p=%d$%s$%s" % (
+                self.rounds,
+                self.block_size,
+                self.parallelism,
+                bascii_to_str(b64s_encode(self.salt)),
+                bascii_to_str(b64s_encode(self.checksum)),
+            )
+        else:
+            assert ident == IDENT_7
+            salt = self.salt
+            try:
+                salt.decode("ascii")
+            except UnicodeDecodeError:
+                raise suppress_cause(NotImplementedError("scrypt $7$ hashes dont support non-ascii salts"))
+            return bascii_to_str(b"".join([
+                b"$7$",
+                h64.encode_int6(self.rounds),
+                h64.encode_int30(self.block_size),
+                h64.encode_int30(self.parallelism),
+                self.salt,
+                b"$",
+                h64.encode_bytes(self.checksum)
+            ]))
 
     #===================================================================
     # init
@@ -199,6 +317,14 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawChecksum, uh.HasRawSalt
     @classmethod
     def _norm_block_size(cls, block_size, relaxed=False):
         return uh.norm_integer(cls, block_size, min=1, param="block_size", relaxed=relaxed)
+
+    def _generate_salt(self):
+        salt = super(scrypt, self)._generate_salt()
+        if self.ident == IDENT_7:
+            # this format doesn't support non-ascii salts.
+            # as workaround, we take raw bytes, encoded to base64
+            salt = b64s_encode(salt)
+        return salt
 
     #===================================================================
     # backend configuration

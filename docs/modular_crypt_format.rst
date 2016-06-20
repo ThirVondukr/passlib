@@ -189,6 +189,7 @@ These hashes can be found in various libraries and applications
     :class:`~passlib.hash.scram`                ``$scram$``         Passlib-specific
     :class:`~passlib.hash.cta_pbkdf2_sha1`      ``$p5k2$`` [#cta]_
     :class:`~passlib.hash.dlitz_pbkdf2_sha1`    ``$p5k2$`` [#cta]_
+    :class:`~passlib.hash.scrypt`               ``$scrypt$``        Passlib-specific
     =========================================== =================== ===========================
 
 .. rubric:: Footnotes

@@ -59,7 +59,7 @@ Optional Libraries
    If installed, will be used to greatly speed up :func:`~passlib.crypto.digest.pbkdf2_hmac`,
    and any pbkdf2-based hashes.
 
-* `SCrypt <https://pypi.python.org/pypi/scrypt>`_
+* `SCrypt <https://pypi.python.org/pypi/scrypt>`_ (>= 0.6)
 
    If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
    hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.

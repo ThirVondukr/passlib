@@ -398,9 +398,7 @@ class _CommonScryptTest(TestCase):
         warnings.filterwarnings("ignore", "(?i)using builtin scrypt backend",
                                 category=exc.PasslibSecurityWarning)
 
-        # generate some random options,
-        # and cross-check output
-        fast_builtin = PYPY
+        # generate some random options, and cross-check output
         for _ in range(10):
             # NOTE: keeping values low due to builtin test
             secret = getrandbytes(random, random.randint(0, 64))
@@ -408,7 +406,7 @@ class _CommonScryptTest(TestCase):
             n = 1<<random.randint(1, 10)
             r = random.randint(1, 8)
             p = random.randint(1, 3)
-            ks = random.randint(0, 64)
+            ks = random.randint(1, 64)
             previous = None
             backends = set()
             for name in available:
@@ -416,6 +414,7 @@ class _CommonScryptTest(TestCase):
                 self.assertNotIn(scrypt_mod._scrypt, backends)
                 backends.add(scrypt_mod._scrypt)
                 result = hexstr(scrypt_mod.scrypt(secret, salt, n, r, p, ks))
+                self.assertEqual(len(result), 2*ks)
                 if previous is not None:
                     self.assertEqual(result, previous,
                                      msg="%r output differs from others %r: %r" %

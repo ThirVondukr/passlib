@@ -24,11 +24,11 @@ This class can be used directly as follows::
     >>> # generate new salt, encrypt password
     >>> h = scrypt.hash("password")
     >>> h
-    '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
+    '$scrypt$ln=16,r=8,p=1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD+iCs5E'
 
     >>> # the same, but with an explicit number of rounds
     >>> scrypt.using(rounds=8).hash("password")
-    '$scrypt$16,8,1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD.iCs5E'
+    '$scrypt$ln=8,r=8,p=1$WKs1xljLudd6z9kbY0wpJQ$yCR4iDZYDKv+iEJj6yHY0lv/epnfB6f/w1EbXrsJOuQ'
 
     >>> # verify password
     >>> scrypt.verify("password", h)
@@ -68,29 +68,28 @@ Format & Algorithm
 This Scrypt hash format is compatible with the :ref:`modular-crypt-format`, and uses ``$scrypt$`` as the identifying prefix
 for all its strings. An example hash (of ``password``) is:
 
-  ``$scrypt$16,8,1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD.iCs5E``
+  ``$scrypt$ln=16,r=8,p=1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD+iCs5E``
 
-This string has the format :samp:`$scrypt${nExp},{r},{p}${salt}${checksum}`, where:
+This string has the format :samp:`$scrypt$ln={logN},r={R},p={P}${salt}${checksum}`, where:
 
-* :samp:`{nExp}` is the exponent for calculating SCRYPT's cost parameter (N), encoded as a decimal digit,
-  (nExp is 16 in the example, corresponding to n=65536).
+* :samp:`{logN}` is the exponent for calculating SCRYPT's cost parameter (N), encoded as a decimal digit,
+  (logN is 16 in the example, corresponding to n=65536).
 
-* :samp:`{r}` is the value of SCRYPT's block size parameter (r), encoded as a decimal digit,
+* :samp:`{R}` is the value of SCRYPT's block size parameter (r), encoded as a decimal digit,
   (r is 8 in the example).
 
-* :samp:`{p}` is the value of SCRYPT's parallel count parameter (p), encoded as a decimal digit,
+* :samp:`{P}` is the value of SCRYPT's parallel count parameter (p), encoded as a decimal digit,
   (p is 1 in the example).
 
-* :samp:`{salt}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
-  of the raw salt bytes passed into the SCRYPT function (``aM15713r3Xsvxbi31lqr1Q`` in the example).
+* :samp:`{salt}` - this base64 encoded salt bytes passed into the SCRYPT function
+  (``aM15713r3Xsvxbi31lqr1Q`` in the example).
 
-* :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
-  of the raw derived key bytes returned from the SCRYPT function.
+* :samp:`{checksum}` - this is the base64 encoded derived key bytes returned from the SCRYPT function.
   This hash currently always uses 32 bytes, resulting in a 43-character checksum.
-  (``nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD.iCs5E`` in the example).
+  (``nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD+iCs5E`` in the example).
 
-The algorithm used by all of these schemes is deliberately identical and simple:
-The password is encoded into UTF-8 if not already encoded,
+All byte strings are encoded using the standard base64 encoding, but without
+any trailing padding ("=") chars.  The password is encoded into UTF-8 if not already encoded,
 and run throught the SCRYPT function; along with the salt, and the values of n, r, and p.
 The first 32 bytes of the returned result are encoded as the checksum.
 
@@ -100,14 +99,6 @@ Security Issues
 ===============
 See the warning at the top of this page about the tradeoff between memory usage
 and security that comes as part of altering scrypt's rounds parameter.
-
-Deviations
-==========
-There is not a standardized format for encoding scrypt-hashed passwords in a manner compatible
-with the modular crypt format; the format documented here is specific to passlib.
-
-That said, the raw contents of these hashes should be identical to the output of any other
-scrypt kdf implementation.
 
 .. rubric:: Footnotes
 

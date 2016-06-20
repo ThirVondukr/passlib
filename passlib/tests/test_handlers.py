@@ -42,7 +42,7 @@ def get_handler_case(scheme):
     else:
         name = "%s_test" % scheme
     for module in ("test_handlers", "test_handlers_argon2", "test_handlers_bcrypt",
-                   "test_handlers_django", "test_handlers_pbkdf2"):
+                   "test_handlers_django", "test_handlers_pbkdf2", "test_handlers_scrypt"):
         modname = "passlib.tests." + module
         __import__(modname)
         mod = sys.modules[modname]
@@ -1420,93 +1420,6 @@ class postgres_md5_test(UserHandlerMixin, HandlerCase):
         # bad 'z' char in otherwise correct hash
         'md54zc31989b20437833f697e485811254b',
     ]
-
-#=============================================================================
-# scrypt hash
-#=============================================================================
-class _scrypt_test(HandlerCase):
-    handler = hash.scrypt
-
-    known_correct_hashes = [
-        #
-        # excepted from test vectors from scrypt whitepaper
-        # (http://www.tarsnap.com/scrypt/scrypt.pdf, appendix b),
-        # and encoded using passlib's custom format
-        #
-
-        # salt=b""
-        ("", "$scrypt$4,1,1$$d9ZXYjhleyA7GcpCwYoEl/FrSETjB0ro39/6P.3iFEI"),
-
-        # salt=b"nacl"
-        ("password", "$scrypt$10,8,16$TmFDbA$/bq.HJ00cgB4VucZDQHp/nxq18vII3gw53N2Y0s3MWI"),
-
-        #
-        # custom
-        #
-
-        # simple test
-        ("test", '$scrypt$8,8,1$wlhLyXmP8b53bm1NKYVQqg$mTpvG8lzuuDk.DWz8HZIB6Vum6erDuUm0As5yU.VxWA'),
-
-        # different block value
-        ("password", '$scrypt$8,2,1$dO6d0xoDoLT2PofQGoNQag$g/Wf2A0vhHhaJM.addK61QPBthSmYB6uVTtQzh8CM3o'),
-
-        # different rounds
-        (UPASS_TABLE, '$scrypt$7,8,1$jjGmtDamdA4BQAjBeA9BSA$OiWRHhQtpDx7M/793x6UXK14AD512jg/qNm/hkWZG4M'),
-
-        # alt encoding
-        (PASS_TABLE_UTF8, '$scrypt$7,8,1$jjGmtDamdA4BQAjBeA9BSA$OiWRHhQtpDx7M/793x6UXK14AD512jg/qNm/hkWZG4M'),
-
-        # diff block & parallel counts as well
-        ("nacl", '$scrypt$1,4,2$yhnD.J.Tci4lZCwFgHCuVQ$fAsEWmxSHuC0cHKMwKVFPzrQukgvK09Sj.NueTSxKds')
-    ]
-
-    if TEST_MODE("full"):
-        # add some hashes with larger rounds value.
-        known_correct_hashes.extend([
-            #
-            # from scrypt whitepaper
-            #
-
-            # salt=b"SodiumChloride"
-            ("pleaseletmein", "$scrypt$14,8,1$U29kaXVtQ2hsb3JpZGU"
-                              "$cCO9yzr9c0hGHAbNgf046/2o.7qQT44.qbVD9lRdofI"),
-
-        ])
-
-    known_malformed_hashes = [
-        # missing 'p' value
-        '$scrypt$10,1$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
-
-        # zero padded rounds
-        '$scrypt$010,1,1$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
-
-        # rounds too low
-        '$scrypt$0,1,1$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
-
-        # invalid block size
-        '$scrypt$10,A,1$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
-
-        # r*p too large
-        '$scrypt$10,134217728,8$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
-    ]
-
-    def setUp(self):
-        super(_scrypt_test, self).setUp()
-        warnings.filterwarnings("ignore", "Using builtin scrypt backend.*")
-
-    def populate_settings(self, kwds):
-        # builtin is still just way too slow.
-        if self.backend == "builtin":
-            kwds.setdefault("rounds", 6)
-        super(_scrypt_test, self).populate_settings(kwds)
-
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(4, 10, 6, 1)
-
-# create test cases for specific backends
-scrypt_scrypt_test = _scrypt_test.create_backend_case("scrypt")
-scrypt_builtin_test = _scrypt_test.create_backend_case("builtin")
 
 #=============================================================================
 # (netbsd's) sha1 crypt

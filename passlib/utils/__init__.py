@@ -1211,6 +1211,10 @@ class Base64Engine(object):
         except KeyError:
             raise ValueError("invalid character")
 
+    def decode_int30(self, source):
+        """decode 5 char string -> 30 bit integer"""
+        return self._decode_int(source, 30)
+
     def decode_int64(self, source):
         """decode 11 char base64 string -> 64-bit integer
 
@@ -1275,6 +1279,12 @@ class Base64Engine(object):
         if self.big:
             raw = reversed(raw)
         return join_byte_elems(imap(self._encode64, raw))
+
+    def encode_int30(self, value):
+        """decode 5 char string -> 30 bit integer"""
+        if value < 0 or value > 0x3fffffff:
+            raise ValueError("value out of range")
+        return self._encode_int(value, 30)
 
     def encode_int64(self, value):
         """encode 64-bit integer -> 11 char hash64 string

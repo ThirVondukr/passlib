@@ -220,28 +220,28 @@ def parse_mc3(hash, prefix, sep=_UDOLLAR, rounds_base=10,
     # return result
     return rounds, salt, chk or None
 
-def parse_mc3_long(hash, prefix, sep=_UDOLLAR, handler=None):
-    """
-    parse hash using 3-part modular crypt format,
-    with complex settings string instead of simple rounds.
-    otherwise works same as :func:`parse_mc3`
-    """
-    # detect prefix
-    hash = to_unicode(hash, "ascii", "hash")
-    assert isinstance(prefix, unicode)
-    if not hash.startswith(prefix):
-        raise exc.InvalidHashError(handler)
-
-    # parse 3-part hash or 2-part config string
-    assert isinstance(sep, unicode)
-    parts = hash[len(prefix):].split(sep)
-    if len(parts) == 3:
-        return parts
-    elif len(parts) == 2:
-        settings, salt = parts
-        return settings, salt, None
-    else:
-        raise exc.MalformedHashError(handler)
+# def parse_mc3_long(hash, prefix, sep=_UDOLLAR, handler=None):
+#     """
+#     parse hash using 3-part modular crypt format,
+#     with complex settings string instead of simple rounds.
+#     otherwise works same as :func:`parse_mc3`
+#     """
+#     # detect prefix
+#     hash = to_unicode(hash, "ascii", "hash")
+#     assert isinstance(prefix, unicode)
+#     if not hash.startswith(prefix):
+#         raise exc.InvalidHashError(handler)
+#
+#     # parse 3-part hash or 2-part config string
+#     assert isinstance(sep, unicode)
+#     parts = hash[len(prefix):].split(sep)
+#     if len(parts) == 3:
+#         return parts
+#     elif len(parts) == 2:
+#         settings, salt = parts
+#         return settings, salt, None
+#     else:
+#         raise exc.MalformedHashError(handler)
 
 def parse_int(source, base=10, default=None, param="value", handler=None):
     """
@@ -1121,7 +1121,7 @@ class HasManyIdents(GenericHandler):
     @classmethod
     def identify(cls, hash):
         hash = to_unicode_for_identify(hash)
-        return any(hash.startswith(ident) for ident in cls.ident_values)
+        return hash.startswith(cls.ident_values)
 
     @classmethod
     def _parse_ident(cls, hash):
