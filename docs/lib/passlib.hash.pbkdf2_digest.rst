@@ -19,7 +19,7 @@ Though the original PBKDF2 specification uses the SHA-1 message digest,
 it is not vulnerable to any of the known weaknesses of SHA-1 [#hmac-sha1]_,
 and can be safely used. However, for those still concerned, SHA-256 and SHA-512
 versions are offered as well.
-PBKDF2-SHA512 is one of the three hashes Passlib
+PBKDF2-SHA512 is one of the four hashes Passlib
 :ref:`recommends <recommended-hashes>` for new applications.
 
 All of these classes can be used directly as follows::

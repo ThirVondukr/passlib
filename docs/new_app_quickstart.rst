@@ -48,32 +48,52 @@ If you'd like to set up a configuration that's right for your
 application, the first thing to do is choose a password hashing scheme.
 Passlib contains a large number of schemes, but most of them
 should only be used when a specific format is explicitly required.
-For new applications, there are really only three choices [#choices]_:
 
+The Options
+-----------
+There are currently four good choices [#choices]_ for secure hashing:
+
+    * :class:`~passlib.hash.argon2`
     * :class:`~passlib.hash.bcrypt`
     * :class:`~passlib.hash.sha512_crypt`
-    * :class:`~passlib.hash.pbkdf2_sha512`
+    * :class:`~passlib.hash.pbkdf2_sha256` / :class:`~passlib.hash.pbkdf2_sha512`
 
-All three password hashes share the following properties:
+All four hashes share the following properties:
 
     * no known vulnerabilities.
     * based on documented & widely reviewed algorithms.
-    * basic algorithm has seen heavy scrutiny
-      and use for at least 10 years.
     * public-domain or BSD-licensed reference implementations available.
-    * in use across a number of OSes and/or a wide variety of applications.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * at least 96 bits of salt.
+    * basic algorithm has seen heavy scrutiny and use for at least 10 years
+      (except for Argon2, from is from circa 2013).
+    * in use across a number of OSes and/or a wide variety of applications.
 
-The following comparison should help you choose which hash is
-most appropriate for your application; if in doubt,
-any of these is a good choice, though PBKDF2 is probably the best
-for portability.
+Argon2 is much younger than the others, but has seen heavy scrunity,
+and was purpose-designed for password hashing.  In the near future, it stands likely to
+become *THE* recommended standard.
 
 .. rst-class:: html-toggle
 
 Detailed Comparison of Choices
 ------------------------------
+
+Argon2
+......
+:class:`~passlib.hash.argon2` is the newest of the four recommended hashes.
+It was selected as the winner of the `2013 Password Hashing Competition <https://password-hashing.net/>`_,
+and draws on the design and lessons from BCrypt, PBKDF2, and SCrypt.  Despite
+being much newer than the others, it has seen heavy scrutiny.  Since the Argon2 project
+had the foresight to provide not just a reference implementation, but a standard
+hash encoding format, these hashes should be reliably interoperatable across all implementations.
+
+Issues: In it's default configuration, Argon2 uses more memory than the other hashes
+(However, this is one of it's hallmarks as a "memory hard" hashing algorithm, and contributes to it's security.
+Furthermore the exact amount used is configurable).  It's only main drawback is that as of 2016-6-20
+it's only 3 years old.  It's seen only a few minor adjustments since 2013,
+but as it is just now gaining widespread use, the next few years are the period in which it will
+likely either prove itself, or be found wanting.  It's for this reason,
+any cryptographic algorithm less than a decade old is generally considered "young" :)
 
 BCrypt
 ......
@@ -91,13 +111,9 @@ this matter of concern is what motivated the development of SHA512-Crypt.
 As well, its rounds parameter is logarithmically scaled,
 making it hard to fine-tune the amount of time taken to verify passwords;
 which can be an issue for applications that handle a large number
-of simultaneous logon attempts (e.g. web apps).
-
-.. note::
-
-    For BCrypt support on non-BSD systems,
-    Passlib requires the C-extension provided by the
-    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ package.
+of simultaneous logon attempts (e.g. web apps). Finally, BCrypt only hashes
+the first 72 characters of a password, and will silently truncate longer ones
+(Passlib's non-standard :class:`~passlib.hash.bcrypt_sha256` works around this last issue).
 
 SHA512-Crypt
 ............
@@ -121,8 +137,11 @@ version for use in a pre-computed or brute-force search.
 However, this design also hampers analysis of the algorithm
 for future flaws.
 
-*While this algorithm is still considered secure, it has fallen slightly out of favor
-in comparison to bcrypt & pbkdf2, due to it's non-standard construction.*
+While this algorithm is still considered secure, it has fallen out of favor
+in comparison to bcrypt & pbkdf2, due to it's non-standard construction.
+
+Furthermore, when compared to Argon2 and BCrypt,
+SHA512-Crypt and PBKDF2 have proven more susceptible to cracking using modern GPU-based techniques.
 
 .. index:: Google App Engine; recommended hash algorithm
 
@@ -158,21 +177,51 @@ in recent years; mainly hampered by the fact that there is no
 standard format for encoding password hashes using this algorithm
 (which is why Passlib has its own :ref:`custom format <mcf-pbkdf2-format>`).
 
-.. note::
+Furthermore, when compared to Argon2 and BCrypt, PBKDF2 has proven more susceptible to cracking
+using modern GPU-based techniques.
 
-    Passlib strongly suggests installing
-    the external M2Crypto package to speed up PBKDF2 calculations,
-    though this is not required.
+Making Descision
+----------------
+For new applications, this decision comes down to a couple of questions:
 
-.. index:: SCrypt; status of
+1. Does the hash need to be natively supported by your operating system's :func:`!crypt` api,
+   in order to allow inter-operation with third-party applications on the host?
 
-What about SCrypt?
-..................
-`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the first in a class of "memory-hard"
-key derivation functions.  Passlib supports hashing passwords with SCrypt via the
-:class:`~passlib.hash.scrypt` password hash.  However, it is not currently recommended for use
-unless you know what you're doing, as selection of an appropriate secure set of rounds parameters
-is very dependant on your serve load, and may frequently not be possible.
+   * If so, the right choice is either :class:`~passlib.hash.bcrypt` for BSD variants,
+     or :class:`~passlib.hash.sha512_crypt` for Linux; since these are natively supported.
+
+   * If not, continue...
+
+2. Does your hosting prevent you from installing C extensions?
+
+   * If yes, you probably want to use :class:`~passlib.hash.pbkdf2_sha256` / :class:`~passlib.hash.pbkdf2_sha512`;
+     This is currently the option with the fastest pure-python backend.
+
+   * If they allow C extensions, continue...
+
+3. Do you want to use the latest, greatest, and don't mind increased memory usage
+   per hash?
+
+   * :class:`~passlib.hash.argon2` is a next-generation hashing algorithm,
+     attempting to become the new standard.  It's design has been being slightly tweaked
+     since 2013, but will quite likely become *the* standard in the next few years.
+     You'll need to install the `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_
+     support library.
+
+   * If you want something secure, but battle tested, continue...
+
+4. The top two choices left are :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.pbkdf2_sha256`.
+
+   Both have advantages, and their respective rough edges;
+   though currently the balance is in favor of :class:`~passlib.hash.bcrypt`
+   (pbkdf2 can be cracked somewhat more efficiently).
+
+   * If choosing bcrypt, we strongly recommend installing the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
+     support library on non-BSD operating systems.
+
+   * If choosing pbkdf2, especially on python2 < 2.7.8 and python 3 < 3.4,
+     you will probably want to install `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
+     support library.
 
 Creating and Using a CryptContext
 =================================
@@ -200,7 +249,7 @@ Insert the following code into your application::
         # set the number of rounds that should be used...
         # (appropriate values may vary for different schemes,
         # and the amount of time you wish it to take)
-        pbkdf2_sha256__default_rounds = 29000,
+        pbkdf2_sha256__rounds = 29000,
         )
 
 To start using your CryptContext, import the context you created wherever it's needed::

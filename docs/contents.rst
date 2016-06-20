@@ -26,6 +26,7 @@ Table Of Contents
     lib/passlib.exc
     lib/passlib.registry
     lib/passlib.utils
+    lib/passlib.crypto
 
     modular_crypt_format
 

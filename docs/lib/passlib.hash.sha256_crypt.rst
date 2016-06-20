@@ -11,7 +11,7 @@ The design involves repeated composition of the underlying digest algorithm,
 using various arbitrary permutations of inputs.
 SHA-512 / SHA-256 Crypt are currently the default password hash for many systems
 (notably Linux), and have no known weaknesses.
-SHA-256 Crypt is one of the three hashes Passlib :ref:`recommends <recommended-hashes>`
+SHA-256 Crypt is one of the four hashes Passlib :ref:`recommends <recommended-hashes>`
 for new applications.
 This class can be used directly as follows::
 

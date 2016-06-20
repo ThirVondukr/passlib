@@ -64,7 +64,7 @@ Optional Libraries
    If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
    hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.
 
-.. versiochanged:: 1.7
+.. versionchanged:: 1.7
 
     Added fastpbkdf2, cryptography, argon2_cffi, argon2pure, and scrypt support.
     Removed M2Crypto support.

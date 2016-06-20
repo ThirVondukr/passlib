@@ -24,10 +24,11 @@ Hash Functions
     as well as offered through :func:`hashlib.new`.
     It will also fallback to passlib's builtin MD4 implementation if one is not natively available.
 
-HMAC Functions
-==============
+..
+    HMAC Functions
+    ==============
 
-.. autofunction:: compile_hmac
+    .. autofunction:: compile_hmac
 
 PKCS#5 Key Derivation Functions
 ===============================

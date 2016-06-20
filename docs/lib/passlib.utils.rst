@@ -217,8 +217,6 @@ There are also a few sub modules which provide additional utility functions:
     passlib.utils.handlers
     passlib.utils.des
     passlib.utils.pbkdf2
-    passlib.crypto.digest
-    passlib.crypto.des
 
 ..
     passlib.utils.compat

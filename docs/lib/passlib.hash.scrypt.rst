@@ -97,8 +97,17 @@ See `<http://www.tarsnap.com/scrypt.html>`_ for the canonical description of the
 
 Security Issues
 ===============
-See the warning at the top of this page about the tradeoff between memory usage
-and security that comes as part of altering scrypt's rounds parameter.
+`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the first in a class of "memory-hard"
+key derivation functions. Initially, it looked very promising as a replacement for BCrypt,
+PBKDF2, and SHA512-Crypt.  However, the fact that it's ``N`` parameter controls both
+time *and* memory cost means the two cannot be varied completely independantly.  This
+eventually proved to be problematic, as ``N`` values required for even BCrypt levels of security
+resulting in memory requirements that were unacceptable on most production systems.
+
+.. seealso::
+
+   :class:`~passlib.hash.argon2`, a next generation memory-hard KDF designed as the
+   successor to SCrypt.
 
 .. rubric:: Footnotes
 
