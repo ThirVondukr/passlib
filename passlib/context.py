@@ -1325,7 +1325,7 @@ class CryptContext(object):
 
     def replace(self, **kwds):
         """deprecated alias of :meth:`copy`"""
-        warn("CryptContext().using() has been deprecated in Passlib 1.6, "
+        warn("CryptContext().replace() has been deprecated in Passlib 1.6, "
              "and will be removed in Passlib 1.8, "
              "it has been renamed to CryptContext().copy()",
              DeprecationWarning, stacklevel=2)

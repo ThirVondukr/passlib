@@ -358,6 +358,11 @@ try:
 except ImportError:
     pass
 
+    # TODO: could check for cryptography package's version,
+    #       but only operates on bytes, so would need a wrapper,
+    #       or separate consteq() into a unicode & a bytes variant.
+    # from cryptography.hazmat.primitives.constant_time import bytes_eq as consteq
+
 def splitcomma(source, sep=","):
     """split comma-separated string into list of elements,
     stripping whitespace.

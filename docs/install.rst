@@ -12,7 +12,7 @@ It is known to work with the following Python implementations:
 * CPython 2 -- v2.6 or newer.
 * CPython 3 -- v3.3 or newer.
 * PyPy -- v2.0 or newer.
-* PyPy3 -- v2.0 or newer.
+* PyPy3 -- v5.3 or newer.
 * Jython -- v2.7 or newer.
 
 Passlib should work with all operating systems and environments,
