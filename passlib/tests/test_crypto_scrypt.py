@@ -542,7 +542,7 @@ class _CommonScryptTest(TestCase):
 
         # must be > 0
         self.assertRaises(ValueError, run_scrypt, -1)
-        self.assertEqual(run_scrypt(0), '')
+        self.assertRaises(ValueError, run_scrypt, 0)
         self.assertEqual(run_scrypt(1), 'da')
 
         # pick random value

@@ -110,8 +110,8 @@ def scrypt(secret, salt, n, r, p=1, keylen=32):
     validate(n, r, p)
     secret = to_bytes(secret, param="secret")
     salt = to_bytes(salt, param="salt")
-    if keylen < 0:
-        raise ValueError("keylen must be >= 0")
+    if keylen < 1:
+        raise ValueError("keylen must be at least 1")
     if keylen > MAX_KEYLEN:
         raise ValueError("keylen too large, must be <= %d" % MAX_KEYLEN)
     return _scrypt(secret, salt, n, r, p, keylen)
