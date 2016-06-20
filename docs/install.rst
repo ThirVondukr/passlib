@@ -54,6 +54,11 @@ Optional Libraries
    If installed, will be used to enable encryption of TOTP secrets for storage
    (see :mod:`passlib.totp`).
 
+* `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
+
+   If installed, will be used to greatly speed up :func:`~passlib.crypto.digest.pbkdf2_hmac`,
+   and any pbkdf2-based hashes.
+
 * `M2Crypto <http://chandlerproject.org/bin/view/Projects/MeTooCrypto>`_
 
    If installed, M2Crypto will be used to accelerate some internal
@@ -64,6 +69,10 @@ Optional Libraries
 
    If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
    hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.
+
+.. versiochanged:: 1.7
+
+    Added fastpbkdf2, cryptography, argon2_cffi, argon2pure, and scrypt support.
 
 Installation Instructions
 =========================

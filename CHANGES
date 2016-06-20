@@ -49,7 +49,9 @@ Major Changes
       support for Cisco ASA 7.0 and newer hashes.
 
     * The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
-      hashes have been sped up by ~20% compared to Passlib 1.6.
+      hashes have been sped up by ~20% compared to Passlib 1.6. Furthermore,
+      it will now use `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
+      or :func:`hashlib.pbkdf2_hmac` when available, for an even greater speedup.
 
     * Passlib will now detect and work around the fatal concurrency bug
       in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`

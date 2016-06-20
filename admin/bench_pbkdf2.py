@@ -139,9 +139,9 @@ def main():
     #--------------------------------------------------------------
 
     import passlib.crypto.digest as digest_mod
-    for backend in ["from_bytes", "unpack", "hexlify"]:
+    for backend in ["from-bytes", "unpack", "hexlify"]:
         name = "p/%s" % backend
-        if backend == "from_bytes" and not PY3:
+        if backend == "from-bytes" and not PY3:
             na(name)
             continue
         os.environ['PASSLIB_PBKDF2_BACKEND'] = backend

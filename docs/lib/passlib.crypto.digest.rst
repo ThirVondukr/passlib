@@ -34,6 +34,12 @@ PKCS#5 Key Derivation Functions
 .. autofunction:: pbkdf1
 .. autofunction:: pbkdf2_hmac
 
+.. data:: PBKDF2_BACKENDS
+
+    List of the pbkdf2 backends in use (listed in order of priority).
+
+    .. versionadded:: 1.7
+
 .. note::
 
     The details of PBKDF1 and PBKDF2 are specified in :rfc:`2898`.

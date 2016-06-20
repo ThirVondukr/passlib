@@ -228,7 +228,7 @@ class Pbkdf1_Test(TestCase):
 #=============================================================================
 
 # import the test subject
-from passlib.crypto.digest import pbkdf2_hmac
+from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
 
 class _Common_Pbkdf2_Test(TestCase):
     """test pbkdf2() support"""
@@ -334,6 +334,86 @@ class _Common_Pbkdf2_Test(TestCase):
             ),
 
         #
+        # test vectors from fastpbkdf2 <https://github.com/ctz/fastpbkdf2/blob/master/testdata.py>
+        #
+            (
+                hb('55ac046e56e3089fec1691c22544b605f94185216dde0465e68b9d57c20dacbc'
+                   '49ca9cccf179b645991664b39d77ef317c71b845b1e30bd509112041d3a19783'),
+                b'passwd', b'salt', 1, 64, 'sha256',
+            ),
+
+            (
+                hb('4ddcd8f60b98be21830cee5ef22701f9641a4418d04c0414aeff08876b34ab56'
+                   'a1d425a1225833549adb841b51c9b3176a272bdebba1d078478f62b397f33c8d'),
+                b'Password', b'NaCl', 80000, 64, 'sha256',
+            ),
+
+            (
+                hb('120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b'),
+                b'password', b'salt', 1, 32, 'sha256',
+            ),
+
+            (
+                hb('ae4d0c95af6b46d32d0adff928f06dd02a303f8ef3c251dfd6e2d85a95474c43'),
+                b'password', b'salt', 2, 32, 'sha256',
+            ),
+
+            (
+                hb('c5e478d59288c841aa530db6845c4c8d962893a001ce4e11a4963873aa98134a'),
+                b'password', b'salt', 4096, 32, 'sha256',
+            ),
+
+            (
+                hb('348c89dbcbd32b2f32d814b8116e84cf2b17347ebc1800181c4e2a1fb8dd53e1c'
+                   '635518c7dac47e9'),
+                b'passwordPASSWORDpassword', b'saltSALTsaltSALTsaltSALTsaltSALTsalt',
+                4096, 40, 'sha256',
+            ),
+
+            (
+                hb('9e83f279c040f2a11aa4a02b24c418f2d3cb39560c9627fa4f47e3bcc2897c3d'),
+                b'', b'salt', 1024, 32, 'sha256',
+            ),
+
+            (
+                hb('ea5808411eb0c7e830deab55096cee582761e22a9bc034e3ece925225b07bf46'),
+                b'password', b'', 1024, 32, 'sha256',
+            ),
+
+            (
+                hb('89b69d0516f829893c696226650a8687'),
+                b'pass\x00word', b'sa\x00lt', 4096, 16, 'sha256',
+            ),
+
+            (
+                hb('867f70cf1ade02cff3752599a3a53dc4af34c7a669815ae5d513554e1c8cf252'),
+                b'password', b'salt', 1, 32, 'sha512',
+            ),
+
+            (
+                hb('e1d9c16aa681708a45f5c7c4e215ceb66e011a2e9f0040713f18aefdb866d53c'),
+                b'password', b'salt', 2, 32, 'sha512',
+            ),
+
+            (
+                hb('d197b1b33db0143e018b12f3d1d1479e6cdebdcc97c5c0f87f6902e072f457b5'),
+                b'password', b'salt', 4096, 32, 'sha512',
+            ),
+
+            (
+                hb('6e23f27638084b0f7ea1734e0d9841f55dd29ea60a834466f3396bac801fac1eeb'
+                   '63802f03a0b4acd7603e3699c8b74437be83ff01ad7f55dac1ef60f4d56480c35e'
+                   'e68fd52c6936'),
+                b'passwordPASSWORDpassword', b'saltSALTsaltSALTsaltSALTsaltSALTsalt',
+                1, 72, 'sha512',
+            ),
+
+            (
+                hb('0c60c80f961f0e71f3a9b524af6012062fe037a6'),
+                b'password', b'salt', 1, 20, 'sha1',
+            ),
+
+        #
         # custom tests
         #
             (
@@ -344,7 +424,16 @@ class _Common_Pbkdf2_Test(TestCase):
                 hb('e248fb6b13365146f8ac6307cc2228127872da6d'),
                 b"secret", b"salt", 10, None, "sha1",
             ),
-
+            (
+                hb('b1d5485772e6f76d5ebdc11b38d3eff0a5b2bd50dc11f937e86ecacd0cd40d1b'
+                   '9113e0734e3b76a3'),
+                b"secret", b"salt", 62, 40, "md5",
+            ),
+            (
+                hb('ea014cc01f78d3883cac364bb5d054e2be238fb0b6081795a9d84512126e3129'
+                   '062104d2183464c4'),
+                b"secret", b"salt", 62, 40, "md4",
+            ),
         ]
 
     def test_known(self):
@@ -355,6 +444,34 @@ class _Common_Pbkdf2_Test(TestCase):
             result = pbkdf2_hmac(digest, secret, salt, rounds, keylen)
             self.assertEqual(result, correct)
 
+    def test_backends(self):
+        """verify expected backends are present"""
+        from passlib.crypto.digest import PBKDF2_BACKENDS
+
+        # check for fastpbkdf2
+        try:
+            import fastpbkdf2
+            has_fastpbkdf2 = True
+        except ImportError:
+            has_fastpbkdf2 = False
+        self.assertEqual("fastpbkdf2" in PBKDF2_BACKENDS, has_fastpbkdf2)
+
+        # check for hashlib
+        try:
+            from hashlib import pbkdf2_hmac
+            has_hashlib_ssl = pbkdf2_hmac.__module__ != "hashlib"
+        except ImportError:
+            has_hashlib_ssl = False
+        self.assertEqual("hashlib-ssl" in PBKDF2_BACKENDS, has_hashlib_ssl)
+
+        # check for appropriate builtin
+        from passlib.utils.compat import PY3
+        if PY3:
+            self.assertIn("builtin-from-bytes", PBKDF2_BACKENDS)
+        else:
+            # XXX: only true as long as this is preferred over hexlify
+            self.assertIn("builtin-unpack", PBKDF2_BACKENDS)
+
     def test_border(self):
         """test border cases"""
         def helper(secret=b'password', salt=b'salt', rounds=1, keylen=None, digest="sha1"):
@@ -362,13 +479,17 @@ class _Common_Pbkdf2_Test(TestCase):
         helper()
 
         # invalid rounds
+        self.assertRaises(ValueError, helper, rounds=-1)
         self.assertRaises(ValueError, helper, rounds=0)
         self.assertRaises(TypeError, helper, rounds='x')
 
         # invalid keylen
-        helper(keylen=0)
+        helper(keylen=1)
         self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=20*(2**32-1)+1)
+        self.assertRaises(ValueError, helper, keylen=0)
+        # NOTE: hashlib actually throws error for keylen>=MAX_SINT32,
+        #       but pbkdf2 forbids anything > MAX_UINT32 * digest_size
+        self.assertRaises(OverflowError, helper, keylen=20*(2**32-1)+1)
         self.assertRaises(TypeError, helper, keylen='x')
 
         # invalid secret/salt type
@@ -403,7 +524,7 @@ class Pbkdf2_M2Crypto_Test(_Common_Pbkdf2_Test):
 
 @skipUnless(TEST_MODE("full") or not has_m2crypto(), "skipped under current test mode")
 class Pbkdf2_Builtin_Test(_Common_Pbkdf2_Test):
-    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <builtin backend>"
+    descriptionPrefix = "passlib.crypto.digest.pbkdf2_hmac() <backends: %s>" % ", ".join(PBKDF2_BACKENDS)
 
     def setUp(self):
         super(Pbkdf2_Builtin_Test, self).setUp()
