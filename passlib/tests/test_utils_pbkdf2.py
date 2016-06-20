@@ -20,8 +20,7 @@ import warnings
 # pkg
 # module
 from passlib.utils.compat import u, JYTHON
-from passlib.tests.utils import TestCase
-from passlib.tests.test_crypto_digest import hb
+from passlib.tests.utils import TestCase, hb
 
 #=============================================================================
 # test assorted crypto helpers

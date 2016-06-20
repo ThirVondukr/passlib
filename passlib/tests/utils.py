@@ -4,6 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
+from binascii import unhexlify
 import contextlib
 import logging; log = logging.getLogger(__name__)
 import random
@@ -224,6 +225,17 @@ def tonn(source):
             return source.decode("utf-8")
         except UnicodeDecodeError:
             return source.decode("latin-1")
+
+def hb(source):
+    """
+    helper for represent byte strings in hex.
+
+    usage: ``hb("deadbeef23")``
+    """
+    source = re.sub("\s", "", source)
+    if PY3:
+        source = source.encode("ascii")
+    return unhexlify(source)
 
 def limit(value, lower, upper):
     if value < lower:

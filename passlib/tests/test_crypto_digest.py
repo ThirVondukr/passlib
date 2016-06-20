@@ -4,29 +4,14 @@
 #=============================================================================
 from __future__ import with_statement, division
 # core
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 import hashlib
-import re
 import warnings
 # site
 # pkg
 # module
 from passlib.utils.compat import PY3, u, JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, skipUnless
-
-#=============================================================================
-# support
-#=============================================================================
-def hb(source):
-    """
-    helper for represent byte strings in hex.
-
-    usage: ``hb("deadbeef23")``
-    """
-    source = re.sub("\s", "", source)
-    if PY3:
-        source = source.encode("ascii")
-    return unhexlify(source)
+from passlib.tests.utils import TestCase, TEST_MODE, skipUnless, hb
 
 #=============================================================================
 # test assorted crypto helpers

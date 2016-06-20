@@ -14,8 +14,7 @@ import warnings
 from passlib import exc
 from passlib.utils import classproperty, getrandbytes
 from passlib.utils.compat import PYPY, u, bascii_to_str
-from passlib.tests.utils import TestCase, skipUnless, TEST_MODE
-from passlib.tests.test_crypto_digest import hb
+from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, hb
 # subject
 from passlib.crypto import scrypt as scrypt_mod
 # local
