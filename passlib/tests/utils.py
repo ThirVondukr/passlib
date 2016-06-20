@@ -1727,14 +1727,6 @@ class HandlerCase(TestCase):
         self.assertRaises(ValueError, parse, -0.1)
         self.assertRaises(ValueError, parse, 1.1)
 
-    def assert_rounds_range(self, cls, lower, upper):
-        """
-        helper to check vary_rounds covers specified range
-        """
-        # NOTE: this runs enough times the min and max *should* be hit,
-        #       though there's a faint chance it will randomly fail.
-        seen = set(get_effective_rounds(cls) for _ in irange(500))
-
     def test_has_rounds_using_w_vary_rounds_generation(self):
         """
         HasRounds.using() -- vary_rounds generation
@@ -2294,7 +2286,6 @@ class HandlerCase(TestCase):
         # gather info
         from passlib.utils import tick
         handler = self.handler
-        disabled = self.is_disabled_handler
         max_time = self.max_fuzz_time
         if max_time <= 0:
             raise self.skipTest("disabled by test mode")

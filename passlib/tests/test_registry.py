@@ -220,7 +220,7 @@ class RegistryTest(TestCase):
             try:
                 self.assertTrue(get_handler_case(name))
             except exc.MissingBackendError:
-                if name in conditionally_available_hashes # expected to fail on some setups
+                if name in conditionally_available_hashes: # expected to fail on some setups
                     continue
                 raise
 
