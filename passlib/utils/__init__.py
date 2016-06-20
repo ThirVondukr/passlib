@@ -4,6 +4,7 @@
 #=============================================================================
 from passlib.utils.compat import JYTHON
 # core
+from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
 from base64 import b64encode, b64decode
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
@@ -34,7 +35,7 @@ from passlib.exc import ExpectedStringError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
-                                  get_method_function)
+                                  get_method_function, suppress_cause)
 # local
 __all__ = [
     # constants
@@ -1337,47 +1338,34 @@ bcrypt64 = LazyBase64Engine(BCRYPT_CHARS, big=True)
 #=============================================================================
 # adapted-base64 encoding
 #=============================================================================
-_A64_ALTCHARS = b"./"
-_A64_STRIP = b"=\n"
-_A64_PAD1 = b"="
-_A64_PAD2 = b"=="
+_BASE64_STRIP = b"=\n"
+_BASE64_PAD1 = b"="
+_BASE64_PAD2 = b"=="
 
 def ab64_encode(data):
-    """encode using variant of base64
-
-    the output of this function is identical to stdlib's b64_encode,
-    except that it uses ``.`` instead of ``+``,
-    and omits trailing padding ``=`` and whitepsace.
+    """
+    base64 encoder which omits trailing padding & whitespace.
+    uses ``.`` instead of ``+``, but otherwise the same as normal base64.
 
     it is primarily used by Passlib's custom pbkdf2 hashes.
     """
-    return b64encode(data, _A64_ALTCHARS).strip(_A64_STRIP)
+    return b64s_encode(data).replace(b"+", b".")
 
 def ab64_decode(data):
-    """decode using variant of base64
-
-    the input of this function is identical to stdlib's b64_decode,
-    except that it uses ``.`` instead of ``+``,
-    and should not include trailing padding ``=`` or whitespace.
+    """
+    base64 decoder which omits trailing padding & whitespace.
+    uses ``.`` instead of ``+``, but otherwise the same as normal base64.
 
     it is primarily used by Passlib's custom pbkdf2 hashes.
     """
-    off = len(data) & 3
-    if off == 0:
-        return b64decode(data, _A64_ALTCHARS)
-    elif off == 2:
-        return b64decode(data + _A64_PAD2, _A64_ALTCHARS)
-    elif off == 3:
-        return b64decode(data + _A64_PAD1, _A64_ALTCHARS)
-    else: # off == 1
-        raise ValueError("invalid base64 input")
+    return b64s_decode(data.replace(b".", b"+"))
 
 def b64s_encode(data):
     """
     base64 encoder which omits trailing padding & whitespace.
     otherwise uses default ``+/`` altchars.
     """
-    return b64encode(data).strip(_A64_STRIP)
+    return b2a_base64(data).rstrip(_BASE64_STRIP)
 
 def b64s_decode(data):
     """
@@ -1388,12 +1376,15 @@ def b64s_decode(data):
     if off == 0:
         pass
     elif off == 2:
-        data += _A64_PAD2
+        data += _BASE64_PAD2
     elif off == 3:
-        data += _A64_PAD1
+        data += _BASE64_PAD1
     else:  # off == 1
         raise ValueError("invalid base64 input")
-    return b64decode(data)
+    try:
+        return a2b_base64(data)
+    except _BinAsciiError as err:
+        raise suppress_cause(TypeError(err))
 
 #=============================================================================
 # host OS helpers
