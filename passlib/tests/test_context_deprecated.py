@@ -213,6 +213,7 @@ admin__context__deprecated = des_crypt, bsdi_crypt
         warnings.filterwarnings("ignore",
                                 r"the method.*hash_needs_update.*is deprecated")
         warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
+        warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd")
 
     def test_00_constructor(self):
         """test CryptPolicy() constructor"""

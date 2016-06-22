@@ -64,8 +64,8 @@ class CryptContextTest(TestCase):
         schemes = sample_1_schemes,
         default = "md5_crypt",
         all__vary_rounds = 0.1,
-        bsdi_crypt__max_rounds = 30000,
-        bsdi_crypt__default_rounds = 25000,
+        bsdi_crypt__max_rounds = 30001,
+        bsdi_crypt__default_rounds = 25001,
         sha512_crypt__max_rounds = 50000,
         sha512_crypt__min_rounds = 40000,
     )
@@ -79,8 +79,8 @@ schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
 default = md5_crypt
 ; this is using %...
 all__vary_rounds = 10%%
-bsdi_crypt__default_rounds = 25000
-bsdi_crypt__max_rounds = 30000
+bsdi_crypt__default_rounds = 25001
+bsdi_crypt__max_rounds = 30001
 sha512_crypt__max_rounds = 50000
 sha512_crypt__min_rounds = 40000
 """)
@@ -90,8 +90,8 @@ sha512_crypt__min_rounds = 40000
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
 default = md5_crypt
 all__vary_rounds = 0.1
-bsdi_crypt__default_rounds = 25000
-bsdi_crypt__max_rounds = 30000
+bsdi_crypt__default_rounds = 25001
+bsdi_crypt__max_rounds = 30001
 sha512_crypt__max_rounds = 50000
 sha512_crypt__min_rounds = 40000
 
@@ -124,18 +124,18 @@ sha512_crypt__min_rounds = 40000
     #---------------------------------------------------------------
     sample_2_dict = dict(
         # using this to test full replacement of existing options
-        bsdi_crypt__min_rounds = 29000,
-        bsdi_crypt__max_rounds = 35000,
-        bsdi_crypt__default_rounds = 31000,
+        bsdi_crypt__min_rounds = 29001,
+        bsdi_crypt__max_rounds = 35001,
+        bsdi_crypt__default_rounds = 31001,
         # using this to test partial replacement of existing options
         sha512_crypt__min_rounds=45000,
     )
 
     sample_2_unicode = """\
 [passlib]
-bsdi_crypt__min_rounds = 29000
-bsdi_crypt__max_rounds = 35000
-bsdi_crypt__default_rounds = 31000
+bsdi_crypt__min_rounds = 29001
+bsdi_crypt__max_rounds = 35001
+bsdi_crypt__default_rounds = 31001
 sha512_crypt__min_rounds = 45000
 """
 
@@ -160,7 +160,7 @@ sha512_crypt__min_rounds = 45000
                    "sha256_crypt"],
         deprecated = [ "des_crypt", ],
         default = "sha256_crypt",
-        bsdi_crypt__max_rounds = 30,
+        bsdi_crypt__max_rounds = 31,
         bsdi_crypt__default_rounds = 25,
         bsdi_crypt__vary_rounds = 0,
         sha256_crypt__max_rounds = 3000,

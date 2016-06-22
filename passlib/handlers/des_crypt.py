@@ -296,14 +296,14 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #       want to eventually expose rounds logic to that script in better way.
     _avoid_even_rounds = True
 
-    def _parse_rounds(self, rounds):
-        rounds = super(bsdi_crypt, self)._parse_rounds(rounds)
-        # issue warning if app provided an even rounds value
-        if not rounds & 1:
-            warn("bsdi_crypt rounds should be odd, "
-                 "as even rounds may reveal weak DES keys",
+    @classmethod
+    def using(cls, **kwds):
+        subcls = super(bsdi_crypt, cls).using(**kwds)
+        if not subcls.default_rounds & 1:
+            # issue warning if caller set an even 'rounds' value.
+            warn("bsdi_crypt rounds should be odd, as even rounds may reveal weak DES keys",
                  uh.exc.PasslibSecurityWarning)
-        return rounds
+        return subcls
 
     @classmethod
     def _generate_rounds(cls):
