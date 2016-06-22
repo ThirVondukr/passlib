@@ -235,9 +235,9 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, consteq, 1, b'')
 
         def consteq_supports_string(value):
-            # NOTE: CPython's compare_digest() only supports ascii unicode strings;
-            #       whereas pypy's compare_digest() and our builtin handle general unicode.
-            return consteq is str_consteq or PYPY or is_ascii_safe(value)
+            # compare_digest() only supports ascii unicode strings;
+            # except under pypy2, which accepts non-ascii 
+            return consteq is str_consteq or (PYPY and not PY3) or is_ascii_safe(value)
 
         # check equal inputs compare correctly
         for value in [
