@@ -1342,10 +1342,13 @@ _BASE64_STRIP = b"=\n"
 _BASE64_PAD1 = b"="
 _BASE64_PAD2 = b"=="
 
+# XXX: Passlib 1.8/1.9 -- deprecate everything that's using ab64_encode(),
+#      have it start outputing b64s_encode() instead? can use a64_decode() to retain backwards compat.
+
 def ab64_encode(data):
     """
-    base64 encoder which omits trailing padding & whitespace.
-    uses ``.`` instead of ``+``, but otherwise the same as normal base64.
+    encode using shortened base64 format which omits padding & whitespace.
+    uses custom ``./`` altchars.
 
     it is primarily used by Passlib's custom pbkdf2 hashes.
     """
@@ -1353,25 +1356,37 @@ def ab64_encode(data):
 
 def ab64_decode(data):
     """
-    base64 decoder which omits trailing padding & whitespace.
-    uses ``.`` instead of ``+``, but otherwise the same as normal base64.
+    decode from shortened base64 format which omits padding & whitespace.
+    uses custom ``./`` altchars, but supports decoding normal ``+/`` altchars as well.
 
     it is primarily used by Passlib's custom pbkdf2 hashes.
     """
+    if isinstance(data, unicode):
+        # needs bytes for replace() call, but want to accept ascii-unicode ala a2b_base64()
+        try:
+            data = data.encode("ascii")
+        except UnicodeEncodeError:
+            raise suppress_cause(ValueError("string argument should contain only ASCII characters"))
     return b64s_decode(data.replace(b".", b"+"))
 
 def b64s_encode(data):
     """
-    base64 encoder which omits trailing padding & whitespace.
-    otherwise uses default ``+/`` altchars.
+    encode using shortened base64 format which omits padding & whitespace.
+    uses default ``+/`` altchars.
     """
     return b2a_base64(data).rstrip(_BASE64_STRIP)
 
 def b64s_decode(data):
     """
-    base64 decoder which omits trailing padding & whitespace.
-    otherwise uses default ``+/`` altchars.
+    decode from shortened base64 format which omits padding & whitespace.
+    uses default ``+/`` altchars.
     """
+    if isinstance(data, unicode):
+        # needs bytes for replace() call, but want to accept ascii-unicode ala a2b_base64()
+        try:
+            data = data.encode("ascii")
+        except UnicodeEncodeError:
+            raise suppress_cause(ValueError("string argument should contain only ASCII characters"))
     off = len(data) & 3
     if off == 0:
         pass

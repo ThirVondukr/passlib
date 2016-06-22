@@ -11,7 +11,7 @@ import warnings
 # module
 from passlib.utils import is_ascii_safe
 from passlib.utils.compat import irange, PY3, u, unicode, join_bytes, PYPY
-from passlib.tests.utils import TestCase
+from passlib.tests.utils import TestCase, hb
 
 #=============================================================================
 # byte funcs
@@ -550,13 +550,94 @@ class Base64EngineTest(TestCase):
         # dup charmap letter
         self.assertRaises(ValueError, Base64Engine, AB64_CHARS[:-1] + "A")
 
-    def test_ab64(self):
+    def test_ab64_decode(self):
+        """ab64_decode()"""
         from passlib.utils import ab64_decode
-        # TODO: make ab64_decode (and a b64 variant) *much* stricter about
-        # padding chars, etc.
 
-        # 1 mod 4 not valid
-        self.assertRaises(ValueError, ab64_decode, "abcde")
+        # accept bytes or unicode
+        self.assertEqual(ab64_decode(b"abc"), hb("69b7"))
+        self.assertEqual(ab64_decode(u("abc")), hb("69b7"))
+
+        # reject non-ascii unicode
+        self.assertRaises(ValueError, ab64_decode, u("ab\xff"))
+
+        # underlying a2b_ascii treats non-base64 chars as "Incorrect padding"
+        self.assertRaises(TypeError, ab64_decode, b"ab\xff")
+        self.assertRaises(TypeError, ab64_decode, b"ab!")
+        self.assertRaises(TypeError, ab64_decode, u("ab!"))
+
+        # insert correct padding, handle dirty padding bits
+        self.assertEqual(ab64_decode(b"abcd"), hb("69b71d"))  # 0 mod 4
+        self.assertRaises(ValueError, ab64_decode, b"abcde")  # 1 mod 4
+        self.assertEqual(ab64_decode(b"abcdef"), hb("69b71d79"))  # 2 mod 4, dirty padding bits
+        self.assertEqual(ab64_decode(b"abcdeQ"), hb("69b71d79"))  # 2 mod 4, clean padding bits
+        self.assertEqual(ab64_decode(b"abcdefg"), hb("69b71d79f8"))  # 3 mod 4, clean padding bits
+
+        # support "./" or "+/" altchars
+        # (lets us transition to "+/" representation, merge w/ b64s_decode)
+        self.assertEqual(ab64_decode(b"ab+/"), hb("69bfbf"))
+        self.assertEqual(ab64_decode(b"ab./"), hb("69bfbf"))
+
+    def test_ab64_encode(self):
+        """ab64_encode()"""
+        from passlib.utils import ab64_encode
+
+        # accept bytes
+        self.assertEqual(ab64_encode(hb("69b7")), b"abc")
+
+        # reject unicode
+        self.assertRaises(TypeError if PY3 else UnicodeEncodeError,
+                          ab64_encode, hb("69b7").decode("latin-1"))
+
+        # insert correct padding before decoding
+        self.assertEqual(ab64_encode(hb("69b71d")), b"abcd")  # 0 mod 4
+        self.assertEqual(ab64_encode(hb("69b71d79")), b"abcdeQ")  # 2 mod 4
+        self.assertEqual(ab64_encode(hb("69b71d79f8")), b"abcdefg")  # 3 mod 4
+
+        # output "./" altchars
+        self.assertEqual(ab64_encode(hb("69bfbf")), b"ab./")
+
+    def test_b64s_decode(self):
+        """b64s_decode()"""
+        from passlib.utils import b64s_decode
+
+        # accept bytes or unicode
+        self.assertEqual(b64s_decode(b"abc"), hb("69b7"))
+        self.assertEqual(b64s_decode(u("abc")), hb("69b7"))
+
+        # reject non-ascii unicode
+        self.assertRaises(ValueError, b64s_decode, u("ab\xff"))
+
+        # underlying a2b_ascii treats non-base64 chars as "Incorrect padding"
+        self.assertRaises(TypeError, b64s_decode, b"ab\xff")
+        self.assertRaises(TypeError, b64s_decode, b"ab!")
+        self.assertRaises(TypeError, b64s_decode, u("ab!"))
+
+        # insert correct padding, handle dirty padding bits
+        self.assertEqual(b64s_decode(b"abcd"), hb("69b71d"))  # 0 mod 4
+        self.assertRaises(ValueError, b64s_decode, b"abcde")  # 1 mod 4
+        self.assertEqual(b64s_decode(b"abcdef"), hb("69b71d79"))  # 2 mod 4, dirty padding bits
+        self.assertEqual(b64s_decode(b"abcdeQ"), hb("69b71d79"))  # 2 mod 4, clean padding bits
+        self.assertEqual(b64s_decode(b"abcdefg"), hb("69b71d79f8"))  # 3 mod 4, clean padding bits
+
+    def test_b64s_encode(self):
+        """b64s_encode()"""
+        from passlib.utils import b64s_encode
+
+        # accept bytes
+        self.assertEqual(b64s_encode(hb("69b7")), b"abc")
+
+        # reject unicode
+        self.assertRaises(TypeError if PY3 else UnicodeEncodeError,
+                          b64s_encode, hb("69b7").decode("latin-1"))
+
+        # insert correct padding before decoding
+        self.assertEqual(b64s_encode(hb("69b71d")), b"abcd")  # 0 mod 4
+        self.assertEqual(b64s_encode(hb("69b71d79")), b"abcdeQ")  # 2 mod 4
+        self.assertEqual(b64s_encode(hb("69b71d79f8")), b"abcdefg")  # 3 mod 4
+
+        # output "+/" altchars
+        self.assertEqual(b64s_encode(hb("69bfbf")), b"ab+/")
 
 class _Base64Test(TestCase):
     """common tests for all Base64Engine instances"""

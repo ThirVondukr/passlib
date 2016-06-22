@@ -73,7 +73,7 @@ by the modular crypt format hashes found in Passlib:
    they may use the ``$`` character as an internal field separator.
 
    This is the least adhered-to of any modular crypt format convention.
-   Other characters (such as ``=,-``) are sometimes
+   Other characters (such as ``+=,-``) are sometimes
    used by various formats, though sparingly.
 
    The only hard and fast stricture
@@ -81,11 +81,13 @@ by the modular crypt format hashes found in Passlib:
    since this would interfere with parsing of the Unix shadow password file,
    where these hashes are typically stored.
 
-   Pretty much all modular-crypt-format hashes
+   Pretty much all older modular-crypt-format hashes
    use ascii letters, numbers, ``.``, and ``/``
    to provide base64 encoding of their raw data,
    though the exact character value assignments vary between hashes
    (see :data:`passlib.utils.h64`).
+   Many newer hashes use ``+`` instead of ``.``,
+   to adhere closer to the base64 standard.
 
 4. Hash schemes should put their "digest" portion
    at the end of the hash, preferably separated

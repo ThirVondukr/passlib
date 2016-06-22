@@ -232,10 +232,7 @@ def hb(source):
 
     usage: ``hb("deadbeef23")``
     """
-    source = re.sub("\s", "", source)
-    if PY3:
-        source = source.encode("ascii")
-    return unhexlify(source)
+    return unhexlify(re.sub("\s", "", source))
 
 def limit(value, lower, upper):
     if value < lower:
