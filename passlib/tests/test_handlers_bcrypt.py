@@ -378,6 +378,22 @@ class _bcrypt_test(HandlerCase):
         # make sure normhash() leaves non-bcrypt hashes alone
         self.assertEqual(bcrypt.normhash("$md5$abc"), "$md5$abc")
 
+    def test_needs_update_w_padding(self):
+        """needs_update corrects bcrypt padding"""
+        # NOTE: see padding test above for details about issue this detects
+        bcrypt = self.handler.using(rounds=4)
+
+        # PASS1 = "test"
+        BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+        GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+
+        self.assertTrue(bcrypt.needs_update(BAD1))
+        self.assertFalse(bcrypt.needs_update(GOOD1))
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
 # create test cases for specific backends
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")

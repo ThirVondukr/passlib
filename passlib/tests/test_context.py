@@ -1555,46 +1555,6 @@ sha512_crypt__min_rounds = 45000
                           deprecated="md5_crypt,auto")
 
     #===================================================================
-    # handler deprecation detectors
-    #===================================================================
-    def test_62_bcrypt_update(self):
-        """test verify_and_update / needs_update corrects bcrypt padding"""
-        # see issue 25.
-        bcrypt = hash.bcrypt
-
-        PASS1 = "test"
-        BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
-        GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
-        ctx = CryptContext(["bcrypt"], bcrypt__rounds=4)
-
-        self.assertTrue(ctx.needs_update(BAD1))
-        self.assertFalse(ctx.needs_update(GOOD1))
-
-        if bcrypt.has_backend():
-            self.assertEqual(ctx.verify_and_update(PASS1,GOOD1), (True,None))
-            with self.assertWarningList(["incorrect.*padding bits"]*2):
-                self.assertEqual(ctx.verify_and_update("x",BAD1), (False,None))
-                ok, new_hash = ctx.verify_and_update(PASS1, BAD1)
-            self.assertTrue(ok)
-            self.assertTrue(new_hash and new_hash != BAD1)
-
-    def test_63_bsdi_crypt_update(self):
-        """test verify_and_update / needs_update corrects bsdi even rounds"""
-        even_hash = '_Y/../cG0zkJa6LY6k4c'
-        odd_hash = '_Z/..TgFg0/ptQtpAgws'
-        secret = 'test'
-        ctx = CryptContext(['bsdi_crypt'], bsdi_crypt__min_rounds=5)
-
-        self.assertTrue(ctx.needs_update(even_hash))
-        self.assertFalse(ctx.needs_update(odd_hash))
-
-        self.assertEqual(ctx.verify_and_update(secret, odd_hash), (True,None))
-        self.assertEqual(ctx.verify_and_update("x", even_hash), (False,None))
-        ok, new_hash = ctx.verify_and_update(secret, even_hash)
-        self.assertTrue(ok)
-        self.assertTrue(new_hash and new_hash != even_hash)
-
-    #===================================================================
     # eoc
     #===================================================================
 

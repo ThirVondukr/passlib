@@ -169,9 +169,29 @@ class _bsdi_crypt_test(HandlerCase):
         ("linux|solaris", False),
     ]
 
-    def setUp(self):
-        super(_bsdi_crypt_test, self).setUp()
+    def test_77_fuzz_input(self, **kwds):
+        # we want to generate even rounds to verify it's correct, but want to ignore warnings
         warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
+        super(_bsdi_crypt_test, self).test_77_fuzz_input(**kwds)
+
+    def test_needs_update_w_even_rounds(self):
+        """needs_update() should flag even rounds"""
+        handler = self.handler
+        even_hash = '_Y/../cG0zkJa6LY6k4c'
+        odd_hash = '_Z/..TgFg0/ptQtpAgws'
+        secret = 'test'
+
+        # don't issue warning
+        self.assertTrue(handler.verify(secret, even_hash))
+        self.assertTrue(handler.verify(secret, odd_hash))
+
+        # *do* signal as needing updates
+        self.assertTrue(handler.needs_update(even_hash))
+        self.assertFalse(handler.needs_update(odd_hash))
+
+        # new hashes shouldn't have even rounds
+        new_hash = handler.encrypt("stub")
+        self.assertFalse(handler.needs_update(new_hash))
 
 # create test cases for specific backends
 bsdi_crypt_os_crypt_test = _bsdi_crypt_test.create_backend_case("os_crypt")
@@ -1826,6 +1846,7 @@ class unix_disabled_test(HandlerCase):
 
     def test_90_special(self):
         """test marker option & special behavior"""
+        warnings.filterwarnings("ignore", "passing settings to .*.hash\(\) is deprecated")
         handler = self.handler
 
         # preserve hash if provided

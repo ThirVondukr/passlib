@@ -1415,46 +1415,6 @@ class HandlerCase(TestCase):
 
             # TODO: check relaxed mode clips max+1
 
-    def _get_rand_rounds(self):
-        handler = self.handler
-        min_rounds = handler.min_rounds or 1
-        max_rounds = handler.max_rounds
-        upper = min_rounds * 2
-        if max_rounds is not None and max_rounds < upper:
-            upper = max_rounds
-        rounds = random.randint(min_rounds, upper)
-        if getattr(handler, "_avoid_even_rounds", False):
-            rounds |= 1
-        return rounds
-
-    def test_23_rounds_and_context_needs_update(self):
-        """test rounds + context.needs_update() integration"""
-        self.require_rounds_info()
-        from passlib.context import CryptContext
-        handler = self.handler
-
-        # pick two different rounds values
-        rounds1 = rounds2 = self._get_rand_rounds()
-        while rounds1 == rounds2:
-            rounds2 = self._get_rand_rounds()
-
-        # setup context which considers everything but rounds1 to need updating.
-        prefix = handler.name + "__"
-        context = CryptContext(**{
-            "schemes": [handler],
-            (prefix + "default_rounds"): rounds1,
-            (prefix + "min_rounds"): rounds1,
-            (prefix + "max_rounds"): rounds1,
-        })
-
-        # rounds1 hash should be fine
-        hash = self.do_encrypt("letmein", rounds=rounds1)
-        self.assertFalse(context.needs_update(hash), msg="rounds=%d: hash=%r: " % (rounds1, hash))
-
-        # rounds2 hash should need updating
-        hash = self.do_encrypt("letmein", rounds=rounds2)
-        self.assertTrue(context.needs_update(hash), msg="rounds=%d (required=%d): hash=%r: " % (rounds2, rounds1, hash))
-
     #--------------------------------------------------------------------------------------
     # HasRounds.using() / .needs_update() -- desired rounds limits
     #--------------------------------------------------------------------------------------

@@ -132,7 +132,7 @@ class MiscTest(TestCase):
 
         # generate_password
         from passlib.utils import generate_password
-        warnings.filterwarnings("ignore", "The function.*generate_password() is deprecated")
+        warnings.filterwarnings("ignore", "The function.*generate_password\(\) is deprecated")
         self.assertEqual(len(generate_password(15)), 15)
 
     def test_is_crypt_context(self):
