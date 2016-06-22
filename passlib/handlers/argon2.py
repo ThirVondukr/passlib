@@ -130,6 +130,14 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     :param int digest_size:
         Length of the digest in bytes.
 
+    :param int max_threads:
+        Maximum number of threads that will be used.
+        -1 means unlimited; otherwise hashing will use ``min(parallelism, max_threads)`` threads.
+
+        .. note::
+
+            This option is currently only honored by the argon2pure backend.
+
     :type relaxed: bool
     :param relaxed:
         By default, providing an invalid value for one of the other
@@ -213,6 +221,10 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     #: minimum valid memory_cost
     min_memory_cost = 8  # from argon2.h / ARGON2_MIN_MEMORY
 
+    #: maximum number of threads (-1=unlimited);
+    #: number of threads used by .hash() will be min(parallelism, max_threads)
+    max_threads = -1
+
     #===================================================================
     # instance attrs
     #===================================================================
@@ -239,7 +251,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
 
     @classmethod
     def using(cls, memory_cost=None, salt_len=None, time_cost=None, digest_size=None,
-              checksum_size=None, hash_len=None, **kwds):
+              checksum_size=None, hash_len=None, max_threads=None, **kwds):
         # support aliases which match argon2 naming convention
         if time_cost is not None:
             if "rounds" in kwds:
@@ -281,6 +293,15 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
 
         # validate constraints
         subcls._validate_constraints(subcls.memory_cost, subcls.parallelism)
+
+        # set max threads
+        if max_threads is not None:
+            if isinstance(max_threads, uh.native_string_types):
+                max_threads = int(max_threads)
+            if max_threads < 1 and max_threads != -1:
+                raise ValueError("max_threads (%d) must be -1 (unlimited), or at least 1." %
+                                 (max_threads,))
+            subcls.max_threads = max_threads
 
         return subcls
 
@@ -601,6 +622,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
         uh.validate_secret(secret)
         secret = to_bytes(secret, "utf-8")
+        # XXX: doesn't seem to be a way to make this honor max_threads
         try:
             return bascii_to_str(_argon2_cffi.low_level.hash_secret(
                 type=_argon2_cffi.low_level.Type.I,
@@ -624,6 +646,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             type = _argon2_cffi.low_level.Type.D
         else:
             type = _argon2_cffi.low_level.Type.I
+        # XXX: doesn't seem to be a way to make this honor max_threads
         try:
             result = _argon2_cffi.low_level.verify_secret(hash, secret, type)
             assert result is True
@@ -644,6 +667,7 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             type = _argon2_cffi.low_level.Type.D
         else:
             type = _argon2_cffi.low_level.Type.I
+        # XXX: doesn't seem to be a way to make this honor max_threads
         try:
             result = bascii_to_str(_argon2_cffi.low_level.hash_secret(
                 type=type,
@@ -721,6 +745,8 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             type_code=type,
             version=self.version,
         )
+        if self.max_threads > 0:
+            kwds['threads'] = self.max_threads
         if self.data:
             kwds['associated_data'] = self.data
         # NOTE: should return raw bytes

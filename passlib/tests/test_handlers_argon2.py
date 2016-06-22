@@ -324,7 +324,10 @@ class argon2_argon2_cffi_test(_base_argon2_test.create_backend_case("argon2_cffi
 
 class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")):
 
-    handler = hash.argon2.using(memory_cost=32, parallelism=2)
+    # XXX: setting max_threads at 1 to prevent argon2pure from using multiprocessing,
+    #      which causes big problems when testing under pypy. 
+    #      would like a "pure_use_threads" option instead, to make it use multiprocessing.dummy instead.
+    handler = hash.argon2.using(memory_cost=32, parallelism=2, max_threads=1)
 
     # add reference hashes from argon2 clib tests
     known_correct_hashes = _base_argon2_test.known_correct_hashes[:]
