@@ -319,9 +319,14 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
                       "$2a$04$R1lJ2gkNaoPGdafE.H.16.nVyh2niHsGJhayOHLMiXlI45o8/DU.6"):
             warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
                  "the bsd wraparound bug, "
-                 "and should be upgraded or replaced with another backend." % backend, 
+                 "and should be upgraded or replaced with another backend"
+                 "(enabling workaround for now)." % backend,
                  uh.exc.PasslibSecurityWarning)
             cls._has_wraparound_bug = True
+
+        err_types = (ValueError,)
+        if _bcryptor:
+            err_types += (_bcryptor.engine.SaltError,)
 
         def _detect_lacks_variant(ident, refhash):
             """helper to detect if backend *lacks* support for specified bcrypt variant"""
@@ -329,11 +334,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             # NOTE: can't use cls.verify() directly or we have recursion error
             try:
                 result = cls.verify("test", refhash)
-            except (ValueError, _bcryptor.engine.SaltError if _bcryptor else ValueError):
+            except err_types:
                 # backends without support will throw various errors about unrecognized version
                 # pybcrypt, bcrypt -- raises ValueError
                 # bcryptor -- raises bcryptor.engine.SaltError
-                log.debug("%r backend lacks %r support", backend, ident)
+                log.debug("%r backend lacks %r support, enabling workaround", backend, ident)
                 return True
             assert result, "%r backend %r check failed" % (backend, ident)
             return False
@@ -394,6 +399,8 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
             if self._lacks_2b_support:
                 # handle $2b$ hash format even if backend is too old.
                 # have it generate a 2A digest, then return it as a 2B hash.
+                # 2a-only backend could potentially exhibit wraparound bug --
+                # but we work around that issue above.
                 ident = IDENT_2A
 
         elif ident == IDENT_2Y:
