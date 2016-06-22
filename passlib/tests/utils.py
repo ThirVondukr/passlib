@@ -2245,11 +2245,10 @@ class HandlerCase(TestCase):
 
         # gather info
         from passlib.utils import tick
-        handler = self.handler
         max_time = self.max_fuzz_time
         if max_time <= 0:
             raise self.skipTest("disabled by test mode")
-        verifiers = self.get_fuzz_verifiers()
+        verifiers = self.get_fuzz_verifiers(threaded=threaded)
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
 
@@ -2396,7 +2395,7 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     # fuzz verifiers
     #---------------------------------------------------------------
-    def get_fuzz_verifiers(self):
+    def get_fuzz_verifiers(self, threaded=False):
         """return list of password verifiers (including external libs)
 
         used by fuzz testing.
@@ -2416,7 +2415,8 @@ class HandlerCase(TestCase):
                     verifiers.append(func)
 
         # create verifiers for any other available backends
-        if hasattr(handler, "backends") and TEST_MODE("full"):
+        # NOTE: skipping this under threading test, since backend switching isn't threadsafe.
+        if hasattr(handler, "backends") and TEST_MODE("full") and not threaded:
             def maker(backend):
                 def func(secret, hash):
                     orig_backend = handler.get_backend()
