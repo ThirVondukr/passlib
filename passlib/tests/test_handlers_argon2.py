@@ -248,7 +248,7 @@ class _base_argon2_test(HandlerCase):
         else:
             self.assertTrue(handler.needs_update(hash))
 
-    def test_argon_salt_encoding(self):
+    def test_argon_byte_encoding(self):
         """verify we're using right base64 encoding for argon2"""
         handler = self.handler
         if handler.version != 0x13:
@@ -257,21 +257,21 @@ class _base_argon2_test(HandlerCase):
 
         # 8 byte salt
         salt = b'somesalt'
-        temp = handler.using(memory_cost=65536, time_cost=2, parallelism=4, salt=salt,
+        temp = handler.using(memory_cost=256, time_cost=2, parallelism=2, salt=salt,
                              checksum_size=32)
         hash = temp.hash("password")
-        self.assertEqual(hash, "$argon2i$v=19$m=65536,t=2,p=4$"
-                               "c29tZXNhbHQ$"
-                               "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4")
+        self.assertEqual(hash, "$argon2i$v=19$m=256,t=2,p=2"
+                               "$c29tZXNhbHQ"
+                               "$T/XOJ2mh1/TIpJHfCdQan76Q5esCFVoT5MAeIM1Oq2E")
 
         # 16 byte salt
         salt = b'somesalt\x00\x00\x00\x00\x00\x00\x00\x00'
-        temp = handler.using(memory_cost=65536, time_cost=2, parallelism=4, salt=salt,
+        temp = handler.using(memory_cost=256, time_cost=2, parallelism=2, salt=salt,
                              checksum_size=32)
         hash = temp.hash("password")
-        self.assertEqual(hash, "$argon2i$v=19$m=65536,t=2,p=4$"
-                               "c29tZXNhbHQAAAAAAAAAAA$"
-                               "K6Lm0QepnXT7WT6YsAcR97jqqKSxQp/+/4eFoB41bXw")
+        self.assertEqual(hash, "$argon2i$v=19$m=256,t=2,p=2"
+                               "$c29tZXNhbHQAAAAAAAAAAA"
+                               "$rqnbEp1/jFDUEKZZmw+z14amDsFqMDC53dIe57ZHD38")
 
     def fuzz_setting_memory_cost(self):
         if self.backend == "argon2pure":
@@ -324,7 +324,7 @@ class argon2_argon2_cffi_test(_base_argon2_test.create_backend_case("argon2_cffi
 
 class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")):
 
-    handler = hash.argon2.using(memory_cost=256)
+    handler = hash.argon2.using(memory_cost=32, parallelism=2)
 
     # add reference hashes from argon2 clib tests
     known_correct_hashes = _base_argon2_test.known_correct_hashes[:]
