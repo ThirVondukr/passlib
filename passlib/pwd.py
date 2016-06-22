@@ -210,6 +210,8 @@ def _dup_repr(source):
         dup_repr += ", ... plus %d others" % (len(dups) - trunc)
     return dup_repr
 
+_MIN_COMPLEXITY_CAP = 1 - 1e-14
+
 #=============================================================================
 # base generator class
 #=============================================================================
@@ -354,7 +356,9 @@ class SequenceGenerator(object):
         minimum entropy allowed in a generated password
         (controlled by min_complexity option)
         """
-        return self.min_complexity * self.max_self_info_rate
+        # NOTE: MIN_COMPLEXITY_CAP is to prevent edge case where rounding error
+        #       causes *nothing* to satisfy min_complexity==1
+        return min(self.min_complexity, _MIN_COMPLEXITY_CAP) * self.max_self_info_rate
 
     #=============================================================================
     # debugging
