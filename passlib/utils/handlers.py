@@ -1588,9 +1588,6 @@ class HasRounds(GenericHandler):
             explicit_min_rounds = True
             if isinstance(min_desired_rounds, native_string_types):
                 min_desired_rounds = int(min_desired_rounds)
-            if min_desired_rounds < 0:
-                raise ValueError("%s: min_desired_rounds (%r) below 0" %
-                                 (subcls.name, min_desired_rounds))
             subcls.min_desired_rounds = subcls._norm_rounds(min_desired_rounds,
                                                             param="min_desired_rounds",
                                                             relaxed=relaxed)
@@ -1609,9 +1606,6 @@ class HasRounds(GenericHandler):
                 else:
                     warn(msg, PasslibConfigWarning)
                     max_desired_rounds = min_desired_rounds
-            elif max_desired_rounds < 0:
-                raise ValueError("%s: max_desired_rounds (%r) below 0" %
-                                 (subcls.name, max_desired_rounds))
             subcls.max_desired_rounds = subcls._norm_rounds(max_desired_rounds,
                                                             param="max_desired_rounds",
                                                             relaxed=relaxed)

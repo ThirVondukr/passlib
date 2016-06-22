@@ -1401,8 +1401,9 @@ sha512_crypt__min_rounds = 45000
 
         # invalid min/max bounds
         c2 = CryptContext(schemes=["sha256_crypt"])
-        self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=-1)
-        self.assertRaises(ValueError, c2.copy, sha256_crypt__max_rounds=-1)
+        # NOTE: as of v1.7, these are clipped w/ a warning instead...
+        # self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=-1)
+        # self.assertRaises(ValueError, c2.copy, sha256_crypt__max_rounds=-1)
         self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=2000,
                           sha256_crypt__max_rounds=1999)
 
