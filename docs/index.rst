@@ -22,7 +22,7 @@ for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user application.
 
 As a quick sample, the following code hashes and then verifies a password
-using the :doc:`PBKDF2-SHA256 </lib/passlib.hash.pbkdf2_sha256>` algorithm::
+using the :doc:`PBKDF2-SHA256 </lib/passlib.hash.pbkdf2_digest>` algorithm::
 
     >>> # import the hash algorithm
     >>> from passlib.hash import pbkdf2_sha256

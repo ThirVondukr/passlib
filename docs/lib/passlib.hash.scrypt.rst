@@ -97,7 +97,7 @@ See `<http://www.tarsnap.com/scrypt.html>`_ for the canonical description of the
 
 Security Issues
 ===============
-`SCrypt <http://www.tarsnap.com/scrypt.html>`_ is the first in a class of "memory-hard"
+`SCrypt <http://www.tarsnap.com/scrypt.html>`__ is the first in a class of "memory-hard"
 key derivation functions. Initially, it looked very promising as a replacement for BCrypt,
 PBKDF2, and SHA512-Crypt.  However, the fact that it's ``N`` parameter controls both
 time *and* memory cost means the two cannot be varied completely independantly.  This
