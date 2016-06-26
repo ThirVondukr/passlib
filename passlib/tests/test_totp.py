@@ -54,9 +54,19 @@ KEY4 = 'JBSWY3DPEHPK3PXP' # from google keyuri spec
 assert sys.float_info.radix == 2, "unexpected float_info.radix"
 assert sys.float_info.mant_dig >= 44, "double precision unexpectedly small"
 
+# work out maximum value acceptable by hosts's time_t
+# this is frequently 2**37, though smaller on some systems.
+max_time_t = 30
+while True:
+    try:
+        datetime.datetime.utcfromtimestamp(max_time_t << 1)
+        max_time_t <<= 1
+    except ValueError:
+        break
+
 def randtime():
     """return random epoch time"""
-    return random.random() * (1<<37)
+    return random.random() * max_time_t
 
 def randcounter():
     """return random counter"""
