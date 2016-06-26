@@ -199,7 +199,6 @@ class _MD5_Common(uh.HasSalt, uh.GenericHandler):
     checksum_size = 22
     checksum_chars = uh.HASH64_CHARS
 
-    min_salt_size = 0
     max_salt_size = 8
     salt_chars = uh.HASH64_CHARS
 

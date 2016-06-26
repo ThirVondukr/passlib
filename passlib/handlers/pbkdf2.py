@@ -37,7 +37,6 @@ class Pbkdf2DigestHandler(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gen
 
     #--HasSalt--
     default_salt_size = 16
-    min_salt_size = 0
     max_salt_size = 1024
 
     #--HasRounds--
@@ -192,7 +191,6 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
 
     #--HasSalt--
     default_salt_size = 16
-    min_salt_size = 0
     max_salt_size = 1024
 
     #--HasRounds--
@@ -289,7 +287,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     #--HasSalt--
     default_salt_size = 16
-    min_salt_size = 0
     max_salt_size = 1024
     salt_chars = uh.HASH64_CHARS
 
@@ -446,7 +443,6 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     #       and it's not clear what grub specifies.
 
     default_salt_size = 64
-    min_salt_size = 0
     max_salt_size = 1024
 
     default_rounds = pbkdf2_sha512.default_rounds

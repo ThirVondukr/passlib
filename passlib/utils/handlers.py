@@ -1165,7 +1165,7 @@ class HasSalt(GenericHandler):
 
         The minimum number of characters allowed in a salt string.
         An :exc:`ValueError` will be throw if the provided salt is too small.
-        Defaults to ``None``, for no minimum.
+        Defaults to ``0``.
 
     .. attribute:: max_salt_size
 
@@ -1218,7 +1218,7 @@ class HasSalt(GenericHandler):
     # class attrs
     #===================================================================
 
-    min_salt_size = None
+    min_salt_size = 0
     max_salt_size = None
     salt_chars = None
 
@@ -1296,7 +1296,7 @@ class HasSalt(GenericHandler):
         :returns:
             clipped rounds value
         """
-        mn = cls.min_salt_size or 0
+        mn = cls.min_salt_size
         mx = cls.max_salt_size
 
         # check if salt size is fixed

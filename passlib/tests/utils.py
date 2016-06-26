@@ -1301,7 +1301,7 @@ class HandlerCase(TestCase):
         self.require_salt_info()
 
         handler = self.handler
-        mn = handler.min_salt_size or 0
+        mn = handler.min_salt_size
         mx = handler.max_salt_size
         df = handler.default_salt_size
 

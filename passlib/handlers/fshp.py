@@ -72,7 +72,6 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     #--HasRawSalt--
     default_salt_size = 16 # current passlib default, FSHP uses 8
-    min_salt_size = 0
     max_salt_size = None
 
     #--HasRounds--

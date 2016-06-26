@@ -91,7 +91,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     #--HasSalt--
     default_salt_size = 12
-    min_salt_size = 0
     max_salt_size = 1024
 
     #--HasRounds--

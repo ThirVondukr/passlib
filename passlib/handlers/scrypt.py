@@ -123,7 +123,6 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     # HasRawSalt
     #------------------------
     default_salt_size = 16
-    min_salt_size = 0
     max_salt_size = 1024
 
     #------------------------

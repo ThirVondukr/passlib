@@ -50,11 +50,10 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     # ident must include "$" suffix.
     setting_kwds = ("salt", "salt_size")
 
-    min_salt_size = 0
-        # NOTE: django 1.0-1.3 would accept empty salt strings.
-        #       django 1.4 won't, but this appears to be regression
-        #       (https://code.djangoproject.com/ticket/18144)
-        #       so presumably it will be fixed in a later release.
+    # NOTE: django 1.0-1.3 would accept empty salt strings.
+    #       django 1.4 won't, but this appears to be regression
+    #       (https://code.djangoproject.com/ticket/18144)
+    #       so presumably it will be fixed in a later release.
     default_salt_size = 12
     max_salt_size = None
     salt_chars = SALT_CHARS

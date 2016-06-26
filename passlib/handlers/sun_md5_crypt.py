@@ -227,7 +227,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     # NOTE: not sure if original crypt has a salt size limit,
     # all instances that have been seen use 8 chars.
     default_salt_size = 8
-    min_salt_size = 0
     max_salt_size = None
     salt_chars = uh.HASH64_CHARS
 
