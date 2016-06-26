@@ -10,6 +10,7 @@ import calendar
 import json
 import logging; log = logging.getLogger(__name__)
 import struct
+import sys
 import time as _time
 import re
 if PY3:
@@ -34,7 +35,7 @@ from passlib import exc
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
                            getrandbytes, rng, xor_bytes, SequenceMixin)
 from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
-                                  irange, byte_elem_value, UnicodeIO, PY26)
+                                  irange, byte_elem_value, UnicodeIO)
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 # local
 __all__ = [
@@ -51,12 +52,13 @@ __all__ = [
 ]
 
 #=============================================================================
-# HACK: python2.6's urlparse() won't parse query strings unless the url scheme
+# HACK: python < 2.7.4's urlparse() won't parse query strings unless the url scheme
 #       is one of the schemes in the urlparse.uses_query list. 2.7 abandoned
 #       this, and parses query if present, regardless of the scheme.
-#       as a workaround for py2.6, we add "otpauth" to the known list.
+#       as a workaround for older versions, we add "otpauth" to the known list.
+#       this was fixed by https://bugs.python.org/issue9374, in 2.7.4 release.
 #=============================================================================
-if PY26:
+if sys.version_info < (2,7,4):
     from urlparse import uses_query
     if "otpauth" not in uses_query:
         uses_query.append("otpauth")
