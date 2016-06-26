@@ -6,8 +6,10 @@ from passlib.utils.compat import JYTHON
 # core
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
 from base64 import b64encode, b64decode
+import collections
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
+import itertools
 import inspect
 import logging; log = logging.getLogger(__name__)
 import math
@@ -282,6 +284,34 @@ def accepts_keyword(func, key):
     """test if function accepts specified keyword"""
     spec = inspect.getargspec(get_method_function(func))
     return key in spec.args or spec.keywords is not None
+
+#=============================================================================
+# collection helpers
+#=============================================================================
+def batch(source, size):
+    """
+    split iterable into chunks of <size> elements.
+    """
+    if size < 1:
+        raise ValueError("size must be positive integer")
+    if isinstance(source, collections.Sequence):
+        end = len(source)
+        i = 0
+        while i < end:
+            n = i + size
+            yield source[i:n]
+            i = n
+    elif isinstance(source, collections.Iterable):
+        itr = iter(source)
+        while True:
+            chunk_itr = itertools.islice(itr, size)
+            try:
+                first = next(chunk_itr)
+            except StopIteration:
+                break
+            yield itertools.chain((first,), chunk_itr)
+    else:
+        raise TypeError("source must be iterable")
 
 #=============================================================================
 # unicode helpers

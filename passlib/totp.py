@@ -824,9 +824,13 @@ class BaseOTP(object):
         # XXX: if (end - start) is very large (e.g. for resync purposes),
         #      could start with expected value, and work outward from there,
         #      alternately checking before & after it until match is found.
-        for counter in irange(start, end):
+        # XXX: can't use irange(start, end) here since py2x/win32
+        #      throws error on values >= (1<<31), which 'end' can be.
+        counter = start
+        while counter < end:
             if consteq(token, generate(counter)):
                 return True, counter
+            counter += 1
         return False, 0
 
     #=============================================================================

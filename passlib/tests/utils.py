@@ -7,7 +7,6 @@ from __future__ import with_statement
 from binascii import unhexlify
 import contextlib
 import logging; log = logging.getLogger(__name__)
-import random
 import re
 import os
 import sys
@@ -25,7 +24,7 @@ import passlib.registry as registry
 from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless, SkipTest
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
-                          repeat_string, tick
+                          repeat_string, tick, batch
 from passlib.utils.compat import iteritems, irange, u, unicode, PY2
 import passlib.utils.handlers as uh
 # local
@@ -1250,11 +1249,9 @@ class HandlerCase(TestCase):
         raw = isinstance(cs, bytes)
 
         # make sure all listed chars are accepted
-        chunk = mx or 32
-        for i in irange(0,len(cs),chunk):
-            salt = cs[i:i+chunk]
+        for salt in batch(cs, mx or 32):
             if len(salt) < mn:
-                salt = (salt*(mn//len(salt)+1))[:chunk]
+                salt = repeat_string(salt, mn)
             salt = self.prepare_salt(salt)
             self.do_stub_encrypt(salt=salt)
 
