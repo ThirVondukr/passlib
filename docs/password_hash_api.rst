@@ -466,6 +466,12 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
     the undocumented and experimental support methods currently include
     parsehash() and bitsize()
 
+
+    .. todo::
+
+        document the :attr:`is_disabled` and DisabledHash interface
+        added in passlib 1.7.
+
 .. _informational-attributes:
 
 Informational Attributes

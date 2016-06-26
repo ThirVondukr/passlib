@@ -1822,7 +1822,6 @@ class sun_md5_crypt_test(HandlerCase):
 class unix_disabled_test(HandlerCase):
     handler = hash.unix_disabled
 #    accepts_all_hashes = True # TODO: turn this off.
-    is_disabled_handler = True
 
     known_correct_hashes = [
         # everything should hash to "!" (or "*" on BSD),
@@ -1870,7 +1869,6 @@ class unix_disabled_test(HandlerCase):
 class unix_fallback_test(HandlerCase):
     handler = hash.unix_fallback
     accepts_all_hashes = True
-    is_disabled_handler = True
 
     known_correct_hashes = [
         # *everything* should hash to "!", and nothing should verify

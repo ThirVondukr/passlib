@@ -91,7 +91,7 @@ class _DjangoHelper(object):
 class django_disabled_test(HandlerCase):
     """test django_disabled"""
     handler = hash.django_disabled
-    is_disabled_handler = True
+    disabled_contains_salt = True
 
     known_correct_hashes = [
         # *everything* should hash to "!", and nothing should verify

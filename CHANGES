@@ -80,6 +80,10 @@ New Features
       it will now use `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
       or :func:`hashlib.pbkdf2_hmac` when available, for an even greater speedup.
 
+    * The :class:`~passlib.context.CryptContext` object now has helper
+      methods for dealing with hashes representing
+      :ref:`disabled accounts <context-disabled-hashes>` (:issue:`45`).
+
 Bugfixes
 --------
     * Passlib will now detect and work around the fatal concurrency bug
@@ -90,6 +94,9 @@ Bugfixes
 
     * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
       rather than choking on them (:issue:`73`).
+
+    * The :class:`~passlib.hash.django_disabled` hash now appends
+      a 40-char alphanumeric string, to match Django.
 
 Other Changes
 -------------

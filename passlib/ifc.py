@@ -33,6 +33,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 # TODO: make this actually use abstractproperty(),
 #       now that we dropped py25, 'abc' is always available.
 
+# XXX: rename to PasswordHasher?
+
 @recreate_with_metaclass(ABCMeta)
 class PasswordHash(object):
     """This class describes an abstract interface which all password hashes
@@ -51,6 +53,11 @@ class PasswordHash(object):
     ##name
     ##setting_kwds
     ##context_kwds
+
+    #: flag which indicates this hasher matches a "disabled" hash
+    #: (e.g. unix_disabled, or django_disabled); and doesn't actually
+    #: depend on the provided password.
+    is_disabled = False
 
     #---------------------------------------------------------------
     # salt information -- if 'salt' in setting_kwds
@@ -267,6 +274,33 @@ class PasswordHash(object):
     #===================================================================
     # eoc
     #===================================================================
+
+class DisabledHash(PasswordHash):
+    """
+    extended disabled-hash methods; only need be present if .disabled = True
+    """
+
+    is_disabled = True
+
+    @classmethod
+    def disable(cls, hash=None):
+        """
+        return string representing a 'disabled' hash;
+        optionally including previously enabled hash
+        (this is up to the individual scheme).
+        """
+        # default behavior: ignore original hash, return standalone marker
+        return cls.hash("")
+
+    @classmethod
+    def enable(cls, hash):
+        """
+        given a disabled-hash string,
+        extract previously-enabled hash if one is present,
+        otherwise raises ValueError
+        """
+        # default behavior: no way to restore original hash
+        raise ValueError("cannot restore original hash")
 
 #=============================================================================
 # eof

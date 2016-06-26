@@ -1103,6 +1103,14 @@ class _CryptConfig(object):
         else:
             raise ValueError("hash could not be identified")
 
+    @memoized_property
+    def disabled_record(self):
+        for record in self._get_record_list(None):
+            if record.is_disabled:
+                return record
+        raise RuntimeError("no disabled hasher present "
+                           "(perhaps add 'unix_disabled' to list of schemes?)")
+
     #===================================================================
     # serialization
     #===================================================================
@@ -2281,6 +2289,62 @@ class CryptContext(object):
             return True, self.hash(secret, None, category, **kwds)
         else:
             return True, None
+
+    #===================================================================
+    # disabled hash support
+    #===================================================================
+
+    def is_enabled(self, hash):
+        """
+        test if hash represents a usuable password --
+        i.e. does not represent an unusuable password such as ``"!"``,
+        which is recognized by the :class:`~passlib.hash.unix_disabled` hash.
+
+        :raises ValueError:
+            if the hash is not recognized
+            (typically solved by adding ``unix_disabled`` to the list of schemes).
+        """
+        return not self._identify_record(hash, None).is_disabled
+
+    def disable(self, hash=None):
+        """
+        return a string to disable logins for user,
+        usually by returning an unusable string such as ``"!"``.
+
+        :raises RuntimeError:
+            if this function is called w/o a disabled hasher
+            (such as :class:`~passlib.hash.unix_disabled`) included
+            in the list of schemes.
+
+        :returns:
+            hash string which will be recognized as valid by the context,
+            but is guaranteed to not validate against *any* password.
+        """
+        record = self._config.disabled_record
+        assert record.is_disabled
+        return record.disable(hash)
+
+    def enable(self, hash):
+        """
+        inverse of :meth:`disable` --
+        attempts to recover original hash which was converted
+        by a :meth:`!disable` call into a disabled hash --
+        thus restoring the user's original password.
+
+        :raises ValueError:
+            if original hash not present, or if the disabled handler doesn't
+            support encoding the original hash (e.g. ``django_disabled``)
+
+        :returns:
+            the original hash.
+        """
+        record = self._identify_record(hash, None)
+        if record.is_disabled:
+            # XXX: should we throw error if result can't be identified by context?
+            return record.enable(hash)
+        else:
+            # hash wasn't a disabled hash, so return unchanged
+            return hash
 
     #===================================================================
     # eoc

@@ -408,6 +408,21 @@ hashes will want to use one of the following methods:
 
 .. rst-class:: html-toggle expanded
 
+.. _context-disabled-hashes:
+
+Disabled Hash Managment
+-----------------------
+.. versionadded:: 1.7
+
+It's frequently useful to disable a user's ability to login by
+replacing their password hash with a standin that's guaranteed
+to never verify, against *any* password.   CryptContext offers
+some convenience methods for this through the following API.
+
+.. automethod:: CryptContext.disable
+.. automethod:: CryptContext.enable
+.. automethod:: CryptContext.is_enabled
+
 Alternate Constructors
 ----------------------
 In addition to the main class constructor, which accepts a configuration

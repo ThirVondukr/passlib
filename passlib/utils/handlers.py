@@ -10,7 +10,7 @@ import math
 from warnings import warn
 # site
 # pkg
-import passlib.exc as exc
+import passlib.exc as exc, passlib.ifc as ifc
 from passlib.exc import MissingBackendError, PasslibConfigWarning, \
                         PasslibHashWarning
 from passlib.ifc import PasswordHash

@@ -648,8 +648,8 @@ class HandlerCase(TestCase):
     # flag if scheme accepts ALL hash strings (e.g. plaintext)
     accepts_all_hashes = False
 
-    # flag indicating "disabled account" handler (e.g. unix_disabled)
-    is_disabled_handler = False
+    # flag if scheme has "is_disabled" set, and contains 'salted' data
+    disabled_contains_salt = False
 
     # flag/hack to filter PasslibHashWarning issued by test_72_configs()
     filter_config_warnings = False
@@ -706,7 +706,7 @@ class HandlerCase(TestCase):
         result = self.do_verify(secret, hash)
         self.assertTrue(result is True or result is False,
                         "verify() returned non-boolean value: %r" % (result,))
-        if self.is_disabled_handler or negate:
+        if self.handler.is_disabled or negate:
             if not result:
                 return
             if not msg:
@@ -967,16 +967,21 @@ class HandlerCase(TestCase):
             #
             other = self.do_genhash(secret, result)
             self.check_returned_native_str(other, "genhash")
-            self.assertEqual(other, result, "genhash() failed to reproduce "
-                             "hash: secret=%r hash=%r: result=%r" %
-                             (secret, result, other))
+            if self.handler.is_disabled and self.disabled_contains_salt:
+                self.assertNotEqual(other, result, "genhash() failed to salt result "
+                                    "hash: secret=%r hash=%r: result=%r" %
+                                    (secret, result, other))
+            else:
+                self.assertEqual(other, result, "genhash() failed to reproduce "
+                                 "hash: secret=%r hash=%r: result=%r" %
+                                 (secret, result, other))
 
             #
             # genhash() should NOT reproduce original hash for wrong password
             #
             other = self.do_genhash(wrong_secret, result)
             self.check_returned_native_str(other, "genhash")
-            if self.is_disabled_handler:
+            if self.handler.is_disabled and not self.disabled_contains_salt:
                 self.assertEqual(other, result, "genhash() failed to reproduce "
                                  "disabled-hash: secret=%r hash=%r other_secret=%r: result=%r" %
                                  (secret, result, wrong_secret, other))
@@ -1013,12 +1018,18 @@ class HandlerCase(TestCase):
         # genhash using non-native hash
         other = self.do_genhash('stub', tonn(result))
         self.check_returned_native_str(other, "genhash")
-        self.assertEqual(other, result)
+        if self.handler.is_disabled and self.disabled_contains_salt:
+            self.assertNotEqual(other, result)
+        else:
+            self.assertEqual(other, result)
 
         # genhash using non-native hash AND secret
         other = self.do_genhash(tonn('stub'), tonn(result))
         self.check_returned_native_str(other, "genhash")
-        self.assertEqual(other, result)
+        if self.handler.is_disabled and self.disabled_contains_salt:
+            self.assertNotEqual(other, result)
+        else:
+            self.assertEqual(other, result)
 
         # identify using non-native hash
         self.assertTrue(self.do_identify(tonn(result)))
@@ -1907,7 +1918,7 @@ class HandlerCase(TestCase):
         lower = 'test'
         upper = 'TEST'
         h1 = self.do_encrypt(lower)
-        if verify_insensitive and not self.is_disabled_handler:
+        if verify_insensitive and not self.handler.is_disabled:
             self.assertTrue(self.do_verify(upper, h1),
                             "verify() should not be case sensitive")
         else:
@@ -1928,7 +1939,7 @@ class HandlerCase(TestCase):
         #      won't have easy way to recreate w/ same config to see if hash differs.
         #      (though only hash this applies to is mssql2000)
         h2 = self.do_genhash(upper, h1)
-        if hash_insensitive or self.is_disabled_handler:
+        if hash_insensitive or (self.handler.is_disabled and not self.disabled_contains_salt):
             self.assertEqual(h2, h1,
                              "genhash() should not be case sensitive")
         else:
@@ -2020,6 +2031,8 @@ class HandlerCase(TestCase):
                 result = self.do_genhash(secret, hash)
                 self.assertIsInstance(result, str,
                     "genhash() failed to return native string: %r" % (result,))
+                if self.handler.is_disabled and self.disabled_contains_salt:
+                    continue
                 self.assertEqual(result, hash,  "genhash() failed to reproduce "
                     "known hash: secret=%r, hash=%r: result=%r" %
                     (secret, hash, result))
@@ -2051,6 +2064,8 @@ class HandlerCase(TestCase):
             result = self.do_genhash(secret, alt)
             self.assertIsInstance(result, str,
                 "genhash() failed to return native string: %r" % (result,))
+            if self.handler.is_disabled and self.disabled_contains_salt:
+                continue
             self.assertEqual(result, hash,  "genhash() failed to normalize "
                 "known alternate hash: secret=%r, alt=%r, hash=%r: "
                 "result=%r" % (secret, alt, hash, result))
@@ -2237,7 +2252,7 @@ class HandlerCase(TestCase):
             if true, writes state of loop to current_thread().passlib_fuzz_state.
             used to help debug multi-threaded fuzz test issues (below)
         """
-        if self.is_disabled_handler:
+        if self.handler.is_disabled:
             raise self.skipTest("not applicable")
 
         # gather info
@@ -2306,7 +2321,7 @@ class HandlerCase(TestCase):
         import threading
 
         # check if this test should run
-        if self.is_disabled_handler:
+        if self.handler.is_disabled:
             raise self.skipTest("not applicable")
         thread_count = self.fuzz_thread_count
         if thread_count < 1 or self.max_fuzz_time <= 0:
@@ -2526,6 +2541,98 @@ class HandlerCase(TestCase):
         if rng.randint(0,1):
             other = other.encode(self.fuzz_password_encoding)
         return secret, other
+
+    #===================================================================
+    # "disabled hasher" api
+    #===================================================================
+
+    def test_disable_and_enable(self):
+        """.disable() / .enable() methods"""
+        #
+        # setup
+        #
+        handler = self.handler
+        if not handler.is_disabled:
+            self.assertFalse(hasattr(handler, "disable"))
+            self.assertFalse(hasattr(handler, "enable"))
+            self.assertFalse(self.disabled_contains_salt)
+            raise self.skipTest("not applicable")
+
+        #
+        # disable()
+        #
+
+        # w/o existing hash
+        disabled_default = handler.disable()
+        self.assertIsInstance(disabled_default, str,
+                              msg="disable() must return native string")
+        self.assertTrue(handler.identify(disabled_default),
+                        msg="identify() didn't recognize disable() result: %r" % (disabled_default))
+
+        # w/ existing hash
+        stub = random.choice(self.known_other_hashes)[1]
+        disabled_stub = handler.disable(stub)
+        self.assertIsInstance(disabled_stub, str,
+                              msg="disable() must return native string")
+        self.assertTrue(handler.identify(disabled_stub),
+                        msg="identify() didn't recognize disable() result: %r" % (disabled_stub))
+
+        #
+        # enable()
+        #
+
+        # w/o original hash
+        self.assertRaisesRegex(ValueError, "cannot restore original hash",
+                               handler.enable, disabled_default)
+
+        # w/ original hash
+        try:
+            result = handler.enable(disabled_stub)
+            error = None
+        except ValueError as e:
+            result = None
+            error = e
+
+        if error is None:
+            # if supports recovery, should have returned stub (e.g. unix_disabled);
+            self.assertIsInstance(result, str,
+                                  msg="enable() must return native string")
+            self.assertEqual(result, stub)
+        else:
+            # if doesn't, should have thrown appropriate error
+            self.assertIsInstance(error, ValueError)
+            self.assertRegex("cannot restore original hash", str(error))
+
+        #
+        # test repeating disable() & salting state
+        #
+
+        # repeating disabled
+        disabled_default2 = handler.disable()
+        if self.disabled_contains_salt:
+            # should return new salt for each call (e.g. django_disabled)
+            self.assertNotEqual(disabled_default2, disabled_default)
+        elif error is None:
+            # should return same result for each hash, but unique across hashes
+            self.assertEqual(disabled_default2, disabled_default)
+
+        # repeating same hash ...
+        disabled_stub2 = handler.disable(stub)
+        if self.disabled_contains_salt:
+            # ... should return different string (if salted)
+            self.assertNotEqual(disabled_stub2, disabled_stub)
+        else:
+            # ... should return same string
+            self.assertEqual(disabled_stub2, disabled_stub)
+
+        # using different hash ...
+        disabled_other = handler.disable(stub + 'xxx')
+        if self.disabled_contains_salt or error is None:
+            # ... should return different string (if salted or hash encoded)
+            self.assertNotEqual(disabled_other, disabled_stub)
+        else:
+            # ... should return same string
+            self.assertEqual(disabled_other, disabled_stub)
 
     #===================================================================
     # eoc

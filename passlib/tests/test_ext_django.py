@@ -491,7 +491,7 @@ class DjangoBehaviorTest(_ExtensionTest):
                 assert scheme in conditionally_available_hashes
                 continue
             assert testcase.handler is handler
-            if testcase.is_disabled_handler:
+            if handler.is_disabled:
                 continue
             if not has_active_backend(handler):
                 # TODO: move this above get_handler_case(),

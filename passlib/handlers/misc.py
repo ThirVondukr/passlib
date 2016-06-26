@@ -22,7 +22,7 @@ __all__ = [
 #=============================================================================
 # handler
 #=============================================================================
-class unix_fallback(uh.StaticHandler):
+class unix_fallback(uh.ifc.DisabledHash, uh.StaticHandler):
     """This class provides the fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
 
     This class does not implement a hash, but instead provides fallback
@@ -79,7 +79,7 @@ class unix_fallback(uh.StaticHandler):
 _MARKER_CHARS = u("*!")
 _MARKER_BYTES = b"*!"
 
-class unix_disabled(uh.MinimalHandler):
+class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     """This class provides disabled password behavior for unix shadow files,
     and follows the :ref:`password-hash-api`.
 
@@ -105,6 +105,8 @@ class unix_disabled(uh.MinimalHandler):
     name = "unix_disabled"
     setting_kwds = ("marker",)
     context_kwds = ()
+
+    _disable_prefixes = tuple(str(_MARKER_CHARS))
 
     # TODO: rename attr to 'marker'...
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
@@ -138,7 +140,8 @@ class unix_disabled(uh.MinimalHandler):
         #       * linux uses "!"
         #       * bsd uses "*"
         #       * linux may use "!" + hash to disable but preserve original hash
-        #       * linux counts empty string as "any password"
+        #       * linux counts empty string as "any password";
+        #         this code recognizes it, but treats it the same as "!"
         if isinstance(hash, unicode):
             start = _MARKER_CHARS
         elif isinstance(hash, bytes):
@@ -177,6 +180,30 @@ class unix_disabled(uh.MinimalHandler):
             if marker is not None:
                 cls = cls.using(marker=marker)
             return cls.hash(secret)
+
+    @classmethod
+    def disable(cls, hash=None):
+        out = cls.hash("")
+        if hash is not None:
+            hash = to_native_str(hash, param="hash")
+            if cls.identify(hash):
+                # extract original hash, so that we normalize marker
+                hash = cls.enable(hash)
+            if hash:
+                out += hash
+        return out
+
+    @classmethod
+    def enable(cls, hash):
+        hash = to_native_str(hash, param="hash")
+        for prefix in cls._disable_prefixes:
+            if hash.startswith(prefix):
+                orig = hash[len(prefix):]
+                if orig:
+                    return orig
+                else:
+                    raise ValueError("cannot restore original hash")
+        raise uh.exc.InvalidHashError(cls)
 
 class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
