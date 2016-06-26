@@ -168,6 +168,26 @@ def unwrap_handler(handler):
         handler = handler.wrapped
     return handler
 
+def handler_derived_from(handler, base):
+    """
+    test if <handler> was derived from <base> via <base.using()>.
+    """
+    # XXX: need way to do this more formally via ifc,
+    #      for now just hacking in the cases we encounter in testing.
+    if handler == base:
+        return True
+    elif isinstance(handler, uh.PrefixWrapper):
+        while handler:
+            if handler == base:
+                return True
+            # helper set by PrefixWrapper().using() just for this case...
+            handler = handler._derived_from
+        return False
+    elif isinstance(handler, type) and issubclass(handler, uh.MinimalHandler):
+        return issubclass(handler, base)
+    else:
+        raise NotImplementedError("don't know how to inspect handler: %r" % (handler,))
+
 @contextlib.contextmanager
 def patch_calc_min_rounds(handler):
     """
@@ -1927,7 +1947,7 @@ class HandlerCase(TestCase):
 
         # test hashing upper-case verifies against lower & upper
         h2 = self.do_encrypt(upper)
-        if verify_insensitive and not self.is_disabled_handler:
+        if verify_insensitive and not self.handler.is_disabled:
             self.assertTrue(self.do_verify(lower, h2),
                             "verify() should not be case sensitive")
         else:

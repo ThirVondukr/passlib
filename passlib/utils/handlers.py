@@ -2457,12 +2457,17 @@ class PrefixWrapper(object):
         wrapped = self.prefix + hash[len(orig_prefix):]
         return uascii_to_str(wrapped)
 
+    #: set by _using(), helper for test harness' handler_derived_from()
+    _derived_from = None
+
     def using(self, **kwds):
         # generate subclass of wrapped handler
         subcls = self.wrapped.using(**kwds)
         assert subcls is not self.wrapped
         # then create identical wrapper which wraps the new subclass.
-        return PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
+        wrapper = PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
+        wrapper._derived_from = self
+        return wrapper
 
     def needs_update(self, hash, **kwds):
         hash = self._unwrap_hash(hash)

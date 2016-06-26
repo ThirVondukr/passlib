@@ -17,7 +17,7 @@ import passlib.exc as exc
 from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
 from passlib.utils import memoized_property
 # tests
-from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend
+from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend, handler_derived_from
 from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
 # local
 
@@ -490,7 +490,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             except exc.MissingBackendError:
                 assert scheme in conditionally_available_hashes
                 continue
-            assert testcase.handler is handler
+            assert handler_derived_from(handler, testcase.handler)
             if handler.is_disabled:
                 continue
             if not has_active_backend(handler):
