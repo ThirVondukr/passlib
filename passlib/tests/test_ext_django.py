@@ -14,7 +14,7 @@ import sys
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 import passlib.exc as exc
-from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3
+from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3, suppress_cause
 from passlib.utils import memoized_property
 # tests
 from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend, handler_derived_from
@@ -846,11 +846,23 @@ elif has_min_django:
         log.info("using django tests from source path: %r", source_path)
         tests_path = os.path.join(source_path, "tests")
         sys.path.insert(0, tests_path)
-        from auth_tests import test_hashers as test_hashers_mod
-        sys.path.remove(tests_path)
+        try:
+            from auth_tests import test_hashers as test_hashers_mod
+        except ImportError as err:
+            raise suppress_cause(
+                EnvironmentError("error trying to import django tests "
+                                 "from source path (%r): %r" %
+                                 (source_path, err)))
+        finally:
+            sys.path.remove(tests_path)
 
     else:
         hashers_skip_msg = "requires PASSLIB_TESTS_DJANGO_SOURCE_PATH to be set"
+
+        if TEST_MODE("full"):
+            # print warning so user knows what's happening
+            sys.stderr.write("\nWARNING: $PASSLIB_TESTS_DJANGO_SOURCE_PATH is not set; "
+                             "can't run Django's own unittests against passlib.ext.django\n")
 
 elif DJANGO_VERSION:
     hashers_skip_msg = "django version too old"
