@@ -2440,7 +2440,7 @@ class PrefixWrapper(object):
                     "default_salt_size", "min_salt_size", "max_salt_size",
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
-                    "truncate_size",
+                    "is_disabled", "truncate_size", "truncate_error",
                     )
 
     def __repr__(self):
