@@ -9,3 +9,4 @@ glob:MANIFEST
 glob:.tox
 glob:app.yaml
 glob:.noseids
+^\.idea$

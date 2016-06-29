@@ -1558,7 +1558,7 @@ class CryptContext(object):
                 source = to_bytes(source, "utf-8", source_encoding=encoding,
                                   param="source")
             source = self._parse_ini_stream(NativeStringIO(source), section,
-                                            "<string>")
+                                            "<string passed to CryptContext.load()>")
         elif isinstance(source, CryptContext):
             # extract dict directly from config, so it can be merged later
             source = dict(source._config.iter_config(resolve=True))

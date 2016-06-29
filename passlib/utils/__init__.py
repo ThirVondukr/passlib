@@ -120,6 +120,7 @@ _UEMPTY = u("")
 _USPACE = u(" ")
 
 # maximum password size which passlib will allow; see exc.PasswordSizeError
+# TODO: deprecate this in favor of CryptContext max_password_size
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
 
 #=============================================================================
@@ -910,6 +911,13 @@ class Base64Engine(object):
         :arg source: byte string to encode.
         :returns: byte string containing encoded data.
         """
+        # if self.big:
+        #     if PY3:
+        #         maketrans = bytes.maketrans
+        #     else:
+        #         from string import maketrans
+        #     map = maketrans(BASE64_CHARS.encode("ascii"), self.bytemap)
+        #     return b64s_encode(source).translate(map)
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         chunks, tail = divmod(len(source), 3)
@@ -1013,6 +1021,13 @@ class Base64Engine(object):
         :arg source: byte string to decode.
         :returns: byte string containing decoded data.
         """
+        # if self.big:
+        #     if PY3:
+        #         maketrans = bytes.maketrans
+        #     else:
+        #         from string import maketrans
+        #     map = maketrans(self.bytemap, BASE64_CHARS.encode("ascii"))
+        #     return b64s_decode(source.translate(map))
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         ##padding = self.padding
@@ -1616,12 +1631,17 @@ except NotImplementedError: # pragma: no cover
 def genseed(value=None):
     """generate prng seed value from system resources"""
     from hashlib import sha512
+    if hasattr(value, "getstate") and hasattr(value, "getrandbits"):
+        # caller passed in RNG as seed value
+        try:
+            value = value.getstate()
+        except NotImplementedError:
+            # this method throws error for e.g. SystemRandom instances,
+            # so fall back to extracting 4k of state
+            value = value.getrandbits(1 << 15)
     text = u("%s %s %s %s %.15f %.15f %s") % (
         # if caller specified a seed value, mix it in
         value,
-
-        # if caller's seed value was an RNG, mix in bits from its state
-        value.getrandbits(1<<15) if hasattr(value, "getrandbits") else None,
 
         # add current process id
         # NOTE: not available in some environments, e.g. GAE
@@ -1645,6 +1665,7 @@ if has_urandom:
     rng = random.SystemRandom()
 else: # pragma: no cover -- runtime detection
     # NOTE: to reseed use ``rng.seed(genseed(rng))``
+    # XXX: could reseed on every call
     rng = random.Random(genseed())
 
 #------------------------------------------------------------------------

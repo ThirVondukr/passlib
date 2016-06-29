@@ -974,11 +974,18 @@ sha512_crypt__min_rounds = 45000
         self.assertRaises(TypeError, cc.genconfig, 'secret', hash, category=1)
 
 
-    def test_43_encrypt(self):
-        """test hash() method"""
+    def test_43_hash(self, use_16_legacy=False):
+        """test hash_using() method"""
         cc = CryptContext(**self.sample_4_dict)
 
+        def call_hash(ctx, *args, **kwds):
+            if use_16_legacy:
+                return ctx.hash(*args, **kwds)
+            else:
+                return ctx.hash_using(**kwds).hash(*args)
+
         # hash specific settings
+        # TODO: passing settings this way is deprecated, need to add alternative
         self.assertEqual(
             cc.hash("password", scheme="phpass", salt='.'*8),
             '$H$5........De04R5Egz0aq8Tf.1eVhY/',
@@ -993,13 +1000,13 @@ sha512_crypt__min_rounds = 45000
         # min rounds
         with self.assertWarningList([]):
             self.assertEqual(
-                cc.hash("password", rounds=1999, salt="nacl"),
+                cc.hash_using("password", rounds=1999, salt="nacl"),
                 '$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609',
                 )
 
         with self.assertWarningList([]):
             self.assertEqual(
-                cc.hash("password", rounds=2001, salt="nacl"),
+                cc.hash_using("password", rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
                 )
 

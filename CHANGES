@@ -2,6 +2,27 @@
 
 .. _whats-new:
 
+==============
+Future Changes
+==============
+
+The following is not a comprehensive list, merely a summary of important
+planned future changes which may impact developers:
+
+* 1.8:
+
+    - Removal of long-deprecated :class:`CryptPolicy` class.
+    - Removal of deprecated methods from :mod:`passlib.apache`.
+
+* 2.0:
+
+    - A *large* number of deprecated methods and features will be removed;
+      primarily the deprecated :meth:`!hasher.encrypt` alias.
+
+    - CryptContexts will default to ``deprecated="auto"``, meaning
+      all but the first scheme will be considered deprecated unless
+      explicitly stated otherwise.
+
 ===============
 Release History
 ===============
@@ -23,6 +44,9 @@ Release History
 
         - final length should be adjusted to account for sequence space
           that's omitted by min_complexity cutoff; or decide this is non-issue.
+
+        - decide if this is ready, or if should be pushed to 1.8 --
+          should remove announcement from 1.7 changelog in that case.
 
     * Get :mod:`passlib.apache` context profiles finished & committed.
 
@@ -98,14 +122,22 @@ New Features
 
 Bugfixes
 --------
-    * Passlib will now detect and work around the fatal concurrency bug
-      in py-bcrypt 0.2 and earlier (a :exc:`~passlib.exc.PasslibSecurityWarning`
-      will also be issued). Nevertheless, users are *strongly* encouraged
-      to upgrade to py-bcrypt 0.3 or another bcrypt library if you are using
-      the :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+    * :class:`~passlib.hash.bcrypt`: Passlib will now detect and work around
+      a fatal concurrency bug in py-bcrypt 0.2 and earlier
+      (a :exc:`~passlib.exc.PasslibSecurityWarning` will also be issued).
+      Nevertheless, users are *strongly* encouraged to upgrade to py-bcrypt 0.3
+      or another bcrypt library if you are using the
+      :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+
+    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
+      to the hashes that support them, but ignores them for hashes that don't.  This should
+      fix :issue:`63`.
 
     * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
       rather than choking on them (:issue:`73`).
+
+    * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9,
+      and some internal cleanups (fixes :issue:`68`).
 
     * The :class:`~passlib.hash.django_disabled` hash now appends
       a 40-char alphanumeric string, to match Django.
@@ -235,16 +267,6 @@ Minor incompatibilities:
 
     * [trivial] :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
       this was an unused feature, and prevented some useful optimizations.
-
-**1.6.6** (NOT YET RELEASED)
-============================
-
-    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
-      to the hashes that support them, but ignores them for hashes that don't.  This should
-      fix :issue:`63`.
-
-    * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9,
-      and some internal cleanups (fixes :issue:`68`).
 
 **1.6.5** (2015-08-04)
 ======================
