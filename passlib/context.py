@@ -11,11 +11,14 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import handlers as uh, to_bytes, deprecated_method, \
-                          to_unicode, splitcomma
-from passlib.utils.compat import iteritems, num_types, \
-                                 PY2, PY3, unicode, SafeConfigParser, \
-                                 NativeStringIO, BytesIO, unicode_or_bytes_types, native_string_types
+from passlib.utils import (handlers as uh, to_bytes, deprecated_method,
+                           to_unicode, splitcomma, memoized_property,
+                           )
+from passlib.utils.compat import (iteritems, num_types,
+                                  PY2, PY3, unicode, SafeConfigParser,
+                                  NativeStringIO, BytesIO,
+                                  unicode_or_bytes_types, native_string_types,
+                                  )
 # local
 __all__ = [
     'CryptContext',
@@ -67,8 +70,8 @@ def _always_needs_update(hash, secret=None):
     """
     return True
 
-#: list of keys allowed under wildcard "all" scheme w/o a security warning
-_global_safe_options = ["vary_rounds"]
+#: list of keys allowed under wildcard "all" scheme w/o a security warning.
+_global_settings = set(["vary_rounds"])
 
 #=============================================================================
 # crypt policy
@@ -678,18 +681,24 @@ class _CryptConfig(object):
         # load source config into internal storage
         for (cat, scheme, key), value in iteritems(source):
             categories.add(cat)
+            explicit_scheme = scheme
+            if not cat and not scheme and key in _global_settings:
+                # going forward, not using "<cat>__all__<key>" format. instead...
+                # whitelisting set of keys which should be passed to (all) schemes,
+                # rather than passed to the CryptContext itself
+                scheme = "all"
             if scheme:
                 # normalize scheme option
                 key, value = norm_scheme_option(key, value)
 
+                # e.g. things like "min_rounds" should never be set cross-scheme
+                if scheme == "all" and key not in _global_settings:
+                    warn("The '%s' option should be configured per-algorithm, and not set "
+                         "globally in the context" % (key,), PasslibConfigWarning)
+
                 # this scheme is going away in 2.0;
                 # but most keys deserve an extra warning since it impacts security.
-                if scheme == "all":
-                    if key not in _global_safe_options:
-                        # e.g. things like "min_rounds" should never be set cross-scheme
-                        warn("The '%s' option should be configured per-algorithm, and not set "
-                             "globally using the 'all' scheme" % (key,), PasslibConfigWarning)
-
+                if explicit_scheme == "all":
                     warn("The 'all' scheme is deprecated as of Passlib 1.7, "
                          "and will be removed in Passlib 2.0; Please configure "
                          "options on a per-algorithm basis.", DeprecationWarning)
@@ -818,6 +827,18 @@ class _CryptConfig(object):
         except KeyError:
             return default
 
+    def get_base_handler(self, scheme):
+        return self.handlers[self.schemes.index(scheme)]
+
+    @staticmethod
+    def expand_settings(handler):
+        setting_kwds = handler.setting_kwds
+        if 'rounds' in handler.setting_kwds:
+            # XXX: historically this extras won't be listed in setting_kwds
+            setting_kwds += uh.HasRounds.using_rounds_kwds
+        return setting_kwds
+
+    # NOTE: this is only used by _get_record_options_with_flag()...
     def get_scheme_options_with_flag(self, scheme, category):
         """return composite dict of all options set for scheme.
         includes options inherited from 'all' and from default category.
@@ -833,6 +854,14 @@ class _CryptConfig(object):
         if category:
             defkwds = kwds.copy() # <-- used to detect category-specific options
             kwds.update(get_optionmap("all", category))
+
+        # filter out global settings not supported by handler
+        allowed_settings = self.expand_settings(self.get_base_handler(scheme))
+        for key in set(kwds).difference(allowed_settings):
+            kwds.pop(key)
+        if category:
+            for key in set(defkwds).difference(allowed_settings):
+                defkwds.pop(key)
 
         # add in default options for scheme
         other = get_optionmap(scheme, None)
@@ -936,17 +965,15 @@ class _CryptConfig(object):
         #       so CryptContext throws error immediately rather than later.
         self._record_lists = {}
         records = self._records = {}
-        context_kwds = self.context_kwds = set()
+        all_context_kwds = self.context_kwds = set()
         get_options = self._get_record_options_with_flag
-        categories = self.categories
+        categories = (None,) + self.categories
         for handler in self.handlers:
             scheme = handler.name
-            context_kwds.update(handler.context_kwds)
-            kwds, _ = get_options(scheme, None)
-            records[scheme, None] = self._create_record(handler, **kwds)
+            all_context_kwds.update(handler.context_kwds)
             for cat in categories:
                 kwds, has_cat_options = get_options(scheme, cat)
-                if has_cat_options:
+                if cat is None or has_cat_options:
                     records[scheme, cat] = self._create_record(handler, cat, **kwds)
                 # NOTE: if handler has no category-specific opts, get_record()
                 # will automatically use the default category's record.
@@ -955,14 +982,6 @@ class _CryptConfig(object):
 
     @staticmethod
     def _create_record(handler, category=None, deprecated=False, **settings):
-        # historically, configs may specify generic default rounds.
-        # stripping those out for hashes w/o a rounds parameter,
-        # but need to discourage this situation in the future.
-        # TODO: once 'all' prefix support is removed (Passlib 2.0), this can be stripped out
-        if 'rounds' not in handler.setting_kwds:
-            for key in uh.HasRounds.using_rounds_kwds:
-                settings.pop(key, None)
-
         # create custom handler if needed.
         try:
             # XXX: relaxed=True is mostly here to retain backwards-compat behavior.

@@ -737,6 +737,7 @@ sha512_crypt__min_rounds = 45000
 
     def test_33_options(self):
         """test internal _get_record_options() method"""
+
         def options(ctx, scheme, category=None):
             return ctx._config._get_record_options_with_flag(scheme, category)[0]
 
@@ -778,20 +779,18 @@ sha512_crypt__min_rounds = 45000
 
         #
         # des_crypt
+        # NOTE: vary_rounds shouldn't be passed along...
         #
         self.assertEqual(options(cc4, "des_crypt"), dict(
             deprecated=True,
-            vary_rounds=0.1,
         ))
 
         self.assertEqual(options(cc4, "des_crypt", "user"), dict(
             deprecated=True, # unconfigured category inherits from default
-            vary_rounds=0.1,
         ))
 
         self.assertEqual(options(cc4, "des_crypt", "admin"), dict(
             deprecated=True, # unchanged though overidden
-            vary_rounds=0.05, # global overridden per-cateogry
         ))
 
         #
