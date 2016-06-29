@@ -84,6 +84,12 @@ New Features
       methods for dealing with hashes representing
       :ref:`disabled accounts <context-disabled-hashes>` (:issue:`45`).
 
+    * The :class:`~passlib.context.CryptContext` object now supports
+      a :ref:`harden_verify <context-harden-verify-option>` option,
+      allowing applications to introduce a delay in verification
+      to help prevent attackers discovering weak or missing hashes
+      through timing attacks.
+
     * All hashers which truncate passwords (e.g. :class:`~passlib.hash.bcrypt`
       and :class:`~passlib.hash.des_crypt`) can now be configured to raise
       a :exc:`~passlib.exc.PasswordTruncateError` when a overly-large password is provided.
@@ -212,8 +218,9 @@ Scheduled removal of features:
 
     * [minor] The :ref:`min_verify_time <context-min-verify-time-option>` keyword
       that was deprecated in release 1.6, is now completely ignored.
-      It was never very useful, and now complicates the internal code needlessly.
-      It will be removed entirely in release 1.8.
+      Support will be removed entirely in release 1.8.
+      See the new :ref:`harden_verify <context-harden-verify-option>` keyword
+      that replaces it.
 
     * [trivial] The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
 

@@ -414,6 +414,9 @@ All of the documented :ref:`context-options` are allowed.
     admin__pbkdf2_sha1__min_rounds = 18000
     admin__pbkdf2_sha1__default_rounds = 20000
 
+    ; delay failed verify() calls to mask hashes with weak rounds
+    harden_verify = true
+
 Initializing the CryptContext
 -----------------------------
 Applications which choose to use a policy file will typically want
@@ -517,10 +520,15 @@ the following code at the correct place::
         # this example both checks the user's password AND upgrades deprecated hashes...
         #
         # vars:
-        #   'hash' containing the specified user's hash,
+        #   'hash' containing the specified user's hash.
         #   'secret' containing the putative password
         #   'category' containing a category assigned to the user account
         #
+        # NOTE: if the user account is missing, or has no hash,
+        #       you can pass ``hash=None`` to verify_and_update()
+        #       mask this from the attacker by simulating the delay
+        #       a real verification would have taken.
+        #       hash=None will never verify.
 
         ok, new_hash = user_pwd_context.verify_and_update(secret, hash, category=category)
         if not ok:

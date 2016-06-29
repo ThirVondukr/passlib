@@ -10,6 +10,7 @@ if PY3:
 else:
     from ConfigParser import NoSectionError
 import datetime
+from functools import partial
 import logging; log = logging.getLogger(__name__)
 import os
 import warnings
@@ -21,7 +22,8 @@ from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2, PY26
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase, set_file, TICK_RESOLUTION, quicksleep
+from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
+                                 quicksleep, time_call)
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
@@ -1084,9 +1086,14 @@ sha512_crypt__min_rounds = 45000
         for secret, kwds in self.nonstring_vectors:
             self.assertRaises(TypeError, cc.verify, secret, h, **kwds)
 
+        # always treat hash=None as False
+        self.assertFalse(cc.verify(secret, None))
+
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
         for h, kwds in self.nonstring_vectors:
+            if h is None:
+                pass
             self.assertRaises(TypeError, cc.verify, 'secret', h, **kwds)
 
         # throws error without schemes
@@ -1208,9 +1215,14 @@ sha512_crypt__min_rounds = 45000
         for secret, kwds in self.nonstring_vectors:
             self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
 
+        # always treat hash=None as False
+        self.assertEqual(cc.verify_and_update(secret, None), (False, None))
+
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
         for hash, kwds in self.nonstring_vectors:
+            if hash is None:
+                continue
             self.assertRaises(TypeError, cc.verify_and_update, 'secret', hash, **kwds)
 
         # throws error without schemes
@@ -1524,6 +1536,112 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
 
     #===================================================================
+    # harden_verify / min_verify_time
+    #===================================================================
+    def test_harden_verify_parsing(self):
+        """harden_verify -- parsing"""
+
+        # valid values
+        ctx = CryptContext(schemes=["sha256_crypt"])
+        self.assertEqual(ctx.harden_verify, None)
+        self.assertEqual(ctx.using(harden_verify="").harden_verify, None)
+        self.assertEqual(ctx.using(harden_verify="true").harden_verify, True)
+        self.assertEqual(ctx.using(harden_verify="false").harden_verify, False)
+
+        # invalid value
+        self.assertRaises(ValueError, ctx.using, harden_verify="foo")
+
+        # forbid w/ category
+        self.assertRaises(ValueError, ctx.using, admin__context__harden_verify="true")
+
+    def test_harden_verify_estimate(self):
+        """harden_verify -- min_verify_time estimation"""
+        # setup
+        handler = DelayHash.using()
+        ctx = CryptContext(schemes=[handler])
+        maxtime = 0.25
+        scale = 0.01
+        accuracy = scale * 0.1
+        secret = "secret"
+        hash = handler.hash(secret)
+
+        # establish baseline w/ 0 delay
+        elapsed, _ = time_call(partial(ctx.verify, secret, hash), maxtime=maxtime)
+        self.assertAlmostEqual(elapsed, 0, delta=accuracy)
+
+        # run min_verify_time calc, see what it gets
+        ctx.reset_min_verify_time()
+        self.assertAlmostEqual(ctx.min_verify_time, 0, delta=accuracy)
+
+        # add delay, make sure verify sees it
+        handler.delay = scale
+        elapsed, _ = time_call(partial(ctx.verify, secret, hash), maxtime=maxtime)
+        self.assertAlmostEqual(elapsed, scale, delta=accuracy)
+
+        # re-run min_verify_time calc, see what it gets
+        ctx.reset_min_verify_time()
+        self.assertAlmostEqual(ctx.min_verify_time, scale, delta=accuracy)
+
+    # TODO: * check that min_verify_time honors thread lock
+    #       * check that min_verify_time correctly uses median
+    #       * check that mvt_* config settings are honored
+
+    def test_dummy_verify(self):
+        """harden_verify -- min_verify_time honored by dummy_verify() methods"""
+        # setup
+        handler = DelayHash.using()
+        maxtime = 0.25
+        scale = 0.01
+        accuracy = scale * 0.1
+
+        ctx = CryptContext(schemes=[handler], harden_verify=False)
+        ctx.min_verify_time = scale
+
+        # check dummy_verify() honors mvt even if hardening is off
+        elapsed, _ = time_call(partial(ctx.dummy_verify), maxtime=maxtime)
+        self.assertAlmostEqual(elapsed, scale, delta=accuracy)
+
+        # check dummy_verify() honors elapsed kwd
+        elapsed, _ = time_call(partial(ctx.dummy_verify, elapsed=scale/2), maxtime=maxtime)
+        self.assertAlmostEqual(elapsed, scale/2, delta=accuracy)
+
+    def test_harden_verify_w_verify(self, verify_and_update=False):
+        """harden_verify -- min_verify_time honored by verify()"""
+        # setup
+        handler = DelayHash.using()
+        maxtime = 0.25
+        scale = 0.01
+        accuracy = scale * 0.1
+        secret = "secret"
+        other = "other"
+        hash = handler.hash(secret)
+
+        def time_verify(pwd):
+            if verify_and_update:
+                func = partial(ctx.verify_and_update, pwd, hash)
+            else:
+                func = partial(ctx.verify, pwd, hash)
+            elapsed, _ = time_call(func, maxtime=maxtime)
+            return elapsed
+
+        # w/o harden_verify, verify() should ignore min_verify_time even if failed
+        ctx = CryptContext(schemes=[handler], harden_verify=False)
+        ctx.min_verify_time = scale
+        self.assertAlmostEqual(time_verify(other), 0, delta=accuracy)
+
+        # w/ harden_verify, verify() should ignore min_verify_time if successful
+        ctx.update(harden_verify=True)
+        ctx.min_verify_time = scale
+        self.assertAlmostEqual(time_verify(secret), 0, delta=accuracy)
+
+        # w/ harden_verify, verify() should honor min_verify_time if failed
+        self.assertAlmostEqual(time_verify(other), scale, delta=accuracy)
+
+    def test_harden_verify_w_verify_and_update(self):
+        """harden_verify -- min_verify_time honored by verify_and_update()"""
+        self.test_harden_verify_w_verify(verify_and_update=True)
+
+    #===================================================================
     # feature tests
     #===================================================================
     def test_61_autodeprecate(self):
@@ -1645,6 +1763,22 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
     # eoc
     #===================================================================
+
+import hashlib, time
+
+class DelayHash(uh.StaticHandler):
+    """dummy hasher which delays by specified amount"""
+    name = "delay_hash"
+    checksum_chars = uh.LOWER_HEX_CHARS
+    checksum_size = 40
+    delay = 0
+    _hash_prefix = u("$x$")
+
+    def _calc_checksum(self, secret):
+        time.sleep(self.delay)
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        return str_to_uascii(hashlib.sha1("prefix" + secret).hexdigest())
 
 #=============================================================================
 # LazyCryptContext

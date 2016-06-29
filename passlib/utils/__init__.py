@@ -222,20 +222,38 @@ def deprecated_method(msg=None, deprecated=None, removed=None, updoc=True,
 class memoized_property(object):
     """decorator which invokes method once, then replaces attr with result"""
     def __init__(self, func):
-        self.im_func = func
+        self.__func__ = func
+        self.__name__ = func.__name__
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
-        func = self.im_func
-        value = func(obj)
-        setattr(obj, func.__name__, value)
+        value = self.__func__(obj)
+        setattr(obj, self.__name__, value)
         return value
 
-    @property
-    def __func__(self):
-        """py3 alias"""
-        return self.im_func
+    if not PY3:
+
+        @property
+        def im_func(self):
+            """py2 alias"""
+            return self.__func__
+
+    def clear_cache(self, obj):
+        """
+        class-level helper to clear stored value (if any).
+
+        usage: :samp:`type(self).{attr}.clear_cache(self)`
+        """
+        obj.__dict__.pop(self.__name__, None)
+
+    def peek_cache(self, obj, default=None):
+        """
+        class-level helper to peek at stored value
+
+        usage: :samp:`value = type(self).{attr}.clear_cache(self)`
+        """
+        return obj.__dict__.get(self.__name__, default)
 
 # works but not used
 ##class memoized_class_property(object):
@@ -1559,10 +1577,13 @@ def test_crypt(secret, hash):
 # pick best timer function to expose as "tick" - lifted from timeit module.
 if sys.platform == "win32":
     # On Windows, the best timer is time.clock()
-    from time import clock as tick
+    from time import clock as timer
 else:
     # On most other platforms the best timer is time.time()
-    from time import time as tick
+    from time import time as timer
+
+# legacy alias, will be removed in passlib 2.0
+tick = timer
 
 def parse_version(source):
     """helper to parse version string"""

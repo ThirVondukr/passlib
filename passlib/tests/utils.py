@@ -281,10 +281,10 @@ def time_call(func, setup=None, maxtime=1, bestof=3):
     from math import log
     timer = Timer(func, setup=setup or '')
     number = 1
+    end = tick() + maxtime
     while True:
         delta = min(timer.repeat(bestof, number))
-        maxtime -= delta*bestof
-        if maxtime < 0:
+        if tick() >= end:
             return delta/number, int(log(number, 10))
         number *= 10
 
@@ -655,10 +655,6 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     # option flags
     #---------------------------------------------------------------
-
-    # maximum number of chars which hash will include in digest.
-    # ``None`` (the default) indicates the hash uses ALL of the password.
-    secret_size = None
 
     # whether hash is case insensitive
     # True, False, or special value "verify-only" (which indicates

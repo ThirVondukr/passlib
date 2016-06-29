@@ -181,6 +181,36 @@ Options which directly affect the behavior of the CryptContext instance:
     .. versionchanged:: 1.7
         Per deprecation roadmap above, this option is now ignored.
 
+        See ``harden_verify`` below for a replacement.
+
+.. _context-harden-verify-option:
+
+``harden_verify``
+
+    If set to ``true``, CryptContext will pause the first time :meth:`verify`
+    is called, in order to calculate the "average" time it would take
+    to verify a hash created using the default settings.
+
+    Subsequent :meth:`verify` calls using will have their time padded
+    to this minimum time, in order to make it harder for an attacker
+    to guess which accounts have weak hashes.
+
+    Applications may also wish to call :meth:`dummy_verify` for login
+    attempts where the user does not exist, in order to mask which
+    users accounts have valid hashes.
+
+    This option can be set to ``true`` or ``false``.
+    ``false`` is currently the default, though this (may) be changed
+    in Passlib 2.0.
+
+    .. warning::
+
+        This feature is new, and adjustments may need to be made
+        to when (and how) the code calculates what the "minimum verification time"
+        is supposed to be.
+
+    .. versionadded:: 1.7
+
 .. _context-algorithm-options:
 
 Algorithm Options
@@ -395,6 +425,7 @@ instance:
 .. automethod:: CryptContext.encrypt
 .. automethod:: CryptContext.verify
 .. automethod:: CryptContext.identify
+.. automethod:: CryptContext.dummy_verify
 
 .. rst-class:: html-toggle
 
@@ -412,7 +443,6 @@ Hash Migration
 --------------
 Applications which want to detect and re-encrypt deprecated
 hashes will want to use one of the following methods:
-
 
 .. automethod:: CryptContext.verify_and_update
 .. automethod:: CryptContext.needs_update
