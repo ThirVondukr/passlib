@@ -693,6 +693,10 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     # argon2pure backend
     #-------------------------------------------------------------------
 
+    #: global flag signalling argon2pure backend to use threads
+    #: rather than subprocesses.
+    pure_use_threads = False
+
     #: feature detection -- whether argon2pure supports 'version' keyword.
     _argon2pure_supports_version = False
 
@@ -747,6 +751,8 @@ class argon2(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         )
         if self.max_threads > 0:
             kwds['threads'] = self.max_threads
+        if self.pure_use_threads:
+            kwds['use_threads'] = True
         if self.data:
             kwds['associated_data'] = self.data
         # NOTE: should return raw bytes
