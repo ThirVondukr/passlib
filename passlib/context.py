@@ -71,7 +71,7 @@ def _always_needs_update(hash, secret=None):
     return True
 
 #: list of keys allowed under wildcard "all" scheme w/o a security warning.
-_global_settings = set(["vary_rounds"])
+_global_settings = set(["truncate_error", "vary_rounds"])
 
 #=============================================================================
 # crypt policy
