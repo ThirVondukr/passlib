@@ -48,11 +48,23 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     #===================================================================
     # class attrs
     #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "cisco_pix"
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_size = 16
     checksum_chars = uh.HASH64_CHARS
 
-    #: control flag signalling cisco_asa mode
+    #--------------------
+    # custom
+    #--------------------
+
+    #: control flag signalling "cisco_asa" mode
     _is_asa = False
 
     #===================================================================
@@ -115,9 +127,23 @@ class cisco_asa(cisco_pix):
 
     .. versionadded:: 1.7
     """
+    #===================================================================
+    # class attrs
+    #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "cisco_asa"
+
+    #--------------------
+    # cisco_pix
+    #--------------------
     _is_asa = True
 
+    #===================================================================
+    # eoc
+    #===================================================================
 
 #=============================================================================
 # type 7
@@ -153,9 +179,21 @@ class cisco_type7(uh.GenericHandler):
     #===================================================================
     # class attrs
     #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "cisco_type7"
     setting_kwds = ("salt",)
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_chars = uh.UPPER_HEX_CHARS
+
+    #--------------------
+    # HasSalt
+    #--------------------
 
     # NOTE: encoding could handle max_salt_value=99, but since key is only 52
     #       chars in size, not sure what appropriate behavior is for that edge case.

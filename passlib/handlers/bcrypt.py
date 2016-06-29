@@ -142,24 +142,36 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     #===================================================================
     # class attrs
     #===================================================================
-    #--GenericHandler--
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident")
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_size = 31
     checksum_chars = bcrypt64.charmap
 
-    #--HasManyIdents--
+    #--------------------
+    # HasManyIdents
+    #--------------------
     default_ident = IDENT_2A
     ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
     ident_aliases = {u("2"): IDENT_2, u("2a"): IDENT_2A,  u("2y"): IDENT_2Y,
                      u("2b"): IDENT_2B}
 
-    #--HasSalt--
+    #--------------------
+    # HasSalt
+    #--------------------
     min_salt_size = max_salt_size = 22
     salt_chars = bcrypt64.charmap
         # NOTE: 22nd salt char must be in bcrypt64._padinfo2[1], not full charmap
 
-    #--HasRounds--
+    #--------------------
+    # HasRounds
+    #--------------------
     default_rounds = 12 # current passlib default
     min_rounds = 4 # minimum from bcrypt specification
     max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)

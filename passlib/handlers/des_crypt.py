@@ -134,13 +134,22 @@ class des_crypt(uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     #===================================================================
     # class attrs
     #===================================================================
-    #--GenericHandler--
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "des_crypt"
     setting_kwds = ("salt",)
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_chars = uh.HASH64_CHARS
     checksum_size = 11
 
-    #--HasSalt--
+    #--------------------
+    # HasSalt
+    #--------------------
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
 
@@ -474,13 +483,22 @@ class crypt16(uh.HasSalt, uh.GenericHandler):
     #===================================================================
     # class attrs
     #===================================================================
-    #--GenericHandler--
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "crypt16"
     setting_kwds = ("salt",)
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_size = 22
     checksum_chars = uh.HASH64_CHARS
 
-    #--HasSalt--
+    #--------------------
+    # HasSalt
+    #--------------------
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
 
