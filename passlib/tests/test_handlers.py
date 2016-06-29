@@ -202,7 +202,6 @@ bsdi_crypt_builtin_test = _bsdi_crypt_test.create_backend_case("builtin")
 #=============================================================================
 class cisco_pix_test(UserHandlerMixin, HandlerCase):
     handler = hash.cisco_pix
-    secret_size = 16
     requires_user = False
 
     known_correct_hashes = [
@@ -266,9 +265,7 @@ def _get_secret(value):
 
 class cisco_asa_test(UserHandlerMixin, HandlerCase):
     handler = hash.cisco_asa
-    secret_size = 32
     requires_user = False
-
 
     known_correct_hashes = [
         # format: ((secret, user), hash)
@@ -432,7 +429,6 @@ class cisco_type7_test(HandlerCase):
 #=============================================================================
 class crypt16_test(HandlerCase):
     handler = hash.crypt16
-    secret_size = 16
 
     # TODO: find an authortative source of test vectors
     known_correct_hashes = [
@@ -462,7 +458,6 @@ class crypt16_test(HandlerCase):
 class _des_crypt_test(HandlerCase):
     """test des-crypt algorithm"""
     handler = hash.des_crypt
-    secret_size = 8
 
     known_correct_hashes = [
         #
@@ -813,7 +808,6 @@ ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("os_cr
 #=============================================================================
 class lmhash_test(EncodingHandlerMixin, HandlerCase):
     handler = hash.lmhash
-    secret_size = 14
     secret_case_insensitive = True
 
     known_correct_hashes = [

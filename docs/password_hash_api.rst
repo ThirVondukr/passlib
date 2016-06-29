@@ -574,6 +574,14 @@ the hashes in passlib:
         revision of the hash algorithm itself, and they may not all
         offer the same level of security.
 
+    ``truncate_error``
+
+        This will be present if and only if the hash truncates passwords
+        larger than some limit (reported via it's :attr:`truncate_size` attribute).
+        By default, they will silently truncate passwords above their limit.
+        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
     .. index::
         single: relaxed; PasswordHash keyword
 
@@ -633,6 +641,16 @@ the hashes in passlib:
         Hashes which provide this keyword will always expose
         their default encoding programmatically via the
         :attr:`~PasswordHash.default_encoding` attribute.
+
+.. attribute:: truncate_size
+
+    A positive integer, indicating the hash will truncate any passwords larger than this many bytes.
+    If ``None`` (the more common case), indicates the hash will use
+    the entire password provided.
+
+    Hashes which specify this setting will also support a ``truncate_error``
+    flag via their :meth:`~PasswordHash.using` method, to configure
+    how truncation is handled.
 
 .. _salt-attributes:
 

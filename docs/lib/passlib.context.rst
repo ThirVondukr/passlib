@@ -153,6 +153,18 @@ Options which directly affect the behavior of the CryptContext instance:
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 
+:samp:`truncate_error`
+
+    By default, some algorithms will truncate large passwords
+    (e.g. :class:`~passlib.hash.bcrypt` truncates ones larger than 72 bytes).
+    Such hashes accept a ``truncate_error=True`` option to make them
+    raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+    This can also be set at the CryptContext level,
+    and will passed to all hashes that support it.
+
+    .. versionadded:: 1.7
+
 .. _context-min-verify-time-option:
 
 ``min_verify_time``

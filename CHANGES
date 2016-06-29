@@ -84,6 +84,12 @@ New Features
       methods for dealing with hashes representing
       :ref:`disabled accounts <context-disabled-hashes>` (:issue:`45`).
 
+    * All hashers which truncate passwords (e.g. :class:`~passlib.hash.bcrypt`
+      and :class:`~passlib.hash.des_crypt`) can now be configured to raise
+      a :exc:`~passlib.exc.PasswordTruncateError` when a overly-large password is provided.
+      This configurable via (for example) ``bcrypt.using(truncate_error=True)``,
+      or globally as an option to CryptContext (:issue:`59`).
+
 Bugfixes
 --------
     * Passlib will now detect and work around the fatal concurrency bug

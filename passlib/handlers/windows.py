@@ -25,10 +25,20 @@ __all__ = [
 #=============================================================================
 # lanman hash
 #=============================================================================
-class lmhash(uh.HasEncodingContext, uh.StaticHandler):
+class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     """This class implements the Lan Manager Password hash, and follows the :ref:`password-hash-api`.
 
     It has no salt and a single fixed round.
+
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts a single
+    optional keyword:
+
+    :param bool truncate_error:
+        By default, this will silently truncate passwords larger than 14 bytes.
+        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+        .. versionadded:: 1.7
 
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.verify` methods accept a single
     optional keyword:
@@ -51,12 +61,18 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
     # PasswordHash
     #--------------------
     name = "lmhash"
+    setting_kwds = ("truncate_error",)
 
     #--------------------
     # GenericHandler
     #--------------------
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 14
 
     #--------------------
     # custom
@@ -71,6 +87,10 @@ class lmhash(uh.HasEncodingContext, uh.StaticHandler):
         return hash.lower()
 
     def _calc_checksum(self, secret):
+        # check for truncation (during .hash() calls only)
+        if self.use_defaults:
+            self._check_truncate_policy(secret)
+
         return hexlify(self.raw(secret, self.encoding)).decode("ascii")
 
     # magic constant used by LMHASH

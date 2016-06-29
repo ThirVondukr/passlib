@@ -59,6 +59,10 @@ class PasswordHash(object):
     #: depend on the provided password.
     is_disabled = False
 
+    #: if not None, should be an integer, indicating hash
+    #: will truncate any secrets larger than this value.
+    truncate_size = None
+
     #---------------------------------------------------------------
     # salt information -- if 'salt' in setting_kwds
     #---------------------------------------------------------------

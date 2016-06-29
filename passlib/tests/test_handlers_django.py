@@ -108,7 +108,6 @@ class django_disabled_test(HandlerCase):
 class django_des_crypt_test(HandlerCase, _DjangoHelper):
     """test django_des_crypt"""
     handler = hash.django_des_crypt
-    secret_size = 8
 
     known_correct_hashes = [
         # ensures only first two digits of salt count.
@@ -249,7 +248,6 @@ class django_pbkdf2_sha1_test(HandlerCase, _DjangoHelper):
 class django_bcrypt_test(HandlerCase, _DjangoHelper):
     """test django_bcrypt"""
     handler = hash.django_bcrypt
-    secret_size = 72
     fuzz_salts_need_bcrypt_repair = True
 
     known_correct_hashes = [

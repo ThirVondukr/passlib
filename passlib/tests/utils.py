@@ -786,10 +786,10 @@ class HandlerCase(TestCase):
             # use 1.7 api
             return (handler or self.handler).using(**settings).hash(secret, **context)
 
-    def do_verify(self, secret, hash, **kwds):
+    def do_verify(self, secret, hash, handler=None, **kwds):
         """call handler's verify method"""
         secret = self.populate_context(secret, kwds)
-        return self.handler.verify(secret, hash, **kwds)
+        return (handler or self.handler).verify(secret, hash, **kwds)
 
     def do_identify(self, hash):
         """call handler's identify method"""
@@ -1890,32 +1890,54 @@ class HandlerCase(TestCase):
     #===================================================================
     # passwords
     #===================================================================
-    def test_60_secret_size(self):
+    def test_60_truncate_size(self):
         """test password size limits"""
-        sc = self.secret_size
+        handler = self.handler
+
+        sc = handler.truncate_size
         base = "too many secrets" # 16 chars
         alt = 'x' # char that's not in base string
         if sc is not None:
             # hash only counts the first <sc> characters; eg: bcrypt, des-crypt
+            self.assertGreaterEqual(sc, 1)
+            self.assertIn("truncate_error", handler.setting_kwds)
+
+            without_error = handler.using(truncate_error=False)
+            with_error = handler.using(truncate_error=True)
 
             # create & hash string that's exactly sc+1 chars
             secret = repeat_string(base, sc+1)
-            hash = self.do_encrypt(secret)
+            hash = self.do_encrypt(secret, handler=without_error)
+
+            # with errors enabled, should forbid truncation.
+            self.assertRaises(uh.exc.PasswordTruncateError,
+                              self.do_encrypt, secret, handler=with_error)
+
+            # make sure we can create & hash string that's exactly sc chars
+            self.do_encrypt(secret[:-1], handler=with_error)
 
             # check sc value isn't too large by verifying that sc-1'th char
             # affects hash
             secret2 = secret[:-2] + alt + secret[-1]
-            self.assertFalse(self.do_verify(secret2, hash),
-                            "secret_size value is too large")
+            self.assertFalse(self.do_verify(secret2, hash, handler=with_error),
+                            "truncate_size value is too large")
 
             # check sc value isn't too small by verifying adding sc'th char
             # *doesn't* affect hash
             secret3 = secret[:-1] + alt
-            self.assertTrue(self.do_verify(secret3, hash),
-                            "secret_size value is too small")
+            self.assertTrue(self.do_verify(secret3, hash, handler=with_error),
+                            "truncate_size value is too small")
+
+            # test parse values
+            self.assertEqual(handler.using(truncate_error=True).truncate_error, True)
+            self.assertEqual(handler.using(truncate_error="true").truncate_error, True)
+            self.assertEqual(handler.using(truncate_error=False).truncate_error, False)
+            self.assertEqual(handler.using(truncate_error="false").truncate_error, False)
+            self.assertRaises(ValueError, handler.using, truncate_error="xxx")
 
         else:
             # hash counts all characters; e.g. md5-crypt
+            self.assertNotIn("truncate_error", handler.setting_kwds)
 
             # NOTE: this doesn't do an exhaustive search to verify algorithm
             # doesn't have some cutoff point, it just tries

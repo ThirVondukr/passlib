@@ -82,7 +82,7 @@ def _detect_pybcrypt():
 #=============================================================================
 # handler
 #=============================================================================
-class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.GenericHandler):
+class bcrypt(uh.TruncateMixin, uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.GenericHandler):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -115,6 +115,13 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
           identical to ``"2a"`` in all but name.
         * ``"2b"`` - latest revision of the official BCrypt algorithm (will be default in Passlib 1.7).
 
+    :param bool truncate_error:
+        By default, BCrypt will silently truncate passwords larger than 72 bytes.
+        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+        .. versionadded:: 1.7
+
     :type relaxed: bool
     :param relaxed:
         By default, providing an invalid value for one of the other
@@ -146,7 +153,7 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     # PasswordHash
     #--------------------
     name = "bcrypt"
-    setting_kwds = ("salt", "rounds", "ident")
+    setting_kwds = ("salt", "rounds", "ident", "truncate_error")
 
     #--------------------
     # GenericHandler
@@ -176,6 +183,11 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
     min_rounds = 4 # minimum from bcrypt specification
     max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)
     rounds_cost = "log2"
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 72
 
     #===================================================================
     # formatting
@@ -386,6 +398,10 @@ class bcrypt(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.HasManyBackends, uh.
         # make sure it's unicode
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+
+        # check for truncation (during .hash() calls only)
+        if self.use_defaults:
+            self._check_truncate_policy(secret)
 
         # NOTE: especially important to forbid NULLs for bcrypt, since many
         # backends (bcryptor, bcrypt) happily accept them, and then
@@ -626,6 +642,8 @@ class bcrypt_sha256(bcrypt):
         Now defaults to '2b' bcrypt algorithm.
     """
     name = "bcrypt_sha256"
+    setting_kwds = tuple(elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"])
+    truncate_size = None
 
     # this is locked at 2a/2b for now.
     ident_values = (IDENT_2A, IDENT_2B)
@@ -702,6 +720,10 @@ class bcrypt_sha256(bcrypt):
 
         # hand result off to normal bcrypt algorithm
         return super(bcrypt_sha256, self)._calc_checksum(key)
+
+    def _check_truncate_policy(self, secret):
+        # disable check performed by bcrypt(), since this doesn't truncate passwords.
+        pass
 
     # patch set_backend so it modifies bcrypt class, not this one...
     # else the bcrypt.set_backend() tests will call the wrong class.

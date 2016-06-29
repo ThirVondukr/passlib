@@ -37,6 +37,7 @@ from passlib.exc import ExpectedStringError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
+                                  unicode_or_bytes_types,
                                   get_method_function, suppress_cause)
 # local
 __all__ = [
@@ -728,6 +729,32 @@ add_doc(to_native_str,
 def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & unused
     """deprecated, use to_native_str() instead"""
     return to_native_str(source, encoding, param="hash")
+
+_true_set = set("true t yes y on 1".split())
+_false_set = set("false f no n off 0".split())
+_none_set = set(["", "none"])
+
+def as_bool(value, none=None, param="boolean"):
+    """
+    helper to convert value to boolean.
+    recognizes strings such as "true", "false"
+    """
+    assert none in [True, False, None]
+    if isinstance(value, unicode_or_bytes_types):
+        clean = value.lower().strip()
+        if clean in _true_set:
+            return True
+        if clean in _false_set:
+            return False
+        if clean in _none_set:
+            return none
+        raise ValueError("unrecognized %s value: %r" % (param, value))
+    elif isinstance(value, bool):
+        return value
+    elif value is None:
+        return none
+    else:
+        return bool(value)
 
 #=============================================================================
 # base64-variant encoding

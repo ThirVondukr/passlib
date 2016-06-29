@@ -22,7 +22,7 @@ __all__ = [
 #=============================================================================
 # cisco pix firewall hash
 #=============================================================================
-class cisco_pix(uh.HasUserContext, uh.StaticHandler):
+class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
     """This class implements the password hash used by (older) Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
     It does a single round of hashing, and relies on the username
@@ -43,6 +43,13 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         hash passwords which don't have an associated user account
         (such as the "enable" password).
 
+    :param bool truncate_error:
+        By default, this will silently truncate passwords larger than 16 bytes.
+        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+        .. versionadded:: 1.7
+
     .. versionadded:: 1.6
     """
     #===================================================================
@@ -53,12 +60,18 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     # PasswordHash
     #--------------------
     name = "cisco_pix"
+    setting_kwds = ("truncate_error",)
 
     #--------------------
     # GenericHandler
     #--------------------
     checksum_size = 16
     checksum_chars = uh.HASH64_CHARS
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 16
 
     #--------------------
     # custom
@@ -83,6 +96,10 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
         seclen = len(secret)
+
+        # check for truncation (during .hash() calls only)
+        if self.use_defaults:
+            self._check_truncate_policy(secret)
 
         # PIX/ASA: Per-user accounts use the first 4 chars of the username as the salt,
         #          whereas global "enable" passwords don't have any salt at all.
@@ -125,6 +142,8 @@ class cisco_asa(cisco_pix):
     but will generate a different hash for anything larger
     (See the `Format & Algorithm`_ section for the details).
 
+    Unlike cisco_pix, this will truncate passwords larger than 32 bytes.
+
     .. versionadded:: 1.7
     """
     #===================================================================
@@ -135,6 +154,11 @@ class cisco_asa(cisco_pix):
     # PasswordHash
     #--------------------
     name = "cisco_asa"
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 32
 
     #--------------------
     # cisco_pix

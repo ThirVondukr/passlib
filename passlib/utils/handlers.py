@@ -18,7 +18,7 @@ from passlib.registry import get_crypt_handler
 from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
                           BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
                           is_crypt_handler, to_unicode, deprecated_method, \
-                          MAX_PASSWORD_SIZE, accepts_keyword
+                          MAX_PASSWORD_SIZE, accepts_keyword, as_bool
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
@@ -398,6 +398,37 @@ class MinimalHandler(PasswordHash):
     #===================================================================
     # eoc
     #===================================================================
+
+class TruncateMixin(MinimalHandler):
+    """
+    PasswordHash mixin which provides a method
+    that will check if secret would be truncated,
+    and can be configured to throw an error.
+    """
+
+    #: whether passwords large enough to be truncated
+    #: should cause a PasswordTruncateError to be raised,
+    #: instead of being silently truncated.
+    truncate_error = False
+
+    @classmethod
+    def using(cls, truncate_error=None, **kwds):
+        subcls = super(TruncateMixin, cls).using(**kwds)
+        if truncate_error is not None:
+            truncate_error = as_bool(truncate_error, param="truncate_error")
+            if truncate_error is not None:
+                subcls.truncate_error = truncate_error
+        return subcls
+
+    @classmethod
+    def _check_truncate_policy(cls, secret):
+        """
+        make sure secret won't be truncated.
+        NOTE: this should only be called for .hash(), not for .verify()
+        """
+        assert cls.truncate_size is not None, "truncate_size must be set by subclass"
+        if cls.truncate_error and len(secret) > cls.truncate_size:
+            raise exc.PasswordTruncateError(cls)
 
 #=============================================================================
 # GenericHandler
@@ -2409,6 +2440,7 @@ class PrefixWrapper(object):
                     "default_salt_size", "min_salt_size", "max_salt_size",
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
+                    "truncate_size",
                     )
 
     def __repr__(self):

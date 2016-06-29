@@ -39,6 +39,20 @@ class PasswordSizeError(ValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
+class PasswordTruncateError(PasswordSizeError):
+    """
+    Error raised if password would be truncated by hash.
+    This derives from :exc:`PasswordSizeError` and :exc:`ValueError`.
+
+    Hashers such as :class:`~passlib.hash.bcrypt` can be configured to raises
+    this error by setting ``truncate_error=True``.
+
+    .. versionadded:: 1.7
+    """
+    def __init__(self, cls):
+        msg = ("Password too long (%s truncates to %d characters)" %
+               (cls.name, cls.truncate_size))
+        ValueError.__init__(self, msg)
 
 class PasslibSecurityError(RuntimeError):
     """

@@ -24,7 +24,6 @@ from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 class _bcrypt_test(HandlerCase):
     """base for BCrypt test cases"""
     handler = hash.bcrypt
-    secret_size = 72
     reduce_default_rounds = True
     fuzz_salts_need_bcrypt_repair = True
     has_os_crypt_fallback = False
@@ -433,7 +432,7 @@ class _bcrypt_sha256_test(HandlerCase):
             '$bcrypt-sha256$2a,5$.US1fQ4TQS.ZTz/uJ5Kyn.$QNdPDOTKKT5/sovNz1iWg26quOU4Pje'),
 
         # test >72 chars is hashed correctly -- under bcrypt these hash the same.
-        # NOTE: test_60_secret_size() handles this already, this is just for overkill :)
+        # NOTE: test_60_truncate_size() handles this already, this is just for overkill :)
         (repeat_string("abc123",72),
             '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$r/hyEtqJ0teqPEmfTLoZ83ciAI1Q74.'),
         (repeat_string("abc123",72)+"qwr",

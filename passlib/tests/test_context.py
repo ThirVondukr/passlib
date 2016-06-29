@@ -744,6 +744,7 @@ sha512_crypt__min_rounds = 45000
         # this checks that (3 schemes, 3 categories) inherit options correctly.
         # the 'user' category is not present in the options.
         cc4 = CryptContext(
+            truncate_error=True,
             schemes = [ "sha512_crypt", "des_crypt", "bsdi_crypt"],
             deprecated = ["sha512_crypt", "des_crypt"],
             all__vary_rounds = 0.1,
@@ -758,6 +759,7 @@ sha512_crypt__min_rounds = 45000
 
         #
         # sha512_crypt
+        # NOTE: 'truncate_error' shouldn't be passed along...
         #
         self.assertEqual(options(cc4, "sha512_crypt"), dict(
             deprecated=True,
@@ -783,14 +785,17 @@ sha512_crypt__min_rounds = 45000
         #
         self.assertEqual(options(cc4, "des_crypt"), dict(
             deprecated=True,
+            truncate_error=True,
         ))
 
         self.assertEqual(options(cc4, "des_crypt", "user"), dict(
             deprecated=True, # unconfigured category inherits from default
+            truncate_error=True,
         ))
 
         self.assertEqual(options(cc4, "des_crypt", "admin"), dict(
             deprecated=True, # unchanged though overidden
+            truncate_error=True,
         ))
 
         #
