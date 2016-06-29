@@ -362,7 +362,7 @@ class CryptPolicy(object):
                  "create a CryptContext instance and "
                  "use ``context.schemes(resolve=True)``.",
                  DeprecationWarning, stacklevel=2)
-        return self._context.schemes(resolve=True)
+        return self._context.schemes(resolve=True, unconfigured=True)
 
     def schemes(self, resolve=False):
         """return list of schemes defined in policy.
@@ -381,7 +381,7 @@ class CryptPolicy(object):
                  "create a CryptContext instance and "
                  "use ``context.schemes()``.",
                  DeprecationWarning, stacklevel=2)
-        return list(self._context.schemes(resolve=resolve))
+        return list(self._context.schemes(resolve=resolve, unconfigured=True))
 
     def get_handler(self, name=None, category=None, required=False):
         """return handler as specified by name, or default handler.
@@ -405,7 +405,7 @@ class CryptPolicy(object):
         # CryptContext.handler() doesn't support required=False,
         # so wrapping it in try/except
         try:
-            return self._context.handler(name, category)
+            return self._context.handler(name, category, unconfigured=True)
         except KeyError:
             if required:
                 raise
@@ -1364,6 +1364,12 @@ class CryptContext(object):
             other.load(kwds, update=True)
         return other
 
+    def using(self, **kwds):
+        """
+        alias for :meth:`copy`, to match PasswordHash.using()
+        """
+        return self.copy(**kwds)
+
     def replace(self, **kwds):
         """deprecated alias of :meth:`copy`"""
         warn("CryptContext().replace() has been deprecated in Passlib 1.6, "
@@ -1700,7 +1706,7 @@ class CryptContext(object):
     #===================================================================
     # reading configuration
     #===================================================================
-    def schemes(self, resolve=False):
+    def schemes(self, resolve=False, category=None, unconfigured=False):
         """return schemes loaded into this CryptContext instance.
 
         :type resolve: bool
@@ -1717,7 +1723,18 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`schemes <context-schemes-option>` option for usage example.
         """
-        return self._config.handlers if resolve else self._config.schemes
+        # XXX: should resolv return records rather than handlers?
+        #      or deprecate resolve keyword completely?
+        #      offering up a .hashers Mapping in v1.8 would be great.
+        # NOTE: supporting 'category' and 'unconfigured' kwds as of 1.7
+        #       just to pass through to .handler(), but not documenting them...
+        #       may not need to put them to use.
+        schemes = self._config.schemes
+        if resolve:
+            return tuple(self.handler(scheme, category, unconfigured=unconfigured)
+                         for scheme in schemes)
+        else:
+            return schemes
 
     # XXX: need to decide if exposing this would be useful to applications
     #      in any way that isn't already served by to_dict();
@@ -1727,7 +1744,7 @@ class CryptContext(object):
         """helper used by unittests to check if scheme is deprecated"""
         return self._get_record(scheme, category)._Context__deprecated
 
-    def default_scheme(self, category=None, resolve=False):
+    def default_scheme(self, category=None, resolve=False, unconfigured=False):
         """return name of scheme that :meth:`hash` will use by default.
 
         :type resolve: bool
@@ -1746,10 +1763,19 @@ class CryptContext(object):
         .. seealso:: the :ref:`default <context-default-option>` option for usage example.
 
         .. versionadded:: 1.6
+
+        .. versionchanged:: 1.7
+
+            This now returns a hasher configured with any CryptContext-specific
+            options (custom rounds settings, etc).  Previously this returned
+            the base hasher from :mod:`passlib.hash`.
         """
-        # type check of category - handled by _get_record()
-        record = self._get_record(None, category)
-        return record._Context__orig_handler if resolve else record.name
+        # XXX: deprecate this in favor of .handler() or whatever it's replaced with?
+        # NOTE: supporting 'unconfigured' kwds as of 1.7
+        #       just to pass through to .handler(), but not documenting them...
+        #       may not need to put them to use.
+        hasher = self.handler(None, category, unconfigured=unconfigured)
+        return hasher if resolve else hasher.name
 
     # XXX: need to decide if exposing this would be useful in any way
     ##def categories(self):
@@ -1767,7 +1793,7 @@ class CryptContext(object):
     ##    kwds, percat = self._config.get_options(scheme, category)
     ##    return kwds
 
-    def handler(self, scheme=None, category=None):
+    def handler(self, scheme=None, category=None, unconfigured=False):
         """helper to resolve name of scheme -> :class:`~passlib.ifc.PasswordHash` object used by scheme.
 
         :arg scheme:
@@ -1780,6 +1806,14 @@ class CryptContext(object):
             it will use the default for that category.
             Otherwise this parameter is ignored.
 
+        :param unconfigured:
+
+            By default, this returns a handler object whose .hash()
+            and .needs_update() methods will honor the configured
+            provided by CryptContext.   See ``unconfigured=True``
+            to get the underlying handler from before any context-specific
+            configuration was applied.
+
         :raises KeyError:
             If the scheme does not exist OR is not being used within this context.
 
@@ -1790,9 +1824,19 @@ class CryptContext(object):
 
         .. versionadded:: 1.6
             This was previously available as ``CryptContext().policy.get_handler()``
+
+        .. versionchanged:: 1.7
+
+            This now returns a hasher configured with any CryptContext-specific
+            options (custom rounds settings, etc).  Previously this returned
+            the base hasher from :mod:`passlib.hash`.
         """
         try:
-            return self._get_record(scheme, category)._Context__orig_handler
+            hasher = self._get_record(scheme, category)
+            if unconfigured:
+                return hasher._Context__orig_handler
+            else:
+                return hasher
         except KeyError:
             pass
         if self._config.handlers:
@@ -2167,6 +2211,10 @@ class CryptContext(object):
             If no scheme is specified, it will be identified
             based on the value of *hash*.
 
+            .. deprecated:: 1.7
+
+                Support for this keyword is deprecated, and will be removed in Passlib 2.0.
+
         :type category: str or None
         :param category:
             Optional :ref:`user category <user-categories>`.
@@ -2195,6 +2243,13 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
+        if scheme is not None:
+            # TODO: offer replacement alternative.
+            #       ``context.handler(scheme).needs_update()`` would work,
+            #       but may deprecate .handler() in passlib 1.8.
+            warn("CryptContext.needs_update(): 'scheme' keyword is deprecated as of "
+                 "Passlib 1.7, and will be removed in Passlib 2.0",
+                 DeprecationWarning)
         record = self._get_or_identify_record(hash, scheme, category)
         return record.needs_update(hash, secret=secret)
 
@@ -2239,7 +2294,8 @@ class CryptContext(object):
             strip_unused(kwds, record)
         return record.genhash(secret, config, **kwds)
 
-    def identify(self, hash, category=None, resolve=False, required=False):
+    def identify(self, hash, category=None, resolve=False, required=False,
+                 unconfigured=False):
         """Attempt to identify which algorithm the hash belongs to.
 
         Note that this will only consider the algorithms
@@ -2276,8 +2332,10 @@ class CryptContext(object):
         if record is None:
             return None
         elif resolve:
-            # XXX: which one should we return? custom_handler (record), or orig handler?
-            return record._Context__orig_handler
+            if unconfigured:
+                return record._Context__orig_handler
+            else:
+                return record
         else:
             return record.name
 
@@ -2296,6 +2354,10 @@ class CryptContext(object):
             :ref:`schemes <context-schemes-option>` option).
             If no scheme is specified, the configured default
             will be used.
+
+            .. deprecated:: 1.7
+
+                Support for this keyword is deprecated, and will be removed in Passlib 2.0.
 
         :type category: str or None
         :param category:
@@ -2320,6 +2382,13 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
         # XXX: could insert normalization to preferred unicode encoding here
+        if scheme is not None:
+            # TODO: offer replacement alternative.
+            #       ``context.handler(scheme).hash()`` would work,
+            #       but may deprecate .handler() in passlib 1.8.
+            warn("CryptContext.hash(): 'scheme' keyword is deprecated as of "
+                 "Passlib 1.7, and will be removed in Passlib 2.0"
+                 DeprecationWarning)
         record = self._get_record(scheme, category)
         strip_unused = self._strip_unused_context_kwds
         if strip_unused:
@@ -2364,6 +2433,10 @@ class CryptContext(object):
             for this context
             (see the :ref:`schemes <context-schemes-option>` option).
 
+            .. deprecated:: 1.7
+
+                Support for this keyword is deprecated, and will be removed in Passlib 2.0.
+
         :type category: str or None
         :param category:
             Optional :ref:`user category <user-categories>` string.
@@ -2393,6 +2466,13 @@ class CryptContext(object):
         """
         # XXX: could insert normalization to preferred unicode encoding here
         # XXX: what about supporting a setter() callback ala django 1.4 ?
+        if scheme is not None:
+            # TODO: offer replacement alternative.
+            #       ``context.handler(scheme).verify()`` would work,
+            #       but may deprecate .handler() in passlib 1.8.
+            warn("CryptContext.verify(): 'scheme' keyword is deprecated as of "
+                 "Passlib 1.7, and will be removed in Passlib 2.0",
+                 DeprecationWarning)
         if hash is None:
             # convenience feature -- let apps pass in hash=None when user
             # isn't found / has no hash; mainly to get dummy_verify() benefit.
@@ -2438,6 +2518,10 @@ class CryptContext(object):
             for this context
             (see the :ref:`schemes <context-schemes-option>` option).
 
+            .. deprecated:: 1.7
+
+                Support for this keyword is deprecated, and will be removed in Passlib 2.0.
+
         :type category: str or None
         :param category:
             Optional :ref:`user category <user-categories>`.
@@ -2469,6 +2553,10 @@ class CryptContext(object):
         .. seealso:: the :ref:`context-migration-example` example in the tutorial.
         """
         # XXX: could insert normalization to preferred unicode encoding here.
+        if scheme is not None:
+            warn("CryptContext.verify(): 'scheme' keyword is deprecated as of "
+                 "Passlib 1.7, and will be removed in Passlib 2.0",
+                 DeprecationWarning)
         if hash is None:
             # convenience feature -- let apps pass in hash=None when user
             # isn't found / has no hash; mainly to get dummy_verify() benefit.

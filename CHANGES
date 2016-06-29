@@ -199,7 +199,16 @@ greatly affected by this release; only one major deprecation was made:
       :class:`~passlib.ifc.PasswordHash` API changes listed above.
       The old method will remain around until Passlib 2.0.
 
-A few internal options in have been deprecated:
+A fewer internal options and infrequently used features have been deprecated:
+
+    * [minor] :meth:`~passlib.context.CryptContext.hash`, :meth:`~passlib.context.CryptContext.verify`,
+      :meth:`~passlib.context.CryptContext.verify_and_update`, and
+      :meth:`~passlib.context.CryptContext.needs_update`:
+      The ``scheme`` keyword is now deprecated; support will be removed in Passlib 2.0.
+
+    * [minor] :meth:`~passlib.context.CryptContext.hash`: Passing
+      settings to the .hash() method such as "rounds" and "salt" is deprecated.
+      Callers should use ``context.handler().using(**settings).hash()`` instead.
 
     * [minor] The ``vary_rounds`` option has been deprecated,
       and will be removed in Passlib 2.0.  It provided very little security benefit,

@@ -23,7 +23,7 @@ from passlib.utils import tick, to_unicode
 from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2, PY26
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
-                                 quicksleep, time_call)
+                                 quicksleep, time_call, handler_derived_from)
 from passlib.registry import (register_crypt_handler_path,
                         _has_crypt_handler as has_crypt_handler,
                         _unload_handler_name as unload_handler_name,
@@ -178,6 +178,7 @@ sha512_crypt__min_rounds = 45000
     def setUp(self):
         super(CryptContextTest, self).setUp()
         warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
+        warnings.filterwarnings("ignore", ".*'scheme' keyword is deprecated as of Passlib 1.7.*")
 
     #===================================================================
     # constructors
@@ -667,6 +668,10 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
     # inspection & serialization
     #===================================================================
+
+    def assertHandlerDerivedFrom(self, handler, base, msg=None):
+        self.assertTrue(handler_derived_from(handler, base), msg=msg)
+
     def test_30_schemes(self):
         """test schemes() method"""
         # NOTE: also checked under test_21
@@ -679,7 +684,9 @@ sha512_crypt__min_rounds = 45000
         # test sample 1
         ctx = CryptContext(**self.sample_1_dict)
         self.assertEqual(ctx.schemes(), tuple(self.sample_1_schemes))
-        self.assertEqual(ctx.schemes(resolve=True), tuple(self.sample_1_handlers))
+        self.assertEqual(ctx.schemes(resolve=True, unconfigured=True), tuple(self.sample_1_handlers))
+        for result, correct in zip(ctx.schemes(resolve=True), self.sample_1_handlers):
+            self.assertTrue(handler_derived_from(result, correct))
 
         # test sample 2
         ctx = CryptContext(**self.sample_2_dict)
@@ -696,7 +703,8 @@ sha512_crypt__min_rounds = 45000
         # test sample 1
         ctx = CryptContext(**self.sample_1_dict)
         self.assertEqual(ctx.default_scheme(), "md5_crypt")
-        self.assertEqual(ctx.default_scheme(resolve=True), hash.md5_crypt)
+        self.assertEqual(ctx.default_scheme(resolve=True, unconfigured=True), hash.md5_crypt)
+        self.assertHandlerDerivedFrom(ctx.default_scheme(resolve=True), hash.md5_crypt)
 
         # test sample 2
         ctx = CryptContext(**self.sample_2_dict)
@@ -718,24 +726,31 @@ sha512_crypt__min_rounds = 45000
 
         # default for sample 1
         ctx = CryptContext(**self.sample_1_dict)
-        self.assertEqual(ctx.handler(), hash.md5_crypt)
+        self.assertEqual(ctx.handler(unconfigured=True), hash.md5_crypt)
+        self.assertHandlerDerivedFrom(ctx.handler(), hash.md5_crypt)
 
         # by name
-        self.assertEqual(ctx.handler("des_crypt"), hash.des_crypt)
+        self.assertEqual(ctx.handler("des_crypt", unconfigured=True), hash.des_crypt)
+        self.assertHandlerDerivedFrom(ctx.handler("des_crypt"), hash.des_crypt)
 
         # name not in schemes
         self.assertRaises(KeyError, ctx.handler, "mysql323")
 
         # check handler() honors category default
         ctx = CryptContext("sha256_crypt,md5_crypt", admin__context__default="md5_crypt")
-        self.assertEqual(ctx.handler(), hash.sha256_crypt)
-        self.assertEqual(ctx.handler(category="staff"), hash.sha256_crypt)
-        self.assertEqual(ctx.handler(category="admin"), hash.md5_crypt)
+        self.assertEqual(ctx.handler(unconfigured=True), hash.sha256_crypt)
+        self.assertHandlerDerivedFrom(ctx.handler(), hash.sha256_crypt)
+
+        self.assertEqual(ctx.handler(category="staff", unconfigured=True), hash.sha256_crypt)
+        self.assertHandlerDerivedFrom(ctx.handler(category="staff"), hash.sha256_crypt)
+
+        self.assertEqual(ctx.handler(category="admin", unconfigured=True), hash.md5_crypt)
+        self.assertHandlerDerivedFrom(ctx.handler(category="staff"), hash.sha256_crypt)
 
         # test unicode category strings are accepted under py2
         if PY2:
-            self.assertEqual(ctx.handler(category=u("staff")), hash.sha256_crypt)
-            self.assertEqual(ctx.handler(category=u("admin")), hash.md5_crypt)
+            self.assertEqual(ctx.handler(category=u("staff"), unconfigured=True), hash.sha256_crypt)
+            self.assertEqual(ctx.handler(category=u("admin"), unconfigured=True), hash.md5_crypt)
 
     def test_33_options(self):
         """test internal _get_record_options() method"""
@@ -871,7 +886,8 @@ sha512_crypt__min_rounds = 45000
         for crypt in handlers:
             h = cc.hash("test", scheme=crypt.name)
             self.assertEqual(cc.identify(h), crypt.name)
-            self.assertEqual(cc.identify(h, resolve=True), crypt)
+            self.assertEqual(cc.identify(h, resolve=True, unconfigured=True), crypt)
+            self.assertHandlerDerivedFrom(cc.identify(h, resolve=True), crypt)
             self.assertTrue(cc.verify('test', h))
             self.assertFalse(cc.verify('notest', h))
 
@@ -973,19 +989,52 @@ sha512_crypt__min_rounds = 45000
         # bad category values
         self.assertRaises(TypeError, cc.genconfig, 'secret', hash, category=1)
 
+    def test_43_hash(self,):
+        """test hash() method"""
+        # XXX: what more can we test here that isn't deprecated
+        #      or handled under another test (e.g. context kwds?)
 
-    def test_43_hash(self, use_16_legacy=False):
-        """test hash_using() method"""
+        # respects rounds
+        cc = CryptContext(**self.sample_4_dict)
+        hash = cc.hash("password")
+        self.assertTrue(hash.startswith("$5$rounds=3000$"))
+        self.assertTrue(cc.verify("password", hash))
+        self.assertFalse(cc.verify("passwordx", hash))
+
+        # make default > max throws error if attempted
+        # XXX: move this to copy() test?
+        self.assertRaises(ValueError, cc.copy,
+                          sha256_crypt__default_rounds=4000)
+
+        # rejects non-string secrets
+        cc = CryptContext(["des_crypt"])
+        for secret, kwds in self.nonstring_vectors:
+            self.assertRaises(TypeError, cc.hash, secret, **kwds)
+
+        # throws error without schemes
+        self.assertRaises(KeyError, CryptContext().hash, 'secret')
+
+        # bad category values
+        self.assertRaises(TypeError, cc.hash, 'secret', category=1)
+
+    def test_43_hash_legacy(self, use_16_legacy=False):
+        """test hash() method -- legacy 'scheme' and settings keywords"""
         cc = CryptContext(**self.sample_4_dict)
 
-        def call_hash(ctx, *args, **kwds):
-            if use_16_legacy:
-                return ctx.hash(*args, **kwds)
-            else:
-                return ctx.hash_using(**kwds).hash(*args)
+        # TODO: should migrate these tests elsewhere, or remove them.
+        #       can be replaced with following equivalent:
+        #
+        #       def wrapper(secret, scheme=None, category=None, **kwds):
+        #         handler = cc.handler(scheme, category)
+        #         if kwds:
+        #             handler = handler.using(**kwds)
+        #         return handler.hash(secret)
+        #
+        #       need to make sure bits being tested here are tested
+        #       under the tests for the equivalent methods called above,
+        #       and then discard the rest of these under 2.0.
 
         # hash specific settings
-        # TODO: passing settings this way is deprecated, need to add alternative
         self.assertEqual(
             cc.hash("password", scheme="phpass", salt='.'*8),
             '$H$5........De04R5Egz0aq8Tf.1eVhY/',
@@ -1000,41 +1049,21 @@ sha512_crypt__min_rounds = 45000
         # min rounds
         with self.assertWarningList([]):
             self.assertEqual(
-                cc.hash_using("password", rounds=1999, salt="nacl"),
+                cc.hash("password", rounds=1999, salt="nacl"),
                 '$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609',
                 )
 
         with self.assertWarningList([]):
             self.assertEqual(
-                cc.hash_using("password", rounds=2001, salt="nacl"),
+                cc.hash("password", rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
                 )
 
         # NOTE: max rounds, etc tested in genconfig()
 
-        # make default > max throws error if attempted
-        self.assertRaises(ValueError, cc.copy,
-                          sha256_crypt__default_rounds=4000)
-
-        #--------------------------------------------------------------
-        # border cases
-        #--------------------------------------------------------------
-
-        # rejects non-string secrets
-        cc = CryptContext(["des_crypt"])
-        for secret, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.hash, secret, **kwds)
-
-        # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().hash, 'secret')
-
         # bad scheme values
         self.assertRaises(KeyError, cc.hash, 'secret', scheme="fake") # XXX: should this be ValueError?
         self.assertRaises(TypeError, cc.hash, 'secret', scheme=1)
-
-        # bad category values
-        self.assertRaises(TypeError, cc.hash, 'secret', category=1)
-
 
     def test_44_identify(self):
         """test identify() border cases"""
@@ -1100,7 +1129,7 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(["des_crypt"])
         for h, kwds in self.nonstring_vectors:
             if h is None:
-                pass
+                continue
             self.assertRaises(TypeError, cc.verify, 'secret', h, **kwds)
 
         # throws error without schemes
@@ -1189,8 +1218,8 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(**self.sample_4_dict)
 
         # create some hashes
-        h1 = cc.hash("password", scheme="des_crypt")
-        h2 = cc.hash("password", scheme="sha256_crypt")
+        h1 = cc.handler("des_crypt").hash("password")
+        h2 = cc.handler("sha256_crypt").hash("password")
 
         # check bad password, deprecated hash
         ok, new_hash = cc.verify_and_update("wrongpass", h1)
