@@ -2387,7 +2387,7 @@ class CryptContext(object):
             #       ``context.handler(scheme).hash()`` would work,
             #       but may deprecate .handler() in passlib 1.8.
             warn("CryptContext.hash(): 'scheme' keyword is deprecated as of "
-                 "Passlib 1.7, and will be removed in Passlib 2.0"
+                 "Passlib 1.7, and will be removed in Passlib 2.0",
                  DeprecationWarning)
         record = self._get_record(scheme, category)
         strip_unused = self._strip_unused_context_kwds
