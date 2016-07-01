@@ -7,6 +7,7 @@ from __future__ import with_statement
 from binascii import unhexlify
 import contextlib
 import logging; log = logging.getLogger(__name__)
+import random
 import re
 import os
 import sys
