@@ -2336,7 +2336,7 @@ class HandlerCase(TestCase):
                     continue
                 assert result is True or result is False
                 if not result:
-                    raise self.failureException("failed to verify against %s: "
+                    raise self.failureException("failed to verify against %r verifier: "
                                                 "secret=%r config=%r hash=%r" %
                                                 (name, secret, settings, hash))
                 # occasionally check that some other secrets WON'T verify

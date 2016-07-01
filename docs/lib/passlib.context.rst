@@ -195,13 +195,13 @@ Options which directly affect the behavior of the CryptContext instance:
     to this minimum time, in order to make it harder for an attacker
     to guess which accounts have weak hashes.
 
-    Applications may also wish to call :meth:`dummy_verify` for login
+    Applications may also wish to call :meth:`~CryptContext.dummy_verify` for login
     attempts where the user does not exist, in order to mask which
     users accounts have valid hashes.
 
-    This option can be set to ``true`` or ``false``.
-    ``false`` is currently the default, though this (may) be changed
-    in Passlib 2.0.
+    This option can be set to ``True`` or ``False`` (the default).
+
+    The default (may) be changed in a later 2.x release.
 
     .. warning::
 

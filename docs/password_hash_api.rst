@@ -462,6 +462,8 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
         algorithms (e.g. in order to verify a password), you will be better served
         by the :ref:`CryptContext <context-overview>` class.
 
+.. automethod:: PasswordHash.needs_update
+
 ..
     the undocumented and experimental support methods currently include
     parsehash() and bitsize()

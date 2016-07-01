@@ -169,7 +169,9 @@ class PasswordHash(object):
     @classmethod
     def needs_update(cls, hash, secret=None):
         """
-        check if hash configuration is outside desired bounds.
+        check if hash's configuration is outside desired bounds,
+        or contains some other internal option which requires
+        updating the password hash.
 
         :param hash:
             hash string to examine
@@ -181,9 +183,7 @@ class PasswordHash(object):
         :return:
             whether secret needs re-hashing.
 
-        .. todo::
-
-            add this method to main documentation.
+        .. versionadded:: 1.7
         """
         # by default, always report that we don't need update
         return False
