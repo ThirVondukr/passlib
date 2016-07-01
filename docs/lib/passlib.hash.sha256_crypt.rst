@@ -77,6 +77,25 @@ which can be used when the rounds parameter is equal to 5000
 The algorithm used by SHA256-Crypt is laid out in detail
 in the specification document linked to below [#f1]_.
 
+Security Issues
+===============
+* The algorithm's initialization stage contains a loop which varies linearly with the
+  square of the password size; and further loops which vary linearly with the
+  password size * rounds.
+
+    - This means an attacker could provide a maliciously large password at the login screen
+      to attempt a DOS on a publically visible login.  For example, a 32kib password
+      would require hashing 1gib of data.
+      Passlib mitigates this by limiting the maximum password size to 4k by default.
+
+    - An attacker could also theoretically determine a password's size by observing
+      the time taken on a successful login, and then attempting verification themselves
+      to find the size password which has an equivalent delay.  This has not been applied
+      in practice, probably due to the fact that (for normal passwords < 64 bytes),
+      the contribution of the password size to the overall time taken is below
+      the observable noise level when evesdropping on the timings of successful logins
+      for a single user.
+
 Deviations
 ==========
 This implementation of sha256-crypt differs from the specification,
