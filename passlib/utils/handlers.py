@@ -2012,7 +2012,7 @@ class BackendMixin(PasswordHash):
     #: when no backends are available.
     _no_backend_suggestion = None
 
-    #: optionally non-inherited flag used to detect which class 'owns' the backend
+    #: optional non-inherited flag used to detect which class 'owns' the backend
     _backend_owner = False
 
     #===================================================================
@@ -2101,10 +2101,7 @@ class BackendMixin(PasswordHash):
         # check if parent class set marker indicating it should always be used to set backend
         # (and not a subclass)
         if cls._backend_owner and not cls.__dict__.get("_backend_owner"):
-            for base in cls.__mro__:
-                if base.__dict__.get("_backend_owner"):
-                    return base.set_backend(name, dryrun=dryrun)
-            raise AssertionError("expected to find class w/ '_backend_owner' set")
+            return cls._get_backend_owner().set_backend(name, dryrun=dryrun)
 
         # pick first available backend
         if name == "any" or name == "default":
@@ -2138,11 +2135,27 @@ class BackendMixin(PasswordHash):
             result = loader()
         if not result:
             raise exc.MissingBackendError("%s: backend not available: %s" % (cls.name, name))
+        old = cls.__backend
         cls._finalize_backend(name, result, dryrun=dryrun)
-        if not dryrun:
-            # XXX: would it be better to do this in _finalize_backend()? might simplify bcrypt handler
-            cls.__backend = name
+        assert (cls.__backend == old) if dryrun else (cls.__backend == name), \
+            "incorrect backend: old=%r name=%r dryrun=%r new=%r" % (
+                old, name, dryrun, cls.__backend
+            )
         # return name
+
+    @classmethod
+    def _get_backend_owner(cls):
+        """
+        return base class that we're actually switching backends on
+        (needed in since backends frequently modify class attrs,
+        and .set_backend may be called from a subclass).
+        """
+        if not cls._backend_owner:
+            raise AssertionError("_backend_owner not set")
+        for base in cls.__mro__:
+            if base.__dict__.get("_backend_owner"):
+                return base
+        raise AssertionError("expected to find class w/ '_backend_owner' set")
 
     #===================================================================
     # subclass hooks
@@ -2151,10 +2164,17 @@ class BackendMixin(PasswordHash):
     @classmethod
     def _get_backend_loader(cls, name):
         """
-        helper to support legacy HasManyBackends;
-        this hook may be removed in passlib 2.0.
+        hook called to get the specified backend's loader.
+        should be callable which takes in optional dryrun keyword,
+        and returns a "truthy" result if backend available,
+        and a "falsey" result if not.
+
+        the "truthy" result will be passed to _finalize_backend(),
+        and can be anything the particular _finalize_backend() uses.
         """
         return getattr(cls, "_load_backend_" + name)
+
+    # XXX: rename to _set_backend()?
 
     @classmethod
     def _finalize_backend(cls, name, result, dryrun=False):
@@ -2173,7 +2193,9 @@ class BackendMixin(PasswordHash):
         :param dryrun:
             dryrun flag passed to set_backend()
         """
-        pass
+        if not dryrun:
+            # XXX: would it be better to do this in _finalize_backend()? might simplify bcrypt handler
+            cls.__backend = name
 
     @classmethod
     def _stub_requires_backend(cls):
@@ -2187,6 +2209,85 @@ class BackendMixin(PasswordHash):
         if not cls.__backend:
             raise AssertionError("%s: set_backend() failed to load a default backend" %
                                  (cls.name))
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
+class SubclassBackendMixin(BackendMixin):
+    """
+    variant of BackendMixin which allows backends to be implemented
+    as separate mixin classes, and dynamically switches them out.
+
+    backend classes should implement a _load_backend() classmethod,
+    which will be invoked with an optional 'dryrun' keyword,
+    and should return True or False.
+
+    _load_backend() will be invoked with ``cls`` equal to the mixin,
+    *not* the overall class.
+
+    .. versionadded:: 1.7
+    """
+    #===================================================================
+    # class attrs
+    #===================================================================
+
+    # 'backends' required by BackendMixin
+    # '_backend_owner' required by BackendMixin
+
+    #: map of backend name -> mixin class
+    _backend_mixin_map = None
+
+    #===================================================================
+    # backend loading
+    #===================================================================
+
+    @classmethod
+    def _get_backend_loader(cls, name):
+        assert cls._backend_mixin_map, "_backend_mixin_map not specified"
+        return cls._backend_mixin_map[name]._load_backend
+
+    @classmethod
+    def _finalize_backend(cls, name, result, dryrun):
+        """
+        subclass hook to handle workaround detection
+        """
+        assert result is True, "invalid backend response"
+        assert cls is cls._get_backend_owner(), "_finalize_backend() not invoked on owner"
+        mixin_map = cls._backend_mixin_map
+        assert mixin_map, "_backend_mixin_map not specified"
+
+        # strip out existing mixins from class's bases
+        bases = list(cls.__bases__)
+        for mixin_cls in mixin_map.values():
+            if mixin_cls in bases:
+                bases.remove(mixin_cls)
+
+        # find first class that's subclass of SubclassBackendMixin,
+        # and insert mixin before that.
+        for idx, ref_cls in enumerate(bases):
+            if issubclass(ref_cls, SubclassBackendMixin):
+                break
+        else:
+            raise AssertionError("failed to find SubclassBackendMixin")
+
+        # add new backend mixin
+        mixin_cls = mixin_map[name]
+        assert issubclass(mixin_cls, SubclassBackendMixin)
+        bases.insert(idx, mixin_cls)
+        if not dryrun:
+            cls.__bases__ = tuple(bases)
+
+        # call parent
+        super(SubclassBackendMixin, cls)._finalize_backend(name, result, dryrun)
+
+        # init mixin
+        mixin_cls._finalize_backend_mixin(name, result, dryrun=dryrun)
+
+    @classmethod
+    def _finalize_backend_mixin(mix_cls, name, result, dryrun=False):
+        """hook for subclasses to perform (usually one-time) init of backend mixin"""
+        pass
 
     #===================================================================
     # eoc

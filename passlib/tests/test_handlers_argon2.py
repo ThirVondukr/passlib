@@ -5,6 +5,7 @@
 # core
 import logging
 log = logging.getLogger(__name__)
+import warnings
 # site
 # pkg
 from passlib import hash
@@ -144,6 +145,10 @@ class _base_argon2_test(HandlerCase):
         # constraint violation: m < 8 * p
         "$argon2i$v=19$m=127,t=2,p=16$c29tZXNhbHQ$IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
     ]
+
+    def setUpWarnings(self):
+        super(_base_argon2_test, self).setUpWarnings()
+        warnings.filterwarnings("ignore", ".*Using argon2pure backend.*")
 
     def do_stub_encrypt(self, handler=None, **settings):
         if self.backend == "argon2_cffi":
@@ -328,7 +333,10 @@ class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")
     #      which causes big problems when testing under pypy. 
     #      would like a "pure_use_threads" option instead, to make it use multiprocessing.dummy instead.
     handler = hash.argon2.using(memory_cost=32, parallelism=2)
-    # handler.pure_use_threads = True # XXX: make this controlled by env var?
+
+    # don't use multiprocessing for unittests, makes it a lot harder to ctrl-c
+    # XXX: make this controlled by env var?
+    handler.pure_use_threads = True
 
     # add reference hashes from argon2 clib tests
     known_correct_hashes = _base_argon2_test.known_correct_hashes[:]

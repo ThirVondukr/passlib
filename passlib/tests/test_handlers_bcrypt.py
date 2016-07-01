@@ -172,7 +172,7 @@ class _bcrypt_test(HandlerCase):
                 self.addCleanup(os.environ.__setitem__, key, orig)
             else:
                 self.addCleanup(os.environ.__delitem__, key)
-            os.environ[key] = "enabled"
+            os.environ[key] = "true"
         super(_bcrypt_test, self).setUp()
         warnings.filterwarnings("ignore", ".*backend is vulnerable to the bsd wraparound bug.*")
 

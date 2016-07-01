@@ -748,8 +748,8 @@ def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & un
     """deprecated, use to_native_str() instead"""
     return to_native_str(source, encoding, param="hash")
 
-_true_set = set("true t yes y on 1".split())
-_false_set = set("false f no n off 0".split())
+_true_set = set("true t yes y on 1 enable enabled".split())
+_false_set = set("false f no n off 0 disable disabled".split())
 _none_set = set(["", "none"])
 
 def as_bool(value, none=None, param="boolean"):
