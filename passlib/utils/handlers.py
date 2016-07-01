@@ -120,7 +120,7 @@ def validate_secret(secret):
     if not isinstance(secret, unicode_or_bytes_types):
         raise exc.ExpectedStringError(secret, "secret")
     if len(secret) > MAX_PASSWORD_SIZE:
-        raise exc.PasswordSizeError()
+        raise exc.PasswordSizeError(MAX_PASSWORD_SIZE)
 
 def to_unicode_for_identify(hash):
     """convert hash to unicode for identify method"""

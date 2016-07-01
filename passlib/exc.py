@@ -31,10 +31,20 @@ class PasswordSizeError(ValueError):
         ``PASSLIB_MAX_PASSWORD_SIZE`` environmental variable before
         Passlib is loaded. The value can be any large positive integer.
 
+    .. attribute:: max_size
+
+        indicates the maximum allowed size.
+
     .. versionadded:: 1.6
     """
-    def __init__(self):
-        ValueError.__init__(self, "password exceeds maximum allowed size")
+
+    max_size = None
+
+    def __init__(self, max_size, msg=None):
+        self.max_size = max_size
+        if msg is None:
+            msg = "password exceeds maximum allowed size"
+        ValueError.__init__(self, msg)
 
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
@@ -47,12 +57,18 @@ class PasswordTruncateError(PasswordSizeError):
     Hashers such as :class:`~passlib.hash.bcrypt` can be configured to raises
     this error by setting ``truncate_error=True``.
 
+    .. attribute:: max_size
+
+        indicates the maximum allowed size.
+
     .. versionadded:: 1.7
     """
-    def __init__(self, cls):
-        msg = ("Password too long (%s truncates to %d characters)" %
-               (cls.name, cls.truncate_size))
-        ValueError.__init__(self, msg)
+
+    def __init__(self, cls, msg=None):
+        if msg is None:
+            msg = ("Password too long (%s truncates to %d characters)" %
+                   (cls.name, cls.truncate_size))
+        PasswordSizeError.__init__(self, cls.truncate_size, msg)
 
 class PasslibSecurityError(RuntimeError):
     """

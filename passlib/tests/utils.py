@@ -373,7 +373,8 @@ class TestCase(_TestCase):
             return msg or std
 
     #---------------------------------------------------------------
-    # override assertRaises() to support '__msg__' keyword
+    # override assertRaises() to support '__msg__' keyword,
+    # and to return the caught exception for further examination
     #---------------------------------------------------------------
     def assertRaises(self, _exc_type, _callable=None, *args, **kwds):
         msg = kwds.pop("__msg__", None)
@@ -383,8 +384,8 @@ class TestCase(_TestCase):
                                                       *args, **kwds)
         try:
             result = _callable(*args, **kwds)
-        except _exc_type:
-            return
+        except _exc_type as err:
+            return err
         std = "function returned %r, expected it to raise %r" % (result,
                                                                  _exc_type)
         raise self.failureException(self._formatMessage(msg, std))
@@ -1906,8 +1907,9 @@ class HandlerCase(TestCase):
             hash = self.do_encrypt(secret, handler=without_error)
 
             # with errors enabled, should forbid truncation.
-            self.assertRaises(uh.exc.PasswordTruncateError,
-                              self.do_encrypt, secret, handler=with_error)
+            err = self.assertRaises(uh.exc.PasswordTruncateError,
+                                    self.do_encrypt, secret, handler=with_error)
+            self.assertEqual(err.max_size, sc)
 
             # make sure we can create & hash string that's exactly sc chars
             self.do_encrypt(secret[:-1], handler=with_error)
@@ -2004,7 +2006,8 @@ class HandlerCase(TestCase):
         from passlib.utils import MAX_PASSWORD_SIZE
         secret = '.' * (1+MAX_PASSWORD_SIZE)
         hash = self.get_sample_hash()[1]
-        self.assertRaises(PasswordSizeError, self.do_genhash, secret, hash)
+        err = self.assertRaises(PasswordSizeError, self.do_genhash, secret, hash)
+        self.assertEqual(err.max_size, MAX_PASSWORD_SIZE)
         self.assertRaises(PasswordSizeError, self.do_encrypt, secret)
         self.assertRaises(PasswordSizeError, self.do_verify, secret, hash)
 
