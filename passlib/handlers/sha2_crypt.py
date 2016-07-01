@@ -111,11 +111,9 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     # load sha256/512 specific constants
     if use_512:
         hash_const = hashlib.sha512
-        hash_len = 64
         transpose_map = _512_transpose_map
     else:
         hash_const = hashlib.sha256
-        hash_len = 32
         transpose_map = _256_transpose_map
 
     #===================================================================
