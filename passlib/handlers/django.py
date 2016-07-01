@@ -9,6 +9,7 @@ from hashlib import md5, sha1, sha256
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
+from passlib.handlers.bcrypt import _wrapped_bcrypt
 from passlib.hash import bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, rng, getrandstr, BASE64_CHARS
 from passlib.utils.compat import str_to_uascii, uascii_to_str, unicode, u
@@ -176,7 +177,7 @@ django_bcrypt = uh.PrefixWrapper("django_bcrypt", bcrypt,
     """)
 django_bcrypt.django_name = "bcrypt"
 
-class django_bcrypt_sha256(bcrypt):
+class django_bcrypt_sha256(_wrapped_bcrypt):
     """This class implements Django 1.6's Bcrypt+SHA256 hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, and a variable number of rounds.
@@ -224,12 +225,6 @@ class django_bcrypt_sha256(bcrypt):
             secret = secret.encode("utf-8")
         secret = hexlify(self._digest(secret).digest())
         return super(django_bcrypt_sha256, self)._calc_checksum(secret)
-
-    # patch set_backend so it modifies bcrypt class, not this one...
-    # else it would clobber our _calc_checksum() wrapper above.
-    @classmethod
-    def set_backend(cls, *args, **kwds):
-        return bcrypt.set_backend(*args, **kwds)
 
 class django_pbkdf2_sha256(DjangoVariableHash):
     """This class implements Django's PBKDF2-HMAC-SHA256 hash, and follows the :ref:`password-hash-api`.

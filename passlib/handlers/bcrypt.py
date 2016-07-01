@@ -295,6 +295,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 #   pybcrypt, bcrypt -- raises ValueError
                 #   bcryptor -- raises bcryptor.engine.SaltError
                 return NotImplemented
+            except AssertionError as err:
+                # _calc_checksum() code may also throw AssertionError
+                # if correct hash isn't returned (e.g. 2y hash converted to 2b,
+                # such as happens with bcrypt 3.0.0)
+                log.debug("trapped unexpected response from %r backend: verify(%r, %r):",
+                          backend, secret, hash, exc_info=True)
+                return NotImplemented
 
         def assert_lacks_8bit_bug(ident):
             """
@@ -383,7 +390,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             if detect_wrap_bug(IDENT_2A):
                 warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
                      "the bsd wraparound bug, "
-                     "and should be upgraded or replaced with another backend"
+                     "and should be upgraded or replaced with another backend "
                      "(enabling workaround for now)." % backend,
                      uh.exc.PasslibSecurityWarning)
                 mixin_cls._has_2a_wraparound_bug = True
@@ -835,7 +842,40 @@ class bcrypt(_NoBackend, _BcryptCommon):
 #=============================================================================
 _UDOLLAR = u("$")
 
-class bcrypt_sha256(bcrypt):
+# XXX: it might be better to have all the bcrypt variants share a common base class,
+#      and have the (django_)bcrypt_sha256 wrappers just proxy bcrypt instead of subclassing it.
+class _wrapped_bcrypt(bcrypt):
+    """
+    abstracts out some bits bcrypt_sha256 & django_bcrypt_sha256 share.
+    - bypass backend-loading wrappers for hash() etc
+    - disable truncation support, sha256 wrappers don't need it.
+    """
+    setting_kwds = tuple(elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"])
+    truncate_size = None
+
+    # XXX: these will be needed if any bcrypt backends directly implement this...
+    # @classmethod
+    # def hash(cls, secret, **kwds):
+    #     # bypass bcrypt backend overriding this method
+    #     # XXX: would wrapping bcrypt make this easier than subclassing it?
+    #     return super(_BcryptCommon, cls).hash(secret, **kwds)
+    #
+    # @classmethod
+    # def verify(cls, secret, hash):
+    #     # bypass bcrypt backend overriding this method
+    #     return super(_BcryptCommon, cls).verify(secret, hash)
+    #
+    # @classmethod
+    # def genhash(cls, secret, hash):
+    #     # bypass bcrypt backend overriding this method
+    #     return super(_BcryptCommon, cls).genhash(secret, hash)
+
+    @classmethod
+    def _check_truncate_policy(cls, secret):
+        # disable check performed by bcrypt(), since this doesn't truncate passwords.
+        pass
+
+class bcrypt_sha256(_wrapped_bcrypt):
     """This class implements a composition of BCrypt+SHA256, and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
@@ -850,8 +890,6 @@ class bcrypt_sha256(bcrypt):
         Now defaults to '2b' bcrypt algorithm.
     """
     name = "bcrypt_sha256"
-    setting_kwds = tuple(elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"])
-    truncate_size = None
 
     # this is locked at 2a/2b for now.
     ident_values = (IDENT_2A, IDENT_2B)
@@ -915,22 +953,6 @@ class bcrypt_sha256(bcrypt):
                                      self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
 
-    @classmethod
-    def hash(cls, secret):
-        # bypass bcrypt backend overriding this method
-        # XXX: would wrapping bcrypt make this easier than subclassing it?
-        return super(_BcryptCommon, cls).hash(secret)
-
-    @classmethod
-    def verify(cls, secret, hash):
-        # bypass bcrypt backend overriding this method
-        return super(_BcryptCommon, cls).verify(secret, hash)
-
-    @classmethod
-    def genhash(cls, secret, hash):
-        # bypass bcrypt backend overriding this method
-        return super(_BcryptCommon, cls).genhash(secret, hash)
-
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
         # NOTE: bcrypt doesn't fully mix entropy for bytes 55-72 of password
@@ -947,11 +969,6 @@ class bcrypt_sha256(bcrypt):
 
         # hand result off to normal bcrypt algorithm
         return super(bcrypt_sha256, self)._calc_checksum(key)
-
-    @classmethod
-    def _check_truncate_policy(cls, secret):
-        # disable check performed by bcrypt(), since this doesn't truncate passwords.
-        pass
 
     # XXX: have _needs_update() mark the $2a$ ones for upgrading?
     #      so do that after we switch to hex encoding?

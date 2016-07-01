@@ -215,6 +215,8 @@ class _bcrypt_test(HandlerCase):
                 hash = IDENT_2A + hash[3:]
                 if secret:
                     secret = repeat_string(secret, 72)
+            elif hash.startswith(IDENT_2Y) and bcrypt.__version__ == "3.0.0":
+                hash = IDENT_2B + hash[4:]
             hash = to_bytes(hash)
             try:
                 return bcrypt.hashpw(secret, hash) == hash
