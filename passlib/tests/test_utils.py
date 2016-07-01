@@ -82,7 +82,8 @@ class MiscTest(TestCase):
         self.assertEqual(d.counter, 1)
 
         prop = dummy.value
-        self.assertIs(prop.im_func, prop.__func__)
+        if not PY3:
+            self.assertIs(prop.im_func, prop.__func__)
 
     def test_getrandbytes(self):
         """test getrandbytes()"""
