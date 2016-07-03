@@ -1814,7 +1814,7 @@ class DelayHash(uh.StaticHandler):
         time.sleep(self.delay)
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        return str_to_uascii(hashlib.sha1("prefix" + secret).hexdigest())
+        return str_to_uascii(hashlib.sha1(b"prefix" + secret).hexdigest())
 
 #=============================================================================
 # LazyCryptContext

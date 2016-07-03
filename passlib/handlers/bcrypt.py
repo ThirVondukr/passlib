@@ -351,7 +351,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
             # if it doesn't have wraparound bug, make sure it *does* handle things
             # correctly -- or we're in some weird third case.
-            correct_hash = ident.encode("ascii") + "04$R1lJ2gkNaoPGdafE.H.16.1MKHPvmKwryeulRe225LKProWYwt9Oi"
+            correct_hash = ident.encode("ascii") + b"04$R1lJ2gkNaoPGdafE.H.16.1MKHPvmKwryeulRe225LKProWYwt9Oi"
             if not verify(secret, correct_hash):
                 raise RuntimeError("%s backend failed to verify %s wraparound hash" % (backend, ident))
 

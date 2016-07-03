@@ -661,6 +661,8 @@ class CryptContextTest(TestCase):
     #===================================================================
     def test_30_nonstring_hash(self):
         """test non-string hash values cause error"""
+        warnings.filterwarnings("ignore", ".*needs_update.*'scheme' keyword is deprecated.*")
+
         #
         # test hash=None or some other non-string causes TypeError
         # and that explicit-scheme code path behaves the same.
@@ -668,6 +670,7 @@ class CryptContextTest(TestCase):
         cc = CryptContext(["des_crypt"])
         for hash, kwds in [
                 (None, {}),
+                # NOTE: 'scheme' kwd is deprecated...
                 (None, {"scheme": "des_crypt"}),
                 (1, {}),
                 ((), {}),
