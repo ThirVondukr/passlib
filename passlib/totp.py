@@ -6,9 +6,11 @@ from __future__ import absolute_import, division, print_function
 from passlib.utils.compat import PY3
 # core
 import base64
+import collections
 import calendar
 import json
 import logging; log = logging.getLogger(__name__)
+import math
 import struct
 import sys
 import time as _time
@@ -32,23 +34,31 @@ except ImportError:
     _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
+from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, UsedTokenError
 from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
-                           getrandbytes, rng, xor_bytes, SequenceMixin)
-from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
-                                  irange, byte_elem_value, UnicodeIO)
+                           getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr, BASE64_CHARS)
+from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
+                                  irange, byte_elem_value, UnicodeIO, suppress_cause)
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
+from passlib.hash import pbkdf2_sha256
 # local
 __all__ = [
     # frontend classes
+    "OTPContext",
     "TOTP",
     "HOTP",
 
-    # deserialization
-    "from_uri",
-    "from_string",
+    # errors (defined in passlib.exc, but exposed here for convenience)
+    "TokenError",
+        "MalformedTokenError",
+        "InvalidTokenError",
+        "UsedTokenError",
 
-    # internal helpers
+    # internal helper classes
     "BaseOTP",
+    "HotpMatch",
+    "TotpToken",
+    "TotpMatch",
 ]
 
 #=============================================================================
@@ -149,134 +159,9 @@ def _decode_bytes(key, format):
         return base64.b16decode(key.upper())
     elif format == "base32":
         return b32decode(key)
+    # XXX: add base64 support?
     else:
         raise ValueError("unknown byte-encoding format: %r" % (format,))
-
-#-----------------------------------------------------------------------------
-# encryption helpers -- used by to_json() / from_json() methods
-#-----------------------------------------------------------------------------
-
-#: flag for detecting if encrypted totp support is present
-ENCRYPTED_TOTP = bool(_cg_ciphers)
-
-#: default salt size for encrypt_key() output
-ENCRYPT_SALT_SIZE = 12
-
-#: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
-ENCRYPT_COST = 13
-
-# NOTE: this pbkdf2+xor method was using internally during initial coding, but after considering
-#       issues with this construction (e.g. http://crypto.stackexchange.com/questions/1957/can-pbkdf2-be-used-to-create-an-xor-cipher-key-to-encrypt-random-plaintext)
-#       it was deprecated while the TOTP code was still in alpha stage.
-#       it's kept here to support decrypting existing values that used an alpha release,
-#       but once those are migrated, will probably be removed entirely in a future release.
-def _raw_cipher_v1_key(value, password, salt, cost, decrypt=False):
-    """
-    internal helper for encrypt_key() & decrypt_key() --
-    uses naive & insecure alg of ``content XOR pbkdf2-hmac-sha256(password, salt, cost)``.
-    only present to support some legacy values.
-    """
-    # NOTE: have to have a unique salt here, otherwise attacker can use known plaintext attack
-    #       to figure out 'data', and trivially decrypt other keys in the database,
-    #       (all without needing 'password')
-    assert isinstance(value, bytes)
-    password = to_bytes(password, param="password")
-    data = pbkdf2_hmac("sha256", password, salt=salt, rounds=(1<<cost), keylen=len(value))
-    return xor_bytes(value, data)
-
-def _raw_cipher_v2_key(value, password, salt, cost, decrypt=False):
-    """
-    internal helper for encrypt_key() & decrypt_key() --
-    uses PBKDF2-HMAC-SHA256 to derive key, and encrypts/decrypts value
-    using AES-256-CTR, with the salt being re-used as the IV.
-    """
-    if _cg_ciphers is None:
-        raise RuntimeError("TOTP encryption requires 'cryptography' package "
-                           "(https://cryptography.io)")
-
-    # use pbkdf2 to derive both key (32 bytes) & iv (16 bytes)
-    # NOTE: this requires 2 sha256 blocks to be calculated.
-    keyiv = pbkdf2_hmac("sha256", password, salt=salt, rounds=(1<<cost), keylen=48)
-
-    # NOTE: CTR mode was chosen over CBC because the main attack scenario here
-    #       is that the attacker has stolen the database, and is trying to decrypt a TOTP key
-    #       (the plaintext value here).  To make it hard for them, we want every password
-    #       to decrypt to a potentially valid key -- thus need to avoid any authentication
-    #       or padding oracle attacks.  While some random padding construction could be devised
-    #       to make this work for CBC mode, a stream cipher mode is just plain simpler.
-    #       OFB/CFB modes would also work here, but seeing as they have malleability
-    #       and cyclic issues (though remote and barely relevant here), CTR was chosen.
-
-    cipher = _cg_ciphers.Cipher(_cg_ciphers.algorithms.AES(keyiv[:32]),
-                                _cg_ciphers.modes.CTR(keyiv[32:]),
-                                _cg_default_backend())
-    ctx = cipher.decryptor() if decrypt else cipher.encryptor()
-    return ctx.update(value) + ctx.finalize()
-
-def encrypt_key(key, password, cost=None):
-    """
-    Helper used to encrypt TOTP keys for storage.
-
-    A version number and the cost parameter value is prepended.
-    The current version runs the password & salt through PBKDF2-HMAC-SHA256,
-    and uses AES-256-CTR to encrypt the key.
-
-    :arg key: raw key as bytes
-    :arg password: password for encryption, as bytes
-    :param cost: encryption will use ``2**cost`` pbkdf2 rounds.
-    :returns:
-        encrypted key, using format :samp:`{version}-{cost}-{salt}-{data}`.
-        ``version`` and ``cost`` are hex integers, ``salt`` and ``data`` are base32 encoded bytes.
-
-    .. note::
-
-        This function requires installation of the external
-        `cryptography <https://cryptography.io>`_ package.
-    """
-    if not key:
-        raise ValueError("no key provided")
-    if cost is None:
-        cost = ENCRYPT_COST
-    salt = getrandbytes(rng, ENCRYPT_SALT_SIZE)
-    rawenckey = _raw_cipher_v2_key(key, password, salt, cost)
-    # NOTE: * no checksum, to save space and to make things harder on attacker
-    #       * considered storing as binary string, and then encoding, but no real space savings,
-    #         and this is more transparent about it's structure.
-    #       * since this is internal, could use base64 here, but keeping w/ base32 to be
-    #         consistent w/ OTP, and that would only save ~4 bytes anyways.
-    return "2-%X-%s-%s" % (cost, b32encode(salt), b32encode(rawenckey))
-
-def decrypt_key(enckey, password):
-    """
-    decrypt key format generated by :func:`encrypt_key`.
-    """
-    def _malformed_error():
-        return ValueError("malformed encrypt_key() data")
-    enckey = to_unicode(enckey, param="enckey")
-    try:
-        ver, tail = enckey.split("-", 1)
-    except ValueError:
-        raise _malformed_error()
-    if ver == "1":
-        cipher_helper = _raw_cipher_v1_key
-    elif ver == "2":
-        cipher_helper = _raw_cipher_v2_key
-    else:
-        raise ValueError("unknown encrypt_key() version: %r" % ver)
-    try:
-        cost, salt, enckey = tail.split("-")
-    except ValueError:
-        raise _malformed_error()
-    cost = int(cost, 16)
-    try:
-        salt = b32decode(salt)
-        rawenckey = b32decode(enckey)
-    except (ValueError, TypeError) as err:
-        if str(err).lower() in ["incorrect padding", "non-base32 digit found"]:
-             raise _malformed_error()
-        raise
-
-    return cipher_helper(rawenckey, password, salt, cost, decrypt=True)
 
 #-----------------------------------------------------------------------------
 # offset / clock drift helpers
@@ -291,7 +176,7 @@ def suggest_offset(history, period=30, target=None, default=None):
     """
     Given a history of previous verification offsets,
     calculate offset that should be used for specified timestamp.
-    This is used by :meth:`verify` and :meth:`verify_next`.
+    This is used by :meth:`verify` and :meth:`consume`.
 
     :param history:
         List of 0+ ``(timestamp, counter_offset)`` entries.
@@ -317,19 +202,19 @@ def suggest_offset(history, period=30, target=None, default=None):
     # The Problem
     # -----------
     # The problem this function is trying to solve is to find an estimate for the client
-    # offset at time <target>, given a list of known (time, counter_offset) values from previously
+    # offset at time <target>, given a list of known (time, counter_skipped) values from previously
     # successful authentications.  An ideal solution would use some method (e.g. linear regression)
     # to estimate the client clock drift and skew, and correctly predict the offset
     # we need for the target timestamp.
     #
-    # However, all we know for each (time, counter_offset) pair is that the actual offset at that
+    # However, all we know for each (time, counter_skipped) pair is that the actual offset at that
     # point in time lies somewhere in the half-closed interval:
     #                   ``[counter_start - time, counter_end - time)``
     # ... which can be reduced to:
     #                   ``[min_offset, min_offset + period)``
     # .. where min_offset is:
     #                   ``counter = time // period``,
-    #                   ``min_offset = (counter + counter_offset) * period - time``
+    #                   ``min_offset = (counter + counter_skipped) * period - time``
     #
     # Further complicating things, the actual offset is not just a function of the client clock skew,
     # but also includes a random amount of transmission delay (including time taken by the user
@@ -353,8 +238,8 @@ def suggest_offset(history, period=30, target=None, default=None):
         return default
 
     # helpers
-    def calc_min_offset(time, counter_offset):
-        return counter_offset * period - divmod(int(time), period)[1]
+    def calc_min_offset(time, counter_skipped):
+        return counter_skipped * period - divmod(int(time), period)[1]
 
     # convert to list of min_offset values -- more useful for current algorithm
     half_period = period // 2
@@ -405,8 +290,430 @@ def suggest_offset(history, period=30, target=None, default=None):
 #         print "{:2d} {:2.0f} {:2.2f} {!r}".format(window, stats.mean, stats.stdev, result)
 
 #=============================================================================
+# OTP management
+#=============================================================================
+
+#: flag for detecting if encrypted totp support is present
+AES_SUPPORT = bool(_cg_ciphers)
+
+#: regex for validating secret tags
+_tag_re = re.compile("(?i)^[a-z0-9][a-z0-9_.-]*$")
+
+class OTPContext(object):
+    """
+    This class provides a front-end for creating & deserializing
+    HTOP & TOTP objects, which in turn can be used to generate & verify tokens.
+
+    An instance of this class should be created by the application,
+    which can provide default settings, as well as application-wide secrets
+    which will be used to encrypt TOTP keys for storage.
+
+    Arguments
+    ---------
+    :param secrets:
+        collection of (tag, secret) pairs.
+        this should include historical secrets that are still in use,
+        as well as the default secret to use when encrypting new keys.
+
+        can be list of (tag, secret) pairs, or a mapping of tag -> secret.
+
+        each tag should be string that starts with regex range ``[a-z0-9]``,
+        and the remaining characters must be in ``[a-z0-9_.-]``.
+
+        this can also be a json formatted string matching one of
+        the above formats, OR a multiline string with the format
+        ``"tag: value\ntag: value\n..."``.
+
+    :param secrets_path:
+        Alternately, callers can specify a separate file where the
+        application-wide secrets are stored.
+
+    :param default_tag:
+        specifies which tag should be used as the default for new keys.
+        if omitted, the tags will be sorted, and the largest tag picked.
+
+        if all tags are numeric, they will be sorted numerically;
+        otherwise they will be sorted alphabetically.
+        this permits tags to be assigned numerically,
+        or e.g. using ``YYYY-MM-DD`` dates.
+
+    :param cost:
+        Optional time-cost factor for key encryption.
+        This value corresponds to log2() of the number of PBKDF2
+        rounds used.
+
+        :param app_secret_tag:
+        :param app_secret_map:
+
+            TODO: fix docs for these two.
+
+            Optional password which will be used to encrypt the secret key.
+
+            *(The key is encrypted using PBKDF2-HMAC-SHA256, see the source
+            of the* :func:`encrypt_key` *function for details)*.
+
+            If the TOTP object had a password provided to the constructor,
+            to or :meth:`from_json`, you can set ``password=True`` here
+            to simply re-use the previously encrypted secret key.
+
+    .. warning::
+
+        The **secrets** should be kept in a secure location by your application,
+        and contain a large amount of entropy (to prevent brute-force guessing).
+        Since the encrypt/decrypt cycle is expected to be required
+        to (de-)serialize TOTP instances every time a user logs in,
+        the default work-factor (``cost``) is kept relatively low.
+
+        :func:`generate_secret` is provided as a convenience helper
+        to generate a new application secret of suitable size.
+
+    Public Methods
+    --------------
+    .. automethod:: new
+    .. automethod:: from_uri
+    .. automethod:: from_json
+    .. autoattribute: can_encrypt
+
+    ..
+        Semi-Private Methods
+        --------------------
+        The following methods are used internally by the :class:`TOTP` and :class:`HOTP`
+        classes in order to encrypt & decrypt keys using the provided application
+        secrets:
+
+        .. automethod:: encrypt_key
+        .. automethod:: decrypt_key
+    """
+    #========================================================================
+    # instance attrs
+    #========================================================================
+
+    #: default salt size for encrypt_key() output
+    salt_size = 12
+
+    #: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
+    cost = 13
+
+    #: map of secret tag -> secret bytes
+    _secrets = None
+
+    #: tag for default secret
+    _default_tag = None
+
+    #: bytes for default secret
+    _default_secret = None
+
+    #: whether this context can encrypt keys (AES support must be present
+    #: AND secrets must be provided)
+    can_encrypt = AES_SUPPORT
+
+    #========================================================================
+    # init
+    #========================================================================
+    def __init__(self, secrets=None, default_tag=None, cost=None,
+                 secrets_path=None):
+
+        # TODO: allow a lot more things to be customized from here,
+        #       e.g. defaulting to TOTP vs HOTP, as well as settings
+        #       for the respective classes.
+
+        #
+        # init cost
+        #
+        if cost is not None:
+            if isinstance(cost, native_string_types):
+                cost = int(cost)
+            assert cost >= 0
+            self.cost = cost
+
+        #
+        # init secrets map
+        #
+
+        # load secrets from file (if needed)
+        if secrets_path is not None:
+            if secrets is not None:
+                raise TypeError("'secrets' and 'secrets_path' are mutually exclusive")
+            secrets = open(secrets_path, "rt").read()
+
+        # parse & store secrets
+        secrets = self._secrets = self._parse_secrets(secrets)
+        if not secrets:
+            self.can_encrypt = False
+
+        #
+        # init default tag/secret
+        #
+        if secrets:
+            if default_tag is None:
+                if all(tag.isdigit() for tag in secrets):
+                    default_tag = max(secrets, key=int)
+                else:
+                    default_tag = max(secrets)
+            self._default_secret = secrets[default_tag]
+            self._default_tag = default_tag
+
+    def _parse_secrets(self, source):
+        """
+        parse 'secrets' parameter
+
+        :returns:
+            Dict[tag:str, secret:bytes]
+        """
+        # parse string formats
+        # to make this easy to pass in configuration from a separate file,
+        # 'secrets' can be string using two formats -- json & "tag:value\n"
+        check_type = True
+        if isinstance(source, native_string_types):
+            if source.lstrip().startswith(("[", "{")):
+                # json list / dict
+                source = json.loads(source)
+            elif "\n" in source and ":" in source:
+                # multiline string containing series of "tag: value\n" rows;
+                # empty and "#\n" rows are ignored
+                def iter_pairs(source):
+                    for line in source.splitlines():
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            tag, secret = line.split(":", 1)
+                            yield tag.strip(), secret.strip()
+                source = iter_pairs(source)
+                check_type = False
+            else:
+                raise ValueError("unrecognized secrets string format")
+
+        # ensure we have iterable of (tag, value) pairs
+        # XXX: could support lists/iterable, but not yet needed...
+        # if isinstance(source, list) or isinstance(source, collections.Iterator):
+        #     pass
+        if source is None:
+            return {}
+        elif isinstance(source, dict):
+            source = source.items()
+        elif check_type:
+            raise TypeError("'secrets' must be mapping, or list of items")
+
+        # parse into final dict, normalizing contents
+        return dict(self._parse_secret_pair(tag, value)
+                    for tag, value in source)
+
+    def _parse_secret_pair(self, tag, value):
+        if isinstance(tag, native_string_types):
+            pass
+        elif isinstance(tag, int):
+            tag = str(tag)
+        else:
+            raise TypeError("tag must be unicode/string: %r" % (tag,))
+        if not _tag_re.match(tag):
+            raise ValueError("tag contains invalid characters: %r" % (tag,))
+        if not isinstance(value, bytes):
+            value = to_bytes(value, param="secret %r" % (tag,))
+        if not value:
+            raise ValueError("tag contains empty secret: %r" % (tag,))
+        return tag, value
+
+    #========================================================================
+    # frontend wrappers
+    #========================================================================
+    def new(self, type="totp", **kwds):
+        """
+        Create new OTP instance from scratch,
+        generating a new key.
+
+        :param type:
+            "totp" (the default) or "hotp"
+
+        :param \*\*kwds:
+            All remaining keywords passed to respective
+            :class:`TOTP` and :class:`HOTP` constructors.
+
+        :return:
+            :class:`!TOTP` or :class:`!HOTP` instance.
+        """
+        cls = BaseOTP._type_map[type]
+        return cls(new=True, context=self, **kwds)
+
+    def from_uri(self, uri):
+        """
+        Create OTP instance from configuration uri.
+
+        This is just a wrapper for :meth:`BaseOTP.from_uri`
+        which returns an OTP object tied to this context
+        (and will thus use any application secrets to encrypt the key for storage).
+
+        :param uri:
+            URI to parse.
+            This URI may come externally (e.g. from a scanned qrcode),
+            or from the :meth:`BaseOTP.to_uri` method.
+
+        :return:
+            :class:`TOTP` or :class:`HOTP` instance.
+        """
+        return BaseOTP.from_uri(uri, context=self)
+
+    def from_json(self, source):
+        """
+        Create OTP instance from serialized json state.
+
+        This is just a wrapper for :class:`BaseOTP.from_json`,
+        and returns an OTP object tied to this context.
+
+        :param source:
+            json string as returned by :class:`BaseOTP.to_json`.
+
+        :return:
+            :class:`TOTP` or :class:`HOTP` instance.
+        """
+        return BaseOTP.from_json(source, context=self)
+
+    #========================================================================
+    # encrypted key helpers -- used internally by BaseOTP
+    #========================================================================
+
+    @staticmethod
+    def _cipher_xor_key(value, secret, salt, cost, decrypt=False):
+        """
+        Internal helper that handles lowlevel encryption/decryption.
+
+        This uses PBKDF2-HMAC-SHA256 to generate <value> bytes of data,
+        which are XORed against <value> to encrypt/decrypt it.
+
+        This scheme was originally present to act as a fallback when AES
+        wasn't available, but was disabled before the 1.7 release due to
+        concerns with the construction (e.g. http://crypto.stackexchange.com/questions/1957/can-pbkdf2-be-used-to-create-an-xor-cipher-key-to-encrypt-random-plaintext),
+        and a wish to strongly encourage AES use.
+
+        It's only present for backward compatibility with some beta deployments.
+        """
+        mask = pbkdf2_hmac("sha256", secret, salt=salt, rounds=(1 << cost),
+                           keylen=len(value))
+        return xor_bytes(value, mask)
+
+    @staticmethod
+    def _cipher_aes_key(value, secret, salt, cost, decrypt=False):
+        """
+        Internal helper that handles lowlevel encryption/decryption.
+
+        Algorithm details:
+
+        This function uses PBKDF2-HMAC-SHA256 to generate a 32-byte AES key
+        a 16-byte IV from the application secret & random salt.
+        It then uses AES-256-CTR to encrypt/decrypt the TOTP key.
+
+        CTR mode was chosen over CBC because the main attack scenario here
+        is that the attacker has stolen the database, and is trying to decrypt a TOTP key
+        (the plaintext value here).  To make it hard for them, we want every password
+        to decrypt to a potentially valid key -- thus need to avoid any authentication
+        or padding oracle attacks.  While some random padding construction could be devised
+        to make this work for CBC mode, a stream cipher mode is just plain simpler.
+        OFB/CFB modes would also work here, but seeing as they have malleability
+        and cyclic issues (though remote and barely relevant here),
+        CTR was picked as the best overall choice.
+        """
+        # make sure backend AES support is available
+        if _cg_ciphers is None:
+            raise RuntimeError("TOTP encryption requires 'cryptography' package "
+                               "(https://cryptography.io)")
+
+        # use pbkdf2 to derive both key (32 bytes) & iv (16 bytes)
+        # NOTE: this requires 2 sha256 blocks to be calculated.
+        keyiv = pbkdf2_hmac("sha256", secret, salt=salt, rounds=(1 << cost), keylen=48)
+
+        # use AES-256-CTR to encrypt/decrypt input value
+        cipher = _cg_ciphers.Cipher(_cg_ciphers.algorithms.AES(keyiv[:32]),
+                                    _cg_ciphers.modes.CTR(keyiv[32:]),
+                                    _cg_default_backend())
+        ctx = cipher.decryptor() if decrypt else cipher.encryptor()
+        return ctx.update(value) + ctx.finalize()
+
+    def encrypt_key(self, key):
+        """
+        Helper used to encrypt TOTP keys for storage.
+
+        :param key:
+            TOTP key to encrypt, as raw bytes.
+
+        :returns:
+            dict containing encrypted TOTP key & configuration parameters.
+            this format should be treated as opaque, and potentially subject
+            to change, and is designed to be easily serialized/deserialized.
+
+        .. note::
+
+            This function requires installation of the external
+            `cryptography <https://cryptography.io>`_ package.
+        """
+        if not key:
+            raise ValueError("no key provided")
+        salt = getrandbytes(rng, self.salt_size)
+        cost = self.cost
+        tag = self._default_tag
+        if not tag:
+            raise TypeError("no application secrets configured, can't encrypt OTP key")
+        ckey = self._cipher_aes_key(key, self._default_secret, salt, cost)
+        return dict(v=1, c=cost, t=tag, s=b32encode(salt), k=b32encode(ckey))
+
+    def _resolve_app_secret(self, tag):
+        secrets = self._secrets
+        if not secrets:
+            raise TypeError("no application secrets configured, can't decrypt OTP key")
+        try:
+            return secrets[tag]
+        except KeyError:
+            raise suppress_cause(KeyError("unknown secret tag: %r" % (tag,)))
+
+    def decrypt_key(self, enckey):
+        """
+        Helper used to decrypt TOTP keys from storage format.
+        Consults configured secrets to decrypt key.
+
+        :param source:
+            source object, as returned by :meth:`encrypt_key`.
+
+        :returns:
+            ``(key, needs_recrypt)`` --
+            decrypted totp key as raw bytes,
+            and flag indicating whether cost/tag is too old,
+            and key needs reencrypting before storing.
+
+        .. note::
+
+            This function requires installation of the external
+            `cryptography <https://cryptography.io>`_ package.
+        """
+        if not isinstance(enckey, dict):
+            raise TypeError("'enckey' must be dictionary")
+        version = enckey.get("v", None)
+        needs_recrypt = False
+        if version == 1:
+            _cipher_key = self._cipher_aes_key
+        elif version == 0:
+            _cipher_key = self._cipher_xor_key
+            needs_recrypt = AES_SUPPORT
+        else:
+            raise ValueError("missing / unrecognized 'enckey' version: %r" % (version,))
+        tag = enckey['t']
+        cost = enckey['c']
+        key = _cipher_key(
+            value=b32decode(enckey['k']),
+            secret=self._resolve_app_secret(tag),
+            salt=b32decode(enckey['s']),
+            cost=cost,
+        )
+        if cost != self.cost or tag != self._default_tag:
+            needs_recrypt = True
+        return key, needs_recrypt
+
+    #=============================================================================
+    # eoc
+    #=============================================================================
+
+#=============================================================================
 # common code shared by TOTP & HOTP
 #=============================================================================
+
+AUTO = "auto"
+
 class BaseOTP(object):
     """
     Base class for generating and verifying OTP codes.
@@ -480,13 +787,18 @@ class BaseOTP(object):
         Name of hash algorithm to use. Defaults to ``"sha1"``.
         ``"sha256"`` and ``"sha512"`` are also accepted, per :rfc:`6238`.
 
+    :param OTPContext context:
+        Optional :class:`OTPContext` instance to bind this object to.
+        If set, and application secrets are present, they will be used to encrypt the OTP key
+        when :meth:`to_json` is invoked.
+
     .. _baseotp-configuration-attributes:
 
     Configuration Attributes
     ========================
     All the OTP objects offer the following attributes,
     which correspond to the constructor options (above).
-    Most of this information will be serialized by :meth:`to_uri` and :meth:`to_string`:
+    Most of this information will be serialized by :meth:`to_uri` and :meth:`to_json`:
 
     .. autoattribute:: key
     .. autoattribute:: hex_key
@@ -517,14 +829,14 @@ class BaseOTP(object):
     they will need to be serialized to / from external storage, which
     can be performed with the following methods:
 
-    .. automethod:: to_string
-    .. automethod:: from_string
+    .. automethod:: to_json
+    .. automethod:: from_json
 
-    .. attribute:: dirty
+    .. attribute:: changed
 
-        boolean flag set by all BaseOTP subclass methods which modify the internal state.
+        Boolean flag set by all BaseOTP subclass methods which modify the internal state.
         if true, then something has changed in the object since it was created / loaded
-        via :meth:`from_string`, and needs re-persisting via :meth:`to_string`.
+        via :meth:`from_json`, and needs re-persisting via :meth:`to_json`.
         After which, your application may clear the flag, or discard the object, as appropriate.
 
     ..
@@ -555,11 +867,14 @@ class BaseOTP(object):
     # instance attrs
     #=============================================================================
 
+    #: OTPContext object used to handle encryption/decryption
+    context = None
+
     #: secret key as raw :class:`!bytes`
     key = None
 
-    #: copy of original encrypted key,
-    #: used by to_string() to re-serialize w/ original password.
+    #: copy of original encrypted key, so .to_json() doesn't have
+    #: to re-encrypt the key.
     _enckey = None
 
     #: number of digits in the generated tokens.
@@ -579,21 +894,23 @@ class BaseOTP(object):
     #---------------------------------------------------------------------------
 
     #: flag set if internal state is modified
-    dirty = False
+    changed = False
 
     #=============================================================================
     # init
     #=============================================================================
+
     def __init__(self, key=None, format="base32",
                  # keyword only...
                  new=False, digits=None, alg=None, size=None,
-                 label=None, issuer=None, dirty=False, password=None,
-                 rng=rng, # mainly for unittesting
+                 label=None, issuer=None, context=None, changed=False,
                  **kwds):
         if type(self) is BaseOTP:
-            raise RuntimeError("BaseOTP() shouldn't be invoked directly -- use TOTP() or HOTP() instead")
+            raise RuntimeError("BaseOTP() shouldn't be invoked directly -- "
+                               "use TOTP() or HOTP() instead")
         super(BaseOTP, self).__init__(**kwds)
-        self.dirty = dirty
+        self.changed = changed
+        self.context = context
 
         # validate & normalize alg
         info = lookup_hash(alg or self.alg)
@@ -605,30 +922,34 @@ class BaseOTP(object):
         # parse or generate new key
         if new:
             # generate new key
-            if key:
-                raise TypeError("'key' and 'new' are mutually exclusive")
+            if key :
+                raise TypeError("'key' and 'new=True' are mutually exclusive")
             if size is None:
                 # default to digest size, per RFC 6238 Section 5.1
                 size = digest_size
             elif size > digest_size:
-                # not forbidden by spec, but would just be wasted bytes. maybe just warn about this?
-                raise ValueError("'size' should be less than digest size (%d)" % digest_size)
+                # not forbidden by spec, but would just be wasted bytes.
+                # maybe just warn about this?
+                raise ValueError("'size' should be less than digest size "
+                                 "(%d)" % digest_size)
             self.key = getrandbytes(rng, size)
         elif not key:
             raise TypeError("must specify either an existing 'key', or 'new=True'")
         elif format == "encrypted":
-            # use existing-but-encrypted key, and store copy for to_string()
-            if not password:
-                raise ValueError("cannot load encrypted key without password")
-            self._enckey = key
-            self.key = decrypt_key(key, password)
-        else:
-            # use existing plain key
+            # special format signalling we need to pass this through
+            # context.decrypt_key()
+            if not context:
+                raise TypeError("must provide an OTPContext to decrypt TOTP keys")
+            self.key, needs_recrypt = context.decrypt_key(key)
+            if needs_recrypt:
+                # mark as changed so it gets re-encrypted & written to db
+                self.changed = True
+            else:
+                # preserve this so it can be re-used by to_json()
+                self._enckey = key
+        elif key:
+            # use existing key, encoded using specified <format>
             self.key = _decode_bytes(key, format)
-        if password and not self._enckey:
-            # pre-encrypt copy for to_string().
-            # alternately, we could keep password hanging around instead.
-            self._enckey = encrypt_key(self.key, password)
         if len(self.key) < self._min_key_size:
             # only making this fatal for new=True,
             # so that existing (but ridiculously small) keys can still be used.
@@ -785,10 +1106,9 @@ class BaseOTP(object):
             token = to_unicode(token, param="token")
             token = _clean_re.sub(u(""), token)
             if not token.isdigit():
-                raise ValueError("Invalid token: must contain only the digits 0-9")
+                raise MalformedTokenError("Token must contain only the digits 0-9")
         if len(token) != digits:
-            raise ValueError("Invalid token: expected %d digits, got %d" %
-                             (digits, len(token)))
+            raise MalformedTokenError("Token must have exactly %d digits" % digits)
         return token
 
     def _find_match(self, token, start, end, expected=None):
@@ -809,18 +1129,21 @@ class BaseOTP(object):
             optional expected value where search should start,
             to help speed up searches.
 
+        :raises ~passlib.exc.TokenError:
+
+            If the token is malformed, or fails to verify.
+
         :returns:
-            ``(valid, match)`` where ``match`` is non-negative counter value that matched
-            (or ``0`` if no match).
+            counter value that matched
         """
         token = self.normalize_token(token)
         if start < 0:
             start = 0
         if end <= start:
-            return False, 0
+            raise InvalidTokenError()
         generate = self._generate
         if not (expected is None or expected < start) and consteq(token, generate(expected)):
-            return True, expected
+            return expected
         # XXX: if (end - start) is very large (e.g. for resync purposes),
         #      could start with expected value, and work outward from there,
         #      alternately checking before & after it until match is found.
@@ -829,15 +1152,15 @@ class BaseOTP(object):
         counter = start
         while counter < end:
             if consteq(token, generate(counter)):
-                return True, counter
+                return counter
             counter += 1
-        return False, 0
+        raise InvalidTokenError()
 
     #=============================================================================
     # uri parsing
     #=============================================================================
     @classmethod
-    def from_uri(cls, uri):
+    def from_uri(cls, uri, context=None):
         """
         create an OTP instance from a URI (such as returned by :meth:`to_uri`).
 
@@ -858,10 +1181,10 @@ class BaseOTP(object):
             subcls = cls._type_map[result.netloc]
         except KeyError:
             raise cls._uri_error("unknown OTP type")
-        return subcls._from_parsed_uri(result)
+        return subcls._from_parsed_uri(result, context)
 
     @classmethod
-    def _from_parsed_uri(cls, result):
+    def _from_parsed_uri(cls, result, context):
         """
         internal from_uri() helper --
         hands off the main work to this function, once the appropriate subclass
@@ -904,7 +1227,7 @@ class BaseOTP(object):
                 raise cls._uri_error("conflicting issuer identifiers")
 
         # convert query params to constructor kwds, and call constructor
-        return cls(**cls._adapt_uri_params(**params))
+        return cls(context=context, **cls._adapt_uri_params(**params))
 
     @classmethod
     def _adapt_uri_params(cls, label=None, secret=None, issuer=None,
@@ -1036,64 +1359,69 @@ class BaseOTP(object):
     #=============================================================================
     # json parsing
     #=============================================================================
+
     @classmethod
-    def from_string(cls, data, password=None):
+    def from_json(cls, source, context=None):
         """
         Load / create an OTP object from a serialized json string
-        (as generated by :meth:`to_string`).
+        (as generated by :meth:`to_json`).
 
-        :arg data:
-            serialized output from :meth:`to_string`, as unicode or ascii bytes.
+        :arg json:
+            serialized output from :meth:`to_json`, as unicode or ascii bytes.
 
-        :param password:
-            if the key was encrypted with a password, this must be provided.
-            otherwise this option is ignored.
+            as convience, this can also be an otpauth uri,
+            or a dict (as returned by :meth:`to_dict`).
+
+        :param context:
+            Optional :class:`OTPContext` instance,
+            required in order to encrypt/decrypt keys.
 
         :returns:
             a :class:`TOTP` or :class:`HOTP` instance, as appropriate.
 
         :raises ValueError:
-            If the key has been encrypted with a password, but none was provided;
+            If the key has been encrypted, but the application secret isn't available;
             or if the string cannot be recognized, parsed, or decoded.
         """
-        if data.startswith("otpauth://"):
-            return cls.from_uri(data)
-        kwds = json.loads(data)
-        if not (isinstance(kwds, dict) and "type" in kwds):
+        if not isinstance(source, dict):
+            source = to_unicode(source, param="json source")
+            if source.startswith("otpauth://"):
+                # as convenience, support passing in config URIs
+                return cls.from_uri(source, context=context)
+            else:
+                source = json.loads(source)
+        if not (isinstance(source, dict) and "type" in source):
             raise cls._json_error("unrecognized json data")
         try:
-            subcls = cls._type_map[kwds.pop('type')]
+            subcls = cls._type_map[source.pop('type')]
         except KeyError:
             raise cls._json_error("unknown OTP type")
+        return subcls(context=context, **subcls._adapt_json_dict(**source))
+
+    @classmethod
+    def _adapt_json_dict(cls, **kwds):
+        """
+        Internal helper for .from_json() --
+        Adapts serialized json dict into constructor keywords.
+        """
+        # default json format is just serialization of constructor kwds.
+        # XXX: just pass all this through to _from_json / constructor?
+        # go ahead and mark as changed (needs re-saving) if the version is too old
         ver = kwds.pop("v", None)
         if not ver or ver < cls.min_json_version or ver > cls.json_version:
             raise cls._json_error("missing/unsupported version (%r)" % (ver,))
-        # go ahead and mark as dirty (needs re-saving) if the version is too old
-        kwds['dirty'] = (ver != cls.json_version)
-        if password:
-            # send password to constructor even if not encrypting,
-            # so _enckey will get populated for to_string().
-            kwds['password'] = password
+        elif ver != cls.json_version:
+            # mark older version as needing re-serializing
+            kwds['changed'] = True
         if 'enckey' in kwds:
             # handing encrypted key off to constructor, which handles the
             # decryption. this lets it get ahold of (and store) the original
-            # encrypted key, so if to_string() is called again, the encrypted
+            # encrypted key, so if to_json() is called again, the encrypted
             # key can be re-used.
-            assert 'key' not in kwds # shouldn't be present w/ enckey
-            assert 'format' not in kwds # shouldn't be present w/ enckey
-            kwds.update(
-                key = kwds.pop("enckey"),
-                format = "encrypted",
-            )
-        elif 'key' in kwds:
-            assert 'format' not in kwds # shouldn't be present, base32 assumed
-        else:
-            raise cls._json_error("missing enckey / key")
-        return subcls(**subcls._from_json(ver, **kwds))
-
-    @classmethod
-    def _from_json(cls, version, **kwds):
-        # default json format is just serialization of constructor kwds.
+            assert 'key' not in kwds  # shouldn't be present w/ enckey
+            kwds.update(key=kwds.pop("enckey"), format="encrypted")
+        elif 'key' not in kwds:
+            raise cls._json_error("missing 'enckey' / 'key'")
         return kwds
 
     @classmethod
@@ -1105,66 +1433,54 @@ class BaseOTP(object):
     #=============================================================================
     # json rendering
     #=============================================================================
-    def to_string(self, password=None, cost=None):
+
+    def to_json(self, encrypt=AUTO):
         """
-        serialize configuration & internal state to a json string,
-        mainly for persisting client-specific state in a database.
+        Serialize configuration & internal state to a json string,
+        mainly useful for persisting client-specific state in a database.
 
-        :param password:
-            Optional password which will be used to encrypt the secret key.
-
-            *(The key is encrypted using PBKDF2-HMAC-SHA256, see the source
-            of the* :func:`encrypt_key` *function for details)*.
-
-            If the TOTP object had a password provided to the constructor,
-            to or :meth:`from_string`, you can set ``password=True`` here
-            to simply re-use the previously encrypted secret key.
-
-        :param cost:
-            Optional time-cost factor for key encryption.
-            This value corresponds to log2() of the number of PBKDF2
-            rounds used, which currently defaults to 13.
+        :param encrypt:
+            Whether to output should be encrypted.
+            * ``"auto"`` (the default) -- uses encrypted key if application
+              secret is available, otherwise uses raw key.
+            * True -- uses encrypted key, or raises TypeError
+              if application secret wasn't provided to OTP constructor.
+            * False -- uses raw key.
 
         :returns:
-            string containing the full state of the OTP object,
-            serialized to an internal format (roughly, a JSON serialization
-            of the constructor options).
-
-        .. warning::
-
-            The **password** should be kept in a secure location by your application,
-            and contain a large amount of entropy (to prevent brute-force guessing).
-            Since the encrypt/decrypt cycle is expected to be required
-            to (de-)serialize TOTP instances every time a user logs in,
-            the default work-factor (``cost``) is kept relatively low.
+            json string containing serializes configuration & state.
         """
-        kwds = self._to_json()
-        assert 'v' in kwds
-        if password:
-            # XXX: support a password_id so they can be migrated?
-            #      e.g. make this work with peppers in CryptContext?
-            if password is True:
-                if not self._enckey:
-                    raise RuntimeError("no password provided to constructor or to_string()")
-                kwds['enckey'] = self._enckey
-            else:
-                kwds['enckey'] = encrypt_key(self.key, password, cost=cost)
-        else:
-            kwds['key'] = self.base32_key
-        return json.dumps(kwds, sort_keys=True, separators=(",",":"))
+        state = self.to_dict(encrypt=encrypt)
+        return json.dumps(state, sort_keys=True, separators=(",", ":"))
 
-    def _to_json(self):
-        # NOTE: 'key' added by to_json() wrapper
-        kwds = dict(type=self.type, v=self.json_version)
+    def to_dict(self, encrypt=AUTO):
+        """
+        Serialize configuration & internal state to a dict,
+        mainly useful for persisting client-specific state in a database.
+
+        :returns:
+            dictionary, containing basic (json serializable) datatypes.
+        """
+        state = dict(type=self.type, v=self.json_version)
         if self.alg != "sha1":
-            kwds['alg'] = self.alg
+            state['alg'] = self.alg
         if self.digits != 6:
-            kwds['digits'] = self.digits
+            state['digits'] = self.digits
         if self.label:
-            kwds['label'] = self.label
+            state['label'] = self.label
         if self.issuer:
-            kwds['issuer'] = self.issuer
-        return kwds
+            state['issuer'] = self.issuer
+        context = self.context
+        if encrypt and (encrypt != AUTO or (context and context.can_encrypt)):
+            enckey = self._enckey
+            if enckey is None:
+                if not context:
+                    raise TypeError("must provide an OTPContext to decrypt TOTP keys")
+                enckey = self._enckey = context.encrypt_key(self.key)
+            state['enckey'] = enckey
+        else:
+            state['key'] = self.base32_key
+        return state
 
     #=============================================================================
     # eoc
@@ -1175,38 +1491,38 @@ class BaseOTP(object):
 #=============================================================================
 class HotpMatch(SequenceMixin):
     """
-    Object returned by :meth:`HOTP.verify`.
-    It can be treated as a tuple of ``(valid, counter)``,
+    Object returned by :meth:`HOTP.verify` on a successful match.
+
+    It can be treated as a tuple of ``(next_counter, counter_skipped)``,
     or accessed via the following attributes:
 
-    .. autoattribute:: valid
-    .. autoattribute:: counter
-    .. autoattribute:: counter_offset
+    .. autoattribute:: next_counter
+    .. autoattribute:: counter_skipped
+    .. autoattribute:: previous_counter
+
+    It will always have a ``True`` boolean value.
     """
-    #: bool flag indicating whether token matched
-    #: (also reflected as object's boolean value)
-    valid = False
 
-    #: new HOTP counter value (1 + matched counter value);
-    #: or previous counter value if there was no match.
-    counter = 0
+    #: new HOTP counter value (1 + matched counter value)
+    next_counter = 0
 
-    #: how many counter values were skipped between expected counter value to matched counter value
-    #: (0 if there was no match).
-    counter_offset = 0
+    #: previous HOTP counter value
+    previous_counter = 0
 
-    def __init__(self, valid, counter, counter_offset):
-        self.valid = valid
-        self.counter = counter
-        self.counter_offset = counter_offset
+    def __init__(self, next_counter, previous_counter):
+        self.next_counter = next_counter
+        self.previous_counter = previous_counter
+
+    @memoized_property
+    def counter_skipped(self):
+        """
+        how many steps were skipped between expected
+        and actual matched counter values
+        """
+        return self.next_counter - 1 - self.previous_counter
 
     def _as_tuple(self):
-        return (self.valid, self.counter)
-
-    def __nonzero__(self):
-        return self.valid
-
-    __bool__ = __nonzero__ # py2 compat
+        return self.next_counter, self.counter_skipped
 
 class HOTP(BaseOTP):
     """Helper for generating and verifying HOTP codes.
@@ -1222,18 +1538,18 @@ class HOTP(BaseOTP):
     this class accepts the following extra parameters:
 
     :param int counter:
-        The initial counter value to use when generating new tokens via :meth:`generate_next()`,
-        or when verifying them via :meth:`verify_next()`.
+        The initial counter value to use when generating new tokens via :meth:`advance()`,
+        or when verifying them via :meth:`consume()`.
 
     Client-Side Token Generation
     ============================
     .. automethod:: generate
-    .. automethod:: generate_next
+    .. automethod:: advance
 
     Server-Side Token Verification
     ==============================
     .. automethod:: verify
-    .. automethod:: verify_next
+    .. automethod:: consume
 
     .. todo::
 
@@ -1253,13 +1569,13 @@ class HOTP(BaseOTP):
     Internal State Attributes
     =========================
     The following attributes are used to track the internal state of this generator,
-    and will be included in the output of :meth:`to_string`:
+    and will be included in the output of :meth:`to_json`:
 
     .. autoattribute:: counter
 
-    .. attribute:: dirty
+    .. attribute:: changed
 
-        boolean flag set by :meth:`generate_next` and :meth:`verify_next`
+        Boolean flag set by :meth:`advance` and :meth:`consume`
         to indicate that the object's internal state has been modified since creation.
 
     (Note: All internal state attribute can be initialized via constructor options,
@@ -1339,12 +1655,12 @@ class HOTP(BaseOTP):
         .. seealso::
             This is a lowlevel method, which doesn't read or modify any state-dependant values
             (such as the current :attr:`counter` value).
-            For a version which does, see :meth:`generate_next`.
+            For a version which does, see :meth:`advance`.
         """
         counter = self._normalize_counter(counter)
         return self._generate(counter)
 
-    def generate_next(self):
+    def advance(self):
         """
         High-level method to generate a new HOTP token using next counter value.
 
@@ -1359,15 +1675,15 @@ class HOTP(BaseOTP):
             >>> h = HOTP('s3jdvb7qd2r7jpxx', counter=1000)
             >>> h.counter
             1000
-            >>> h.generate_next()
+            >>> h.advance()
             '897212'
             >>> h.counter
             1001
         """
         counter = self.counter
         token = self.generate(counter)
-        self.counter = counter + 1 # NOTE: not incrementing counter until generate succeeds
-        self.dirty = True
+        self.counter = counter + 1
+        self.changed = True
         return token
 
     def verify(self, token, counter, window=1):
@@ -1390,38 +1706,41 @@ class HOTP(BaseOTP):
               This is a forward-looking window only, as searching backwards
               would allow token-reuse, defeating the whole purpose of HOTP.
 
+        :raises ~passlib.exc.TokenError:
+
+             If the token is malformed, or fails to verify.
+
         :returns:
 
-           ``(ok, counter)`` tuple (actually an :class:`HotpMatch` instance):
+             Returns an :class:`HotpMatch` instance on a successful match.
+             The return value can be treated like a ``(next_counter, counter_skipped)``
+             tuple.
 
-           * ``ok`` -- boolean indicating if token validated
-           * ``counter`` -- if token validated, this is the new counter value (matched token value + 1);
-             or the previous counter value if token didn't validate.
+             Raises error if token was malformed / did not match.
 
         Usage example::
 
             >>> h = HOTP('s3jdvb7qd2r7jpxx')
-            >>> h.verify('897212', 1000) # token matches counter
-            (True, 1000)
-            >>> h.verify('897212', 999) # token w/in window=1
-            (True, 1000)
-            >>> h.verify('897212', 998) # token outside window
-            (False, 998)
+            >>> h.verify('763224', 1000) # token matches counter
+            (1001, 0)
+            >>> h.verify('763224', 999) # token w/in window=1
+            (1001, 1)
+            >>> h.verify('763224', 998) # token outside window
+            Traceback:
+                ...
+            InvalidTokenError: Token did not match
 
         .. seealso::
             This is a lowlevel method, which doesn't read or modify any state-dependant values
             (such as the next :attr:`counter` value).
-            For a version which does, see :meth:`verify_next`.
+            For a version which does, see :meth:`consume`.
         """
         counter = self._normalize_counter(counter)
         self._check_serial(window, "window")
-        valid, match = self._find_match(token, counter, counter + window + 1)
-        if valid:
-           return HotpMatch(True, match + 1, match - counter)
-        else:
-           return HotpMatch(False, counter, 0)
+        match = self._find_match(token, counter, counter + window + 1)
+        return HotpMatch(match + 1, counter)
 
-    def verify_next(self, token, window=1):
+    def consume(self, token, window=1):
         """
         High-level method to validate HOTP token against current counter value.
 
@@ -1441,28 +1760,37 @@ class HOTP(BaseOTP):
               This is a forward-looking window only, as using a backwards window
               would allow token-reuse, defeating the whole purpose of HOTP.
 
+        :raises ~passlib.exc.TokenError:
+
+            If the token is malformed, or fails to verify.
+
         :returns:
-           boolean indicating if token validated
+            True, indicating token validated.
+            (will always raise error on invalid/malformed tokens).
+
+            May set the :attr:`changed` attribute if the internal state was updated,
+            and needs to be re-persisted by the application (see :meth:`to_json`).
 
         Usage example::
 
             >>> h = HOTP('s3jdvb7qd2r7jpxx', counter=998)
-            >>> h.verify_next('897212') # token outside window
-            False
+            >>> h.consume('763224') # token outside window
+            Traceback:
+                ...
+            InvalidTokenError: Token did not match
             >>> h.counter # counter not incremented
             998
-            >>> h.verify_next('484807') # token matches counter 999, w/in window=1
+            >>> h.consume('484807') # token matches counter 999, w/in window=1
             True
             >>> h.counter # counter has been incremented, now expecting counter=1000 next
             1000
         """
         counter = self.counter
         result = self.verify(token, counter, window=window)
-        if result.valid:
-           self.counter = result.counter
-           self.dirty = True
+        self.counter = result.next_counter
+        self.changed = True
         # XXX: return result instead? would only provide .skipped as extra data.
-        return result.valid
+        return True
 
     # TODO: resync(self, tokens, counter, window=100)
     #       helper to re-synchronize using series of sequential tokens,
@@ -1499,13 +1827,13 @@ class HOTP(BaseOTP):
     #=============================================================================
     # json rendering
     #=============================================================================
-    def _to_json(self):
-        kwds = super(HOTP, self)._to_json()
+    def to_dict(self, **kwds):
+        state = super(HOTP, self).to_dict(**kwds)
         if self.start:
-            kwds['start'] = self.start
+            state['start'] = self.start
         if self.counter:
-            kwds['counter'] = self.counter
-        return kwds
+            state['counter'] = self.counter
+        return state
 
     #=============================================================================
     # eoc
@@ -1519,7 +1847,7 @@ BaseOTP._type_map[HOTP.type] = HOTP
 #=============================================================================
 class TotpToken(SequenceMixin):
     """
-    Object returned by :meth:`TOTP.generate` and :meth:`TOTP.generate_next`.
+    Object returned by :meth:`TOTP.generate` and :meth:`TOTP.advance`.
     It can be treated as a sequence of ``(token, expire_time)``,
     or accessed via the following attributes:
 
@@ -1548,7 +1876,7 @@ class TotpToken(SequenceMixin):
         self.counter = counter
 
     def _as_tuple(self):
-        return (self.token, self.expire_time)
+        return self.token, self.expire_time
 
     # @memoized_property
     # def start_time(self):
@@ -1572,77 +1900,67 @@ class TotpToken(SequenceMixin):
 
 class TotpMatch(SequenceMixin):
     """
-    Object returned by :meth:`TOTP.verify`.
-    It can be treated as a sequence of ``(valid, offset)``,
+    Object returned by :meth:`TOTP.verify` on a successful match.
+
+    It can be treated as a sequence of ``(counter, next_offset)``,
     or accessed via the following attributes:
 
-    .. autoattribute:: valid
-    .. autoattribute:: offset
+    .. autoattribute:: counter
+    .. autoattribute:: next_offset
 
     ..
         undocumented attributes:
 
         .. autoattribute:: time
-        .. autoattribute:: counter
-        .. autoattribute:: counter_offset
-        .. autoattribute:: _previous_offset
-        .. autoattribute:: _period
-    """
-    #: bool flag indicating whether token matched
-    #: (also reflected as object's overall boolean value)
-    valid = False
+        .. autoattribute:: counter_skipped
+        .. autoattribute:: previous_offset
 
-    #: TOTP counter value which token matched against;
-    #: or ``0`` if there was no match.
+    It will always have a ``True`` boolean value.
+    """
+    #: TOTP counter value which token matched against.
+    #: (Best practice it to subsequently ignore tokens for this counter
+    #:  and earlier)
     counter = 0
 
-    #: Timestamp when verification was performed
+    #: Timestamp when verification was performed.
     time = 0
 
     #: Previous offset value provided when verify() was called.
-    _previous_offset = 0
+    previous_offset = 0
 
     #: TOTP period (needed internally to calculate min_offset, etc).
     _period = 30
 
-    def __init__(self, valid, counter, time, previous_offset, period):
+    def __init__(self, time, counter, previous_offset, period):
         """
         .. warning::
             the constructor signature is an internal detail, and is subject to change.
         """
-        self.valid = valid
         self.time = time
         self.counter = counter
-        self._previous_offset = previous_offset
+        self.previous_offset = previous_offset
         self._period = period
 
     @memoized_property
-    def counter_offset(self):
+    def counter_skipped(self):
         """
-        Number of integer counter steps that match was off from current time's counter step.
+        How many steps were skipped between expected and actual matched counter
+        value.
+
+        Expected value is the counter step at :attr:`time`.
         """
-        if not self.valid:
-            return 0
         return self.counter - self.time // self._period
 
     @memoized_property
-    def offset(self):
+    def next_offset(self):
         """
         Suggested offset value for next time a token is verified from this client.
-        If no match, reports previously provided offset value.
         """
-        if not self.valid:
-            return self._previous_offset
-        return suggest_offset(history=[(self.time, self.counter_offset)],
-                              period=self._period, default=self._previous_offset)
+        return suggest_offset(history=[(self.time, self.counter_skipped)],
+                              period=self._period, default=self.previous_offset)
 
     def _as_tuple(self):
-        return (self.valid, self.offset)
-
-    def __nonzero__(self):
-        return self.valid
-
-    __bool__ = __nonzero__ # py2 compat
+        return self.counter, self.next_offset
 
 class TOTP(BaseOTP):
     """Helper for generating and verifying TOTP codes.
@@ -1674,12 +1992,12 @@ class TOTP(BaseOTP):
     Client-Side Token Generation
     ============================
     .. automethod:: generate
-    .. automethod:: generate_next
+    .. automethod:: advance
 
     Server-Side Token Verification
     ==============================
     .. automethod:: verify
-    .. automethod:: verify_next
+    .. automethod:: consume
 
     .. todo::
 
@@ -1712,15 +2030,15 @@ class TOTP(BaseOTP):
     Internal State Attributes
     =========================
     The following attributes are used to track the internal state of this generator,
-    and will be included in the output of :meth:`to_string`:
+    and will be included in the output of :meth:`to_json`:
 
     .. autoattribute:: last_counter
 
     .. autoattribute:: _history
 
-    .. attribute:: dirty
+    .. attribute:: changed
 
-        boolean flag set by :meth:`generate_next` and :meth:`verify_next`
+        boolean flag set by :meth:`advance` and :meth:`consume`
         to indicate that the object's internal state has been modified since creation.
 
     (Note: All internal state attribute can be initialized via constructor options,
@@ -1755,15 +2073,15 @@ class TOTP(BaseOTP):
     # state attrs
     #---------------------------------------------------------------------------
 
-    #: counter value of last token generated by :meth:`generate_next` *(client-side)*,
-    #: or validated by :meth:`verify_next` *(server-side)*.
+    #: counter value of last token generated by :meth:`advance` *(client-side)*,
+    #: or validated by :meth:`consume` *(server-side)*.
     last_counter = 0
 
-    #: *(server-side only)* history of previous verifications performed by :meth:`verify_next`,
+    #: *(server-side only)* history of previous verifications performed by :meth:`consume`,
     #: and is used to estimate the **delay** parameter on a per-client basis.
     #:
     #: this is an internal attribute whose structure is subject to change,
-    #: but currently is a list of 1 or more ``(timestamp, counter_offset)`` entries.
+    #: but currently is a list of 1 or more ``(timestamp, counter_skipped)`` entries.
     #: it's maximum size is controlled by the class attribute ``TOTP.MAX_HISTORY_SIZE``.
     _history = None
 
@@ -1877,13 +2195,22 @@ class TOTP(BaseOTP):
         .. seealso::
             This is a lowlevel method, which doesn't read or modify any state-dependant values
             (such as the :attr:`last_counter` value).
-            For a version which does, see :meth:`generate_next`.
+            For a version which does, see :meth:`advance`.
         """
         counter = self._time_to_counter(time)
         token = self._generate(counter)
         return TotpToken(self, token, counter)
 
-    def generate_next(self, reuse=False):
+# # debug helper
+#    def generate_range(self, size, time=None):
+#        counter = self._time_to_counter(time) - (size + 1) // 2
+#        end = counter + size
+#        while counter <= end:
+#            token = self._generate(counter)
+#            yield TotpToken(self, token, counter)
+#            counter += 1
+
+    def advance(self, reuse=False):
         """
         High-level method to generate TOTP token for current time.
         Unlike :meth:`generate`, this method takes into account the :attr:`last_counter` value,
@@ -1893,7 +2220,7 @@ class TOTP(BaseOTP):
             Controls whether a token can be issued twice within the same time :attr:`period`.
 
             By default (``False``), calling this method twice within the same time :attr:`period`
-            will result in a :exc:`~passlib.exc.TokenReuseError`, since once a token has gone across the wire,
+            will result in a :exc:`~passlib.exc.UsedTokenError`, since once a token has gone across the wire,
             it should be considered insecure.
 
             Setting this to ``True`` will allow multiple uses of the token within the same time period.
@@ -1905,7 +2232,7 @@ class TOTP(BaseOTP):
             * ``token`` -- decimal-formatted token as a (unicode) string
             * ``expire_time`` -- unix epoch time when token will expire
 
-        :raises ~passlib.exc.TokenReuseError:
+        :raises ~passlib.exc.UsedTokenError:
 
             if an attempt is made to generate a token within the same time :attr:`period`
             (suppressed by ``reuse=True``).
@@ -1916,11 +2243,11 @@ class TOTP(BaseOTP):
             >>> #            It's only used here to fix the totp generator's clock, so that
             >>> #            this example can be reproduced regardless of the actual system time.
             >>> totp = TOTP('s3jdvb7qd2r7jpxx', now=lambda : 1419622739)
-            >>> totp.generate_next() # generate new token
+            >>> totp.advance() # generate new token
             ('897212', 1419622740)
 
             >>> # or use attr access when you just need the token ...
-            >>> totp.generate_next().token
+            >>> totp.advance().token
             '897212'
         """
         time = self.normalize_time(None)
@@ -1930,17 +2257,17 @@ class TOTP(BaseOTP):
             # NOTE: this usually means system time has jumped back since last call.
             #       this will occasionally happen, so not throwing an error,
             #       but definitely worth issuing a warning.
-            warn("TOTP.generate_next(): current time (%r) earlier than last-used time (%r); "
+            warn("TOTP.advance(): current time (%r) earlier than last-used time (%r); "
                  "did system clock change?" % (int(time), self.last_counter * self.period),
                  exc.PasslibSecurityWarning, stacklevel=1)
 
         elif result.counter == self.last_counter and not reuse:
-            raise exc.TokenReuseError("Token already generated in this time period, "
-                                      "please wait %d seconds for another." % result.remaining,
-                                      expire_time=result.expire_time)
+            raise UsedTokenError("Token already generated in this time period, "
+                                 "please wait %d seconds for another." % result.remaining,
+                                 expire_time=result.expire_time)
 
         self.last_counter = result.counter
-        self.dirty = True
+        self.changed = True
         return result
 
     #-------------------------------------------------------------------------
@@ -1968,12 +2295,14 @@ class TOTP(BaseOTP):
             to multiples of :attr:`period`.
 
         :param int offset:
-            Offset timestamp by specified value, to account for transmission offset and / or client clock skew.
+            Adjust timestamp by specified value, to account for transmission offset and / or client clock skew.
             Measured in seconds. Defaults to ``0``.
 
+            # TODO: would like to rename to 'skew', but may need to invert sense.
+
             Negative offset (the common case) indicates transmission delay,
-            or that the client clock is running behind the server.
-            Positive offset indicates the client clock is running ahead of the server
+            and/or that the client clock is running later than the server.
+            Positive offset indicates the client clock is running earlier than the server
             (and by enough that it cancels out the transmission delay).
 
             .. note::
@@ -1981,44 +2310,47 @@ class TOTP(BaseOTP):
                 You should ensure the server clock uses a reliable time source such as NTP,
                 so that only the client clock needs to be accounted for.
 
-        :returns:
-            sequence of ``(valid, offset)`` (actually a :class:`TotpMatch` instance):
+        :raises ~passlib.exc.TokenError:
 
-            * ``valid`` -- boolean flag indicating whether token matched
-            * ``offset`` -- suggested offset value for next time token is verified from this client.
+            If the token is malformed, or fails to verify.
 
-        :raises ValueError:
-            if the provided token is not correctly formatted (e.g. wrong number of digits),
-            or if one of the parameters has an invalid value.
+        :returns TotpMatch:
+
+            Returns a :class:`TotpMatch` instance on successful match.
+            Can be treated as tuple of ``(counter, next_offset)``.
+
+            Raises error if token is malformed / can't be verified.
 
         Usage example::
 
             >>> totp = TOTP('s3jdvb7qd2r7jpxx')
             >>> totp.verify('897212', 1419622729) # valid token for this time period
-            (True, 19)
+            (47320757, 19)
             >>> totp.verify('000492', 1419622729) # token from counter step 30 sec ago (within allowed window)
-            (True, 49)
+            (47320756, -27)
             >>> totp.verify('760389', 1419622729) # invalid token -- token from 60 sec ago (outside of window)
-            (False, 0)
+            Traceback:
+                ...
+            InvalidTokenError: Token did not match
 
         .. seealso::
             This is a low-level method, which doesn't read or modify any state-dependant values
             (such as the :attr:`last_counter` value, or the previously recorded :attr:`drift`).
-            For a version which does, see :meth:`verify_next`.
+            For a version which does, see :meth:`consume`.
         """
         time = self.normalize_time(time)
         self._check_serial(window, "window")
 
-        # NOTE: 'min_start' is internal parameter used by verify_next() to
+        # NOTE: 'min_start' is internal parameter used by consume() to
         #       skip searching any counter values before last confirmed verification.
         client_time = time + offset
         start = max(min_start, self._time_to_counter(client_time - window))
         end = self._time_to_counter(client_time + window) + 1
 
-        valid, counter = self._find_match(token, start, end)
-        return TotpMatch(valid, counter, time, offset, self.period)
+        counter = self._find_match(token, start, end)
+        return TotpMatch(time, counter, offset, self.period)
 
-    def verify_next(self, token, reuse=False, window=30, offset=None):
+    def consume(self, token, reuse=False, window=30, offset=None):
         """
         High-level method to validate TOTP token against current system time.
         Unlike :meth:`verify`, this method takes into account the :attr:`last_counter` value,
@@ -2047,19 +2379,24 @@ class TOTP(BaseOTP):
             to multiples of :attr:`period`.
 
         :returns:
-            Returns ``True`` if the token validated, ``False`` if not.
+            Returns ``True`` if token validated successfully,
+            raises error if it didn't.
 
-            May set the :attr:`dirty` attribute if the internal state was updated,
+            May set the :attr:`changed` attribute if the internal state was updated,
             and needs to be re-persisted by the application (see :meth:`to_json`).
 
         :raises ValueError:
             If the provided token is not correctly formed (e.g. wrong number of digits),
             or if one of the parameters has an invalid value.
 
+        :raises ~passlib.exc.TokenError:
+
+            If the token is malformed, fails to verify.
+
         :raises ~passlib.exc.TokenReuseError:
 
-            If an attempt is made to verify the current time period's token
-            (suppressed by ``reuse=True``).
+            If an attempt is made to re-use the current time period's token
+            (check can be suppressed by ``reuse=True``)
 
         Usage example::
 
@@ -2068,17 +2405,21 @@ class TOTP(BaseOTP):
             >>> #            this example can be reproduced regardless of the actual system time.
             >>> totp = TOTP('s3jdvb7qd2r7jpxx', now = lambda: 1419622739)
             >>> # wrong token
-            >>> totp.verify_next('123456')
-            False
+            >>> totp.consume('123456')
+            Traceback:
+                ...
+            InvalidTokenError: Token did not match
             >>> # token from 30 sec ago (w/ window, will be accepted)
-            >>> totp.verify_next('000492')
+            >>> totp.consume('000492')
             True
             >>> # token from current period
-            >>> totp.verify_next('897212')
+            >>> totp.consume('897212')
             True
             >>> # token from 30 sec ago will now be rejected
-            >>> totp.verify_next('000492')
-            False
+            >>> totp.consume('000492')
+            Traceback:
+                ...
+            InvalidTokenError: Token did not match
         """
         time = self.normalize_time(None)
         if offset is None:
@@ -2087,42 +2428,35 @@ class TOTP(BaseOTP):
         #       points before the last verified counter, no matter what offset or window is set to.
         result = self.verify(token, time, window=window, offset=offset, min_start=self.last_counter)
         assert result.time == time, "sanity check failed: verify().time didn't match input time"
-        if not result.valid:
-            return False
+        assert result.counter >= self.last_counter, "sanity check failed: 'min_start' not honored"
 
         if result.counter > self.last_counter:
             # accept new token, update internal state
             self.last_counter = result.counter
-            self._add_offset(result.time, result.counter_offset)
-            self.dirty = True
-            return True
-
-        assert result.counter == self.last_counter, "sanity check failed: 'min_start' not honored"
-
-        if reuse:
-            # allow reuse of current token
-            return True
-
-        else:
-            raise exc.TokenReuseError("Token has already been used, please wait for another.",
-                                      expire_time=(self.last_counter + 1) * self.period)
+            self._add_sample(result.time, result.counter_skipped)
+            self.changed = True
+        elif not reuse:
+            # re-used current period's token
+            raise UsedTokenError("Token has already been used, please wait for another.",
+                                 expire_time=(self.last_counter + 1) * self.period)
+        return True
 
     def _next_offset(self, time):
         """
-        internal helper for :meth:`verify_next` --
+        internal helper for :meth:`consume` --
         return suggested offset for specified time, based on history.
         """
         return suggest_offset(self._history, self.period, time)
 
-    def _add_offset(self, time, counter_offset):
+    def _add_sample(self, time, counter_skipped):
         """
-        internal helper for :meth:`verify_next` --
+        internal helper for :meth:`consume` --
         appends an entry to the verification history.
         """
         history = self._history
         if history:
             # add entry to history
-            history.append((time, counter_offset))
+            history.append((time, counter_skipped))
 
             # remove old entries
             while len(history) > self.MAX_HISTORY_SIZE:
@@ -2130,7 +2464,7 @@ class TOTP(BaseOTP):
 
         elif self.MAX_HISTORY_SIZE > 0:
             # initialize history (if it hasn't been disabled)
-            self._history = [(time, counter_offset)]
+            self._history = [(time, counter_skipped)]
 
     #-------------------------------------------------------------------------
     # TODO: resync(self, tokens, time=None, min_tokens=10, window=100)
@@ -2168,15 +2502,15 @@ class TOTP(BaseOTP):
     #=============================================================================
     # json rendering
     #=============================================================================
-    def _to_json(self):
-        kwds = super(TOTP, self)._to_json()
+    def to_dict(self, **kwds):
+        state = super(TOTP, self).to_dict(**kwds)
         if self.period != 30:
-            kwds['period'] = self.period
+            state['period'] = self.period
         if self.last_counter:
-            kwds['last_counter'] = self.last_counter
+            state['last_counter'] = self.last_counter
         if self._history:
-            kwds['_history'] = self._history
-        return kwds
+            state['_history'] = self._history
+        return state
 
     #=============================================================================
     # eoc
@@ -2186,31 +2520,24 @@ class TOTP(BaseOTP):
 BaseOTP._type_map[TOTP.type] = TOTP
 
 #=============================================================================
-# public frontends
+# convenience helpers
 #=============================================================================
-def from_uri(uri):
+
+def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     """
-    create an OTP instance from a URI, such as returned by :meth:`TOTP.to_uri`.
-
-    :raises ValueError:
-        if the uri cannot be parsed or contains errors.
-
-    :returns:
-        :class:`TOTP` or :class:`HOTP` instance, as appropriate.
+    generate a random string suitable for use as an
+    :class:`OTPContext` application secret.
     """
-    return BaseOTP.from_uri(uri)
+    assert entropy > 0
+    assert len(charset) > 1
+    count = int(math.ceil(entropy * math.log(2, len(charset))))
+    return getrandstr(rng, charset, count)
 
-def from_string(json, password=None):
-    """
-    load an OTP  instance from serialized json, such as returned by :meth:`TOTP.to_json`.
-
-    :raises ValueError:
-        if the json cannot be parsed or contains errors.
-
-    :returns:
-        :class:`TOTP` or :class:`HOTP` instance, as appropriate.
-    """
-    return BaseOTP.from_string(json, password=password)
+# XXX: deprecate these in favor of context?
+_default_context = OTPContext()
+new = _default_context.new
+from_uri = _default_context.from_uri
+from_json = _default_context.from_json
 
 #=============================================================================
 # eof

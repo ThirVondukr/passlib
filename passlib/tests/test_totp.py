@@ -2,10 +2,7 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import unicode_literals
 # core
-from passlib.utils.compat import PY3
-import base64
 import datetime
 from functools import partial
 import logging; log = logging.getLogger(__name__)
@@ -15,9 +12,10 @@ import time as _time
 # site
 # pkg
 from passlib import exc
-from passlib.utils import to_bytes, to_unicode
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase, time_call
+# subject
+from passlib.totp import OTPContext, AES_SUPPORT
 # local
 __all__ = [
     "EngineTest",
@@ -72,143 +70,15 @@ def randcounter():
     """return random counter"""
     return random.randint(0, (1 << 32) - 1)
 
+def to_b32_size(raw_size):
+    return (raw_size * 8 + 4) // 5
+
 #=============================================================================
 # util tests
 #=============================================================================
 
 class UtilsTest(TestCase):
     descriptionPrefix = "passlib.totp"
-
-    #=============================================================================
-    # encrypt_key() & decrypt_key() helpers
-    #=============================================================================
-    def test_decrypt_key(self):
-        """decrypt_key()"""
-        from passlib.totp import decrypt_key, ENCRYPTED_TOTP
-
-        # reference v2 key
-        CIPHER1 = '2-D-6D7N7W53O7HHS37NLUFQ-MHCTEGSNPFN5CGBJ'
-        if ENCRYPTED_TOTP:
-            self.assertEqual(decrypt_key(CIPHER1, PASS1), KEY1_RAW)
-        else:
-            self.assertRaises(RuntimeError, decrypt_key, CIPHER1, PASS1)
-            raise self.skipTest("'cryptography' package not installed")
-
-        # base32, should be case insensitive
-        self.assertEqual(decrypt_key(CIPHER1.lower(), PASS1), KEY1_RAW)
-
-        # different salt
-        CIPHER2 = '2-D-SPZJ54Y6IPUD2BYA4C6A-ZGDXXTVQOWYLC2AU'
-        self.assertEqual(decrypt_key(CIPHER2, PASS1), KEY1_RAW)
-
-        # different sized key, password, and cost
-        CIPHER3 = '2-8-FCCTARTIJWE7CPQHUDKA-D2DRS32YESGHHINWFFCELKN7Z6NAHM4M'
-        self.assertEqual(decrypt_key(CIPHER3, PASS2), KEY2_RAW)
-
-        # wrong password should silently result in wrong key, rather than throwing error
-        other = decrypt_key(CIPHER1, PASS2)
-        self.assertEqual(other, b'\xafD6.F7\xeb\x19\x05Q')
-
-        # malformed strings
-        def assert_malformed(enckey):
-            self.assertRaisesRegex(ValueError, "malformed .* data", decrypt_key, enckey, PASS1)
-        assert_malformed("abc") # unrecognized string
-        assert_malformed('2-C-EISCJBCQVL2V4C7') # too few sections
-        assert_malformed('2-C-EISCJBCQVL2V4C7-KTTAWJP2RT4MYGWR-FOO') # too many sections
-        assert_malformed('2-C-EISCJBCQVL2V4C@-KTTAWJP2RT4MYGWR') # invalid char in salt
-        assert_malformed('2-C-EISCJBCQVL2V4C-KTTAWJP2RT4MYGWR') # invalid size of b32 encoded salt
-        self.assertRaisesRegex(ValueError, "unknown .* version", decrypt_key, '9' + CIPHER1[1:], PASS1) # unknown version
-
-    def test_decrypt_key_using_v1(self):
-        """decrypt_key() -- legacy formats"""
-        from passlib.totp import decrypt_key
-
-        # v1 encoding of KEY1
-        CIPHER = '1-C-EISCJBCQVL2V4C7B-KTTAWJP2RT4MYGWR'
-        self.assertEqual(decrypt_key(CIPHER, PASS1), KEY1_RAW)
-
-        # v1 encoding of KEY2
-        CIPHER = '1-8-5HOZXE2SVJ2Q5QPY-ZI2WYDXLIMTPU5UIMFSJJOEPJLSI2Q6Q'
-        self.assertEqual(decrypt_key(CIPHER, PASS2), KEY2_RAW)
-
-    def test_encrypt_key(self):
-        """encrypt_key()"""
-        from passlib.totp import encrypt_key, decrypt_key, ENCRYPTED_TOTP
-
-        if not ENCRYPTED_TOTP:
-            self.assertRaises(RuntimeError, encrypt_key, KEY1_RAW, PASS1)
-            raise self.skipTest("'cryptography' package not installed")
-
-        def test(key, pwd, **k):
-            result = encrypt_key(key, pwd, **k)
-            self.assertRegex(result, "^2-[A-F0-9]+-[A-Z0-9]+-[A-Z0-9]+$") # has right format
-            self.assertEqual(decrypt_key(result, pwd), key) # decrypts correctly
-            return result
-
-        # basic behavior
-        result = test(KEY1_RAW, PASS1)
-        self.assertEqual(len(result), 41) # expected size based on default salt size
-
-        # creates new salt each time
-        other = encrypt_key(KEY1_RAW, PASS1)
-        self.assertNotEqual(other, result)
-
-        # custom cost
-        result = test(KEY1_RAW, PASS1, cost=10)
-        self.assertTrue(result.startswith("2-A-"))
-
-        # larger key
-        result2 = test(KEY2_RAW, PASS1)
-        self.assertEqual(len(result2), 57) # expected size based on default salt size
-
-        # border case: empty key
-        # XXX: might want to allow this, but documenting behavior for now
-        self.assertRaises(ValueError, encrypt_key, b"", PASS1)
-
-        # border case: empty password
-        test(KEY1_RAW, "")
-
-        # border case: password as bytes
-        result = encrypt_key(KEY1_RAW, PASS2)
-        self.assertEqual(decrypt_key(result, PASS2), KEY1_RAW)
-
-    def test_encrypt_key_salt_size(self):
-        """ENCRYPT_SALT_SIZE"""
-        from passlib.totp import encrypt_key, ENCRYPTED_TOTP
-        from passlib import totp
-
-        if not ENCRYPTED_TOTP:
-            raise self.skipTest("'cryptography' package not installed")
-
-        self.addCleanup(setattr, totp, "ENCRYPT_SALT_SIZE", totp.ENCRYPT_SALT_SIZE)
-
-        totp.ENCRYPT_SALT_SIZE = 10
-        result = encrypt_key(KEY1_RAW, PASS1)
-
-        totp.ENCRYPT_SALT_SIZE = 30
-        result2 = encrypt_key(KEY1_RAW, PASS1)
-
-        self.assertEqual(len(result2), len(result) + (30-10) * 8/5.0)
-
-    def test_encrypt_key_cost(self):
-        """ENCRYPT_COST"""
-        from passlib.totp import encrypt_key, ENCRYPTED_TOTP
-        from passlib import totp
-
-        if not ENCRYPTED_TOTP:
-            raise self.skipTest("'cryptography' package not installed")
-
-        self.addCleanup(setattr, totp, "ENCRYPT_COST", totp.ENCRYPT_COST)
-
-        # time default cost
-        totp.ENCRYPT_COST -= 2
-        delta, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
-
-        # this should take (2**3=8) times as long
-        totp.ENCRYPT_COST += 3
-        delta2, _ = time_call(partial(encrypt_key, KEY1_RAW, PASS1), maxtime=0)
-
-        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 
     #=============================================================================
     # client offset helpers
@@ -274,7 +144,325 @@ class UtilsTest(TestCase):
     #=============================================================================
 
 #=============================================================================
-# common code
+# context
+#=============================================================================
+class OTPContextTest(TestCase):
+    descriptionPrefix = "passlib.totp.OTPContext"
+
+    #=============================================================================
+    # constructor
+    #=============================================================================
+
+    def test_secrets_types(self):
+        """constructor -- 'secrets' param -- input types"""
+
+        # no secrets
+        context = OTPContext()
+        self.assertEqual(context._secrets, {})
+        self.assertFalse(context.can_encrypt)
+
+        # dict
+        ref = {"1": b"aaa", "2": b"bbb"}
+        context = OTPContext(ref)
+        self.assertEqual(context._secrets, ref)
+        self.assertEqual(context.can_encrypt, AES_SUPPORT)
+
+        # # list
+        # context = OTPContext(list(ref.items()))
+        # self.assertEqual(context._secrets, ref)
+
+        # # iter
+        # context = OTPContext(iter(ref.items()))
+        # self.assertEqual(context._secrets, ref)
+
+        # "tag:value" string
+        context = OTPContext("\n 1: aaa\n# comment\n \n2: bbb   ")
+        self.assertEqual(context._secrets, ref)
+
+        # ensure ":" allowed in secret
+        context = OTPContext("1: aaa: bbb \n# comment\n \n2: bbb   ")
+        self.assertEqual(context._secrets, {"1": b"aaa: bbb", "2": "bbb"})
+
+        # json dict
+        context = OTPContext('{"1":"aaa","2":"bbb"}')
+        self.assertEqual(context._secrets, ref)
+
+        # # json list
+        # context = OTPContext('[["1","aaa"],["2","bbb"]]')
+        # self.assertEqual(context._secrets, ref)
+
+        # invalid type
+        self.assertRaises(TypeError, OTPContext, 123)
+
+        # invalid json obj
+        self.assertRaises(TypeError, OTPContext, "[123]")
+
+        # # invalid list items
+        # self.assertRaises(ValueError, OTPContext, ["1", b"aaa"])
+
+        # forbid empty secret
+        self.assertRaises(ValueError, OTPContext, {"1": "aaa", "2": ""})
+
+    def test_secrets_tags(self):
+        """constructor -- 'secrets' param -- tag/value normalization"""
+
+        # test reference
+        ref = {"1": b"aaa", "02": b"bbb", "C": b"ccc"}
+        context = OTPContext(ref)
+        self.assertEqual(context._secrets, ref)
+
+        # accept unicode
+        context = OTPContext({u("1"): b"aaa", u("02"): b"bbb", u("C"): b"ccc"})
+        self.assertEqual(context._secrets, ref)
+
+        # normalize int tags
+        context = OTPContext({1: b"aaa", "02": b"bbb", "C": b"ccc"})
+        self.assertEqual(context._secrets, ref)
+
+        # forbid non-str/int tags
+        self.assertRaises(TypeError, OTPContext, {(1,): "aaa"})
+
+        # accept valid tags
+        context = OTPContext({"1-2_3.4": b"aaa"})
+
+        # forbid invalid tags
+        self.assertRaises(ValueError, OTPContext, {"-abc": "aaa"})
+        self.assertRaises(ValueError, OTPContext, {"ab*$": "aaa"})
+
+        # coerce value to bytes
+        context = OTPContext({"1": u("aaa"), "02": "bbb", "C": b"ccc"})
+        self.assertEqual(context._secrets, ref)
+
+        # forbid invalid value types
+        self.assertRaises(TypeError, OTPContext, {"1": 123})
+        self.assertRaises(TypeError, OTPContext, {"1": None})
+        self.assertRaises(TypeError, OTPContext, {"1": []})
+
+    # TODO: test secrets_path
+
+    def test_default_tag(self):
+        """constructor -- 'default_tag' param"""
+
+        # should sort numerically
+        context = OTPContext({"1": "one", "02": "two"})
+        self.assertEqual(context._default_tag, "02")
+        self.assertEqual(context._default_secret, "two")
+
+        # should sort alphabetically if non-digit present
+        context = OTPContext({"1": "one", "02": "two", "A": "aaa"})
+        self.assertEqual(context._default_tag, "A")
+        self.assertEqual(context._default_secret, "aaa")
+
+        # should use honor custom tag
+        context = OTPContext({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
+        self.assertEqual(context._default_tag, "1")
+        self.assertEqual(context._default_secret, "one")
+
+        # throw error on unknown value
+        self.assertRaises(KeyError, OTPContext, {"1": "one", "02": "two", "A": "aaa"},
+                          default_tag="B")
+
+        # should be empty
+        context = OTPContext()
+        self.assertEqual(context._default_tag, None)
+        self.assertEqual(context._default_secret, None)
+
+    # TODO: test 'cost' param
+
+    #=============================================================================
+    # frontends
+    #=============================================================================
+    def test_new(self):
+        """.new()"""
+        from passlib.totp import OTPContext, TOTP, HOTP
+
+        context = OTPContext()
+
+        # object bound to context
+        totp = context.new()
+        self.assertIsInstance(totp, TOTP)
+        self.assertIs(totp.context, context)
+
+        # creates new key each time
+        totp2 = context.new()
+        self.assertNotEqual(totp2.key, totp.key)
+
+        # honors type param
+        hotp = context.new(type="hotp")
+        self.assertIsInstance(hotp, HOTP)
+
+        # passes remaining params through
+        totp3 = context.new(digits=6)
+        self.assertEqual(totp3.digits, 6)
+
+        totp4 = context.new(digits=9)
+        self.assertEqual(totp4.digits, 9)
+
+    # TODO: test from_uri(), from_json()
+
+    #=============================================================================
+    # encrypt_key() & decrypt_key() helpers
+    #=============================================================================
+    def test_decrypt_key(self):
+        """.decrypt_key()"""
+
+        context = OTPContext({"1": PASS1, "2": PASS2})
+
+        # check for support
+        CIPHER1 = dict(v=1, c=13, s='6D7N7W53O7HHS37NLUFQ',
+                       k='MHCTEGSNPFN5CGBJ', t='1')
+        if not AES_SUPPORT:
+            self.assertRaises(RuntimeError, context.decrypt_key, CIPHER1)
+            raise self.skipTest("'cryptography' package not installed")
+
+        # reference key
+        self.assertEqual(context.decrypt_key(CIPHER1)[0], KEY1_RAW)
+
+        # different salt used to encrypt same raw key
+        CIPHER2 = dict(v=1, c=13, s='SPZJ54Y6IPUD2BYA4C6A',
+                       k='ZGDXXTVQOWYLC2AU', t='1')
+        self.assertEqual(context.decrypt_key(CIPHER2)[0], KEY1_RAW)
+
+        # different sized key, password, and cost
+        CIPHER3 = dict(v=1, c=8, s='FCCTARTIJWE7CPQHUDKA',
+                       k='D2DRS32YESGHHINWFFCELKN7Z6NAHM4M', t='2')
+        self.assertEqual(context.decrypt_key(CIPHER3)[0], KEY2_RAW)
+
+        # wrong password should silently result in wrong key
+        temp = CIPHER1.copy()
+        temp.update(t='2')
+        self.assertEqual(context.decrypt_key(temp)[0], b'\xafD6.F7\xeb\x19\x05Q')
+
+        # missing tag should throw error
+        temp = CIPHER1.copy()
+        temp.update(t='3')
+        self.assertRaises(KeyError, context.decrypt_key, temp)
+
+        # unknown version should throw error
+        temp = CIPHER1.copy()
+        temp.update(v=999)
+        self.assertRaises(ValueError, context.decrypt_key, temp)
+
+    def test_decrypt_key_xor(self):
+        """.decrypt_key() -- legacy xor format"""
+
+        # XOR encoding of KEY1
+        CIPHER = dict(v=0, t="1", c=12, s='EISCJBCQVL2V4C7B', k='KTTAWJP2RT4MYGWR')
+        context = OTPContext({1: PASS1})
+        key, needs_recrypt = context.decrypt_key(CIPHER)
+        self.assertEqual(key, KEY1_RAW)
+        self.assertTrue(needs_recrypt)
+
+        # XOR encoding of KEY2
+        CIPHER = dict(v=0, t="2", c=8, s='5HOZXE2SVJ2Q5QPY', k='ZI2WYDXLIMTPU5UIMFSJJOEPJLSI2Q6Q')
+        context = OTPContext({2: PASS2})
+        key, needs_recrypt = context.decrypt_key(CIPHER)
+        self.assertEqual(key, KEY2_RAW)
+        self.assertTrue(needs_recrypt)
+
+    def test_decrypt_key_needs_recrypt(self):
+        """.decrypt_key() -- needs_recrypt flag"""
+
+        context = OTPContext({"1": PASS1, "2": PASS2}, cost=13)
+
+        # ref should be accepted
+        ref = dict(v=1, c=13, s='AAAA', k='AAAA', t='2')
+        self.assertFalse(context.decrypt_key(ref)[1])
+
+        # wrong cost
+        temp = ref.copy()
+        temp.update(c=8)
+        self.assertTrue(context.decrypt_key(temp)[1])
+
+        # wrong tag
+        temp = ref.copy()
+        temp.update(t="1")
+        self.assertTrue(context.decrypt_key(temp)[1])
+
+        # XXX: should this check salt_size?
+
+    def assertSaneResult(self, result, context, key, tag="1",
+                         needs_recrypt=False):
+        """check encrypt_key() result has expected format"""
+
+        self.assertEqual(set(result), set(["v", "t", "c", "s", "k"]))
+
+        self.assertEqual(result['v'], 1)
+        self.assertEqual(result['t'], tag)
+        self.assertEqual(result['c'], context.cost)
+
+        self.assertEqual(len(result['s']), to_b32_size(context.salt_size))
+        self.assertEqual(len(result['k']), to_b32_size(len(key)))
+
+        result_key, result_needs_recrypt = context.decrypt_key(result)
+        self.assertEqual(result_key, key)
+        self.assertEqual(result_needs_recrypt, needs_recrypt)
+
+    def test_encrypt_key(self):
+        """.encrypt_key()"""
+
+        # check for support
+        context = OTPContext({"1": PASS1}, cost=5)
+        if not AES_SUPPORT:
+            self.assertRaises(RuntimeError, context.encrypt_key, KEY1_RAW)
+            raise self.skipTest("'cryptography' package not installed")
+
+        # basic behavior
+        result = context.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, context, KEY1_RAW)
+
+        # creates new salt each time
+        other = context.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, context, KEY1_RAW)
+        self.assertNotEqual(other['s'], result['s'])
+        self.assertNotEqual(other['k'], result['k'])
+
+        # honors custom cost
+        context2 = OTPContext({"1": PASS1}, cost=6)
+        result = context2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, context2, KEY1_RAW)
+
+        # honors default tag
+        context2 = OTPContext({"1": PASS1, "2": PASS2})
+        result = context2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, context2, KEY1_RAW, tag="2")
+
+        # honor salt size
+        context2 = OTPContext({"1": PASS1})
+        context2.salt_size = 64
+        result = context2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, context2, KEY1_RAW)
+
+        # larger key
+        result = context.encrypt_key(KEY2_RAW)
+        self.assertSaneResult(result, context, KEY2_RAW)
+
+        # border case: empty key
+        # XXX: might want to allow this, but documenting behavior for now
+        self.assertRaises(ValueError, context.encrypt_key, b"")
+
+    def test_encrypt_cost_timing(self):
+        """verify cost parameter via timing"""
+        if not AES_SUPPORT:
+            raise self.skipTest("'cryptography' package not installed")
+
+        # time default cost
+        context = OTPContext({"1": "aaa"})
+        context.cost -= 2
+        delta, _ = time_call(partial(context.encrypt_key, KEY1_RAW), maxtime=0)
+
+        # this should take (2**3=8) times as long
+        context.cost += 3
+        delta2, _ = time_call(partial(context.encrypt_key, KEY1_RAW), maxtime=0)
+
+        self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
+
+    #=============================================================================
+    # eoc
+    #=============================================================================
+
+#=============================================================================
+# common OTP code
 #=============================================================================
 
 #: used as base value for RFC test vector keys
@@ -440,9 +628,9 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(KEY1, issuer="foo.com").issuer, "foo.com")
         self.assertRaises(ValueError, OTP, KEY1, issuer="foo.com:bar")
 
-    # NOTE: 'dirty' is internal parameter,
-    #       tested via .generate_next(), .verify_next(),
-    #       and to_string() / from_string()
+    # NOTE: 'changed' is internal parameter,
+    #       tested via .advance(), .consume(),
+    #       and to_json() / from_json()
 
     #=============================================================================
     # internal helpers
@@ -461,8 +649,8 @@ class _BaseOTPTest(TestCase):
         self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
         self.assertRaises(TypeError, otp.normalize_token, None)
 
-        self.assertRaises(ValueError, otp.normalize_token, '123456')
-        self.assertRaises(ValueError, otp.normalize_token, '01234567')
+        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '123456')
+        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '01234567')
 
     #=============================================================================
     # key attrs
@@ -687,7 +875,7 @@ class TotpTest(_BaseOTPTest):
         self.assertRaisesRegex(AssertionError, msg_re, self.randotp, now=lambda : -1)
 
     # NOTE: 'last_counter', '_history' are internal parameters,
-    #       tested by from_string() / to_string().
+    #       tested by from_json() / to_json().
 
     #=============================================================================
     # internal helpers
@@ -798,13 +986,13 @@ class TotpTest(_BaseOTPTest):
         # reject invalid time
         self.assertRaises(ValueError, otp.generate, -1)
 
-    def test_generate_w_reference_vectors(self, for_generate_next=False):
+    def test_generate_w_reference_vectors(self, for_advance=False):
         """generate() -- reference vectors"""
         for otp, time, token, expires, prefix in self.iter_test_vectors():
             # should output correct token for specified time
-            if for_generate_next:
+            if for_advance:
                 otp.now = lambda: time
-                result = otp.generate_next()
+                result = otp.advance()
             else:
                 result = otp.generate(time)
             self.assertEqual(result.token, token, msg=prefix)
@@ -813,11 +1001,11 @@ class TotpTest(_BaseOTPTest):
                 self.assertEqual(result.expire_time, expires)
 
     #=============================================================================
-    # generate_next()
+    # advance()
     #=============================================================================
 
-    def test_generate_next(self):
-        """generate_next()"""
+    def test_advance(self):
+        """advance()"""
         from passlib.totp import TOTP
         from passlib.exc import PasslibSecurityWarning
 
@@ -827,31 +1015,31 @@ class TotpTest(_BaseOTPTest):
         period = otp.period
         counter = otp._time_to_counter(time)
         start = counter * period
-        self.assertFalse(otp.dirty)
+        self.assertFalse(otp.changed)
         otp.now = lambda: time # fix generator's time for duration of test
 
         # generate token
         otp.last_counter = 0
-        result = otp.generate_next()
+        result = otp.advance()
         token = result.token
         self.assertEqual(result.counter, counter)
         ##self.assertEqual(result.start_time, start)
         self.assertEqual(otp.last_counter, counter)
         self.assertTrue(otp.verify(token, start))
-        self.assertTrue(otp.dirty)
+        self.assertTrue(otp.changed)
 
         # should generate same token for next 29s
         otp.last_counter = 0
-        otp.dirty = False
+        otp.changed = False
         otp.now = lambda : start + period - 1
-        self.assertEqual(otp.generate_next().token, token)
+        self.assertEqual(otp.advance().token, token)
         self.assertEqual(otp.last_counter, counter)
-        self.assertTrue(otp.dirty)
+        self.assertTrue(otp.changed)
 
         # and new one at 30s
         otp.last_counter = 0
         otp.now = lambda : start + period
-        token2 = otp.generate_next().token
+        token2 = otp.advance().token
         self.assertNotEqual(token2, token)
         self.assertEqual(otp.last_counter, counter + 1)
         self.assertTrue(otp.verify(token2, start + period))
@@ -862,21 +1050,21 @@ class TotpTest(_BaseOTPTest):
         with self.assertWarningList([
                 dict(message_re=".*earlier than last-used time.*", category=PasslibSecurityWarning),
                 ]):
-            self.assertTrue(otp.generate_next().token)
+            self.assertTrue(otp.advance().token)
         self.assertEqual(otp.last_counter, counter)
 
-    def test_generate_next_w_reuse_flag(self):
-        """generate_next() -- reuse flag"""
+    def test_advance_w_reuse_flag(self):
+        """advance() -- reuse flag"""
         from passlib.totp import TOTP
-        from passlib.exc import TokenReuseError
+        from passlib.exc import UsedTokenError
         otp = TOTP(new=True)
-        token = otp.generate_next().token
-        self.assertRaises(TokenReuseError, otp.generate_next)
-        self.assertEqual(otp.generate_next(reuse=True).token, token)
+        token = otp.advance().token
+        self.assertRaises(UsedTokenError, otp.advance)
+        self.assertEqual(otp.advance(reuse=True).token, token)
 
-    def test_generate_next_w_reference_vectors(self):
-        """generate_next() -- reference vectors"""
-        self.test_generate_w_reference_vectors(for_generate_next=True)
+    def test_advance_w_reference_vectors(self):
+        """advance() -- reference vectors"""
+        self.test_generate_w_reference_vectors(for_advance=True)
 
     #=============================================================================
     # TotpMatch() -- verify()'s return value
@@ -895,19 +1083,18 @@ class TotpTest(_BaseOTPTest):
         self.assertIsInstance(result, TotpMatch)
 
         # test attrs
-        self.assertTrue(result.valid)
-        self.assertAlmostEqual(result.offset, 0, delta=10) # xxx: alter this if suggest_offset() is updated?
+        self.assertAlmostEqual(result.next_offset, 0, delta=10) # xxx: alter this if suggest_offset() is updated?
         self.assertEqual(result.time, time)
         self.assertEqual(result.counter, time // 30)
-        self.assertEqual(result.counter_offset, 0)
-        self.assertEqual(result._previous_offset, 0)
+        self.assertEqual(result.counter_skipped, 0)
+        self.assertEqual(result.previous_offset, 0)
 
         # test tuple
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (True, result.offset))
+        self.assertEqual(result, (result.counter, result.next_offset))
         self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], True)
-        self.assertEqual(result[1], result.offset)
+        self.assertEqual(result[0], result.counter)
+        self.assertEqual(result[1], result.next_offset)
         self.assertRaises(IndexError, result.__getitem__, 2)
 
         # test bool
@@ -926,19 +1113,18 @@ class TotpTest(_BaseOTPTest):
         self.assertIsInstance(result, TotpMatch)
 
         # test attrs
-        self.assertTrue(result.valid)
-        self.assertAlmostEqual(result.offset, 30, delta=10) # xxx: alter this if suggest_offset() is updated?
+        self.assertAlmostEqual(result.next_offset, 30, delta=10) # xxx: alter this if suggest_offset() is updated?
         self.assertEqual(result.time, time - 30)
         self.assertEqual(result.counter, time // 30)
-        self.assertEqual(result.counter_offset, 1)
-        self.assertEqual(result._previous_offset, 0)
+        self.assertEqual(result.counter_skipped, 1)
+        self.assertEqual(result.previous_offset, 0)
 
         # test tuple
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (True, result.offset))
+        self.assertEqual(result, (result.counter, result.next_offset))
         self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], True)
-        self.assertEqual(result[1], result.offset)
+        self.assertEqual(result[0], result.counter)
+        self.assertEqual(result[1], result.next_offset)
         self.assertRaises(IndexError, result.__getitem__, 2)
 
         # test bool
@@ -957,20 +1143,19 @@ class TotpTest(_BaseOTPTest):
         self.assertIsInstance(result, TotpMatch)
 
         # test attrs
-        self.assertTrue(result.valid)
         # NOTE: may need to alter this next line if suggest_offset() is updated ...
-        self.assertAlmostEqual(result.offset, -20, delta=10)
+        self.assertAlmostEqual(result.next_offset, -20, delta=10)
         self.assertEqual(result.time, time + 30)
         self.assertEqual(result.counter, time // 30)
-        self.assertEqual(result.counter_offset, -1)
-        self.assertEqual(result._previous_offset, 0)
+        self.assertEqual(result.counter_skipped, -1)
+        self.assertEqual(result.previous_offset, 0)
 
         # test tuple
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (True, result.offset))
+        self.assertEqual(result, (result.counter, result.next_offset))
         self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], True)
-        self.assertEqual(result[1], result.offset)
+        self.assertEqual(result[0], result.counter)
+        self.assertEqual(result[1], result.next_offset)
         self.assertRaises(IndexError, result.__getitem__, 2)
 
         # test bool
@@ -983,43 +1168,21 @@ class TotpTest(_BaseOTPTest):
         time = 141230981
         token = '781501'
         otp = TOTP(KEY3, now=lambda : time + 24 * 3600)
-        result = otp.verify(token, time + 60)
-
-        # test type
-        self.assertIsInstance(result, TotpMatch)
-
-        # test attrs
-        self.assertFalse(result.valid)
-        self.assertEqual(result.offset, 0)
-        self.assertEqual(result.time, time + 60)
-        self.assertEqual(result.counter, 0)
-        self.assertEqual(result.counter_offset, 0)
-        self.assertEqual(result._previous_offset, 0)
-
-        # test tuple
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result, (False, result.offset))
-        self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], False)
-        self.assertEqual(result[1], result.offset)
-        self.assertRaises(IndexError, result.__getitem__, 2)
-
-        # test bool
-        self.assertFalse(result)
+        self.assertRaises(exc.InvalidTokenError, otp.verify, token, time + 60)
 
     #=============================================================================
     # verify()
     #=============================================================================
 
-    def test_verify_w_window(self, for_verify_next=False):
+    def test_verify_w_window(self, for_consume=False):
         """verify() -- 'time' and 'window' parameters"""
 
         # init generator
         time = orig_time = randtime()
         otp = self.randotp()
         period = otp.period
-        if for_verify_next:
-            verify = self._create_verify_next_wrapper(otp)
+        if for_consume:
+            verify = self._create_consume_wrapper(otp)
         else:
             verify = otp.verify
         token = otp.generate(time).token
@@ -1028,15 +1191,16 @@ class TotpTest(_BaseOTPTest):
         def test(correct_valid, correct_counter_offset, token, time, **kwds):
             """helper to test verify() output"""
             # NOTE: TotpMatch return type tested more throughly above ^^^
-            result = verify(token, time, **kwds)
             msg = "key=%r alg=%r period=%r token=%r orig_time=%r time=%r:" % \
                   (otp.base32_key, otp.alg, otp.period, token, orig_time, time)
-            self.assertEqual(result.valid, correct_valid, msg=msg)
             if correct_valid:
-                self.assertEqual(result.counter_offset, correct_counter_offset)
+                result = verify(token, time, **kwds)
+                self.assertTrue(result)
+                self.assertEqual(result.counter_skipped, correct_counter_offset)
+                self.assertEqual(otp.normalize_time(result.time), otp.normalize_time(time))
             else:
-                self.assertEqual(result.counter_offset, 0)
-            self.assertEqual(otp.normalize_time(result.time), otp.normalize_time(time))
+                self.assertRaises(exc.InvalidTokenError, verify, token, time,
+                                  __msg__=msg, **kwds)
 
         #-------------------------------
         # basic validation, and 'window' parameter
@@ -1082,59 +1246,58 @@ class TotpTest(_BaseOTPTest):
         # reject invalid time
         self.assertRaises(ValueError, otp.verify, token, -1)
 
-    def test_verify_w_token_normalization(self, for_verify_next=False):
+    def test_verify_w_token_normalization(self, for_consume=False):
         """verify() -- token normalization"""
         # setup test helper
         otp = TOTP('otxl2f5cctbprpzx')
-        if for_verify_next:
-            verify = self._create_verify_next_wrapper(otp)
+        if for_consume:
+            verify = self._create_consume_wrapper(otp)
         else:
             verify = otp.verify
         time = 1412889861
 
         # separators / spaces should be stripped (orig token '332136')
-        self.assertTrue(verify('    3 32-136  ', time).valid)
+        self.assertTrue(verify('    3 32-136  ', time))
 
         # ascii bytes
-        self.assertTrue(verify(b'332136', time).valid)
+        self.assertTrue(verify(b'332136', time))
 
         # too few digits
-        self.assertRaises(ValueError, verify, '12345', time)
+        self.assertRaises(exc.MalformedTokenError, verify, '12345', time)
 
         # invalid char
-        self.assertRaises(ValueError, verify, '12345X', time)
+        self.assertRaises(exc.MalformedTokenError, verify, '12345X', time)
 
         # leading zeros count towards size
-        self.assertRaises(ValueError, verify, '0123456', time)
+        self.assertRaises(exc.MalformedTokenError, verify, '0123456', time)
 
-    def test_verify_w_reference_vectors(self, for_verify_next=False):
+    def test_verify_w_reference_vectors(self, for_consume=False):
         """verify() -- reference vectors"""
         for otp, time, token, expires, msg in self.iter_test_vectors():
             # create wrapper
-            if for_verify_next:
-                verify = self._create_verify_next_wrapper(otp)
+            if for_consume:
+                verify = self._create_consume_wrapper(otp)
             else:
                 verify = otp.verify
 
             # token should verify against time
-            if for_verify_next:
+            if for_consume:
                 real_offset = -divmod(time, otp.period)[1]
                 msg = "%s(with next_offset=%r, real_offset=%r):" % (msg, otp._next_offset(time),
                                                                     real_offset)
             result = verify(token, time)
-            self.assertTrue(result.valid, msg=msg)
+            self.assertTrue(result)
             self.assertEqual(result.counter, time // otp.period, msg=msg)
 
             # should NOT verify against another time
-            result = verify(token, time + 100, window=0)
-            self.assertFalse(result.valid, msg=msg)
+            self.assertRaises(exc.InvalidTokenError, verify, token, time + 100, window=0)
 
     #=============================================================================
-    # verify_next()
+    # consume()
     #=============================================================================
-    def _create_verify_next_wrapper(self, otp):
+    def _create_consume_wrapper(self, otp):
         """
-        returns a wrapper around verify_next()
+        returns a wrapper around consume()
         which makes it's signature & return match verify(),
         to helper out shared test code.
         """
@@ -1150,30 +1313,28 @@ class TotpTest(_BaseOTPTest):
                 otp.now = lambda: time
                 # run verify next w/in our sandbox
                 offset = otp._next_offset(time)
-                valid = otp.verify_next(token, **kwds)
+                valid = otp.consume(token, **kwds)
+                self.assertIs(valid, True)
             finally:
                 otp.now = orig
             # create fake TotpMatch instance to return
-            result = TotpMatch(valid, otp.last_counter, time, offset, otp.period)
+            result = TotpMatch(time, otp.last_counter, offset, otp.period)
             # check that history was populated correctly
-            if valid:
-                self.assertEqual(otp._history[0][1], result.counter_offset)
-            else:
-                self.assertEqual(otp._history, None)
+            self.assertEqual(otp._history[0][1], result.counter_skipped)
             return result
         return wrapper
 
-    def test_verify_next_w_window(self):
-        """verify_next() -- 'window' parameter"""
-        self.test_verify_w_window(for_verify_next=True)
+    def test_consume_w_window(self):
+        """consume() -- 'window' parameter"""
+        self.test_verify_w_window(for_consume=True)
 
-    def test_verify_next_w_token_normalization(self):
-        """verify_next() -- token normalization"""
-        self.test_verify_w_token_normalization(for_verify_next=True)
+    def test_consume_w_token_normalization(self):
+        """consume() -- token normalization"""
+        self.test_verify_w_token_normalization(for_consume=True)
 
-    def test_verify_next_w_last_counter(self):
-        """verify_next() -- 'last_counter' and '_history' attributes"""
-        from passlib.exc import TokenReuseError
+    def test_consume_w_last_counter(self):
+        """consume() -- 'last_counter' and '_history' attributes"""
+        from passlib.exc import UsedTokenError
 
         # init generator
         otp = self.randotp()
@@ -1184,40 +1345,40 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(otp.last_counter, 0) # ensure generate() didn't touch it
         token = result.token
         counter = result.counter
-        otp.now = lambda : time # fix verify_next() time for duration of test
+        otp.now = lambda : time # fix consume() time for duration of test
 
         # verify token
-        self.assertTrue(otp.verify_next(token))
+        self.assertTrue(otp.consume(token))
         self.assertEqual(otp.last_counter, counter)
 
         # test reuse policies
-        self.assertRaises(TokenReuseError, otp.verify_next, token)
-        self.assertRaises(TokenReuseError, otp.verify_next, token, reuse=False)
-        self.assertTrue(otp.verify_next(token, reuse=True))
+        self.assertRaises(UsedTokenError, otp.consume, token)
+        self.assertRaises(UsedTokenError, otp.consume, token, reuse=False)
+        self.assertTrue(otp.consume(token, reuse=True))
         self.assertEqual(otp.last_counter, counter)
 
         # should reject older token even if within window
         otp.last_counter = counter
         old_token = otp.generate(time - period).token
-        self.assertFalse(otp.verify_next(old_token))
-        self.assertFalse(otp.verify_next(old_token, reuse="ignore"))
-        self.assertFalse(otp.verify_next(old_token, reuse="allow"))
+        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token)
+        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token, reuse=False)
+        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token, reuse=True)
         self.assertEqual(otp.last_counter, counter)
 
         # next token should advance .last_counter
         otp.last_counter = counter
         token2 = otp.generate(time + period).token
         otp.now = lambda: time + period
-        self.assertTrue(otp.verify_next(token2))
+        self.assertTrue(otp.consume(token2))
         self.assertEqual(otp.last_counter, counter + 1)
 
     # TODO: test history & suggested offset for next time.
 
-    # TODO: test dirty flag behavior
+    # TODO: test 'changed flag' behavior
 
-    def test_verify_next_w_reference_vectors(self):
-        """verify_next() -- reference vectors"""
-        self.test_verify_w_reference_vectors(for_verify_next=True)
+    def test_consume_w_reference_vectors(self):
+        """consume() -- reference vectors"""
+        self.test_verify_w_reference_vectors(for_consume=True)
 
     #=============================================================================
     # uri serialization
@@ -1402,16 +1563,20 @@ class TotpTest(_BaseOTPTest):
     # json serialization
     #=============================================================================
 
-    # TODO: from_string()
+    # TODO: from_json()
     #           with uri
-    #           without needed password
-    #           with needed password
+    #           with dict
     #           with bad version, decode error
 
-    # TODO: to_string()
-    #           with password
-    #           with custom cost
-    #           with password=True
+    # TODO: to_json()
+    # TODO: to_dict()
+    #           with encrypt=False
+    #           with encrypt="auto" + context + secrets
+    #           with encrypt="auto" + context + no secrets
+    #           with encrypt="auto" + no context
+    #           with encrypt=True + context + secrets
+    #           with encrypt=True + context + no secrets
+    #           with encrypt=True + no context
 
     # TODO: check history, last_counter are preserved
 
@@ -1614,7 +1779,7 @@ class HotpTest(_BaseOTPTest):
         # reject negative value
         self.assertRaises(ValueError, HOTP, KEY1, counter=-1)
 
-    # NOTE: 'start' is internal parameter, tested by from_string() / to_string()
+    # NOTE: 'start' is internal parameter, tested by from_json() / to_json()
 
     #=============================================================================
     # generate()
@@ -1649,11 +1814,11 @@ class HotpTest(_BaseOTPTest):
             self.assertEqual(result, token, msg=msg)
 
     #=============================================================================
-    # generate_next()
+    # advance()
     #=============================================================================
 
-    def test_generate_next(self):
-        """generate_next() -- basic behavior
+    def test_advance(self):
+        """advance() -- basic behavior
 
         .. note:: also tests 'counter' and 'dirty' attributes
         """
@@ -1661,25 +1826,25 @@ class HotpTest(_BaseOTPTest):
         # init random counter & key
         counter = randcounter()
         otp = self.randotp(counter=counter)
-        self.assertFalse(otp.dirty)
+        self.assertFalse(otp.changed)
 
         # generate token
-        token = otp.generate_next()
+        token = otp.advance()
         self.assertEqual(otp.counter, counter + 1) # should increment counter
         self.assertTrue(otp.verify(token, counter)) # should have used .counter
-        self.assertTrue(otp.dirty)
+        self.assertTrue(otp.changed)
 
         # should generate new token and increment counter
-        token = otp.generate_next()
+        token = otp.advance()
         self.assertEqual(otp.counter, counter + 2) # should increment counter
         self.assertTrue(otp.verify(token, counter + 1)) # should have used .counter
 
-    def test_generate_next_w_reference_vectors(self):
-        """generate_next() -- reference vectors"""
+    def test_advance_w_reference_vectors(self):
+        """advance() -- reference vectors"""
         for otp, counter, token, msg in self.iter_test_vectors():
             # should output correct token for specified counter
             otp.counter = counter
-            result = otp.generate_next()
+            result = otp.advance()
             self.assertEqual(result, token, msg=msg)
 
     #=============================================================================
@@ -1698,16 +1863,15 @@ class HotpTest(_BaseOTPTest):
         self.assertIsInstance(result, HotpMatch)
 
         # test attrs
-        self.assertTrue(result.valid)
-        self.assertEqual(result.counter, counter+1)
-        self.assertEqual(result.counter_offset, 0)
+        self.assertEqual(result.next_counter, counter+1)
+        self.assertEqual(result.counter_skipped, 0)
 
         # test tuple
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (True, counter+1))
+        self.assertEqual(result, (counter+1,0))
         self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], True)
-        self.assertEqual(result[1], counter+1)
+        self.assertEqual(result[0], counter+1)
+        self.assertEqual(result[1], 0)
         self.assertRaises(IndexError, result.__getitem__, 2)
 
         # test bool
@@ -1726,16 +1890,15 @@ class HotpTest(_BaseOTPTest):
         self.assertIsInstance(result, HotpMatch)
 
         # test attrs
-        self.assertTrue(result.valid)
-        self.assertEqual(result.counter, counter + 1)
-        self.assertEqual(result.counter_offset, 1)
+        self.assertEqual(result.next_counter, counter + 1)
+        self.assertEqual(result.counter_skipped, 1)
 
         # test tuple
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (True, counter + 1))
+        self.assertEqual(result, (counter + 1, 1))
         self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], True)
-        self.assertEqual(result[1], counter + 1)
+        self.assertEqual(result[0], counter + 1)
+        self.assertEqual(result[1], 1)
         self.assertRaises(IndexError, result.__getitem__, 2)
 
         # test bool
@@ -1743,42 +1906,21 @@ class HotpTest(_BaseOTPTest):
 
     def test_hotp_match_w_invalid_token(self):
         """verify() -- invalid HotpMatch object"""
-        from passlib.totp import HotpMatch
-
         otp = HOTP(KEY3)
         counter = 41230981
         token = '775167'
-        result = otp.verify(token, counter+1)
-
-        # test type
-        self.assertIsInstance(result, HotpMatch)
-
-        # test attrs
-        self.assertFalse(result.valid)
-        self.assertEqual(result.counter, counter + 1)
-        self.assertEqual(result.counter_offset, 0)
-
-        # test tuple
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result, (False, counter + 1))
-        self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertEqual(result[0], False)
-        self.assertEqual(result[1], counter + 1)
-        self.assertRaises(IndexError, result.__getitem__, 2)
-
-        # test bool
-        self.assertFalse(result)
+        self.assertRaises(exc.InvalidTokenError, otp.verify, token, counter+1)
 
     #=============================================================================
     # verify()
     #=============================================================================
-    def test_verify_w_window(self, for_verify_next=False):
+    def test_verify_w_window(self, for_consume=False):
         """verify() -- 'counter' & 'window' parameters"""
         # init generator
         counter = randcounter()
         otp = self.randotp()
-        if for_verify_next:
-            verify = self._create_verify_next_wrapper(otp)
+        if for_consume:
+            verify = self._create_consume_wrapper(otp)
         else:
             verify = otp.verify
         token = otp.generate(counter)
@@ -1787,13 +1929,13 @@ class HotpTest(_BaseOTPTest):
         def test(valid, counter_offset, token, counter, **kwds):
             """helper to test verify() output"""
             # NOTE: HotpMatch return type tested more throughly above ^^^
-            result = verify(token, counter, **kwds)
-            self.assertEqual(result.valid, valid)
             if valid:
-                self.assertEqual(result.counter, counter + 1 + counter_offset)
+                result = verify(token, counter, **kwds)
+                self.assertTrue(result)
+                self.assertEqual(result.next_counter, counter + 1 + counter_offset)
+                self.assertEqual(result.counter_skipped, counter_offset)
             else:
-                self.assertEqual(result.counter, counter)
-            self.assertEqual(result.counter_offset, counter_offset)
+                self.assertRaises(exc.InvalidTokenError, verify, token, counter, **kwds)
 
         # validate against previous counter step (passes if window >= 1)
         test(False, 0,   token, counter-1, window=0)
@@ -1808,18 +1950,18 @@ class HotpTest(_BaseOTPTest):
         test(False, 0,   token, counter+1) # window=1 is default
         test(False, 0,   token, counter+1, window=2)
 
-    def test_verify_w_token_normalization(self, for_verify_next=False):
+    def test_verify_w_token_normalization(self, for_consume=False):
         """verify() -- token normalization"""
         # setup test helper
         otp = HOTP(KEY3)
-        if for_verify_next:
-            verify = self._create_verify_next_wrapper(otp)
+        if for_consume:
+            verify = self._create_consume_wrapper(otp)
         else:
             verify = otp.verify
 
         # separators / spaces should be stripped (orig token '049644')
         counter = 2889830
-        correct = (True, counter+1)
+        correct = (counter + 1, 0)
         self.assertEqual(verify('    0 49-644  ', counter), correct)
 
         # ascii bytes
@@ -1829,84 +1971,82 @@ class HotpTest(_BaseOTPTest):
         self.assertEqual(verify(49644, counter), correct)
 
         # too few digits
-        self.assertRaises(ValueError, verify, '12345', counter)
+        self.assertRaises(exc.MalformedTokenError, verify, '12345', counter)
 
         # invalid char
-        self.assertRaises(ValueError, verify, '12345X', counter)
+        self.assertRaises(exc.MalformedTokenError, verify, '12345X', counter)
 
         # leading zeros count towards size
-        self.assertRaises(ValueError, verify, '0123456', counter)
+        self.assertRaises(exc.MalformedTokenError, verify, '0123456', counter)
 
-    def test_verify_w_reference_vectors(self, for_verify_next=False):
+    def test_verify_w_reference_vectors(self, for_consume=False):
         """verify() -- reference vectors"""
         for otp, counter, token, msg in self.iter_test_vectors():
             # create wrapper
-            if for_verify_next:
-                verify = self._create_verify_next_wrapper(otp)
+            if for_consume:
+                verify = self._create_consume_wrapper(otp)
             else:
                 verify = otp.verify
 
             # token should match counter *exactly*
             result = verify(token, counter, window=0)
-            self.assertTrue(result.valid, msg=msg)
-            self.assertEqual(result.counter, counter+1, msg=msg) # NOTE: will report *next* counter valid
-            self.assertEqual(result.counter_offset, 0, msg=msg)
+            self.assertTrue(result)
+            self.assertEqual(result.next_counter, counter+1, msg=msg) # NOTE: will report *next* counter valid
+            self.assertEqual(result.counter_skipped, 0, msg=msg)
 
             # should NOT verify against another counter
-            result = verify(token, counter + 100, window=0)
-            self.assertFalse(result.valid, msg=msg)
-            self.assertEqual(result.counter, counter + 100, msg=msg)
-            self.assertEqual(result.counter_offset, 0, msg=msg)
+            self.assertRaises(exc.InvalidTokenError, verify, token, counter + 100, window=0)
 
     #=============================================================================
-    # verify_next()
+    # consume()
     #=============================================================================
-    def _create_verify_next_wrapper(self, otp):
+    def _create_consume_wrapper(self, otp):
         """
-        returns a wrapper around verify_next()
+        returns a wrapper around consume()
         which makes it's signature & return match verify(),
         to helper out shared test code.
         """
         from passlib.totp import HotpMatch
         def wrapper(token, counter=None, **kwds):
             otp.counter = counter
-            valid = otp.verify_next(token, **kwds)
-            return HotpMatch(valid, otp.counter, otp.counter - 1 - counter if valid else 0)
+            valid = otp.consume(token, **kwds)
+            self.assertIs(valid, True)
+            return HotpMatch(otp.counter, counter)
         return wrapper
 
-    def test_verify_next_w_window(self):
-        """verify_next() -- 'window' parameter"""
-        self.test_verify_w_window(for_verify_next=True)
+    def test_consume_w_window(self):
+        """consume() -- 'window' parameter"""
+        self.test_verify_w_window(for_consume=True)
 
-    def test_verify_next_w_token_normalization(self):
-        """verify_next() -- token normalization"""
-        self.test_verify_w_token_normalization(for_verify_next=True)
+    def test_consume_w_token_normalization(self):
+        """consume() -- token normalization"""
+        self.test_verify_w_token_normalization(for_consume=True)
 
-    def test_verify_next_w_counter(self):
-        """verify_next() -- 'counter' and 'dirty' attributes"""
+    def test_consume_w_counter(self):
+        """consume() -- 'counter' and 'dirty' attributes"""
 
         # init generator
         counter = randcounter()
         otp = self.randotp(counter=counter)
         token = otp.generate(counter)
         self.assertEqual(otp.counter, counter)
-        self.assertFalse(otp.dirty)
+        self.assertFalse(otp.changed)
 
         # verify token, should advance counter & set dirty flag
-        self.assertTrue(otp.verify_next(token))
+        self.assertTrue(otp.consume(token))
         self.assertEqual(otp.counter, counter + 1)
-        self.assertTrue(otp.dirty)
+        self.assertTrue(otp.changed)
 
         # reverify should reject token, leaving counter & dirty flag alone.
         otp.counter = counter + 1
-        otp.dirty = False
-        self.assertFalse(otp.verify_next(token))
+        otp.changed = False
+        self.assertRaises(exc.InvalidTokenError, otp.consume, token)
         self.assertEqual(otp.counter, counter + 1)
-        self.assertFalse(otp.dirty)
+        self.assertFalse(otp.changed)
 
-    def test_verify_next_w_reference_vectors(self):
-        """verify_next() -- reference vectors"""
-        self.test_verify_w_reference_vectors(for_verify_next=True)
+    def test_consume_w_reference_vectors(self):
+        """consume() -- reference vectors"""
+        self.test_verify_w_reference_vectors(for_consume=True)
 
     #=============================================================================
     # uri serialization
@@ -2120,16 +2260,20 @@ class HotpTest(_BaseOTPTest):
     # json serialization
     #=============================================================================
 
-    # TODO: from_string()
+    # TODO: from_json()
     #           with uri
-    #           without needed password
-    #           with needed password
+    #           with dict
     #           with bad version, decode error
 
-    # TODO: to_string()
-    #           with password
-    #           with custom cost
-    #           with password=True
+    # TODO: to_json()
+    # TODO: to_dict()
+    #           with encrypt=False
+    #           with encrypt="auto" + context + secrets
+    #           with encrypt="auto" + context + no secrets
+    #           with encrypt="auto" + no context
+    #           with encrypt=True + context + secrets
+    #           with encrypt=True + context + no secrets
+    #           with encrypt=True + no context
 
     # TODO: test 'counter' and 'start' are preserved.
 

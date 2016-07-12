@@ -78,12 +78,51 @@ class PasslibSecurityError(RuntimeError):
     .. versionadded:: 1.6.3
     """
 
-class TokenReuseError(ValueError):
-    """Error raised by various methods in :mod:`passlib.totp` if a token is reused.
-    This exception derives from :exc:`!ValueError`.
+
+class TokenError(ValueError):
+    """
+    Base error raised by v:mod:`passlib.totp` when
+    a token can't be parsed / isn't valid / etc.
+    Derives from :exc:`!ValueError`.
+
+    Usually one of the more specific subclasses below will be raised:
+    :class:`InvalidTokenError`, :class:`TokenMatchError`, :class:`UsedTokenError`.
 
     .. versionadded:: 1.7
     """
+    _default_message = None
+
+    def __init__(self, msg=None, *args, **kwds):
+        if msg is None:
+            msg = self._default_message
+        assert msg # external code should be able to rely on str(err) always being True
+        ValueError.__init__(self, msg, *args, **kwds)
+
+
+class MalformedTokenError(TokenError):
+    """
+    Error raised by :mod:`passlib.totp` when a token isn't formatted correctly
+    (contains invalid characters, wrong number of digits, etc)
+    """
+    _default_message = "Unrecognized token"
+
+
+class InvalidTokenError(TokenError):
+    """
+    Error raised by :mod:`passlib.totp` when a token is formatted correctly,
+    but doesn't match any tokens within valid range.
+    """
+    _default_message = "Token did not match"
+
+
+class UsedTokenError(TokenError):
+    """
+    Error raised by :mod:`passlib.totp` if a token is reused.
+    Derives from :exc:`TokenError`.
+
+    .. versionadded:: 1.7
+    """
+    _default_message = ""
 
     #: optional value indicating when current counter period will end,
     #: and a new token can be generated.
@@ -91,7 +130,7 @@ class TokenReuseError(ValueError):
 
     def __init__(self, *args, **kwds):
         self.expire_time = kwds.pop("expire_time", None)
-        ValueError.__init__(self, *args, **kwds)
+        TokenError.__init__(self, *args, **kwds)
 
 
 class UnknownHashError(ValueError):

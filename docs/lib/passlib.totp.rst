@@ -29,6 +29,12 @@
 API Reference
 =============
 
+OTPContext
+----------
+.. autoclass:: OTPContext
+
+.. autofunction:: generate_secret
+
 Common Interface
 ----------------
 .. autoclass:: BaseOTP()
