@@ -49,7 +49,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.viewcode',
+    # 'sphinx.ext.viewcode',
 
     # 3rd part extensions
     'sphinxcontrib.fulltoc',
@@ -171,10 +171,22 @@ if csp.is_cloud_theme(html_theme):
                               issueicon=None,
                               # lighter_decor=True,
                               borderless_decor=True,
-                              sidebar_localtoc_title="Page contents",
-                              max_width="12in",
-                              sidebarwidth="3.5in",
+                                  sidebarbgcolor='transparent',
+                                  bodytrimcolor='transparent',
+                              max_width="12.5in",
+                              sidebarwidth="3in",
+                              large_sidebar_width="3.5in",
                               hyphenation_language="en",
+                              headfont='"Bitstream Vera Sans", sans-serif',
+                              bodyfont='arial, helvetica, sans-serif',
+                              relbarbgcolor='#821f4d',
+                              sectionbgcolor='#964361',
+                              rubricbgcolor='#B4748B',
+                              sidebarlinkcolor='#6A3051',
+                              link_hover_text_color='#ff0000',
+                              link_hover_trim_color='#ddb1b8',
+                              toc_local_bg_color='#eddbdb',
+                              toc_local_trim_color='#ddb1b8',
                               )
     if 'for-pypi' in options:
         html_theme_options.update(
