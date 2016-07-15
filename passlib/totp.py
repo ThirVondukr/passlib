@@ -309,28 +309,33 @@ class OTPContext(object):
     which will be used to encrypt TOTP keys for storage.
 
     Arguments
-    ---------
+    =========
     :param secrets:
-        collection of (tag, secret) pairs.
-        this should include historical secrets that are still in use,
-        as well as the default secret to use when encrypting new keys.
+        Dict of application secrets to use when encrypting/decrypting
+        TOTP keys for storage.  If specified, this should include
+        at least one secret to use when encrypting new keys,
+        as well as 0 or more olders secrets that need to be kept around
+        to decrypt existing stored keys.
 
-        can be list of (tag, secret) pairs, or a mapping of tag -> secret.
-
-        each tag should be string that starts with regex range ``[a-z0-9]``,
+        Dict should map tags -> secrets, so that each secret is identified
+        by a unique tag.  This tag will be stored along with the encrypted
+        key in order to determine which secret should be used for decryption.
+        Tag should be string that starts with regex range ``[a-z0-9]``,
         and the remaining characters must be in ``[a-z0-9_.-]``.
 
-        this can also be a json formatted string matching one of
-        the above formats, OR a multiline string with the format
-        ``"tag: value\ntag: value\n..."``.
+        Instead of a python dict, this can also be a json formatted string
+        containing a dict, OR a multiline string with the format
+        ``"tag: value\\ntag: value\\n..."``
 
     :param secrets_path:
         Alternately, callers can specify a separate file where the
-        application-wide secrets are stored.
+        application-wide secrets are stored, using either of the string
+        formats described in **secrets**.
 
     :param default_tag:
-        specifies which tag should be used as the default for new keys.
-        if omitted, the tags will be sorted, and the largest tag picked.
+        Specifies which tag in **secrets** should be used as the default
+        for encrypting new keys. If omitted, the tags will be sorted,
+        and the largest tag used as the default.
 
         if all tags are numeric, they will be sorted numerically;
         otherwise they will be sorted alphabetically.
@@ -342,33 +347,22 @@ class OTPContext(object):
         This value corresponds to log2() of the number of PBKDF2
         rounds used.
 
-        :param app_secret_tag:
-        :param app_secret_map:
-
-            TODO: fix docs for these two.
-
-            Optional password which will be used to encrypt the secret key.
-
-            *(The key is encrypted using PBKDF2-HMAC-SHA256, see the source
-            of the* :func:`encrypt_key` *function for details)*.
-
-            If the TOTP object had a password provided to the constructor,
-            to or :meth:`from_json`, you can set ``password=True`` here
-            to simply re-use the previously encrypted secret key.
-
     .. warning::
 
-        The **secrets** should be kept in a secure location by your application,
-        and contain a large amount of entropy (to prevent brute-force guessing).
-        Since the encrypt/decrypt cycle is expected to be required
-        to (de-)serialize TOTP instances every time a user logs in,
-        the default work-factor (``cost``) is kept relatively low.
+        The application secret(s) should be stored in a secure location by
+        your application, and each secret should contain a large amount
+        of entropy (to prevent brute-force attacks if the encrypted keys
+        are leaked).
 
         :func:`generate_secret` is provided as a convenience helper
         to generate a new application secret of suitable size.
 
+        Best practice is to load these values from a file via **secrets_path**,
+        and then have your application give up permission to read this file
+        once it's running.
+
     Public Methods
-    --------------
+    ==============
     .. automethod:: new
     .. automethod:: from_uri
     .. automethod:: from_json
@@ -376,7 +370,7 @@ class OTPContext(object):
 
     ..
         Semi-Private Methods
-        --------------------
+        ====================
         The following methods are used internally by the :class:`TOTP` and :class:`HOTP`
         classes in order to encrypt & decrypt keys using the provided application
         secrets:
@@ -1441,6 +1435,7 @@ class BaseOTP(object):
 
         :param encrypt:
             Whether to output should be encrypted.
+
             * ``"auto"`` (the default) -- uses encrypted key if application
               secret is available, otherwise uses raw key.
             * True -- uses encrypted key, or raises TypeError
@@ -1919,7 +1914,7 @@ class TotpMatch(SequenceMixin):
     """
     #: TOTP counter value which token matched against.
     #: (Best practice it to subsequently ignore tokens for this counter
-    #:  and earlier)
+    #: and earlier)
     counter = 0
 
     #: Timestamp when verification was performed.

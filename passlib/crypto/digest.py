@@ -207,9 +207,9 @@ def lookup_hash(digest, return_unknown=False):
     Can be used to look up a hash constructor by name, normalize hash name representation, etc.
 
     :arg digest:
-        This can be a digest constructor (e.g. :func:`hashlib.sha256`),
-        a string containing a :mod:`!hashlib` digest name (e.g. ``"sha256"``),
-        an IANA-assigned hash name. Case is ignored, underscores are converted to hyphens,
+        A string containing a :mod:`!hashlib` digest name (e.g. ``"sha256"``),
+        an IANA-assigned hash name, or even a digest constructor (e.g. :func:`hashlib.sha256`).
+        Case is ignored, underscores are converted to hyphens,
         and various other cleanups are made.
 
     :param return_unknown:
@@ -217,11 +217,11 @@ def lookup_hash(digest, return_unknown=False):
         can be found.  However, if this flag is False, it will instead return a dummy record
         without a constructor function.  This is mainly used by :func:`norm_hash_name`.
 
-    Multiple calls made with the same input, or made with inputs that reference the same hash,
-    should all return the same :class:`!lookup_hash` instance.
+    :returns HashInfo:
+        :class:`!HashInfo` instance containing information about specified digest.
 
-    :returns:
-        :class:`HashInfo` instance for specified digest.
+        Multiple calls resolving to the same hash should always
+        return the same :class:`!HashInfo` instance.
     """
     # check for cached entry
     cache = _hash_info_cache
@@ -353,13 +353,14 @@ class HashInfo(SequenceMixin):
     .. autoattribute:: iana_name
     .. autoattribute:: aliases
 
-    Also acts as a sequence of ``(const, digest_size, block_size)``.
+    This object can also be treated a 3-element sequence
+    containing ``(const, digest_size, block_size)``.
     """
     #=========================================================================
     # instance attrs
     #=========================================================================
 
-    #: Canonical (hashlib-compatible) name (e.g. ``"sha256"``).
+    #: Canonical / hashlib-compatible name (e.g. ``"sha256"``).
     name = None
 
     #: IANA assigned name (e.g. ``"sha-256"``), may be ``None`` if unknown.

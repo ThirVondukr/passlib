@@ -68,8 +68,8 @@ Helper Classes
 Deviations
 ==========
 
-* The TOTP Spec [#totpspec]_ includes an potentially offset from the base time (``T0``).
-  Passlib omits this (fixing it at ``0``), but so do pretty much all other TOTP implementations.
+* The TOTP Spec [#totpspec]_ includes an param (``T0)``) providing an optional offset from the base time.
+  Passlib omits this parameter (fixing it at ``0``), but so do pretty much all other TOTP implementations.
 
 .. rubric:: Footnotes
 

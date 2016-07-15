@@ -21,7 +21,12 @@ Exceptions
 
 .. autoexception:: PasslibSecurityError
 
-.. autoexception:: TokenReuseError
+TOTP Exceptions
+---------------
+.. autoexception:: TokenError
+.. autoexception:: MalformedTokenError
+.. autoexception:: InvalidTokenError
+.. autoexception:: UsedTokenError
 
 Warnings
 ========

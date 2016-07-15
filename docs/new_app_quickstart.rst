@@ -66,12 +66,12 @@ All four hashes share the following properties:
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * at least 96 bits of salt.
     * basic algorithm has seen heavy scrutiny and use for at least 10 years
-      (except for Argon2, from is from circa 2013).
+      (except for Argon2, born around 2013).
     * in use across a number of OSes and/or a wide variety of applications.
 
 Argon2 is much younger than the others, but has seen heavy scrunity,
 and was purpose-designed for password hashing.  In the near future, it stands likely to
-become *THE* recommended standard.
+become *the* recommended standard.
 
 .. rst-class:: html-toggle
 
@@ -180,8 +180,8 @@ standard format for encoding password hashes using this algorithm
 Furthermore, when compared to Argon2 and BCrypt, PBKDF2 has proven more susceptible to cracking
 using modern GPU-based techniques.
 
-Making Descision
-----------------
+Making a Decision
+-----------------
 For new applications, this decision comes down to a couple of questions:
 
 1. Does the hash need to be natively supported by your operating system's :func:`!crypt` api,

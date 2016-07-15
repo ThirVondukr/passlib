@@ -9,15 +9,15 @@ Release History
 Future Changes
 ==============
 
-The following is not a comprehensive list, merely a summary of important
-planned future changes which may impact developers:
+The following is not a comprehensive list of upcoming changes,
+but merely a summary of important changes which may impact developers:
 
-* 1.8:
+* v1.8:
 
     - Removal of long-deprecated :class:`CryptPolicy` class.
     - Removal of deprecated methods from :mod:`passlib.apache`.
 
-* 2.0:
+* v2.0:
 
     - A *large* number of deprecated methods and features will be removed;
       primarily the deprecated :meth:`!hasher.encrypt` alias.
