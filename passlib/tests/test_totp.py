@@ -303,6 +303,13 @@ class OTPContextTest(TestCase):
     #=============================================================================
     # encrypt_key() & decrypt_key() helpers
     #=============================================================================
+    def require_aes_support(self, canary=None):
+        if AES_SUPPORT:
+            canary and canary()
+        else:
+            canary and self.assertRaises(RuntimeError, canary)
+            raise self.skipTest("'cryptography' package not installed")
+
     def test_decrypt_key(self):
         """.decrypt_key()"""
 
@@ -311,9 +318,7 @@ class OTPContextTest(TestCase):
         # check for support
         CIPHER1 = dict(v=1, c=13, s='6D7N7W53O7HHS37NLUFQ',
                        k='MHCTEGSNPFN5CGBJ', t='1')
-        if not AES_SUPPORT:
-            self.assertRaises(RuntimeError, context.decrypt_key, CIPHER1)
-            raise self.skipTest("'cryptography' package not installed")
+        self.require_aes_support(canary=partial(context.decrypt_key, CIPHER1))
 
         # reference key
         self.assertEqual(context.decrypt_key(CIPHER1)[0], KEY1_RAW)
@@ -345,6 +350,7 @@ class OTPContextTest(TestCase):
 
     def test_decrypt_key_xor(self):
         """.decrypt_key() -- legacy xor format"""
+        self.require_aes_support()
 
         # XOR encoding of KEY1
         CIPHER = dict(v=0, t="1", c=12, s='EISCJBCQVL2V4C7B', k='KTTAWJP2RT4MYGWR')
@@ -362,6 +368,7 @@ class OTPContextTest(TestCase):
 
     def test_decrypt_key_needs_recrypt(self):
         """.decrypt_key() -- needs_recrypt flag"""
+        self.require_aes_support()
 
         context = OTPContext({"1": PASS1, "2": PASS2}, cost=13)
 
@@ -403,9 +410,7 @@ class OTPContextTest(TestCase):
 
         # check for support
         context = OTPContext({"1": PASS1}, cost=5)
-        if not AES_SUPPORT:
-            self.assertRaises(RuntimeError, context.encrypt_key, KEY1_RAW)
-            raise self.skipTest("'cryptography' package not installed")
+        self.require_aes_support(canary=partial(context.encrypt_key, KEY1_RAW))
 
         # basic behavior
         result = context.encrypt_key(KEY1_RAW)
@@ -443,8 +448,7 @@ class OTPContextTest(TestCase):
 
     def test_encrypt_cost_timing(self):
         """verify cost parameter via timing"""
-        if not AES_SUPPORT:
-            raise self.skipTest("'cryptography' package not installed")
+        self.require_aes_support()
 
         # time default cost
         context = OTPContext({"1": "aaa"})
