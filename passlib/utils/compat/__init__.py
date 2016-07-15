@@ -26,6 +26,9 @@ PYPY = hasattr(sys, "pypy_version_info")
 if PYPY and sys.pypy_version_info < (2,0):
     raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
+# e.g. '2.7.7\n[Pyston 0.5.1]'
+PYSTON = "Pyston" in sys.version
+
 #=============================================================================
 # common imports
 #=============================================================================

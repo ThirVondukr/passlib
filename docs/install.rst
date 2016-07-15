@@ -14,6 +14,7 @@ It is known to work with the following Python implementations:
 * PyPy -- v2.0 or newer.
 * PyPy3 -- v5.3 or newer.
 * Jython -- v2.7 or newer.
+* Pyston -- v0.5.1 or newer.
 
 Passlib should work with all operating systems and environments,
 as it contains builtin fallbacks for almost all OS-dependant features.

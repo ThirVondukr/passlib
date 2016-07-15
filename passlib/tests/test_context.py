@@ -299,7 +299,8 @@ sha512_crypt__min_rounds = 45000
     def test_09_repr(self):
         """test repr()"""
         cc1 = CryptContext(**self.sample_1_dict)
-        self.assertRegex(repr(cc1), "^<CryptContext at 0x[0-9a-f]+>$")
+        # NOTE: "0x-1234" format used by Pyston 0.5.1
+        self.assertRegex(repr(cc1), "^<CryptContext at 0x-?[0-9a-f]+>$")
 
     #===================================================================
     # modifiers
