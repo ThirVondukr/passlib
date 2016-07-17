@@ -10,7 +10,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe
-from passlib.utils.compat import irange, PY3, u, unicode, join_bytes, PYPY
+from passlib.utils.compat import irange, PY2, PY3, u, unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb
 
 #=============================================================================
