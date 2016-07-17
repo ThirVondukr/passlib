@@ -181,7 +181,7 @@ class OTPContextTest(TestCase):
 
         # ensure ":" allowed in secret
         context = OTPContext("1: aaa: bbb \n# comment\n \n2: bbb   ")
-        self.assertEqual(context._secrets, {"1": b"aaa: bbb", "2": "bbb"})
+        self.assertEqual(context._secrets, {"1": b"aaa: bbb", "2": b"bbb"})
 
         # json dict
         context = OTPContext('{"1":"aaa","2":"bbb"}')
@@ -246,17 +246,17 @@ class OTPContextTest(TestCase):
         # should sort numerically
         context = OTPContext({"1": "one", "02": "two"})
         self.assertEqual(context._default_tag, "02")
-        self.assertEqual(context._default_secret, "two")
+        self.assertEqual(context._default_secret, b"two")
 
         # should sort alphabetically if non-digit present
         context = OTPContext({"1": "one", "02": "two", "A": "aaa"})
         self.assertEqual(context._default_tag, "A")
-        self.assertEqual(context._default_secret, "aaa")
+        self.assertEqual(context._default_secret, b"aaa")
 
         # should use honor custom tag
         context = OTPContext({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
         self.assertEqual(context._default_tag, "1")
-        self.assertEqual(context._default_secret, "one")
+        self.assertEqual(context._default_secret, b"one")
 
         # throw error on unknown value
         self.assertRaises(KeyError, OTPContext, {"1": "one", "02": "two", "A": "aaa"},
