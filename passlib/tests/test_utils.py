@@ -10,7 +10,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe
-from passlib.utils.compat import irange, PY3, u, unicode, join_bytes, PYPY, PYSTON
+from passlib.utils.compat import irange, PY3, u, unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb
 
 #=============================================================================
@@ -236,12 +236,10 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, consteq, 1, b'')
 
         def consteq_supports_string(value):
-            # compare_digest() only supports ascii unicode strings;
-            # except under pypy2, which accepts non-ascii 
-            return (consteq is str_consteq or
-                    (PYPY and not PY3) or
-                    PYSTON or
-                    is_ascii_safe(value))
+            # under PY2, it supports all unicode strings (when present at all),
+            # under PY3, compare_digest() only supports ascii unicode strings.
+            # confirmed for: cpython 2.7.9, cpython 3.4, pypy, pypy3, pyston
+            return (consteq is str_consteq or PY2 or is_ascii_safe(value))
 
         # check equal inputs compare correctly
         for value in [
