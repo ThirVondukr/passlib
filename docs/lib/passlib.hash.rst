@@ -8,20 +8,30 @@
 Overview
 ========
 The :mod:`!passlib.hash` module contains all the password hash algorithms built into Passlib.
-While each hash has its own options and output format, they all share a common interface,
-documented in detail in the :ref:`password-hash-api`. The following pages
-describe the common interface, and then describe each hash in detail
-(including its format, underlying algorithm, and known security issues).
+While each hash has its own options and output format,
+they all inherit from the :mod:`passlib.ifc`.\ :class:`!PasswordHash` API.
+The following pages describe each hash in detail,
+including its format, underlying algorithm, and known security issues.
 
-.. seealso:: :doc:`Quickstart Guide </new_app_quickstart>` -- advice on
-    choosing an appropriately secure hash for your new application.
+.. warning::
+
+    **Many of the hash algorithms listed below are *NOT* secure.**
+
+    Passlib supports a wide array of hash algorithms, primarily to
+    support dealing with legacy data and systems.
+
+    If you're looking to choose a hash algorithm for a new application,
+    see the :doc:`Quickstart Guide </new_app_quickstart>` instead of picking
+    one from this list.
+
+.. rst-class:: html-toggle
 
 Usage
-=====
-All of the hashes in this module can used in two ways:
+-----
+All of the hashes in this module can be used in two ways:
 
-1. They can be imported and used directly, as in the following example
-   with the :class:`md5_crypt` hash::
+1. They can be imported from :mod:`!passlib.hash` and used directly,
+   as in the following example with the :class:`md5_crypt` hash::
 
         >>> # import the desired hash
         >>> from passlib.hash import md5_crypt
@@ -61,33 +71,75 @@ All of the hashes in this module can used in two ways:
         >>> pwd_context.verify("letmein", hash2)
         True
 
-For additional details, usage examples, and full documentation of all
-methods and attributes provided by the common hash interface:
+.. seealso::
 
-.. toctree::
-    :maxdepth: 2
-
-    /password_hash_api
+    For additional details and usage examples, see the
+    :doc:`PasswordHash </password_hash_api>` and :doc:`CryptContext </lib/passlib.context>`
+    reference.
 
 .. _mcf-hashes:
 
-Unix & "Modular Crypt" Hashes
-=============================
-Aside from the "archaic" schemes below, most modern Unix flavors
-use password hashes which follow the :ref:`modular crypt format <modular-crypt-format>`,
+Unix Hashes
+===========
+Aside from "archaic" schemes such as :class:`!des_crypt`,
+most of the password hashes supported by modern Unix flavors
+adhere to the :ref:`modular crypt format <modular-crypt-format>`,
 allowing them to be easily distinguished when used within the same file.
-The basic format :samp:`${scheme}${hash}` has also been adopted for use
+The basic of format :samp:`${scheme}${hash}` has also been adopted for use
 by other applications and password hash schemes.
+
+.. _standard-unix-hashes:
+
+.. rst-class:: toc-always-open
+
+Active Unix Hashes
+------------------
+All these schemes are actively in use by various Unix flavors to store user passwords.
+They all follow the modular crypt format.
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.bcrypt
+    passlib.hash.sha256_crypt
+    passlib.hash.sha512_crypt
+
+Special note should be made of the following fallback helper,
+which is not an actual hash scheme, but implements the "disabled account marker"
+found in many Linux & BSD password files:
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.unix_disabled
+
+.. rst-class:: toc-always-open
+
+Deprecated Unix Hashes
+----------------------
+The following schemes are supported by various Unix systems
+use the modular crypt format, and are noticably stronger than the previous group.
+However, they have all since been deprecated in favor of stronger algorithms:
+
+* :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible encoding of :doc:`nthash <passlib.hash.nthash>` digests
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.md5_crypt
+    passlib.hash.sha1_crypt
+    passlib.hash.sun_md5_crypt
 
 .. _archaic-unix-schemes:
 
-Archaic Unix Schemes
---------------------
-All of the following hashes are/were used by various Unix flavors
-to store user passwords; most are based on the DES block cipher,
-and predate the arrival of the modular crypt format.
-They should all be considered insecure at best, but may be useful when reading
-legacy password entries:
+.. rst-class:: toc-always-open
+
+Archaic Unix Hashes
+-------------------
+The following schemes are supported by certain Unix systems,
+but are considered particularly archaic: Not only do they predate
+the modular crypt format, but they're based on the outmoded DES block cipher,
+and are woefully insecure:
 
 .. toctree::
     :maxdepth: 1
@@ -97,51 +149,46 @@ legacy password entries:
     passlib.hash.bigcrypt
     passlib.hash.crypt16
 
-.. _standard-unix-hashes:
+Other "Modular Crypt" Hashes
+============================
+The :ref:`modular crypt format <modular-crypt-format>` is a loose standard
+for password hash strings which started life under the Unix operating system,
+and is used by many of the Unix hashes (above).  However, it's
+it's basic :samp:`${scheme}${hash}` format has also been adopted by a number
+of application-specific hash algorithms:
 
-Standard Unix Schemes
----------------------
-All these schemes are currently used by various Unix flavors to store user passwords.
-They all follow the modular crypt format.
+.. rst-class:: toc-always-open
+
+Active Hashes
+-------------
+While most of these schemes generally require an application-specific
+implementation, natively used by any Unix flavor to store user passwords,
+they can be used compatibly along side other modular crypt format hashes:
 
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.md5_crypt
-    passlib.hash.bcrypt
-    passlib.hash.sha1_crypt
-    passlib.hash.sun_md5_crypt
-    passlib.hash.sha256_crypt
-    passlib.hash.sha512_crypt
+    passlib.hash.argon2
+    passlib.hash.bcrypt_sha256
+    passlib.hash.phpass
+    passlib.hash.pbkdf2_digest
+    passlib.hash.scram
+    passlib.hash.scrypt
 
-Other Modular Crypt Schemes
----------------------------
-While most of these schemes are not (commonly) used by any Unix flavor to store user passwords,
-they can be used compatibly along side other modular crypt format hashes.
+.. rst-class:: toc-always-open
+
+Deprecated Hashes
+-----------------
+The following are some additional application-specific hashes which are still
+occasionally seen, use the modular crypt format, but are rarely used or weak
+enough that they have been deprecated:
 
 .. toctree::
     :maxdepth: 1
 
     passlib.hash.apr_md5_crypt
-    passlib.hash.bcrypt_sha256
-    passlib.hash.phpass
-    passlib.hash.pbkdf2_digest
     passlib.hash.cta_pbkdf2_sha1
     passlib.hash.dlitz_pbkdf2_sha1
-    passlib.hash.scram
-    passlib.hash.scrypt
-    passlib.hash.argon2
-
-* :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible :doc:`nthash <passlib.hash.nthash>` encoding
-
-Special note should be made of the fallback helper,
-which is not an actual hash scheme, but provides "disabled account"
-behavior found in many Linux & BSD password files:
-
-.. toctree::
-    :maxdepth: 1
-
-    passlib.hash.unix_disabled
 
 .. _ldap-hashes:
 
@@ -151,9 +198,6 @@ LDAP / RFC2307 Hashes
 All of the following hashes use a variant of the password hash format
 used by LDAPv2. Originally specified in :rfc:`2307` and used by OpenLDAP [#openldap]_,
 the basic format ``{SCHEME}HASH`` has seen widespread adoption in a number of programs.
-
-.. [#openldap] OpenLDAP homepage - `<http://www.openldap.org/>`_.
-
 
 .. _standard-ldap-hashes:
 
@@ -237,6 +281,25 @@ no identifying markers, identifying them is pretty much context-dependant.
     passlib.hash.msdcc
     passlib.hash.msdcc2
 
+.. rst-class:: toc-always-toggle
+
+Cisco Hashes
+============
+The following hashes are used in various places on Cisco IOS and ASA devices:
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.cisco_pix
+    passlib.hash.cisco_asa
+
+* **Cisco "Type 5" hashes** - these are the same as :doc:`md5_crypt <passlib.hash.md5_crypt>`
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.cisco_type7
+
 .. _other-hashes:
 
 Other Hashes
@@ -248,16 +311,13 @@ in one of the above categories:
 .. toctree::
     :maxdepth: 1
 
-    passlib.hash.cisco_pix
-    passlib.hash.cisco_asa
-
-* *Cisco "Type 5" hashes* - see :doc:`md5_crypt <passlib.hash.md5_crypt>`
-
-.. toctree::
-    :maxdepth: 1
-
-    passlib.hash.cisco_type7
     passlib.hash.django_std
     passlib.hash.grub_pbkdf2_sha512
     passlib.hash.hex_digests
     passlib.hash.plaintext
+
+.. rubric:: Footnotes
+
+.. [#openldap] OpenLDAP homepage - `<http://www.openldap.org/>`_.
+
+

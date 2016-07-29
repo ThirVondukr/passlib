@@ -8,7 +8,14 @@
 Modular Crypt Format
 ====================
 
-.. centered:: *or*, a side note about a standard that isn't
+.. rst-class:: subtitle
+
+    A explanation about a standard that isn't
+
+Overview
+========
+A number of the hashes in Passlib are described as adhering to the "Modular Crypt Format".
+This page is an attempt to document what that means.
 
 In short, the modular crypt format (MCF) is a standard
 for encoding password hash strings, which requires hashes
@@ -18,9 +25,12 @@ identifying a particular scheme, and :samp:`{content}`
 is the contents of the scheme, using only the characters
 in the regexp range ``[a-zA-Z0-9./]``.
 
-However, there appears to be no central registry of identifiers,
-no specification document, and no actual rules;
-so the modular crypt format is more of an ad-hoc idea rather than a true standard.
+However, there's no official specification document describing this format.
+Nor is there a central registry of identifiers, or actual rules.
+The modular crypt format is more of an ad-hoc idea rather than a true standard.
+
+The rest of this page is an attempt to describe what is known,
+at least as far as the hashes supported by Passlib.
 
 History
 =======
@@ -73,11 +83,10 @@ by the modular crypt format hashes found in Passlib:
    they may use the ``$`` character as an internal field separator.
 
    This is the least adhered-to of any modular crypt format convention.
-   Other characters (such as ``+=,-``) are sometimes
-   used by various formats, though sparingly.
+   Other characters (such as ``+=,-``) are used by various formats.
 
    The only hard and fast stricture
-   is that ``:;!*`` and all non-printable characters be avoided,
+   is that ``:;!*`` and all non-printable or 8-bit characters be avoided,
    since this would interfere with parsing of the Unix shadow password file,
    where these hashes are typically stored.
 
@@ -142,7 +151,8 @@ and indicates which operating systems offer native support:
     :class:`~passlib.hash.bsdi_crypt`    ``_``                            y           y           y
     :class:`~passlib.hash.md5_crypt`     ``$1$``              y           y           y           y           y
     :class:`~passlib.hash.bcrypt`        ``$2$``, ``$2a$``,
-                                         ``$2x$``, ``$2y$``               y           y           y           y
+                                         ``$2x$``, ``$2y$``
+                                         ``$2b$``                         y           y           y           y
     :class:`~passlib.hash.bsd_nthash`    ``$3$``                          y
     :class:`~passlib.hash.sha256_crypt`  ``$5$``              y           8.3+                                y
     :class:`~passlib.hash.sha512_crypt`  ``$6$``              y           8.3+                                y
@@ -165,7 +175,7 @@ by the following operating systems and platforms:
 
 **Google App Engine** As of 2011-08-19, Google App Engine's :func:`!crypt`
                       implementation appears to match that of a typical Linux
-                      system.
+                      system (as listed in the previous table).
 ===================== ==============================================================
 
 Application-Defined Hashes
@@ -183,6 +193,8 @@ These hashes can be found in various libraries and applications
     Scheme                                      Prefix              Primary Use (if known)
     =========================================== =================== ===========================
     :class:`~passlib.hash.apr_md5_crypt`        ``$apr1$``          Apache htdigest files
+    :class:`~passlib.hash.argon2`               ``$argon2i$``,
+                                                ``$argon2d$``
     :class:`~passlib.hash.bcrypt_sha256`        ``$bcrypt-sha256$`` Passlib-specific
     :class:`~passlib.hash.phpass`               ``$P$``, ``$H$``    PHPass-based applications
     :class:`~passlib.hash.pbkdf2_sha1`          ``$pbkdf2$``        Passlib-specific

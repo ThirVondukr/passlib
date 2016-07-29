@@ -1,6 +1,6 @@
-===============================================================
-:mod:`passlib.exc` - exceptions and warnings raised by Passlib
-===============================================================
+============================================
+:mod:`passlib.exc` - Exceptions and warnings
+============================================
 
 .. module:: passlib.exc
     :synopsis: exceptions & warnings raised by Passlib

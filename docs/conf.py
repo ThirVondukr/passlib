@@ -66,9 +66,6 @@ extensions = [
     # allow table column alignment styling
     'cloud_sptheme.ext.table_styling',
 
-    # modify logo per page
-    'cloud_sptheme.ext.perpage',
-
     # monkeypatch sphinx to support a few extra things we can't do with extensions.
     'cloud_sptheme.ext.autodoc_sections',
     'cloud_sptheme.ext.autoattribute_search_bases',
@@ -94,7 +91,8 @@ index_doc = 'index'
 # General information about the project.
 project = 'Passlib'
 author = "Assurance Technologies, LLC"
-copyright = "2008-%d, %s" % (datetime.date.today().year, author)
+updated = datetime.date.today().isoformat()
+copyright = "2008-%d, %s. Last Updated %s" % (datetime.date.today().year, author, updated)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -147,6 +145,9 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ["passlib."]
 
+# appended to all pages
+rst_epilog = "\n.. |updated| replace:: %s\n" % updated
+
 #=============================================================================
 # Options for all output
 #=============================================================================
@@ -172,14 +173,16 @@ if csp.is_cloud_theme(html_theme):
                               # lighter_decor=True,
                               borderless_decor=True,
                                   sidebarbgcolor='transparent',
+                                  small_sidebar_bg_color='#EBEBEB',
                                   bodytrimcolor='transparent',
                               max_width="12.5in",
                               sidebarwidth="3in",
                               large_sidebar_width="3.5in",
                               hyphenation_language="en",
                               headfont='"Bitstream Vera Sans", sans-serif',
-                              bodyfont='arial, helvetica, sans-serif',
+                              # bodyfont='arial, helvetica, sans-serif',
                               relbarbgcolor='#821f4d',
+                              footerbgcolor='#521330',
                               sectionbgcolor='#964361',
                               rubricbgcolor='#B4748B',
                               sidebarlinkcolor='#6A3051',
@@ -207,9 +210,6 @@ html_short_title = "%s %s Documentation" % (project, version)
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = os.path.join("_static", "masthead.png")
-perpage_html_logo = {
-    'index': None,
-}
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -230,14 +230,7 @@ html_static_path = ['_static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# common_sidebars = ['quicklinks.html', 'searchbox.html']
-# html_sidebars = {
-#     '**': ['localtoc.html', 'relations.html'] + common_sidebars,
-#     'py-modindex': common_sidebars,
-#     'genindex': common_sidebars,
-#     'search': common_sidebars,
-# }
-html_sidebars = {'**': ['globaltoc.html', 'searchbox.html']}
+html_sidebars = {'**': ['searchbox.html', 'globaltoc.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

@@ -6,25 +6,33 @@
 Release History
 ===============
 
-Future Changes
-==============
+.. rst-class:: without-title
 
-The following is not a comprehensive list of upcoming changes,
-but merely a summary of important changes which may impact developers:
+.. note::
 
-* v1.8:
+    **Upcoming Changes**
 
-    - Removal of long-deprecated :class:`CryptPolicy` class.
-    - Removal of deprecated methods from :mod:`passlib.apache`.
+    As a heads-up, developers may be impacted by the following changes
+    planned for future releases:
 
-* v2.0:
+    * **v1.8:**
 
-    - A *large* number of deprecated methods and features will be removed;
-      primarily the deprecated :meth:`!hasher.encrypt` alias.
+        - :mod:`passlib.context`: Removal of long-deprecated :class:`!CryptPolicy` class.
+        - :mod:`passlib.apache`: Removal of deprecated v1.5 compatibility methods.
 
-    - CryptContexts will default to ``deprecated="auto"``, meaning
-      all but the first scheme will be considered deprecated unless
-      explicitly stated otherwise.
+    * **v2.0:**
+
+        .. currentmodule:: passlib.ifc
+
+        - A *large* number of deprecated methods and features will be removed;
+          primarily the deprecated :meth:`PasswordHash.encrypt`
+          and :meth:`CryptContext.encrypt` aliases.
+
+        - :mod:`passlib.context`: :class:`!CryptContext` objects will default to ``deprecated="auto"``,
+          meaning all but the first scheme will be considered deprecated unless
+          explicitly stated otherwise.
+
+.. rst-class:: emphasize-children toc-always-open
 
 **1.7** (NOT YET RELEASED)
 ==========================
@@ -56,15 +64,19 @@ Overview
 
     This release includes a number of new features, cleans up
     some long-standing design issues, and contains a number of internal
-    improvements; all part of the roadmap towards passlib 2.0.
+    improvements; all part of the roadmap towards a leaner and simpler Passlib 2.0.
 
     *Highlights include:*
 
-    * Support for :class:`~passlib.hash.argon2` and :class:`~passlib.hash.scrypt`
+    * Support for :class:`~passlib.hash.argon2` and
+      :class:`~passlib.hash.scrypt` hashes.
 
-    * The misnamed :meth:`~passlib.ifc.PasswordHash.encrypt` method is deprecated, new code should
-      now call :meth:`~passlib.ifc.PasswordHash.hash` instead.  This is part of a much
-      larger project to clean up passlib's password hashing API.
+    .. currentmodule:: passlib.ifc
+
+    * The misnamed :meth:`PasswordHash.encrypt` method is deprecated, new code should
+      now call :meth:`PasswordHash.hash` instead.  This is part of a much
+      larger project to clean up passlib's password hashing API
+      (see *Deprecations* below)
 
     * Experimental TOTP (two factor authentication) helpers in the :mod:`passlib.totp` module.
 
@@ -80,28 +92,33 @@ Requirements
    * The :mod:`passlib.ext.django` extension now requires Django 1.8 or better.
      Django 1.7 and earlier are no longer supported.
 
-New Hashes
-----------
-    * :class:`~passlib.hash.argon2` -- Support for the Argon2 password hash (:issue:`69`).
-
-    * :class:`~passlib.hash.scrypt` -- New password hash format which uses
-      the SCrypt KDF (:issue:`8`).
-
-    * Added :class:`~passlib.hash.cisco_asa` which provides (tentative)
-      support for Cisco ASA 7.0 and newer hashes (:issue:`51`).
-
 New Features
 ------------
+
+*New Hashes*
+
+    * :doc:`passlib.hash.argon2 </lib/passlib.hash.argon2>` --
+      Support for the Argon2 password hash (:issue:`69`).
+
+    * :doc:`passlib.hash.scrypt </lib/passlib.hash.scrypt>` --
+      New password hash format which uses the SCrypt KDF (:issue:`8`).
+
+    * :doc:`passlib.hash.cisco_asa </lib/passlib.hash.cisco_asa>` --
+      Support for Cisco ASA 7.0 and newer hashes (:issue:`51`).
+      *Note: this should be considered experimental, and needs verification
+      of it's test vectors.*
+
+*New Modules*
+
     * New :mod:`passlib.totp` module provides full support for TOTP & HOTP tokens
-      on both client and server side. Contains both low-level primitives, and high-level
-      helpers for persisting and tracking client state.
+      on both client and server side.  This module contains both low-level primitives,
+      and high-level helpers for persisting and tracking client state.
 
     * New :mod:`passlib.pwd` module added to aid in password generation.
+      Features support for alphanumeric passwords, or generation
+      of phrases using wordsets such as Diceware.
 
-    * The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
-      hashes have been sped up by ~20% compared to Passlib 1.6. For an even greater
-      speedup, it will now use `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
-      or stdlib's :func:`hashlib.pbkdf2_hmac` (when available).
+*CryptContext Features*
 
     * The :class:`~passlib.context.CryptContext` object now has helper
       methods for dealing with hashes representing
@@ -119,6 +136,13 @@ New Features
       This configurable via (for example) ``bcrypt.using(truncate_error=True).hash(secret)``,
       or globally as an option to CryptContext (:issue:`59`).
 
+*Cryptographic Backends*
+
+    * The :func:`~passlib.crypto.digest.pbkdf2_hmac` function and all PBKDF2-based
+      hashes have been sped up by ~20% compared to Passlib 1.6. For an even greater
+      speedup, it will now take advantage of the external `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
+      library, or stdlib's :func:`hashlib.pbkdf2_hmac` (when available).
+
 Bugfixes
 --------
     * :class:`~passlib.hash.bcrypt`: Passlib will now detect and work around
@@ -129,97 +153,121 @@ Bugfixes
       :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
 
     * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
-      to the hashes that support them, but ignores them for hashes that don't.  This should
-      fix :issue:`63`.
+      to the hashes that support them, but ignore them for hashes that don't (:issue:`63`).
 
     * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
-      rather than choking on them (:issue:`73`).
+      rather than throwing a parse error (:issue:`73`).
 
     * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9,
-      and some internal cleanups (fixes :issue:`68`).
+      and some internal cleanups (:issue:`68`).
 
     * The :class:`~passlib.hash.django_disabled` hash now appends
-      a 40-char alphanumeric string, to match Django.
+      a 40-char alphanumeric string, to match Django's behavior.
 
 Other Changes
 -------------
+*Internal Changes*
+
+    .. currentmodule:: passlib.ifc
+
     * The majority of CryptContext's internal rounds handling & migration code has been
-      moved to the password hashes themselves, via the new :meth:`~passlib.ifc.PasswordHash.using`
-      and :meth:`~passlib.ifc.PasswordHash.needs_update` methods.
+      moved to the password hashes themselves, taking advantage of the new :meth:`PasswordHash.using`
+      and :meth:`PasswordHash.needs_update` methods.
 
-      This allows much more flexibility
-      when using a hash directly, rather than via CryptContext, as well making it easier for
-      CryptContext to support hash-specific parameters.
+      This allows much more flexibility when configuring a hasher directly,
+      as well making it easier for CryptContext to support hash-specific parameters.
 
-    * [minor] The shared :class:`!PasswordHash` unittests now check all hash handlers for
+    * The shared :class:`!PasswordHash` unittests now check all hash handlers for
       basic thread-safety (motivated by the pybcrypt 0.2 concurrency bug).
 
-    * [trivial] :func:`~passlib.utils.consteq` is now an alias for stdlib's :func:`hmac.compare_digest`
-      under python 3.3 and up.
+    * :func:`~passlib.utils.consteq` is now wraps stdlib's :func:`hmac.compare_digest`
+      when available (python 2.7.11, python 3.3 and up).
+
+.. _encrypt-method-cleanup:
 
 Deprecations
 ------------
 As part of a long-range plan to restructure and simplify both the API and the internals of Passlib,
 a number of methods have been deprecated & replaced.  The eventually goal is a large cleanup
-and overhaul as part of Passlib 2.0. There will be at least one more major release (1.8 or 1.9)
-before Passlib 2.0 is released.
+and overhaul as part of Passlib 2.0. There will be at least one more 1.x version
+before Passlib 2.0, to provide a final transitional release.
 
-Password Hash API
-.................
-Towards that end, the :class:`~passlib.ifc.PasswordHash` API (used by all hashes in passlib),
-has had a number of changes made:
+Password Hash API Deprecations
+..............................
+    .. currentmodule:: passlib.ifc
 
-    * [major] The :class:`!PasswordHash` method :meth:`!encrypt`
-      has been renamed to :meth:`~passlib.ifc.PasswordHash.hash`,
+    As part of this cleanup, the :class:`~passlib.ifc.PasswordHash` API (used by all hashes in passlib),
+    has had a number of changes:
+
+    * **[major]** The :meth:`!PasswordHash.encrypt` method
+      has been renamed to :meth:`PasswordHash.hash`,
       to clarify that it's performing one-way hashing rather than reversiable encryption.
       A compatibility alias will remain in place until Passlib 2.0.
       This should fix the longstanding :issue:`21`.
 
-    * [major] Settings explicit configuration options like ``rounds`` and ``salt_size``
-      should no longer be passed to :meth:`~passlib.ifc.PasswordHash.hash` (née :meth:`encrypt`).  Instead, callers
-      should use the new :meth:`~passlib.ifc.PasswordHash.using`
+    * **[major]** Passing explicit configuration options to the :meth:`!PasswordHash.encrypt` method
+      (now called :meth:`PasswordHash.hash`) is deprecated.
+      To provide settings such as ``rounds`` and ``salt_size``, callers
+      should use the new :meth:`PasswordHash.using`
       method, which generates a new hasher with a customized configuration.
 
-      For example, ``sha256_crypt.encrypt("secret", rounds=12345)`` should now be
-      ``sha256_crypt.using(rounds=12345).hash("secret")``.  Support for the old syntax
-      will be removed in Passlib 2.0.
+        >>>  # for example, instead of this:
+        >>>  sha256_crypt.encrypt("secret", rounds=12345)
 
-    * [minor] The little-used :class:`!PasswordHash` methods :meth:`~passlib.ifc.PasswordHash.genhash` and
-      :meth:`~passlib.ifc.PasswordHash.genconfig` have been deprecated.
+        >>>  # callers should now use:
+        >>>  sha256_crypt.using(rounds=12345).hash("secret")
+
+      Support for the old syntax will be removed in Passlib 2.0.
+
+      .. note::
+
+         This doesn't apply to contextual options such as :class:`~passlib.hash.cisco_pix`'s
+         ``user`` keyword, which should still be passed into the :meth:`!hash` method.
+
+    * **[minor]** The little-used :meth:`PasswordHash.genhash` and
+      :meth:`PasswordHash.genconfig` methods have been deprecated.
       Compatibility aliases will remain in place until Passlib 2.0,
       at which point they will be removed entirely.
 
-Crypt Context API
-.................
-Applications which use passlib's :class:`~passlib.context.CryptContext` should not be
-greatly affected by this release; only one major deprecation was made:
+Crypt Context API Deprecations
+..............................
+    .. currentmodule:: passlib.context
 
-    * [major] The :meth:`!encrypt` method was renamed to :meth:`!hash` to match the
-      :class:`~passlib.ifc.PasswordHash` API changes listed above.
-      The old method will remain around until Passlib 2.0.
+    Applications which use passlib's :class:`~passlib.context.CryptContext` should not be
+    greatly affected by this release; only one major deprecation was made:
 
-A fewer internal options and infrequently used features have been deprecated:
+    * **[major]** To match the :class:`!PasswordHash` API changes above,
+      the :meth:`!CryptContext.encrypt` method was renamed to :meth:`CryptContext.hash`.
+      A compatibility alias will remain until Passlib 2.0.
 
-    * [minor] :meth:`~passlib.context.CryptContext.hash`, :meth:`~passlib.context.CryptContext.verify`,
-      :meth:`~passlib.context.CryptContext.verify_and_update`, and
-      :meth:`~passlib.context.CryptContext.needs_update`:
+    A fewer internal options and infrequently used features have been deprecated:
+
+    * **[minor]** :meth:`CryptContext.hash`, :meth:`~CryptContext.verify`,
+      :meth:`~CryptContext.verify_and_update`, and
+      :meth:`~CryptContext.needs_update`:
       The ``scheme`` keyword is now deprecated; support will be removed in Passlib 2.0.
 
-    * [minor] :meth:`~passlib.context.CryptContext.hash`: Passing
-      settings to the .hash() method such as "rounds" and "salt" is deprecated.
-      Callers should use ``context.handler().using(**settings).hash()`` instead.
+    * **[minor]** :meth:`CryptContext.hash`: Passing
+      settings keywords to :meth:`!hash` such as ``rounds`` and ``salt`` is deprecated.
+      Code should now get ahold of the default hasher, and invoke it explicitly::
 
-    * [minor] The ``vary_rounds`` option has been deprecated,
+        >>>  # for example, calls that did this:
+        >>>  context.hash(secret, rounds=1234)
+
+        >>>  # should use this instead:
+        >>>  context.handler().using(rounds=1234).hash(secret)
+
+    * **[minor]** The ``vary_rounds`` option has been deprecated,
       and will be removed in Passlib 2.0.  It provided very little security benefit,
       and was judged not worth the additional code complexity it requires.
 
-    * [minor] The special wildcard ``all`` scheme name
+    * **[minor]** The special wildcard ``all`` scheme name
       has been deprecated, and will be removed in Passlib 2.0.  The only legitimate use
       was to support ``vary_rounds``, which itself will be removed in 2.0.
 
 Other Deprecations
 ..................
-A few other assorted deprecations have been made:
+    A few other assorted deprecations have been made:
 
     * The :func:`~passlib.utils.generate_secret` function has been deprecated
       in favor of the new :mod:`passlib.pwd` module, and the old function will be removed
@@ -236,52 +284,61 @@ A few other assorted deprecations have been made:
     * Some deprecations and internal changes have been made to the :mod:`passlib.utils.handlers`
       module, which provides the common framework Passlib uses to implement hashers.
 
-      .. warning::
+    .. warning::
 
-          Developers who are using :mod:`!passlib.utils.handlers` directly are strongly encouraged
-          to contact the Passlib message board.  It is likely breaking changes will occur in the
-          Passlib 1.8 / 1.9 releases.
+      Developers who are importing from the :mod:`!passlib.utils.handlers` module directly are strongly encouraged
+      to contact the Passlib message board.  Backwards-incompatible relocations will occur in the
+      Passlib 1.8 / 1.9 releases.
 
 Backwards Incompatibilities
 ---------------------------
 Changes in existing behavior:
 
-    * [moderate] New hashes generated by :class:`~passlib.apache.HtpasswdFile` now use the strongest
+    * **[moderate]** :mod:`passlib.apache`: New hashes generated by :class:`~passlib.apache.HtpasswdFile` now use the strongest
       algorithm available on the host, rather than one that is guaranteed to be portable.
-      Applications can explicitly set ``default_scheme="portable"`` to restore the old behavior.
+      Applications can explicitly set ``HtPasswdFile(default_scheme="portable")`` to restore the old behavior.
 
-    * [minor] M2Crypto no longer used to accelerate pbkdf2-hmac-sha1; applications relying on this
+    * **[minor]** M2Crypto no longer used to accelerate pbkdf2-hmac-sha1; applications relying on this
       to speed up :class:`~passlib.hash.pbkdf2_sha1` should install
       `fastpbkdf2 <https://pypi.python.org/pypi/fastpbkdf2>`_.
 
 Scheduled removal of features:
 
-    * [minor] The :ref:`min_verify_time <context-min-verify-time-option>` keyword
+    * **[minor]** :mod:`passlib.context`: The :ref:`min_verify_time <context-min-verify-time-option>` keyword
       that was deprecated in release 1.6, is now completely ignored.
       Support will be removed entirely in release 1.8.
       See the new :ref:`harden_verify <context-harden-verify-option>` keyword
       that replaces it.
 
-    * [trivial] The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
+    * **[trivial]** :mod:`passlib.hash`: The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
 
 Minor incompatibilities:
 
-    * [minor] The little-used method :meth:`~passlib.ifc.PasswordHash.genconfig`
+    * **[minor]** :mod:`passlib.hash`: The little-used method :meth:`~passlib.ifc.PasswordHash.genconfig`
       will now always return a valid hash, rather than a truncated configuration
       string or ``None``.
 
-    * [minor] The little-used method :meth:`~passlib.ifc.PasswordHash.genhash` no longer accepts
+    * **[minor]** :mod:`passlib.hash`: The little-used method :meth:`~passlib.ifc.PasswordHash.genhash` no longer accepts
       ``None`` as a config argument.
 
-    * [trivial] :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
+    * **[trivial]** :func:`passlib.utils.pbkdf2.pbkdf2` no longer supports custom PRF callables.
       this was an unused feature, and prevented some useful optimizations.
+
+-----
+
+.. centered::
+    **END OF 1.7 RELEASE NOTES**
+
+-----
 
 **1.6.5** (2015-08-04)
 ======================
 
    Fixed some minor bugs in the test suite which were causing erroneous test failures
    (:issue:`57` and :issue:`58`). The passlib library itself is unchanged.
-   
+
+.. rst-class:: toc-always-toggle
+
 **1.6.4** (2015-07-25)
 ======================
 
@@ -330,9 +387,10 @@ Other Changes
 
     * Passlib releases are now published as wheels instead of eggs.
 
-.. note::
+**1.6.3** (2015-07-25)
+======================
 
-    Release **1.6.3** was skipped due to upload issues.
+    This was relabeled as **1.6.4** due to PyPI upload issues.
 
 **1.6.2** (2013-12-26)
 ======================
