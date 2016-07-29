@@ -1,11 +1,12 @@
 .. index:: CryptContext; reference
 
-.. currentmodule:: passlib.context
+.. module:: passlib.context
+    :synopsis: CryptContext class, for managing multiple password hash schemes
 
 .. _context-reference:
 
 ======================================================
-:mod:`passlib.context` - CryptContext Reference
+:mod:`passlib.context` - CryptContext
 ======================================================
 This page provides a complete reference of all the methods
 and options supported by the :class:`!CryptContext` class
@@ -16,7 +17,7 @@ and helper utilities.
     * :ref:`CryptContext Overview & Tutorial <context-overview>` --
       overview of this class and walkthrough of how to use it.
 
-.. rst-class:: emphasize-children
+.. rst-class:: emphasize-children toc-always-open
 
 The CryptContext Class
 ======================
@@ -45,7 +46,7 @@ The CryptContext Class
 
 .. index:: CryptContext; keyword options
 
-.. rst-class:: html-toggle expanded
+.. rst-class:: html-toggle expanded toc-always-open
 
 Constructor Keywords
 --------------------

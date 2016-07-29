@@ -3,12 +3,11 @@
 .. _context-overview:
 .. _context-tutorial:
 
-=========================================================
-:mod:`passlib.context` - CryptContext Overview & Tutorial
-=========================================================
+.. currentmodule:: passlib.context
 
-.. module:: passlib.context
-    :synopsis: CryptContext class, for managing multiple password hash schemes
+==============================================
+:mod:`passlib.context` - CryptContext Tutorial
+==============================================
 
 Overview
 ========
@@ -26,7 +25,7 @@ password hashes at once:
 The following sections contain a walkthrough of this class, starting
 with some simple examples, and working up to a complex "full-integration" example.
 
-.. seealso:: The :ref:`CryptContext Reference <context-reference>` document,
+.. seealso:: The :mod:`passlib.context` api reference,
     which lists all the options and methods supported by this class.
 
 .. index:: CryptContext; usage examples

@@ -82,11 +82,14 @@ you need to upgrade the external package being used as the backend
 
 Format & Algorithm
 ==================
-Bcrypt is compatible with the :ref:`modular-crypt-format`, and uses ``$2$`` and ``$2a$`` as the identifying prefix
-for all its strings (``$2$`` is seen only for legacy hashes which used an older version of Bcrypt).
+Bcrypt is compatible with the :ref:`modular-crypt-format`, and uses a number of identifying
+prefixes: ``$2$``, ``$2a$``, ``$2x$``, ``$2y$``, and ``$2b$``.  Each prefix indicates
+a different revision of the BCrypt algorithm; and all but the ``$2b$`` identifier are
+considered deprecated.
+
 An example hash (of ``password``) is:
 
-  ``$2a$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``
+  ``$2b$12$GhvMmNVjRW29ulnudl.LbuAnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m``
 
 Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 

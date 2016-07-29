@@ -8,7 +8,7 @@
 .. _password-hash-api:
 
 =============================================
-Password Hash Interface
+:mod:`passlib.ifc` -- Password Hash Interface
 =============================================
 
 Overview

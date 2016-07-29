@@ -2,7 +2,7 @@
     :synopsis: password generation helpers
 
 =================================================
-:mod:`passlib.pwd` -- password generation helpers
+:mod:`passlib.pwd` -- Password generation helpers
 =================================================
 
 .. versionadded:: 1.7

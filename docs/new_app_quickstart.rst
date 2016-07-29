@@ -38,6 +38,7 @@ instance; see below for more...
 .. index:: Passlib; recommended hash algorithms
 
 .. _recommended-hashes:
+.. rst-class:: toc-always-open
 
 Choosing a Hash
 ================
@@ -187,20 +188,20 @@ For new applications, this decision comes down to a couple of questions:
 1. Does the hash need to be natively supported by your operating system's :func:`!crypt` api,
    in order to allow inter-operation with third-party applications on the host?
 
-   * If so, the right choice is either :class:`~passlib.hash.bcrypt` for BSD variants,
+   * If yes, the right choice is either :class:`~passlib.hash.bcrypt` for BSD variants,
      or :class:`~passlib.hash.sha512_crypt` for Linux; since these are natively supported.
 
-   * If not, continue...
+   * If no, continue...
 
-2. Does your hosting prevent you from installing C extensions?
+2. Does your hosting provider allow you to install C extensions?
 
-   * If yes, you probably want to use :class:`~passlib.hash.pbkdf2_sha256` / :class:`~passlib.hash.pbkdf2_sha512`;
-     This is currently the option with the fastest pure-python backend.
+   * If no, you probably want to use :class:`~passlib.hash.pbkdf2_sha256`,
+     as this currently has the fastest pure-python backend.
 
    * If they allow C extensions, continue...
 
-3. Do you want to use the latest, greatest, and don't mind increased memory usage
-   per hash?
+3. Do you want to use the latest & greatest, and don't mind increased memory usage
+   when hashing?
 
    * :class:`~passlib.hash.argon2` is a next-generation hashing algorithm,
      attempting to become the new standard.  It's design has been being slightly tweaked
@@ -208,12 +209,12 @@ For new applications, this decision comes down to a couple of questions:
      You'll need to install the `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_
      support library.
 
-   * If you want something secure, but battle tested, continue...
+   * If you want something secure, but more battle tested, continue...
 
-4. The top two choices left are :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.pbkdf2_sha256`.
+4. The top choices left are :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.pbkdf2_sha256`.
 
    Both have advantages, and their respective rough edges;
-   though currently the balance is in favor of :class:`~passlib.hash.bcrypt`
+   though currently the balance is in favor of bcrypt
    (pbkdf2 can be cracked somewhat more efficiently).
 
    * If choosing bcrypt, we strongly recommend installing the `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
