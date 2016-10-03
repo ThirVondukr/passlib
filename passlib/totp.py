@@ -163,132 +163,6 @@ def _decode_bytes(key, format):
     else:
         raise ValueError("unknown byte-encoding format: %r" % (format,))
 
-#-----------------------------------------------------------------------------
-# offset / clock drift helpers
-#-----------------------------------------------------------------------------
-
-#: default offset preferred by suggest_offset()
-#: attempts to account for time taken for user to enter token + transmission delay.
-#: value is avg of 'history1' sample in the unittests.
-DEFAULT_OFFSET = 0
-
-def suggest_offset(history, period=30, target=None, default=None):
-    """
-    Given a history of previous verification offsets,
-    calculate offset that should be used for specified timestamp.
-    This is used by :meth:`verify` and :meth:`consume`.
-
-    :param history:
-        List of 0+ ``(timestamp, counter_offset)`` entries.
-
-    :param period:
-        Counter period in seconds (defaults to 30).
-
-    :param target:
-        Timestamp that resulting offset should target (defaults to the current time).
-
-    :param default:
-        Default offset if there are no history entries;
-        also used as starting seed. for calculations.
-
-    :returns:
-        Suggested offset to use when verifying at specified time.
-    """
-    # NOTE: ``target`` param currently unused, reserved for future algorithm
-    #       which might attempt to utilize timestamp data to account for client clock drift.
-
-    # XXX: This function could use a lot of improvement.
-    #
-    # The Problem
-    # -----------
-    # The problem this function is trying to solve is to find an estimate for the client
-    # offset at time <target>, given a list of known (time, counter_skipped) values from previously
-    # successful authentications.  An ideal solution would use some method (e.g. linear regression)
-    # to estimate the client clock drift and skew, and correctly predict the offset
-    # we need for the target timestamp.
-    #
-    # However, all we know for each (time, counter_skipped) pair is that the actual offset at that
-    # point in time lies somewhere in the half-closed interval:
-    #                   ``[counter_start - time, counter_end - time)``
-    # ... which can be reduced to:
-    #                   ``[min_offset, min_offset + period)``
-    # .. where min_offset is:
-    #                   ``counter = time // period``,
-    #                   ``min_offset = (counter + counter_skipped) * period - time``
-    #
-    # Further complicating things, the actual offset is not just a function of the client clock skew,
-    # but also includes a random amount of transmission delay (including time taken by the user
-    # to enter the token).
-    #
-    # Thus any proper solution would need to predict a best fit line across a set of intervals,
-    # not just datapoints, minimizing drift, while ignoring outliers.
-    #
-    # Current Algorithm
-    # -----------------
-    # For now, mostly punting on this problem.
-    # Current code just takes the average & stddev of the intervals,
-    # and returns value in interval ``avg +- sigma`` which is nearest ``default``.
-
-    # use default offset
-    if default is None:
-        default = DEFAULT_OFFSET
-
-    # fallback for empty list
-    if not history:
-        return default
-
-    # helpers
-    def calc_min_offset(time, counter_skipped):
-        return counter_skipped * period - divmod(int(time), period)[1]
-
-    # convert to list of min_offset values -- more useful for current algorithm
-    half_period = period // 2
-    min_offsets = [calc_min_offset(time, diff) for time, diff in history]
-    ##log.debug("suggest_offsets(): midpoints=%r",
-    ##          [min_offset+half_period for min_offset in min_offsets])
-
-    # calc average & stddev of min_offset values
-    hsize = len(history)
-    avg = sum(min_offsets) // hsize
-    if hsize > 2:
-        _total = sum((min_offset - avg) ** 2 for min_offset in min_offsets)
-        sigma = int((_total // (hsize - 1)) ** 0.5)
-    else:
-        # too few samples for stddev to be reliable
-        # (*need* at least 2, but < 3 seems to fluctuate too much for this purpose)
-        sigma = half_period
-
-    # add half period so that avg of min_offset is now
-    # avg midpoint of the [min_offset, max_offset) intervals
-    avg += half_period
-
-    # keep result within 1/2 of sigma or interval size, whichever is smaller.
-    # using full sigma or interval size seems to add too much variability in output.
-    bounds = min(sigma, half_period)//2
-
-    # use default if within bounds of avg,
-    # otherwise use whichever of ``avg +- bounds`` is closest to default.
-    ##log.debug("suggest_offsets(): avg=%r, radius=%r, sigma=%r, bound=%r",
-    ##          avg, half_period, sigma, bounds)
-    if abs(default - avg) <= bounds:
-        return default
-    elif avg < default:
-        return avg + bounds
-    else:
-        return avg - bounds
-
-# def _debug_suggested_offset(data, default=None):
-#     """dev helper for debugging suggested_offset() behavior"""
-#     from crowbar.math import analyze_values
-#     for window in range(1, len(data)+1):
-#         result = []
-#         offset = default # simulate offset being carried through a rolling window
-#         for idx in range(len(data)-window+1):
-#             offset = suggest_offset(data[idx:idx+window], default=offset)
-#             result.append(offset)
-#         stats = analyze_values(result)
-#         print "{:2d} {:2.0f} {:2.2f} {!r}".format(window, stats.mean, stats.stdev, result)
-
 #=============================================================================
 # OTP management
 #=============================================================================
@@ -386,7 +260,7 @@ class OTPContext(object):
     salt_size = 12
 
     #: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
-    cost = 13
+    cost = 14
 
     #: map of secret tag -> secret bytes
     _secrets = None
@@ -565,25 +439,6 @@ class OTPContext(object):
     #========================================================================
 
     @staticmethod
-    def _cipher_xor_key(value, secret, salt, cost, decrypt=False):
-        """
-        Internal helper that handles lowlevel encryption/decryption.
-
-        This uses PBKDF2-HMAC-SHA256 to generate <value> bytes of data,
-        which are XORed against <value> to encrypt/decrypt it.
-
-        This scheme was originally present to act as a fallback when AES
-        wasn't available, but was disabled before the 1.7 release due to
-        concerns with the construction (e.g. http://crypto.stackexchange.com/questions/1957/can-pbkdf2-be-used-to-create-an-xor-cipher-key-to-encrypt-random-plaintext),
-        and a wish to strongly encourage AES use.
-
-        It's only present for backward compatibility with some beta deployments.
-        """
-        mask = pbkdf2_hmac("sha256", secret, salt=salt, rounds=(1 << cost),
-                           keylen=len(value))
-        return xor_bytes(value, mask)
-
-    @staticmethod
     def _cipher_aes_key(value, secret, salt, cost, decrypt=False):
         """
         Internal helper that handles lowlevel encryption/decryption.
@@ -681,9 +536,6 @@ class OTPContext(object):
         needs_recrypt = False
         if version == 1:
             _cipher_key = self._cipher_aes_key
-        elif version == 0:
-            _cipher_key = self._cipher_xor_key
-            needs_recrypt = AES_SUPPORT
         else:
             raise ValueError("missing / unrecognized 'enckey' version: %r" % (version,))
         tag = enckey['t']
@@ -1488,36 +1340,52 @@ class HotpMatch(SequenceMixin):
     """
     Object returned by :meth:`HOTP.verify` on a successful match.
 
-    It can be treated as a tuple of ``(next_counter, counter_skipped)``,
+    It can be treated as a tuple of ``(counter, expected_counter)``,
     or accessed via the following attributes:
 
-    .. autoattribute:: next_counter
-    .. autoattribute:: counter_skipped
-    .. autoattribute:: previous_counter
+    .. autoattribute:: counter
+        :annotation: = 0
 
-    It will always have a ``True`` boolean value.
+    .. autoattribute:: expected_counter
+        :annotation: = 0
+
+    .. autoattribute:: next_counter
+        :annotation: = .counter + 1
+
+    .. autoattribute:: skipped
+        :annotation: = 0
     """
 
-    #: new HOTP counter value (1 + matched counter value)
-    next_counter = 0
+    #: HOTP counter value that matched token
+    counter = 0
 
-    #: previous HOTP counter value
-    previous_counter = 0
+    #: Previous HOTP counter value
+    expected_counter = 0
 
-    def __init__(self, next_counter, previous_counter):
-        self.next_counter = next_counter
-        self.previous_counter = previous_counter
+    def __init__(self, counter, expected_counter):
+        self.counter = counter
+        self.expected_counter = expected_counter
 
     @memoized_property
-    def counter_skipped(self):
+    def next_counter(self):
         """
-        how many steps were skipped between expected
-        and actual matched counter values
+        New HOTP counter value.
         """
-        return self.next_counter - 1 - self.previous_counter
+        return self.counter + 1
+
+    @memoized_property
+    def skipped(self):
+        """
+        How many steps between expected and matched counter values.
+        Always >= 0.
+        """
+        return self.counter - self.expected_counter
 
     def _as_tuple(self):
-        return self.next_counter, self.counter_skipped
+        return self.counter, self.expected_counter
+
+    def __repr__(self):
+        return "<HotpMatch counter=%d expected_counter=%d>" % self._as_tuple()
 
 class HOTP(BaseOTP):
     """Helper for generating and verifying HOTP codes.
@@ -1732,8 +1600,13 @@ class HOTP(BaseOTP):
         """
         counter = self._normalize_counter(counter)
         self._check_serial(window, "window")
-        match = self._find_match(token, counter, counter + window + 1)
-        return HotpMatch(match + 1, counter)
+        last_counter = counter - 1
+        matched = self._find_match(token, last_counter, counter + window + 1,
+                                   expected=counter)
+        if matched == last_counter:
+            raise UsedTokenError("Token has already been used, please generate for another.")
+        assert matched > last_counter, "sanity check failed: counter went backward"
+        return HotpMatch(matched, counter)
 
     def consume(self, token, window=1):
         """
@@ -1781,11 +1654,10 @@ class HOTP(BaseOTP):
             1000
         """
         counter = self.counter
-        result = self.verify(token, counter, window=window)
-        self.counter = result.next_counter
+        match = self.verify(token, counter, window=window)
+        self.counter = match.next_counter
         self.changed = True
-        # XXX: return result instead? would only provide .skipped as extra data.
-        return True
+        return match
 
     # TODO: resync(self, tokens, counter, window=100)
     #       helper to re-synchronize using series of sequential tokens,
@@ -1870,9 +1742,6 @@ class TotpToken(SequenceMixin):
         self.token = token
         self.counter = counter
 
-    def _as_tuple(self):
-        return self.token, self.expire_time
-
     # @memoized_property
     # def start_time(self):
     #     """Timestamp marking beginning of period when token is valid"""
@@ -1893,6 +1762,14 @@ class TotpToken(SequenceMixin):
         """whether token is still valid"""
         return bool(self.remaining)
 
+    def _as_tuple(self):
+        return self.token, self.expire_time
+
+    def __repr__(self):
+        expired = "" if self.remaining else " expired"
+        return "<TotpToken token='%s' expire_time=%d%s>" % \
+               (self.token, self.expire_time, expired)
+
 class TotpMatch(SequenceMixin):
     """
     Object returned by :meth:`TOTP.verify` on a successful match.
@@ -1912,50 +1789,47 @@ class TotpMatch(SequenceMixin):
 
     It will always have a ``True`` boolean value.
     """
-    #: TOTP counter value which token matched against.
-    #: (Best practice it to subsequently ignore tokens for this counter
-    #: and earlier)
+    #: TOTP counter value which matched token.
+    #: (Best practice is to subsequently ignore tokens matching this counter
+    #: or earlier)
     counter = 0
 
     #: Timestamp when verification was performed.
     time = 0
 
-    #: Previous offset value provided when verify() was called.
-    previous_offset = 0
-
     #: TOTP period (needed internally to calculate min_offset, etc).
-    _period = 30
+    period = 30
 
-    def __init__(self, time, counter, previous_offset, period):
+    def __init__(self, counter, time,  # *
+                 period=30):
         """
         .. warning::
             the constructor signature is an internal detail, and is subject to change.
         """
-        self.time = time
         self.counter = counter
-        self.previous_offset = previous_offset
-        self._period = period
+        self.time = time
+        self.period = period
 
     @memoized_property
-    def counter_skipped(self):
+    def expected_counter(self):
+        """
+        Counter value expected for timestamp.
+        """
+        return self.time // self.period
+
+    @memoized_property
+    def skipped(self):
         """
         How many steps were skipped between expected and actual matched counter
-        value.
-
-        Expected value is the counter step at :attr:`time`.
+        value (may be positive, zero, or negative).
         """
-        return self.counter - self.time // self._period
-
-    @memoized_property
-    def next_offset(self):
-        """
-        Suggested offset value for next time a token is verified from this client.
-        """
-        return suggest_offset(history=[(self.time, self.counter_skipped)],
-                              period=self._period, default=self.previous_offset)
+        return self.counter - self.expected_counter
 
     def _as_tuple(self):
-        return self.counter, self.next_offset
+        return self.counter, self.time
+
+    def __repr__(self):
+        return "<TotpMatch counter=%d time=%d>" % self._as_tuple()
 
 class TOTP(BaseOTP):
     """Helper for generating and verifying TOTP codes.
@@ -2046,11 +1920,6 @@ class TOTP(BaseOTP):
     #: otpauth type this class implements
     type = "totp"
 
-    #: max history buffer size
-    # NOTE: picked based on average size that suggest_offset() algorithm
-    #       needs to settle down on predicted value, using `history1` from unittest as reference.
-    MAX_HISTORY_SIZE = 8
-
     #=============================================================================
     # instance attrs
     #=============================================================================
@@ -2072,21 +1941,13 @@ class TOTP(BaseOTP):
     #: or validated by :meth:`consume` *(server-side)*.
     last_counter = 0
 
-    #: *(server-side only)* history of previous verifications performed by :meth:`consume`,
-    #: and is used to estimate the **delay** parameter on a per-client basis.
-    #:
-    #: this is an internal attribute whose structure is subject to change,
-    #: but currently is a list of 1 or more ``(timestamp, counter_skipped)`` entries.
-    #: it's maximum size is controlled by the class attribute ``TOTP.MAX_HISTORY_SIZE``.
-    _history = None
-
     #=============================================================================
     # init
     #=============================================================================
     def __init__(self, key=None, format="base32",
                  # keyword only...
                  period=None,
-                 last_counter=0, _history=None,
+                 last_counter=0,
                  now=None, # NOTE: mainly used for unittesting
                  **kwds):
         # call BaseOTP to handle common options
@@ -2107,11 +1968,6 @@ class TOTP(BaseOTP):
         # init last counter value
         self._check_serial(last_counter, "last_counter")
         self.last_counter = last_counter
-
-        # init history
-        if _history:
-            # TODO: run sanity check on structure of history object
-            self._history = _history
 
     #=============================================================================
     # token management
@@ -2152,7 +2008,6 @@ class TOTP(BaseOTP):
         convert timestamp to HOTP counter using :attr:`period`.
         input is passed through :meth:`normalize_time`.
         """
-        time = self.normalize_time(time)
         if time < 0:
             raise ValueError("time must be >= 0")
         return time // self.period
@@ -2192,6 +2047,7 @@ class TOTP(BaseOTP):
             (such as the :attr:`last_counter` value).
             For a version which does, see :meth:`advance`.
         """
+        time = self.normalize_time(time)
         counter = self._time_to_counter(time)
         token = self._generate(counter)
         return TotpToken(self, token, counter)
@@ -2269,7 +2125,7 @@ class TOTP(BaseOTP):
     # token verification
     #-------------------------------------------------------------------------
 
-    def verify(self, token, time=None, window=30, offset=0, min_start=0):
+    def verify(self, token, time=None, window=30, skew=0, last_counter=-1, reuse=False):
         """
         Low-level method to validate TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
@@ -2336,16 +2192,26 @@ class TOTP(BaseOTP):
         time = self.normalize_time(time)
         self._check_serial(window, "window")
 
-        # NOTE: 'min_start' is internal parameter used by consume() to
-        #       skip searching any counter values before last confirmed verification.
-        client_time = time + offset
-        start = max(min_start, self._time_to_counter(client_time - window))
+        client_time = time + skew
+        start = max(last_counter, self._time_to_counter(client_time - window))
         end = self._time_to_counter(client_time + window) + 1
+        # XXX: could pass 'expected = _time_to_counter(client_time + TRANSMISSION_DELAY)'
+        #      to the _find_match() method, would help if window set large.
 
         counter = self._find_match(token, start, end)
-        return TotpMatch(time, counter, offset, self.period)
+        assert counter >= last_counter, "sanity check failed: counter went backward"
 
-    def consume(self, token, reuse=False, window=30, offset=None):
+        if not reuse and counter == last_counter:
+            raise UsedTokenError("Token has already been used, please wait for another.",
+                                 expire_time=(last_counter + 1) * self.period)
+
+        # NOTE: By returning match tied to <time>, not <client_time>, we're
+        #       causing .skipped to reflect the observed skew, independent of
+        #       the 'skew' param.  This is deliberately done so that caller
+        #       can use historical .skipped values to estimate future skew.
+        return TotpMatch(counter, time, self.period)
+
+    def consume(self, token, reuse=False, window=30, skew=0):
         """
         High-level method to validate TOTP token against current system time.
         Unlike :meth:`verify`, this method takes into account the :attr:`last_counter` value,
@@ -2417,49 +2283,22 @@ class TOTP(BaseOTP):
             InvalidTokenError: Token did not match
         """
         time = self.normalize_time(None)
-        if offset is None:
-            offset = self._next_offset(time)
         # NOTE: setting min_start so verify() doesn't even bother checking
         #       points before the last verified counter, no matter what offset or window is set to.
-        result = self.verify(token, time, window=window, offset=offset, min_start=self.last_counter)
-        assert result.time == time, "sanity check failed: verify().time didn't match input time"
-        assert result.counter >= self.last_counter, "sanity check failed: 'min_start' not honored"
+        match = self.verify(token, time, window=window, skew=skew, last_counter=self.last_counter,
+                            reuse=reuse)
+        assert match.time == time, "sanity check failed: verify().time didn't match input time"
+        assert match.counter >= self.last_counter, "sanity check failed: verify() didn't honor last_counter"
+        assert reuse or match.counter != self.last_counter
 
-        if result.counter > self.last_counter:
+        if match.counter != self.last_counter:
             # accept new token, update internal state
-            self.last_counter = result.counter
-            self._add_sample(result.time, result.counter_skipped)
+            self.last_counter = match.counter
             self.changed = True
-        elif not reuse:
-            # re-used current period's token
-            raise UsedTokenError("Token has already been used, please wait for another.",
-                                 expire_time=(self.last_counter + 1) * self.period)
-        return True
-
-    def _next_offset(self, time):
-        """
-        internal helper for :meth:`consume` --
-        return suggested offset for specified time, based on history.
-        """
-        return suggest_offset(self._history, self.period, time)
-
-    def _add_sample(self, time, counter_skipped):
-        """
-        internal helper for :meth:`consume` --
-        appends an entry to the verification history.
-        """
-        history = self._history
-        if history:
-            # add entry to history
-            history.append((time, counter_skipped))
-
-            # remove old entries
-            while len(history) > self.MAX_HISTORY_SIZE:
-                history.pop(0)
-
-        elif self.MAX_HISTORY_SIZE > 0:
-            # initialize history (if it hasn't been disabled)
-            self._history = [(time, counter_skipped)]
+        else:
+            assert reuse, "sanity check failed"
+        # XXX: return the match instead?
+        return match
 
     #-------------------------------------------------------------------------
     # TODO: resync(self, tokens, time=None, min_tokens=10, window=100)
@@ -2503,8 +2342,10 @@ class TOTP(BaseOTP):
             state['period'] = self.period
         if self.last_counter:
             state['last_counter'] = self.last_counter
-        if self._history:
-            state['_history'] = self._history
+        # NOTE: in the future, may add a "history" parameter
+        #       containing a list of (time, skipped) pairs, encoding
+        #       the last X successful verifications, to allow persisting
+        #       & estimating client clock skew over time.
         return state
 
     #=============================================================================
