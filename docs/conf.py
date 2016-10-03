@@ -180,11 +180,12 @@ if csp.is_cloud_theme(html_theme):
                               large_sidebar_width="3.5in",
                               hyphenation_language="en",
                               headfont='"Bitstream Vera Sans", sans-serif',
+                              colored_object_prefixes="all",
                               # bodyfont='arial, helvetica, sans-serif',
                               relbarbgcolor='#821f4d',
                               footerbgcolor='#521330',
                               sectionbgcolor='#964361',
-                              rubricbgcolor='#B4748B',
+                              rubricbgcolor='#B4748B', # '#D6A4B6', #
                               sidebarlinkcolor='#6A3051',
                               link_hover_text_color='#ff0000',
                               link_hover_trim_color='#ddb1b8',
