@@ -182,6 +182,10 @@ class OTPContext(object):
     which can provide default settings, as well as application-wide secrets
     which will be used to encrypt TOTP keys for storage.
 
+    .. todo::
+        This class needs usuage examples & further explanation
+        of how the **secrets** parameter works.
+
     Arguments
     =========
     :param secrets:
@@ -200,6 +204,8 @@ class OTPContext(object):
         Instead of a python dict, this can also be a json formatted string
         containing a dict, OR a multiline string with the format
         ``"tag: value\\ntag: value\\n..."``
+
+        .. seealso:: :func:`generate_secret` to create a secret with sufficient entropy
 
     :param secrets_path:
         Alternately, callers can specify a separate file where the
@@ -441,12 +447,13 @@ class OTPContext(object):
     @staticmethod
     def _cipher_aes_key(value, secret, salt, cost, decrypt=False):
         """
-        Internal helper that handles lowlevel encryption/decryption.
+        Internal helper for :meth:`encrypt_key` --
+        handles lowlevel encryption/decryption.
 
         Algorithm details:
 
         This function uses PBKDF2-HMAC-SHA256 to generate a 32-byte AES key
-        a 16-byte IV from the application secret & random salt.
+        and a 16-byte IV from the application secret & random salt.
         It then uses AES-256-CTR to encrypt/decrypt the TOTP key.
 
         CTR mode was chosen over CBC because the main attack scenario here
@@ -523,7 +530,7 @@ class OTPContext(object):
             ``(key, needs_recrypt)`` --
             decrypted totp key as raw bytes,
             and flag indicating whether cost/tag is too old,
-            and key needs reencrypting before storing.
+            and key needs re-encrypting before storing.
 
         .. note::
 
@@ -939,11 +946,11 @@ class BaseOTP(object):
         :arg token:
             token as ascii bytes, unicode, or an integer.
 
-        :returns:
-            token as unicode string containing only digits 0-9.
-
         :raises ValueError:
             if token has wrong number of digits, or contains non-numeric characters.
+
+        :returns:
+            token as unicode string containing only digits 0-9.
         """
         digits = self.digits
         if isinstance(token, int_types):
@@ -976,7 +983,6 @@ class BaseOTP(object):
             to help speed up searches.
 
         :raises ~passlib.exc.TokenError:
-
             If the token is malformed, or fails to verify.
 
         :returns:
@@ -1138,13 +1144,13 @@ class BaseOTP(object):
             Defaults to **issuer** constructor argument, or ``None``.
             May not contain ``:``.
 
-        :returns:
-            all the configuration information for this OTP token generator,
-            encoded into a URI.
-
         :raises ValueError:
             * if a label was not provided either as an argument, or in the constructor.
             * if the label or issuer contains invalid characters.
+
+        :returns:
+            all the configuration information for this OTP token generator,
+            encoded into a URI.
 
         These URIs are frequently converted to a QRCode for transferring
         to a TOTP client application such as Google Auth. This can easily be done
@@ -1222,12 +1228,12 @@ class BaseOTP(object):
             Optional :class:`OTPContext` instance,
             required in order to encrypt/decrypt keys.
 
-        :returns:
-            a :class:`TOTP` or :class:`HOTP` instance, as appropriate.
-
         :raises ValueError:
             If the key has been encrypted, but the application secret isn't available;
             or if the string cannot be recognized, parsed, or decoded.
+
+        :returns:
+            a :class:`TOTP` or :class:`HOTP` instance, as appropriate.
         """
         if not isinstance(source, dict):
             source = to_unicode(source, param="json source")
@@ -1478,7 +1484,9 @@ class HOTP(BaseOTP):
         # validate start
         # NOTE: when loading from URI, 'start' is set to match counter,
         #       as we can trust server won't take any older values.
-        #       other than that case, 'start' generally isn't used.
+        #       other than that case, 'start' generally isn't used,
+        #       and mainly exists as sanity check to determine
+        #       when last client was last provisioned/synced with server.
         self._check_serial(start, "start")
         if start > self.counter:
             raise ValueError("start must be <= counter (%d)" % self.counter)
@@ -1558,7 +1566,7 @@ class HOTP(BaseOTP):
             may be integer or string (whitespace and hyphens are ignored).
 
         :param int counter:
-            next counter value client was expected to use.
+            next counter value client is expected to use.
 
         :param window:
            How many additional steps past ``counter`` to search when looking for a match
@@ -1570,25 +1578,27 @@ class HOTP(BaseOTP):
               would allow token-reuse, defeating the whole purpose of HOTP.
 
         :raises ~passlib.exc.TokenError:
-
              If the token is malformed, or fails to verify.
 
         :returns:
-
              Returns an :class:`HotpMatch` instance on a successful match.
-             The return value can be treated like a ``(next_counter, counter_skipped)``
-             tuple.
-
-             Raises error if token was malformed / did not match.
+             The return value can be treated like a ``(counter, expected_counter)``
+             tuple. Raises error if token was malformed / did not match.
 
         Usage example::
 
             >>> h = HOTP('s3jdvb7qd2r7jpxx')
-            >>> h.verify('763224', 1000) # token matches counter
-            (1001, 0)
-            >>> h.verify('763224', 999) # token w/in window=1
-            (1001, 1)
-            >>> h.verify('763224', 998) # token outside window
+
+            >>> # token matches counter
+            >>> h.verify('763224', 1000)
+            <HotpMatch counter=1001 expected_counter=1001>
+
+            >>> # token matches 1 counter ahead
+            >>> h.verify('763224', 999)
+            <HotpMatch counter=1001 expected_counter=1000>
+
+            >>> # token outside of default window (2)
+            >>> h.verify('763224', 998)
             Traceback:
                 ...
             InvalidTokenError: Token did not match
@@ -1633,24 +1643,32 @@ class HOTP(BaseOTP):
             If the token is malformed, or fails to verify.
 
         :returns:
-            True, indicating token validated.
-            (will always raise error on invalid/malformed tokens).
+            If token validated, returns the :class:`HotpMatch` instance from the underlying :meth:`verify` call.
+            Raise errors on invalid/malformed tokens.
 
-            May set the :attr:`changed` attribute if the internal state was updated,
+            As side-effect, may set the :attr:`changed` attribute if the internal state was updated,
             and needs to be re-persisted by the application (see :meth:`to_json`).
 
         Usage example::
 
             >>> h = HOTP('s3jdvb7qd2r7jpxx', counter=998)
-            >>> h.consume('763224') # token outside window
+
+            >>> # token outside window
+            >>> h.consume('763224')
             Traceback:
                 ...
             InvalidTokenError: Token did not match
-            >>> h.counter # counter not incremented
+
+            >>> # 'next' counter not incremented
+            >>> h.counter
             998
-            >>> h.consume('484807') # token matches counter 999, w/in window=1
-            True
-            >>> h.counter # counter has been incremented, now expecting counter=1000 next
+
+            >>> # token matches counter 999, w/in window=1
+            >>> h.consume('484807')
+            <HotpMatch counter=999 expected_counter=998>
+
+            >>> # counter has been incremented, now expecting counter=1000 next
+            >>> h.counter
             1000
         """
         counter = self.counter
@@ -1721,12 +1739,8 @@ class TotpToken(SequenceMixin):
     .. autoattribute:: token
     .. autoattribute:: expire_time
     .. autoattribute:: counter
-
-    ..
-        undocumented attributes::
-
-        .. autoattribute:: remaining
-        .. autoattribute:: valid
+    .. autoattribute:: remaining
+    .. autoattribute:: valid
     """
     #: OTP object that generated this token
     _otp = None
@@ -1738,6 +1752,10 @@ class TotpToken(SequenceMixin):
     counter = None
 
     def __init__(self, otp, token, counter):
+        """
+        .. warning::
+            the constructor signature is an internal detail, and is subject to change.
+        """
         self._otp = otp
         self.token = token
         self.counter = counter
@@ -1774,20 +1792,22 @@ class TotpMatch(SequenceMixin):
     """
     Object returned by :meth:`TOTP.verify` on a successful match.
 
-    It can be treated as a sequence of ``(counter, next_offset)``,
+    It can be treated as a sequence of ``(counter, time)``,
     or accessed via the following attributes:
 
     .. autoattribute:: counter
-    .. autoattribute:: next_offset
+        :annotation: = 0
 
-    ..
-        undocumented attributes:
+    .. autoattribute:: time
+        :annotation: = 0
 
-        .. autoattribute:: time
-        .. autoattribute:: counter_skipped
-        .. autoattribute:: previous_offset
+    .. autoattribute:: expected_counter
+        :annotation: = 0
 
-    It will always have a ``True`` boolean value.
+    .. autoattribute:: skipped
+        :annotation: = 0
+
+    This object will always have a ``True`` boolean value.
     """
     #: TOTP counter value which matched token.
     #: (Best practice is to subsequently ignore tokens matching this counter
@@ -1837,7 +1857,7 @@ class TOTP(BaseOTP):
     Given a secret key and set of configuration options, this object
     offers methods for token generation, token validation, and serialization.
     It can also be used to track important persistent TOTP state,
-    such as clock drift, and last counter used.
+    such as the last counter used.
 
     Constructor Options
     ===================
@@ -1976,6 +1996,7 @@ class TOTP(BaseOTP):
     #-------------------------------------------------------------------------
     # internal helpers
     #-------------------------------------------------------------------------
+    # XXX: could be class/static method if not for the .now parameter
     def normalize_time(self, time):
         """
         Normalize time value to unix epoch seconds.
@@ -2034,9 +2055,10 @@ class TOTP(BaseOTP):
 
         Usage example::
 
+            >>> # generate a new token, wrapped in a TotpToken instance...
             >>> otp = TOTP('s3jdvb7qd2r7jpxx')
             >>> otp.generate(1419622739)
-            ('897212', 1419622740)
+            <TotpToken token='897212' expire_time=1419622740>
 
             >>> # when you just need the token...
             >>> otp.generate(1419622739).token
@@ -2045,7 +2067,6 @@ class TOTP(BaseOTP):
         .. seealso::
             This is a lowlevel method, which doesn't read or modify any state-dependant values
             (such as the :attr:`last_counter` value).
-            For a version which does, see :meth:`advance`.
         """
         time = self.normalize_time(time)
         counter = self._time_to_counter(time)
@@ -2076,6 +2097,11 @@ class TOTP(BaseOTP):
 
             Setting this to ``True`` will allow multiple uses of the token within the same time period.
 
+        :raises ~passlib.exc.UsedTokenError:
+
+            if an attempt is made to generate a token within the same time :attr:`period`
+            (suppressed by ``reuse=True``).
+
         :returns:
 
             sequence of ``(token, expire_time)`` (actually a :class:`TotpToken` instance):
@@ -2083,19 +2109,16 @@ class TOTP(BaseOTP):
             * ``token`` -- decimal-formatted token as a (unicode) string
             * ``expire_time`` -- unix epoch time when token will expire
 
-        :raises ~passlib.exc.UsedTokenError:
-
-            if an attempt is made to generate a token within the same time :attr:`period`
-            (suppressed by ``reuse=True``).
-
         Usage example::
 
             >>> # IMPORTANT: THE 'now' PARAMETER SHOULD NOT BE USED IN PRODUCTION.
             >>> #            It's only used here to fix the totp generator's clock, so that
             >>> #            this example can be reproduced regardless of the actual system time.
+
+            >>> # generate new token, wrapped in a TotpToken instance...
             >>> totp = TOTP('s3jdvb7qd2r7jpxx', now=lambda : 1419622739)
-            >>> totp.advance() # generate new token
-            ('897212', 1419622740)
+            >>> totp.advance()
+            <TotpToken token='897212' expire_time=1419622740>
 
             >>> # or use attr access when you just need the token ...
             >>> totp.advance().token
@@ -2129,7 +2152,7 @@ class TOTP(BaseOTP):
         """
         Low-level method to validate TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
-        in order to account for transmission offset and drift in the client's clock.
+        in order to account for transmission delay and small amounts of skew in the client's clock.
 
         :arg token:
             Token to validate.
@@ -2145,21 +2168,44 @@ class TOTP(BaseOTP):
             Measured in seconds. Defaults to ``30``.  Typically only useful if set
             to multiples of :attr:`period`.
 
-        :param int offset:
-            Adjust timestamp by specified value, to account for transmission offset and / or client clock skew.
-            Measured in seconds. Defaults to ``0``.
+        :param int skew:
+            Adjust timestamp by specified value, to account for excessive
+            client clock skew. Measured in seconds. Defaults to ``0``.
 
-            # TODO: would like to rename to 'skew', but may need to invert sense.
+            Negative skew (the common case) indicates transmission delay,
+            and/or that the client clock is running behind the server.
 
-            Negative offset (the common case) indicates transmission delay,
-            and/or that the client clock is running later than the server.
-            Positive offset indicates the client clock is running earlier than the server
-            (and by enough that it cancels out the transmission delay).
+            Positive skew indicates the client clock is running ahead of the server
+            (and by enough that it cancels out any negative skew added by
+            the transmission delay).
 
-            .. note::
+            You should ensure the server clock uses a reliable time source such as NTP,
+            so that only the client clock's inaccuracy needs to be accounted for.
 
-                You should ensure the server clock uses a reliable time source such as NTP,
-                so that only the client clock needs to be accounted for.
+            This is an advanced parameter that should usually be left at ``0``;
+            The **window** parameter is usually enough to account
+            for any observed transmission delay.
+
+        :param last_counter:
+            Optional value of last counter value that was successfully used.
+            If specified, verify will never search earlier counters,
+            no matter how large the window is.
+
+            Useful when client has previously authenticated,
+            and thus should never provide a token older than previously
+            verified value.
+
+        :param bool reuse:
+            Controls whether a token can be issued twice within the same time :attr:`period`.
+
+            By default (``False``), attempting to verify the same token twice within the same time :attr:`period`
+            will result in a :exc:`~passlib.exc.TokenReuseError`.
+            Setting this to ``True`` will silently allow multiple uses of the token within the same time period.
+
+            Note that enabling this exposes your application to a replay attack:
+            if an attacker is able to read the token (whether physically
+            as the user types it, or going across the wire), the attacker
+            will be able to re-use any time over the next <period> seconds.
 
         :raises ~passlib.exc.TokenError:
 
@@ -2168,25 +2214,30 @@ class TOTP(BaseOTP):
         :returns TotpMatch:
 
             Returns a :class:`TotpMatch` instance on successful match.
-            Can be treated as tuple of ``(counter, next_offset)``.
-
+            Can be treated as tuple of ``(counter, time)``.
             Raises error if token is malformed / can't be verified.
 
         Usage example::
 
             >>> totp = TOTP('s3jdvb7qd2r7jpxx')
-            >>> totp.verify('897212', 1419622729) # valid token for this time period
-            (47320757, 19)
-            >>> totp.verify('000492', 1419622729) # token from counter step 30 sec ago (within allowed window)
-            (47320756, -27)
-            >>> totp.verify('760389', 1419622729) # invalid token -- token from 60 sec ago (outside of window)
+
+            >>> # valid token for this time period
+            >>> totp.verify('897212', 1419622729)
+            <TotpMatch counter=47320757 time=1419622729>
+
+            >>> # token from counter step 30 sec ago (within allowed window)
+            >>> totp.verify('000492', 1419622729)
+            <TotpMatch counter=47320756 time=1419622729>
+
+            >>> # invalid token -- token from 60 sec ago (outside of window)
+            >>> totp.verify('760389', 1419622729)
             Traceback:
                 ...
             InvalidTokenError: Token did not match
 
         .. seealso::
             This is a low-level method, which doesn't read or modify any state-dependant values
-            (such as the :attr:`last_counter` value, or the previously recorded :attr:`drift`).
+            (such as the :attr:`last_counter` value).
             For a version which does, see :meth:`consume`.
         """
         time = self.normalize_time(time)
@@ -2217,10 +2268,6 @@ class TOTP(BaseOTP):
         Unlike :meth:`verify`, this method takes into account the :attr:`last_counter` value,
         and updates that attribute if a match is found.
 
-        Additionally, this method also stores an internal :attr;`_history` of previous successful
-        verifications, which it uses to autocalculate the offset parameter before each call
-        (in order to account for client clock drift).
-
         :arg token:
             token to validate.
             may be integer or string (whitespace and hyphens are ignored).
@@ -2229,35 +2276,31 @@ class TOTP(BaseOTP):
             Controls whether a token can be issued twice within the same time :attr:`period`.
 
             By default (``False``), attempting to verify the same token twice within the same time :attr:`period`
-            will result in a :exc:`~passlib.exc.TokenReuseError`, since once a token has gone across the wire,
-            it should be considered insecure.
-
+            will result in a :exc:`~passlib.exc.TokenReuseError`.
             Setting this to ``True`` will silently allow multiple uses of the token within the same time period.
+
+            Note that enabling this exposes your application to a replay attack:
+            if an attacker is able to read the token (whether physically
+            as the user types it, or going across the wire), the attacker
+            will be able to re-use any time over the next <period> seconds.
 
         :param int window:
             How far backward and forward in time to search for a match.
             Measured in seconds. Defaults to ``30``.  Typically only useful if set
             to multiples of :attr:`period`.
 
+        :raises ~passlib.exc.TokenError:
+
+            If the token is malformed, fails to verify,
+            or an attempt is made to re-use the current time period's token
+            (this last check can be suppressed by ``reuse=True``)
+
         :returns:
-            Returns ``True`` if token validated successfully,
-            raises error if it didn't.
+            If token validated, returns the :class:`HotpMatch` instance from the underlying :meth:`verify` call.
+            Raise errors on invalid/malformed tokens.
 
             May set the :attr:`changed` attribute if the internal state was updated,
             and needs to be re-persisted by the application (see :meth:`to_json`).
-
-        :raises ValueError:
-            If the provided token is not correctly formed (e.g. wrong number of digits),
-            or if one of the parameters has an invalid value.
-
-        :raises ~passlib.exc.TokenError:
-
-            If the token is malformed, fails to verify.
-
-        :raises ~passlib.exc.TokenReuseError:
-
-            If an attempt is made to re-use the current time period's token
-            (check can be suppressed by ``reuse=True``)
 
         Usage example::
 
@@ -2265,17 +2308,21 @@ class TOTP(BaseOTP):
             >>> #            It's only used here to fix the totp generator's clock, so that
             >>> #            this example can be reproduced regardless of the actual system time.
             >>> totp = TOTP('s3jdvb7qd2r7jpxx', now = lambda: 1419622739)
+
             >>> # wrong token
             >>> totp.consume('123456')
             Traceback:
                 ...
             InvalidTokenError: Token did not match
+
             >>> # token from 30 sec ago (w/ window, will be accepted)
             >>> totp.consume('000492')
-            True
+            <TotpMatch counter=47320756 time=1419622729>
+
             >>> # token from current period
             >>> totp.consume('897212')
-            True
+            <TotpMatch counter=47320757 time=1419622729>
+
             >>> # token from 30 sec ago will now be rejected
             >>> totp.consume('000492')
             Traceback:
@@ -2363,13 +2410,16 @@ def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     """
     generate a random string suitable for use as an
     :class:`OTPContext` application secret.
+
+    :param entropy:
+        number of bits of entropy (controls size/complexity of password).
     """
     assert entropy > 0
     assert len(charset) > 1
     count = int(math.ceil(entropy * math.log(2, len(charset))))
     return getrandstr(rng, charset, count)
 
-# XXX: deprecate these in favor of context?
+# XXX: deprecate these in favor of user creating new context?
 _default_context = OTPContext()
 new = _default_context.new
 from_uri = _default_context.from_uri
