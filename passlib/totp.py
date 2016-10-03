@@ -580,10 +580,6 @@ class BaseOTP(object):
         shared by the :class:`TOTP` and :class:`HOTP` classes.
         See those classes for usage instructions.
 
-    .. _baseotp-constructor-options:
-
-    Constructor Options
-    ===================
     Both the :class:`TOTP` and :class:`HOTP` classes accept the following common options
     (only **key** and **format** may be specified as positional arguments).
 
@@ -645,58 +641,8 @@ class BaseOTP(object):
         If set, and application secrets are present, they will be used to encrypt the OTP key
         when :meth:`to_json` is invoked.
 
-    .. _baseotp-configuration-attributes:
-
-    Configuration Attributes
-    ========================
-    All the OTP objects offer the following attributes,
-    which correspond to the constructor options (above).
-    Most of this information will be serialized by :meth:`to_uri` and :meth:`to_json`:
-
-    .. autoattribute:: key
-    .. autoattribute:: hex_key
-    .. autoattribute:: base32_key
-    .. autoattribute:: label
-    .. autoattribute:: issuer
-    .. autoattribute:: digits
-    .. autoattribute:: alg
-
-    .. _baseotp-client-provisioning:
-
-    Client Provisioning (URIs & QRCodes)
-    ====================================
-    The configuration of any OTP object can be encoded into a URI [#uriformat]_,
-    suitable for configuring an OTP client such as Google Authenticator.
-
-    .. automethod:: to_uri
-    .. automethod:: from_uri
-    .. automethod:: pretty_key
-
-    .. _baseotp-serialization:
-
-    Serialization
-    =============
-    While :class:`TOTP` and :class:`HOTP` instances can be used statelessly
-    to calculate token values, they can also be used in a persistent
-    manner, to handle tracking of previously used tokens, etc.  In this case,
-    they will need to be serialized to / from external storage, which
-    can be performed with the following methods:
-
-    .. automethod:: to_json
-    .. automethod:: from_json
-
-    .. attribute:: changed
-
-        Boolean flag set by all BaseOTP subclass methods which modify the internal state.
-        if true, then something has changed in the object since it was created / loaded
-        via :meth:`from_json`, and needs re-persisting via :meth:`to_json`.
-        After which, your application may clear the flag, or discard the object, as appropriate.
-
     ..
-        Undocumented Helper Methods
-        ===========================
-
-        .. automethod:: normalize_token
+        See the passlib documentation for list of attributes & methods.
     """
     #=============================================================================
     # class attrs
@@ -1167,8 +1113,8 @@ class BaseOTP(object):
             >>> # for example, the following uses PyQRCode
             >>> # to print the uri directly on an ANSI terminal as a qrcode:
             >>> import pyqrcode
-            >>> pyqrcode.create(uri).terminal()
-            (... output omitted ...)
+            >>> print(pyqrcode.create(uri).terminal(quiet_zone=1))
+            ... very large ascii-art qrcode omitted...
 
         """
         # encode label
@@ -1401,54 +1347,16 @@ class HOTP(BaseOTP):
     It can also be used to track important persistent HOTP state,
     such as the next counter value.
 
-    Constructor Options
-    ===================
     In addition to the :ref:`BaseOTP Constructor Options <baseotp-constructor-options>`,
     this class accepts the following extra parameters:
 
     :param int counter:
-        The initial counter value to use when generating new tokens via :meth:`advance()`,
-        or when verifying them via :meth:`consume()`.
+        The next counter value to use when generating a new token via :meth:`advance()`,
+        or when verifying one via :meth:`consume()`.  Will be automatically
+        incremented after each successful call to those methods.
 
-    Client-Side Token Generation
-    ============================
-    .. automethod:: generate
-    .. automethod:: advance
-
-    Server-Side Token Verification
-    ==============================
-    .. automethod:: verify
-    .. automethod:: consume
-
-    .. todo::
-
-        Offer a resynchronization primitive which allows user to provide a large number of sequential tokens
-        taken from a pre-determined counter range (google's "emergency recovery code" style);
-        or at current counter, but with a much larger window (as referenced in the RFC).
-
-    Provisioning & Serialization
-    ============================
-    The shared provisioning & serialization methods for the :class:`!TOTP` and :class:`!HOTP` classes
-    are documented under:
-
-    * :ref:`BaseOTP Client Provisioning <baseotp-client-provisioning>`
-    * :ref:`BaseOTP Serialization <baseotp-serialization>`
-
-
-    Internal State Attributes
-    =========================
-    The following attributes are used to track the internal state of this generator,
-    and will be included in the output of :meth:`to_json`:
-
-    .. autoattribute:: counter
-
-    .. attribute:: changed
-
-        Boolean flag set by :meth:`advance` and :meth:`consume`
-        to indicate that the object's internal state has been modified since creation.
-
-    (Note: All internal state attribute can be initialized via constructor options,
-    but this is mainly an internal / testing detail).
+    ..
+        See the passlib documentation for a list of attributes & methods
     """
     #=============================================================================
     # class attrs
@@ -1859,8 +1767,6 @@ class TOTP(BaseOTP):
     It can also be used to track important persistent TOTP state,
     such as the last counter used.
 
-    Constructor Options
-    ===================
     In addition to the :ref:`BaseOTP Constructor Options <baseotp-constructor-options>`,
     this class accepts the following extra parameters:
 
@@ -1878,60 +1784,8 @@ class TOTP(BaseOTP):
         cause problems with some OTP client programs. For instance, Google Authenticator
         claims it's defaults are hard-coded.
 
-    Client-Side Token Generation
-    ============================
-    .. automethod:: generate
-    .. automethod:: advance
-
-    Server-Side Token Verification
-    ==============================
-    .. automethod:: verify
-    .. automethod:: consume
-
-    .. todo::
-
-        Offer a resynchronization primitive which allows user to provide a large number of
-        sequential tokens taken from a pre-determined time range (e.g.
-        google's "emergency recovery code" style); or at current time, but with a much larger
-        window (as referenced in the RFC).
-
-    Provisioning & Serialization
-    ============================
-    The shared provisioning & serialization methods for the :class:`!TOTP` and :class:`!HOTP` classes
-    are documented under:
-
-    * :ref:`BaseOTP Client Provisioning <baseotp-client-provisioning>`
-    * :ref:`BaseOTP Serialization <baseotp-serialization>`
-
     ..
-        Undocumented Helper Methods
-        ===========================
-
-        .. automethod:: normalize_time
-
-    Configuration Attributes
-    ========================
-    In addition to the :ref:`BaseOTP Configuration Attributes <baseotp-configuration-attributes>`,
-    this class also offers the following extra attrs (which correspond to the extra constructor options):
-
-    .. autoattribute:: period
-
-    Internal State Attributes
-    =========================
-    The following attributes are used to track the internal state of this generator,
-    and will be included in the output of :meth:`to_json`:
-
-    .. autoattribute:: last_counter
-
-    .. autoattribute:: _history
-
-    .. attribute:: changed
-
-        boolean flag set by :meth:`advance` and :meth:`consume`
-        to indicate that the object's internal state has been modified since creation.
-
-    (Note: All internal state attribute can be initialized via constructor options,
-    but this is mainly an internal / testing detail).
+        See the passlib documentation for a full list of attributes & methods.
     """
     #=============================================================================
     # class attrs
