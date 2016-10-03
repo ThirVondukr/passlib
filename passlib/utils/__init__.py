@@ -224,6 +224,7 @@ class memoized_property(object):
     def __init__(self, func):
         self.__func__ = func
         self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
 
     def __get__(self, obj, cls):
         if obj is None:
