@@ -32,6 +32,12 @@ The modular crypt format is more of an ad-hoc idea rather than a true standard.
 The rest of this page is an attempt to describe what is known,
 at least as far as the hashes supported by Passlib.
 
+.. seealso::
+
+    The `PHC string format <https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md>`
+    is a recent attempt to specify a common hash string format,
+    that's a restricted (& more well defined) subset of the modular crypt format.
+
 History
 =======
 Historically, most unix systems supported only :class:`~passlib.hash.des_crypt`.
