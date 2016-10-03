@@ -157,6 +157,12 @@ their output is relatively simple to inspect (e.g. in Postgres JSON columns),
 they can include stateful data (see :ref:`totp-stateful-usage` below),
 and they support storing the keys in an encrypted fashion (see :ref:`totp-context-usage` below).
 
+For cases where a python dictionary is more useful than a json string,
+the :meth:`BaseOTP.to_dict` method returns a python dict identical to parsing
+the output of :meth:`BaseOTP.to_json`.  This value can be reconstructed
+via :func:`from_json`, which will autodetect whether the input
+is a dictionary vs string.
+
 .. seealso::
 
     For more details, see the :meth:`~passlib.totp.BaseOTP.from_json` constructor,
