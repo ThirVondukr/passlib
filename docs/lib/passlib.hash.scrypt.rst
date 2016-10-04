@@ -65,7 +65,8 @@ This class will use the first available of two possible backends:
 
 Format & Algorithm
 ==================
-This Scrypt hash format is compatible with the :ref:`modular-crypt-format`, and uses ``$scrypt$`` as the identifying prefix
+This Scrypt hash format is compatible with the :ref:`PHC Format <phc-format>` and :ref:`modular-crypt-format`,
+and uses ``$scrypt$`` as the identifying prefix
 for all its strings. An example hash (of ``password``) is:
 
   ``$scrypt$ln=16,r=8,p=1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD+iCs5E``
@@ -73,7 +74,7 @@ for all its strings. An example hash (of ``password``) is:
 This string has the format :samp:`$scrypt$ln={logN},r={R},p={P}${salt}${checksum}`, where:
 
 * :samp:`{logN}` is the exponent for calculating SCRYPT's cost parameter (N), encoded as a decimal digit,
-  (logN is 16 in the example, corresponding to n=65536).
+  (logN is 16 in the example, corresponding to n = 2**16 = 65536).
 
 * :samp:`{R}` is the value of SCRYPT's block size parameter (r), encoded as a decimal digit,
   (r is 8 in the example).

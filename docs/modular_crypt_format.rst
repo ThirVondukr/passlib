@@ -1,5 +1,6 @@
 .. index:: modular crypt format
 
+.. _phc-format:
 .. _modular-crypt-format:
 
 .. rst-class:: html-toggle
@@ -11,6 +12,19 @@ Modular Crypt Format
 .. rst-class:: subtitle
 
     A explanation about a standard that isn't
+
+.. rst-class:: without-title
+
+.. seealso::
+    **Deprecated (as of 2016) in favor of the PHC String Format**
+
+    In the opinion of the main Passlib author, the modular crypt format (described below)
+    should be considered deprecated when creating new hashes.
+    The `PHC String Format <https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md>`_
+    is an attempt to specify a common hash string format
+    that's a restricted & well defined subset of the Modular Crypt Format.
+    New hashes are strongly encouraged to adhere to the PHC specification,
+    rather than the much looser Modular Crypt Format.
 
 Overview
 ========
@@ -31,12 +45,6 @@ The modular crypt format is more of an ad-hoc idea rather than a true standard.
 
 The rest of this page is an attempt to describe what is known,
 at least as far as the hashes supported by Passlib.
-
-.. seealso::
-
-    The `PHC string format <https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md>`
-    is a recent attempt to specify a common hash string format,
-    that's a restricted (& more well defined) subset of the modular crypt format.
 
 History
 =======

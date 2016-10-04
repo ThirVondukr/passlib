@@ -55,7 +55,8 @@ You can check which backend is in use by calling :meth:`!argon2.get_backend()`.
 Format & Algorithm
 ==================
 The Argon2 hash format is defined by the argon2 reference implementation.
-It's compatible with the :ref:`modular-crypt-format`, and uses ``$argon2i$`` and ``$argon2d$``
+It's compatible with the :ref:`PHC Format <phc-format>` and :ref:`modular-crypt-format`,
+and uses ``$argon2i$`` and ``$argon2d$``
 as it's identifying prefixes for all its strings. An example hash (of ``password``) is:
 
   ``$argon2i$v=19$m=512,t=3,p=2$c29tZXNhbHQ$SqlVijFGiPG+935vDSGEsA``
