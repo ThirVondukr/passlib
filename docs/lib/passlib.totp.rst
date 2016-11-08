@@ -24,71 +24,8 @@ helps to securely serialize TOTP secrets & state to a database.
 
 .. _baseotp-constructor-options:
 
-BaseOTP (Shared Methods)
-========================
-
-BaseOTP – Constructor
----------------------
-.. autoclass:: BaseOTP
-
-.. _baseotp-client-provisioning:
-
-BaseOTP – Client Provisioning (URIs & QRCodes)
-----------------------------------------------
-The configuration of any OTP object can be encoded into a URI [#uriformat]_,
-suitable for configuring an OTP client such as Google Authenticator.
-
-.. automethod:: BaseOTP.to_uri
-.. automethod:: BaseOTP.from_uri
-.. automethod:: BaseOTP.pretty_key
-
-.. _baseotp-serialization:
-
-BaseOTP – Serialization
------------------------
-While :class:`TOTP` instances can be used statelessly
-to calculate token values, they can also be used in a persistent
-manner, to handle tracking of previously used tokens, etc.  In this case,
-they will need to be serialized to / from external storage, which
-can be performed with the following methods:
-
-.. attribute:: BaseOTP.changed
-
-    Boolean flag set by all BaseOTP subclass methods which modify the internal state.
-    if true, then something has changed in the object since it was created / loaded
-    via :meth:`~TOTP.from_json`, and needs re-persisting via :meth:`~TOTP.to_json`.
-    After which, your application may clear the flag, or discard the object, as appropriate.
-
-.. automethod:: BaseOTP.to_json
-.. automethod:: BaseOTP.to_dict
-.. automethod:: BaseOTP.from_json
-
-..
-    Undocumented Helper Methods
-    ---------------------------
-
-    .. automethod:: BaseOTP.normalize_token
-
-.. _baseotp-configuration-attributes:
-
-BaseOTP – Configuration Attributes
-----------------------------------
-All the OTP objects offer the following attributes,
-which correspond to the constructor options (above).
-Most of this information will be serialized by :meth:`~TOTP.to_uri` and :meth:`~TOTP.to_json`:
-
-.. autoattribute:: BaseOTP.key
-.. autoattribute:: BaseOTP.hex_key
-.. autoattribute:: BaseOTP.base32_key
-.. autoattribute:: BaseOTP.label
-.. autoattribute:: BaseOTP.issuer
-.. autoattribute:: BaseOTP.digits
-.. autoattribute:: BaseOTP.alg
-
-.. rst-class:: emphasize-children
-
-TOTP (Time-based tokens)
-========================
+TOTP Class
+==========
 
 TOTP – Constructor
 ------------------
@@ -110,27 +47,60 @@ TOTP – Server-Side Token Verification
     google's "emergency recovery code" style); or at current time, but with a much larger
     window (as referenced in the RFC).
 
-TOTP – Provisioning & Serialization
------------------------------------
-:class:`!TOTP`'s provisioning & serialization methods are inherited from :class:`!BaseOTP`,
-and are documented under:
+.. _baseotp-client-provisioning:
 
-* :ref:`BaseOTP Client Provisioning <baseotp-client-provisioning>`
-* :ref:`BaseOTP Serialization <baseotp-serialization>`
+TOTP – Client Provisioning (URIs & QRCodes)
+-------------------------------------------
+The configuration of any OTP object can be encoded into a URI [#uriformat]_,
+suitable for configuring an OTP client such as Google Authenticator.
+
+.. automethod:: TOTP.to_uri
+.. automethod:: TOTP.from_uri
+.. automethod:: TOTP.pretty_key
+
+.. _baseotp-serialization:
+
+TOTP – Serialization
+--------------------
+While :class:`TOTP` instances can be used statelessly
+to calculate token values, they can also be used in a persistent
+manner, to handle tracking of previously used tokens, etc.  In this case,
+they will need to be serialized to / from external storage, which
+can be performed with the following methods:
+
+.. attribute:: TOTP.changed
+
+    Boolean flag set by all TOTP methods which modify the internal state.
+    if true, then something has changed in the object since it was created / loaded
+    via :meth:`~TOTP.from_json`, and needs re-persisting via :meth:`~TOTP.to_json`.
+    After which, your application may clear the flag, or discard the object, as appropriate.
+
+.. automethod:: TOTP.to_json
+.. automethod:: TOTP.to_dict
+.. automethod:: TOTP.from_json
 
 ..
     Undocumented Helper Methods
     ---------------------------
 
+    .. automethod:: TOTP.normalize_token
     .. automethod:: TOTP.normalize_time
 
-.. _totp-configuration-attributes:
+.. _baseotp-configuration-attributes:
 
 TOTP – Configuration Attributes
 -------------------------------
-In addition to the :ref:`BaseOTP Configuration Attributes <baseotp-configuration-attributes>`,
-this class also offers the following extra attrs (which correspond to the extra constructor options):
+All the OTP objects offer the following attributes,
+which correspond to the constructor options (above).
+Most of this information will be serialized by :meth:`~TOTP.to_uri` and :meth:`~TOTP.to_json`:
 
+.. autoattribute:: TOTP.key
+.. autoattribute:: TOTP.hex_key
+.. autoattribute:: TOTP.base32_key
+.. autoattribute:: TOTP.label
+.. autoattribute:: TOTP.issuer
+.. autoattribute:: TOTP.digits
+.. autoattribute:: TOTP.alg
 .. autoattribute:: TOTP.period
 
 TOTP – Internal State Attributes
@@ -139,11 +109,6 @@ The following attributes are used to track the internal state of this generator,
 and will be included in the output of :meth:`~TOTP.to_json`:
 
 .. autoattribute:: TOTP.last_counter
-
-.. attribute:: TOTP.changed
-
-    boolean flag set by :meth:`~TOTP.advance` and :meth:`~TOTP.consume`
-    to indicate that the object's internal state has been modified since creation.
 
 (Note: All internal state attributes can be initialized via constructor options,
 but this is mainly an internal / testing detail).

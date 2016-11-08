@@ -397,6 +397,9 @@ RFC_KEY_BYTES_20 = "12345678901234567890".encode("ascii")
 RFC_KEY_BYTES_32 = (RFC_KEY_BYTES_20*2)[:32]
 RFC_KEY_BYTES_64 = (RFC_KEY_BYTES_20*4)[:64]
 
+# TODO: this class is separate from TotpTest due to historical issue,
+#       when there was a base class, and a separate HOTP class.
+#       these test case classes should probably be combined.
 class _BaseOTPTest(TestCase):
     """
     common code shared by TotpTest & HotpTest

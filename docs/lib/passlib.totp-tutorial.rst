@@ -59,7 +59,7 @@ and instructing it to create a new key::
     >>> otp2 = totp.TOTP(new=True, period=60, alg="sha256")
 
     >>> # You can also create TOTP instances from an existing key:
-    >>> # (see BaseOTP's "key" and "format" options for more details)
+    >>> # (see TOTP's "key" and "format" options for more details)
     >>> otp3 = totp.TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
 
 .. seealso::
