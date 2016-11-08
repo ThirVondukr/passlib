@@ -83,7 +83,7 @@ TOTP applications support the user grabbing this configuration off the screen.
 When transferring things this way, you will need to provide identifiers
 for your application and the user, in order for the TOTP client to distinguish
 this key from the others in it's database.  This is done via the "issue" and "label"
-parameters of the :meth:`~passlib.totp.BaseOTP.to_uri` method:
+parameters of the :meth:`~passlib.totp.TOTP.to_uri` method:
 
     >>> # assume an existing TOTP instance has been created
     >>> from passlib import totp
@@ -117,8 +117,8 @@ URI.  This can be useful for testing URI encoding & output:
 
 .. seealso::
 
-    For more details, see the :meth:`~passlib.totp.BaseOTP.from_uri` constructor,
-    and the :meth:`~passlib.totp.BaseOTP.to_uri` method.
+    For more details, see the :meth:`~passlib.totp.TOTP.from_uri` constructor,
+    and the :meth:`~passlib.totp.TOTP.to_uri` method.
 
 Storing TOTP instances
 ----------------------
@@ -126,7 +126,7 @@ One disadvantage of :meth:`~TOTP.to_uri` and :func:`!from_uri` (above)
 is that they're oriented towards helping a server configure a client device.
 Server applications will still need to persist this information
 to disk (whether a database, flat file, etc).  To help with this, passlib offers
-a way to serialize OTP tokens to and from JSON: the :meth:`BaseOTP.to_json` method,
+a way to serialize OTP tokens to and from JSON: the :meth:`TOTP.to_json` method,
 and the :meth:`passlib.totp.from_uri` constructor::
 
     >>> # assume an existing TOTP instance has been created
@@ -153,15 +153,15 @@ they can include stateful data (see :ref:`totp-stateful-usage` below),
 and they support storing the keys in an encrypted fashion (see :ref:`totp-context-usage` below).
 
 For cases where a python dictionary is more useful than a json string,
-the :meth:`BaseOTP.to_dict` method returns a python dict identical to parsing
-the output of :meth:`BaseOTP.to_json`.  This value can be reconstructed
+the :meth:`TOTP.to_dict` method returns a python dict identical to parsing
+the output of :meth:`TOTP.to_json`.  This value can be reconstructed
 via :func:`from_json`, which will autodetect whether the input
 is a dictionary vs string.
 
 .. seealso::
 
-    For more details, see the :meth:`~passlib.totp.BaseOTP.from_json` constructor,
-    and the :meth:`~passlib.totp.BaseOTP.to_json` method;
+    For more details, see the :meth:`~passlib.totp.TOTP.from_json` constructor,
+    and the :meth:`~passlib.totp.TOTP.to_json` method;
     as well as the stateful usage & OTPContext usage tutorials below.
 
 Generating Tokens
@@ -337,7 +337,7 @@ if an attacker then comes along and attempts to re-use this token within :meth:`
 
 .. seealso::
 
-    The :meth:`TOTP.consume` and :meth:`BaseOTP.to_json` methods,
+    The :meth:`TOTP.consume` and :meth:`TOTP.to_json` methods,
     the :attr:`TOTP.last_counter` attribute, and the :func:`~totp.from_json` constructor.
 
 ..
@@ -363,7 +363,7 @@ application, using passlib's highlevel :class:`OTPContext` helper class.
 Why Rate Limiting is Critical
 =============================
 
-The :meth:`HOTP.verify` and :meth:`TOTP.verify` methods both offer a ``window``
+The :meth:`TOTP.verify` methods offers a ``window``
 parameter, expanding the search range to account for the client getting
 slightly out of sync.
 

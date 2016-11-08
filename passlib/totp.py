@@ -386,13 +386,10 @@ class OTPContext(object):
     #========================================================================
     # frontend wrappers
     #========================================================================
-    def new(self, type="totp", **kwds):
+    def new(self, **kwds):
         """
         Create new OTP instance from scratch,
         generating a new key.
-
-        :param type:
-            "totp" (the default)
 
         :param \*\*kwds:
             All remaining keywords passed to the :class:`TOTP` constructor.
@@ -400,41 +397,40 @@ class OTPContext(object):
         :return:
             :class:`!TOTP` instance.
         """
-        cls = BaseOTP._type_map[type]
-        return cls(new=True, context=self, **kwds)
+        return TOTP(new=True, context=self, **kwds)
 
     def from_uri(self, uri):
         """
         Create OTP instance from configuration uri.
 
-        This is just a wrapper for :meth:`BaseOTP.from_uri`
+        This is just a wrapper for :meth:`TOTP.from_uri`
         which returns an OTP object tied to this context
         (and will thus use any application secrets to encrypt the key for storage).
 
         :param uri:
             URI to parse.
             This URI may come externally (e.g. from a scanned qrcode),
-            or from the :meth:`BaseOTP.to_uri` method.
+            or from the :meth:`TOTP.to_uri` method.
 
         :return:
             :class:`TOTP` instance.
         """
-        return BaseOTP.from_uri(uri, context=self)
+        return TOTP.from_uri(uri, context=self)
 
     def from_json(self, source):
         """
         Create OTP instance from serialized json state.
 
-        This is just a wrapper for :class:`BaseOTP.from_json`,
+        This is just a wrapper for :meth:`TOTP.from_json`,
         and returns an OTP object tied to this context.
 
         :param source:
-            json string as returned by :class:`BaseOTP.to_json`.
+            json string as returned by :meth:`TOTP.to_json`.
 
         :return:
             :class:`TOTP` instance.
         """
-        return BaseOTP.from_json(source, context=self)
+        return TOTP.from_json(source, context=self)
 
     #========================================================================
     # encrypted key helpers -- used internally by BaseOTP
@@ -644,16 +640,9 @@ class BaseOTP(object):
     # class attrs
     #=============================================================================
 
-    #: otpauth uri type that subclass implements ('totp' or 'hotp')
-    #: (used by uri & serialization code)
-    type = None
-
     #: minimum number of bytes to allow in key, enforced by passlib.
     # XXX: see if spec says anything relevant to this.
     _min_key_size = 10
-
-    #: dict used by from_uri() to lookup subclass based on otpauth type
-    _type_map = {}
 
     #: minimum & current serialization version (may be set independently by subclasses)
     min_json_version = json_version = 1
@@ -969,12 +958,17 @@ class BaseOTP(object):
         if result.scheme != "otpauth":
             raise cls._uri_error("wrong uri scheme")
 
-        # lookup factory to handle OTP type, and hand things off to it.
-        try:
-            subcls = cls._type_map[result.netloc]
-        except KeyError:
-            raise cls._uri_error("unknown OTP type")
-        return subcls._from_parsed_uri(result, context)
+        # validate netloc, and hand off to helper
+        cls._check_otp_type(result.netloc)
+        return cls._from_parsed_uri(result, context)
+
+    @classmethod
+    def _check_otp_type(cls, type):
+        if type == "totp":
+            return True
+        if type == "hotp":
+            raise NotImplementedError("HOTP not supported")
+        raise ValueError("unknown otp type: %r" % type)
 
     @classmethod
     def _from_parsed_uri(cls, result, context):
@@ -1050,7 +1044,7 @@ class BaseOTP(object):
     @classmethod
     def _uri_error(cls, reason):
         """uri parsing helper -- creates preformatted error message"""
-        prefix = cls.__name__ + ": " if cls.type else ""
+        prefix = cls.__name__ + ": "
         return ValueError("%sInvalid otpauth uri: %s" % (prefix, reason))
 
     @classmethod
@@ -1139,7 +1133,7 @@ class BaseOTP(object):
         assert argstr, "argstr should never be empty"
 
         # render uri
-        return u("otpauth://%s/%s?%s") % (self.type, label, argstr)
+        return u("otpauth://totp/%s?%s") % (label, argstr)
 
     def _to_uri_params(self):
         """return list of (key, param) entries for URI"""
@@ -1184,16 +1178,12 @@ class BaseOTP(object):
                 return cls.from_uri(source, context=context)
             else:
                 source = json.loads(source)
-        if not (isinstance(source, dict) and "type" in source):
+        if not isinstance(source, dict):
             raise cls._json_error("unrecognized json data")
-        try:
-            subcls = cls._type_map[source.pop('type')]
-        except KeyError:
-            raise cls._json_error("unknown OTP type")
-        return subcls(context=context, **subcls._adapt_json_dict(**source))
+        return cls(context=context, **cls._adapt_json_dict(**source))
 
     @classmethod
-    def _adapt_json_dict(cls, **kwds):
+    def _adapt_json_dict(cls, type="totp", **kwds):
         """
         Internal helper for .from_json() --
         Adapts serialized json dict into constructor keywords.
@@ -1201,6 +1191,7 @@ class BaseOTP(object):
         # default json format is just serialization of constructor kwds.
         # XXX: just pass all this through to _from_json / constructor?
         # go ahead and mark as changed (needs re-saving) if the version is too old
+        assert cls._check_otp_type(type), "check legacy type parameter"
         ver = kwds.pop("v", None)
         if not ver or ver < cls.min_json_version or ver > cls.json_version:
             raise cls._json_error("missing/unsupported version (%r)" % (ver,))
@@ -1221,8 +1212,8 @@ class BaseOTP(object):
     @classmethod
     def _json_error(cls, reason):
         """json parsing helper -- creates preformatted error message"""
-        prefix = cls.__name__ + ": " if cls.type else ""
-        return ValueError("%sInvalid otp json string: %s" % (prefix, reason))
+        prefix = cls.__name__ + ": "
+        return ValueError("%sInvalid totp json data: %s" % (prefix, reason))
 
     #=============================================================================
     # json rendering
@@ -1256,7 +1247,7 @@ class BaseOTP(object):
         :returns:
             dictionary, containing basic (json serializable) datatypes.
         """
-        state = dict(type=self.type, v=self.json_version)
+        state = dict(v=self.json_version)
         if self.alg != "sha1":
             state['alg'] = self.alg
         if self.digits != 6:
@@ -1433,13 +1424,6 @@ class TOTP(BaseOTP):
     ..
         See the passlib documentation for a full list of attributes & methods.
     """
-    #=============================================================================
-    # class attrs
-    #=============================================================================
-
-    #: otpauth type this class implements
-    type = "totp"
-
     #=============================================================================
     # instance attrs
     #=============================================================================
@@ -1898,9 +1882,6 @@ class TOTP(BaseOTP):
     #=============================================================================
     # eoc
     #=============================================================================
-
-# register subclass with from_uri() helper
-BaseOTP._type_map[TOTP.type] = TOTP
 
 #=============================================================================
 # convenience helpers
