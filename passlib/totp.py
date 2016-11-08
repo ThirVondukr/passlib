@@ -704,7 +704,8 @@ class TOTP(object):
                  now=None,  # NOTE: mainly used for unittesting
                  **kwds):
         super(TOTP, self).__init__(**kwds)
-        self.changed = changed
+        if changed:
+            self.changed = changed
         self.context = context
 
         # validate & normalize alg
@@ -867,7 +868,7 @@ class TOTP(object):
     # time & token parsing
     #=============================================================================
 
-    # XXX: could be class/static method if not for the .now parameter
+    # XXX: could be class/static method if not for the '.now' attribute
     def normalize_time(self, time):
         """
         Normalize time value to unix epoch seconds.
@@ -898,16 +899,19 @@ class TOTP(object):
     def _time_to_counter(self, time):
         """
         convert timestamp to HOTP counter using :attr:`period`.
-        input is passed through :meth:`normalize_time`.
         """
-        if time < 0:
-            raise ValueError("time must be >= 0")
         return time // self.period
+
+    def _counter_to_time(self, counter):
+        """
+        convert HOTP counter to timestamp using :attr:`period`.
+        """
+        return counter * self.period
 
     def normalize_token(self, token):
         """
         normalize OTP token representation:
-        strips whitespace, converts integers to zero-padded string,
+        strips whitespace, converts integers to a zero-padded string,
         validates token content & number of digits.
 
         :arg token:
@@ -950,17 +954,16 @@ class TOTP(object):
         (uses current time if none specified).
 
         :arg time:
-            Can be ``None``, :class:`!datetime`,
-            or unix epoch timestamp as :class:`!float` or :class:`!int`.
+            Can be ``None``, a :class:`!datetime`,
+            or class:`!float` / :class:`!int` unix epoch timestamp.
             If ``None`` (the default), uses current system time.
             Naive datetimes are treated as UTC.
 
         :returns:
 
-            sequence of ``(token, expire_time)`` (actually a :class:`TotpToken` instance):
-
-            * ``token`` -- decimal-formatted token as a (unicode) string
-            * ``expire_time`` -- unix epoch time when token will expire
+            A :class:`TotpToken` instance, which can be treated
+            as a sequence of ``(token, expire_time)`` -- see that class
+            for more details.
 
         Usage example::
 
@@ -975,6 +978,8 @@ class TOTP(object):
         """
         time = self.normalize_time(time)
         counter = self._time_to_counter(time)
+        if counter < 0:
+            raise ValueError("timestamp must be >= 0")
         token = self._generate(counter)
         return TotpToken(self, token, counter)
 
@@ -987,6 +992,7 @@ class TOTP(object):
         """
         # generate digest
         assert isinstance(counter, int_types), "counter must be integer"
+        assert counter >= 0, "counter must be non-negative"
         keyed_hmac = compile_hmac(self.alg, self.key)
         digest = keyed_hmac(struct.pack(">Q", counter))
         digest_size = keyed_hmac.digest_info.digest_size
@@ -1009,7 +1015,8 @@ class TOTP(object):
     # token verification
     #=============================================================================
 
-    def verify(self, token, time=None, window=30, skew=0, last_counter=-1, reuse=False):
+    def verify(self, token, time=None, window=30, skew=0, last_counter=None,
+               reuse=False):
         """
         Validate TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
@@ -1100,10 +1107,12 @@ class TOTP(object):
         self._check_serial(window, "window")
 
         client_time = time + skew
+        if last_counter is None:
+            last_counter = -1
         start = max(last_counter, self._time_to_counter(client_time - window))
         end = self._time_to_counter(client_time + window) + 1
         # XXX: could pass 'expected = _time_to_counter(client_time + TRANSMISSION_DELAY)'
-        #      to the _find_match() method, would help if window set large.
+        #      to the _find_match() method, would help if window set to very large value.
 
         counter = self._find_match(token, start, end)
         assert counter >= last_counter, "sanity check failed: counter went backward"
@@ -1116,7 +1125,7 @@ class TOTP(object):
         #       causing .skipped to reflect the observed skew, independent of
         #       the 'skew' param.  This is deliberately done so that caller
         #       can use historical .skipped values to estimate future skew.
-        return TotpMatch(counter, time, self.period)
+        return TotpMatch(self, counter, time, window)
 
     def _find_match(self, token, start, end, expected=None):
         """
@@ -1530,8 +1539,8 @@ class TotpToken(SequenceMixin):
     .. autoattribute:: remaining
     .. autoattribute:: valid
     """
-    #: OTP object that generated this token
-    _otp = None
+    #: TOTP object that generated this token
+    totp = None
 
     #: Token as decimal-encoded ascii string.
     token = None
@@ -1539,29 +1548,29 @@ class TotpToken(SequenceMixin):
     #: HOTP counter value used to generate token (derived from time)
     counter = None
 
-    def __init__(self, otp, token, counter):
+    def __init__(self, totp, token, counter):
         """
         .. warning::
             the constructor signature is an internal detail, and is subject to change.
         """
-        self._otp = otp
+        self.totp = totp
         self.token = token
         self.counter = counter
 
-    # @memoized_property
-    # def start_time(self):
-    #     """Timestamp marking beginning of period when token is valid"""
-    #     return self.counter * self._otp.period
+    @memoized_property
+    def start_time(self):
+        """Timestamp marking beginning of period when token is valid"""
+        return self.totp._counter_to_time(self.counter)
 
     @memoized_property
     def expire_time(self):
         """Timestamp marking end of period when token is valid"""
-        return (self.counter + 1) * self._otp.period
+        return self.totp._counter_to_time(self.counter + 1)
 
     @property
     def remaining(self):
         """number of (float) seconds before token expires"""
-        return max(0, self.expire_time - self._otp.now())
+        return max(0, self.expire_time - self.totp.now())
 
     @property
     def valid(self):
@@ -1575,6 +1584,7 @@ class TotpToken(SequenceMixin):
         expired = "" if self.remaining else " expired"
         return "<TotpToken token='%s' expire_time=%d%s>" % \
                (self.token, self.expire_time, expired)
+
 
 class TotpMatch(SequenceMixin):
     """
@@ -1595,8 +1605,21 @@ class TotpMatch(SequenceMixin):
     .. autoattribute:: skipped
         :annotation: = 0
 
+    .. autoattribute:: expire_time
+        :annotation: = 0
+
+    .. autoattribute:: cache_seconds
+        :annotation: = 60
+
+    .. autoattribute:: cache_time
+        :annotation: = 0
+
     This object will always have a ``True`` boolean value.
     """
+
+    #: TOTP object that generated this token
+    totp = None
+
     #: TOTP counter value which matched token.
     #: (Best practice is to subsequently ignore tokens matching this counter
     #: or earlier)
@@ -1605,25 +1628,25 @@ class TotpMatch(SequenceMixin):
     #: Timestamp when verification was performed.
     time = 0
 
-    #: TOTP period (needed internally to calculate min_offset, etc).
-    period = 30
+    #: Search window used by verify() (affects cache_time)
+    window = 30
 
-    def __init__(self, counter, time,  # *
-                 period=30):
+    def __init__(self, totp, counter, time, window=30):
         """
         .. warning::
             the constructor signature is an internal detail, and is subject to change.
         """
+        self.totp = totp
         self.counter = counter
         self.time = time
-        self.period = period
+        self.window = window
 
     @memoized_property
     def expected_counter(self):
         """
         Counter value expected for timestamp.
         """
-        return self.time // self.period
+        return self.totp._time_to_counter(self.time)
 
     @memoized_property
     def skipped(self):
@@ -1632,6 +1655,33 @@ class TotpMatch(SequenceMixin):
         value (may be positive, zero, or negative).
         """
         return self.counter - self.expected_counter
+
+    # @memoized_property
+    # def start_time(self):
+    #     """Timestamp marking start of period when token is valid"""
+    #     return self.totp._counter_to_time(self.counter + 1)
+
+    @memoized_property
+    def expire_time(self):
+        """Timestamp marking end of period when token is valid"""
+        return self.totp._counter_to_time(self.counter + 1)
+
+    @memoized_property
+    def cache_seconds(self):
+        """
+        Number of seconds counter should be cached
+        before it's guaranteed to have passed outside of verification window.
+        """
+        # XXX: real value is 'cache_time - now()',
+        #      but this is a cheaper upper bound.
+        return self.totp.period + self.window
+
+    @memoized_property
+    def cache_time(self):
+        """
+        Timestamp marking when counter has passed outside of verification window.
+        """
+        return self.expire_time + self.window
 
     def _as_tuple(self):
         return self.counter, self.time

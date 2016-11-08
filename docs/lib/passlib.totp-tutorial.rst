@@ -123,7 +123,7 @@ is that they're oriented towards helping a server configure a client device.
 Server applications will still need to persist this information
 to disk (whether a database, flat file, etc).  To help with this, passlib offers
 a way to serialize OTP tokens to and from JSON: the :meth:`TOTP.to_json` method,
-and the :meth:`passlib.totp.from_uri` constructor::
+and the :meth:`passlib.totp.from_json` constructor::
 
     >>> # assume an existing TOTP instance has been created
     >>> from passlib import totp
@@ -145,7 +145,6 @@ and the :meth:`passlib.totp.from_uri` constructor::
 
 For internal storage, these methods offer a couple of advantages over the URI format:
 their output is relatively simple to inspect (e.g. in Postgres JSON columns),
-they can include stateful data (see :ref:`totp-stateful-usage` below),
 and they support storing the keys in an encrypted fashion (see :ref:`totp-context-usage` below).
 
 For cases where a python dictionary is more useful than a json string,
@@ -232,41 +231,54 @@ informational attributes.
 
 Warning about Token Reuse
 .........................
-If an attacker is able to observe a user entering a TOTP token,
-it will do them no good as soon as ``period + window`` seconds have passed (typically 60 seconds).
-However, they are fast enough, they can re-use this token immediately.
+Even if an attacker is able to observe a user entering a TOTP token,
+it will do them no good once ``period + window`` seconds have passed (typically 60).
+This is because the current time will now have advanced far enough that
+:meth:`!TOTP.verify` will *never* match against the stolen token.
 
-In order to defend against this, applications implementing TOTP need to store
-not just the TOTP key & configuration, but also the last counter value (corresponding
-to the last token) which the user provided.  Any future TOTP verifications
-should deliberately exclude this (and all prior) counter values, in order to
-prevent a replay attack.
+However, this leaves a small window in which the attacker can observe and replay
+a token, successfully impersonating the user.
+To prevent this, applications are strongly encouraged to record the
+latest :attr:`TotpMatch.counter` value that's returned by the :meth:`!TOTP.verify` method.
 
-To do this, the :meth:`TOTP.verify` method offers a ``last_counter`` parameter.
-Use this to provide the last counter value that was authenticated:
+This value should be stored per-user in a temporary cache for at least
+``period + window`` seconds.  (This is typically 60 seconds, but for an exact value,
+applications may check the :attr:`TotpMatch.cache_seconds` value returned by
+the :meth:`!TOTP.verify` method).
+
+Any subsequent calls to verify should check this cache,
+and pass in that value to :meth:`!TOTP.verify`'s "last_counter" parameter
+(or ``None`` if no value found).  Doing so will ensure that tokens
+can only be used once, preventing replay attacks.
+
+As an example::
 
     >>> # NOTE: all of the following was done at a fixed time, to make these
     >>> #       examples repeatable. in real-world use, you would omit the 'time' parameter
     >>> #       from all these calls.
 
     >>> # assuming TOTP key & config was deserialized from database store
-    >>> from passlib import totp
+    >>> from passlib.totp import TOTP
     >>> otp = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
 
-    >>> # along with the last counter value when the user authenticated
-    >>> # (initially 0)
-    >>> last_counter = 0
+    >>> # retrieve per-user counter from cache
+    >>> last_counter = ...consult application cache...
 
-    >>> # user provides valid value
-    >>> last_counter, timestamp = otp.verify('359275', last_counter=last_counter, time=1475338830)
-    >>> last_counter
+    >>> # if user provides valid value, a TotpMatch object will be returned.
+    >>> # (if they provide an invalid value, a TokenError will be raised).
+    >>> match = otp.verify('359275', last_counter=last_counter, time=1475338830)
+    >>> match.counter
     49177961
-    >>> # since no error was raised, auth succeeded
-    >>> # application should store new last_counter value for next authentication.
+    >>> match.cache_seconds
+    60
 
-    >>> # now that last_counter has been properly updated, say that
-    >>> # 10 seconds later, attacker attempts to re-use token user just entered:
-    >>> last_counter, timestamp = otp.verify('359275', last_counter=last_counter, time=1475338840)
+    >>> # application should now cache the new 'match.counter' value
+    >>> # for at least 'match.cache_seconds'.
+
+    >>> # now that last_counter has been properly updated: say that
+    >>> # 10 seconds later attacker attempts to re-use token user just entered:
+    >>> last_counter = 49177961
+    >>> match = otp.verify('359275', last_counter=last_counter, time=1475338840)
     ...
     UsedTokenError: Token has already been used, please wait for another.
 

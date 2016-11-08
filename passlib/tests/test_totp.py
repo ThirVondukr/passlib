@@ -925,11 +925,15 @@ class TotpTest(_BaseOTPTest):
     # TotpMatch() -- verify()'s return value
     #=============================================================================
 
-    def assertTotpMatch(self, match, time, skipped, period=30, msg=''):
+    def assertTotpMatch(self, match, time, skipped, period=30, window=30, msg=''):
         from passlib.totp import TotpMatch
 
         # test type
         self.assertIsInstance(match, TotpMatch)
+
+        # totp sanity check
+        self.assertIsInstance(match.totp, TOTP)
+        self.assertEqual(match.totp.period, period)
 
         # test attrs
         self.assertEqual(match.time, time, msg=msg + " matched time:")
@@ -938,6 +942,10 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(match.counter, counter, msg=msg + " matched counter:")
         self.assertEqual(match.expected_counter, expected, msg=msg + " expected counter:")
         self.assertEqual(match.skipped, skipped, msg=msg + " skipped:")
+        self.assertEqual(match.cache_seconds, period + window)
+        expire_time = (counter + 1) * period
+        self.assertEqual(match.expire_time, expire_time)
+        self.assertEqual(match.cache_time, expire_time + window)
 
         # test tuple
         self.assertEqual(len(match), 2)
@@ -1001,6 +1009,7 @@ class TotpTest(_BaseOTPTest):
         self.assertTotpMatch(result,
                              time=otp.normalize_time(time),
                              period=otp.period,
+                             window=kwds.get("window", 30),
                              skipped=expect_skipped,
                              msg=msg)
 
