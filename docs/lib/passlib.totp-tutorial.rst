@@ -16,18 +16,14 @@ using the widely supported TOTP specification.
 
 This module is designed to support a variety of use cases, including:
 
-    * Low-level methods for creating OTP keys.
+    * Creating & transferring TOTP keys to client devices.
 
-    * Low-level methods for generating & verifying tokens.
+    * Generating & verifying tokens.
 
-    * Methods for transferring OTP keys from server to client via provisioning URIs.
+    * Securely storing TOTP keys.
 
-    * High level methods for encrypting & storing OTP keys and state.
-
-    * High level methods for generating & verifying tokens with persistent state.
-
-This walkthrough starts with the simpler lowlevel cases, and builds up
-to the more complex highlevel ones.
+This walkthrough starts with the simpler cases, and builds up
+to the more complex ones.
 
 .. seealso:: The :mod:`passlib.totp` api reference,
     which lists all details of all the classes and methods mentioned here.
@@ -277,73 +273,6 @@ Use this to provide the last counter value that was authenticated:
 .. seealso::
 
     For more details, see the :meth:`TOTP.verify` method.
-
-.. _totp-stateful-usage:
-
-Stateful Verification
-=====================
-TOTP has a number of edge cases that require applications to store some persistent state
-about a TOTP token.  This includes things such as the last-used counter value
-(to prevent :ref:`token re-use <totp-reuse-warning>`), and verification history
-(for client clock drift estimation).
-
-To make this easier, passlib offers a higher level stateful API,
-which layers itself on top of the stateless api documented in `Basic Usage`_.
-For the server-side, this is oriented around the :meth:`TOTP.consume` method,
-which acts as a thin (stateful) wrapper around the :meth:`TOTP.verify` method.
-
-The :attr:`TOTP.last_counter` attribute can be used to track value of the last token which successfully
-verified.  The :meth:`TOTP.consume` method uses this to detect and prevent
-re-use of the last verified token, and (upon successful verification)
-updates this attribute to indicate the provided token has been "consumed".
-
-For instance, the following is a typical successful verification of a token::
-
-    >>> # load otp object from json-encoded value in database
-    >>> from passlib import totp
-    >>> data = '{"key":"GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM","type":"totp","v":1,"last_counter":49157801}'
-    >>> otp = totp.from_json(data)
-
-    >>> # observe that last counter set to when user last successfully used a token
-    >>> otp.last_counter
-    49157801
-
-    >>> # user provides valid token
-    >>> otp.consume('359275')
-
-    >>> # observe that last counter has been updated by consume()
-    >>> otp.last_counter
-    49157961
-
-    >>> # applications should re-persist to storage to prevent re-use of this token
-    >>> data = otp.to_json()
-
-Now that the :attr:`!last_counter` value has been updated,
-if an attacker then comes along and attempts to re-use this token within :meth:`!verify`'s time window::
-
-    >>> # load otp object from json-encoded value in database
-    >>> from passlib import totp
-    >>> data = '{"key":"GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM","type":"totp","v":1,"last_counter":49157961}'
-    >>> otp = totp.from_json(data)
-
-    >>> # observe that last counter set to when user last successfully used a token
-    >>> otp.last_counter
-    49157961
-
-    >>> # attacker tries to reuse token
-    >>> otp.consume('359275')
-    ...
-    UsedTokenError: Token has already been used, please wait for another.
-
-.. seealso::
-
-    The :meth:`TOTP.consume` and :meth:`TOTP.to_json` methods,
-    the :attr:`TOTP.last_counter` attribute, and the :func:`~totp.from_json` constructor.
-
-..
-    *Sidenote:* If implementing a TOTP client, the :meth:`TOTP.advance` method offers similar state
-    tracking on the client side (though this is really only offered as a parallel
-    to :meth:`HOTP.advance`, where client-side statefulness is needed).
 
 .. _totp-context-usage:
 

@@ -241,6 +241,8 @@ class OTPContextTest(TestCase):
 
     # TODO: test from_uri(), from_json()
 
+    # TODO: test .changed when deserializing from outtdated tag / encryption parameters
+
     #=============================================================================
     # encrypt_key() & decrypt_key() helpers
     #=============================================================================
@@ -558,10 +560,6 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(KEY1, issuer="foo.com").issuer, "foo.com")
         self.assertRaises(ValueError, OTP, KEY1, issuer="foo.com:bar")
 
-    # NOTE: 'changed' is internal parameter,
-    #       tested via .advance(), .consume(),
-    #       and to_json() / from_json()
-
     #=============================================================================
     # internal helpers
     #=============================================================================
@@ -804,9 +802,6 @@ class TotpTest(_BaseOTPTest):
         # require returns non-negative value
         self.assertRaisesRegex(AssertionError, msg_re, self.randotp, now=lambda : -1)
 
-    # NOTE: 'last_counter' is an internal parameter,
-    #       tested by from_json() / to_json().
-
     #=============================================================================
     # internal helpers
     #=============================================================================
@@ -916,85 +911,15 @@ class TotpTest(_BaseOTPTest):
         # reject invalid time
         self.assertRaises(ValueError, otp.generate, -1)
 
-    def test_generate_w_reference_vectors(self, for_advance=False):
+    def test_generate_w_reference_vectors(self):
         """generate() -- reference vectors"""
         for otp, time, token, expires, prefix in self.iter_test_vectors():
             # should output correct token for specified time
-            if for_advance:
-                otp.now = lambda: time
-                result = otp.advance()
-            else:
-                result = otp.generate(time)
+            result = otp.generate(time)
             self.assertEqual(result.token, token, msg=prefix)
             self.assertEqual(result.counter, time // otp.period, msg=prefix)
             if expires:
                 self.assertEqual(result.expire_time, expires)
-
-    #=============================================================================
-    # advance()
-    #=============================================================================
-
-    def test_advance(self):
-        """advance()"""
-        from passlib.totp import TOTP
-        from passlib.exc import PasslibSecurityWarning
-
-        # init random key & time
-        time = randtime()
-        otp = self.randotp()
-        period = otp.period
-        counter = otp._time_to_counter(time)
-        start = counter * period
-        self.assertFalse(otp.changed)
-        otp.now = lambda: time # fix generator's time for duration of test
-
-        # generate token
-        otp.last_counter = 0
-        result = otp.advance()
-        token = result.token
-        self.assertEqual(result.counter, counter)
-        ##self.assertEqual(result.start_time, start)
-        self.assertEqual(otp.last_counter, counter)
-        self.assertTrue(otp.verify(token, start))
-        self.assertTrue(otp.changed)
-
-        # should generate same token for next 29s
-        otp.last_counter = 0
-        otp.changed = False
-        otp.now = lambda : start + period - 1
-        self.assertEqual(otp.advance().token, token)
-        self.assertEqual(otp.last_counter, counter)
-        self.assertTrue(otp.changed)
-
-        # and new one at 30s
-        otp.last_counter = 0
-        otp.now = lambda : start + period
-        token2 = otp.advance().token
-        self.assertNotEqual(token2, token)
-        self.assertEqual(otp.last_counter, counter + 1)
-        self.assertTrue(otp.verify(token2, start + period))
-
-        # check check we issue a warning time is earlier than last counter.
-        otp.last_counter = counter + 1
-        otp.now = lambda : time
-        with self.assertWarningList([
-                dict(message_re=".*earlier than last-used time.*", category=PasslibSecurityWarning),
-                ]):
-            self.assertTrue(otp.advance().token)
-        self.assertEqual(otp.last_counter, counter)
-
-    def test_advance_w_reuse_flag(self):
-        """advance() -- reuse flag"""
-        from passlib.totp import TOTP
-        from passlib.exc import UsedTokenError
-        otp = TOTP(new=True)
-        token = otp.advance().token
-        self.assertRaises(UsedTokenError, otp.advance)
-        self.assertEqual(otp.advance(reuse=True).token, token)
-
-    def test_advance_w_reference_vectors(self):
-        """advance() -- reference vectors"""
-        self.test_generate_w_reference_vectors(for_advance=True)
 
     #=============================================================================
     # TotpMatch() -- verify()'s return value
@@ -1067,16 +992,12 @@ class TotpTest(_BaseOTPTest):
     #=============================================================================
 
     def assertVerifyMatches(self, expect_skipped, token, time,  # *
-                            otp, check_consume=False, gen_time=None, **kwds):
+                            otp, gen_time=None, **kwds):
         """helper to test otp.verify() output is correct"""
         # NOTE: TotpMatch return type tested more throughly above ^^^
         msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % \
               (otp.base32_key, otp.alg, otp.period, token, gen_time, time)
-        if check_consume:
-            verify = self._create_consume_wrapper(otp)
-        else:
-            verify = otp.verify
-        result = verify(token, time, **kwds)
+        result = otp.verify(token, time, **kwds)
         self.assertTotpMatch(result,
                              time=otp.normalize_time(time),
                              period=otp.period,
@@ -1084,20 +1005,16 @@ class TotpTest(_BaseOTPTest):
                              msg=msg)
 
     def assertVerifyRaises(self, exc_class, token, time,  # *
-                          otp, check_consume=False, gen_time=None,
+                          otp, gen_time=None,
                           **kwds):
         """helper to test otp.verify() throws correct error"""
         # NOTE: TotpMatch return type tested more throughly above ^^^
         msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % \
               (otp.base32_key, otp.alg, otp.period, token, gen_time, time)
-        if check_consume:
-            verify = self._create_consume_wrapper(otp)
-        else:
-            verify = otp.verify
-        return self.assertRaises(exc_class, verify, token, time,
+        return self.assertRaises(exc_class, otp.verify, token, time,
                                  __msg__=msg, **kwds)
 
-    def test_verify_w_window(self, for_consume=False):
+    def test_verify_w_window(self):
         """verify() -- 'time' and 'window' parameters"""
 
         # init generator & helper
@@ -1105,7 +1022,7 @@ class TotpTest(_BaseOTPTest):
         period = otp.period
         time = randtime()
         token = otp.generate(time).token
-        common = dict(otp=otp, gen_time=time, check_consume=for_consume)
+        common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
         assertRaises = partial(self.assertVerifyRaises, **common)
 
@@ -1145,13 +1062,13 @@ class TotpTest(_BaseOTPTest):
         # reject invalid time
         assertRaises(ValueError, token, -1)
 
-    def test_verify_w_skew(self, for_consume=False):
+    def test_verify_w_skew(self):
         """verify() -- 'skew' parameters"""
         # init generator & helper
         otp = self.randotp()
         period = otp.period
         time = randtime()
-        common = dict(otp=otp, gen_time=time, check_consume=for_consume)
+        common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
         assertRaises = partial(self.assertVerifyRaises, **common)
 
@@ -1168,7 +1085,7 @@ class TotpTest(_BaseOTPTest):
 
         # TODO: test skew + larger window
 
-    def test_verify_w_reuse(self, for_consume=False):
+    def test_verify_w_reuse(self):
         """verify() -- 'reuse' and 'last_counter' parameters"""
 
         # init generator & helper
@@ -1179,7 +1096,7 @@ class TotpTest(_BaseOTPTest):
         token = tdata.token
         counter = tdata.counter
         expire_time = tdata.expire_time
-        common = dict(otp=otp, gen_time=time, check_consume=for_consume)
+        common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
         assertRaises = partial(self.assertVerifyRaises, **common)
 
@@ -1217,14 +1134,11 @@ class TotpTest(_BaseOTPTest):
         assertMatches(0, token, time, last_counter=counter,
                       window=0, reuse=True)
 
-    def test_verify_w_token_normalization(self, for_consume=False):
+    def test_verify_w_token_normalization(self):
         """verify() -- token normalization"""
         # setup test helper
         otp = TOTP('otxl2f5cctbprpzx')
-        if for_consume:
-            verify = self._create_consume_wrapper(otp)
-        else:
-            verify = otp.verify
+        verify = otp.verify
         time = 1412889861
 
         # separators / spaces should be stripped (orig token '332136')
@@ -1242,113 +1156,19 @@ class TotpTest(_BaseOTPTest):
         # leading zeros count towards size
         self.assertRaises(exc.MalformedTokenError, verify, '0123456', time)
 
-    def test_verify_w_reference_vectors(self, for_consume=False):
+    def test_verify_w_reference_vectors(self):
         """verify() -- reference vectors"""
         for otp, time, token, expires, msg in self.iter_test_vectors():
             # create wrapper
-            if for_consume:
-                verify = self._create_consume_wrapper(otp)
-            else:
-                verify = otp.verify
+            verify = otp.verify
 
             # token should verify against time
-            if for_consume:
-                real_skew = -divmod(time, otp.period)[1]
-                msg = "%s(with real_skew=%r):" % (msg, real_skew)
             result = verify(token, time)
             self.assertTrue(result)
             self.assertEqual(result.counter, time // otp.period, msg=msg)
 
             # should NOT verify against another time
             self.assertRaises(exc.InvalidTokenError, verify, token, time + 100, window=0)
-
-    #=============================================================================
-    # consume()
-    #=============================================================================
-    def _create_consume_wrapper(self, otp):
-        """
-        returns a wrapper around consume()
-        which makes it's signature & return match verify(),
-        to helper out shared test code.
-        """
-        def wrapper(token, time, last_counter=0, **kwds):
-            # reset internal state
-            time = otp.normalize_time(time)
-            otp.last_counter = last_counter
-            otp.changed = False
-
-            # monkeypatch current time, and run consume() w/in our sandbox
-            orig = otp.now
-            try:
-                otp.now = lambda: time
-                return otp.consume(token, **kwds)
-            finally:
-                otp.now = orig
-
-        return wrapper
-
-    def test_consume_w_window(self):
-        """consume() -- 'window' parameter"""
-        self.test_verify_w_window(for_consume=True)
-
-    def test_consume_w_skew(self):
-        """consume() -- 'skew' parameter"""
-        self.test_verify_w_skew(for_consume=True)
-
-    def test_consume_w_reuse(self, for_consume=False):
-        """consume() -- 'reuse' parameter & 'last_counter' attribute"""
-        self.test_verify_w_reuse(for_consume=True)
-
-    def test_consume_w_token_normalization(self):
-        """consume() -- token normalization"""
-        self.test_verify_w_token_normalization(for_consume=True)
-
-    # TODO: roll this into test_consume_w_reuse(), above
-    def test_consume_w_last_counter(self):
-        """consume() -- 'last_counter' attribute"""
-        from passlib.exc import UsedTokenError
-
-        # init generator
-        otp = self.randotp()
-        period = otp.period
-
-        time = randtime()
-        result = otp.generate(time)
-        self.assertEqual(otp.last_counter, 0) # ensure generate() didn't touch it
-        token = result.token
-        counter = result.counter
-        otp.now = lambda : time # fix consume() time for duration of test
-
-        # verify token
-        self.assertTrue(otp.consume(token))
-        self.assertEqual(otp.last_counter, counter)
-
-        # test reuse policies
-        self.assertRaises(UsedTokenError, otp.consume, token)
-        self.assertRaises(UsedTokenError, otp.consume, token, reuse=False)
-        self.assertTrue(otp.consume(token, reuse=True))
-        self.assertEqual(otp.last_counter, counter)
-
-        # should reject older token even if within window
-        otp.last_counter = counter
-        old_token = otp.generate(time - period).token
-        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token)
-        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token, reuse=False)
-        self.assertRaises(exc.InvalidTokenError, otp.consume, old_token, reuse=True)
-        self.assertEqual(otp.last_counter, counter)
-
-        # next token should advance .last_counter
-        otp.last_counter = counter
-        token2 = otp.generate(time + period).token
-        otp.now = lambda: time + period
-        self.assertTrue(otp.consume(token2))
-        self.assertEqual(otp.last_counter, counter + 1)
-
-    # TODO: test 'changed flag' behavior
-
-    def test_consume_w_reference_vectors(self):
-        """consume() -- reference vectors"""
-        self.test_verify_w_reference_vectors(for_consume=True)
 
     #=============================================================================
     # uri serialization

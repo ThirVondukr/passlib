@@ -38,7 +38,6 @@ TOTP – Client-Side Token Generation
 TOTP – Server-Side Token Verification
 -------------------------------------
 .. automethod:: TOTP.verify
-.. automethod:: TOTP.consume
 
 .. todo::
 
@@ -102,16 +101,6 @@ Most of this information will be serialized by :meth:`~TOTP.to_uri` and :meth:`~
 .. autoattribute:: TOTP.digits
 .. autoattribute:: TOTP.alg
 .. autoattribute:: TOTP.period
-
-TOTP – Internal State Attributes
---------------------------------
-The following attributes are used to track the internal state of this generator,
-and will be included in the output of :meth:`~TOTP.to_json`:
-
-.. autoattribute:: TOTP.last_counter
-
-(Note: All internal state attributes can be initialized via constructor options,
-but this is mainly an internal / testing detail).
 
 Support Classes
 ---------------
