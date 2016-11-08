@@ -291,6 +291,7 @@ As an example::
 OTPContext Usage
 ================
 .. todo:: document how OTPContext can be used to persist TOTP tokens securely.
+          include TOTP.using() in this section.
 
 Highlevel Quickstart
 ====================

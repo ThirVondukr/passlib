@@ -33,6 +33,10 @@ TOTP – Constructor
 
 .. automethod:: TOTP.new()
 
+TOTP – Configuring Encryption & Defaults
+----------------------------------------
+.. automethod:: TOTP.using
+
 TOTP – Client-Side Token Generation
 -----------------------------------
 .. automethod:: TOTP.generate

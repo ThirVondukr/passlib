@@ -558,6 +558,8 @@ class OTPContext(object):
 
 AUTO = "auto"
 
+#: dummy bytes used as temp key for .using() method
+_DUMMY_KEY = b"\x00" * 16
 
 class TOTP(object):
     """
@@ -632,11 +634,6 @@ class TOTP(object):
         If set, and application secrets are present, they will be used to encrypt the OTP key
         when :meth:`to_json` is invoked.
 
-    :param now:
-        Optional callable that should return current time for generator to use.
-        Default to :func:`time.time`. This optional is generally not needed,
-        and is mainly present for examples & unit-testing.
-
     ..
         See the passlib documentation for list of attributes & methods.
     """
@@ -654,6 +651,10 @@ class TOTP(object):
     #=============================================================================
     # instance attrs
     #=============================================================================
+
+    #---------------------------------------------------------------------------
+    # configuration
+    #---------------------------------------------------------------------------
 
     #: OTPContext object used to handle encryption/decryption
     context = None
@@ -694,24 +695,130 @@ class TOTP(object):
     changed = False
 
     #=============================================================================
+    # prototype construction
+    #=============================================================================
+    @classmethod
+    def using(cls, digits=None, alg=None, period=None,
+              issuer=None, context=None, now=None, **kwds):
+        """
+        Dynamically create subtype of :class:`!TOTP` class
+        which has the specified defaults set.
+
+        All keyword arguments function the same as for the TOTP constructor,
+        with the addition of two extra parameters:
+
+        :parameters: **digits, alg, period, issuer**:
+
+            All these options are the same as in the :class:`TOTP` constructor,
+            and the resulting class will use any values you specify here
+            as the default.
+
+        :param context:
+            Optional OTPContext that will be used for encrypting/decrypting keys.
+
+        :param secrets, secret_path, encrypt_cost:
+
+            If specified, these options will be passed to the :class:`OTPContext` constructor,
+            allowing you to directly specify the secret keys that should be used
+            to encrypt & decrypt stored keys.
+
+        :returns:
+            subclass of :class:`!TOTP`.
+
+        This method is useful for creating a TOTP class configured
+        to use your application's secrets for encrypting & decrypting
+        keys, as well as create new keys using it's desired configuration defaults.
+
+        As an example::
+
+            >>> # your application can create a custom class when it initializes
+            >>> from passlib.totp import TOTP, generate_secret
+            >>> TotpFactory = TOTP.using(secrets={"1": generate_secret()})
+
+            >>> # subsequent TOTP objects created from this factory
+            >>> # will use the specified secrets to encrypt their keys...
+            >>> totp = TotpFactory.new()
+            >>> totp.to_dict()
+            {'enckey': {'c': 14,
+              'k': 'H77SYXWORDPGVOQTFRR2HFUB3C45XXI7',
+              's': 'G5DOQPIHIBUM2OOHHADQ',
+              't': '1',
+              'v': 1},
+             'type': 'totp',
+             'v': 1}
+        """
+
+        # :param now:
+        #     Optional callable that should return current time for generator to use.
+        #     Default to :func:`time.time`. This optional is generally not needed,
+        #     and is mainly present for examples & unit-testing.
+
+        subcls = type("TOTPFactory", (cls,), {})
+
+        def norm_param(attr, value):
+            """
+            helper which uses constructor to validate parameter value.
+            it returns corresponding attribute, so we use normalized value.
+            """
+            # NOTE: this creates *subclass* instance,
+            #       so normalization takes into account any custom params
+            #       already stored.
+            kwds = dict(key=_DUMMY_KEY, format="raw")
+            kwds[attr] = value
+            obj = subcls(**kwds)
+            return getattr(obj, attr)
+
+        if digits is not None:
+            subcls.digits = norm_param("digits", digits)
+
+        if alg is not None:
+            subcls.alg = norm_param("alg", alg)
+
+        if period is not None:
+            subcls.period = norm_param("period", period)
+
+        # XXX: add default size as configurable parameter?
+
+        if issuer is not None:
+            subcls.issuer = norm_param("issuer", issuer)
+
+        if kwds:
+            subcls.context = OTPContext(**kwds)
+            if context:
+                raise TypeError("'context' and 'secrets' keywords are mutually exclusive")
+        elif context is not None:
+            if not isinstance(context, OTPContext):
+                raise exc.ExpectedTypeError(context, OTPContext, "context")
+            subcls.context = context
+
+        if now is not None:
+            assert isinstance(now(), num_types) and now() >= 0, \
+                "now() function must return non-negative int/float"
+            subcls.now = staticmethod(now)
+
+        return subcls
+
+    #=============================================================================
     # init
     #=============================================================================
 
     @classmethod
     def new(cls, **kwds):
-        """convenience alias for creating new totp key"""
+        """
+        convenience alias for creating new TOTP key, same as ``TOTP(new=True)``
+        """
         return cls(new=True, **kwds)
 
     def __init__(self, key=None, format="base32",
                  # keyword only...
                  new=False, digits=None, alg=None, size=None, period=None,
                  label=None, issuer=None, context=None, changed=False,
-                 now=None,  # NOTE: mainly used for unittesting
                  **kwds):
         super(TOTP, self).__init__(**kwds)
         if changed:
             self.changed = changed
-        self.context = context
+        if context is not None:
+            self.context = context
 
         # validate & normalize alg
         info = lookup_hash(alg or self.alg)
@@ -784,18 +891,12 @@ class TOTP(object):
             self._check_serial(period, "period", minval=1)
             self.period = period
 
-        # use custom timer --
-        # intended for examples & unittests, not real-world use.
-        if now:
-            assert isinstance(now(), num_types) and now() >= 0, \
-                "now() function must return non-negative int/float"
-            self.now = now
-
     #=============================================================================
     # helpers to verify value types & ranges
     #=============================================================================
 
-    def _check_serial(self, value, param, minval=0):
+    @staticmethod
+    def _check_serial(value, param, minval=0):
         """
         check that serial value (e.g. 'counter') is non-negative integer
         """
@@ -804,14 +905,16 @@ class TOTP(object):
         if value < minval:
             raise ValueError("%s must be >= %d" % (param, minval))
 
-    def _check_label(self, label):
+    @staticmethod
+    def _check_label(label):
         """
         check that label doesn't contain chars forbidden by KeyURI spec
         """
         if label and ":" in label:
             raise ValueError("label may not contain ':'")
 
-    def _check_issuer(self, issuer):
+    @staticmethod
+    def _check_issuer(issuer):
         """
         check that issuer doesn't contain chars forbidden by KeyURI spec
         """
@@ -873,7 +976,6 @@ class TOTP(object):
     # time & token parsing
     #=============================================================================
 
-    # XXX: could be class/static method if not for the '.now' attribute
     def normalize_time(self, time):
         """
         Normalize time value to unix epoch seconds.

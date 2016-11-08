@@ -427,7 +427,7 @@ class _BaseOTPTest(TestCase):
     #=============================================================================
     # subclass utils
     #=============================================================================
-    def randotp(self, **kwds):
+    def randotp(self, cls=None, **kwds):
         """
         helper which generates a random OtpType instance.
         """
@@ -435,7 +435,7 @@ class _BaseOTPTest(TestCase):
             kwds['new'] = True
         kwds.setdefault("digits", random.randint(6, 10))
         kwds.setdefault("alg", random.choice(["sha1", "sha256", "sha512"]))
-        return self.OtpType(**kwds)
+        return (cls or self.OtpType)(**kwds)
 
     def test_randotp(self):
         """
@@ -560,6 +560,12 @@ class _BaseOTPTest(TestCase):
         self.assertEqual(OTP(KEY1).issuer, None)
         self.assertEqual(OTP(KEY1, issuer="foo.com").issuer, "foo.com")
         self.assertRaises(ValueError, OTP, KEY1, issuer="foo.com:bar")
+
+    #=============================================================================
+    # using()
+    #=============================================================================
+
+    # TODO: test using() w/ 'digits', 'alg', 'issue', 'context'
 
     #=============================================================================
     # internal helpers
@@ -773,8 +779,29 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(ValueError, OTP, KEY1, period=0)
         self.assertRaises(ValueError, OTP, KEY1, period=-1)
 
-    def test_ctor_w_now(self):
-        """constructor -- 'now' parameter"""
+    #=============================================================================
+    # using()
+    #=============================================================================
+
+    def test_using_w_period(self):
+        """using() -- 'period' parameter"""
+
+        # default
+        self.assertEqual(TOTP(KEY1).period, 30)
+
+        # explicit value
+        self.assertEqual(TOTP.using(period=63)(KEY1).period, 63)
+
+        # reject wrong type
+        self.assertRaises(TypeError, TOTP.using, period=1.5)
+        self.assertRaises(TypeError, TOTP.using, period='abc')
+
+        # reject non-positive values
+        self.assertRaises(ValueError, TOTP.using, period=0)
+        self.assertRaises(ValueError, TOTP.using, period=-1)
+
+    def test_using_w_now(self):
+        """using -- 'now' parameter"""
 
         # NOTE: reading time w/ normalize_time() to make sure custom .now actually has effect.
 
@@ -788,20 +815,20 @@ class TotpTest(_BaseOTPTest):
         def now():
             counter[0] += 1
             return counter[0]
-        otp = self.randotp(now=now)
-        # NOTE: TOTP() constructor currently invokes this twice, using up counter values 124 & 125
+        otp = self.randotp(cls=TOTP.using(now=now))
+        # NOTE: TOTP() constructor invokes this as part of test, using up counter values 124 & 125
         self.assertEqual(otp.normalize_time(None), 126)
         self.assertEqual(otp.normalize_time(None), 127)
 
         # require callable
-        self.assertRaises(TypeError, self.randotp, now=123)
+        self.assertRaises(TypeError, TOTP.using, now=123)
 
         # require returns int/float
         msg_re = r"now\(\) function must return non-negative"
-        self.assertRaisesRegex(AssertionError, msg_re, self.randotp, now=lambda : 'abc')
+        self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: 'abc')
 
         # require returns non-negative value
-        self.assertRaisesRegex(AssertionError, msg_re, self.randotp, now=lambda : -1)
+        self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: -1)
 
     #=============================================================================
     # internal helpers
@@ -906,8 +933,8 @@ class TotpTest(_BaseOTPTest):
         self.assertEqual(otp.generate(dt).token, token)
 
         # omitting value should use current time
-        otp.now = lambda : time
-        self.assertEqual(otp.generate().token, token)
+        otp2 = TOTP.using(now=lambda: time)(key=otp.base32_key)
+        self.assertEqual(otp2.generate().token, token)
 
         # reject invalid time
         self.assertRaises(ValueError, otp.generate, -1)
@@ -963,7 +990,7 @@ class TotpTest(_BaseOTPTest):
         """verify() -- valid TotpMatch object"""
         time = 141230981
         token = '781501'
-        otp = TOTP(KEY3, now=lambda : time + 24 * 3600)
+        otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
         result = otp.verify(token, time)
         self.assertTotpMatch(result, time=time, skipped=0)
 
@@ -973,27 +1000,23 @@ class TotpTest(_BaseOTPTest):
 
         time = 141230981
         token = '781501'
-        otp = TOTP(KEY3, now=lambda: time + 24 * 3600)
+        otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
         result = otp.verify(token, time - 30)
         self.assertTotpMatch(result, time=time - 30, skipped=1)
 
     def test_totp_match_w_new_token(self):
         """verify() -- valid TotpMatch object with past token"""
-        from passlib.totp import TotpMatch
-
         time = 141230981
         token = '781501'
-        otp = TOTP(KEY3, now=lambda : time + 24 * 3600)
+        otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
         result = otp.verify(token, time + 30)
         self.assertTotpMatch(result, time=time + 30, skipped=-1)
 
     def test_totp_match_w_invalid_token(self):
         """verify() -- invalid TotpMatch object"""
-        from passlib.totp import TotpMatch
-
         time = 141230981
         token = '781501'
-        otp = TOTP(KEY3, now=lambda : time + 24 * 3600)
+        otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
         self.assertRaises(exc.InvalidTokenError, otp.verify, token, time + 60)
 
     #=============================================================================
