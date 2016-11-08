@@ -15,7 +15,7 @@ from passlib import exc
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase, time_call
 # subject
-from passlib.totp import OTPContext, AES_SUPPORT
+from passlib.totp import AppWallet, AES_SUPPORT
 # local
 __all__ = [
     "EngineTest",
@@ -90,10 +90,10 @@ class UtilsTest(TestCase):
     #=============================================================================
 
 #=============================================================================
-# context
+# wallet
 #=============================================================================
-class OTPContextTest(TestCase):
-    descriptionPrefix = "passlib.totp.OTPContext"
+class AppWalletTest(TestCase):
+    descriptionPrefix = "passlib.totp.AppWallet"
 
     #=============================================================================
     # constructor
@@ -103,86 +103,86 @@ class OTPContextTest(TestCase):
         """constructor -- 'secrets' param -- input types"""
 
         # no secrets
-        context = OTPContext()
-        self.assertEqual(context._secrets, {})
-        self.assertFalse(context.can_encrypt)
+        wallet = AppWallet()
+        self.assertEqual(wallet._secrets, {})
+        self.assertFalse(wallet.can_encrypt)
 
         # dict
         ref = {"1": b"aaa", "2": b"bbb"}
-        context = OTPContext(ref)
-        self.assertEqual(context._secrets, ref)
-        self.assertEqual(context.can_encrypt, AES_SUPPORT)
+        wallet = AppWallet(ref)
+        self.assertEqual(wallet._secrets, ref)
+        self.assertEqual(wallet.can_encrypt, AES_SUPPORT)
 
         # # list
-        # context = OTPContext(list(ref.items()))
-        # self.assertEqual(context._secrets, ref)
+        # wallet = AppWallet(list(ref.items()))
+        # self.assertEqual(wallet._secrets, ref)
 
         # # iter
-        # context = OTPContext(iter(ref.items()))
-        # self.assertEqual(context._secrets, ref)
+        # wallet = AppWallet(iter(ref.items()))
+        # self.assertEqual(wallet._secrets, ref)
 
         # "tag:value" string
-        context = OTPContext("\n 1: aaa\n# comment\n \n2: bbb   ")
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet("\n 1: aaa\n# comment\n \n2: bbb   ")
+        self.assertEqual(wallet._secrets, ref)
 
         # ensure ":" allowed in secret
-        context = OTPContext("1: aaa: bbb \n# comment\n \n2: bbb   ")
-        self.assertEqual(context._secrets, {"1": b"aaa: bbb", "2": b"bbb"})
+        wallet = AppWallet("1: aaa: bbb \n# comment\n \n2: bbb   ")
+        self.assertEqual(wallet._secrets, {"1": b"aaa: bbb", "2": b"bbb"})
 
         # json dict
-        context = OTPContext('{"1":"aaa","2":"bbb"}')
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet('{"1":"aaa","2":"bbb"}')
+        self.assertEqual(wallet._secrets, ref)
 
         # # json list
-        # context = OTPContext('[["1","aaa"],["2","bbb"]]')
-        # self.assertEqual(context._secrets, ref)
+        # wallet = AppWallet('[["1","aaa"],["2","bbb"]]')
+        # self.assertEqual(wallet._secrets, ref)
 
         # invalid type
-        self.assertRaises(TypeError, OTPContext, 123)
+        self.assertRaises(TypeError, AppWallet, 123)
 
         # invalid json obj
-        self.assertRaises(TypeError, OTPContext, "[123]")
+        self.assertRaises(TypeError, AppWallet, "[123]")
 
         # # invalid list items
-        # self.assertRaises(ValueError, OTPContext, ["1", b"aaa"])
+        # self.assertRaises(ValueError, AppWallet, ["1", b"aaa"])
 
         # forbid empty secret
-        self.assertRaises(ValueError, OTPContext, {"1": "aaa", "2": ""})
+        self.assertRaises(ValueError, AppWallet, {"1": "aaa", "2": ""})
 
     def test_secrets_tags(self):
         """constructor -- 'secrets' param -- tag/value normalization"""
 
         # test reference
         ref = {"1": b"aaa", "02": b"bbb", "C": b"ccc"}
-        context = OTPContext(ref)
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet(ref)
+        self.assertEqual(wallet._secrets, ref)
 
         # accept unicode
-        context = OTPContext({u("1"): b"aaa", u("02"): b"bbb", u("C"): b"ccc"})
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet({u("1"): b"aaa", u("02"): b"bbb", u("C"): b"ccc"})
+        self.assertEqual(wallet._secrets, ref)
 
         # normalize int tags
-        context = OTPContext({1: b"aaa", "02": b"bbb", "C": b"ccc"})
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet({1: b"aaa", "02": b"bbb", "C": b"ccc"})
+        self.assertEqual(wallet._secrets, ref)
 
         # forbid non-str/int tags
-        self.assertRaises(TypeError, OTPContext, {(1,): "aaa"})
+        self.assertRaises(TypeError, AppWallet, {(1,): "aaa"})
 
         # accept valid tags
-        context = OTPContext({"1-2_3.4": b"aaa"})
+        wallet = AppWallet({"1-2_3.4": b"aaa"})
 
         # forbid invalid tags
-        self.assertRaises(ValueError, OTPContext, {"-abc": "aaa"})
-        self.assertRaises(ValueError, OTPContext, {"ab*$": "aaa"})
+        self.assertRaises(ValueError, AppWallet, {"-abc": "aaa"})
+        self.assertRaises(ValueError, AppWallet, {"ab*$": "aaa"})
 
         # coerce value to bytes
-        context = OTPContext({"1": u("aaa"), "02": "bbb", "C": b"ccc"})
-        self.assertEqual(context._secrets, ref)
+        wallet = AppWallet({"1": u("aaa"), "02": "bbb", "C": b"ccc"})
+        self.assertEqual(wallet._secrets, ref)
 
         # forbid invalid value types
-        self.assertRaises(TypeError, OTPContext, {"1": 123})
-        self.assertRaises(TypeError, OTPContext, {"1": None})
-        self.assertRaises(TypeError, OTPContext, {"1": []})
+        self.assertRaises(TypeError, AppWallet, {"1": 123})
+        self.assertRaises(TypeError, AppWallet, {"1": None})
+        self.assertRaises(TypeError, AppWallet, {"1": []})
 
     # TODO: test secrets_path
 
@@ -190,59 +190,30 @@ class OTPContextTest(TestCase):
         """constructor -- 'default_tag' param"""
 
         # should sort numerically
-        context = OTPContext({"1": "one", "02": "two"})
-        self.assertEqual(context._default_tag, "02")
-        self.assertEqual(context._default_secret, b"two")
+        wallet = AppWallet({"1": "one", "02": "two"})
+        self.assertEqual(wallet.default_tag, "02")
+        self.assertEqual(wallet._default_secret, b"two")
 
         # should sort alphabetically if non-digit present
-        context = OTPContext({"1": "one", "02": "two", "A": "aaa"})
-        self.assertEqual(context._default_tag, "A")
-        self.assertEqual(context._default_secret, b"aaa")
+        wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"})
+        self.assertEqual(wallet.default_tag, "A")
+        self.assertEqual(wallet._default_secret, b"aaa")
 
         # should use honor custom tag
-        context = OTPContext({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
-        self.assertEqual(context._default_tag, "1")
-        self.assertEqual(context._default_secret, b"one")
+        wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
+        self.assertEqual(wallet.default_tag, "1")
+        self.assertEqual(wallet._default_secret, b"one")
 
         # throw error on unknown value
-        self.assertRaises(KeyError, OTPContext, {"1": "one", "02": "two", "A": "aaa"},
+        self.assertRaises(KeyError, AppWallet, {"1": "one", "02": "two", "A": "aaa"},
                           default_tag="B")
 
         # should be empty
-        context = OTPContext()
-        self.assertEqual(context._default_tag, None)
-        self.assertEqual(context._default_secret, None)
+        wallet = AppWallet()
+        self.assertEqual(wallet.default_tag, None)
+        self.assertEqual(wallet._default_secret, None)
 
     # TODO: test 'cost' param
-
-    #=============================================================================
-    # frontends
-    #=============================================================================
-    def test_new(self):
-        """.new()"""
-        from passlib.totp import OTPContext, TOTP
-
-        context = OTPContext()
-
-        # object bound to context
-        totp = context.new()
-        self.assertIsInstance(totp, TOTP)
-        self.assertIs(totp.context, context)
-
-        # creates new key each time
-        totp2 = context.new()
-        self.assertNotEqual(totp2.key, totp.key)
-
-        # passes remaining params through
-        totp3 = context.new(digits=6)
-        self.assertEqual(totp3.digits, 6)
-
-        totp4 = context.new(digits=9)
-        self.assertEqual(totp4.digits, 9)
-
-    # TODO: test from_uri(), from_json()
-
-    # TODO: test .changed when deserializing from outtdated tag / encryption parameters
 
     #=============================================================================
     # encrypt_key() & decrypt_key() helpers
@@ -257,64 +228,64 @@ class OTPContextTest(TestCase):
     def test_decrypt_key(self):
         """.decrypt_key()"""
 
-        context = OTPContext({"1": PASS1, "2": PASS2})
+        wallet = AppWallet({"1": PASS1, "2": PASS2})
 
         # check for support
         CIPHER1 = dict(v=1, c=13, s='6D7N7W53O7HHS37NLUFQ',
                        k='MHCTEGSNPFN5CGBJ', t='1')
-        self.require_aes_support(canary=partial(context.decrypt_key, CIPHER1))
+        self.require_aes_support(canary=partial(wallet.decrypt_key, CIPHER1))
 
         # reference key
-        self.assertEqual(context.decrypt_key(CIPHER1)[0], KEY1_RAW)
+        self.assertEqual(wallet.decrypt_key(CIPHER1)[0], KEY1_RAW)
 
         # different salt used to encrypt same raw key
         CIPHER2 = dict(v=1, c=13, s='SPZJ54Y6IPUD2BYA4C6A',
                        k='ZGDXXTVQOWYLC2AU', t='1')
-        self.assertEqual(context.decrypt_key(CIPHER2)[0], KEY1_RAW)
+        self.assertEqual(wallet.decrypt_key(CIPHER2)[0], KEY1_RAW)
 
         # different sized key, password, and cost
         CIPHER3 = dict(v=1, c=8, s='FCCTARTIJWE7CPQHUDKA',
                        k='D2DRS32YESGHHINWFFCELKN7Z6NAHM4M', t='2')
-        self.assertEqual(context.decrypt_key(CIPHER3)[0], KEY2_RAW)
+        self.assertEqual(wallet.decrypt_key(CIPHER3)[0], KEY2_RAW)
 
         # wrong password should silently result in wrong key
         temp = CIPHER1.copy()
         temp.update(t='2')
-        self.assertEqual(context.decrypt_key(temp)[0], b'\xafD6.F7\xeb\x19\x05Q')
+        self.assertEqual(wallet.decrypt_key(temp)[0], b'\xafD6.F7\xeb\x19\x05Q')
 
         # missing tag should throw error
         temp = CIPHER1.copy()
         temp.update(t='3')
-        self.assertRaises(KeyError, context.decrypt_key, temp)
+        self.assertRaises(KeyError, wallet.decrypt_key, temp)
 
         # unknown version should throw error
         temp = CIPHER1.copy()
         temp.update(v=999)
-        self.assertRaises(ValueError, context.decrypt_key, temp)
+        self.assertRaises(ValueError, wallet.decrypt_key, temp)
 
     def test_decrypt_key_needs_recrypt(self):
         """.decrypt_key() -- needs_recrypt flag"""
         self.require_aes_support()
 
-        context = OTPContext({"1": PASS1, "2": PASS2}, cost=13)
+        wallet = AppWallet({"1": PASS1, "2": PASS2}, encrypt_cost=13)
 
         # ref should be accepted
         ref = dict(v=1, c=13, s='AAAA', k='AAAA', t='2')
-        self.assertFalse(context.decrypt_key(ref)[1])
+        self.assertFalse(wallet.decrypt_key(ref)[1])
 
         # wrong cost
         temp = ref.copy()
         temp.update(c=8)
-        self.assertTrue(context.decrypt_key(temp)[1])
+        self.assertTrue(wallet.decrypt_key(temp)[1])
 
         # wrong tag
         temp = ref.copy()
         temp.update(t="1")
-        self.assertTrue(context.decrypt_key(temp)[1])
+        self.assertTrue(wallet.decrypt_key(temp)[1])
 
         # XXX: should this check salt_size?
 
-    def assertSaneResult(self, result, context, key, tag="1",
+    def assertSaneResult(self, result, wallet, key, tag="1",
                          needs_recrypt=False):
         """check encrypt_key() result has expected format"""
 
@@ -322,12 +293,12 @@ class OTPContextTest(TestCase):
 
         self.assertEqual(result['v'], 1)
         self.assertEqual(result['t'], tag)
-        self.assertEqual(result['c'], context.cost)
+        self.assertEqual(result['c'], wallet.encrypt_cost)
 
-        self.assertEqual(len(result['s']), to_b32_size(context.salt_size))
+        self.assertEqual(len(result['s']), to_b32_size(wallet.salt_size))
         self.assertEqual(len(result['k']), to_b32_size(len(key)))
 
-        result_key, result_needs_recrypt = context.decrypt_key(result)
+        result_key, result_needs_recrypt = wallet.decrypt_key(result)
         self.assertEqual(result_key, key)
         self.assertEqual(result_needs_recrypt, needs_recrypt)
 
@@ -335,55 +306,55 @@ class OTPContextTest(TestCase):
         """.encrypt_key()"""
 
         # check for support
-        context = OTPContext({"1": PASS1}, cost=5)
-        self.require_aes_support(canary=partial(context.encrypt_key, KEY1_RAW))
+        wallet = AppWallet({"1": PASS1}, encrypt_cost=5)
+        self.require_aes_support(canary=partial(wallet.encrypt_key, KEY1_RAW))
 
         # basic behavior
-        result = context.encrypt_key(KEY1_RAW)
-        self.assertSaneResult(result, context, KEY1_RAW)
+        result = wallet.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, wallet, KEY1_RAW)
 
         # creates new salt each time
-        other = context.encrypt_key(KEY1_RAW)
-        self.assertSaneResult(result, context, KEY1_RAW)
+        other = wallet.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, wallet, KEY1_RAW)
         self.assertNotEqual(other['s'], result['s'])
         self.assertNotEqual(other['k'], result['k'])
 
         # honors custom cost
-        context2 = OTPContext({"1": PASS1}, cost=6)
-        result = context2.encrypt_key(KEY1_RAW)
-        self.assertSaneResult(result, context2, KEY1_RAW)
+        wallet2 = AppWallet({"1": PASS1}, encrypt_cost=6)
+        result = wallet2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, wallet2, KEY1_RAW)
 
         # honors default tag
-        context2 = OTPContext({"1": PASS1, "2": PASS2})
-        result = context2.encrypt_key(KEY1_RAW)
-        self.assertSaneResult(result, context2, KEY1_RAW, tag="2")
+        wallet2 = AppWallet({"1": PASS1, "2": PASS2})
+        result = wallet2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, wallet2, KEY1_RAW, tag="2")
 
         # honor salt size
-        context2 = OTPContext({"1": PASS1})
-        context2.salt_size = 64
-        result = context2.encrypt_key(KEY1_RAW)
-        self.assertSaneResult(result, context2, KEY1_RAW)
+        wallet2 = AppWallet({"1": PASS1})
+        wallet2.salt_size = 64
+        result = wallet2.encrypt_key(KEY1_RAW)
+        self.assertSaneResult(result, wallet2, KEY1_RAW)
 
         # larger key
-        result = context.encrypt_key(KEY2_RAW)
-        self.assertSaneResult(result, context, KEY2_RAW)
+        result = wallet.encrypt_key(KEY2_RAW)
+        self.assertSaneResult(result, wallet, KEY2_RAW)
 
         # border case: empty key
         # XXX: might want to allow this, but documenting behavior for now
-        self.assertRaises(ValueError, context.encrypt_key, b"")
+        self.assertRaises(ValueError, wallet.encrypt_key, b"")
 
     def test_encrypt_cost_timing(self):
         """verify cost parameter via timing"""
         self.require_aes_support()
 
         # time default cost
-        context = OTPContext({"1": "aaa"})
-        context.cost -= 2
-        delta, _ = time_call(partial(context.encrypt_key, KEY1_RAW), maxtime=0)
+        wallet = AppWallet({"1": "aaa"})
+        wallet.encrypt_cost -= 2
+        delta, _ = time_call(partial(wallet.encrypt_key, KEY1_RAW), maxtime=0)
 
         # this should take (2**3=8) times as long
-        context.cost += 3
-        delta2, _ = time_call(partial(context.encrypt_key, KEY1_RAW), maxtime=0)
+        wallet.encrypt_cost += 3
+        delta2, _ = time_call(partial(wallet.encrypt_key, KEY1_RAW), maxtime=0)
 
         self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 
@@ -565,7 +536,7 @@ class _BaseOTPTest(TestCase):
     # using()
     #=============================================================================
 
-    # TODO: test using() w/ 'digits', 'alg', 'issue', 'context'
+    # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
 
     #=============================================================================
     # internal helpers
@@ -1236,14 +1207,14 @@ class TotpTest(_BaseOTPTest):
         # TOTP object -- return unchanged
         self.assertIs(from_source(otp), otp)
 
-        # TOTP object w/ different context -- return new one.
-        ctx1 = OTPContext()
-        otp1 = from_source(otp, context=ctx1)
+        # TOTP object w/ different wallet -- return new one.
+        wallet1 = AppWallet()
+        otp1 = TOTP.using(wallet=wallet1).from_source(otp)
         self.assertIsNot(otp1, otp)
         self.assertEqual(otp1.to_dict(), otp.to_dict())
 
-        # TOTP object w/ same context -- return original
-        otp2 = from_source(otp1, context=ctx1)
+        # TOTP object w/ same wallet -- return original
+        otp2 = TOTP.using(wallet=wallet1).from_source(otp1)
         self.assertIs(otp2, otp1)
 
         # random string
@@ -1579,12 +1550,12 @@ class TotpTest(_BaseOTPTest):
 
     # TODO: to_dict()
     #           with encrypt=False
-    #           with encrypt="auto" + context + secrets
-    #           with encrypt="auto" + context + no secrets
-    #           with encrypt="auto" + no context
-    #           with encrypt=True + context + secrets
-    #           with encrypt=True + context + no secrets
-    #           with encrypt=True + no context
+    #           with encrypt="auto" + wallet + secrets
+    #           with encrypt="auto" + wallet + no secrets
+    #           with encrypt="auto" + no wallet
+    #           with encrypt=True + wallet + secrets
+    #           with encrypt=True + wallet + no secrets
+    #           with encrypt=True + no wallet
     #           that 'changed' is set for old versions, and old encryption tags.
 
     #=============================================================================

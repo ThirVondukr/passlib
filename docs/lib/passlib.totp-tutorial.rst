@@ -157,7 +157,7 @@ is a dictionary vs string.
 
     For more details, see the :meth:`~passlib.totp.TOTP.from_source` constructor,
     and the :meth:`~passlib.totp.TOTP.to_json` method;
-    as well as the stateful usage & OTPContext usage tutorials below.
+    as well as the stateful usage & AppWallet usage tutorials below.
 
 Generating Tokens
 -----------------
@@ -288,15 +288,15 @@ As an example::
 
 .. _totp-context-usage:
 
-OTPContext Usage
-================
-.. todo:: document how OTPContext can be used to persist TOTP tokens securely.
+AppWallet Usage
+===============
+.. todo:: document how AppWallet can be used to persist TOTP tokens securely.
           include TOTP.using() in this section.
 
 Highlevel Quickstart
 ====================
 The following is a guide for quickly getting TOTP support integrated into your
-application, using passlib's highlevel :class:`OTPContext` helper class.
+application, using passlib's highlevel :class:`AppWallet` helper class.
 
 .. todo:: needs to write quickstart guide.
 

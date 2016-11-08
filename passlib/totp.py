@@ -44,7 +44,7 @@ from passlib.hash import pbkdf2_sha256
 # local
 __all__ = [
     # frontend classes
-    "OTPContext",
+    "AppWallet",
     "TOTP",
 
     # errors (defined in passlib.exc, but exposed here for convenience)
@@ -170,17 +170,13 @@ AES_SUPPORT = bool(_cg_ciphers)
 #: regex for validating secret tags
 _tag_re = re.compile("(?i)^[a-z0-9][a-z0-9_.-]*$")
 
-class OTPContext(object):
+class AppWallet(object):
     """
-    This class provides a front-end for creating & deserializing
-    HTOP & TOTP objects, which in turn can be used to generate & verify tokens.
-
-    An instance of this class should be created by the application,
-    which can provide default settings, as well as application-wide secrets
-    which will be used to encrypt TOTP keys for storage.
+    This class stores application-wide secrets that can be used
+    to encrypt & decrypt TOTP keys for storage.
 
     .. todo::
-        This class needs usuage examples & further explanation
+        This class needs usage examples & further explanation
         of how the **secrets** parameter works.
 
     Arguments
@@ -219,7 +215,7 @@ class OTPContext(object):
         this permits tags to be assigned numerically,
         or e.g. using ``YYYY-MM-DD`` dates.
 
-    :param cost:
+    :param encrypt_cost:
         Optional time-cost factor for key encryption.
         This value corresponds to log2() of the number of PBKDF2
         rounds used.
@@ -240,20 +236,17 @@ class OTPContext(object):
 
     Public Methods
     ==============
-    .. automethod:: new
-    .. automethod:: from_uri
-    .. automethod:: from_json
     .. autoattribute: can_encrypt
+    .. autoattribute:: default_tag
 
-    ..
-        Semi-Private Methods
-        ====================
-        The following methods are used internally by the :class:`TOTP`
-        class in order to encrypt & decrypt keys using the provided application
-        secrets:
+    Semi-Private Methods
+    ====================
+    The following methods are used internally by the :class:`TOTP`
+    class in order to encrypt & decrypt keys using the provided application
+    secrets:
 
-        .. automethod:: encrypt_key
-        .. automethod:: decrypt_key
+    .. automethod:: encrypt_key
+    .. automethod:: decrypt_key
     """
     #========================================================================
     # instance attrs
@@ -263,25 +256,25 @@ class OTPContext(object):
     salt_size = 12
 
     #: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
-    cost = 14
+    encrypt_cost = 14
 
     #: map of secret tag -> secret bytes
     _secrets = None
 
     #: tag for default secret
-    _default_tag = None
+    default_tag = None
 
     #: bytes for default secret
     _default_secret = None
 
-    #: whether this context can encrypt keys (AES support must be present
+    #: whether this wallet can encrypt keys (AES support must be present
     #: AND secrets must be provided)
     can_encrypt = AES_SUPPORT
 
     #========================================================================
     # init
     #========================================================================
-    def __init__(self, secrets=None, default_tag=None, cost=None,
+    def __init__(self, secrets=None, default_tag=None, encrypt_cost=None,
                  secrets_path=None):
 
         # TODO: allow a lot more things to be customized from here,
@@ -290,11 +283,11 @@ class OTPContext(object):
         #
         # init cost
         #
-        if cost is not None:
-            if isinstance(cost, native_string_types):
-                cost = int(cost)
-            assert cost >= 0
-            self.cost = cost
+        if encrypt_cost is not None:
+            if isinstance(encrypt_cost, native_string_types):
+                encrypt_cost = int(encrypt_cost)
+            assert encrypt_cost >= 0
+            self.encrypt_cost = encrypt_cost
 
         #
         # init secrets map
@@ -321,7 +314,7 @@ class OTPContext(object):
                 else:
                     default_tag = max(secrets)
             self._default_secret = secrets[default_tag]
-            self._default_tag = default_tag
+            self.default_tag = default_tag
 
     def _parse_secrets(self, source):
         """
@@ -383,53 +376,16 @@ class OTPContext(object):
         return tag, value
 
     #========================================================================
-    # frontend wrappers
+    # accessing secrets
     #========================================================================
-    def new(self, **kwds):
-        """
-        Create new OTP instance from scratch,
-        generating a new key.
-
-        :param \*\*kwds:
-            All remaining keywords passed to the :class:`TOTP` constructor.
-
-        :return:
-            :class:`!TOTP` instance.
-        """
-        return TOTP(new=True, context=self, **kwds)
-
-    def from_uri(self, uri):
-        """
-        Create OTP instance from configuration uri.
-
-        This is just a wrapper for :meth:`TOTP.from_uri`
-        which returns an OTP object tied to this context
-        (and will thus use any application secrets to encrypt the key for storage).
-
-        :param uri:
-            URI to parse.
-            This URI may come externally (e.g. from a scanned qrcode),
-            or from the :meth:`TOTP.to_uri` method.
-
-        :return:
-            :class:`TOTP` instance.
-        """
-        return TOTP.from_uri(uri, context=self)
-
-    def from_json(self, source):
-        """
-        Create OTP instance from serialized json state.
-
-        This is just a wrapper for :meth:`TOTP.from_json`,
-        and returns an OTP object tied to this context.
-
-        :param source:
-            json string as returned by :meth:`TOTP.to_json`.
-
-        :return:
-            :class:`TOTP` instance.
-        """
-        return TOTP.from_json(source, context=self)
+    def _resolve_app_secret(self, tag):
+        secrets = self._secrets
+        if not secrets:
+            raise TypeError("no application secrets configured, can't decrypt OTP key")
+        try:
+            return secrets[tag]
+        except KeyError:
+            raise suppress_cause(KeyError("unknown secret tag: %r" % (tag,)))
 
     #========================================================================
     # encrypted key helpers -- used internally by TOTP
@@ -483,7 +439,8 @@ class OTPContext(object):
         :returns:
             dict containing encrypted TOTP key & configuration parameters.
             this format should be treated as opaque, and potentially subject
-            to change, and is designed to be easily serialized/deserialized.
+            to change, though it is designed to be easily serialized/deserialized
+            (e.g. via JSON).
 
         .. note::
 
@@ -493,21 +450,12 @@ class OTPContext(object):
         if not key:
             raise ValueError("no key provided")
         salt = getrandbytes(rng, self.salt_size)
-        cost = self.cost
-        tag = self._default_tag
+        cost = self.encrypt_cost
+        tag = self.default_tag
         if not tag:
             raise TypeError("no application secrets configured, can't encrypt OTP key")
         ckey = self._cipher_aes_key(key, self._default_secret, salt, cost)
         return dict(v=1, c=cost, t=tag, s=b32encode(salt), k=b32encode(ckey))
-
-    def _resolve_app_secret(self, tag):
-        secrets = self._secrets
-        if not secrets:
-            raise TypeError("no application secrets configured, can't decrypt OTP key")
-        try:
-            return secrets[tag]
-        except KeyError:
-            raise suppress_cause(KeyError("unknown secret tag: %r" % (tag,)))
 
     def decrypt_key(self, enckey):
         """
@@ -519,9 +467,12 @@ class OTPContext(object):
 
         :returns:
             ``(key, needs_recrypt)`` --
-            decrypted totp key as raw bytes,
-            and flag indicating whether cost/tag is too old,
-            and key needs re-encrypting before storing.
+
+            **key** will be the decrypted key, as bytes.
+
+            **needs_recrypt** will be a boolean flag indicating
+            whether encryption cost or default tag is too old,
+            and henace that key needs re-encrypting before storing.
 
         .. note::
 
@@ -544,7 +495,7 @@ class OTPContext(object):
             salt=b32decode(enckey['s']),
             cost=cost,
         )
-        if cost != self.cost or tag != self._default_tag:
+        if cost != self.encrypt_cost or tag != self.default_tag:
             needs_recrypt = True
         return key, needs_recrypt
 
@@ -629,11 +580,6 @@ class TOTP(object):
     :param int period:
         The time-step period to use, in integer seconds. Defaults to ``30``.
 
-    :param OTPContext context:
-        Optional :class:`OTPContext` instance to bind this object to.
-        If set, and application secrets are present, they will be used to encrypt the OTP key
-        when :meth:`to_json` is invoked.
-
     ..
         See the passlib documentation for list of attributes & methods.
     """
@@ -648,16 +594,21 @@ class TOTP(object):
     #: minimum & current serialization version (may be set independently by subclasses)
     min_json_version = json_version = 1
 
+    #: AppWallet that this class will use for encrypting/decrypting keys.
+    #: (can be overwritten via the :meth:`TOTP.using()` constructor)
+    wallet = None
+
+    #: function to get system time in seconds, as needed by :meth:`generate` and :meth:`verify`.
+    #: defaults to :func:`time.time`, but can be overridden on a per-instance basis.
+    now = _time.time
+
     #=============================================================================
     # instance attrs
     #=============================================================================
 
     #---------------------------------------------------------------------------
-    # configuration
+    # configuration attrs
     #---------------------------------------------------------------------------
-
-    #: OTPContext object used to handle encryption/decryption
-    context = None
 
     #: secret key as raw :class:`!bytes`
     key = None
@@ -683,10 +634,6 @@ class TOTP(object):
     #: increments by 1 every* :attr:`!period` *seconds)*.
     period = 30
 
-    #: function to get system time in seconds, as needed by :meth:`generate` and :meth:`verify`.
-    #: defaults to :func:`time.time`, but can be overridden on a per-instance basis.
-    now = _time.time
-
     #---------------------------------------------------------------------------
     # state attrs
     #---------------------------------------------------------------------------
@@ -699,7 +646,7 @@ class TOTP(object):
     #=============================================================================
     @classmethod
     def using(cls, digits=None, alg=None, period=None,
-              issuer=None, context=None, now=None, **kwds):
+              issuer=None, wallet=None, now=None, **kwds):
         """
         Dynamically create subtype of :class:`!TOTP` class
         which has the specified defaults set.
@@ -713,12 +660,12 @@ class TOTP(object):
             and the resulting class will use any values you specify here
             as the default.
 
-        :param context:
-            Optional OTPContext that will be used for encrypting/decrypting keys.
+        :param wallet:
+            Optional :class:`AppWallet` that will be used for encrypting/decrypting keys.
 
         :param secrets, secret_path, encrypt_cost:
 
-            If specified, these options will be passed to the :class:`OTPContext` constructor,
+            If specified, these options will be passed to the :class:`AppWallet` constructor,
             allowing you to directly specify the secret keys that should be used
             to encrypt & decrypt stored keys.
 
@@ -783,13 +730,13 @@ class TOTP(object):
             subcls.issuer = norm_param("issuer", issuer)
 
         if kwds:
-            subcls.context = OTPContext(**kwds)
-            if context:
-                raise TypeError("'context' and 'secrets' keywords are mutually exclusive")
-        elif context is not None:
-            if not isinstance(context, OTPContext):
-                raise exc.ExpectedTypeError(context, OTPContext, "context")
-            subcls.context = context
+            subcls.wallet = AppWallet(**kwds)
+            if wallet:
+                raise TypeError("'wallet' and 'secrets' keywords are mutually exclusive")
+        elif wallet is not None:
+            if not isinstance(wallet, AppWallet):
+                raise exc.ExpectedTypeError(wallet, AppWallet, "wallet")
+            subcls.wallet = wallet
 
         if now is not None:
             assert isinstance(now(), num_types) and now() >= 0, \
@@ -812,13 +759,11 @@ class TOTP(object):
     def __init__(self, key=None, format="base32",
                  # keyword only...
                  new=False, digits=None, alg=None, size=None, period=None,
-                 label=None, issuer=None, context=None, changed=False,
+                 label=None, issuer=None, changed=False,
                  **kwds):
         super(TOTP, self).__init__(**kwds)
         if changed:
             self.changed = changed
-        if context is not None:
-            self.context = context
 
         # validate & normalize alg
         info = lookup_hash(alg or self.alg)
@@ -846,14 +791,16 @@ class TOTP(object):
         elif format == "encrypted":
             # special format signalling we need to pass this through
             # context.decrypt_key()
-            if not context:
-                raise TypeError("must provide an OTPContext to decrypt TOTP keys")
-            self.key, needs_recrypt = context.decrypt_key(key)
+            wallet = self.wallet
+            if not wallet:
+                raise TypeError("no application secrets provided to decrypt TOTP keys")
+            self.key, needs_recrypt = wallet.decrypt_key(key)
             if needs_recrypt:
                 # mark as changed so it gets re-encrypted & written to db
                 self.changed = True
             else:
                 # preserve this so it can be re-used by to_json()
+                # FIXME: if .key is written to, this will be incorrect.
                 self._enckey = key
         elif key:
             # use existing key, encoded using specified <format>
@@ -1291,7 +1238,7 @@ class TOTP(object):
     #=============================================================================
 
     @classmethod
-    def from_source(cls, source, context=None):
+    def from_source(cls, source):
         """
         Load / create a TOTP object from a serialized source.
         This acts as a wrapper for the various deserialization methods:
@@ -1303,37 +1250,35 @@ class TOTP(object):
         :param source:
             Serialized TOTP object.
 
-        :param context:
-            Optional :class:`OTPContext` instance,
-            required in order to encrypt/decrypt keys.
-
         :raises ValueError:
             If the key has been encrypted, but the application secret isn't available;
             or if the string cannot be recognized, parsed, or decoded.
+
+            See :meth:`TOTP.using()` for how to configure application secrets.
 
         :returns:
             a :class:`TOTP` instance.
         """
         if isinstance(source, TOTP):
-            # return object unchanged if they share same context.
-            # otherwise make a new one that's bound to expected context.
-            if (context or cls.context) == source.context:
+            # return object unchanged if they share same wallet.
+            # otherwise make a new one that's bound to expected wallet.
+            if cls.wallet == source.wallet:
                 return source
             source = source.to_dict(encrypt=False)
         if isinstance(source, dict):
-            return cls.from_dict(source, context=context)
+            return cls.from_dict(source)
         # NOTE: letting to_unicode() raise TypeError in this case
         source = to_unicode(source, param="totp source")
         if source.startswith("otpauth://"):
-            return cls.from_uri(source, context=context)
+            return cls.from_uri(source)
         else:
-            return cls.from_json(source, context=context)
+            return cls.from_json(source)
 
     #=============================================================================
     # uri parsing
     #=============================================================================
     @classmethod
-    def from_uri(cls, uri, context=None):
+    def from_uri(cls, uri):
         """
         create an OTP instance from a URI (such as returned by :meth:`to_uri`).
 
@@ -1351,7 +1296,7 @@ class TOTP(object):
 
         # validate netloc, and hand off to helper
         cls._check_otp_type(result.netloc)
-        return cls._from_parsed_uri(result, context)
+        return cls._from_parsed_uri(result)
 
     @classmethod
     def _check_otp_type(cls, type):
@@ -1366,7 +1311,7 @@ class TOTP(object):
         raise ValueError("unknown otp type: %r" % type)
 
     @classmethod
-    def _from_parsed_uri(cls, result, context):
+    def _from_parsed_uri(cls, result):
         """
         internal from_uri() helper --
         handles parsing a validated TOTP URI
@@ -1411,7 +1356,7 @@ class TOTP(object):
                 raise cls._uri_parse_error("conflicting issuer identifiers")
 
         # convert query params to constructor kwds, and call constructor
-        return cls(context=context, **cls._adapt_uri_params(**params))
+        return cls(**cls._adapt_uri_params(**params))
 
     @classmethod
     def _adapt_uri_params(cls, label=None, secret=None, issuer=None,
@@ -1547,7 +1492,7 @@ class TOTP(object):
     #=============================================================================
 
     @classmethod
-    def from_json(cls, source, context=None):
+    def from_json(cls, source):
         """
         Load / create an OTP object from a serialized json string
         (as generated by :meth:`to_json`).
@@ -1555,19 +1500,17 @@ class TOTP(object):
         :arg json:
             Serialized output from :meth:`to_json`, as unicode or ascii bytes.
 
-        :param context:
-            Optional :class:`OTPContext` instance,
-            required in order to encrypt/decrypt keys.
-
         :raises ValueError:
             If the key has been encrypted, but the application secret isn't available;
             or if the string cannot be recognized, parsed, or decoded.
+
+            See :meth:`TOTP.using()` for how to configure application secrets.
 
         :returns:
             a :class:`TOTP` instance.
         """
         source = to_unicode(source, param="json source")
-        return cls.from_dict(json.loads(source), context=context)
+        return cls.from_dict(json.loads(source))
 
     def to_json(self, encrypt=AUTO):
         """
@@ -1594,7 +1537,7 @@ class TOTP(object):
     #=============================================================================
 
     @classmethod
-    def from_dict(cls, source, context=None):
+    def from_dict(cls, source,):
         """
         Load / create a TOTP object from a dictionary
         (as generated by :meth:`to_dict`)
@@ -1602,20 +1545,18 @@ class TOTP(object):
         :param source:
             dict containing serialized TOTP key & configuration.
 
-        :param context:
-            Optional :class:`OTPContext` instance,
-            required in order to encrypt/decrypt keys.
-
         :raises ValueError:
             If the key has been encrypted, but the application secret isn't available;
             or if the dict cannot be recognized, parsed, or decoded.
+
+            See :meth:`TOTP.using()` for how to configure application secrets.
 
         :returns:
             A :class:`TOTP` instance.
         """
         if not isinstance(source, dict) or "type" not in source:
             raise cls._dict_parse_error("unrecognized format")
-        return cls(context=context, **cls._adapt_dict_kwds(**source))
+        return cls(**cls._adapt_dict_kwds(**source))
 
     @classmethod
     def _adapt_dict_kwds(cls, type, **kwds):
@@ -1638,11 +1579,12 @@ class TOTP(object):
             # decryption. this lets it get ahold of (and store) the original
             # encrypted key, so if to_json() is called again, the encrypted
             # key can be re-used.
+            # XXX: wallet is known at this point, could decrypt key here.
             assert 'key' not in kwds  # shouldn't be present w/ enckey
             kwds.update(key=kwds.pop("enckey"), format="encrypted")
         elif 'key' not in kwds:
             raise cls._dict_parse_error("missing 'enckey' / 'key'")
-        # XXX: if info was available here, should set changed=True if encrypting context is available,
+        # XXX: could should set changed=True if active wallet is available,
         #      and source wasn't encrypted.
         kwds.pop("last_counter", None) # extract legacy counter parameter
         return kwds
@@ -1671,13 +1613,13 @@ class TOTP(object):
             state['label'] = self.label
         if self.issuer:
             state['issuer'] = self.issuer
-        context = self.context
-        if encrypt and (encrypt != AUTO or (context and context.can_encrypt)):
+        wallet = self.wallet
+        if encrypt and (encrypt != AUTO or (wallet and wallet.can_encrypt)):
             enckey = self._enckey
             if enckey is None:
-                if not context:
-                    raise TypeError("must provide an OTPContext to decrypt TOTP keys")
-                enckey = self._enckey = context.encrypt_key(self.key)
+                if not wallet:
+                    raise TypeError("must provide application secrets to encrypt TOTP keys")
+                enckey = self._enckey = wallet.encrypt_key(self.key)
             state['enckey'] = enckey
         else:
             state['key'] = self.base32_key
@@ -1865,7 +1807,7 @@ class TotpMatch(SequenceMixin):
 def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     """
     generate a random string suitable for use as an
-    :class:`OTPContext` application secret.
+    :class:`AppWallet` application secret.
 
     :param entropy:
         number of bits of entropy (controls size/complexity of password).
@@ -1874,12 +1816,6 @@ def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     assert len(charset) > 1
     count = int(math.ceil(entropy * math.log(2, len(charset))))
     return getrandstr(rng, charset, count)
-
-# XXX: deprecate these in favor of user creating new context?
-_default_context = OTPContext()
-new = _default_context.new
-from_uri = _default_context.from_uri
-from_json = _default_context.from_json
 
 #=============================================================================
 # eof
