@@ -12,7 +12,7 @@ Overview
 ========
 The :mod:`passlib.totp` module provides a set of classes for adding
 two-factor authentication (2FA) support into your application,
-using the widely supported TOTP / HOTP specifications.
+using the widely supported TOTP specification.
 
 This module is designed to support a variety of use cases, including:
 
@@ -31,11 +31,6 @@ to the more complex highlevel ones.
 
 .. seealso:: The :mod:`passlib.totp` api reference,
     which lists all details of all the classes and methods mentioned here.
-
-.. todo::
-
-    This tutorial is currently focused on TOTP usage,
-    and needs to be expanded to include HOTP.
 
 .. rst-class:: emphasize-children
 
@@ -110,7 +105,7 @@ parameters of the :meth:`~passlib.totp.BaseOTP.to_uri` method:
 On the client side, passlib offers a helper method for loading from a provisioning
 URI.  This can be useful for testing URI encoding & output:
 
-    >>> # create new TOTP/HOTP instance from a provisioning uri:
+    >>> # create new TOTP instance from a provisioning uri:
     >>> from passlib import totp
     >>> otp = totp.from_uri('otpauth://totp/demo-user?secret=GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM&issuer=myapp.example.org')
     >>> otp.base32_key
@@ -383,11 +378,6 @@ guarantees an attacker will be able to guess any given token.
 
 The Gory Details
 ----------------
-For HOTP, the formula is ``odds = guesses * (1 + window) / 10**digits``;
-where ``guesses`` is the number of attempts an attacker can make before being
-locked out, ``window`` is the :meth:`HOTP.verify` window (as measured in counter steps),
-and ``digits`` is the number of digits in the HTOP token.
-
 For TOTP, the formula is ``odds = guesses * (1 + 2 * window / period) / 10**digits``;
 where ``window`` in this case is the :meth:`TOTP.verify` window (measured in seconds),
 and ``period`` is the number of seconds before the token is rotated.

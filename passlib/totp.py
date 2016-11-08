@@ -46,7 +46,6 @@ __all__ = [
     # frontend classes
     "OTPContext",
     "TOTP",
-    "HOTP",
 
     # errors (defined in passlib.exc, but exposed here for convenience)
     "TokenError",
@@ -56,7 +55,6 @@ __all__ = [
 
     # internal helper classes
     "BaseOTP",
-    "HotpMatch",
     "TotpToken",
     "TotpMatch",
 ]
@@ -251,8 +249,8 @@ class OTPContext(object):
     ..
         Semi-Private Methods
         ====================
-        The following methods are used internally by the :class:`TOTP` and :class:`HOTP`
-        classes in order to encrypt & decrypt keys using the provided application
+        The following methods are used internally by the :class:`TOTP`
+        class in order to encrypt & decrypt keys using the provided application
         secrets:
 
         .. automethod:: encrypt_key
@@ -288,8 +286,7 @@ class OTPContext(object):
                  secrets_path=None):
 
         # TODO: allow a lot more things to be customized from here,
-        #       e.g. defaulting to TOTP vs HOTP, as well as settings
-        #       for the respective classes.
+        #       e.g. setting default TOTP constructor options.
 
         #
         # init cost
@@ -395,14 +392,13 @@ class OTPContext(object):
         generating a new key.
 
         :param type:
-            "totp" (the default) or "hotp"
+            "totp" (the default)
 
         :param \*\*kwds:
-            All remaining keywords passed to respective
-            :class:`TOTP` and :class:`HOTP` constructors.
+            All remaining keywords passed to the :class:`TOTP` constructor.
 
         :return:
-            :class:`!TOTP` or :class:`!HOTP` instance.
+            :class:`!TOTP` instance.
         """
         cls = BaseOTP._type_map[type]
         return cls(new=True, context=self, **kwds)
@@ -421,7 +417,7 @@ class OTPContext(object):
             or from the :meth:`BaseOTP.to_uri` method.
 
         :return:
-            :class:`TOTP` or :class:`HOTP` instance.
+            :class:`TOTP` instance.
         """
         return BaseOTP.from_uri(uri, context=self)
 
@@ -436,7 +432,7 @@ class OTPContext(object):
             json string as returned by :class:`BaseOTP.to_json`.
 
         :return:
-            :class:`TOTP` or :class:`HOTP` instance.
+            :class:`TOTP` instance.
         """
         return BaseOTP.from_json(source, context=self)
 
@@ -577,10 +573,10 @@ class BaseOTP(object):
 
         **This class shouldn't be used directly.**
         It's here to provide & document common functionality
-        shared by the :class:`TOTP` and :class:`HOTP` classes.
+        shared by the :class:`TOTP` class.
         See those classes for usage instructions.
 
-    Both the :class:`TOTP` and :class:`HOTP` classes accept the following common options
+    :class:`TOTP` accepts the following common options
     (only **key** and **format** may be specified as positional arguments).
 
     :arg str key:
@@ -706,7 +702,7 @@ class BaseOTP(object):
                  **kwds):
         if type(self) is BaseOTP:
             raise RuntimeError("BaseOTP() shouldn't be invoked directly -- "
-                               "use TOTP() or HOTP() instead")
+                               "use TOTP() instead")
         super(BaseOTP, self).__init__(**kwds)
         self.changed = changed
         self.context = context
@@ -721,7 +717,7 @@ class BaseOTP(object):
         # parse or generate new key
         if new:
             # generate new key
-            if key :
+            if key:
                 raise TypeError("'key' and 'new=True' are mutually exclusive")
             if size is None:
                 # default to digest size, per RFC 6238 Section 5.1
@@ -857,8 +853,7 @@ class BaseOTP(object):
 
     def _generate(self, counter):
         """
-        implementation of lowlevel HOTP generation algorithm,
-        shared by both TOTP and HOTP classes.
+        base implementation of HOTP token generation algorithm.
 
         :arg counter: HOTP counter, as non-negative integer
         :returns: token as unicode string
@@ -963,7 +958,7 @@ class BaseOTP(object):
         create an OTP instance from a URI (such as returned by :meth:`to_uri`).
 
         :returns:
-            :class:`TOTP` or :class:`HOTP` instance, as appropriate.
+            :class:`TOTP` instance.
 
         :raises ValueError:
             if the uri cannot be parsed or contains errors.
@@ -985,11 +980,13 @@ class BaseOTP(object):
     def _from_parsed_uri(cls, result, context):
         """
         internal from_uri() helper --
-        hands off the main work to this function, once the appropriate subclass
-        has been resolved.
+        handles parsing a validated TOTP URI
 
-        :param result: a urlparse() instance
-        :returns: cls instance
+        :param result:
+            a urlparse() instance
+
+        :returns:
+            cls instance
         """
 
         # decode label from uri path
@@ -1034,7 +1031,6 @@ class BaseOTP(object):
         """
         from_uri() helper --
         converts uri params into constructor args.
-        this handles the parameters common to TOTP & HOTP.
         """
         assert label, "from_uri() failed to provide label"
         if not secret:
@@ -1179,7 +1175,7 @@ class BaseOTP(object):
             or if the string cannot be recognized, parsed, or decoded.
 
         :returns:
-            a :class:`TOTP` or :class:`HOTP` instance, as appropriate.
+            a :class:`TOTP` instance.
         """
         if not isinstance(source, dict):
             source = to_unicode(source, param="json source")
@@ -1284,356 +1280,6 @@ class BaseOTP(object):
     #=============================================================================
     # eoc
     #=============================================================================
-
-#=============================================================================
-# HOTP helper
-#=============================================================================
-class HotpMatch(SequenceMixin):
-    """
-    Object returned by :meth:`HOTP.verify` on a successful match.
-
-    It can be treated as a tuple of ``(counter, expected_counter)``,
-    or accessed via the following attributes:
-
-    .. autoattribute:: counter
-        :annotation: = 0
-
-    .. autoattribute:: expected_counter
-        :annotation: = 0
-
-    .. autoattribute:: next_counter
-        :annotation: = .counter + 1
-
-    .. autoattribute:: skipped
-        :annotation: = 0
-    """
-
-    #: HOTP counter value that matched token
-    counter = 0
-
-    #: Previous HOTP counter value
-    expected_counter = 0
-
-    def __init__(self, counter, expected_counter):
-        self.counter = counter
-        self.expected_counter = expected_counter
-
-    @memoized_property
-    def next_counter(self):
-        """
-        New HOTP counter value.
-        """
-        return self.counter + 1
-
-    @memoized_property
-    def skipped(self):
-        """
-        How many steps between expected and matched counter values.
-        Always >= 0.
-        """
-        return self.counter - self.expected_counter
-
-    def _as_tuple(self):
-        return self.counter, self.expected_counter
-
-    def __repr__(self):
-        return "<HotpMatch counter=%d expected_counter=%d>" % self._as_tuple()
-
-class HOTP(BaseOTP):
-    """Helper for generating and verifying HOTP codes.
-
-    Given a secret key and set of configuration options, this object
-    offers methods for token generation, token validation, and serialization.
-    It can also be used to track important persistent HOTP state,
-    such as the next counter value.
-
-    In addition to the :ref:`BaseOTP Constructor Options <baseotp-constructor-options>`,
-    this class accepts the following extra parameters:
-
-    :param int counter:
-        The next counter value to use when generating a new token via :meth:`advance()`,
-        or when verifying one via :meth:`consume()`.  Will be automatically
-        incremented after each successful call to those methods.
-
-    ..
-        See the passlib documentation for a list of attributes & methods
-    """
-    #=============================================================================
-    # class attrs
-    #=============================================================================
-
-    #: otpauth type this class implements
-    type = "hotp"
-
-    #=============================================================================
-    # instance attrs
-    #=============================================================================
-
-    #: initial counter value (if configured from server)
-    start = 0
-
-    #: counter of next token to generate.
-    counter = 0
-
-    #=============================================================================
-    # init
-    #=============================================================================
-    def __init__(self, key=None, format="base32",
-                 # keyword only ...
-                 start=0, counter=0,
-                 **kwds):
-        # call BaseOTP to handle common options
-        super(HOTP, self).__init__(key, format, **kwds)
-
-        # validate counter
-        self._check_serial(counter, "counter")
-        self.counter = counter
-
-        # validate start
-        # NOTE: when loading from URI, 'start' is set to match counter,
-        #       as we can trust server won't take any older values.
-        #       other than that case, 'start' generally isn't used,
-        #       and mainly exists as sanity check to determine
-        #       when last client was last provisioned/synced with server.
-        self._check_serial(start, "start")
-        if start > self.counter:
-            raise ValueError("start must be <= counter (%d)" % self.counter)
-        self.start = start
-
-    #=============================================================================
-    # token management
-    #=============================================================================
-    def _normalize_counter(self, counter):
-        """
-        helper to normalize counter representation
-        """
-        if not isinstance(counter, int_types):
-            raise exc.ExpectedTypeError(counter, "int", "counter")
-        if counter < self.start:
-            raise ValueError("counter must be >= start value (%d)" % self.start)
-        return counter
-
-    def generate(self, counter):
-        """
-        Low-level method to generate HOTP token for specified counter value.
-
-        :arg int counter:
-           counter value to use.
-
-        :returns:
-           (unicode) string containing decimal-formatted token
-
-        Usage example::
-
-            >>> h = HOTP('s3jdvb7qd2r7jpxx')
-            >>> h.generate(1000)
-            '763224'
-            >>> h.generate(1001)
-            '771031'
-
-        .. seealso::
-            This is a lowlevel method, which doesn't read or modify any state-dependant values
-            (such as the current :attr:`counter` value).
-            For a version which does, see :meth:`advance`.
-        """
-        counter = self._normalize_counter(counter)
-        return self._generate(counter)
-
-    def advance(self):
-        """
-        High-level method to generate a new HOTP token using next counter value.
-
-        Unlike :meth:`generate`, this method uses the current :attr:`counter` value,
-        and increments that counter before it returns.
-
-        :returns:
-           (unicode) string containing decimal-formatted token
-
-        Usage example::
-
-            >>> h = HOTP('s3jdvb7qd2r7jpxx', counter=1000)
-            >>> h.counter
-            1000
-            >>> h.advance()
-            '897212'
-            >>> h.counter
-            1001
-        """
-        counter = self.counter
-        token = self.generate(counter)
-        self.counter = counter + 1
-        self.changed = True
-        return token
-
-    def verify(self, token, counter, window=1):
-        """
-        Low-level method to validate HOTP token against specified counter.
-
-        :arg token:
-            token to validate.
-            may be integer or string (whitespace and hyphens are ignored).
-
-        :param int counter:
-            next counter value client is expected to use.
-
-        :param window:
-           How many additional steps past ``counter`` to search when looking for a match
-           Defaults to 1.
-
-           .. rst-class:: inline-title
-           .. note::
-              This is a forward-looking window only, as searching backwards
-              would allow token-reuse, defeating the whole purpose of HOTP.
-
-        :raises ~passlib.exc.TokenError:
-             If the token is malformed, or fails to verify.
-
-        :returns:
-             Returns an :class:`HotpMatch` instance on a successful match.
-             The return value can be treated like a ``(counter, expected_counter)``
-             tuple. Raises error if token was malformed / did not match.
-
-        Usage example::
-
-            >>> h = HOTP('s3jdvb7qd2r7jpxx')
-
-            >>> # token matches counter
-            >>> h.verify('763224', 1000)
-            <HotpMatch counter=1001 expected_counter=1001>
-
-            >>> # token matches 1 counter ahead
-            >>> h.verify('763224', 999)
-            <HotpMatch counter=1001 expected_counter=1000>
-
-            >>> # token outside of default window (2)
-            >>> h.verify('763224', 998)
-            Traceback:
-                ...
-            InvalidTokenError: Token did not match
-
-        .. seealso::
-            This is a lowlevel method, which doesn't read or modify any state-dependant values
-            (such as the next :attr:`counter` value).
-            For a version which does, see :meth:`consume`.
-        """
-        counter = self._normalize_counter(counter)
-        self._check_serial(window, "window")
-        last_counter = counter - 1
-        matched = self._find_match(token, last_counter, counter + window + 1,
-                                   expected=counter)
-        if matched == last_counter:
-            raise UsedTokenError("Token has already been used, please generate for another.")
-        assert matched > last_counter, "sanity check failed: counter went backward"
-        return HotpMatch(matched, counter)
-
-    def consume(self, token, window=1):
-        """
-        High-level method to validate HOTP token against current counter value.
-
-        Unlike :meth:`verify`, this method uses the current :attr:`counter` value,
-        and updates that counter after a successful verification.
-
-        :arg token:
-            token to validate.
-            may be integer or string (whitespace and hyphens are ignored).
-
-        :param window:
-           How many additional steps past ``counter`` to search when looking for a match
-           Defaults to 1.
-
-           .. rst-class:: inline-title
-           .. note::
-              This is a forward-looking window only, as using a backwards window
-              would allow token-reuse, defeating the whole purpose of HOTP.
-
-        :raises ~passlib.exc.TokenError:
-
-            If the token is malformed, or fails to verify.
-
-        :returns:
-            If token validated, returns the :class:`HotpMatch` instance from the underlying :meth:`verify` call.
-            Raise errors on invalid/malformed tokens.
-
-            As side-effect, may set the :attr:`changed` attribute if the internal state was updated,
-            and needs to be re-persisted by the application (see :meth:`to_json`).
-
-        Usage example::
-
-            >>> h = HOTP('s3jdvb7qd2r7jpxx', counter=998)
-
-            >>> # token outside window
-            >>> h.consume('763224')
-            Traceback:
-                ...
-            InvalidTokenError: Token did not match
-
-            >>> # 'next' counter not incremented
-            >>> h.counter
-            998
-
-            >>> # token matches counter 999, w/in window=1
-            >>> h.consume('484807')
-            <HotpMatch counter=999 expected_counter=998>
-
-            >>> # counter has been incremented, now expecting counter=1000 next
-            >>> h.counter
-            1000
-        """
-        counter = self.counter
-        match = self.verify(token, counter, window=window)
-        self.counter = match.next_counter
-        self.changed = True
-        return match
-
-    # TODO: resync(self, tokens, counter, window=100)
-    #       helper to re-synchronize using series of sequential tokens,
-    #       all of which must validate; per RFC recommendation.
-
-    #=============================================================================
-    # uri parsing
-    #=============================================================================
-    @classmethod
-    def _adapt_uri_params(cls, counter=None, **kwds):
-        """
-        parse HOTP specific params, and let _BaseOTP handle rest.
-        """
-        kwds = super(HOTP, cls)._adapt_uri_params(**kwds)
-        if counter is None:
-            raise cls._uri_error("missing 'counter' parameter")
-        # NOTE: when creating from a URI, we set the 'start' value as well,
-        #       as sanity check on client-side, since we *know* minimum value
-        #       server will accept.
-        kwds['counter'] = kwds['start'] = cls._uri_parse_int(counter, "counter")
-        return kwds
-
-    #=============================================================================
-    # uri rendering
-    #=============================================================================
-    def _to_uri_params(self):
-        """
-        add HOTP specific params, and let _BaseOTP handle rest.
-        """
-        args = super(HOTP, self)._to_uri_params()
-        args.append(("counter", str(self.counter)))
-        return args
-
-    #=============================================================================
-    # json rendering
-    #=============================================================================
-    def to_dict(self, **kwds):
-        state = super(HOTP, self).to_dict(**kwds)
-        if self.start:
-            state['start'] = self.start
-        if self.counter:
-            state['counter'] = self.counter
-        return state
-
-    #=============================================================================
-    # eoc
-    #=============================================================================
-
-# register subclass with from_uri() helper
-BaseOTP._type_map[HOTP.type] = HOTP
 
 #=============================================================================
 # TOTP helper
