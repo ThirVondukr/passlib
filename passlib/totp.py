@@ -1213,7 +1213,11 @@ class TOTP(object):
             a :class:`TOTP` instance.
         """
         if isinstance(source, TOTP):
-            return source
+            # return object unchanged if they share same context.
+            # otherwise make a new one that's bound to expected context.
+            if (context or cls.context) == source.context:
+                return source
+            source = source.to_dict(encrypt=False)
         if isinstance(source, dict):
             return cls.from_dict(source, context=context)
         # NOTE: letting to_unicode() raise TypeError in this case

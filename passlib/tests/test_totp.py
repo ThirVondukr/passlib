@@ -1213,6 +1213,16 @@ class TotpTest(_BaseOTPTest):
         # TOTP object -- return unchanged
         self.assertIs(from_source(otp), otp)
 
+        # TOTP object w/ different context -- return new one.
+        ctx1 = OTPContext()
+        otp1 = from_source(otp, context=ctx1)
+        self.assertIsNot(otp1, otp)
+        self.assertEqual(otp1.to_dict(), otp.to_dict())
+
+        # TOTP object w/ same context -- return original
+        otp2 = from_source(otp1, context=ctx1)
+        self.assertIs(otp2, otp1)
+
         # random string
         self.assertRaises(ValueError, from_source, u("foo"))
         self.assertRaises(ValueError, from_source, b"foo")
