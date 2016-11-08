@@ -697,6 +697,11 @@ class TOTP(object):
     # init
     #=============================================================================
 
+    @classmethod
+    def new(cls, **kwds):
+        """convenience alias for creating new totp key"""
+        return cls(new=True, **kwds)
+
     def __init__(self, key=None, format="base32",
                  # keyword only...
                  new=False, digits=None, alg=None, size=None, period=None,
@@ -1180,6 +1185,45 @@ class TOTP(object):
     #-------------------------------------------------------------------------
 
     #=============================================================================
+    # generic parsing
+    #=============================================================================
+
+    @classmethod
+    def from_source(cls, source, context=None):
+        """
+        Load / create a TOTP object from a serialized source.
+        This acts as a wrapper for the various deserialization methods:
+
+        * TOTP URIs are handed off to :meth:`from_uri`
+        * Any other strings are handed off to :meth:`from_json`
+        * Dicts are handed off to :meth:`from_dict`
+
+        :param source:
+            Serialized TOTP object.
+
+        :param context:
+            Optional :class:`OTPContext` instance,
+            required in order to encrypt/decrypt keys.
+
+        :raises ValueError:
+            If the key has been encrypted, but the application secret isn't available;
+            or if the string cannot be recognized, parsed, or decoded.
+
+        :returns:
+            a :class:`TOTP` instance.
+        """
+        if isinstance(source, TOTP):
+            return source
+        if isinstance(source, dict):
+            return cls.from_dict(source, context=context)
+        # NOTE: letting to_unicode() raise TypeError in this case
+        source = to_unicode(source, param="totp source")
+        if source.startswith("otpauth://"):
+            return cls.from_uri(source, context=context)
+        else:
+            return cls.from_json(source, context=context)
+
+    #=============================================================================
     # uri parsing
     #=============================================================================
     @classmethod
@@ -1197,7 +1241,7 @@ class TOTP(object):
         uri = to_unicode(uri, param="uri").strip()
         result = urlparse(uri)
         if result.scheme != "otpauth":
-            raise cls._uri_error("wrong uri scheme")
+            raise cls._uri_parse_error("wrong uri scheme")
 
         # validate netloc, and hand off to helper
         cls._check_otp_type(result.netloc)
@@ -1205,6 +1249,10 @@ class TOTP(object):
 
     @classmethod
     def _check_otp_type(cls, type):
+        """
+        validate otp URI type is supported.
+        returns True or raises appropriate error.
+        """
         if type == "totp":
             return True
         if type == "hotp":
@@ -1229,14 +1277,14 @@ class TOTP(object):
         if label.startswith("/") and len(label) > 1:
             label = unquote(label[1:])
         else:
-            raise cls._uri_error("missing label")
+            raise cls._uri_parse_error("missing label")
 
         # extract old-style issuer prefix
         if ":" in label:
             try:
                 issuer, label = label.split(":")
             except ValueError: # too many ":"
-                raise cls._uri_error("malformed label")
+                raise cls._uri_parse_error("malformed label")
         else:
             issuer = None
         if label:
@@ -1246,7 +1294,7 @@ class TOTP(object):
         params = dict(label=label)
         for k, v in parse_qsl(result.query):
             if k in params:
-                raise cls._uri_error("duplicate parameter (%r)" % k)
+                raise cls._uri_parse_error("duplicate parameter (%r)" % k)
             params[k] = v
 
         # synchronize issuer prefix w/ issuer param
@@ -1254,7 +1302,7 @@ class TOTP(object):
             if "issuer" not in params:
                 params['issuer'] = issuer
             elif params['issuer'] != issuer:
-                raise cls._uri_error("conflicting issuer identifiers")
+                raise cls._uri_parse_error("conflicting issuer identifiers")
 
         # convert query params to constructor kwds, and call constructor
         return cls(context=context, **cls._adapt_uri_params(**params))
@@ -1269,7 +1317,7 @@ class TOTP(object):
         """
         assert label, "from_uri() failed to provide label"
         if not secret:
-            raise cls._uri_error("missing 'secret' parameter")
+            raise cls._uri_parse_error("missing 'secret' parameter")
         kwds = dict(label=label, issuer=issuer, key=secret, format="base32")
         if digits:
             kwds['digits'] = cls._uri_parse_int(digits, "digits")
@@ -1284,11 +1332,10 @@ class TOTP(object):
                  (cls, extra), exc.PasslibRuntimeWarning)
         return kwds
 
-    @classmethod
-    def _uri_error(cls, reason):
+    @staticmethod
+    def _uri_parse_error(reason):
         """uri parsing helper -- creates preformatted error message"""
-        prefix = cls.__name__ + ": "
-        return ValueError("%sInvalid otpauth uri: %s" % (prefix, reason))
+        return ValueError("Invalid otpauth uri: %s" % (reason,))
 
     @classmethod
     def _uri_parse_int(cls, source, param):
@@ -1296,7 +1343,7 @@ class TOTP(object):
         try:
             return int(source)
         except ValueError:
-            raise cls._uri_error("Malformed %r parameter" % param)
+            raise cls._uri_parse_error("Malformed %r parameter" % param)
 
     #=============================================================================
     # uri rendering
@@ -1390,7 +1437,7 @@ class TOTP(object):
         return args
 
     #=============================================================================
-    # json parsing
+    # json rendering / parsing
     #=============================================================================
 
     @classmethod
@@ -1400,10 +1447,7 @@ class TOTP(object):
         (as generated by :meth:`to_json`).
 
         :arg json:
-            serialized output from :meth:`to_json`, as unicode or ascii bytes.
-
-            as convience, this can also be an otpauth uri,
-            or a dict (as returned by :meth:`to_dict`).
+            Serialized output from :meth:`to_json`, as unicode or ascii bytes.
 
         :param context:
             Optional :class:`OTPContext` instance,
@@ -1416,54 +1460,8 @@ class TOTP(object):
         :returns:
             a :class:`TOTP` instance.
         """
-        if not isinstance(source, dict):
-            source = to_unicode(source, param="json source")
-            if source.startswith("otpauth://"):
-                # as convenience, support passing in config URIs
-                return cls.from_uri(source, context=context)
-            else:
-                source = json.loads(source)
-        if not isinstance(source, dict):
-            raise cls._json_error("unrecognized json data")
-        return cls(context=context, **cls._adapt_json_dict(**source))
-
-    @classmethod
-    def _adapt_json_dict(cls, type="totp", **kwds):
-        """
-        Internal helper for .from_json() --
-        Adapts serialized json dict into constructor keywords.
-        """
-        # default json format is just serialization of constructor kwds.
-        # XXX: just pass all this through to _from_json / constructor?
-        # go ahead and mark as changed (needs re-saving) if the version is too old
-        assert cls._check_otp_type(type) # check legacy 'type' parameter
-        ver = kwds.pop("v", None)
-        if not ver or ver < cls.min_json_version or ver > cls.json_version:
-            raise cls._json_error("missing/unsupported version (%r)" % (ver,))
-        elif ver != cls.json_version:
-            # mark older version as needing re-serializing
-            kwds['changed'] = True
-        if 'enckey' in kwds:
-            # handing encrypted key off to constructor, which handles the
-            # decryption. this lets it get ahold of (and store) the original
-            # encrypted key, so if to_json() is called again, the encrypted
-            # key can be re-used.
-            assert 'key' not in kwds  # shouldn't be present w/ enckey
-            kwds.update(key=kwds.pop("enckey"), format="encrypted")
-        elif 'key' not in kwds:
-            raise cls._json_error("missing 'enckey' / 'key'")
-        kwds.pop("last_counter", None) # extract legacy counter parameter
-        return kwds
-
-    @classmethod
-    def _json_error(cls, reason):
-        """json parsing helper -- creates preformatted error message"""
-        prefix = cls.__name__ + ": "
-        return ValueError("%sInvalid totp json data: %s" % (prefix, reason))
-
-    #=============================================================================
-    # json rendering
-    #=============================================================================
+        source = to_unicode(source, param="json source")
+        return cls.from_dict(json.loads(source), context=context)
 
     def to_json(self, encrypt=AUTO):
         """
@@ -1485,6 +1483,69 @@ class TOTP(object):
         state = self.to_dict(encrypt=encrypt)
         return json.dumps(state, sort_keys=True, separators=(",", ":"))
 
+    #=============================================================================
+    # dict rendering / parsing
+    #=============================================================================
+
+    @classmethod
+    def from_dict(cls, source, context=None):
+        """
+        Load / create a TOTP object from a dictionary
+        (as generated by :meth:`to_dict`)
+
+        :param source:
+            dict containing serialized TOTP key & configuration.
+
+        :param context:
+            Optional :class:`OTPContext` instance,
+            required in order to encrypt/decrypt keys.
+
+        :raises ValueError:
+            If the key has been encrypted, but the application secret isn't available;
+            or if the dict cannot be recognized, parsed, or decoded.
+
+        :returns:
+            A :class:`TOTP` instance.
+        """
+        if not isinstance(source, dict) or "type" not in source:
+            raise cls._dict_parse_error("unrecognized format")
+        return cls(context=context, **cls._adapt_dict_kwds(**source))
+
+    @classmethod
+    def _adapt_dict_kwds(cls, type, **kwds):
+        """
+        Internal helper for .from_json() --
+        Adapts serialized json dict into constructor keywords.
+        """
+        # default json format is just serialization of constructor kwds.
+        # XXX: just pass all this through to _from_json / constructor?
+        # go ahead and mark as changed (needs re-saving) if the version is too old
+        assert cls._check_otp_type(type)
+        ver = kwds.pop("v", None)
+        if not ver or ver < cls.min_json_version or ver > cls.json_version:
+            raise cls._dict_parse_error("missing/unsupported version (%r)" % (ver,))
+        elif ver != cls.json_version:
+            # mark older version as needing re-serializing
+            kwds['changed'] = True
+        if 'enckey' in kwds:
+            # handing encrypted key off to constructor, which handles the
+            # decryption. this lets it get ahold of (and store) the original
+            # encrypted key, so if to_json() is called again, the encrypted
+            # key can be re-used.
+            assert 'key' not in kwds  # shouldn't be present w/ enckey
+            kwds.update(key=kwds.pop("enckey"), format="encrypted")
+        elif 'key' not in kwds:
+            raise cls._dict_parse_error("missing 'enckey' / 'key'")
+        # XXX: if info was available here, should set changed=True if encrypting context is available,
+        #      and source wasn't encrypted.
+        kwds.pop("last_counter", None) # extract legacy counter parameter
+        return kwds
+
+    @staticmethod
+    def _dict_parse_error(reason):
+        """dict parsing helper -- creates preformatted error message"""
+        return ValueError("Invalid totp data: %s" % (reason,))
+
     def to_dict(self, encrypt=AUTO):
         """
         Serialize configuration & internal state to a dict,
@@ -1493,7 +1554,9 @@ class TOTP(object):
         :returns:
             dictionary, containing basic (json serializable) datatypes.
         """
-        state = dict(v=self.json_version)
+        # NOTE: 'type' may seem redundant, but using it so code can try to
+        #       detect that this *is* a TOTP json string / dict.
+        state = dict(v=self.json_version, type="totp")
         if self.alg != "sha1":
             state['alg'] = self.alg
         if self.digits != 6:

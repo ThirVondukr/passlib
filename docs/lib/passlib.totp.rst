@@ -31,6 +31,8 @@ TOTP – Constructor
 ------------------
 .. autoclass:: TOTP(key=None, format="base32", \*, new=False, \*\*kwds)
 
+.. automethod:: TOTP.new()
+
 TOTP – Client-Side Token Generation
 -----------------------------------
 .. automethod:: TOTP.generate
@@ -67,23 +69,18 @@ manner, to handle tracking of previously used tokens, etc.  In this case,
 they will need to be serialized to / from external storage, which
 can be performed with the following methods:
 
+.. automethod:: TOTP.to_json
+.. automethod:: TOTP.to_dict
+.. automethod:: TOTP.from_source
+.. automethod:: TOTP.from_json
+.. automethod:: TOTP.from_dict
+
 .. attribute:: TOTP.changed
 
     Boolean flag set by all TOTP methods which modify the internal state.
     if true, then something has changed in the object since it was created / loaded
-    via :meth:`~TOTP.from_json`, and needs re-persisting via :meth:`~TOTP.to_json`.
+    via :meth:`~TOTP.from_dict`, and needs re-persisting via :meth:`~TOTP.to_dict`.
     After which, your application may clear the flag, or discard the object, as appropriate.
-
-.. automethod:: TOTP.to_json
-.. automethod:: TOTP.to_dict
-.. automethod:: TOTP.from_json
-
-..
-    Undocumented Helper Methods
-    ---------------------------
-
-    .. automethod:: TOTP.normalize_token
-    .. automethod:: TOTP.normalize_time
 
 .. _baseotp-configuration-attributes:
 
@@ -101,6 +98,12 @@ Most of this information will be serialized by :meth:`~TOTP.to_uri` and :meth:`~
 .. autoattribute:: TOTP.digits
 .. autoattribute:: TOTP.alg
 .. autoattribute:: TOTP.period
+
+..
+    Undocumented Helper Methods
+    ---------------------------
+    .. automethod:: TOTP.normalize_token
+    .. automethod:: TOTP.normalize_time
 
 Support Classes
 ---------------
@@ -138,7 +141,7 @@ Support Functions
 Deviations
 ==========
 
-* The TOTP Spec [#totpspec]_ includes an param (``T0)``) providing an optional offset from the base time.
+* The TOTP Spec [#totpspec]_ includes an param (``T0``) providing an optional offset from the base time.
   Passlib omits this parameter (fixing it at ``0``), but so do pretty much all other TOTP implementations.
 
 .. rubric:: Footnotes

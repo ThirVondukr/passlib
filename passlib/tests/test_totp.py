@@ -42,6 +42,7 @@ KEY1_RAW = b'\xe0\x1cc\x0c!\x84\xb0v\xce\x99'
 KEY2_RAW = b'\xee]\xcb9\x870\x06 D\xc8y/\xa54&\xe4\x9c\x13\xc2\x18'
 KEY3 = 'S3JDVB7QD2R7JPXX' # used in docstrings
 KEY4 = 'JBSWY3DPEHPK3PXP' # from google keyuri spec
+KEY4_RAW = b'Hello!\xde\xad\xbe\xef'
 
 # NOTE: for randtime() below,
 #       * want at least 7 bits on fractional side, to test fractional times to at least 0.01s precision
@@ -1180,11 +1181,49 @@ class TotpTest(_BaseOTPTest):
             self.assertRaises(exc.InvalidTokenError, verify, token, time + 100, window=0)
 
     #=============================================================================
+    # serialization frontend
+    #=============================================================================
+    def test_from_source(self):
+        """from_source()"""
+        from passlib.totp import TOTP
+        from_source = TOTP.from_source
+
+        # uri (unicode)
+        otp = from_source(u("otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+                            "issuer=Example"))
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # uri (bytes)
+        otp = from_source(b"otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+                           "issuer=Example")
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # dict
+        otp = from_source(dict(v=1, type="totp", key=KEY4))
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # json (unicode)
+        otp = from_source(u('{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}'))
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # json (bytes)
+        otp = from_source(b'{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}')
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # TOTP object -- return unchanged
+        self.assertIs(from_source(otp), otp)
+
+        # random string
+        self.assertRaises(ValueError, from_source, u("foo"))
+        self.assertRaises(ValueError, from_source, b"foo")
+
+    #=============================================================================
     # uri serialization
     #=============================================================================
     def test_from_uri(self):
         """from_uri()"""
-        from passlib.totp import from_uri, TOTP
+        from passlib.totp import TOTP
+        from_uri = TOTP.from_uri
 
         # URIs from https://code.google.com/p/google-authenticator/wiki/KeyUriFormat
 
@@ -1194,7 +1233,7 @@ class TotpTest(_BaseOTPTest):
         otp = from_uri("otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
                        "issuer=Example")
         self.assertIsInstance(otp, TOTP)
-        self.assertEqual(otp.key, b'Hello!\xde\xad\xbe\xef')
+        self.assertEqual(otp.key, KEY4_RAW)
         self.assertEqual(otp.label, "alice@google.com")
         self.assertEqual(otp.issuer, "Example")
         self.assertEqual(otp.alg, "sha1") # default
@@ -1208,7 +1247,7 @@ class TotpTest(_BaseOTPTest):
         # secret case insensitive
         otp = from_uri("otpauth://totp/Example:alice@google.com?secret=jbswy3dpehpk3pxp&"
                        "issuer=Example")
-        self.assertEqual(otp.key, b'Hello!\xde\xad\xbe\xef')
+        self.assertEqual(otp.key, KEY4_RAW)
 
         # missing secret
         self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?digits=6")
@@ -1359,15 +1398,152 @@ class TotpTest(_BaseOTPTest):
                          "period=63")
 
     #=============================================================================
-    # json serialization
+    # dict serialization
     #=============================================================================
+    def test_from_dict(self):
+        """from_dict()"""
+        from passlib.totp import TOTP
+        from_dict = TOTP.from_dict
 
-    # TODO: from_json()
-    #           with uri
-    #           with dict
-    #           with bad version, decode error
+        #--------------------------------------------------------------------------------
+        # canonical simple example
+        #--------------------------------------------------------------------------------
+        otp = from_dict(dict(v=1, type="totp", key=KEY4, label="alice@google.com", issuer="Example"))
+        self.assertIsInstance(otp, TOTP)
+        self.assertEqual(otp.key, KEY4_RAW)
+        self.assertEqual(otp.label, "alice@google.com")
+        self.assertEqual(otp.issuer, "Example")
+        self.assertEqual(otp.alg, "sha1")  # default
+        self.assertEqual(otp.period, 30)  # default
+        self.assertEqual(otp.digits, 6)  # default
 
-    # TODO: to_json()
+        #--------------------------------------------------------------------------------
+        # metadata
+        #--------------------------------------------------------------------------------
+
+        # missing version
+        self.assertRaises(ValueError, from_dict, dict(type="totp", key=KEY4))
+
+        # invalid version
+        self.assertRaises(ValueError, from_dict, dict(v=0, type="totp", key=KEY4))
+        self.assertRaises(ValueError, from_dict, dict(v=999, type="totp", key=KEY4))
+
+        # missing type
+        self.assertRaises(ValueError, from_dict, dict(v=1, key=KEY4))
+
+        #--------------------------------------------------------------------------------
+        # secret param
+        #--------------------------------------------------------------------------------
+
+        # secret case insensitive
+        otp = from_dict(dict(v=1, type="totp", key=KEY4.lower(), label="alice@google.com", issuer="Example"))
+        self.assertEqual(otp.key, KEY4_RAW)
+
+        # missing secret
+        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp"))
+
+        # undecodable secret
+        self.assertRaises(Base32DecodeError, from_dict,
+                          dict(v=1, type="totp", key="JBSWY3DPEHP@3PXP"))
+
+        #--------------------------------------------------------------------------------
+        # label & issuer params
+        #--------------------------------------------------------------------------------
+
+        otp = from_dict(dict(v=1, type="totp", key=KEY4, label="Alice Smith", issuer="Provider1"))
+        self.assertEqual(otp.label, "Alice Smith")
+        self.assertEqual(otp.issuer, "Provider1")
+
+        #--------------------------------------------------------------------------------
+        # algorithm param
+        #--------------------------------------------------------------------------------
+
+        # custom alg
+        otp = from_dict(dict(v=1, type="totp", key=KEY4, alg="sha256"))
+        self.assertEqual(otp.alg, "sha256")
+
+        # unknown alg
+        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp", key=KEY4, alg="sha333"))
+
+        #--------------------------------------------------------------------------------
+        # digit param
+        #--------------------------------------------------------------------------------
+
+        # custom digits
+        otp = from_dict(dict(v=1, type="totp", key=KEY4, digits=8))
+        self.assertEqual(otp.digits, 8)
+
+        # digits out of range / invalid
+        self.assertRaises(TypeError, from_dict, dict(v=1, type="totp", key=KEY4, digits="A"))
+        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp", key=KEY4, digits=15))
+
+        #--------------------------------------------------------------------------------
+        # period param
+        #--------------------------------------------------------------------------------
+
+        # custom period
+        otp = from_dict(dict(v=1, type="totp", key=KEY4, period=63))
+        self.assertEqual(otp.period, 63)
+
+        # reject period < 1
+        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp", key=KEY4, period=0))
+        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp", key=KEY4, period=-1))
+
+        #--------------------------------------------------------------------------------
+        # unrecognized param
+        #--------------------------------------------------------------------------------
+        self.assertRaises(TypeError, from_dict, dict(v=1, type="totp", key=KEY4, INVALID=123))
+
+    def test_to_dict(self):
+        """to_dict()"""
+
+        #-------------------------------------------------------------------------
+        # label & issuer parameters
+        #-------------------------------------------------------------------------
+
+        # without label or issuer
+        otp = TOTP(KEY4, alg="sha1", digits=6, period=30)
+        self.assertEqual(otp.to_dict(), dict(v=1, type="totp", key=KEY4))
+
+        # with label & issuer from constructor
+        otp = TOTP(KEY4, alg="sha1", digits=6, period=30,
+                   label="alice@google.com", issuer="Example Org")
+        self.assertEqual(otp.to_dict(),
+                         dict(v=1, type="totp", key=KEY4,
+                              label="alice@google.com", issuer="Example Org"))
+
+        # with label only
+        otp = TOTP(KEY4, alg="sha1", digits=6, period=30,
+                   label="alice@google.com")
+        self.assertEqual(otp.to_dict(),
+                         dict(v=1, type="totp", key=KEY4,
+                              label="alice@google.com"))
+
+        # with issuer only
+        otp = TOTP(KEY4, alg="sha1", digits=6, period=30,
+                   issuer="Example Org")
+        self.assertEqual(otp.to_dict(),
+                         dict(v=1, type="totp", key=KEY4,
+                              issuer="Example Org"))
+
+        #-------------------------------------------------------------------------
+        # algorithm parameter
+        #-------------------------------------------------------------------------
+        self.assertEqual(TOTP(KEY4, alg="sha256").to_dict(),
+                         dict(v=1, type="totp", key=KEY4, alg="sha256"))
+
+        #-------------------------------------------------------------------------
+        # digits parameter
+        #-------------------------------------------------------------------------
+        self.assertEqual(TOTP(KEY4, digits=8).to_dict(),
+                         dict(v=1, type="totp", key=KEY4, digits=8))
+
+        #-------------------------------------------------------------------------
+        # period parameter
+        #-------------------------------------------------------------------------
+        self.assertEqual(TOTP(KEY4, period=63).to_dict(),
+                         dict(v=1, type="totp", key=KEY4, period=63))
+
     # TODO: to_dict()
     #           with encrypt=False
     #           with encrypt="auto" + context + secrets
@@ -1376,8 +1552,14 @@ class TotpTest(_BaseOTPTest):
     #           with encrypt=True + context + secrets
     #           with encrypt=True + context + no secrets
     #           with encrypt=True + no context
+    #           that 'changed' is set for old versions, and old encryption tags.
 
-    # TODO: last_counter is preserved
+    #=============================================================================
+    # json serialization
+    #=============================================================================
+
+    # TODO: from_json() / to_json().
+    #       (skipped for right now cause just wrapper for from_dict/to_dict)
 
     #=============================================================================
     # eoc

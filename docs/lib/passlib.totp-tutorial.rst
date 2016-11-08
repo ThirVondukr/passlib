@@ -150,12 +150,12 @@ and they support storing the keys in an encrypted fashion (see :ref:`totp-contex
 For cases where a python dictionary is more useful than a json string,
 the :meth:`TOTP.to_dict` method returns a python dict identical to parsing
 the output of :meth:`TOTP.to_json`.  This value can be reconstructed
-via :func:`from_json`, which will autodetect whether the input
+via :func:`from_source`, which will autodetect whether the input
 is a dictionary vs string.
 
 .. seealso::
 
-    For more details, see the :meth:`~passlib.totp.TOTP.from_json` constructor,
+    For more details, see the :meth:`~passlib.totp.TOTP.from_source` constructor,
     and the :meth:`~passlib.totp.TOTP.to_json` method;
     as well as the stateful usage & OTPContext usage tutorials below.
 
