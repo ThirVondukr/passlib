@@ -131,7 +131,7 @@ else:
 setup(
     # package info
     packages = find_packages(root_dir),
-    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/**"] },
+    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/wordsets/*.txt"] },
     zip_safe=True,
 
     # metadata
