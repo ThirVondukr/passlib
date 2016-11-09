@@ -29,9 +29,9 @@ documentation (which tries to provide a higher-level synthetic view).
     lib/passlib.context
     lib/passlib.crypto
     lib/passlib.ext.django
-    password_hash_api
     lib/passlib.hash
     lib/passlib.hosts
+    password_hash_api
     lib/passlib.pwd
     lib/passlib.registry
     lib/passlib.totp

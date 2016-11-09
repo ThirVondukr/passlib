@@ -6,7 +6,7 @@
 .. _context-reference:
 
 ======================================================
-:mod:`passlib.context` - CryptContext
+:mod:`passlib.context` - CryptContext Hash Manager
 ======================================================
 This page provides a complete reference of all the methods
 and options supported by the :class:`!CryptContext` class

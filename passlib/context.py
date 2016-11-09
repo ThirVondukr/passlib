@@ -2606,6 +2606,12 @@ class CryptContext(object):
         return a string to disable logins for user,
         usually by returning an unusable string such as ``"!"``.
 
+        :param hash:
+            Callers can optionally provide the account's existing hash.
+            Some disabled handlers (such as :class:`!unix_disabled`)
+            will encode this into the returned value,
+            so that it can be recovered via :meth:`enable`.
+
         :raises RuntimeError:
             if this function is called w/o a disabled hasher
             (such as :class:`~passlib.hash.unix_disabled`) included

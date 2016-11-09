@@ -153,6 +153,8 @@ class PasslibWarning(UserWarning):
     .. versionadded:: 1.6
     """
 
+# XXX: there's only one reference to this class, and it will go away in 2.0;
+#      so can probably remove this along with this / roll this into PasslibHashWarning.
 class PasslibConfigWarning(PasslibWarning):
     """Warning issued when non-fatal issue is found related to the configuration
     of a :class:`~passlib.context.CryptContext` instance.

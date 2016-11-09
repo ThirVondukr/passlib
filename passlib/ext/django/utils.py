@@ -327,6 +327,7 @@ def get_passlib_hasher(handler, algorithm=None, native_only=False):
     if hasattr(handler, "django_name"):
         # return native hasher instance
         # XXX: should add this to _hasher_cache[]
+        # TODO: should have this honor .using() configuration
         name = handler.django_name
         if name == "sha1" and algorithm == "unsalted_sha1":
             # django 1.4.6+ uses a separate hasher for "sha1$$digest" hashes,
