@@ -101,3 +101,9 @@ a BSD/ISC license::
     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTUOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Wordsets
+--------
+The EFF wordsets in ``passlib/_data/wordsets`` are (c) 2016 the Electronic Freedom Foundation.
+They were downloaded from `<https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases>`_,
+and are released under the `Creative Commons License <https://www.eff.org/copyright>`_.

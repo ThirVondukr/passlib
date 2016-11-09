@@ -25,8 +25,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # core
 import codecs
 from collections import defaultdict
+from functools import partial
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
+import pkg_resources
 import os
 # site
 # pkg
@@ -114,26 +116,66 @@ def _self_info_rate(source):
 #     return _self_info_rate(source) * len(source)
 
 
-#: path to passlib's data dir
-_data_dir = os.path.join(os.path.dirname(__file__), "_data")
+def _open_asset_path(path, encoding=None):
+    """
+    :param asset_path:
+        string containing absolute path to file,
+        or package-relative path using format
+        ``"python.module:relative/file/path"``.
+
+    :returns:
+        filehandle opened in 'rb' mode
+    """
+    if encoding:
+        return codecs.getreader(encoding)(_open_asset_path(path))
+    if os.path.isabs(path):
+        return open(path, "rb")
+    package, sep, subpath = path.partition(":")
+    if not sep:
+        raise ValueError("asset path must be absolute file path "
+                         "or use 'pkg.name:sub/path' format: %r" % (path,))
+    return pkg_resources.resource_stream(package, subpath)
 
 
-def _load_wordset(name):
+def _load_wordset(asset_path):
     """
     load wordset from compressed datafile within package data.
+    file should be utf-8 encoded
 
-    returns tuple so result can be hashed & randomly accessed.
+    :param asset_path:
+        string containing  absolute path to wordset file,
+        or "python.module:relative/file/path".
+
+    :returns:
+        tuple of words, as loaded from specified words file.
     """
-    source = os.path.join(_data_dir, "%s.words.txt" % name)
-    with codecs.open(source, "r", "utf-8") as fh:
+    # open resource file, convert to tuple of words (strip blank lines & ws)
+    with _open_asset_path(asset_path, "utf-8") as fh:
         gen = (word.strip() for word in fh)
         words = tuple(word for word in gen if word)
-    log.debug("loaded %d-element wordset from %r", len(words), source)
+
+    # # detect if file uses "12345 word" format, strip numeric prefix
+    # def extract(row):
+    #     idx, word = row.replace("\t", " ").split(" ", 1)
+    #     if not idx.isdigit():
+    #         raise ValueError("row not dice index + word")
+    #     return word
+    # try:
+    #     extract(words[-1])
+    # except ValueError:
+    #     pass
+    # else:
+    #     words = tuple(extract(word) for word in words)
+
+    log.debug("loaded %d-element wordset from %r", len(words), asset_path)
     return words
 
 
 def _dup_repr(source):
-    """return repr of duplicates in string/list, for use in error message"""
+    """
+    helper for generator errors --
+    displays (abbreviated) repr of the duplicates in a string/list
+    """
     seen = set()
     dups = set()
     for elem in source:
@@ -198,7 +240,7 @@ class SequenceGenerator(object):
     #: random number source to use
     rng = rng
 
-    #: number of potential symbols
+    #: number of potential symbols (must be filled in by subclass)
     symbol_count = None
 
     #=============================================================================
@@ -209,7 +251,7 @@ class SequenceGenerator(object):
         # make sure subclass set things up correctly
         assert self.symbol_count is not None, "subclass must set .symbol_count"
 
-        # init length & entropy
+        # init length & requested entropy
         if entropy is not None or length is None:
             if entropy is None:
                 entropy = self.requested_entropy
@@ -250,7 +292,8 @@ class SequenceGenerator(object):
     def entropy(self):
         """
         actual entropy of generated passwords.
-        (should always be LCM of entropy_per_symbol >= self.entropy)
+        should always be smallest multiple of :attr:`entropy_per_symbol`
+        that's >= :attr:`requested_entropy`.
         """
         return self.length * self.entropy_per_symbol
 
@@ -371,13 +414,9 @@ class WordGenerator(SequenceGenerator):
     #=============================================================================
 
     def __next__(self):
-        while True:
-            secret = getrandstr(self.rng, self.chars, self.length)
-
-            # XXX: could do things like optionally ensure character groups
-            #      (e.g. letters & punctuation) are included.
-
-            return secret
+        # XXX: could do things like optionally ensure certain character groups
+        #      (e.g. letters & punctuation) are included
+        return getrandstr(self.rng, self.chars, self.length)
 
     #=============================================================================
     # eoc
@@ -473,20 +512,27 @@ class PhraseGenerator(SequenceGenerator):
     # class attrs
     #=============================================================================
 
-    #: dict of preset word sets,
-    #: values set to None are lazy-loaded from disk by _load_wordset()
-    default_wordsets = dict(
-        diceware=None,
-        beale=None,
-        electrum=None,
-    )
+    #: dict of predefined word sets.
+    #: key is name of wordset, value should be sequence of words.
+    #: value may instead be a callable, which will be invoked to lazy-load
+    #: the wordset.
+    default_wordsets = dict()
+
+    @classmethod
+    def register_wordset_path(cls, wordset, asset_path):
+        """
+        register a wordset located at specified asset path.
+        will be lazy-loaded if needed.
+        """
+        assert wordset not in cls.default_wordsets
+        cls.default_wordsets[wordset] = partial(_load_wordset, asset_path)
 
     #=============================================================================
     # instance attrs
     #=============================================================================
 
     #: predefined wordset to use
-    wordset = "beale"
+    wordset = "eff_long"
 
     #: list of words to draw from
     words = None
@@ -499,7 +545,7 @@ class PhraseGenerator(SequenceGenerator):
     #=============================================================================
     def __init__(self, wordset=None, words=None, sep=None, **kwds):
 
-        # init words and wordset
+        # load wordset
         if words is not None:
             if wordset is not None:
                 raise TypeError("`words` and `wordset` are mutually exclusive")
@@ -508,9 +554,11 @@ class PhraseGenerator(SequenceGenerator):
                 wordset = self.wordset
                 assert wordset
             words = self.default_wordsets[wordset]
-            if words is None:
-                words = self.default_wordsets[wordset] = _load_wordset(wordset)
+            if callable(words):
+                words = self.default_wordsets[wordset] = words()
         self.wordset = wordset
+
+        # init words
         if not isinstance(words, (list, tuple)):
             words = tuple(words)
         if len(set(words)) != len(words):
@@ -541,16 +589,17 @@ class PhraseGenerator(SequenceGenerator):
     #=============================================================================
 
     def __next__(self):
-        while True:
-            # create random word
-            words = (self.rng.choice(self.words) for _ in irange(self.length))
-
-            # join using separator
-            return self.sep.join(words)
+        words = (self.rng.choice(self.words) for _ in irange(self.length))
+        return self.sep.join(words)
 
     #=============================================================================
     # eoc
     #=============================================================================
+
+
+#: register the wordsets built into passlib
+for name in "eff_long eff_short eff_prefixed bip39".split():
+    PhraseGenerator.register_wordset_path(name, "passlib:_data/wordsets/%s.txt" % name)
 
 
 def genphrase(entropy=None, length=None, returns=None, **kwds):
@@ -592,21 +641,36 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
         If the ``iter`` constant, will return an iterator that yields passwords.
 
     :param wordset:
-        Optionally use a pre-defined word-set when generating a password.
-        There are currently two presets available, the default is ``"beale"``:
+        Optionally use a pre-defined word-set when generating a passphrase.
+        There are currently four presets available, the default is ``"eff_long"``:
 
-        ``"diceware"``
+        ``"eff_long"``
 
-            preset which outputs random english phrases,
-            drawn randomly from a list of 7776 english words set down
-            by the `Diceware <http://world.std.com/~reinhold/diceware.html>`_ project.
-            This wordset has ~12.9 bits of entropy per word.
+            Wordset containing 7776 english words of 3 to 9 letters.
+            `Constructed by the EFF <https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases>`_
+            this wordset has ~12.9 bits of entropy per word.
 
-        ``"beale"``
+        ``"eff_short"``
 
-            variant of the Diceware wordlist as edited by
-            Alan Beale, also available from the diceware project.
-            This wordset has ~12.9 bits of entropy per word.
+            Wordset containing 1296 english words of < 6 letters.
+            Constructed by the EFF, this wordset has ~10.3 bits of entropy per word.
+
+        ``"eff_prefixed"``
+
+            Wordset containing 1296 english words selected so that
+            they all have a unique 3-character prefix, and other properties.
+            Constructed by the EFF, this wordset has ~10.3 bits of entropy per word.
+
+        ``"bip43"``
+
+            Wordset of 2048 english words selected so that
+            they all have a unique 4-character prefix.
+            Published as part of Bitcoin's ``BIP 43 <https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt>`_,
+            this wordset has exactly 11 bits of entropy per word.
+
+            This has similar properties to "eff_prefixed",
+            but the tradeoff of more entropy per word may
+            make this a better choice in some cases.
 
     :param words:
         Optionally specifies a list/set of words to use when randomly
