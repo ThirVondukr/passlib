@@ -249,6 +249,7 @@ class AppWallet(object):
     secrets.  They will generally not be publically useful, and may have their
     API changed periodically.
 
+    .. automethod:: get_secret
     .. automethod:: encrypt_key
     .. automethod:: decrypt_key
     """
@@ -269,9 +270,6 @@ class AppWallet(object):
 
     #: tag for default secret
     default_tag = None
-
-    #: bytes for default secret
-    _default_secret = None
 
     #========================================================================
     # init
@@ -308,12 +306,13 @@ class AppWallet(object):
         # init default tag/secret
         #
         if secrets:
-            if default_tag is None:
-                if all(tag.isdigit() for tag in secrets):
-                    default_tag = max(secrets, key=int)
-                else:
-                    default_tag = max(secrets)
-            self._default_secret = secrets[default_tag]
+            if default_tag is not None:
+                # verify that tag is present in map
+                self.get_secret(default_tag)
+            elif all(tag.isdigit() for tag in secrets):
+                default_tag = max(secrets, key=int)
+            else:
+                default_tag = max(secrets)
             self.default_tag = default_tag
 
     def _parse_secrets(self, source):
@@ -384,10 +383,14 @@ class AppWallet(object):
         """whether at least one application secret is present"""
         return self.default_tag is not None
 
-    def _resolve_app_secret(self, tag):
+    def get_secret(self, tag):
+        """
+        resolve a secret tag to the secret (as bytes).
+        throws a KeyError if not found.
+        """
         secrets = self._secrets
         if not secrets:
-            raise TypeError("no application secrets configured, can't decrypt OTP key")
+            raise KeyError("no application secrets configured")
         try:
             return secrets[tag]
         except KeyError:
@@ -460,7 +463,8 @@ class AppWallet(object):
         tag = self.default_tag
         if not tag:
             raise TypeError("no application secrets configured, can't encrypt OTP key")
-        ckey = self._cipher_aes_key(key, self._default_secret, salt, cost)
+        ckey = self._cipher_aes_key(key, self.get_secret(tag), salt, cost)
+        # XXX: switch to base64?
         return dict(v=1, c=cost, t=tag, s=b32encode(salt), k=b32encode(ckey))
 
     def decrypt_key(self, enckey):
@@ -497,7 +501,7 @@ class AppWallet(object):
         cost = enckey['c']
         key = _cipher_key(
             value=b32decode(enckey['k']),
-            secret=self._resolve_app_secret(tag),
+            secret=self.get_secret(tag),
             salt=b32decode(enckey['s']),
             cost=cost,
         )

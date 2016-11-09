@@ -177,17 +177,17 @@ class AppWalletTest(TestCase):
         # should sort numerically
         wallet = AppWallet({"1": "one", "02": "two"})
         self.assertEqual(wallet.default_tag, "02")
-        self.assertEqual(wallet._default_secret, b"two")
+        self.assertEqual(wallet.get_secret(wallet.default_tag), b"two")
 
         # should sort alphabetically if non-digit present
         wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"})
         self.assertEqual(wallet.default_tag, "A")
-        self.assertEqual(wallet._default_secret, b"aaa")
+        self.assertEqual(wallet.get_secret(wallet.default_tag), b"aaa")
 
         # should use honor custom tag
         wallet = AppWallet({"1": "one", "02": "two", "A": "aaa"}, default_tag="1")
         self.assertEqual(wallet.default_tag, "1")
-        self.assertEqual(wallet._default_secret, b"one")
+        self.assertEqual(wallet.get_secret(wallet.default_tag), b"one")
 
         # throw error on unknown value
         self.assertRaises(KeyError, AppWallet, {"1": "one", "02": "two", "A": "aaa"},
@@ -196,7 +196,7 @@ class AppWalletTest(TestCase):
         # should be empty
         wallet = AppWallet()
         self.assertEqual(wallet.default_tag, None)
-        self.assertEqual(wallet._default_secret, None)
+        self.assertRaises(KeyError, wallet.get_secret, None)
 
     # TODO: test 'cost' param
 
