@@ -183,20 +183,23 @@ class AppWallet(object):
     =========
     :param secrets:
         Dict of application secrets to use when encrypting/decrypting
-        TOTP keys for storage.  If specified, this should include
-        at least one secret to use when encrypting new keys,
-        as well as 0 or more olders secrets that need to be kept around
-        to decrypt existing stored keys.
+        stored TOTP keys.  This should include a secret to use when encrypting
+        new keys, but may contain additional older secrets to decrypt
+        existing stored keys.
 
-        Dict should map tags -> secrets, so that each secret is identified
+        The dict should map tags -> secrets, so that each secret is identified
         by a unique tag.  This tag will be stored along with the encrypted
         key in order to determine which secret should be used for decryption.
         Tag should be string that starts with regex range ``[a-z0-9]``,
         and the remaining characters must be in ``[a-z0-9_.-]``.
 
-        Instead of a python dict, this can also be a json formatted string
-        containing a dict, OR a multiline string with the format
-        ``"tag: value\\ntag: value\\n..."``
+        It is recommended to use something like a incremental counter
+        ("1", "2", ...), an ISO date ("2016-01-01", "2016-05-16", ...), 
+        or a timestamp ("19803495", "19813495", ...) when assigning tags.
+
+        This mapping be provided in three formats: a python dict,
+        a JSON-formatted string containing the dict, OR it can be a multiline
+        string with the format ``"tag: value\\ntag: value\\n..."``
 
         .. seealso:: :func:`generate_secret` to create a secret with sufficient entropy
 
@@ -243,7 +246,8 @@ class AppWallet(object):
     ====================
     The following methods are used internally by the :class:`TOTP`
     class in order to encrypt & decrypt keys using the provided application
-    secrets:
+    secrets.  They will generally not be publically useful, and may have their
+    API changed periodically.
 
     .. automethod:: encrypt_key
     .. automethod:: decrypt_key
@@ -256,6 +260,8 @@ class AppWallet(object):
     salt_size = 12
 
     #: default cost (log2 of pbkdf2 rounds) for encrypt_key() output
+    #: NOTE: this is relatively low, since the majority of the security
+    #: relies on a high entropy secret to pass to AES.
     encrypt_cost = 14
 
     #: map of secret tag -> secret bytes
@@ -507,6 +513,7 @@ class AppWallet(object):
 # TOTP class
 #=============================================================================
 
+#: constant for to_json()'s encrypt keyword -- encrypts if available
 AUTO = "auto"
 
 #: dummy bytes used as temp key for .using() method
@@ -527,7 +534,8 @@ class TOTP(object):
     :arg str key:
         The secret key to use. By default, should be encoded as
         a base32 string (see **format** for other encodings).
-        (Exactly one of **key** or ``new=True`` must be specified)
+
+        Exactly one of **key** or ``new=True`` must be specified.
 
     :arg str format:
         The encoding used by the **key** parameter. May be one of:
@@ -537,8 +545,8 @@ class TOTP(object):
 
     :param bool new:
         If ``True``, a new key will be generated using :class:`random.SystemRandom`.
-        By default, the generated key will match the digest size of the selected **alg**.
-        (Exactly one ``new=True`` or **key** must be specified)
+
+        Exactly one ``new=True`` or **key** must be specified.
 
     :param str label:
         Label to associate with this token when generating a URI.
@@ -581,7 +589,7 @@ class TOTP(object):
         The time-step period to use, in integer seconds. Defaults to ``30``.
 
     ..
-        See the passlib documentation for list of attributes & methods.
+        See the passlib documentation for a full list of attributes & methods.
     """
     #=============================================================================
     # class attrs
@@ -638,7 +646,9 @@ class TOTP(object):
     # state attrs
     #---------------------------------------------------------------------------
 
-    #: flag set if internal state is modified
+    #: Flag set by deserialization methods to indicate the object needs to be re-serialized.
+    #: This can be for a number of reasons -- encoded using deprecated format,
+    #: or encrypted using a deprecated key or too few rounds.
     changed = False
 
     #=============================================================================
@@ -650,9 +660,6 @@ class TOTP(object):
         """
         Dynamically create subtype of :class:`!TOTP` class
         which has the specified defaults set.
-
-        All keyword arguments function the same as for the TOTP constructor,
-        with the addition of two extra parameters:
 
         :parameters: **digits, alg, period, issuer**:
 
@@ -805,6 +812,8 @@ class TOTP(object):
         elif key:
             # use existing key, encoded using specified <format>
             self.key = _decode_bytes(key, format)
+
+        # enforce min key size
         if len(self.key) < self._min_key_size:
             # only making this fatal for new=True,
             # so that existing (but ridiculously small) keys can still be used.
@@ -1565,7 +1574,7 @@ class TOTP(object):
     #=============================================================================
 
     @classmethod
-    def from_dict(cls, source,):
+    def from_dict(cls, source):
         """
         Load / create a TOTP object from a dictionary
         (as generated by :meth:`to_dict`)

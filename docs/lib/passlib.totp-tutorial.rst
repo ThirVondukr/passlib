@@ -28,20 +28,114 @@ to the more complex ones.
 .. seealso:: The :mod:`passlib.totp` api reference,
     which lists all details of all the classes and methods mentioned here.
 
-.. rst-class:: emphasize-children
+Example Walkthrough
+===================
+There are a number of different ways to integrate TOTP support into a server application.
+The following is an outline one of way this can be done. A number of steps here can be done in multiple ways,
+some of which will be more appropriate for different applications.
 
-Basic Usage
-===========
+1. Secret Creation
+------------------
+First, generate a strong application secret to use when encrypting TOTP keys for storage.
+Passlib offers a :meth:`generate_secret` method to help with this::
+
+    >>> from passlib.totp import generate_secret
+    >>> generate_secret()
+    'pO7SwEFcUPvIDeAJr7INBj0TjsSZJr1d2ddsFL9r5eq'
+
+This key should be assigned a numeric tag (e.g. "1", or an iso date such as "2016-11-10");
+and should be stored in a file *separate* from your application's configuration.
+Ideally, after this file has been loaded by the TOTP constructor below,
+the application should give up access permission to the file.
+
+Example file contents::
+
+    2016-11-10: pO7SwEFcUPvIDeAJr7INBj0TjsSZJr1d2ddsFL9r5eq
+
+2. App Initialization
+---------------------
+When your application is being initialized, create a TOTP factory which is configured
+for your application, and is set up to use the application secrets.
+
+    >>> from passlib.totp import TOTP
+    >>> TotpFactory = TOTP.using(secret_path='/path/to/secret/file/in/step/1')
+
+Note that the ``TotpFactory`` instance returned by :meth:`TOTP.using` will actually be a subclass
+of :class:`TOTP` itself, and has the same methods and attributes.  The main difference is that (because
+an application secret has been provided), the TOTP key will automatically be encrypted / decrypted
+when serializing to json.
+
+3. Cache Initialization
+-----------------------
+While not *absolutely* required, it's strongly recommended to set up a per-user cache
+which can store the last matched TOTP counter (an integer) for a period of a few minutes or so.
+This helps protect a narrow window of time where TOTP would otherwise be vulnerable
+to a replay attack (see below).
+
+4. Provisioning
+---------------
+To set up a TOTP key for a new user, create a new TOTP instance, autogenerating a new key.
+This should be rendered into a configuration URI, and transferred to the user's TOTP client
+(typically by rendering it to a QR code).  This requires assigning an "issuer" string
+to uniquely identify your application, and a "label" string to uniquely identify the user.
+
+   >>> totp = TotpFactory.new()
+   >>> uri = totp.to_uri(issuer="myapp.example.org", label="username")
+   >>> uri
+   'otpauth://totp/username?secret=D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT&issuer=myapp.example.org'
+   >>> # uri can then be passed to a qrcode renderer (example below)
+
+5. Persisting
+-------------
+Once the user has configured the TOTP uri on their client, and has entered a token
+to prove it's configured correctly, you can store the TOTP in your database.
+This can be done via the :meth:`TOTP.to_json` method:
+
+    >>> totp.to_json()
+    '{"enckey":{"c":14,"k":"FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ","s":"UL2J4MZG4SONHOWXLKFQ","t":"1","v":1},"type":"totp","v":1}'
+
+If there is no application secret configured, the key will not be encrypted,
+and instead look like this::
+
+    >>> totp.to_json()
+    '{"key":"D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT","type":"totp","v":1}'
+
+6. Verification
+---------------
+Whenever attempting to verify a token provided by the user,
+load the serialized TOTP key from the database, as well as the last counter value
+from the cache, and use the :meth:`TOTP.verify` method::
+
+    >>> token = ... token string provided by user ...
+    >>> source = ... load json from database ...
+    >>> last_counter = ... load from cache ...
+    >>> match = TotpFactory.verify(token, source, last_counter=last_counter)
+
+6a. If this succeeds, it will return a :class:`TotpMatch` object containing details
+about the match. This includes the "counter value" assigned to the token.
+The value ``match.counter`` should be stored in a per-user cache for at least
+``match.cache_seconds`` seconds, and retrieved for any future token validations
+(cache_seconds will be 60 in the default configuration).
+
+6b. Alternately, the match may fail, in which case one of the :exc:`~passlib.exc.TokenError`
+subclasses will be thrown::
+
+    >>> match = TotpFactory.verify(token, source, last_counter=last_counter)
+    ...
+    InvalidTokenError: Token did not match
+
+*The remaining sections try to provide details of some of these steps,
+as well as other related workflows.*
 
 Creating TOTP Instances
------------------------
+=======================
 The first thing needed to setup TOTP for an account is for the server
 to create a new key.  This can be done by creating a :class:`~passlib.totp.TOTP` instance
 and instructing it to create a new key::
 
     >>> # create new instance with a randomly generated key
-    >>> from passlib import totp
-    >>> otp = totp.TOTP(new=True)
+    >>> from passlib.totp import TOTP
+    >>> otp = TOTP.new()
 
     >>> # the configuration and key can be accessed from attributes:
     >>> otp.base32_key
@@ -52,33 +146,33 @@ and instructing it to create a new key::
     30
 
     >>> # if you want a non-standard alg or period, you can specify it via the constructor
-    >>> otp2 = totp.TOTP(new=True, period=60, alg="sha256")
+    >>> otp2 = TOTP(new=True, period=60, alg="sha256")
 
     >>> # You can also create TOTP instances from an existing key:
     >>> # (see TOTP's "key" and "format" options for more details)
-    >>> otp3 = totp.TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
+    >>> otp3 = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
 
 .. seealso::
 
     For more details, see the :class:`~passlib.totp.TOTP` constructor,
     and the list of :ref:`TOTP attributes <totp-configuration-attributes>`.
 
-Provisioning URIs
------------------
+Configuring Client Applications
+===============================
 Once a TOTP instance & key has been generated on the server,
 it needs to be transferred to the client TOTP program for installation.
-This can be done by having the client manually type the value of ``otp.base32_key``
+This can be done by having the user manually type the value of ``otp.base32_key``
 into their application, along with any configuration options.
 
 An easier method, widely used for smartphone-based TOTP clients, is Google Auth's `KeyUriFormat <https://github.com/google/google-authenticator/wiki/Key-Uri-Format>`_.
 This defines a standard for encoding an TOTP key and configuration into a URI.
 Once there, the URI can be transferred to the client by email, or (more frequently),
-by encoding it into a visual qrcode, and presenting it to the user.  Many smartphone
-TOTP applications support the user grabbing this configuration off the screen.
+by encoding it into a visual qrcode, and presenting it to the user visually.  Many smartphone
+TOTP applications support the user importing this information via the smartphone's camera.
 
-When transferring things this way, you will need to provide identifiers
-for your application and the user, in order for the TOTP client to distinguish
-this key from the others in it's database.  This is done via the "issue" and "label"
+When transferring the TOTP configuration this way, you will need to provide unique identifiers
+for both your application, and the user's account.  This allows TOTP clients to distinguish
+this key from the others in it's database.  This can be done via the "issuer" and "label"
 parameters of the :meth:`~passlib.totp.TOTP.to_uri` method:
 
     >>> # assume an existing TOTP instance has been created
@@ -117,7 +211,7 @@ URI.  This can be useful for testing URI encoding & output:
     and the :meth:`~passlib.totp.TOTP.to_uri` method.
 
 Storing TOTP instances
-----------------------
+======================
 One disadvantage of :meth:`~TOTP.to_uri` and :func:`!from_uri` (above)
 is that they're oriented towards helping a server configure a client device.
 Server applications will still need to persist this information
@@ -159,8 +253,8 @@ is a dictionary vs string.
     and the :meth:`~passlib.totp.TOTP.to_json` method;
     as well as the stateful usage & AppWallet usage tutorials below.
 
-Generating Tokens
------------------
+Generating Tokens (Client-Side Only)
+====================================
 Finally, the whole point of TOTP: generating and verifying tokens.
 The TOTP protocol generates a new time & key -dependant token every <period> seconds (usually 30).
 
@@ -190,7 +284,7 @@ informational attributes.
     For more details, see the :meth:`TOTP.generate` method.
 
 Verifying Tokens
-----------------
+================
 In order for successful authentication, the user must generate the token
 on the client, and provide it to your server before the period ends.
 
@@ -243,10 +337,14 @@ As an example:
     >>> # parse & match the token in a single call
     >>> match = TOTP.verify('123456', totp_source)
 
+.. seealso::
+
+    For more details, see the :meth:`TOTP.match` and :meth:`TOTP.verify` methods.
+
 .. _totp-reuse-warning:
 
-Warning about Token Reuse
-.........................
+Preventing Token Reuse
+----------------------
 Even if an attacker is able to observe a user entering a TOTP token,
 it will do them no good once ``period + window`` seconds have passed (typically 60).
 This is because the current time will now have advanced far enough that
@@ -302,26 +400,12 @@ As an example::
 
     For more details, see the :meth:`TOTP.match` method.
 
-.. _totp-context-usage:
-
-AppWallet Usage
-===============
-.. todo:: document how AppWallet can be used to persist TOTP tokens securely.
-          include TOTP.using() in this section.
-
-Highlevel Quickstart
-====================
-The following is a guide for quickly getting TOTP support integrated into your
-application, using passlib's highlevel :class:`AppWallet` helper class.
-
-.. todo:: needs to write quickstart guide.
-
 .. _totp-rate-limiting:
 
-Why Rate Limiting is Critical
-=============================
+Why Rate-Limiting is Critical
+-----------------------------
 
-The :meth:`TOTP.match` methods offers a ``window``
+The :meth:`TOTP.match` method offers a ``window``
 parameter, expanding the search range to account for the client getting
 slightly out of sync.
 
@@ -334,8 +418,8 @@ Because of this, **it's critical for applications implementing OTP to rate-limit
 the number of attempts on an account**, since an unlimited number of attempts
 guarantees an attacker will be able to guess any given token.
 
-The Gory Details
-----------------
+Quick Example
+.............
 For TOTP, the formula is ``odds = guesses * (1 + 2 * window / period) / 10**digits``;
 where ``window`` in this case is the :meth:`TOTP.match` window (measured in seconds),
 and ``period`` is the number of seconds before the token is rotated.
@@ -354,3 +438,11 @@ the maximum window you should use would be
     xxx: The above formulas are not accurate for 10 digit tokens, since the 10th
     digit takes on fewer values -- subtitute ``3e9`` instead of ``10**digits``
     in this case.
+
+.. _totp-context-usage:
+
+Securely Storing TOTP Instances
+===============================
+.. todo:: document how AppWallet can be used to persist TOTP tokens securely.
+          include TOTP.using() in this section.
+
