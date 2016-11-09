@@ -90,13 +90,13 @@ class AppWalletTest(TestCase):
         # no secrets
         wallet = AppWallet()
         self.assertEqual(wallet._secrets, {})
-        self.assertFalse(wallet.can_encrypt)
+        self.assertFalse(wallet.has_secrets)
 
         # dict
         ref = {"1": b"aaa", "2": b"bbb"}
         wallet = AppWallet(ref)
         self.assertEqual(wallet._secrets, ref)
-        self.assertEqual(wallet.can_encrypt, AES_SUPPORT)
+        self.assertTrue(wallet.has_secrets)
 
         # # list
         # wallet = AppWallet(list(ref.items()))

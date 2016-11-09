@@ -58,7 +58,7 @@ When your application is being initialized, create a TOTP factory which is confi
 for your application, and is set up to use the application secrets.
 
     >>> from passlib.totp import TOTP
-    >>> TotpFactory = TOTP.using(secret_path='/path/to/secret/file/in/step/1')
+    >>> TotpFactory = TOTP.using(secrets_path='/path/to/secret/file/in/step/1')
 
 Note that the ``TotpFactory`` instance returned by :meth:`TOTP.using` will actually be a subclass
 of :class:`TOTP` itself, and has the same methods and attributes.  The main difference is that (because

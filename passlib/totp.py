@@ -239,7 +239,7 @@ class AppWallet(object):
 
     Public Methods
     ==============
-    .. autoattribute: can_encrypt
+    .. autoattribute:: has_secrets
     .. autoattribute:: default_tag
 
     Semi-Private Methods
@@ -273,10 +273,6 @@ class AppWallet(object):
     #: bytes for default secret
     _default_secret = None
 
-    #: whether this wallet can encrypt keys (AES support must be present
-    #: AND secrets must be provided)
-    can_encrypt = AES_SUPPORT
-
     #========================================================================
     # init
     #========================================================================
@@ -307,8 +303,6 @@ class AppWallet(object):
 
         # parse & store secrets
         secrets = self._secrets = self._parse_secrets(secrets)
-        if not secrets:
-            self.can_encrypt = False
 
         #
         # init default tag/secret
@@ -384,6 +378,12 @@ class AppWallet(object):
     #========================================================================
     # accessing secrets
     #========================================================================
+
+    @property
+    def has_secrets(self):
+        """whether at least one application secret is present"""
+        return self.default_tag is not None
+
     def _resolve_app_secret(self, tag):
         secrets = self._secrets
         if not secrets:
@@ -513,8 +513,11 @@ class AppWallet(object):
 # TOTP class
 #=============================================================================
 
-#: constant for to_json()'s encrypt keyword -- encrypts if available
-AUTO = "auto"
+#: helper to convert HOTP counter to bytes
+_pack_uint64 = struct.Struct(">Q").pack
+
+#: helper to extract value from HOTP digest
+_unpack_uint32 = struct.Struct(">I").unpack
 
 #: dummy bytes used as temp key for .using() method
 _DUMMY_KEY = b"\x00" * 16
@@ -618,12 +621,18 @@ class TOTP(object):
     # configuration attrs
     #---------------------------------------------------------------------------
 
-    #: secret key as raw :class:`!bytes`
-    key = None
+    #: [private] secret key as raw :class:`!bytes`
+    #: see .key property for public access.
+    _key = None
 
-    #: copy of original encrypted key, so .to_json() doesn't have
-    #: to re-encrypt the key.
-    _enckey = None
+    #: [private] cached copy of encrypted secret,
+    #: so .to_json() doesn't have to re-encrypt on each call.
+    _encrypted_key = None
+
+    #: [private] cached copy of keyed HMAC function,
+    #: so ._generate() doesn't have to rebuild this each time
+    #: ._find_match() invokes it.
+    _keyed_hmac = None
 
     #: number of digits in the generated tokens.
     digits = 6
@@ -665,12 +674,12 @@ class TOTP(object):
 
             All these options are the same as in the :class:`TOTP` constructor,
             and the resulting class will use any values you specify here
-            as the default.
+            as the default for all TOTP instances it creates.
 
         :param wallet:
             Optional :class:`AppWallet` that will be used for encrypting/decrypting keys.
 
-        :param secrets, secret_path, encrypt_cost:
+        :param secrets, secrets_path, encrypt_cost:
 
             If specified, these options will be passed to the :class:`AppWallet` constructor,
             allowing you to directly specify the secret keys that should be used
@@ -701,6 +710,7 @@ class TOTP(object):
              'type': 'totp',
              'v': 1}
         """
+        # XXX: could add support for setting default match 'window' and 'reuse' policy
 
         # :param now:
         #     Optional callable that should return current time for generator to use.
@@ -796,19 +806,8 @@ class TOTP(object):
         elif not key:
             raise TypeError("must specify either an existing 'key', or 'new=True'")
         elif format == "encrypted":
-            # special format signalling we need to pass this through
-            # context.decrypt_key()
-            wallet = self.wallet
-            if not wallet:
-                raise TypeError("no application secrets provided to decrypt TOTP keys")
-            self.key, needs_recrypt = wallet.decrypt_key(key)
-            if needs_recrypt:
-                # mark as changed so it gets re-encrypted & written to db
-                self.changed = True
-            else:
-                # preserve this so it can be re-used by to_json()
-                # FIXME: if .key is written to, this will be incorrect.
-                self._enckey = key
+            # NOTE: this handles decrypting & setting '.key'
+            self.encrypted_key = key
         elif key:
             # use existing key, encoded using specified <format>
             self.key = _decode_bytes(key, format)
@@ -878,8 +877,64 @@ class TOTP(object):
             raise ValueError("issuer may not contain ':'")
 
     #=============================================================================
-    # key helpers
+    # key attributes
     #=============================================================================
+
+    #------------------------------------------------------------------
+    # raw key
+    #------------------------------------------------------------------
+    @property
+    def key(self):
+        """
+        secret key as raw bytes
+        """
+        return self._key
+
+    @key.setter
+    def key(self, value):
+        # set key
+        if not isinstance(value, bytes):
+            raise exc.ExpectedTypeError(value, bytes, "key")
+        self._key = value
+
+        # clear cached properties derived from key
+        self._encrypted_key = self._keyed_hmac = None
+
+    #------------------------------------------------------------------
+    # encrypted key
+    #------------------------------------------------------------------
+    @property
+    def encrypted_key(self):
+        """
+        secret key, encrypted using application secret.
+        this match the output of :meth:`AppWallet.encrypt_key`,
+        and should be treated as an opaque json serializable object.
+        """
+        enckey = self._encrypted_key
+        if enckey is None:
+            wallet = self.wallet
+            if not wallet:
+                raise TypeError("no application secrets present, can't encrypt TOTP key")
+            enckey = self._encrypted_key = wallet.encrypt_key(self.key)
+        return enckey
+
+    @encrypted_key.setter
+    def encrypted_key(self, value):
+        wallet = self.wallet
+        if not wallet:
+            raise TypeError("no application secrets present, can't decrypt TOTP key")
+        self.key, needs_recrypt = wallet.decrypt_key(value)
+        if needs_recrypt:
+            # mark as changed so it gets re-encrypted & written to db
+            self.changed = True
+        else:
+            # cache encrypted key for re-use
+            self._encrypted_key = value
+
+    #------------------------------------------------------------------
+    # pretty-printed / encoded key helpers
+    #------------------------------------------------------------------
+
     @property
     def hex_key(self):
         """
@@ -1056,15 +1111,17 @@ class TOTP(object):
         # generate digest
         assert isinstance(counter, int_types), "counter must be integer"
         assert counter >= 0, "counter must be non-negative"
-        keyed_hmac = compile_hmac(self.alg, self.key)
-        digest = keyed_hmac(struct.pack(">Q", counter))
+        keyed_hmac = self._keyed_hmac
+        if keyed_hmac is None:
+            keyed_hmac = self._keyed_hmac = compile_hmac(self.alg, self.key)
+        digest = keyed_hmac(_pack_uint64(counter))
         digest_size = keyed_hmac.digest_info.digest_size
         assert len(digest) == digest_size, "digest_size: sanity check failed"
 
         # derive 31-bit token value
         assert digest_size >= 20, "digest_size: sanity check 2 failed" # otherwise 0xF+4 will run off end of hash.
         offset = byte_elem_value(digest[-1]) & 0xF
-        value = struct.unpack(">I", digest[offset:offset+4])[0] & 0x7fffffff
+        value = _unpack_uint32(digest[offset:offset+4])[0] & 0x7fffffff
 
         # render to decimal string, return last <digits> chars
         # NOTE: the 10'th digit is not as secure, as it can only take on values 0-2, not 0-9,
@@ -1107,7 +1164,7 @@ class TOTP(object):
         return self.match(token, **kwds)
 
     def match(self, token, time=None, window=30, skew=0, last_counter=None,
-               reuse=False):
+              reuse=False):
         """
         Match TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
@@ -1549,19 +1606,11 @@ class TOTP(object):
         source = to_unicode(source, param="json source")
         return cls.from_dict(json.loads(source))
 
-    def to_json(self, encrypt=AUTO):
+    def to_json(self, encrypt=None):
         """
         Serialize configuration & internal state to a json string,
         mainly useful for persisting client-specific state in a database.
-
-        :param encrypt:
-            Whether to output should be encrypted.
-
-            * ``"auto"`` (the default) -- uses encrypted key if application
-              secret is available, otherwise uses raw key.
-            * True -- uses encrypted key, or raises TypeError
-              if application secret wasn't provided to OTP constructor.
-            * False -- uses raw key.
+        All keywords passed to :meth:`to_dict`.
 
         :returns:
             json string containing serializes configuration & state.
@@ -1631,10 +1680,19 @@ class TOTP(object):
         """dict parsing helper -- creates preformatted error message"""
         return ValueError("Invalid totp data: %s" % (reason,))
 
-    def to_dict(self, encrypt=AUTO):
+    def to_dict(self, encrypt=None):
         """
         Serialize configuration & internal state to a dict,
         mainly useful for persisting client-specific state in a database.
+
+        :param encrypt:
+            Whether to output should be encrypted.
+
+            * ``None`` (the default) -- uses encrypted key if application
+              secrets are available, otherwise uses plaintext key.
+            * ``True`` -- uses encrypted key, or raises TypeError
+              if application secret wasn't provided to OTP constructor.
+            * ``False`` -- uses raw key.
 
         :returns:
             dictionary, containing basic (json serializable) datatypes.
@@ -1646,22 +1704,19 @@ class TOTP(object):
             state['alg'] = self.alg
         if self.digits != 6:
             state['digits'] = self.digits
+        if self.period != 30:
+            state['period'] = self.period
         if self.label:
             state['label'] = self.label
         if self.issuer:
             state['issuer'] = self.issuer
-        wallet = self.wallet
-        if encrypt and (encrypt != AUTO or (wallet and wallet.can_encrypt)):
-            enckey = self._enckey
-            if enckey is None:
-                if not wallet:
-                    raise TypeError("must provide application secrets to encrypt TOTP keys")
-                enckey = self._enckey = wallet.encrypt_key(self.key)
-            state['enckey'] = enckey
+        if encrypt is None:
+            wallet = self.wallet
+            encrypt = wallet and wallet.has_secrets
+        if encrypt:
+            state['enckey'] = self.encrypted_key
         else:
             state['key'] = self.base32_key
-        if self.period != 30:
-            state['period'] = self.period
         # NOTE: in the future, may add a "history" parameter
         #       containing a list of (time, skipped) pairs, encoding
         #       the last X successful verifications, to allow persisting
