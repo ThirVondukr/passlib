@@ -15,7 +15,7 @@ from passlib import exc
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase, time_call
 # subject
-from passlib.totp import AppWallet, AES_SUPPORT
+from passlib.totp import TOTP, AppWallet, AES_SUPPORT
 # local
 __all__ = [
     "EngineTest",
@@ -73,21 +73,6 @@ def randcounter():
 
 def to_b32_size(raw_size):
     return (raw_size * 8 + 4) // 5
-
-#=============================================================================
-# util tests
-#=============================================================================
-
-class UtilsTest(TestCase):
-    descriptionPrefix = "passlib.totp"
-
-    #=============================================================================
-    #
-    #=============================================================================
-
-    #=============================================================================
-    # eoc
-    #=============================================================================
 
 #=============================================================================
 # wallet
@@ -374,7 +359,7 @@ RFC_KEY_BYTES_64 = (RFC_KEY_BYTES_20*4)[:64]
 # TODO: this class is separate from TotpTest due to historical issue,
 #       when there was a base class, and a separate HOTP class.
 #       these test case classes should probably be combined.
-class _BaseOTPTest(TestCase):
+class TotpTest(TestCase):
     """
     common code shared by TotpTest & HotpTest
     """
@@ -382,31 +367,31 @@ class _BaseOTPTest(TestCase):
     # class attrs
     #=============================================================================
 
-    #: BaseOTP subclass we're testing.
-    OtpType = None
+    descriptionPrefix = "passlib.totp.TOTP"
 
     #=============================================================================
     # setup
     #=============================================================================
     def setUp(self):
-        super(_BaseOTPTest, self).setUp()
+        super(TotpTest, self).setUp()
 
         # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
         from passlib.crypto.digest import lookup_hash
         lookup_hash.clear_cache()
 
     #=============================================================================
-    # subclass utils
+    # general helpers
     #=============================================================================
     def randotp(self, cls=None, **kwds):
         """
-        helper which generates a random OtpType instance.
+        helper which generates a random TOTP instance.
         """
         if "key" not in kwds:
             kwds['new'] = True
         kwds.setdefault("digits", random.randint(6, 10))
         kwds.setdefault("alg", random.choice(["sha1", "sha256", "sha512"]))
-        return (cls or self.OtpType)(**kwds)
+        kwds.setdefault("period", random.randint(10, 120))
+        return (cls or TOTP)(**kwds)
 
     def test_randotp(self):
         """
@@ -434,174 +419,7 @@ class _BaseOTPTest(TestCase):
             self.fail("alg not randomized")
 
     #=============================================================================
-    # constructor
-    #=============================================================================
-    def test_ctor_w_new(self):
-        """constructor -- 'new'  parameter"""
-        OTP = self.OtpType
-
-        # exactly one of 'key' or 'new' is required
-        self.assertRaises(TypeError, OTP)
-        self.assertRaises(TypeError, OTP, key='4aoggdbbqsyhntuz', new=True)
-
-        # generates new key
-        otp = OTP(new=True)
-        otp2 = OTP(new=True)
-        self.assertNotEqual(otp.key, otp2.key)
-
-    def test_ctor_w_size(self):
-        """constructor -- 'size'  parameter"""
-        OTP = self.OtpType
-
-        # should default to digest size, per RFC
-        self.assertEqual(len(OTP(new=True, alg="sha1").key), 20)
-        self.assertEqual(len(OTP(new=True, alg="sha256").key), 32)
-        self.assertEqual(len(OTP(new=True, alg="sha512").key), 64)
-
-        # explicit key size
-        self.assertEqual(len(OTP(new=True, size=10).key), 10)
-        self.assertEqual(len(OTP(new=True, size=16).key), 16)
-
-        # for new=True, maximum size enforced (based on alg)
-        self.assertRaises(ValueError, OTP, new=True, size=21, alg="sha1")
-
-        # for new=True, minimum size enforced
-        self.assertRaises(ValueError, OTP, new=True, size=9)
-
-        # for existing key, minimum size is only warned about
-        with self.assertWarningList([
-                dict(category=exc.PasslibSecurityWarning, message_re=".*for security purposes, secret key must be.*")
-                ]):
-            _ = OTP('0A'*9, 'hex')
-
-    def test_ctor_w_key_and_format(self):
-        """constructor -- 'key' and 'format' parameters"""
-        OTP = self.OtpType
-
-        # handle base32 encoding (the default)
-        self.assertEqual(OTP(KEY1).key, KEY1_RAW)
-
-            # .. w/ lower case
-        self.assertEqual(OTP(KEY1.lower()).key, KEY1_RAW)
-
-            # .. w/ spaces (e.g. user-entered data)
-        self.assertEqual(OTP(' 4aog gdbb qsyh ntuz ').key, KEY1_RAW)
-
-            # .. w/ invalid char
-        self.assertRaises(Base32DecodeError, OTP, 'ao!ggdbbqsyhntuz')
-
-        # handle hex encoding
-        self.assertEqual(OTP('e01c630c2184b076ce99', 'hex').key, KEY1_RAW)
-
-            # .. w/ invalid char
-        self.assertRaises(Base16DecodeError, OTP, 'X01c630c2184b076ce99', 'hex')
-
-        # handle raw bytes
-        self.assertEqual(OTP(KEY1_RAW, "raw").key, KEY1_RAW)
-
-    def test_ctor_w_alg(self):
-        """constructor -- 'alg' parameter"""
-        OTP = self.OtpType
-
-        # normalize hash names
-        self.assertEqual(OTP(KEY1, alg="SHA-256").alg, "sha256")
-        self.assertEqual(OTP(KEY1, alg="SHA256").alg, "sha256")
-
-        # invalid alg
-        self.assertRaises(ValueError, OTP, KEY1, alg="SHA-333")
-
-    def test_ctor_w_digits(self):
-        """constructor -- 'digits' parameter"""
-        OTP = self.OtpType
-        self.assertRaises(ValueError, OTP, KEY1, digits=5)
-        self.assertEqual(OTP(KEY1, digits=6).digits, 6)  # min value
-        self.assertEqual(OTP(KEY1, digits=10).digits, 10)  # max value
-        self.assertRaises(ValueError, OTP, KEY1, digits=11)
-
-    def test_ctor_w_label(self):
-        """constructor -- 'label' parameter"""
-        OTP = self.OtpType
-        self.assertEqual(OTP(KEY1).label, None)
-        self.assertEqual(OTP(KEY1, label="foo@bar").label, "foo@bar")
-        self.assertRaises(ValueError, OTP, KEY1, label="foo:bar")
-
-    def test_ctor_w_issuer(self):
-        """constructor -- 'issuer' parameter"""
-        OTP = self.OtpType
-        self.assertEqual(OTP(KEY1).issuer, None)
-        self.assertEqual(OTP(KEY1, issuer="foo.com").issuer, "foo.com")
-        self.assertRaises(ValueError, OTP, KEY1, issuer="foo.com:bar")
-
-    #=============================================================================
-    # using()
-    #=============================================================================
-
-    # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
-
-    #=============================================================================
-    # internal helpers
-    #=============================================================================
-
-    def test_normalize_token(self):
-        """normalize_token()"""
-        otp = self.randotp(digits=7)
-
-        self.assertEqual(otp.normalize_token('1234567'), '1234567')
-        self.assertEqual(otp.normalize_token(b'1234567'), '1234567')
-
-        self.assertEqual(otp.normalize_token(1234567), '1234567')
-        self.assertEqual(otp.normalize_token(234567), '0234567')
-
-        self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
-        self.assertRaises(TypeError, otp.normalize_token, None)
-
-        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '123456')
-        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '01234567')
-
-    #=============================================================================
-    # key attrs
-    #=============================================================================
-
-    def test_key_attrs(self):
-        """pretty_key() and .key attributes"""
-        OTP = self.OtpType
-
-        # test key attrs
-        otp = OTP(KEY1_RAW, "raw")
-        self.assertEqual(otp.key, KEY1_RAW)
-        self.assertEqual(otp.hex_key, 'e01c630c2184b076ce99')
-        self.assertEqual(otp.base32_key, KEY1)
-
-        # test pretty_key()
-        self.assertEqual(otp.pretty_key(), '4AOG-GDBB-QSYH-NTUZ')
-        self.assertEqual(otp.pretty_key(sep=" "), '4AOG GDBB QSYH NTUZ')
-        self.assertEqual(otp.pretty_key(sep=False), KEY1)
-        self.assertEqual(otp.pretty_key(format="hex"), 'e01c-630c-2184-b076-ce99')
-
-        # quick fuzz test: make attr access works for random key & random size
-        otp = OTP(new=True, size=random.randint(10, 20))
-        _ = otp.hex_key
-        _ = otp.base32_key
-        _ = otp.pretty_key()
-
-    #=============================================================================
-    # eoc
-    #=============================================================================
-
-#=============================================================================
-# TOTP
-#=============================================================================
-from passlib.totp import TOTP
-
-class TotpTest(_BaseOTPTest):
-    #=============================================================================
-    # class attrs
-    #=============================================================================
-    descriptionPrefix = "passlib.totp.TOTP"
-    OtpType = TOTP
-
-    #=============================================================================
-    # test vectors
+    # reference vector helpers
     #=============================================================================
 
     #: default options used by test vectors (unless otherwise stated)
@@ -716,43 +534,119 @@ class TotpTest(_BaseOTPTest):
                 yield otp, time, token, expires, prefix
 
     #=============================================================================
-    # subclass utils
+    # constructor tests
     #=============================================================================
-    def randotp(self, **kwds):
-        """
-        helper which generates a random .OtpType instance for testing.
-        """
-        if "period" not in kwds:
-            kwds['period'] = random.randint(10, 120)
-        return super(TotpTest, self).randotp(**kwds)
+    def test_ctor_w_new(self):
+        """constructor -- 'new'  parameter"""
 
-    #=============================================================================
-    # constructor
-    #=============================================================================
+        # exactly one of 'key' or 'new' is required
+        self.assertRaises(TypeError, TOTP)
+        self.assertRaises(TypeError, TOTP, key='4aoggdbbqsyhntuz', new=True)
 
-    # NOTE: common behavior handled by _BaseOTPTest
+        # generates new key
+        otp = TOTP(new=True)
+        otp2 = TOTP(new=True)
+        self.assertNotEqual(otp.key, otp2.key)
+
+    def test_ctor_w_size(self):
+        """constructor -- 'size'  parameter"""
+
+        # should default to digest size, per RFC
+        self.assertEqual(len(TOTP(new=True, alg="sha1").key), 20)
+        self.assertEqual(len(TOTP(new=True, alg="sha256").key), 32)
+        self.assertEqual(len(TOTP(new=True, alg="sha512").key), 64)
+
+        # explicit key size
+        self.assertEqual(len(TOTP(new=True, size=10).key), 10)
+        self.assertEqual(len(TOTP(new=True, size=16).key), 16)
+
+        # for new=True, maximum size enforced (based on alg)
+        self.assertRaises(ValueError, TOTP, new=True, size=21, alg="sha1")
+
+        # for new=True, minimum size enforced
+        self.assertRaises(ValueError, TOTP, new=True, size=9)
+
+        # for existing key, minimum size is only warned about
+        with self.assertWarningList([
+                dict(category=exc.PasslibSecurityWarning, message_re=".*for security purposes, secret key must be.*")
+                ]):
+            _ = TOTP('0A'*9, 'hex')
+
+    def test_ctor_w_key_and_format(self):
+        """constructor -- 'key' and 'format' parameters"""
+
+        # handle base32 encoding (the default)
+        self.assertEqual(TOTP(KEY1).key, KEY1_RAW)
+
+            # .. w/ lower case
+        self.assertEqual(TOTP(KEY1.lower()).key, KEY1_RAW)
+
+            # .. w/ spaces (e.g. user-entered data)
+        self.assertEqual(TOTP(' 4aog gdbb qsyh ntuz ').key, KEY1_RAW)
+
+            # .. w/ invalid char
+        self.assertRaises(Base32DecodeError, TOTP, 'ao!ggdbbqsyhntuz')
+
+        # handle hex encoding
+        self.assertEqual(TOTP('e01c630c2184b076ce99', 'hex').key, KEY1_RAW)
+
+            # .. w/ invalid char
+        self.assertRaises(Base16DecodeError, TOTP, 'X01c630c2184b076ce99', 'hex')
+
+        # handle raw bytes
+        self.assertEqual(TOTP(KEY1_RAW, "raw").key, KEY1_RAW)
+
+    def test_ctor_w_alg(self):
+        """constructor -- 'alg' parameter"""
+
+        # normalize hash names
+        self.assertEqual(TOTP(KEY1, alg="SHA-256").alg, "sha256")
+        self.assertEqual(TOTP(KEY1, alg="SHA256").alg, "sha256")
+
+        # invalid alg
+        self.assertRaises(ValueError, TOTP, KEY1, alg="SHA-333")
+
+    def test_ctor_w_digits(self):
+        """constructor -- 'digits' parameter"""
+        self.assertRaises(ValueError, TOTP, KEY1, digits=5)
+        self.assertEqual(TOTP(KEY1, digits=6).digits, 6)  # min value
+        self.assertEqual(TOTP(KEY1, digits=10).digits, 10)  # max value
+        self.assertRaises(ValueError, TOTP, KEY1, digits=11)
 
     def test_ctor_w_period(self):
         """constructor -- 'period' parameter"""
-        OTP = self.OtpType
 
         # default
-        self.assertEqual(OTP(KEY1).period, 30)
+        self.assertEqual(TOTP(KEY1).period, 30)
 
         # explicit value
-        self.assertEqual(OTP(KEY1, period=63).period, 63)
+        self.assertEqual(TOTP(KEY1, period=63).period, 63)
 
         # reject wrong type
-        self.assertRaises(TypeError, OTP, KEY1, period=1.5)
-        self.assertRaises(TypeError, OTP, KEY1, period='abc')
+        self.assertRaises(TypeError, TOTP, KEY1, period=1.5)
+        self.assertRaises(TypeError, TOTP, KEY1, period='abc')
 
         # reject non-positive values
-        self.assertRaises(ValueError, OTP, KEY1, period=0)
-        self.assertRaises(ValueError, OTP, KEY1, period=-1)
+        self.assertRaises(ValueError, TOTP, KEY1, period=0)
+        self.assertRaises(ValueError, TOTP, KEY1, period=-1)
+
+    def test_ctor_w_label(self):
+        """constructor -- 'label' parameter"""
+        self.assertEqual(TOTP(KEY1).label, None)
+        self.assertEqual(TOTP(KEY1, label="foo@bar").label, "foo@bar")
+        self.assertRaises(ValueError, TOTP, KEY1, label="foo:bar")
+
+    def test_ctor_w_issuer(self):
+        """constructor -- 'issuer' parameter"""
+        self.assertEqual(TOTP(KEY1).issuer, None)
+        self.assertEqual(TOTP(KEY1, issuer="foo.com").issuer, "foo.com")
+        self.assertRaises(ValueError, TOTP, KEY1, issuer="foo.com:bar")
 
     #=============================================================================
-    # using()
+    # using() tests
     #=============================================================================
+
+    # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
 
     def test_using_w_period(self):
         """using() -- 'period' parameter"""
@@ -802,8 +696,24 @@ class TotpTest(_BaseOTPTest):
         self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: -1)
 
     #=============================================================================
-    # internal helpers
+    # internal method tests
     #=============================================================================
+
+    def test_normalize_token(self):
+        """normalize_token()"""
+        otp = self.randotp(digits=7)
+
+        self.assertEqual(otp.normalize_token('1234567'), '1234567')
+        self.assertEqual(otp.normalize_token(b'1234567'), '1234567')
+
+        self.assertEqual(otp.normalize_token(1234567), '1234567')
+        self.assertEqual(otp.normalize_token(234567), '0234567')
+
+        self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
+        self.assertRaises(TypeError, otp.normalize_token, None)
+
+        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '123456')
+        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '01234567')
 
     def test_normalize_time(self):
         """normalize_time()"""
@@ -827,13 +737,32 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(TypeError, otp.normalize_time, '1234')
 
     #=============================================================================
-    # key attrs
+    # key attr tests
     #=============================================================================
 
-    # NOTE: handled by _BaseOTPTest
+    def test_key_attrs(self):
+        """pretty_key() and .key attributes"""
+
+        # test key attrs
+        otp = TOTP(KEY1_RAW, "raw")
+        self.assertEqual(otp.key, KEY1_RAW)
+        self.assertEqual(otp.hex_key, 'e01c630c2184b076ce99')
+        self.assertEqual(otp.base32_key, KEY1)
+
+        # test pretty_key()
+        self.assertEqual(otp.pretty_key(), '4AOG-GDBB-QSYH-NTUZ')
+        self.assertEqual(otp.pretty_key(sep=" "), '4AOG GDBB QSYH NTUZ')
+        self.assertEqual(otp.pretty_key(sep=False), KEY1)
+        self.assertEqual(otp.pretty_key(format="hex"), 'e01c-630c-2184-b076-ce99')
+
+        # quick fuzz test: make attr access works for random key & random size
+        otp = TOTP(new=True, size=random.randint(10, 20))
+        _ = otp.hex_key
+        _ = otp.base32_key
+        _ = otp.pretty_key()
 
     #=============================================================================
-    # generate()
+    # generate() tests
     #=============================================================================
     def test_totp_token(self):
         """generate() -- TotpToken() class"""
@@ -921,7 +850,7 @@ class TotpTest(_BaseOTPTest):
                 self.assertEqual(result.expire_time, expires)
 
     #=============================================================================
-    # TotpMatch() -- match()'s return value
+    # TotpMatch() tests
     #=============================================================================
 
     def assertTotpMatch(self, match, time, skipped=0, period=30, window=30, msg=''):
@@ -991,7 +920,7 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(exc.InvalidTokenError, otp.match, token, time + 60)
 
     #=============================================================================
-    # match()
+    # match() tests
     #=============================================================================
 
     def assertVerifyMatches(self, expect_skipped, token, time,  # *
@@ -1175,7 +1104,7 @@ class TotpTest(_BaseOTPTest):
             self.assertRaises(exc.InvalidTokenError, match, token, time + 100, window=0)
 
     #=============================================================================
-    # verify()
+    # verify() tests
     #=============================================================================
     def test_verify(self):
         """verify()"""
@@ -1211,7 +1140,7 @@ class TotpTest(_BaseOTPTest):
         self.assertTotpMatch(match, time=time)
 
     #=============================================================================
-    # serialization frontend
+    # serialization frontend tests
     #=============================================================================
     def test_from_source(self):
         """from_source()"""
@@ -1258,7 +1187,7 @@ class TotpTest(_BaseOTPTest):
         self.assertRaises(ValueError, from_source, b"foo")
 
     #=============================================================================
-    # uri serialization
+    # uri serialization tests
     #=============================================================================
     def test_from_uri(self):
         """from_uri()"""
@@ -1438,7 +1367,7 @@ class TotpTest(_BaseOTPTest):
                          "period=63")
 
     #=============================================================================
-    # dict serialization
+    # dict serialization tests
     #=============================================================================
     def test_from_dict(self):
         """from_dict()"""
@@ -1595,7 +1524,7 @@ class TotpTest(_BaseOTPTest):
     #           that 'changed' is set for old versions, and old encryption tags.
 
     #=============================================================================
-    # json serialization
+    # json serialization tests
     #=============================================================================
 
     # TODO: from_json() / to_json().
