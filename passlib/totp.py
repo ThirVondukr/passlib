@@ -1712,8 +1712,10 @@ class TOTP(object):
             state['period'] = self.period
         if self.label:
             state['label'] = self.label
-        if self.issuer:
-            state['issuer'] = self.issuer
+        issuer = self.issuer
+        if issuer and issuer != type(self).issuer:
+            # (omit issuer if it matches class default)
+            state['issuer'] = issuer
         if encrypt is None:
             wallet = self.wallet
             encrypt = wallet and wallet.has_secrets

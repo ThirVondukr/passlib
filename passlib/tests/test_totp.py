@@ -1495,6 +1495,15 @@ class TotpTest(TestCase):
                          dict(v=1, type="totp", key=KEY4,
                               issuer="Example Org"))
 
+        # don't serialize default issuer
+        TotpFactory = TOTP.using(issuer="Example Org")
+        otp = TotpFactory(KEY4)
+        self.assertEqual(otp.to_dict(), dict(v=1, type="totp", key=KEY4))
+
+        # don't serialize default issuer *even if explicitly set*
+        otp = TotpFactory(KEY4, issuer="Example Org")
+        self.assertEqual(otp.to_dict(),  dict(v=1, type="totp", key=KEY4))
+
         #-------------------------------------------------------------------------
         # algorithm parameter
         #-------------------------------------------------------------------------
