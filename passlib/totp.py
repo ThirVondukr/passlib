@@ -174,10 +174,12 @@ class AppWallet(object):
     """
     This class stores application-wide secrets that can be used
     to encrypt & decrypt TOTP keys for storage.
+    It's mostly an internal detail, applications usually just need
+    to pass ``secrets`` or ``secrets_path`` to :meth:`TOTP.using`.
 
-    .. todo::
-        This class needs usage examples & further explanation
-        of how the **secrets** parameter works.
+    .. seealso::
+
+        :ref:`totp-storing-instances` for more details on this workflow.
 
     Arguments
     =========
@@ -197,9 +199,13 @@ class AppWallet(object):
         ("1", "2", ...), an ISO date ("2016-01-01", "2016-05-16", ...), 
         or a timestamp ("19803495", "19813495", ...) when assigning tags.
 
-        This mapping be provided in three formats: a python dict,
-        a JSON-formatted string containing the dict, OR it can be a multiline
-        string with the format ``"tag: value\\ntag: value\\n..."``
+        This mapping be provided in three formats:
+
+        * A python dict mapping tag -> secret
+        * A JSON-formatted string containing the dict
+        * A multiline string with the format ``"tag: value\\ntag: value\\n..."``
+
+        (This last format is mainly useful when loading from a text file via **secrets_path**)
 
         .. seealso:: :func:`generate_secret` to create a secret with sufficient entropy
 
@@ -455,6 +461,10 @@ class AppWallet(object):
 
             This function requires installation of the external
             `cryptography <https://cryptography.io>`_ package.
+
+        To give some algorithm details:  This function uses AES-256-CTR to encrypt
+        the provided data.  It takes the application secret and randomly generated salt,
+        and uses PBKDF2-HMAC-SHA256 to combine them and generate the AES key & IV.
         """
         if not key:
             raise ValueError("no key provided")
@@ -575,7 +585,7 @@ class TOTP(object):
 
         .. warning::
 
-            Overriding the default values for ``digits``, ``period``, or ``alg`` (below) may
+            Overriding the default values for ``digits``, ``period``, or ``alg`` may
             cause problems with some OTP client programs (such as Google Authenticator),
             which may have these defaults hardcoded.
 
@@ -713,6 +723,8 @@ class TOTP(object):
               'v': 1},
              'type': 'totp',
              'v': 1}
+
+        .. seealso:: :ref:`totp-creation` and :ref:`totp-storing-instances` tutorials for a usage example
         """
         # XXX: could add support for setting default match 'window' and 'reuse' policy
 
@@ -721,7 +733,7 @@ class TOTP(object):
         #     Default to :func:`time.time`. This optional is generally not needed,
         #     and is mainly present for examples & unit-testing.
 
-        subcls = type("TOTPFactory", (cls,), {})
+        subcls = type("TOTP", (cls,), {})
 
         def norm_param(attr, value):
             """
@@ -1142,14 +1154,11 @@ class TOTP(object):
     @classmethod
     def verify(cls, token, source, **kwds):
         """
-        Convenience wrapper around :meth:`TOTP.match`.
+        Convenience wrapper around :meth:`TOTP.from_source` and :meth:`TOTP.match`.
 
-        This parses a TOTP key & configuration from the specified source
-        (using :meth:`TOTP.from_source`) and then calls :meth:`!TOTP.match`
-        to try and match the token.
-
-        This method's signature is designed to parallel that of the :meth:`~passlib.ifc.PasswordHash`
-        interface.
+        This parses a TOTP key & configuration from the specified source,
+        and tries and match the token.
+        It's designed to parallel the :meth:`passlib.ifc.PasswordHash.verify` method.
 
         :param token:
             Token string to match.
@@ -1164,8 +1173,7 @@ class TOTP(object):
         :return:
             A :class:`TotpMatch` instance, or raises a :exc:`TokenError`.
         """
-        self = cls.from_source(source)
-        return self.match(token, **kwds)
+        return cls.from_source(source).match(token, **kwds)
 
     def match(self, token, time=None, window=30, skew=0, last_counter=None,
               reuse=False):
@@ -1385,6 +1393,8 @@ class TOTP(object):
 
         :raises ValueError:
             if the uri cannot be parsed or contains errors.
+
+        .. seealso:: :ref:`totp-configuring-clients` tutorial for a usage example
         """
         # check for valid uri
         uri = to_unicode(uri, param="uri").strip()
@@ -1499,7 +1509,7 @@ class TOTP(object):
     #=============================================================================
     def to_uri(self, label=None, issuer=None):
         """
-        serialize key and configuration into a URI, per
+        Serialize key and configuration into a URI, per
         Google Auth's `KeyUriFormat <http://code.google.com/p/google-authenticator/wiki/KeyUriFormat>`_.
 
         :param str label:
@@ -1528,9 +1538,7 @@ class TOTP(object):
             encoded into a URI.
 
         These URIs are frequently converted to a QRCode for transferring
-        to a TOTP client application such as Google Auth. This can easily be done
-        using external libraries such as `pyqrcode <https://pypi.python.org/pypi/PyQRCode>`_
-        or `qrcode <https://pypi.python.org/pypi/qrcode>`_.
+        to a TOTP client application such as Google Auth.
         Usage example::
 
             >>> from passlib.totp import TOTP
@@ -1538,13 +1546,6 @@ class TOTP(object):
             >>> uri = tp.to_uri("user@example.org", "myservice.another-example.org")
             >>> uri
             'otpauth://totp/user@example.org?secret=S3JDVB7QD2R7JPXX&issuer=myservice.another-example.org'
-
-            >>> # for example, the following uses PyQRCode
-            >>> # to print the uri directly on an ANSI terminal as a qrcode:
-            >>> import pyqrcode
-            >>> print(pyqrcode.create(uri).terminal(quiet_zone=1))
-            ... very large ascii-art qrcode omitted...
-
         """
         # encode label
         if label is None:
@@ -1606,6 +1607,8 @@ class TOTP(object):
 
         :returns:
             a :class:`TOTP` instance.
+
+        .. seealso:: :ref:`totp-storing-instances` tutorial for a usage example
         """
         source = to_unicode(source, param="json source")
         return cls.from_dict(json.loads(source))
@@ -1643,6 +1646,8 @@ class TOTP(object):
 
         :returns:
             A :class:`TOTP` instance.
+
+        .. seealso:: :ref:`totp-storing-instances` tutorial for a usage example
         """
         if not isinstance(source, dict) or "type" not in source:
             raise cls._dict_parse_error("unrecognized format")
@@ -1710,6 +1715,7 @@ class TOTP(object):
             state['digits'] = self.digits
         if self.period != 30:
             state['period'] = self.period
+        # XXX: should we include label as part of json format?
         if self.label:
             state['label'] = self.label
         issuer = self.issuer

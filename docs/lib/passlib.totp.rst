@@ -31,8 +31,8 @@ See below for all the :class:`!TOTP` methods & attributes...
 Alternate Constructors
 ======================
 There are a few alternate class constructors offered.
-These range from simple convenience wrappers such as :meth:`!TOTP.new`,
-to a range of deserialization methods such as :meth:`!TOTP.from_source`.
+These range from simple convenience wrappers such as :meth:`TOTP.new`,
+to deserialization methods such as :meth:`TOTP.from_source`.
 
 .. automethod:: TOTP.new()
 .. automethod:: TOTP.from_source
@@ -40,22 +40,22 @@ to a range of deserialization methods such as :meth:`!TOTP.from_source`.
 .. automethod:: TOTP.from_json
 .. automethod:: TOTP.from_dict
 
-Factory Constructor
-===================
-One powerful method offered by the TOTP class is :meth:`!TOTP.using`.
+Factory Creation
+================
+One powerful method offered by the TOTP class is :meth:`TOTP.using`.
 This method allows you to quickly create TOTP subclasses with preconfigured defaults,
-for configuration application secrets and setting default behavior
+for configuration application secrets and setting default TOTP behavior
 for your application:
 
 .. automethod:: TOTP.using
 
 .. _totp-configuration-attributes:
 
-Configuration Attributes
-========================
+Basic Attributes
+================
 All the TOTP objects offer the following attributes,
-which correspond to the constructor options (above).
-Most of this information will be serialized by :meth:`~TOTP.to_uri` and :meth:`~TOTP.to_json`:
+which correspond to the constructor options above.
+Most of this information will be serialized by :meth:`TOTP.to_uri` and :meth:`TOTP.to_json`:
 
 .. autoattribute:: TOTP.key
 .. autoattribute:: TOTP.hex_key
@@ -103,12 +103,7 @@ Passlib offers one main method: :meth:`!TOTP.match`, as well as a convenience wr
 .. automethod:: TOTP.match
 .. automethod:: TOTP.verify
 
-.. todo::
-
-    Offer a resynchronization primitive which allows user to provide a large number of
-    sequential tokens taken from a pre-determined time range (e.g.
-    google's "emergency recovery code" style); or at current time, but with a much larger
-    window (as referenced in the RFC).
+.. seealso:: :ref:`totp-verifying` tutorial for a usage example
 
 TotpMatch
 ---------
@@ -119,13 +114,13 @@ which offers up detailed information about the matched token:
 
 .. _totp-provisioning:
 
-Client Provisioning (URIs & QRCodes)
-====================================
+Client Configuration Methods
+============================
 Once a server has generated a new TOTP key & configuration,
 it needs to be communicated to the user in order for them to store it
 in a suitable TOTP client.
 
-This can be done by displaying the individual components for the user
+This can be done by displaying the key & configuration for the user
 to hand-enter into their client, or by encoding TOTP object into a URI [#uriformat]_.
 These configuration URIs can subsequently be displayed as a QR code,
 for easy transfer to many smartphone-based TOTP clients
@@ -133,11 +128,14 @@ for easy transfer to many smartphone-based TOTP clients
 
 .. automethod:: TOTP.to_uri
 
+.. automethod:: TOTP.pretty_key
+
 .. seealso::
 
-    The :meth:`TOTP.from_source` and :meth:`TOTP.from_uri` constructors for decoding URIs.
+    * The :meth:`TOTP.from_source` and :meth:`TOTP.from_uri` constructors for decoding URIs.
 
-.. automethod:: TOTP.pretty_key
+    * The :ref:`totp-configuring-clients` tutorial for details
+      about these methods, and how to render URIs to a QR Code.
 
 .. _totp-serialization:
 
@@ -154,8 +152,10 @@ these methods will automatically encrypt the resulting keys.
 
 .. seealso::
 
-    The :meth:`TOTP.from_source` and :meth:`TOTP.from_json` constructors for decoding 
-    the results of these methods.
+    * The :meth:`TOTP.from_source` and :meth:`TOTP.from_json` constructors for decoding
+      the results of these methods.
+
+    * The :ref:`totp-storing-instances` tutorial for more details.
 
 AppWallet
 =========

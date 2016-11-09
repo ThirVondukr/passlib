@@ -12,30 +12,31 @@ Overview
 ========
 The :mod:`passlib.totp` module provides a set of classes for adding
 two-factor authentication (2FA) support into your application,
-using the widely supported TOTP specification.
+using the widely supported TOTP specification (:rfc:`6238`).
 
-This module is designed to support a variety of use cases, including:
+This module is based around the :class:`TOTP` class, which supports
+a wide variety of use-cases, including:
 
-    * Creating & transferring TOTP keys to client devices.
+    * Creating & transferring configured TOTP keys to client devices.
 
     * Generating & verifying tokens.
 
-    * Securely storing TOTP keys.
+    * Securely storing configured TOTP keys.
 
-This walkthrough starts with the simpler cases, and builds up
-to the more complex ones.
-
-.. seealso:: The :mod:`passlib.totp` api reference,
+.. seealso:: The :mod:`passlib.totp` API reference,
     which lists all details of all the classes and methods mentioned here.
 
-Example Walkthrough
-===================
+Walkthrough
+===========
 There are a number of different ways to integrate TOTP support into a server application.
-The following is an outline one of way this can be done. A number of steps here can be done in multiple ways,
-some of which will be more appropriate for different applications.
+The following is a general outline of one of way to do this.  Some details and
+alternate choices are omitted for brevity, see the remaining sections
+of this tutorial for more detailed information about these steps.
 
-1. Secret Creation
-------------------
+.. _totp-walkthrough-step-1:
+
+1. Generate an Application Secret
+---------------------------------
 First, generate a strong application secret to use when encrypting TOTP keys for storage.
 Passlib offers a :meth:`generate_secret` method to help with this::
 
@@ -43,101 +44,192 @@ Passlib offers a :meth:`generate_secret` method to help with this::
     >>> generate_secret()
     'pO7SwEFcUPvIDeAJr7INBj0TjsSZJr1d2ddsFL9r5eq'
 
-This key should be assigned a numeric tag (e.g. "1", or an iso date such as "2016-11-10");
+This key should be assigned a numeric tag (e.g. "1", a timestamp, or an iso date such as "2016-11-10");
 and should be stored in a file *separate* from your application's configuration.
 Ideally, after this file has been loaded by the TOTP constructor below,
-the application should give up access permission to the file.
+the application should give up access permissions to the file.
 
 Example file contents::
 
     2016-11-10: pO7SwEFcUPvIDeAJr7INBj0TjsSZJr1d2ddsFL9r5eq
 
-2. App Initialization
----------------------
+This key will be used in a later step to encrypt TOTP keys for storage in your database.
+The sequential tag is used so that if your database (or the application secrets)
+are ever compromised, you can add a new application secret (with a newer tag),
+and gracefully migrate the compromised TOTP keys.
+
+.. rst-class:: without-title float-center
+
+.. seealso:: **For more details see** :ref:`totp-encryption-setup` (below).
+
+2. TOTP Factory Initialization
+------------------------------
 When your application is being initialized, create a TOTP factory which is configured
-for your application, and is set up to use the application secrets.
+for your application, and is set up to use the application secrets defined in step 1.
+You can also set a default issuer here, instead of having to provide one explicitly in step 4::
 
     >>> from passlib.totp import TOTP
-    >>> TotpFactory = TOTP.using(secrets_path='/path/to/secret/file/in/step/1')
+    >>> TotpFactory = TOTP.using(secrets_path='/path/to/secret/file/in/step/1',
+    ...                          issuer="myapp.example.org")
 
-Note that the ``TotpFactory`` instance returned by :meth:`TOTP.using` will actually be a subclass
+The ``TotpFactory`` object returned by :meth:`TOTP.using` is actually a subclass
 of :class:`TOTP` itself, and has the same methods and attributes.  The main difference is that (because
 an application secret has been provided), the TOTP key will automatically be encrypted / decrypted
-when serializing to json.
+when serializing the object to disk.
 
-3. Cache Initialization
------------------------
-While not *absolutely* required, it's strongly recommended to set up a per-user cache
-which can store the last matched TOTP counter (an integer) for a period of a few minutes or so.
-This helps protect a narrow window of time where TOTP would otherwise be vulnerable
-to a replay attack (see below).
+.. rst-class:: without-title float-center
 
-4. Provisioning
----------------
-To set up a TOTP key for a new user, create a new TOTP instance, autogenerating a new key.
-This should be rendered into a configuration URI, and transferred to the user's TOTP client
-(typically by rendering it to a QR code).  This requires assigning an "issuer" string
+.. seealso:: **For more details see** :ref:`totp-creation` (below).
+
+3. Rate-Limiting & Cache Initialization
+---------------------------------------
+As part of your application initialization, it **critically important** to
+set up infrastructure to rate limit how many token verification
+attempts a user / ip address is allowed to make, otherwise TOTP can be bypassed.
+
+.. rst-class:: without-title float-center
+
+.. seealso:: **For more details see** :ref:`totp-rate-limiting` (below)
+
+.. rst-class:: clear
+
+It's also **strongly recommended** to set up a per-user cache which can store the last matched TOTP counter (an integer)
+for a period of a few minutes (e.g. using `dogpile.cache <https://pypi.python.org/pypi/dogpile.cache>`_,
+memcached, redis, etc). This cache is used by later steps to protect your application during a narrow window of time
+where TOTP would otherwise be vulnerable to a replay attack.
+
+.. rst-class:: without-title float-center
+
+.. seealso:: **For more details see** :ref:`totp-reuse-warning` (below)
+
+4. Setting up TOTP for a User
+-----------------------------
+To set up TOTP for a new user: create a new TOTP object and key using :meth:`TOTP.new`.
+This can then be rendered into a provisioning URI, and transferred to the user's TOTP client
+of choice.
+
+Rendering to a provisioning URI using :meth:`TOTP.to_uri` requires picking an "issuer" string
 to uniquely identify your application, and a "label" string to uniquely identify the user.
+The following example creates a new TOTP instance with a new key,
+and renders it to a URI, plugging in application-specific information.
 
-   >>> totp = TotpFactory.new()
-   >>> uri = totp.to_uri(issuer="myapp.example.org", label="username")
-   >>> uri
-   'otpauth://totp/username?secret=D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT&issuer=myapp.example.org'
-   >>> # uri can then be passed to a qrcode renderer (example below)
+    >>> totp = TotpFactory.new()
+    >>> uri = totp.to_uri(issuer="myapp.example.org", label="username")
+    >>> uri
+    'otpauth://totp/username?secret=D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT&issuer=myapp.example.org'
 
-5. Persisting
--------------
-Once the user has configured the TOTP uri on their client, and has entered a token
-to prove it's configured correctly, you can store the TOTP in your database.
-This can be done via the :meth:`TOTP.to_json` method:
+This URI is generally passed to a QRCode renderer, though
+as fallback it's recommended to also display the key using :meth:`TOTP.pretty_key`.
+
+.. rst-class:: without-title float-center
+
+.. seealso:: **For more details, and more about QR Codes, see** :ref:`totp-configuring-clients` (below).
+
+5. Storing the TOTP object
+--------------------------
+Before enabling TOTP for the user's account, it's good practice to first have the
+user successfully verify a token (per step 6); thus confirming their client h
+as been correctly configured.
+
+Once this is done, you can store the TOTP object in your database.
+This can be done via the :meth:`TOTP.to_json` method::
 
     >>> totp.to_json()
     '{"enckey":{"c":14,"k":"FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ","s":"UL2J4MZG4SONHOWXLKFQ","t":"1","v":1},"type":"totp","v":1}'
 
-If there is no application secret configured, the key will not be encrypted,
+Note that if there is no application secret configured, the key will not be encrypted,
 and instead look like this::
 
     >>> totp.to_json()
     '{"key":"D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT","type":"totp","v":1}'
 
-6. Verification
----------------
+.. rst-class:: float-center without-title
+
+.. seealso:: **For more details see** :ref:`totp-storing-instances`
+
+6. Verifying a Token
+--------------------
 Whenever attempting to verify a token provided by the user,
-load the serialized TOTP key from the database, as well as the last counter value
-from the cache, and use the :meth:`TOTP.verify` method::
+first load the serialized TOTP object from the database (stored step 5),
+as well as the last counter value from the cache (set up in step 3).
+You should use these values to call the :meth:`TOTP.verify` method.
 
-    >>> token = ... token string provided by user ...
-    >>> source = ... load json from database ...
-    >>> last_counter = ... load from cache ...
-    >>> match = TotpFactory.verify(token, source, last_counter=last_counter)
+If verify() succeeds, it will return a :class:`TotpMatch` object.
+This object contains information about the match,
+including :attr:`TotpMatch.counter` (a time-dependant integer tied to this token),
+and :attr:`TotpMatch.cache_seconds` (minimum time this counter should be cached).
 
-6a. If this succeeds, it will return a :class:`TotpMatch` object containing details
-about the match. This includes the "counter value" assigned to the token.
-The value ``match.counter`` should be stored in a per-user cache for at least
-``match.cache_seconds`` seconds, and retrieved for any future token validations
-(cache_seconds will be 60 in the default configuration).
+If verify() fails, it will raise one of the :exc:`passlib.exc.TokenError` subclasses
+indicating what went wrong. This will be one of three cases: the token was
+malformed (e.g. too few digits), the token was invalid (didn't match),
+or a recent token was reused.
 
-6b. Alternately, the match may fail, in which case one of the :exc:`~passlib.exc.TokenError`
-subclasses will be thrown::
+A skeleton example of how this should function::
 
-    >>> match = TotpFactory.verify(token, source, last_counter=last_counter)
-    ...
-    InvalidTokenError: Token did not match
+    >>> from passlib.exc import TokenError, MalformedTokenError
 
-*The remaining sections try to provide details of some of these steps,
-as well as other related workflows.*
+    >>> # pull information from your application
+    >>> token = # ... token string provided by user ...
+    >>> source = # ... load totp json string from database ...
+    >>> last_counter = # ... load counter value from cache ...
+
+    >>> # check attempt rate limit for this account / address (per step 3 above)
+
+    >>> # invoke verify
+    >>> try:
+    ...     match = TotpFactory.verify(token, source, last_counter=last_counter)
+    ... except MalformedTokenError as err:
+    ...     # --- malformed token ---
+    ...     # * inform user, e.g. by displaying str(err)
+    ... except TokenError as err:
+    ...     # --- invalid or reused token ---
+    ...     # * add to rate limit counter
+    ...     # * inform user, e.g. by displaying str(err)
+    ... else:
+    ...     # --- successful match ---
+    ...     # * reset rate-limit counter
+    ...     # * store 'match.counter' in per-user cache for at least 'match.cache_seconds'
+
+Finally, one optional step is to check ``match.totp.changed``.  This is the value
+of the :attr:`TOTP.changed` attribute, and if true, means the TOTP object needs to be
+reserialized to disk (usually because it was encrypted with an old key, or stored
+in a legacy format).  This can be done via::
+
+    >>> if match.totp.changed:
+    ...     totp_data = match.totp.to_json()
+    ...     # ... store totp json string in database ...
+
+.. rst-class:: float-center without-title
+
+.. seealso:: **For more details see** :ref:`totp-verifying` (below)
+
+.. _totp-creation:
 
 Creating TOTP Instances
 =======================
-The first thing needed to setup TOTP for an account is for the server
-to create a new key.  This can be done by creating a :class:`~passlib.totp.TOTP` instance
-and instructing it to create a new key::
 
-    >>> # create new instance with a randomly generated key
+Direct Creation
+---------------
+Creating TOTP instances is straightforward:
+The :class:`TOTP` class can be called directly to constructor a TOTP instance
+from it's component configuration:
+
     >>> from passlib.totp import TOTP
-    >>> otp = TOTP.new()
+    >>> totp = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM', digits=9)
+    >>> totp.generate()
+    '29387414'
 
-    >>> # the configuration and key can be accessed from attributes:
+You can also use a number of the alternate constructors,
+such as :meth:`TOTP.new` or :meth:`TOTP.from_source`.
+
+    >>> # create new instance w/ automatically generated key
+    >>> totp = TOTP.new()
+
+    >>> # or deserializing it from a string (e.g. the output of TOTP.to_json)
+    >>> totp = TOTP.from_source('{"key":"D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT","type":"totp","v":1}')
+
+Once created, you can inspect the object for it's configuration and key::
+
     >>> otp.base32_key
     'GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM'
     >>> otp.alg
@@ -145,113 +237,239 @@ and instructing it to create a new key::
     >>> otp.period
     30
 
-    >>> # if you want a non-standard alg or period, you can specify it via the constructor
-    >>> otp2 = TOTP(new=True, period=60, alg="sha256")
+If you want a non-standard alg or period, you can specify it via the constructor.
+You can also create TOTP instances from an existing key
+(see the :class:`TOTP` constructor's ``key`` and ``format`` options for more details)::
 
-    >>> # You can also create TOTP instances from an existing key:
-    >>> # (see TOTP's "key" and "format" options for more details)
+    >>> otp2 = TOTP(new=True, period=60, alg="sha256")
+    >>> otp2.alg
+    'sha256'
+    >>> otp2.period
+    60
+
     >>> otp3 = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
+
+Using a Factory
+---------------
+Most applications will have some default configuration which they want
+all TOTP instances to have.  This includes application secrets (for encrypting
+TOTP keys for storage), or setting a default issuer label (for rendering URIs).
+
+Instead of having to call the :class:`TOTP` constructor each time and provide
+all these options, you can use the :meth:`TOTP.using` method.
+This method takes in a number of the same options as the TOTP constructor,
+and returns a :class:`TOTP` subclass which has these options pre-programmed
+in as defaults::
+
+    >>> # here we create a TOTP factory with a random encryption secret and a default issuer
+    >>> from passlib.totp import TOTP, generate_secret
+    >>> TotpFactory = TOTP.using(issuer="myapp.example.org", secrets={"1": generate_secret()})
+
+Since this object is a subclass of :class:`TOTP`, you can use all it's normal
+methods.  The difference is that it will integrate the information provided by using()::
+
+    >>> totp = TotpFactory.new()
+    >>> totp.issuer
+    'myapp.example.org'
+
+    >>> totp.to_json()
+    '{"enckey":{"c":14,"k":"FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ","s":"UL2J4MZG4SONHOWXLKFQ","t":"1","v":1},"type":"totp","v":1}'
+
+In typical usage, a server application will want to create a TotpFactory
+as part of it's initialization, and then use that class for all operations,
+instead of referencing :class:`TOTP` directly.
+
+.. rst-class:: float-center
 
 .. seealso::
 
-    For more details, see the :class:`~passlib.totp.TOTP` constructor,
-    and the list of :ref:`TOTP attributes <totp-configuration-attributes>`.
+    * :ref:`totp-configuring-clients` for details about the ``issuer`` option
+    * :ref:`totp-storing-instances` for details about storage and key encryption
 
-Configuring Client Applications
-===============================
+.. _totp-configuring-clients:
+
+Configuring Clients
+===================
 Once a TOTP instance & key has been generated on the server,
 it needs to be transferred to the client TOTP program for installation.
-This can be done by having the user manually type the value of ``otp.base32_key``
-into their application, along with any configuration options.
+This can be done by having the user manually type the key into their TOTP client,
+but an easier method is to render the TOTP configuration to a URI stored in a QR Code.
 
-An easier method, widely used for smartphone-based TOTP clients, is Google Auth's `KeyUriFormat <https://github.com/google/google-authenticator/wiki/Key-Uri-Format>`_.
-This defines a standard for encoding an TOTP key and configuration into a URI.
-Once there, the URI can be transferred to the client by email, or (more frequently),
-by encoding it into a visual qrcode, and presenting it to the user visually.  Many smartphone
-TOTP applications support the user importing this information via the smartphone's camera.
+Rendering URIs
+--------------
+The `KeyUriFormat <https://github.com/google/google-authenticator/wiki/Key-Uri-Format>`_
+is a de facto standard for encoding TOTP keys & configuration
+information into a string.  Once the URI is rendered as a QR Code,
+it can easily be imported into many smartphone clients (such as Authy and Google Authenticator)
+via the smartphone's camera.
 
 When transferring the TOTP configuration this way, you will need to provide unique identifiers
 for both your application, and the user's account.  This allows TOTP clients to distinguish
-this key from the others in it's database.  This can be done via the "issuer" and "label"
-parameters of the :meth:`~passlib.totp.TOTP.to_uri` method:
+this key from the others in it's database.  This can be done via the ``issuer`` and ``label``
+parameters of the :meth:`TOTP.to_uri` method.
+
+The ``issuer`` string should be a globally unique label for your application
+(e.g. it's domain name).  Since the issuer string shouldn't change across users,
+you can create a customized TOTP factory, and provide it with a default issuer.
+*(If you skip this step, the issuer will need to be provided at every*
+:meth:`TOTP.to_uri` *call)*::
+
+    >>> from passlib.totp import TOTP
+    >>> TotpFactory = TOTP.using(issuer="myapp.example.org")
+
+Once this is done, rendering to a provisioning URI just requires
+picking a ``label`` for the URI.  This label should identify the user
+within your application (e.g. their login or their email)::
 
     >>> # assume an existing TOTP instance has been created
-    >>> from passlib import totp
-    >>> otp = totp.TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
+    >>> totp = TotpFactory.new()
 
-    >>> # serialize the object to a URI,
-    >>> # choosing an "issuer" label unique to your application (e.g. it's domain name)
-    >>> # and a label that's meaningful within your application (e.g. the user name or email).
-    >>> uri = otp.to_uri(label="demo-user", issuer="myapp.example.org")
+    >>> # serialize the object to a URI, along with label for user
+    >>> uri = totp.to_uri(label="demo-user")
+    >>> uri
     'otpauth://totp/demo-user?secret=GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM&issuer=myapp.example.org'
 
-    >>> # this uri can encoded as a qrcode, using various qrcode libraries.
-    >>> # an example, using PyQrCode <https://pypi.python.org/pypi/PyQRCode>,
-    >>> # which will render the qrcode to the console:
-    >>> import pyqrcode
-    >>> print(pyqrcode.create(uri).terminal(quiet_zone=1))
-    ... very large ascii-art qrcode omitted...
+Rendering QR Codes
+------------------
+This URI can then be encoded as a QR Code, using various python & javascript qrcode libraries.
+As an example, the following uses `PyQrCode <https://pypi.python.org/pypi/PyQRCode>`_
+to render the URI to the console as a text-based QR code::
 
-On the client side, passlib offers a helper method for loading from a provisioning
-URI.  This can be useful for testing URI encoding & output:
+    >>> import pyqrcode
+    >>> uri = totp.to_uri(label="demo-user")
+    >>> print(pyqrcode.create(uri).terminal(quiet_zone=1))
+    ... very large ascii-art qrcode here...
+
+As a fallback to the QR Code, it's recommended to alternately / also display
+the key itself, so that users with camera-less TOTP clients can still enter it.
+The :meth:`TOTP.pretty_key` method is provided to help with this::
+
+    >>> totp.pretty_key()
+    'D6RZ-I4RO-AUQK-JNAW-QKYP-N7W7-LNV4-3GOT'
+
+Note that if you use a non-default ``alg``, ``digits``, or ``period`` values,
+these should also be displayed next to the key.
+
+Parsing URIs
+------------
+On the client side, passlib offers the :meth:`TOTP.from_uri` constructor creating
+a TOTP object from a provisioning URI.  This can also be useful for testing URI encoding & output
+during development::
 
     >>> # create new TOTP instance from a provisioning uri:
-    >>> from passlib import totp
-    >>> otp = totp.from_uri('otpauth://totp/demo-user?secret=GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM&issuer=myapp.example.org')
+    >>> from passlib.totp import TOTP
+    >>> totp = TOTP.from_uri('otpauth://totp/demo-user?secret=GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM&issuer=myapp.example.org')
     >>> otp.base32_key
     'GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM'
     >>> otp.alg
     "sha1"
     >>> otp.period
     30
+    >>> otp.generate().token
+    '897453'
 
-.. seealso::
-
-    For more details, see the :meth:`~passlib.totp.TOTP.from_uri` constructor,
-    and the :meth:`~passlib.totp.TOTP.to_uri` method.
+.. _totp-storing-instances:
 
 Storing TOTP instances
 ======================
-One disadvantage of :meth:`~TOTP.to_uri` and :func:`!from_uri` (above)
-is that they're oriented towards helping a server configure a client device.
-Server applications will still need to persist this information
-to disk (whether a database, flat file, etc).  To help with this, passlib offers
-a way to serialize OTP tokens to and from JSON: the :meth:`TOTP.to_json` method,
-and the :meth:`passlib.totp.from_json` constructor::
+Once a TOTP object has been created, it inevitably needs to be stored
+in a database.  Using :meth:`~TOTP.to_uri` to serialize it to a URI
+has a few disadvantages - it always includes an issuer & a label
+(wasting storage space), and it stores the key in an unencrypted format.
 
-    >>> # assume an existing TOTP instance has been created
-    >>> from passlib import totp
-    >>> otp = totp.TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
+JSON Serialization
+------------------
+To help with this passlib offers a way to serialize TOTP objects to and from
+a simple JSON format, which can optionally encrypt the keys for storage.
 
-    >>> # you can serialize it to json:
-    >>> data = otp.to_json()
+To serialize a TOTP object to a string, use :meth:`TOTP.to_json`::
+
+    >>> from passlib.totp import TOTP
+    >>> totp = TOTP.new()
+    >>> data = totp.to_json()
     >>> data
     '{"key":"GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM","type":"totp","v":1}'
 
-    >>> # this can then stored in a database field, and deserialized as needed:
-    >>> otp2 = totp.from_json(data)
-    >>> otp.base32_key
+This string can be stored in a database, and then deserialized as needed
+using the :meth:`TOTP.from_json` constructor::
+
+    >>> totp2 = TOTP.from_json(data)
+    >>> totp2.base32_key
     'GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM'
-    >>> otp.alg
-    "sha1"
-    >>> otp.period
-    30
 
-For internal storage, these methods offer a couple of advantages over the URI format:
-their output is relatively simple to inspect (e.g. in Postgres JSON columns),
-and they support storing the keys in an encrypted fashion (see :ref:`totp-context-usage` below).
+There are also corresponding :meth:`TOTP.to_dict` and :meth:`TOTP.from_dict`
+methods for applications that want to serialize the object without converting
+it all the way into a JSON string.
 
-For cases where a python dictionary is more useful than a json string,
-the :meth:`TOTP.to_dict` method returns a python dict identical to parsing
-the output of :meth:`TOTP.to_json`.  This value can be reconstructed
-via :func:`from_source`, which will autodetect whether the input
-is a dictionary vs string.
+.. _totp-encryption-setup:
 
-.. seealso::
+Application Secrets
+-------------------
+The one thing lacking about the example above is that the resulting
+data contained the plaintext key.  If the server were compromised,
+the TOTP keys could be used directly to impersonate the user.
+To solve this, Passlib offers a method for providing an application-wide
+secret that :meth:`TOTP.to_json` will use to encrypt keys.
 
-    For more details, see the :meth:`~passlib.totp.TOTP.from_source` constructor,
-    and the :meth:`~passlib.totp.TOTP.to_json` method;
-    as well as the stateful usage & AppWallet usage tutorials below.
+Per :ref:`Step 1 <totp-walkthrough-step-1>` of the walkthrough (above),
+applications can use the :func:`generate_secret` helper to create new secrets.
+All existing secrets (the current one, and any deprecated / compromised ones)
+should be assigned an identifying tag, and stored in a dict or file.
+
+Ideally, these secrets should be stored in a location which the application's process
+does not have access to once it has been initialized.  Once this data is loaded,
+applications can create a factory function using :meth:`TOTP.using`,
+and provide these secrets as part of it's arguments.
+This can take the form of a file path, a loaded string, or a dictionary:
+
+    >>> # load from dict
+    >>> from passlib.totp import TOTP
+    >>> TotpFactory = TOTP.using(secrets={"1": "'pO7SwEFcUPvIDeAJr7INBj0TjsSZJr1d2ddsFL9r5eq'"})
+
+    >>> # load from filepath
+    >>> TotpFactory = TOTP.using(secrets_path="/path/to/secret/file")
+
+The ``secrets`` and ``secrets_path`` values can be anything accepted
+by the :class:`AppWallet` constructor (the internal class that's
+used to load & store the application secrets in memory).  An instance
+of this object is accessible for inspection from the :attr:`!TOTP.wallet` attribute
+of each factory::
+
+    >>> TotpFactory.wallet
+    <passlib.totp.AppWallet at 0x2ba5310>
+
+Encrypting Keys
+---------------
+Once you have a TOTP factory configured with one or more application secrets,
+any objects you create through the factory will automatically have access
+to the application secrets, and will use them to encrypt the key when
+serializing to json.
+
+Assuming ``TotpFactory`` is set up from the previous step,
+contrast the output of this with the plain JSON serialization example above::
+
+    >>> totp = TotpFactory.new()
+    >>> data = totp.to_json()
+    >>> data
+    '{"enckey":{"c":14,"k":"FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ","s":"UL2J4MZG4SONHOWXLKFQ","t":"1","v":1},"type":"totp","v":1}'
+
+This data can be stored in the database like normal, but
+will require access to the application secret in order to decrypt::
+
+    >>> data = '{"enckey":{"c":14,"k":"FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ","s":"UL2J4MZG4SONHOWXLKFQ","t":"1","v":1},"type":"totp","v":1}'
+    >>> totp = TotpFactory.from_source(data)
+    >>> totp.base32_key
+    'FLEQC3VO6SIT3T7GN2GIG6ONPXADG5CZ'
+
+Whereas trying to decode without a secret configured will result in::
+
+    >>> totp = TOTP.from_source(data)
+    ...
+    TypeError: no application secrets present, can't decrypt TOTP key
+
+Note that when loading TOTP objects this way, you can check the :attr:`TOTP.changed`
+attr to see if the object needs to be re-serialized (e.g. deprecated secret,
+too few encryption rounds, deprecated serialization format).
 
 Generating Tokens (Client-Side Only)
 ====================================
@@ -279,20 +497,26 @@ informational attributes.
     >>> otp.generate(time=1475338840).token
     '359275'
 
+.. rst-class:: float-right
+
 .. seealso::
 
     For more details, see the :meth:`TOTP.generate` method.
 
+.. _totp-verifying:
+
 Verifying Tokens
 ================
 In order for successful authentication, the user must generate the token
-on the client, and provide it to your server before the period ends.
+on the client, and provide it to your server before the :attr:`TOTP.period` ends.
 
 Since this there will always be a little transmission delay (and sometimes
 client clock drift) TOTP verification usually uses a small verification window,
 allowing a user to enter a token a few seconds after the period has ended.
 This window is usually kept as small as possible, and in passlib defaults to 30 seconds.
 
+Match & Verify
+--------------
 To verify a token a user has provided, you can use the :meth:`TOTP.match` method.
 If unsuccessful, a :exc:`passlib.exc.TokenError` subclass will be raised.
 If successful, this will return a :class:`TotpMatch` instance, with details about the match.
@@ -322,7 +546,7 @@ informational attributes.
     <TotpMatch counter=49177961 time=1475338840>
 
 As a further optimization, the :meth:`TOTP.verify` method allows deserializing
-and matching a token in a single step.  Not nly does this save a little code,
+and matching a token in a single step.  Not only does this save a little code,
 it has a signature much more similar to that of Passlib's :meth:`passlib.ifc.PasswordHash.verify`.
 
 Typically applications will provide the TOTP key in whatever format it's stored by the server.
@@ -336,6 +560,8 @@ As an example:
 
     >>> # parse & match the token in a single call
     >>> match = TOTP.verify('123456', totp_source)
+
+.. rst-class:: float-right
 
 .. seealso::
 
@@ -418,8 +644,8 @@ Because of this, **it's critical for applications implementing OTP to rate-limit
 the number of attempts on an account**, since an unlimited number of attempts
 guarantees an attacker will be able to guess any given token.
 
-Quick Example
-.............
+**The Gory Details**
+
 For TOTP, the formula is ``odds = guesses * (1 + 2 * window / period) / 10**digits``;
 where ``window`` in this case is the :meth:`TOTP.match` window (measured in seconds),
 and ``period`` is the number of seconds before the token is rotated.
@@ -438,11 +664,3 @@ the maximum window you should use would be
     xxx: The above formulas are not accurate for 10 digit tokens, since the 10th
     digit takes on fewer values -- subtitute ``3e9`` instead of ``10**digits``
     in this case.
-
-.. _totp-context-usage:
-
-Securely Storing TOTP Instances
-===============================
-.. todo:: document how AppWallet can be used to persist TOTP tokens securely.
-          include TOTP.using() in this section.
-
