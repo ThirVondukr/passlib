@@ -52,50 +52,6 @@ class UtilsTest(TestCase):
     #     self.assertEqual(_total_self_info("abcd" * 8), 64)
     #     self.assertAlmostEqual(_total_self_info("abcdaaaa"), 12.3904, places=4)
 
-    def test_max_average_entropy(self):
-        """_max_average_entropy()"""
-        from passlib.pwd import _max_self_info_rate as _mae, _self_info_rate as _ae
-
-        # asize < 1
-        self.assertRaises(ValueError, _mae, -1, 1)
-        self.assertRaises(ValueError, _mae, 0, 1)
-
-        # osize < 1
-        self.assertRaises(ValueError, _mae, 4, -1)
-        self.assertEqual(_mae(4, 0), 0)
-
-        # no repetition (osize <= asize)
-        self.assertEqual(_mae(4, 1), 0)
-        self.assertEqual(_mae(4, 2), 1)  # _ae('ab')
-        self.assertAlmostEqual(_mae(4, 3), _ae("abc"), places=5)
-        self.assertEqual(_mae(4, 4), 2)  # _ae('abcd')
-
-        # 1 repetition
-        self.assertAlmostEqual(_mae(4, 5), _ae("abcd" + "a"), places=5)
-        self.assertAlmostEqual(_mae(4, 6), _ae("abcd" + "ab"), places=5)
-        self.assertAlmostEqual(_mae(4, 7), _ae("abcd" + "abc"), places=5)
-        self.assertAlmostEqual(_mae(4, 8), _ae("abcd" * 2 ), places=5)
-
-        # 2 repetitions
-        self.assertAlmostEqual(_mae(4,  9), _ae("abcd" * 2 + "a"), places=5)
-        self.assertAlmostEqual(_mae(4, 10), _ae("abcd" * 2 + "ab"), places=5)
-        self.assertAlmostEqual(_mae(4, 11), _ae("abcd" * 2 + "abc"), places=5)
-        self.assertAlmostEqual(_mae(4, 12), _ae("abcd" * 3), places=5)
-
-    # def test_average_entropy_per_wordset_char(self):
-    #     """_average_entropy_per_wordset_char()"""
-    #     from passlib.pwd import _self_info_rate_per_char as _awe, _self_info_rate as _ae
-    #
-    #     self.assertEqual(_awe([]), 0)
-    #     self.assertEqual(_awe(["a"]), 0)
-    #     self.assertEqual(_awe(["a", "b"]), 1)
-    #     self.assertEqual(_awe(["a", "b", "c", "d"]), 2)
-    #
-    #     self.assertEqual(_awe(["aa", "bb"]), 1)  # a=2/4, b=2/4
-    #     self.assertEqual(_awe(["ab", "ba"]), 1)  # a=2/4, b=2/4
-    #
-    #     self.assertEqual(_awe(["ab", "ba", "ca", "da"]), 1.75)  # a=4/8, b=2/8, c=1/8, d=1/8
-
 #=============================================================================
 # word generation
 #=============================================================================
@@ -150,23 +106,11 @@ class WordGeneratorTest(TestCase):
 
         # chars option
         # there are 3**3=27 possible combinations
-        results = genword(length=3, chars="abc", returns=5000, min_complexity=0)
+        results = genword(length=3, chars="abc", returns=5000)
         self.assertResultContents(results, 5000, "abc", unique=27)
 
         # chars + charset
         self.assertRaises(TypeError, genword, chars='abc', charset='hex')
-
-    def test_min_complexity(self):
-        """'min_complexity' option"""
-
-        # test non-zero min_complexity.
-        # should reject 'aaa' 'bbb' 'ccc' (0 avg entropy), leaving only 24
-        results = genword(length=3, chars="abc", returns=5000, min_complexity=0.001)
-        self.assertResultContents(results, 5000, "abc", unique=24)
-
-        # test min_complexity=1 -- should only accept permutations of 'abc'
-        results = genword(length=3, chars="abc", returns=5000, min_complexity=1)
-        self.assertResultContents(results, 5000, "abc", unique=6)
 
     # TODO: test rng option
 
@@ -175,9 +119,7 @@ class WordGeneratorTest(TestCase):
 #=============================================================================
 
 # import subject
-from passlib.pwd import genphrase, _load_wordset, PhraseGenerator
-default_words = _load_wordset(PhraseGenerator.wordset)
-dice_words = _load_wordset("diceware")
+from passlib.pwd import genphrase, PhraseGenerator
 simple_words = ["alpha", "beta", "gamma"]
 
 class PhraseGeneratorTest(TestCase):
@@ -244,45 +186,11 @@ class PhraseGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, simple_words)
 
         # words option
-        results = genphrase(length=3, words=simple_words, returns=5000, min_complexity=0)
-        self.assertResultContents(results, 5000, simple_words, unique=3**3 - 3)
+        results = genphrase(length=3, words=simple_words, returns=5000)
+        self.assertResultContents(results, 5000, simple_words, unique=3**3)
 
         # words + wordset
-        self.assertRaises(TypeError, genphrase, words=simple_words, wordset='diceware')
-
-    def test_min_complexity(self):
-        """'min_complexity' option"""
-
-        # test non-zero min_complexity.
-        # should reject repeats of 'alpha alpha alpha', etc (0 avg entropy)
-        results = genphrase(length=3, words=simple_words, returns=1000, min_complexity=0.001)
-        self.assertResultContents(results, 1000, simple_words, unique=3**3 - 3)
-
-        # XXX: trusting this will work, it does for charsets --
-        #      but min_chars requirement makes this take forever
-        # # test min_complexity=1 -- should only accept permutations containing all symbols
-        # results = genphrase(length=3, words=simple_words, returns=24, min_complexity=1)
-        # self.assertResultContents(results, 24, simple_words, unique=6)  # =3!
-
-    # def test_min_chars(self):
-    #     """min_chars protection"""
-    #     from passlib.pwd import _self_info_rate_per_char
-    #
-    #     # sanity check our wordset
-    #     entropy_per_char = _self_info_rate_per_char(simple_words)
-    #     self.assertAlmostEqual(entropy_per_char, 2.8352, places=4)
-    #
-    #     # create generator
-    #     gen = PhraseGenerator(entropy=48, words=simple_words, sep="")
-    #
-    #     # sanity check: gen should target nearest multiple of entropy_per_symbol >= 48
-    #     self.assertEqual(gen.entropy, 48)
-    #     self.assertAlmostEqual(gen.effective_entropy, 49.1338, places=4)
-    #     self.assertEqual(gen.length, 31)  # 48 / 1.58496
-    #
-    #     # given numbers above, anything less than 49.1338 / 2.8352 could be guessed
-    #     # using a character based attack, w/o needing wordset
-    #     self.assertEqual(gen.min_chars, 2)
+        self.assertRaises(TypeError, genphrase, words=simple_words, wordset='bip39')
 
 #=============================================================================
 # strength

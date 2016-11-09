@@ -25,7 +25,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # core
 import codecs
 from collections import defaultdict
-from itertools import chain
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
 import os
@@ -115,69 +114,6 @@ def _self_info_rate(source):
 #     return _self_info_rate(source) * len(source)
 
 
-def _max_self_info_rate(alphabet_size, output_size):
-    """
-    calculate maximum _self_info_rate() of all strings of length <output_size>
-    created from at most <alphabet_size> symbols (assuming all symbols have equal probability).
-    """
-    # NOTE: this accomplishes it's purpose by assuming maximum average entropy
-    #       would be a string repeating all symbols ``output//alphabet`` times,
-    #       and with ``extra = output % alphabet`` symbols repeated one extra time.
-    #       the following code then calculates _self_info_rate() for such a string.
-
-    # sanity check
-    if output_size <= 0:
-        if not output_size:
-            return 0
-        raise ValueError("output size must be positive integer")
-    if alphabet_size <= 0:
-        raise ValueError("alphabet size must be positive integer")
-
-    # all symbols repeated <count> times, and <extra> of them repeated 1 more time.
-    count, extra = divmod(output_size, alphabet_size)
-    # assert 0 <= extra < alphabet_size
-    # assert alphabet_size * count + extra == output_size
-
-    # average entropy contributed by head symbols.
-    # there are <alphabet-extra> of them (all of alphabet but tail symbols),
-    # and each occurs <count> times.
-    if count:
-        prob_head = count / output_size
-        head_bits = (alphabet_size - extra) * prob_head * logf(prob_head, 2)
-    else:
-        # avoid log(0) error when count=0
-        head_bits = 0
-
-    # average entropy contributed by tail symbols.
-    # there are <extra> of them, and each occurs <count+1> times.
-    if extra:
-        prob_tail = (count + 1) / output_size
-        tail_bits = extra * prob_tail * logf(prob_tail, 2)
-    else:
-        tail_bits = 0
-
-    # combine
-    return -(head_bits + tail_bits)
-
-
-# def _self_info_rate_per_char(wordset):
-#     """
-#     return the average *per-character* entropy in a wordset,
-#     using each char's frequency in the wordset as the probability of occurrence.
-#
-#     essentially just treats wordset as one long string,
-#     and calculates :func:`_self_info_rate`.
-#
-#     :arg wordset:
-#         iterable containing 1+ words, each of which are themselves
-#         iterables containing 1+ characters.
-#
-#     :returns:
-#         float bits of entropy
-#     """
-#     return _self_info_rate(chain.from_iterable(wordset))
-
-
 #: path to passlib's data dir
 _data_dir = os.path.join(os.path.dirname(__file__), "_data")
 
@@ -195,6 +131,7 @@ def _load_wordset(name):
     log.debug("loaded %d-element wordset from %r", len(words), source)
     return words
 
+
 def _dup_repr(source):
     """return repr of duplicates in string/list, for use in error message"""
     seen = set()
@@ -209,8 +146,6 @@ def _dup_repr(source):
     if len(dups) > trunc:
         dup_repr += ", ... plus %d others" % (len(dups) - trunc)
     return dup_repr
-
-_MIN_COMPLEXITY_CAP = 1 - 1e-14
 
 #=============================================================================
 # base generator class
@@ -240,14 +175,6 @@ class SequenceGenerator(object):
 
         Also exposed as a readonly attribute.
 
-    :param min_complexity:
-        By default, generators derived from this class will avoid
-        generating passwords with excessively high per-symbol redundancy
-        (e.g. ``aaaaaaaa``). This is done by rejecting any strings
-        whose self-information per symbol is below a certain
-        percentage of the maximum possible a given string and alphabet
-        size. This defaults to 40%, or ``min_complexity=0.4``.
-
     .. autoattribute:: length
     .. autoattribute:: symbol_count
     .. autoattribute:: entropy_per_symbol
@@ -274,16 +201,10 @@ class SequenceGenerator(object):
     #: number of potential symbols
     symbol_count = None
 
-    #: default threshold for rejecting low entropy sequences,
-    #: measured as % of maximum possible average entropy over all
-    #: sequences of given output & alphabet size.
-    #: TODO: defend this default -- it was picked via experimentation
-    min_complexity = 0.1
-
     #=============================================================================
     # init
     #=============================================================================
-    def __init__(self, entropy=None, length=None, rng=None, min_complexity=None, **kwds):
+    def __init__(self, entropy=None, length=None, rng=None, **kwds):
 
         # make sure subclass set things up correctly
         assert self.symbol_count is not None, "subclass must set .symbol_count"
@@ -304,15 +225,6 @@ class SequenceGenerator(object):
         if length < 1:
             raise ValueError("`length` must be positive integer")
         self.length = length
-
-        # init min complexity
-        if min_complexity is None:
-            min_complexity = self.min_complexity
-        if min_complexity < 0 or min_complexity > 1:
-            raise ValueError("`min_complexity` must be between 0 and 1")
-        self.min_complexity = min_complexity
-        # TODO: increase length/entropy to account for min_complexity
-        #       stripping out some possibilities
 
         # init other common options
         if rng is not None:
@@ -341,43 +253,6 @@ class SequenceGenerator(object):
         (should always be LCM of entropy_per_symbol >= self.entropy)
         """
         return self.length * self.entropy_per_symbol
-
-    @memoized_property
-    def max_self_info_rate(self):
-        """
-        maximum self-info rate acheiveable by a sequence <length>
-        built from <symbol_count> symbols.
-        """
-        return _max_self_info_rate(self.symbol_count, self.length)
-
-    @memoized_property
-    def min_self_info_rate(self):
-        """
-        minimum entropy allowed in a generated password
-        (controlled by min_complexity option)
-        """
-        # NOTE: MIN_COMPLEXITY_CAP is to prevent edge case where rounding error
-        #       causes *nothing* to satisfy min_complexity==1
-        return min(self.min_complexity, _MIN_COMPLEXITY_CAP) * self.max_self_info_rate
-
-    #=============================================================================
-    # debugging
-    #=============================================================================
-    # def _complexity(self, pwd):
-    #     """
-    #     measure 'complexity' of generated password
-    #     """
-    #     return _average_entropy(pwd) / self.max_self_info_rate
-    #
-    # def _analyze_complexity(self, count=1):
-    #     """
-    #     temporarily helper while exploring additional filters for
-    #     password generation. looking into forbidding above a certain
-    #     threshold of redundancy (as minimum % of max possible average entropy)
-    #     """
-    #     result = [(p, self._complexity(p)) for p in self(count)]
-    #     result.sort(key=lambda elem: (elem[1], elem[0]))
-    #     return result
 
     #=============================================================================
     # generation
@@ -499,12 +374,6 @@ class WordGenerator(SequenceGenerator):
         while True:
             secret = getrandstr(self.rng, self.chars, self.length)
 
-            # check that it satisfies minimum self-information limit
-            # set by min_complexity. i.e., reject strings like "aaaaaaaa"
-            # even if they're long enough.
-            if _self_info_rate(secret) < self.min_self_info_rate:
-                continue
-
             # XXX: could do things like optionally ensure character groups
             #      (e.g. letters & punctuation) are included.
 
@@ -585,12 +454,6 @@ def genword(entropy=None, length=None, returns=None, **kwds):
 #=============================================================================
 # pass phrase generator
 #=============================================================================
-class JOIN(object):
-    """constants for PhraseGenerator join modes"""
-    NONE = "none"
-    SPACE = "space"
-    CAMEL = "camelcase"
-
 class PhraseGenerator(SequenceGenerator):
     """class which generates passphrases by randomly choosing
     from a list of unique words.
@@ -673,16 +536,6 @@ class PhraseGenerator(SequenceGenerator):
     def symbol_count(self):
         return len(self.words)
 
-    # @memoized_property
-    # def min_chars(self):
-    #     """
-    #     minimum number of characters allowed in resulting password.
-    #     (see comment in ``.__next__()`` for details).
-    #     """
-    #     chars_in_secret = (self.length * self.min_self_info_rate /
-    #                        _self_info_rate_per_char(self.words))
-    #     return int(ceil(chars_in_secret))
-
     #=============================================================================
     # generation
     #=============================================================================
@@ -690,27 +543,10 @@ class PhraseGenerator(SequenceGenerator):
     def __next__(self):
         while True:
             # create random word
-            symbols = [self.rng.choice(self.words) for _ in irange(self.length)]
-
-            # check that it satisfies minimum self-information limit
-            # set by min_complexity. i.e., reject strings like "aaaaaaaa"
-            if _self_info_rate(symbols) <= self.min_self_info_rate:
-                continue
-
-            # XXX: this code isn't quite capturing the right calculation,
-            #      so omitting this for now.
-            # # reject any passwords which contain so many short / repetitive words that it's below
-            # # ``chars_in_secret * self_info_rate_per_char < words_in_secret * min_self_info_rate``
-            # # ... where self_info_rate_per_char is determined based on frequency of chars in wordset.
-            # # To do this cheaply, we precalculate minimum chars_in_secret (above)
-            # chars = sum(len(elem) for elem in symbols)
-            # if chars < self.min_chars:
-            #     continue
+            words = (self.rng.choice(self.words) for _ in irange(self.length))
 
             # join using separator
-            secret = self.sep.join(symbols)
-
-            return secret
+            return self.sep.join(words)
 
     #=============================================================================
     # eoc
