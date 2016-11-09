@@ -525,7 +525,9 @@ class _NoBackend(_BcryptCommon):
     #===================================================================
     def _calc_checksum(self, secret):
         self._stub_requires_backend()
-        return self._calc_checksum(secret)
+        # NOTE: have to use super() here so that we don't recursively
+        #       call subclass's wrapped _calc_checksum, e.g. bcrypt_sha256._calc_checksum
+        return super(bcrypt, self)._calc_checksum(secret)
 
     #===================================================================
     # eoc

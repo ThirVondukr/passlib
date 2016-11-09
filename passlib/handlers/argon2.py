@@ -530,7 +530,9 @@ class _NoBackend(_Argon2Common):
         # NOTE: since argon2_cffi takes care of rendering hash,
         #       _calc_checksum() is only used by the argon2pure backend.
         self._stub_requires_backend()
-        return self._calc_checksum(secret)
+        # NOTE: have to use super() here so that we don't recursively
+        #       call subclass's wrapped _calc_checksum
+        return super(argon2, self)._calc_checksum(secret)
 
     #===================================================================
     # eoc
