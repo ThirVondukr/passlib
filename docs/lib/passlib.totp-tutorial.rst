@@ -113,6 +113,8 @@ to uniquely identify your application, and a "label" string to uniquely identify
 The following example creates a new TOTP instance with a new key,
 and renders it to a URI, plugging in application-specific information.
 
+Using the ``TotpFactory`` object set up in step 2::
+
     >>> totp = TotpFactory.new()
     >>> uri = totp.to_uri(issuer="myapp.example.org", label="username")
     >>> uri
@@ -175,6 +177,7 @@ A skeleton example of how this should function::
 
     >>> # check attempt rate limit for this account / address (per step 3 above)
 
+    >>> # using the TotpFactory object defined in step 2,
     >>> # invoke verify
     >>> try:
     ...     match = TotpFactory.verify(token, source, last_counter=last_counter)
