@@ -43,6 +43,7 @@ TOTP – Client-Side Token Generation
 
 TOTP – Server-Side Token Verification
 -------------------------------------
+.. automethod:: TOTP.match
 .. automethod:: TOTP.verify
 
 .. todo::

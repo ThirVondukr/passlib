@@ -199,7 +199,7 @@ client clock drift) TOTP verification usually uses a small verification window,
 allowing a user to enter a token a few seconds after the period has ended.
 This window is usually kept as small as possible, and in passlib defaults to 30 seconds.
 
-To verify a token a user has provided, you can use the :meth:`TOTP.verify` method.
+To verify a token a user has provided, you can use the :meth:`TOTP.match` method.
 If unsuccessful, a :exc:`passlib.exc.TokenError` subclass will be raised.
 If successful, this will return a :class:`TotpMatch` instance, with details about the match.
 This object acts like a tuple of ``(counter, timestamp)``, but offers some additional
@@ -214,18 +214,34 @@ informational attributes.
     >>> otp = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
 
     >>> # user provides malformed token:
-    >>> otp.verify('359', time=1475338840)
+    >>> otp.match('359', time=1475338840)
     ...
     MalformedTokenError: Token must have exactly 6 digits
 
     >>> # user provides token that isn't valid w/in time window:
-    >>> otp.verify('123456', time=1475338840)
+    >>> otp.match('123456', time=1475338840)
     ...
     InvalidTokenError: Token did not match
 
     >>> # user provides correct token
-    >>> otp.verify('359275', time=1475338840)
+    >>> otp.match('359275', time=1475338840)
     <TotpMatch counter=49177961 time=1475338840>
+
+As a further optimization, the :meth:`TOTP.verify` method allows deserializing
+and matching a token in a single step.  Not nly does this save a little code,
+it has a signature much more similar to that of Passlib's :meth:`passlib.ifc.PasswordHash.verify`.
+
+Typically applications will provide the TOTP key in whatever format it's stored by the server.
+This will usually be a JSON string (as output by :meth:`TOTP.to_json`), but can be any
+format accepted by :meth:`TOTP.from_source`.
+As an example:
+
+    >>> # application loads json-serialized TOTP key
+    >>> from passlib.totp import TOTP
+    >>> totp_source = '{"v": 1, "type": "totp", "key": "otxl2f5cctbprpzx"}'
+
+    >>> # parse & match the token in a single call
+    >>> match = TOTP.verify('123456', totp_source)
 
 .. _totp-reuse-warning:
 
@@ -234,20 +250,20 @@ Warning about Token Reuse
 Even if an attacker is able to observe a user entering a TOTP token,
 it will do them no good once ``period + window`` seconds have passed (typically 60).
 This is because the current time will now have advanced far enough that
-:meth:`!TOTP.verify` will *never* match against the stolen token.
+:meth:`!TOTP.match` will *never* match against the stolen token.
 
 However, this leaves a small window in which the attacker can observe and replay
 a token, successfully impersonating the user.
 To prevent this, applications are strongly encouraged to record the
-latest :attr:`TotpMatch.counter` value that's returned by the :meth:`!TOTP.verify` method.
+latest :attr:`TotpMatch.counter` value that's returned by the :meth:`!TOTP.match` method.
 
 This value should be stored per-user in a temporary cache for at least
 ``period + window`` seconds.  (This is typically 60 seconds, but for an exact value,
 applications may check the :attr:`TotpMatch.cache_seconds` value returned by
-the :meth:`!TOTP.verify` method).
+the :meth:`!TOTP.match` method).
 
 Any subsequent calls to verify should check this cache,
-and pass in that value to :meth:`!TOTP.verify`'s "last_counter" parameter
+and pass in that value to :meth:`!TOTP.match`'s "last_counter" parameter
 (or ``None`` if no value found).  Doing so will ensure that tokens
 can only be used once, preventing replay attacks.
 
@@ -266,7 +282,7 @@ As an example::
 
     >>> # if user provides valid value, a TotpMatch object will be returned.
     >>> # (if they provide an invalid value, a TokenError will be raised).
-    >>> match = otp.verify('359275', last_counter=last_counter, time=1475338830)
+    >>> match = otp.match('359275', last_counter=last_counter, time=1475338830)
     >>> match.counter
     49177961
     >>> match.cache_seconds
@@ -278,13 +294,13 @@ As an example::
     >>> # now that last_counter has been properly updated: say that
     >>> # 10 seconds later attacker attempts to re-use token user just entered:
     >>> last_counter = 49177961
-    >>> match = otp.verify('359275', last_counter=last_counter, time=1475338840)
+    >>> match = otp.match('359275', last_counter=last_counter, time=1475338840)
     ...
     UsedTokenError: Token has already been used, please wait for another.
 
 .. seealso::
 
-    For more details, see the :meth:`TOTP.verify` method.
+    For more details, see the :meth:`TOTP.match` method.
 
 .. _totp-context-usage:
 
@@ -305,7 +321,7 @@ application, using passlib's highlevel :class:`AppWallet` helper class.
 Why Rate Limiting is Critical
 =============================
 
-The :meth:`TOTP.verify` methods offers a ``window``
+The :meth:`TOTP.match` methods offers a ``window``
 parameter, expanding the search range to account for the client getting
 slightly out of sync.
 
@@ -321,7 +337,7 @@ guarantees an attacker will be able to guess any given token.
 The Gory Details
 ----------------
 For TOTP, the formula is ``odds = guesses * (1 + 2 * window / period) / 10**digits``;
-where ``window`` in this case is the :meth:`TOTP.verify` window (measured in seconds),
+where ``window`` in this case is the :meth:`TOTP.match` window (measured in seconds),
 and ``period`` is the number of seconds before the token is rotated.
 
 This formula can be inverted to give the maximum window we want to allow

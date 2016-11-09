@@ -709,7 +709,7 @@ class TotpTest(_BaseOTPTest):
                     time, token = entry
                     expires = None
                 # NOTE: not re-using otp between calls so that stateful methods
-                #       (like .verify) don't have problems.
+                #       (like .match) don't have problems.
                 log.debug("test vector: %r time=%r token=%r expires=%r", kwds, time, token, expires)
                 otp = TOTP(**kwds)
                 prefix = "alg=%r time=%r token=%r: " % (otp.alg, time, token)
@@ -921,10 +921,10 @@ class TotpTest(_BaseOTPTest):
                 self.assertEqual(result.expire_time, expires)
 
     #=============================================================================
-    # TotpMatch() -- verify()'s return value
+    # TotpMatch() -- match()'s return value
     #=============================================================================
 
-    def assertTotpMatch(self, match, time, skipped, period=30, window=30, msg=''):
+    def assertTotpMatch(self, match, time, skipped=0, period=30, window=30, msg=''):
         from passlib.totp import TotpMatch
 
         # test type
@@ -958,49 +958,49 @@ class TotpTest(_BaseOTPTest):
         self.assertTrue(match)
 
     def test_totp_match_w_valid_token(self):
-        """verify() -- valid TotpMatch object"""
+        """match() -- valid TotpMatch object"""
         time = 141230981
         token = '781501'
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
-        result = otp.verify(token, time)
+        result = otp.match(token, time)
         self.assertTotpMatch(result, time=time, skipped=0)
 
     def test_totp_match_w_older_token(self):
-        """verify() -- valid TotpMatch object with future token"""
+        """match() -- valid TotpMatch object with future token"""
         from passlib.totp import TotpMatch
 
         time = 141230981
         token = '781501'
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
-        result = otp.verify(token, time - 30)
+        result = otp.match(token, time - 30)
         self.assertTotpMatch(result, time=time - 30, skipped=1)
 
     def test_totp_match_w_new_token(self):
-        """verify() -- valid TotpMatch object with past token"""
+        """match() -- valid TotpMatch object with past token"""
         time = 141230981
         token = '781501'
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
-        result = otp.verify(token, time + 30)
+        result = otp.match(token, time + 30)
         self.assertTotpMatch(result, time=time + 30, skipped=-1)
 
     def test_totp_match_w_invalid_token(self):
-        """verify() -- invalid TotpMatch object"""
+        """match() -- invalid TotpMatch object"""
         time = 141230981
         token = '781501'
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
-        self.assertRaises(exc.InvalidTokenError, otp.verify, token, time + 60)
+        self.assertRaises(exc.InvalidTokenError, otp.match, token, time + 60)
 
     #=============================================================================
-    # verify()
+    # match()
     #=============================================================================
 
     def assertVerifyMatches(self, expect_skipped, token, time,  # *
                             otp, gen_time=None, **kwds):
-        """helper to test otp.verify() output is correct"""
+        """helper to test otp.match() output is correct"""
         # NOTE: TotpMatch return type tested more throughly above ^^^
         msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % \
               (otp.base32_key, otp.alg, otp.period, token, gen_time, time)
-        result = otp.verify(token, time, **kwds)
+        result = otp.match(token, time, **kwds)
         self.assertTotpMatch(result,
                              time=otp.normalize_time(time),
                              period=otp.period,
@@ -1011,15 +1011,15 @@ class TotpTest(_BaseOTPTest):
     def assertVerifyRaises(self, exc_class, token, time,  # *
                           otp, gen_time=None,
                           **kwds):
-        """helper to test otp.verify() throws correct error"""
+        """helper to test otp.match() throws correct error"""
         # NOTE: TotpMatch return type tested more throughly above ^^^
         msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % \
               (otp.base32_key, otp.alg, otp.period, token, gen_time, time)
-        return self.assertRaises(exc_class, otp.verify, token, time,
+        return self.assertRaises(exc_class, otp.match, token, time,
                                  __msg__=msg, **kwds)
 
-    def test_verify_w_window(self):
-        """verify() -- 'time' and 'window' parameters"""
+    def test_match_w_window(self):
+        """match() -- 'time' and 'window' parameters"""
 
         # init generator & helper
         otp = self.randotp()
@@ -1066,8 +1066,8 @@ class TotpTest(_BaseOTPTest):
         # reject invalid time
         assertRaises(ValueError, token, -1)
 
-    def test_verify_w_skew(self):
-        """verify() -- 'skew' parameters"""
+    def test_match_w_skew(self):
+        """match() -- 'skew' parameters"""
         # init generator & helper
         otp = self.randotp()
         period = otp.period
@@ -1089,8 +1089,8 @@ class TotpTest(_BaseOTPTest):
 
         # TODO: test skew + larger window
 
-    def test_verify_w_reuse(self):
-        """verify() -- 'reuse' and 'last_counter' parameters"""
+    def test_match_w_reuse(self):
+        """match() -- 'reuse' and 'last_counter' parameters"""
 
         # init generator & helper
         otp = self.randotp()
@@ -1138,41 +1138,77 @@ class TotpTest(_BaseOTPTest):
         assertMatches(0, token, time, last_counter=counter,
                       window=0, reuse=True)
 
-    def test_verify_w_token_normalization(self):
-        """verify() -- token normalization"""
+    def test_match_w_token_normalization(self):
+        """match() -- token normalization"""
         # setup test helper
         otp = TOTP('otxl2f5cctbprpzx')
-        verify = otp.verify
+        match = otp.match
         time = 1412889861
 
         # separators / spaces should be stripped (orig token '332136')
-        self.assertTrue(verify('    3 32-136  ', time))
+        self.assertTrue(match('    3 32-136  ', time))
 
         # ascii bytes
-        self.assertTrue(verify(b'332136', time))
+        self.assertTrue(match(b'332136', time))
 
         # too few digits
-        self.assertRaises(exc.MalformedTokenError, verify, '12345', time)
+        self.assertRaises(exc.MalformedTokenError, match, '12345', time)
 
         # invalid char
-        self.assertRaises(exc.MalformedTokenError, verify, '12345X', time)
+        self.assertRaises(exc.MalformedTokenError, match, '12345X', time)
 
         # leading zeros count towards size
-        self.assertRaises(exc.MalformedTokenError, verify, '0123456', time)
+        self.assertRaises(exc.MalformedTokenError, match, '0123456', time)
 
-    def test_verify_w_reference_vectors(self):
-        """verify() -- reference vectors"""
+    def test_match_w_reference_vectors(self):
+        """match() -- reference vectors"""
         for otp, time, token, expires, msg in self.iter_test_vectors():
             # create wrapper
-            verify = otp.verify
+            match = otp.match
 
-            # token should verify against time
-            result = verify(token, time)
+            # token should match against time
+            result = match(token, time)
             self.assertTrue(result)
             self.assertEqual(result.counter, time // otp.period, msg=msg)
 
-            # should NOT verify against another time
-            self.assertRaises(exc.InvalidTokenError, verify, token, time + 100, window=0)
+            # should NOT match against another time
+            self.assertRaises(exc.InvalidTokenError, match, token, time + 100, window=0)
+
+    #=============================================================================
+    # verify()
+    #=============================================================================
+    def test_verify(self):
+        """verify()"""
+        # NOTE: since this is thin wrapper around .from_source() and .match(),
+        #       just testing basic behavior here.
+
+        from passlib.totp import TOTP
+
+        time = 1412889861
+        TotpFactory = TOTP.using(now=lambda: time)
+
+        # successful match
+        source1 = dict(v=1, type="totp", key='otxl2f5cctbprpzx')
+        match = TotpFactory.verify('332136', source1)
+        self.assertTotpMatch(match, time=time)
+
+        # failed match
+        source1 = dict(v=1, type="totp", key='otxl2f5cctbprpzx')
+        self.assertRaises(exc.InvalidTokenError, TotpFactory.verify, '332155', source1)
+
+        # bad source
+        source1 = dict(v=1, type="totp")
+        self.assertRaises(ValueError, TotpFactory.verify, '332155', source1)
+
+        # successful match -- json source
+        source1json = '{"v": 1, "type": "totp", "key": "otxl2f5cctbprpzx"}'
+        match = TotpFactory.verify('332136', source1json)
+        self.assertTotpMatch(match, time=time)
+
+        # successful match -- URI
+        source1uri = 'otpauth://totp/Label?secret=otxl2f5cctbprpzx'
+        match = TotpFactory.verify('332136', source1uri)
+        self.assertTotpMatch(match, time=time)
 
     #=============================================================================
     # serialization frontend

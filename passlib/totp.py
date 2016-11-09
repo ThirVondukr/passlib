@@ -1069,10 +1069,38 @@ class TOTP(object):
     # token verification
     #=============================================================================
 
-    def verify(self, token, time=None, window=30, skew=0, last_counter=None,
+    @classmethod
+    def verify(cls, token, source, **kwds):
+        """
+        Convenience wrapper around :meth:`TOTP.match`.
+
+        This parses a TOTP key & configuration from the specified source
+        (using :meth:`TOTP.from_source`) and then calls :meth:`!TOTP.match`
+        to try and match the token.
+
+        This method's signature is designed to parallel that of the :meth:`~passlib.ifc.PasswordHash`
+        interface.
+
+        :param token:
+            Token string to match.
+
+        :param source:
+            Serialized TOTP key.
+            Can be anything accepted by :meth:`TOTP.from_source`.
+
+        :param \*\*kwds:
+            All additional keywords passed to :meth:`TOTP.match`.
+
+        :return:
+            A :class:`TotpMatch` instance, or raises a :exc:`TokenError`.
+        """
+        self = cls.from_source(source)
+        return self.match(token, **kwds)
+
+    def match(self, token, time=None, window=30, skew=0, last_counter=None,
                reuse=False):
         """
-        Validate TOTP token against specified timestamp.
+        Match TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
         in order to account for transmission delay and small amounts of skew in the client's clock.
 
@@ -1144,15 +1172,15 @@ class TOTP(object):
             >>> totp = TOTP('s3jdvb7qd2r7jpxx')
 
             >>> # valid token for this time period
-            >>> totp.verify('897212', 1419622729)
+            >>> totp.match('897212', 1419622729)
             <TotpMatch counter=47320757 time=1419622729>
 
             >>> # token from counter step 30 sec ago (within allowed window)
-            >>> totp.verify('000492', 1419622729)
+            >>> totp.match('000492', 1419622729)
             <TotpMatch counter=47320756 time=1419622729>
 
             >>> # invalid token -- token from 60 sec ago (outside of window)
-            >>> totp.verify('760389', 1419622729)
+            >>> totp.match('760389', 1419622729)
             Traceback:
                 ...
             InvalidTokenError: Token did not match
@@ -1699,7 +1727,7 @@ class TotpToken(SequenceMixin):
 
 class TotpMatch(SequenceMixin):
     """
-    Object returned by :meth:`TOTP.verify` on a successful match.
+    Object returned by :meth:`TOTP.match` and :meth:`TOTP.verify` on a successful match.
 
     It can be treated as a sequence of ``(counter, time)``,
     or accessed via the following attributes:
