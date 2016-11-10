@@ -1,31 +1,11 @@
-"""passlib.pwd -- password generation helpers
-
-TODO
-====
-* XXX: add a "crack time" estimation to generate & classify?
-  might be useful to give people better idea of what measurements mean.
-
-* unittests for generation code
-
-* straighten out any unicode issues this code may have.
-    - primarily, this should always return unicode (currently doesn't)
-
-* don't like existing wordsets.
-    - diceware has some weird bordercases that average users may not like
-    - electrum's set isn't large enough for these purposes
-    - looking into modified version of wordfrequency.info's 5k list
-      (could merge w/ diceware, and remove commonly used passwords)
-
-* should recommend zxcvbn in the docs for this module.
-"""
+"""passlib.pwd -- password generation helpers"""
 #=============================================================================
 # imports
 #=============================================================================
 from __future__ import absolute_import, division, print_function, unicode_literals
 # core
 import codecs
-from collections import defaultdict
-from functools import partial
+from collections import defaultdict, MutableMapping
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
 import pkg_resources
@@ -37,8 +17,8 @@ from passlib.utils.compat import PY2, irange, itervalues, int_types
 from passlib.utils import rng, getrandstr, to_unicode, memoized_property
 # local
 __all__ = [
-    'genword',
-    'genphrase',
+    "genword", "default_charsets",
+    "genphrase", "default_wordsets",
 ]
 
 #=============================================================================
@@ -125,6 +105,7 @@ def _open_asset_path(path, encoding=None):
 
     :returns:
         filehandle opened in 'rb' mode
+        (unless encoding explicitly specified)
     """
     if encoding:
         return codecs.getreader(encoding)(_open_asset_path(path))
@@ -137,45 +118,36 @@ def _open_asset_path(path, encoding=None):
     return pkg_resources.resource_stream(package, subpath)
 
 
-def _load_wordset(asset_path):
+#: type aliases
+_sequence_types = (list, tuple)
+_set_types = (set, frozenset)
+
+#: set of elements that ensure_unique() has validated already.
+_ensure_unique_cache = set()
+
+
+def _ensure_unique(source, param="source"):
     """
-    load wordset from compressed datafile within package data.
-    file should be utf-8 encoded
-
-    :param asset_path:
-        string containing  absolute path to wordset file,
-        or "python.module:relative/file/path".
-
-    :returns:
-        tuple of words, as loaded from specified words file.
+    helper for generators --
+    Throws ValueError if source elements aren't unique.
+    Error message will display (abbreviated) repr of the duplicates in a string/list
     """
-    # open resource file, convert to tuple of words (strip blank lines & ws)
-    with _open_asset_path(asset_path, "utf-8") as fh:
-        gen = (word.strip() for word in fh)
-        words = tuple(word for word in gen if word)
+    # check cache to speed things up for frozensets / tuples / strings
+    cache = _ensure_unique_cache
+    hashable = True
+    try:
+        if source in cache:
+            return True
+    except TypeError:
+        hashable = False
 
-    # # detect if file uses "12345 word" format, strip numeric prefix
-    # def extract(row):
-    #     idx, word = row.replace("\t", " ").split(" ", 1)
-    #     if not idx.isdigit():
-    #         raise ValueError("row not dice index + word")
-    #     return word
-    # try:
-    #     extract(words[-1])
-    # except ValueError:
-    #     pass
-    # else:
-    #     words = tuple(extract(word) for word in words)
+    # check if it has dup elements
+    if isinstance(source, _set_types) or len(set(source)) == len(source):
+        if hashable:
+            cache.add(source)
+        return True
 
-    log.debug("loaded %d-element wordset from %r", len(words), asset_path)
-    return words
-
-
-def _dup_repr(source):
-    """
-    helper for generator errors --
-    displays (abbreviated) repr of the duplicates in a string/list
-    """
+    # build list of duplicate values
     seen = set()
     dups = set()
     for elem in source:
@@ -187,14 +159,17 @@ def _dup_repr(source):
     dup_repr = ", ".join(repr(str(word)) for word in dups[:trunc])
     if len(dups) > trunc:
         dup_repr += ", ... plus %d others" % (len(dups) - trunc)
-    return dup_repr
+
+    # throw error
+    raise ValueError("`%s` cannot contain duplicate elements: %s" %
+                     (param, dup_repr))
 
 #=============================================================================
 # base generator class
 #=============================================================================
 class SequenceGenerator(object):
     """
-    base class used by word & phrase generators.
+    Base class used by word & phrase generators.
 
     These objects take a series of options, corresponding
     to those of the :func:`generate` function.
@@ -202,21 +177,26 @@ class SequenceGenerator(object):
     or a list of 1+ passwords. They also expose some read-only
     informational attributes.
 
+    Parameters
+    ----------
     :param entropy:
         Optionally specify the amount of entropy the resulting passwords
         should contain (as measured with respect to the generator itself).
-        This will be used to autocalculate the required password size.
-
-        Also exposed as a readonly attribute.
+        This will be used to auto-calculate the required password size.
 
     :param length:
         Optionally specify the length of password to generate,
-        measured in whatever symbols the subclass uses (characters or words).
-        Note that if both ``length`` and ``entropy`` are specified,
-        the larger requested size will be used.
+        measured as count of whatever symbols the subclass uses (characters or words).
+        Note if ``entropy`` requires a larger minimum length,
+        that will be used instead.
 
-        Also exposed as a readonly attribute.
+    :param rng:
+        Optionally provide a custom RNG source to use.
+        Should be an instance of :class:`random.Random`,
+        defaults to :class:`random.SystemRandom`.
 
+    Attributes
+    ----------
     .. autoattribute:: length
     .. autoattribute:: symbol_count
     .. autoattribute:: entropy_per_symbol
@@ -284,16 +264,18 @@ class SequenceGenerator(object):
     @memoized_property
     def entropy_per_symbol(self):
         """
-        average entropy per symbol (assuming all symbols have equal probability)
+        Average entropy per symbol (assuming all symbols have equal probability)
         """
         return logf(self.symbol_count, 2)
 
     @memoized_property
     def entropy(self):
         """
-        actual entropy of generated passwords.
-        should always be smallest multiple of :attr:`entropy_per_symbol`
-        that's >= :attr:`requested_entropy`.
+        Effective entropy of generated passwords.
+
+        This value will always be a multiple of :attr:`entropy_per_symbol`.
+        If entropy is specified in constructor, :attr:`length` will be chosen so
+        so that this value is the smallest multiple >= :attr:`requested_entropy`.
         """
         return self.length * self.entropy_per_symbol
 
@@ -329,12 +311,34 @@ class SequenceGenerator(object):
     #=============================================================================
 
 #=============================================================================
+# default charsets
+#=============================================================================
+
+#: global dict of predefined characters sets
+default_charsets = dict(
+    # ascii letters, digits, and some punctuation
+    ascii_72='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*?/',
+
+    # ascii letters and digits
+    ascii_62='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+
+    # ascii_50, without visually similar '1IiLl', '0Oo', '5S', '8B'
+    ascii_50='234679abcdefghjkmnpqrstuvwxyzACDEFGHJKMNPQRTUVWXYZ',
+
+    # lower case hexadecimal
+    hex='0123456789abcdef',
+)
+
+#=============================================================================
 # password generator
 #=============================================================================
+
 class WordGenerator(SequenceGenerator):
     """
-    class which generates passwords by randomly choosing from a string of unique characters.
+    Class which generates passwords by randomly choosing from a string of unique characters.
 
+    Parameters
+    ----------
     :param chars:
         custom character string to draw from.
 
@@ -342,37 +346,20 @@ class WordGenerator(SequenceGenerator):
         predefined charset to draw from.
 
     :param \*\*kwds:
-        all other keywords passed to :class:`SequenceGenerator`.
+        all other keywords passed to the :class:`SequenceGenerator` parent class.
 
+    Attributes
+    ----------
     .. autoattribute:: chars
     .. autoattribute:: charset
     .. autoattribute:: default_charsets
     """
     #=============================================================================
-    # class attributes
-    #=============================================================================
-
-    #: classwide dict of predefined characters sets
-    default_charsets = dict(
-        # ascii letters, digits, and some punctuation
-        ascii72='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*?/',
-
-        # ascii letters and digits
-        ascii62='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-
-        # ascii50, without visually similar '1IiLl', '0Oo', '5S', '8B'
-        ascii50='234679abcdefghjkmnpqrstuvwxyzACDEFGHJKMNPQRTUVWXYZ',
-
-        # lower case hexadecimal
-        hex='0123456789abcdef',
-    )
-
-    #=============================================================================
     # instance attrs
     #=============================================================================
 
     #: Predefined character set in use (set to None for instances using custom 'chars')
-    charset = "ascii62"
+    charset = "ascii_62"
 
     #: string of chars to draw from -- usually filled in from charset
     chars = None
@@ -390,11 +377,10 @@ class WordGenerator(SequenceGenerator):
             if not charset:
                 charset = self.charset
                 assert charset
-            chars = self.default_charsets[charset]
+            chars = default_charsets[charset]
         self.charset = charset
         chars = to_unicode(chars, param="chars")
-        if len(set(chars)) != len(chars):
-            raise ValueError("`chars` cannot contain duplicate elements")
+        _ensure_unique(chars, param="chars")
         self.chars = chars
 
         # hand off to parent
@@ -427,20 +413,20 @@ def genword(entropy=None, length=None, returns=None, **kwds):
     """Generate one or more random passwords.
 
     This function uses :mod:`random.SystemRandom` to generate
-    one or more passwords; it can be configured to generate
-    alphanumeric passwords, or full english phrases.
+    one or more passwords using various character sets.
     The complexity of the password can be specified
     by size, or by the desired amount of entropy.
 
     Usage Example::
 
         >>> # generate a random alphanumeric string with 48 bits of entropy (the default)
+        >>> from passlib import pwd
         >>> pwd.genword()
         'DnBHvDjMK6'
 
         >>> # generate a random hexadecimal string with 52 bits of entropy
         >>> pwd.genword(entropy=52, charset="hex")
-        'DnBHvDjMK6'
+        '310f1a7ac793f'
 
     :param entropy:
         Strength of resulting password, measured in bits of Shannon entropy
@@ -456,24 +442,26 @@ def genword(entropy=None, length=None, returns=None, **kwds):
 
     :param length:
         Size of resulting password, measured in characters.
-        If omitted, the size is auto-calculated based on the ``entropy`` parameter.
+        If omitted, the size is auto-calculated based on the **entropy** parameter.
 
     :param returns:
-        If ``None`` (the default), this function will generate a single password.
-        If an integer, this function will return a list containing that many passwords.
-        If the ``iter`` constant, will return an iterator that yields passwords.
+        Controls what this function returns:
+
+        * If ``None`` (the default), this function will generate a single password.
+        * If an integer, this function will return a list containing that many passwords.
+        * If the ``iter`` constant, will return an iterator that yields passwords.
 
     :param charset:
         The character set to draw from, if not specified explicitly by **chars**.
-        Defaults to ``"ascii62"``, but can be any of:
+        Defaults to ``"ascii_62"``, but can be any of:
 
-        * ``"ascii62"`` -- all digits and ascii upper & lowercase letters.
+        * ``"ascii_62"`` -- all digits and ascii upper & lowercase letters.
           Provides ~5.95 entropy per character.
 
-        * ``"ascii50"`` -- subset which excludes visually similar characters
+        * ``"ascii_50"`` -- subset which excludes visually similar characters
           (``1IiLl0Oo5S8B``). Provides ~5.64 entropy per character.
 
-        * ``"ascii72"`` -- all digits and ascii upper & lowercase letters,
+        * ``"ascii_72"`` -- all digits and ascii upper & lowercase letters,
           as well as some punctuation. Provides ~6.17 entropy per character.
 
         * ``"hex"`` -- Lower case hexadecimal.  Providers 4 bits of entropy per character.
@@ -484,14 +472,121 @@ def genword(entropy=None, length=None, returns=None, **kwds):
         This option cannot be combined with **charset**.
 
     :returns:
-        :class:`!str` containing randomly generated password
-        (or list of 1+ passwords if ``choices`` is specified)
+        :class:`!unicode` string containing randomly generated password;
+        or list of 1+ passwords if :samp:`returns={int}` is specified.
     """
     gen = WordGenerator(length=length, entropy=entropy, **kwds)
     return gen(returns)
 
 #=============================================================================
-# pass phrase generator
+# default wordsets
+#=============================================================================
+
+def _load_wordset(asset_path):
+    """
+    load wordset from compressed datafile within package data.
+    file should be utf-8 encoded
+
+    :param asset_path:
+        string containing  absolute path to wordset file,
+        or "python.module:relative/file/path".
+
+    :returns:
+        tuple of words, as loaded from specified words file.
+    """
+    # open resource file, convert to tuple of words (strip blank lines & ws)
+    with _open_asset_path(asset_path, "utf-8") as fh:
+        gen = (word.strip() for word in fh)
+        words = tuple(word for word in gen if word)
+
+    # NOTE: works but not used
+    # # detect if file uses "<int> <word>" format, and strip numeric prefix
+    # def extract(row):
+    #     idx, word = row.replace("\t", " ").split(" ", 1)
+    #     if not idx.isdigit():
+    #         raise ValueError("row is not dice index + word")
+    #     return word
+    # try:
+    #     extract(words[-1])
+    # except ValueError:
+    #     pass
+    # else:
+    #     words = tuple(extract(word) for word in words)
+
+    log.debug("loaded %d-element wordset from %r", len(words), asset_path)
+    return words
+
+
+class WordsetDict(MutableMapping):
+    """
+    Special mapping used to store dictionary of wordsets.
+    Different from a regular dict in that some wordsets
+    may be lazy-loaded from an asset path.
+    """
+
+    #: dict of key -> asset path
+    paths = None
+
+    #: dict of key -> value
+    _loaded = None
+
+    def __init__(self, *args, **kwds):
+        self.paths = {}
+        self._loaded = {}
+        super(WordsetDict, self).__init__(*args, **kwds)
+
+    def __getitem__(self, key):
+        try:
+            return self._loaded[key]
+        except KeyError:
+            pass
+        path = self.paths[key]
+        value = self._loaded[key] = _load_wordset(path)
+        return value
+
+    def set_path(self, key, path):
+        """
+        set asset path to lazy-load wordset from.
+        """
+        self.paths[key] = path
+
+    def __setitem__(self, key, value):
+        self._loaded[key] = value
+
+    def __delitem__(self, key):
+        if key in self:
+            del self._loaded[key]
+            self.paths.pop(key, None)
+        else:
+            del self.paths[key]
+
+    @property
+    def _keyset(self):
+        keys = set(self._loaded)
+        keys.update(self.paths)
+        return keys
+
+    def __iter__(self):
+        return iter(self._keyset)
+
+    def __len__(self):
+        return len(self._keyset)
+
+    # NOTE: speeds things up, and prevents contains from lazy-loading
+    def __contains__(self, key):
+        return key in self._loaded or key in self.paths
+
+
+#: dict of predefined word sets.
+#: key is name of wordset, value should be sequence of words.
+default_wordsets = WordsetDict()
+
+# register the wordsets built into passlib
+for name in "eff_long eff_short eff_prefixed bip39".split():
+    default_wordsets.set_path(name, "passlib:_data/wordsets/%s.txt" % name)
+
+#=============================================================================
+# passphrase generator
 #=============================================================================
 class PhraseGenerator(SequenceGenerator):
     """class which generates passphrases by randomly choosing
@@ -504,29 +599,10 @@ class PhraseGenerator(SequenceGenerator):
     :param spaces:
         whether to insert spaces between words in output (defaults to ``True``).
     :param \*\*kwds:
-        all other keywords passed to :class:`SequenceGenerator`.
+        all other keywords passed to the :class:`SequenceGenerator` parent class.
 
     .. autoattribute:: wordset
     """
-    #=============================================================================
-    # class attrs
-    #=============================================================================
-
-    #: dict of predefined word sets.
-    #: key is name of wordset, value should be sequence of words.
-    #: value may instead be a callable, which will be invoked to lazy-load
-    #: the wordset.
-    default_wordsets = dict()
-
-    @classmethod
-    def register_wordset_path(cls, wordset, asset_path):
-        """
-        register a wordset located at specified asset path.
-        will be lazy-loaded if needed.
-        """
-        assert wordset not in cls.default_wordsets
-        cls.default_wordsets[wordset] = partial(_load_wordset, asset_path)
-
     #=============================================================================
     # instance attrs
     #=============================================================================
@@ -553,16 +629,13 @@ class PhraseGenerator(SequenceGenerator):
             if wordset is None:
                 wordset = self.wordset
                 assert wordset
-            words = self.default_wordsets[wordset]
-            if callable(words):
-                words = self.default_wordsets[wordset] = words()
+            words = default_wordsets[wordset]
         self.wordset = wordset
 
         # init words
-        if not isinstance(words, (list, tuple)):
+        if not isinstance(words, _sequence_types):
             words = tuple(words)
-        if len(set(words)) != len(words):
-            raise ValueError("`words` cannot contain duplicate elements: " + _dup_repr(words))
+        _ensure_unique(words, param="words")
         self.words = words
 
         # init separator
@@ -597,11 +670,6 @@ class PhraseGenerator(SequenceGenerator):
     #=============================================================================
 
 
-#: register the wordsets built into passlib
-for name in "eff_long eff_short eff_prefixed bip39".split():
-    PhraseGenerator.register_wordset_path(name, "passlib:_data/wordsets/%s.txt" % name)
-
-
 def genphrase(entropy=None, length=None, returns=None, **kwds):
     """Generate one or more random password / passphrases.
 
@@ -613,77 +681,86 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
 
     Usage Example::
 
-        >>> # generate random english phrase with 48 bits of entropy
+        >>> # generate random phrase with 48 bits of entropy
         >>> from passlib import pwd
         >>> pwd.genphrase()
-        'cairn pen keys flaw'
+        'gangly robbing salt shove'
+
+        >>> # generate a random phrase with 52 bits of entropy
+        >>> # using a particular wordset
+        >>> pwd.genword(entropy=52, wordset="bip39")
+        'wheat dilemma reward rescue diary'
 
     :param entropy:
         Strength of resulting password, measured in bits of Shannon entropy
-        (defaults to 48).
-
-        Based on the mode in use, the ``length`` parameter will be
-        autocalculated so that that an attacker will need an average of
-        ``2**(entropy-1)`` attempts to correctly guess the password
-        (this measurement assumes the attacker knows the mode
-        and configuration options in use, but nothing of the RNG state).
+        (defaults to 48).  An appropriate **length** value will be calculated
+        based on the requested entropy amount, and the size of the character set.
 
         If both ``entropy`` and ``length`` are specified,
-        the larger effective size will be used.
+        the larger effective length will be used.
+
+        This can also be one of a handful of aliases to predefined
+        entropy amounts: ``"weak"`` (24), ``"fair"`` (36),
+        ``"strong"`` (48), and ``"secure"`` (56).
 
     :param length:
         Length of resulting password, measured in words.
-        If omitted, the size is autocalculated based on the ``entropy`` parameter.
+        If omitted, the size is auto-calculated based on the **entropy** parameter.
 
     :param returns:
-        If ``None`` (the default), this function will generate a single password.
-        If an integer, this function will return a list containing that many passwords.
-        If the ``iter`` constant, will return an iterator that yields passwords.
+        Controls what this function returns:
+
+        * If ``None`` (the default), this function will generate a single password.
+        * If an integer, this function will return a list containing that many passwords.
+        * If the ``iter`` builtin, will return an iterator that yields passwords.
 
     :param wordset:
         Optionally use a pre-defined word-set when generating a passphrase.
-        There are currently four presets available, the default is ``"eff_long"``:
+        There are currently four presets available:
 
-        ``"eff_long"``
+        ``"eff_long"`` (the default)
 
-            Wordset containing 7776 english words of 3 to 9 letters.
-            `Constructed by the EFF <https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases>`_
-            this wordset has ~12.9 bits of entropy per word.
+            Wordset containing 7776 english words of ~7 letters.
+            Constructed by the EFF, it offers ~12.9 bits of entropy per word.
+
+            This wordset (and the other ``"eff_"`` wordsets)
+            were `created by the EFF <https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases>`_
+            to aid in generating passwords.  See their announcement page
+            for more details about the design & properties of these wordsets.
 
         ``"eff_short"``
 
-            Wordset containing 1296 english words of < 6 letters.
-            Constructed by the EFF, this wordset has ~10.3 bits of entropy per word.
+            Wordset containing 1296 english words of ~4.5 letters.
+            Constructed by the EFF, it offers ~10.3 bits of entropy per word.
 
         ``"eff_prefixed"``
 
-            Wordset containing 1296 english words selected so that
-            they all have a unique 3-character prefix, and other properties.
-            Constructed by the EFF, this wordset has ~10.3 bits of entropy per word.
+            Wordset containing 1296 english words of ~8 letters,
+            selected so that they each have a unique 3-character prefix.
+            Constructed by the EFF, it offers ~10.3 bits of entropy per word.
 
-        ``"bip43"``
+        ``"bip39"``
 
-            Wordset of 2048 english words selected so that
-            they all have a unique 4-character prefix.
-            Published as part of Bitcoin's ``BIP 43 <https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt>`_,
+            Wordset of 2048 english words of ~5 letters,
+            selected so that they each have a unique 4-character prefix.
+            Published as part of Bitcoin's `BIP 39 <https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt>`_,
             this wordset has exactly 11 bits of entropy per word.
 
-            This has similar properties to "eff_prefixed",
-            but the tradeoff of more entropy per word may
-            make this a better choice in some cases.
+            This list offers words that are typically shorter than ``"eff_long"``
+            (at the cost of slightly less entropy); and much shorter than
+            ``"eff_prefixed"`` (at the cost of a longer unique prefix).
 
     :param words:
-        Optionally specifies a list/set of words to use when randomly
-        generating a passphrase. This option cannot be combined
-        with ``wordset``.
+        Optionally specifies a list/set of words to use when randomly generating a passphrase.
+        This option cannot be combined with **wordset**.
 
     :param sep:
         Optional separator to use when joining words.
         Defaults to ``" "`` (a space), but can be an empty string, a hyphen, etc.
 
     :returns:
-        :class:`!str` containing randomly generated password,
-        or list of 1+ passwords if ``count`` is specified.
+        :class:`!unicode` string containing randomly generated passphrase;
+        or list of 1+ passphrases if :samp:`returns={int}` is specified.
     """
     gen = PhraseGenerator(entropy=entropy, length=length, **kwds)
     return gen(returns)
@@ -704,14 +781,6 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
 #      but may have licensing issues, plus porting to python looks like very big job :(
 #    * give a look at running things through zlib - might be able to cheaply
 #      catch extra redundancies.
-# zxcvbn -
-#    after some looking, it's not clear which is latest copy.
-#    * https://github.com/dropbox/python-zxcvbn -- official, not updated since 2013
-#    * https://github.com/rpearl/python-zxcvbn -- fork used by dropbox dev, not updated since 2013
-#           released to pypi - https://pypi.python.org/pypi/zxcvbn/1.0
-#    * https://github.com/moreati/python-zxcvbn -- has some updates as of july 2015
-#           * https://github.com/gordon86/python-zxcvbn (fork of above, released to pypi)
-#               - https://pypi.python.org/pypi/zxcvbn-py3/1.1 [2015-10]
 #=============================================================================
 
 #=============================================================================

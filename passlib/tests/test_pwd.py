@@ -57,9 +57,9 @@ class UtilsTest(TestCase):
 #=============================================================================
 
 # import subject
-from passlib.pwd import genword, WordGenerator
-ascii62 = WordGenerator.default_charsets['ascii62']
-hex = WordGenerator.default_charsets['hex']
+from passlib.pwd import genword, default_charsets
+ascii62 = default_charsets['ascii62']
+hex = default_charsets['hex']
 
 class WordGeneratorTest(TestCase):
     """test generation routines"""
@@ -119,7 +119,7 @@ class WordGeneratorTest(TestCase):
 #=============================================================================
 
 # import subject
-from passlib.pwd import genphrase, PhraseGenerator
+from passlib.pwd import genphrase
 simple_words = ["alpha", "beta", "gamma"]
 
 class PhraseGeneratorTest(TestCase):
@@ -191,42 +191,6 @@ class PhraseGeneratorTest(TestCase):
 
         # words + wordset
         self.assertRaises(TypeError, genphrase, words=simple_words, wordset='bip39')
-
-#=============================================================================
-# strength
-#=============================================================================
-# class StrengthTest(TestCase):
-#     """test strength measurements"""
-#     descriptionPrefix = "passlib.pwd"
-#
-#     reference = [
-#         # (password, classify() output)
-#
-#         # "weak"
-#         ("", 0),
-#         ("0"*8, 0),
-#         ("0"*48, 0),
-#         ("1001"*2, 0),
-#         ("123", 0),
-#         ("123"*2, 0),
-#         ("1234", 0),
-#
-#         # "somewhat weak"
-#         ("12345", 1),
-#         ("1234"*2, 1),
-#         ("secret", 1),
-#
-#         # "not weak"
-#         ("reallysecret", 2),
-#         ("12345"*2, 2),
-#         ("Eer6aiya", 2),
-#     ]
-#
-#     def test_classify(self):
-#         """classify()"""
-#         from passlib.pwd import classify
-#         for secret, result in self.reference:
-#             self.assertEqual(classify(secret), result, "classify(%r):" % secret)
 
 #=============================================================================
 # eof
