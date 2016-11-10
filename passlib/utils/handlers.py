@@ -15,10 +15,12 @@ from passlib.exc import MissingBackendError, PasslibConfigWarning, \
                         PasslibHashWarning
 from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
-from passlib.utils import classproperty, consteq, getrandstr, getrandbytes,\
-                          BASE64_CHARS, HASH64_CHARS, rng, to_native_str, \
-                          is_crypt_handler, to_unicode, deprecated_method, \
-                          MAX_PASSWORD_SIZE, accepts_keyword, as_bool
+from passlib.utils import (
+    classproperty, consteq, getrandstr, getrandbytes,
+    BASE64_CHARS, HASH64_CHARS, rng, to_native_str,
+    is_crypt_handler, to_unicode, deprecated_method,
+    MAX_PASSWORD_SIZE, accepts_keyword, as_bool,
+    update_mixin_classes)
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
@@ -2252,31 +2254,23 @@ class SubclassBackendMixin(BackendMixin):
         """
         subclass hook to handle workaround detection
         """
+        # sanity check call args
         assert result is True, "invalid backend response"
         assert cls is cls._get_backend_owner(), "_finalize_backend() not invoked on owner"
+
+        # pick mixin class
         mixin_map = cls._backend_mixin_map
         assert mixin_map, "_backend_mixin_map not specified"
-
-        # strip out existing mixins from class's bases
-        bases = list(cls.__bases__)
-        for mixin_cls in mixin_map.values():
-            if mixin_cls in bases:
-                bases.remove(mixin_cls)
-
-        # find first class that's subclass of SubclassBackendMixin,
-        # and insert mixin before that.
-        for idx, ref_cls in enumerate(bases):
-            if issubclass(ref_cls, SubclassBackendMixin):
-                break
-        else:
-            raise AssertionError("failed to find SubclassBackendMixin")
-
-        # add new backend mixin
         mixin_cls = mixin_map[name]
         assert issubclass(mixin_cls, SubclassBackendMixin)
-        bases.insert(idx, mixin_cls)
-        if not dryrun:
-            cls.__bases__ = tuple(bases)
+
+        # modify <cls> to remove existing backend mixins, and insert the new one
+        update_mixin_classes(cls,
+            add=mixin_cls,
+            remove=mixin_map.values(),
+            append=True, before=SubclassBackendMixin,
+            dryrun=dryrun,
+        )
 
         # call parent
         super(SubclassBackendMixin, cls)._finalize_backend(name, result, dryrun)
@@ -2292,6 +2286,7 @@ class SubclassBackendMixin(BackendMixin):
     #===================================================================
     # eoc
     #===================================================================
+
 
 class HasManyBackends(BackendMixin, GenericHandler):
     """

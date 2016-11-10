@@ -305,6 +305,90 @@ def accepts_keyword(func, key):
     spec = inspect.getargspec(get_method_function(func))
     return key in spec.args or spec.keywords is not None
 
+def update_mixin_classes(target, add=None, remove=None, append=False,
+                         before=None, after=None, dryrun=False):
+    """
+    helper to update mixin classes installed in target class.
+
+    :param target:
+        target class whose bases will be modified.
+
+    :param add:
+        class / classes to install into target's base class list.
+
+    :param remove:
+        class / classes to remove from target's base class list.
+
+    :param append:
+        by default, prepends mixins to front of list.
+        if True, appends to end of list instead.
+
+    :param after:
+        optionally make sure all mixins are inserted after
+        this class / classes.
+
+    :param before:
+        optionally make sure all mixins are inserted before
+        this class / classes.
+
+    :param dryrun:
+        optionally perform all calculations / raise errors,
+        but don't actually modify the class.
+    """
+    if isinstance(add, type):
+        add = [add]
+
+    bases = list(target.__bases__)
+
+    # strip out requested mixins
+    if remove:
+        if isinstance(remove, type):
+            remove = [remove]
+        for mixin in remove:
+            if add and mixin in add:
+                continue
+            if mixin in bases:
+                bases.remove(mixin)
+
+    # add requested mixins
+    if add:
+        for mixin in add:
+            # if mixin already present (explicitly or not), leave alone
+            if any(issubclass(base, mixin) for base in bases):
+                continue
+
+            # determine insertion point
+            if append:
+                for idx, base in enumerate(bases):
+                    if issubclass(mixin, base):
+                        # don't insert mixin after one of it's own bases
+                        break
+                    if before and issubclass(base, before):
+                        # don't insert mixin after any <before> classes.
+                        break
+                else:
+                    # append to end
+                    idx = len(bases)
+            elif after:
+                for end_idx, base in enumerate(reversed(bases)):
+                    if issubclass(base, after):
+                        # don't insert mixin before any <after> classes.
+                        idx = len(bases) - end_idx
+                        assert bases[idx-1] == base
+                        break
+                else:
+                    idx = 0
+            else:
+                # insert at start
+                idx = 0
+
+            # insert mixin
+            bases.insert(idx, mixin)
+
+    # modify class
+    if not dryrun:
+        target.__bases__ = tuple(bases)
+
 #=============================================================================
 # collection helpers
 #=============================================================================
