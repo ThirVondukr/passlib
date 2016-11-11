@@ -30,6 +30,7 @@ else:
 import time
 if stringprep:
     import unicodedata
+import types
 from warnings import warn
 # site
 # pkg
@@ -273,6 +274,24 @@ class memoized_property(object):
 ##    @property
 ##    def __func__(self):
 ##        "py3 compatible alias"
+
+class hybrid_method(object):
+    """
+    decorator which invokes function with class if called as class method,
+    and with object if called at instance level.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        update_wrapper(self, func)
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            obj = cls
+        if PY3:
+            return types.MethodType(self.func, obj)
+        else:
+            return types.MethodType(self.func, obj, cls)
 
 class SequenceMixin(object):
     """

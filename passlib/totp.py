@@ -35,7 +35,7 @@ except ImportError:
 # pkg
 from passlib import exc
 from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, UsedTokenError
-from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property,
+from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property, hybrid_method,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr, BASE64_CHARS)
 from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
                                   irange, byte_elem_value, UnicodeIO, suppress_cause)
@@ -1003,7 +1003,8 @@ class TOTP(object):
     # time & token parsing
     #=============================================================================
 
-    def normalize_time(self, time):
+    @classmethod
+    def normalize_time(cls, time):
         """
         Normalize time value to unix epoch seconds.
 
@@ -1021,7 +1022,7 @@ class TOTP(object):
         elif isinstance(time, float):
             return int(time)
         elif time is None:
-            return int(self.now())
+            return int(cls.now())
         elif hasattr(time, "utctimetuple"):
             # coerce datetime to UTC timestamp
             # NOTE: utctimetuple() assumes naive datetimes are in UTC
@@ -1042,11 +1043,17 @@ class TOTP(object):
         """
         return counter * self.period
 
-    def normalize_token(self, token):
+    @hybrid_method
+    def normalize_token(self_or_cls, token):
         """
-        normalize OTP token representation:
+        Normalize OTP token representation:
         strips whitespace, converts integers to a zero-padded string,
         validates token content & number of digits.
+
+        This is a hybrid method -- it can be called at the class level,
+        as ``TOTP.normalize_token()``, or the instance level as ``TOTP().normalize_token()``.
+        It will normalize to the instance-specific number of :attr:`~TOTP.digits`,
+        or use the class default.
 
         :arg token:
             token as ascii bytes, unicode, or an integer.
@@ -1055,9 +1062,9 @@ class TOTP(object):
             if token has wrong number of digits, or contains non-numeric characters.
 
         :returns:
-            token as unicode string containing only digits 0-9.
+            token as :class:`!unicode` string, containing only digits 0-9.
         """
-        digits = self.digits
+        digits = self_or_cls.digits
         if isinstance(token, int_types):
             token = u("%0*d") % (digits, token)
         else:

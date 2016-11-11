@@ -699,25 +699,40 @@ class TotpTest(TestCase):
     # internal method tests
     #=============================================================================
 
-    def test_normalize_token(self):
-        """normalize_token()"""
-        otp = self.randotp(digits=7)
+    def test_normalize_token_instance(self, otp=None):
+        """normalize_token() -- instance method"""
+        if otp is None:
+            otp = self.randotp(digits=7)
 
-        self.assertEqual(otp.normalize_token('1234567'), '1234567')
+        # unicode & bytes
+        self.assertEqual(otp.normalize_token(u('1234567')), '1234567')
         self.assertEqual(otp.normalize_token(b'1234567'), '1234567')
 
+        # int
         self.assertEqual(otp.normalize_token(1234567), '1234567')
+
+        # int which needs 0 padding
         self.assertEqual(otp.normalize_token(234567), '0234567')
 
+        # reject wrong types (float, None)
         self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
         self.assertRaises(TypeError, otp.normalize_token, None)
 
+        # too few digits
         self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '123456')
+
+        # too many digits
         self.assertRaises(exc.MalformedTokenError, otp.normalize_token, '01234567')
+        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, 12345678)
+
+    def test_normalize_token_class(self):
+        """normalize_token() -- class method"""
+        self.test_normalize_token_instance(otp=TOTP.using(digits=7))
 
     def test_normalize_time(self):
         """normalize_time()"""
-        otp = self.randotp()
+        TotpFactory = TOTP.using()
+        otp = self.randotp(TotpFactory)
 
         for _ in range(10):
             time = randtime()
@@ -731,8 +746,12 @@ class TotpTest(TestCase):
             dt = datetime.datetime.utcfromtimestamp(time)
             self.assertEqual(otp.normalize_time(dt), tint)
 
-            otp.now = lambda: time
-            self.assertEqual(otp.normalize_time(None), tint)
+            orig = TotpFactory.now
+            try:
+                TotpFactory.now = staticmethod(lambda: time)
+                self.assertEqual(otp.normalize_time(None), tint)
+            finally:
+                TotpFactory.now = orig
 
         self.assertRaises(TypeError, otp.normalize_time, '1234')
 

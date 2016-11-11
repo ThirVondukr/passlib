@@ -66,13 +66,6 @@ Most of this information will be serialized by :meth:`TOTP.to_uri` and :meth:`TO
 .. autoattribute:: TOTP.alg
 .. autoattribute:: TOTP.period
 
-..
-    Undocumented Helper Methods
-    ---------------------------
-
-    .. automethod:: TOTP.normalize_token
-    .. automethod:: TOTP.normalize_time
-
 Token Generation
 ================
 Token generation is generally useful client-side, and for generating
@@ -156,6 +149,15 @@ these methods will automatically encrypt the resulting keys.
       the results of these methods.
 
     * The :ref:`totp-storing-instances` tutorial for more details.
+
+Helper Methods
+==============
+While :meth:`TOTP.generate`, :meth:`TOTP.match`, and :meth:`TOTP.verify`
+automatically handle normalizing tokens & time values, the following methods
+are exposed in case they are useful in other contexts:
+
+.. automethod:: TOTP.normalize_token
+.. automethod:: TOTP.normalize_time
 
 AppWallet
 =========
