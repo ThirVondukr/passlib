@@ -1175,8 +1175,7 @@ class TOTP(object):
         """
         return cls.from_source(source).match(token, **kwds)
 
-    def match(self, token, time=None, window=30, skew=0, last_counter=None,
-              reuse=False):
+    def match(self, token, time=None, window=30, skew=0, last_counter=None):
         """
         Match TOTP token against specified timestamp.
         Searches within a window before & after the provided time,
@@ -1223,21 +1222,9 @@ class TOTP(object):
             and thus should never provide a token older than previously
             verified value.
 
-        :param bool reuse:
-            Controls whether a token can be issued twice within the same time :attr:`period`.
-
-            By default (``False``), attempting to verify the same token twice within the same time :attr:`period`
-            will result in a :exc:`~passlib.exc.TokenReuseError`.
-            Setting this to ``True`` will silently allow multiple uses of the token within the same time period.
-
-            Note that enabling this exposes your application to a replay attack:
-            if an attacker is able to read the token (whether physically
-            as the user types it, or going across the wire), the attacker
-            will be able to re-use any time over the next <period> seconds.
-
         :raises ~passlib.exc.TokenError:
 
-            If the token is malformed, or fails to verify.
+            If the token is malformed, fails to match, or has already been used.
 
         :returns TotpMatch:
 
@@ -1277,7 +1264,7 @@ class TOTP(object):
         counter = self._find_match(token, start, end)
         assert counter >= last_counter, "sanity check failed: counter went backward"
 
-        if not reuse and counter == last_counter:
+        if counter == last_counter:
             raise UsedTokenError("Token has already been used, please wait for another.",
                                  expire_time=(last_counter + 1) * self.period)
 

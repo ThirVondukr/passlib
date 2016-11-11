@@ -1043,9 +1043,9 @@ class TotpTest(TestCase):
                       window=period)
 
         # last counter set 2 periods ago --
-        # 2 periods ago's token should NOT count as valid, even if reuse=True
+        # 2 periods ago's token should NOT count as valid
         assertRaises(exc.InvalidTokenError, token, time + 2 * period,
-                     last_counter=counter, window=period, reuse=True)
+                     last_counter=counter, window=period)
 
         # last counter set 1 period ago --
         # previous period's token should now be rejected as 'used'
@@ -1053,19 +1053,11 @@ class TotpTest(TestCase):
                            last_counter=counter, window=period)
         self.assertEqual(err.expire_time, expire_time)
 
-        # last counter set 1 period ago, reuse allowed
-        assertMatches(-1, token, time + period, last_counter=counter,
-                      window=period, reuse=True)
-
         # last counter set to current period --
         # current period's token should be rejected
         err = assertRaises(exc.UsedTokenError, token, time,
                            last_counter=counter, window=0)
         self.assertEqual(err.expire_time, expire_time)
-
-        # last counter set to current period, reuse allowed
-        assertMatches(0, token, time, last_counter=counter,
-                      window=0, reuse=True)
 
     def test_match_w_token_normalization(self):
         """match() -- token normalization"""
