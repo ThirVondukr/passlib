@@ -362,16 +362,18 @@ class SkeletonTest(TestCase):
             @classmethod
             def _load_backend_a(cls):
                 if cls._enable_a:
-                    return cls._calc_checksum_a
+                    cls._set_calc_checksum_backend(cls._calc_checksum_a)
+                    return True
                 else:
-                    return None
+                    return False
 
             @classmethod
             def _load_backend_b(cls):
                 if cls._enable_b:
-                    return cls._calc_checksum_b
+                    cls._set_calc_checksum_backend(cls._calc_checksum_b)
+                    return True
                 else:
-                    return None
+                    return False
 
             def _calc_checksum_a(self, secret):
                 return 'a'

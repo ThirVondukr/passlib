@@ -7,6 +7,7 @@ from __future__ import with_statement
 import inspect
 import logging; log = logging.getLogger(__name__)
 import math
+import threading
 from warnings import warn
 # site
 # pkg
@@ -1934,6 +1935,13 @@ class ParallelismMixin(GenericHandler):
 #------------------------------------------------------------------------
 # backend mixin & helpers
 #------------------------------------------------------------------------
+
+#: global lock that must be held when changing backends.
+#: not bothering to make this more granular, as backend switching
+#: isn't a speed-critical path.  lock is needed since there is some
+#: class-level state that may be modified during a "dry run"
+_backend_lock = threading.RLock()
+
 class BackendMixin(PasswordHash):
     """
     PasswordHash mixin which provides generic framework for supporting multiple backends
@@ -1971,21 +1979,20 @@ class BackendMixin(PasswordHash):
         is needed to enable the backend.  This may include importing modules, running tests,
         issuing warnings, etc.
 
-        :param dryrun:
-            if True, this should be treated as a dry run -- the method should perform
-            all setup actions *except* switching the class over to the new backend.
-            it should default to False.
+        :param name:
+            [Optional] name of backend.
 
-            this keyword is optional, methods can omit it if they are stateless.
+        :param dryrun:
+            [Optional] True/False if currently performing a "dry run".
+
+            if True, the method should perform all setup actions *except*
+            switching the class over to the new backend.
 
         :raises passlib.exc.PasslibSecurityError:
             if the backend is available, but cannot be loaded due to a security issue.
 
         :returns:
-            None / False if backend not available.
-            Otherwise it can return any boolean-true value,
-            which will be passed on to :meth:`!_finalize_backend`,
-            (to be ignored or used however is appropriate for the class).
+            False if backend not available, True if backend loaded.
 
         .. warning::
 
@@ -2014,8 +2021,13 @@ class BackendMixin(PasswordHash):
     #: when no backends are available.
     _no_backend_suggestion = None
 
-    #: optional non-inherited flag used to detect which class 'owns' the backend
-    _backend_owner = False
+    #: shared attr used by set_backend() to indicate what backend it's loaded;
+    #: meaningless while not in set_backend().
+    _pending_backend = None
+
+    #: shared attr used by set_backend() to indicate if it's in "dry run" mode;
+    #: meaningless while not in set_backend().
+    _pending_dry_run = False
 
     #===================================================================
     # public api
@@ -2100,10 +2112,11 @@ class BackendMixin(PasswordHash):
         if (name == "any" and cls.__backend) or (name and name == cls.__backend):
             return cls.__backend
 
-        # check if parent class set marker indicating it should always be used to set backend
-        # (and not a subclass)
-        if cls._backend_owner and not cls.__dict__.get("_backend_owner"):
-            return cls._get_backend_owner().set_backend(name, dryrun=dryrun)
+        # if this isn't the final subclass, whose bases we can modify,
+        # find that class, and recursively call this method for the proper class.
+        owner = cls._get_backend_owner()
+        if owner is not cls:
+            return owner.set_backend(name, dryrun=dryrun)
 
         # pick first available backend
         if name == "any" or name == "default":
@@ -2129,75 +2142,69 @@ class BackendMixin(PasswordHash):
         if name not in cls.backends:
             raise ValueError("%s: unknown backend: %r" % (cls.name, name))
 
-        # hand off to loader
-        loader = cls._get_backend_loader(name)
-        if accepts_keyword(loader, "dryrun"):
-            result = loader(dryrun=dryrun)
-        else:
-            result = loader()
-        if not result:
-            raise exc.MissingBackendError("%s: backend not available: %s" % (cls.name, name))
-        old = cls.__backend
-        cls._finalize_backend(name, result, dryrun=dryrun)
-        assert (cls.__backend == old) if dryrun else (cls.__backend == name), \
-            "incorrect backend: old=%r name=%r dryrun=%r new=%r" % (
-                old, name, dryrun, cls.__backend
-            )
-        # return name
-
-    @classmethod
-    def _get_backend_owner(cls):
-        """
-        return base class that we're actually switching backends on
-        (needed in since backends frequently modify class attrs,
-        and .set_backend may be called from a subclass).
-        """
-        if not cls._backend_owner:
-            raise AssertionError("_backend_owner not set")
-        for base in cls.__mro__:
-            if base.__dict__.get("_backend_owner"):
-                return base
-        raise AssertionError("expected to find class w/ '_backend_owner' set")
+        # hand off to _set_backend()
+        with _backend_lock:
+            orig = cls._pending_backend, cls._pending_dry_run
+            try:
+                cls._pending_backend = name
+                cls._pending_dry_run = dryrun
+                cls._set_backend(name, dryrun)
+            finally:
+                cls._pending_backend, cls._pending_dry_run = orig
+            if not dryrun:
+                cls.__backend = name
+            return name
 
     #===================================================================
     # subclass hooks
     #===================================================================
 
     @classmethod
-    def _get_backend_loader(cls, name):
+    def _get_backend_owner(cls):
         """
-        hook called to get the specified backend's loader.
-        should be callable which takes in optional dryrun keyword,
-        and returns a "truthy" result if backend available,
-        and a "falsey" result if not.
-
-        the "truthy" result will be passed to _finalize_backend(),
-        and can be anything the particular _finalize_backend() uses.
+        return class that set_backend() should actually be modifying.
+        for SubclassBackendMixin, this may not always be the class that was invoked.
         """
-        return getattr(cls, "_load_backend_" + name)
-
-    # XXX: rename to _set_backend()?
+        return cls
 
     @classmethod
-    def _finalize_backend(cls, name, result, dryrun=False):
+    def _set_backend(cls, name, dryrun):
         """
-        hook called by :meth:`set_backend` after loader returns.
-        it should perform common tests & finalization.
-        this may be subclassed in order to perform class-specific actions
-        with the result of a backend.
+        Internal method invoked by :meth:`set_backend`.
+        handles actual loading of specified backend.
 
-        :param name:
-            name of backend
+        global _backend_lock will be held for duration of this method,
+        and _pending_dry_run & _pending_backend will also be set.
 
-        :param result:
-            value returned by backend
-
-        :param dryrun:
-            dryrun flag passed to set_backend()
+        should return True / False.
         """
-        if not dryrun:
-            # XXX: would it be better to do this in _finalize_backend()? might simplify bcrypt handler
-            cls.__backend = name
+        loader = cls._get_backend_loader(name)
+        kwds = {}
+        if accepts_keyword(loader, "name"):
+            kwds['name'] = name
+        if accepts_keyword(loader, "dryrun"):
+            kwds['dryrun'] = dryrun
+        ok = loader(**kwds)
+        if ok is False:
+            raise exc.MissingBackendError("%s: backend not available: %s" %
+                                          (cls.name, name))
+        elif ok is not True:
+            raise AssertionError("backend loaders must return True or False"
+                                 ": %r" % (ok,))
+
+    @classmethod
+    def _get_backend_loader(cls, name):
+        """
+        Hook called to get the specified backend's loader.
+        Should return callable which optionally takes ``"name"`` and/or
+        ``"dryrun"`` keywords.
+
+        Callable should return True if backend initialized successfully.
+
+        If backend can't be loaded, callable should return False
+        OR raise MissingBackendError directly.
+        """
+        raise NotImplementedError("implement in subclass")
 
     @classmethod
     def _stub_requires_backend(cls):
@@ -2235,7 +2242,10 @@ class SubclassBackendMixin(BackendMixin):
     #===================================================================
 
     # 'backends' required by BackendMixin
-    # '_backend_owner' required by BackendMixin
+
+    #: NON-INHERITED flag that this class's bases should be modified by SubclassBackendMixin.
+    #: should only be set to True in *one* subclass in hierarchy.
+    _backend_mixin_target = False
 
     #: map of backend name -> mixin class
     _backend_mixin_map = None
@@ -2245,24 +2255,33 @@ class SubclassBackendMixin(BackendMixin):
     #===================================================================
 
     @classmethod
-    def _get_backend_loader(cls, name):
-        assert cls._backend_mixin_map, "_backend_mixin_map not specified"
-        return cls._backend_mixin_map[name]._load_backend
+    def _get_backend_owner(cls):
+        """
+        return base class that we're actually switching backends on
+        (needed in since backends frequently modify class attrs,
+        and .set_backend may be called from a subclass).
+        """
+        if not cls._backend_mixin_target:
+            raise AssertionError("_backend_mixin_target not set")
+        for base in cls.__mro__:
+            if base.__dict__.get("_backend_mixin_target"):
+                return base
+        raise AssertionError("expected to find class w/ '_backend_mixin_target' set")
 
     @classmethod
-    def _finalize_backend(cls, name, result, dryrun):
-        """
-        subclass hook to handle workaround detection
-        """
-        # sanity check call args
-        assert result is True, "invalid backend response"
+    def _set_backend(cls, name, dryrun):
+        # invoke backend loader (will throw error if fails)
+        super(SubclassBackendMixin, cls)._set_backend(name, dryrun)
+
+        # sanity check call args (should trust .set_backend, but will really
+        # foul things up if this isn't the owner)
         assert cls is cls._get_backend_owner(), "_finalize_backend() not invoked on owner"
 
         # pick mixin class
         mixin_map = cls._backend_mixin_map
         assert mixin_map, "_backend_mixin_map not specified"
         mixin_cls = mixin_map[name]
-        assert issubclass(mixin_cls, SubclassBackendMixin)
+        assert issubclass(mixin_cls, SubclassBackendMixin), "invalid mixin class"
 
         # modify <cls> to remove existing backend mixins, and insert the new one
         update_mixin_classes(cls,
@@ -2272,22 +2291,16 @@ class SubclassBackendMixin(BackendMixin):
             dryrun=dryrun,
         )
 
-        # call parent
-        super(SubclassBackendMixin, cls)._finalize_backend(name, result, dryrun)
-
-        # init mixin
-        mixin_cls._finalize_backend_mixin(name, result, dryrun=dryrun)
-
     @classmethod
-    def _finalize_backend_mixin(mix_cls, name, result, dryrun=False):
-        """hook for subclasses to perform (usually one-time) init of backend mixin"""
-        pass
+    def _get_backend_loader(cls, name):
+        assert cls._backend_mixin_map, "_backend_mixin_map not specified"
+        return cls._backend_mixin_map[name]._load_backend_mixin
 
     #===================================================================
     # eoc
     #===================================================================
 
-
+# XXX: rename to ChecksumBackendMixin?
 class HasManyBackends(BackendMixin, GenericHandler):
     """
     GenericHandler mixin which provides selecting from multiple backends.
@@ -2311,7 +2324,12 @@ class HasManyBackends(BackendMixin, GenericHandler):
     Private API (Subclass Hooks)
     ----------------------------
     As of version 1.7, classes should implement :meth:`!_load_backend_{name}`, per
-    :class:`BackendMixin`.  The following api is deprecated:
+    :class:`BackendMixin`.  This hook should invoke :meth:`!_set_calc_checksum_backcend`
+    to install it's backend method.
+
+    .. deprecated:: 1.7
+
+        The following api is deprecated, and will be removed in Passlib 2.0:
 
     .. attribute:: _has_backend_{name}
 
@@ -2320,22 +2338,12 @@ class HasManyBackends(BackendMixin, GenericHandler):
         or ``False``. One of these should be provided by
         the subclass for each backend listed in :attr:`backends`.
 
-        .. deprecated:: 1.7
-
-            use :attr:`_load_backend_{name}` instead.
-            support for this attribute will be removed in Passlib 2.0.
-
     .. classmethod:: _calc_checksum_{name}
 
         private class method that should implement :meth:`_calc_checksum`
         for a given backend. it will only be called if the backend has
         been selected by :meth:`set_backend`. One of these should be provided
         by the subclass for each backend listed in :attr:`backends`.
-
-        .. deprecated:: 1.7
-
-            use :attr:`_load_backend_{name}` instead.
-            this attribute will not have special meaning in Passlib 2.0.
     """
     #===================================================================
     # digest calculation
@@ -2371,7 +2379,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
         if loader is None:
             # fallback to pre-1.7 _has_backend_xxx + _calc_checksum_xxx() api
             def loader():
-                return cls._load_legacy_backend(name)
+                return cls.__load_legacy_backend(name)
         else:
             # make sure 1.6 api isn't defined at same time
             assert not hasattr(cls, "_has_backend_" + name), (
@@ -2381,7 +2389,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
         return loader
 
     @classmethod
-    def _load_legacy_backend(cls, name):
+    def __load_legacy_backend(cls, name):
         value = getattr(cls, "_has_backend_" + name)
         warn("%s: support for ._has_backend_%s is deprecated as of Passlib 1.7, "
              "and will be removed in Passlib 1.9/2.0, please implement "
@@ -2389,21 +2397,25 @@ class HasManyBackends(BackendMixin, GenericHandler):
              DeprecationWarning,
              )
         if value:
-            return getattr(cls, "_calc_checksum_" + name)
+            func = getattr(cls, "_calc_checksum_" + name)
+            cls._set_calc_checksum_backend(func)
+            return True
         else:
             return False
 
     @classmethod
-    def _finalize_backend(cls, name, result, dryrun=False):
+    def _set_calc_checksum_backend(cls, func):
         """
-        subclass to implement the common behavior used by the HasManyBackend subclasses --
-        backends should return a callable for use as _calc_checksum_backend()
+        helper used by subclasses to validate & set backend-specific
+        calc checksum helper.
         """
-        if not callable(result):
+        backend = cls._pending_backend
+        assert backend, "should only be called during set_backend()"
+        if not callable(func):
             raise RuntimeError("%s: backend %r returned invalid callable: %r" %
-                               (cls.name, name, result))
-        cls._calc_checksum_backend = result
-        return super(HasManyBackends, cls)._finalize_backend(name, result, dryrun=dryrun)
+                               (cls.name, backend, func))
+        if not cls._pending_dry_run:
+            cls._calc_checksum_backend = func
 
     #===================================================================
     # eoc

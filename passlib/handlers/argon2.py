@@ -454,12 +454,18 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     _no_backend_suggestion = " -- recommend you install one (e.g. 'pip install argon2_cffi')"
 
     @classmethod
-    def _finalize_backend_mixin(mixin_cls, name, result, dryrun=False):
+    def _finalize_backend_mixin(mixin_cls, name, dryrun):
+        """
+        helper called by from backend mixin classes' _load_backend_mixin() --
+        invoked after backend imports have been loaded, and performs
+        feature detection & testing common to all backends.
+        """
         max_version = mixin_cls.max_version
         assert isinstance(max_version, int) and max_version >= 0x10
         if max_version < 0x13:
             warn("%r doesn't support argon2 v1.3, and should be upgraded" % name,
                  uh.exc.PasslibSecurityWarning)
+        return True
 
     @classmethod
     def _adapt_backend_error(cls, err, hash=None, self=None):
@@ -550,7 +556,7 @@ class _CffiBackend(_Argon2Common):
     #===================================================================
 
     @classmethod
-    def _load_backend(mixin_cls):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         # we automatically import this at top, so just grab info
         if _argon2_cffi is None:
             return False
@@ -558,7 +564,7 @@ class _CffiBackend(_Argon2Common):
         log.debug("detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
                   _argon2_cffi.__version__, max_version)
         mixin_cls.version = mixin_cls.max_version = max_version
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     #===================================================================
     # primary methods
@@ -654,7 +660,7 @@ class _PureBackend(_Argon2Common):
     #===================================================================
 
     @classmethod
-    def _load_backend(mixin_cls, dryrun=False):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         # import argon2pure
         global _argon2pure
         try:
@@ -679,7 +685,7 @@ class _PureBackend(_Argon2Common):
                  "is strongly recommended", exc.PasslibSecurityWarning)
 
         mixin_cls.version = mixin_cls.max_version = max_version
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     #===================================================================
     # primary methods
@@ -798,8 +804,8 @@ class argon2(_NoBackend, _Argon2Common):
     #: list of potential backends
     backends = ("argon2_cffi", "argon2pure")
 
-    #: flag this is the 'owner' of the backend mixins
-    _backend_owner = True
+    #: flag that this class's bases should be modified by SubclassBackendMixin
+    _backend_mixin_target = True
 
     #: map of backend -> mixin class, used by _get_backend_loader()
     _backend_mixin_map = {

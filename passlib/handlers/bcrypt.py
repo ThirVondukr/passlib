@@ -258,17 +258,18 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
     # NOTE: backend config is located down in <bcrypt> class
 
-    # NOTE: set_backend() will execute the ._load_backend()
+    # NOTE: set_backend() will execute the ._load_backend_mixin()
     #       of the matching mixin class, which will handle backend detection
 
     # appended to HasManyBackends' "no backends available" error message
     _no_backend_suggestion = " -- recommend you install one (e.g. 'pip install bcrypt')"
 
     @classmethod
-    def _finalize_backend_mixin(mixin_cls, backend, result, dryrun=False):
+    def _finalize_backend_mixin(mixin_cls, backend, dryrun):
         """
-        detect & configure workarounds for backend.
-        invoked after backend has been successfully loaded.
+        helper called by from backend mixin classes' _load_backend_mixin() --
+        invoked after backend imports have been loaded, and performs
+        feature detection & testing common to all backends.
         """
         #----------------------------------------------------------------
         # setup helpers
@@ -277,7 +278,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             "_configure_workarounds() invoked from wrong class"
 
         if mixin_cls._workrounds_initialized:
-            return
+            return True
 
         verify = mixin_cls.verify
 
@@ -432,6 +433,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
         # set flag so we don't have to run this again
         mixin_cls._workrounds_initialized = True
+        return True
 
     #===================================================================
     # digest calculation
@@ -542,7 +544,7 @@ class _BcryptBackend(_BcryptCommon):
     """
 
     @classmethod
-    def _load_backend(mixin_cls):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         # try to import bcrypt
         global _bcrypt
         if _detect_pybcrypt():
@@ -559,7 +561,7 @@ class _BcryptBackend(_BcryptCommon):
             version = '<unknown>'
 
         log.debug("detected 'bcrypt' backend, version %r", version)
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     # # TODO: would like to implementing verify() directly,
     # #       to skip need for parsing hash strings.
@@ -603,14 +605,14 @@ class _BcryptorBackend(_BcryptCommon):
     """
 
     @classmethod
-    def _load_backend(mixin_cls):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         # try to import bcryptor
         global _bcryptor
         try:
             import bcryptor as _bcryptor
         except ImportError: # pragma: no cover
             return False
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
         # bcryptor behavior:
@@ -635,7 +637,7 @@ class _PyBcryptBackend(_BcryptCommon):
     _calc_lock = None
 
     @classmethod
-    def _load_backend(mixin_cls):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         # try to import pybcrypt
         global _pybcrypt
         if not _detect_pybcrypt():
@@ -665,7 +667,7 @@ class _PyBcryptBackend(_BcryptCommon):
                 mixin_cls._calc_lock = threading.Lock()
             mixin_cls._calc_checksum = mixin_cls._calc_checksum_threadsafe.__func__
 
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum_threadsafe(self, secret):
         # as workaround for pybcrypt < 0.3's concurrency issue,
@@ -697,8 +699,10 @@ class _OsCryptBackend(_BcryptCommon):
     """
 
     @classmethod
-    def _load_backend(mixin_cls):
-        return test_crypt("test", TEST_HASH_2A)
+    def _load_backend_mixin(mixin_cls, name, dryrun):
+        if not test_crypt("test", TEST_HASH_2A):
+            return False
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
         secret, ident = self._prepare_digest_args(secret)
@@ -729,14 +733,14 @@ class _BuiltinBackend(_BcryptCommon):
     backend which uses passlib's pure-python implementation
     """
     @classmethod
-    def _load_backend(mixin_cls):
+    def _load_backend_mixin(mixin_cls, name, dryrun):
         from passlib.utils import as_bool
         if not as_bool(os.environ.get("PASSLIB_BUILTIN_BCRYPT")):
             log.debug("bcrypt 'builtin' backend not enabled via $PASSLIB_BUILTIN_BCRYPT")
             return False
         global _builtin_bcrypt
         from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
-        return True
+        return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
         secret, ident = self._prepare_digest_args(secret)
@@ -822,8 +826,8 @@ class bcrypt(_NoBackend, _BcryptCommon):
     #: list of potential backends
     backends = ("bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin")
 
-    #: flag this is the 'owner' of the backend mixins
-    _backend_owner = True
+    #: flag that this class's bases should be modified by SubclassBackendMixin
+    _backend_mixin_target = True
 
     #: map of backend -> mixin class, used by _get_backend_loader()
     _backend_mixin_map = {

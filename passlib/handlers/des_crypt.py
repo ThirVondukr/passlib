@@ -207,8 +207,10 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     @classmethod
     def _load_backend_os_crypt(cls):
         if test_crypt("test", 'abgOeLfPimXQo'):
-            return cls._calc_checksum_os_crypt
-        return None
+            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
+            return True
+        else:
+            return False
 
     def _calc_checksum_os_crypt(self, secret):
         # NOTE: we let safe_crypt() encode unicode secret -> utf8;
@@ -227,7 +229,8 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     #---------------------------------------------------------------
     @classmethod
     def _load_backend_builtin(cls):
-        return cls._calc_checksum_builtin
+        cls._set_calc_checksum_backend(cls._calc_checksum_builtin)
+        return True
 
     def _calc_checksum_builtin(self, secret):
         return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
@@ -368,8 +371,10 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     @classmethod
     def _load_backend_os_crypt(cls):
         if test_crypt("test", '_/...lLDAxARksGCHin.'):
-            return cls._calc_checksum_os_crypt
-        return None
+            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
+            return True
+        else:
+            return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string()
@@ -387,7 +392,8 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #---------------------------------------------------------------
     @classmethod
     def _load_backend_builtin(cls):
-        return cls._calc_checksum_builtin
+        cls._set_calc_checksum_backend(cls._calc_checksum_builtin)
+        return True
 
     def _calc_checksum_builtin(self, secret):
         return _raw_bsdi_crypt(secret, self.rounds, self.salt.encode("ascii")).decode("ascii")

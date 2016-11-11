@@ -100,8 +100,10 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def _load_backend_os_crypt(cls):
         if test_crypt("test", '$sha1$1$Wq3GL2Vp$C8U25GvfHS8qGHim'
                               'ExLaiSFlGkAe'):
-            return cls._calc_checksum_os_crypt
-        return None
+            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
+            return True
+        else:
+            return False
 
     def _calc_checksum_os_crypt(self, secret):
         config = self.to_string(config=True)
@@ -119,7 +121,8 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #---------------------------------------------------------------
     @classmethod
     def _load_backend_builtin(cls):
-        return cls._calc_checksum_builtin
+        cls._set_calc_checksum_backend(cls._calc_checksum_builtin)
+        return True
 
     def _calc_checksum_builtin(self, secret):
         if isinstance(secret, unicode):

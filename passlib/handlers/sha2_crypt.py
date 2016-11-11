@@ -360,8 +360,10 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     @classmethod
     def _load_backend_os_crypt(cls):
         if test_crypt(*cls._test_hash):
-            return cls._calc_checksum_os_crypt
-        return None
+            cls._set_calc_checksum_backend(cls._calc_checksum_os_crypt)
+            return True
+        else:
+            return False
 
     def _calc_checksum_os_crypt(self, secret):
         hash = safe_crypt(secret, self.to_string())
@@ -381,7 +383,8 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     #---------------------------------------------------------------
     @classmethod
     def _load_backend_builtin(cls):
-        return cls._calc_checksum_builtin
+        cls._set_calc_checksum_backend(cls._calc_checksum_builtin)
+        return True
 
     def _calc_checksum_builtin(self, secret):
         return _raw_sha2_crypt(secret, self.salt, self.rounds,
