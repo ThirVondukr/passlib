@@ -145,6 +145,8 @@ and instead look like this::
     >>> totp.to_json()
     '{"key":"D6RZI4ROAUQKJNAWQKYPN7W7LNV43GOT","type":"totp","v":1}'
 
+To ensure you always save an encrypted token, you can use ``totp.to_json(encrypted=True)``.
+
 .. rst-class:: float-center without-title
 
 .. seealso:: **For more details see** :ref:`totp-storing-instances`
@@ -175,10 +177,9 @@ A skeleton example of how this should function::
     >>> source = # ... load totp json string from database ...
     >>> last_counter = # ... load counter value from cache ...
 
-    >>> # check attempt rate limit for this account / address (per step 3 above)
+    >>> # ... check attempt rate limit for this account / address (per step 3 above) ...
 
-    >>> # using the TotpFactory object defined in step 2,
-    >>> # invoke verify
+    >>> # using the TotpFactory object defined in step 2, invoke verify
     >>> try:
     ...     match = TotpFactory.verify(token, source, last_counter=last_counter)
     ... except MalformedTokenError as err:
@@ -193,18 +194,108 @@ A skeleton example of how this should function::
     ...     # * reset rate-limit counter
     ...     # * store 'match.counter' in per-user cache for at least 'match.cache_seconds'
 
-Finally, one optional step is to check ``match.totp.changed``.  This is the value
-of the :attr:`TOTP.changed` attribute, and if true, means the TOTP object needs to be
-reserialized to disk (usually because it was encrypted with an old key, or stored
-in a legacy format).  This can be done via::
-
-    >>> if match.totp.changed:
-    ...     totp_data = match.totp.to_json()
-    ...     # ... store totp json string in database ...
-
 .. rst-class:: float-center without-title
 
 .. seealso:: **For more details see** :ref:`totp-verifying` (below)
+
+.. rst-class:: html-toggle
+
+Alternate Caching Strategy
+..........................
+As an alternative to storing ``match.counter`` in the cache,
+applications using a cache such as memcached may wish to simply set a key
+based on ``user + token`` for ``match.cache_seconds``, and reject any
+tokens coming in for that user who are marked in the cache.
+
+In that case, they should run the tokens through :meth:`TOTP.normalize_token`
+first, to make sure the token strings are normalized before comparison.
+In this case, the skeleton example can be amended to::
+
+    >>> # pull information from your application
+    >>> token = # ... token string provided by user ...
+    >>> source = # ... load totp json string from database ...
+    >>> user_id = # ... user identifier for cache
+
+    >>> # ... check attempt rate limit for this account / address (per step 3 above) ...
+
+    >>> # check token format
+    >>> try:
+    ...     token = TotpFactory.normalize_token(token)
+    ... except MalformedTokenError as err:
+    ...     # --- malformed token ---
+    ...     # * inform user, e.g. by displaying str(err)
+    ...     return
+
+    >>> # check if token has been used, using app-defined present_in_cache() helper
+    >>> cache_key = "totp-token-%s-%s" % (user_id, token)
+    >>> if present_in_cache(cache_key):
+    ...     # * add to rate limit counter
+    ...     # * present 'token already used' message
+    ...     return
+
+    >>> # using the TotpFactory object defined in step 2, invoke verify
+    >>> try:
+    ...     match = TotpFactory.verify(token, source)
+    ... except TokenError as err:
+    ...     # --- invalid token ---
+    ...     # * add to rate limit counter
+    ...     # * inform user, e.g. by displaying str(err)
+    ... else:
+    ...     # --- successful match ---
+    ...     # * reset rate-limit counter
+    ...     # * set 'cache_key' in per-user cache for at least 'match.cache_seconds'
+
+7. Reserializing Existing Objects
+---------------------------------
+An organization's security policy may require that a developer periodically
+change the application secret key used to decrypt/encrypt TOTP objects.
+Alternately, the application secret may become compromised.
+
+In either case, a new application secret will need to be created, and a new tag assigned
+(per step 1).  Any deprecated secret(s) will need to be retained in the collection passed to the ``TotpFactory``,
+in order to be able to decrypt existing TOTP objects.
+
+.. rst-class:: float-right
+
+.. note::
+
+    You can verify which secret is will be used
+    to encrypt new keys by inspecting ``tag = TotpFactory.wallet.default_tag``.
+
+.. rst-class:: clear
+
+Once the new secret has been added, you will need to update all the serialized TOTP objects in the database,
+decrypting them using the old secret, and encrypting them with the new one.
+
+This can be done in a few ways.  The following skeleton example gives a simple loop that can be used,
+which would ideally be run in a process that's separate from your normal application::
+
+    >>> # presuming query_user_totp() queries your database for all user rows,
+    >>> # and update_user_totp() updates a specific row.
+    >>> for user_id, totp_source in query_user_totp():
+    >>>     totp = TotpFactory.from_source(totp_source)
+    >>>     if totp.changed:
+    >>>         update_user_totp(user_id, totp.to_json())
+
+This uses the :attr:`TOTP.changed` attribute, which is set to ``True`` if
+:meth:`TOTP.from_source` (or other constructor) detects the source data is
+encrypted with an old secret, is using outdated encryption settings,
+or is stored in deprecated serialization format.
+
+Some refinements that may need to be made for specific situations:
+
+* For applications with a large number of users, it may be faster to accumulate ``(user_id, totp.to_json())``
+  pairs in a buffer, and do a bulk SQL update once every 100-1000 rows.
+
+* Depending on the dbapi layer in use, it may take care of JSON serialization for you,
+  in which case you'll need to use ``totp.to_dict()`` instead of ``totp.to_json()``.
+
+Once all references to a deprecated secret have been replaced,
+it can be removed from the secrets file.
+
+.. rst-class:: float-center without-title
+
+.. seealso:: **For more details see** :ref:`Step 1 <totp-walkthrough-step-1>` (above), or :ref:`totp-encryption-setup` (below)
 
 .. _totp-creation:
 
@@ -215,7 +306,7 @@ Direct Creation
 ---------------
 Creating TOTP instances is straightforward:
 The :class:`TOTP` class can be called directly to constructor a TOTP instance
-from it's component configuration:
+from it's component configuration::
 
     >>> from passlib.totp import TOTP
     >>> totp = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM', digits=9)
@@ -223,7 +314,7 @@ from it's component configuration:
     '29387414'
 
 You can also use a number of the alternate constructors,
-such as :meth:`TOTP.new` or :meth:`TOTP.from_source`.
+such as :meth:`TOTP.new` or :meth:`TOTP.from_source`::
 
     >>> # create new instance w/ automatically generated key
     >>> totp = TOTP.new()
@@ -404,6 +495,15 @@ There are also corresponding :meth:`TOTP.to_dict` and :meth:`TOTP.from_dict`
 methods for applications that want to serialize the object without converting
 it all the way into a JSON string.
 
+.. rst-class:: float-center
+
+.. caution::
+
+    The above procedure should only be used for development purposes,
+    as it will NOT encrypt the keys; and the IETF **strongly recommends**
+    encrypting the keys for storage (`RFC-6238 sec 5.1 <https://tools.ietf.org/html/rfc6238#section-5.1>`_).
+    Encrypting the keys is covered below.
+
 .. _totp-encryption-setup:
 
 Application Secrets
@@ -423,7 +523,7 @@ Ideally, these secrets should be stored in a location which the application's pr
 does not have access to once it has been initialized.  Once this data is loaded,
 applications can create a factory function using :meth:`TOTP.using`,
 and provide these secrets as part of it's arguments.
-This can take the form of a file path, a loaded string, or a dictionary:
+This can take the form of a file path, a loaded string, or a dictionary::
 
     >>> # load from dict
     >>> from passlib.totp import TOTP
@@ -482,7 +582,7 @@ The TOTP protocol generates a new time & key -dependant token every <period> sec
 Generating a totp token is done with the :meth:`TOTP.generate` method,
 which returns a :class:`TotpToken` instance.  This object looks and acts
 like a tuple of ``(token, expire_time)``, but offers some additional
-informational attributes.
+informational attributes::
 
     >>> from passlib import totp
     >>> otp = TOTP(key='GVDOQ7NP6XPJWE4CWCLFFSXZH6DTAZWM')
@@ -524,7 +624,7 @@ To verify a token a user has provided, you can use the :meth:`TOTP.match` method
 If unsuccessful, a :exc:`passlib.exc.TokenError` subclass will be raised.
 If successful, this will return a :class:`TotpMatch` instance, with details about the match.
 This object acts like a tuple of ``(counter, timestamp)``, but offers some additional
-informational attributes.
+informational attributes::
 
     >>> # NOTE: all of the following was done at a fixed time, to make these
     >>> #       examples repeatable. in real-world use, you would omit the 'time' parameter
@@ -555,7 +655,7 @@ it has a signature much more similar to that of Passlib's :meth:`passlib.ifc.Pas
 Typically applications will provide the TOTP key in whatever format it's stored by the server.
 This will usually be a JSON string (as output by :meth:`TOTP.to_json`), but can be any
 format accepted by :meth:`TOTP.from_source`.
-As an example:
+As an example::
 
     >>> # application loads json-serialized TOTP key
     >>> from passlib.totp import TOTP
@@ -625,9 +725,12 @@ As an example::
     ...
     UsedTokenError: Token has already been used, please wait for another.
 
+.. rst-class:: float-right
+
 .. seealso::
 
-    For more details, see the :meth:`TOTP.match` method.
+    For more details, see the :meth:`TOTP.match` method;
+    for more examples, see Step 6 above.
 
 .. _totp-rate-limiting:
 
