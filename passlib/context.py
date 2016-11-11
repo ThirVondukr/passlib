@@ -701,9 +701,11 @@ class _CryptConfig(object):
                 key, value = norm_scheme_option(key, value)
 
                 # e.g. things like "min_rounds" should never be set cross-scheme
+                # this will be fatal under 2.0.
                 if scheme == "all" and key not in _global_settings:
                     warn("The '%s' option should be configured per-algorithm, and not set "
-                         "globally in the context" % (key,), PasslibConfigWarning)
+                         "globally in the context; This will be an error in Passlib 2.0" %
+                         (key,), PasslibConfigWarning)
 
                 # this scheme is going away in 2.0;
                 # but most keys deserve an extra warning since it impacts security.
