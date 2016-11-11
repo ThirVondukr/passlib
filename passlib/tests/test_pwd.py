@@ -58,7 +58,7 @@ class UtilsTest(TestCase):
 
 # import subject
 from passlib.pwd import genword, default_charsets
-ascii62 = default_charsets['ascii62']
+ascii_62 = default_charsets['ascii_62']
 hex = default_charsets['hex']
 
 class WordGeneratorTest(TestCase):
@@ -88,12 +88,12 @@ class WordGeneratorTest(TestCase):
         """'returns' keyword"""
         # returns=int option
         results = genword(returns=5000)
-        self.assertResultContents(results, 5000, ascii62)
+        self.assertResultContents(results, 5000, ascii_62)
 
         # returns=iter option
         gen = genword(returns=iter)
         results = [next(gen) for _ in range(5000)]
-        self.assertResultContents(results, 5000, ascii62)
+        self.assertResultContents(results, 5000, ascii_62)
 
         # invalid returns option
         self.assertRaises(TypeError, genword, returns='invalid-type')
