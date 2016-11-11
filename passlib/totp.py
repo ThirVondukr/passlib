@@ -1242,7 +1242,7 @@ class TOTP(object):
 
             >>> # token from counter step 30 sec ago (within allowed window)
             >>> totp.match('000492', 1419622729)
-            <TotpMatch counter=47320756 time=1419622729>
+            <TotpMatch counter=47320756 time=1419622729 cache_seconds=60>
 
             >>> # invalid token -- token from 60 sec ago (outside of window)
             >>> totp.match('760389', 1419622729)
@@ -1889,7 +1889,8 @@ class TotpMatch(SequenceMixin):
         return self.counter, self.time
 
     def __repr__(self):
-        return "<TotpMatch counter=%d time=%d>" % self._as_tuple()
+        args = (self.counter, self.time, self.cache_seconds)
+        return "<TotpMatch counter=%d time=%d cache_seconds=%d>" % args
 
 #=============================================================================
 # convenience helpers

@@ -546,7 +546,7 @@ informational attributes.
 
     >>> # user provides correct token
     >>> otp.match('359275', time=1475338840)
-    <TotpMatch counter=49177961 time=1475338840>
+    <TotpMatch counter=49177961 time=1475338840 cache_seconds=60>
 
 As a further optimization, the :meth:`TOTP.verify` method allows deserializing
 and matching a token in a single step.  Not only does this save a little code,

@@ -1146,7 +1146,7 @@ class TotpTest(TestCase):
 
         # uri (bytes)
         otp = from_source(b"otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
-                           "issuer=Example")
+                          b"issuer=Example")
         self.assertEqual(otp.key, KEY4_RAW)
 
         # dict
