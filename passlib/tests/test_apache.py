@@ -180,11 +180,13 @@ class HtpasswdFileTest(TestCase):
         # unknown scheme
         self.assertRaises(KeyError, check, "xxx")
 
-        # portable alias
-        self.assertEqual(check("portable"), apache.portable_scheme)
+        # alias resolution
+        self.assertEqual(check("portable"), apache.htpasswd_defaults["portable"])
+        self.assertEqual(check("portable_apache_22"), apache.htpasswd_defaults["portable_apache_22"])
+        self.assertEqual(check("host_apache_22"), apache.htpasswd_defaults["host_apache_22"])
 
-        # default -- currently same as portable, will be host-specific under passlib 1.7.
-        self.assertEqual(check(None), "apr_md5_crypt")
+        # default
+        self.assertEqual(check(None), apache.htpasswd_defaults["portable_apache_22"])
 
     def test_03_users(self):
         """test users()"""

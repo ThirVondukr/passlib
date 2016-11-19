@@ -29,6 +29,10 @@ planned for future releases:
       meaning all but the first scheme will be considered deprecated unless
       explicitly stated otherwise.
 
+    - :class:`passlib.apache.HtpasswdFile` will default ``"bcrypt"``,
+      generally requiring Apache 2.4.  Forward & backward ``default_scheme``
+      settings are available as of Passlib 1.7.
+
 .. rst-class:: emphasize-children toc-always-open
 
 **1.7** (NOT YET RELEASED)
@@ -163,6 +167,13 @@ Bugfixes
 
 Other Changes
 -------------
+
+* :class:`passlib.apache.HtpasswdFile` updated to match Apache 2.4's
+  hash schemes, as well as all host OS crypt formats; allowing for much more
+  secure hashes in htpasswd files.  You can now specify if the default hash
+  should be compatible with apache 2.2 / 2.4, and host-specific or portable.
+  See the ``default_schemes`` keyword for details.
+
 *Internal Changes*
 
     .. currentmodule:: passlib.ifc

@@ -10,6 +10,7 @@ import os
 from warnings import warn
 # site
 # pkg
+from passlib import registry
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
@@ -413,41 +414,95 @@ class _CommonFile(object):
     #===================================================================
 
 #=============================================================================
-# htpasswd editing
+# htpasswd context
+#
+# This section sets up a CryptContexts to mimic what schemes Apache
+# (and the htpasswd tool) should support on the current system.
+#
+# Apache has long-time supported some basic builtin schemes (listed below),
+# as well as the host's crypt() method -- though it's limited to being able
+# to *verify* any scheme using that method, but can only generate "des_crypt" hashes.
+#
+# Apache 2.4 added builtin bcrypt support (even for platforms w/o native support).
+# c.f. http://httpd.apache.org/docs/2.4/programs/htpasswd.html vs the 2.2 docs.
 #=============================================================================
 
-#: default CryptContext used by HtpasswdFile
-# TODO: update this to support everything in host_context (where available),
-#       and note in the documentation that the default is no longer guaranteed to be portable
-#       across platforms.
-#       c.f. http://httpd.apache.org/docs/2.2/programs/htpasswd.html
-htpasswd_context = CryptContext([
-    # man page notes supported everywhere; is default on Windows, Netware, TPF
-    "apr_md5_crypt",
+def _init_default_schemes():
 
-    # [added in passlib 1.6.3]
-    # apache requires host crypt() support; but can generate natively
-    # (as of https://bz.apache.org/bugzilla/show_bug.cgi?id=49288)
-    "bcrypt",
+    #: pick strongest one for host
+    host_best = None
+    for name in ["bcrypt", "sha256_crypt"]:
+        if registry.has_os_crypt_support(name):
+            host_best = name
+            break
 
-    # [added in passlib 1.6.3]
-    # apache requires host crypt() support; and can't generate natively
-    "sha256_crypt",
-    "sha512_crypt",
+    defaults = dict(
+        # strongest hash builtin to specific apache version
+        portable_apache_24="bcrypt",
+        portable_apache_22="apr_md5_crypt",
 
-    # man page notes apache does NOT support this on Windows, Netware, TPF
-    "des_crypt",
+        # strongest hash across current host & specific apache version
+        host_apache_24="bcrypt",
+        host_apache_22=host_best or "apr_md5_crypt",
 
-    # man page notes intended only for transitioning htpasswd <-> ldap
-    "ldap_sha1",
+        # strongest hash on a linux host
+        linux_apache_24="bcrypt",
+        linux_apache_22="sha256_crypt",
+    )
 
-    # man page notes apache ONLY supports this on Windows, Netware, TPF
-    "plaintext"
-    ])
+    # set latest-apache version aliases
+    # XXX: could check for apache install, and pick correct host 22/24 default?
+    defaults.update(
+        portable=defaults['portable_apache_24'],
+        host=defaults['host_apache_24'],
+    )
+    return defaults
 
-#: scheme that will be used when 'portable' is requested.
-portable_scheme = "apr_md5_crypt"
+#: dict mapping default alias -> appropriate scheme
+htpasswd_defaults = _init_default_schemes()
 
+def _init_htpasswd_context():
+
+    # start with schemes built into apache
+    schemes = [
+        # builtin support added in apache 2.4
+        # (https://bz.apache.org/bugzilla/show_bug.cgi?id=49288)
+        "bcrypt",
+
+        # not supported by apache (unless natively), but useful for editing htpasswd under
+        # windows and then deploying under unix.
+        "sha256_crypt",
+        "sha512_crypt",
+        "des_crypt",
+
+        # apache default as of 2.2.18, and still default in 2.4
+        "apr_md5_crypt",
+
+        # NOTE: apache says ONLY intended for transitioning htpasswd <-> ldap
+        "ldap_sha1",
+
+        # NOTE: apache says ONLY supported on Windows, Netware, TPF
+        "plaintext"
+    ]
+
+    # apache can verify anything supported by the native crypt(),
+    # though htpasswd can only generate des_crypt hashes.
+    # (may overlap w/ builtin apache schemes)
+    schemes.extend(registry.get_supported_os_crypt_schemes())
+
+    # hack to remove dups and sort into preferred order
+    preferred = schemes[:3] + ["apr_md5_crypt"] + schemes
+    schemes = sorted(set(schemes), key=preferred.index)
+
+    # NOTE: default will change to "portable" in passlib 2.0
+    return CryptContext(schemes, default=htpasswd_defaults['portable_apache_22'])
+
+#: CryptContext configured to match htpasswd
+htpasswd_context = _init_htpasswd_context()
+
+#=============================================================================
+# htpasswd editing
+#=============================================================================
 
 class HtpasswdFile(_CommonFile):
     """class for reading & writing Htpasswd files.
@@ -510,14 +565,31 @@ class HtpasswdFile(_CommonFile):
     :type default_scheme: str
     :param default_scheme:
         Optionally specify default scheme to use when encoding new passwords.
-        May be any of ``"bcrypt"``, ``"sha256_crypt"``, ``"apr_md5_crypt"``, ``"des_crypt"``,
-        ``"ldap_sha1"``, ``"plaintext"``. It defaults to ``"apr_md5_crypt"``.
 
-        .. note::
+        This can be any of the schemes with builtin Apache support,
+        OR natively supported by the host OS's :func:`crypt.crypt` function.
 
-            Some hashes are only supported by apache / htpasswd on certain operating systems
-            (e.g. bcrypt on BSD, sha256_crypt on linux).  To get the strongest
-            hash that's still portable, applications can specify ``default_scheme="portable"``.
+        * Builtin schemes include ``"bcrypt"`` (apache 2.4+), ``"apr_md5_crypt"`,
+          and ``"des_crypt"``.
+
+        * Schemes commonly supported by Unix hosts
+          include ``"bcrypt"``, ``"sha256_crypt"``, and ``"des_crypt"``.
+
+        In order to not have to sort out what you should use,
+        passlib offers a number of aliases, that will resolve
+        to the most appropriate scheme based on your needs:
+
+        * ``"portable"``, ``"portable_apache_24"`` -- pick scheme that's portable across hosts
+          running apache >= 2.4. **This will be the default as of Passlib 2.0**.
+
+        * ``"portable_apache_22"`` -- pick scheme that's portable across hosts
+          running apache >= 2.4. **This is the default up to Passlib 1.9**.
+
+        * ``"host"``, ``"host_apache_24"`` -- pick strongest scheme supported by
+           apache >= 2.4 and/or host OS.
+
+        * ``"host_apache_22"`` -- pick strongest scheme supported by
+           apache >= 2.2 and/or host OS.
 
         .. versionadded:: 1.6
             This keyword was previously named ``default``. That alias
@@ -525,7 +597,11 @@ class HtpasswdFile(_CommonFile):
 
         .. versionchanged:: 1.6.3
 
-            Added support for ``"bcrypt"``, ``"sha256_crypt"``, and ``"portable"``.
+            Added support for ``"bcrypt"``, ``"sha256_crypt"``, and ``"portable"`` alias.
+
+        .. versionchanged:: 1.7
+
+            Added apache 2.4 semantics, and additional aliases.
 
     :type context: :class:`~passlib.context.CryptContext`
     :param context:
@@ -622,8 +698,7 @@ class HtpasswdFile(_CommonFile):
                  DeprecationWarning, stacklevel=2)
             default_scheme = kwds.pop("default")
         if default_scheme:
-            if default_scheme == "portable":
-                default_scheme = portable_scheme
+            default_scheme = htpasswd_defaults.get(default_scheme, default_scheme)
             context = context.copy(default=default_scheme)
         self.context = context
         super(HtpasswdFile, self).__init__(path, **kwds)
