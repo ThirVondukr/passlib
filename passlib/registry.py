@@ -7,9 +7,15 @@ import re
 import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # pkg
+from passlib import exc
 from passlib.exc import ExpectedTypeError, PasslibWarning
-from passlib.utils import is_crypt_handler
-from passlib.utils.compat import native_string_types
+from passlib.ifc import PasswordHash
+from passlib.utils import (
+    is_crypt_handler, has_crypt as os_crypt_present,
+    unix_crypt_schemes as os_crypt_schemes,
+)
+from passlib.utils.compat import unicode_or_str
+from passlib.utils.decor import memoize_single_value
 # local
 __all__ = [
     "register_crypt_handler_path",
@@ -315,7 +321,7 @@ def get_crypt_handler(name, default=_UNSET):
         pass
 
     # normalize name (and if changed, check dict again)
-    assert isinstance(name, native_string_types), "name must be string instance"
+    assert isinstance(name, unicode_or_str), "name must be string instance"
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names should be lower-case, and use underscores instead "
@@ -410,6 +416,125 @@ def _unload_handler_name(name, locations=True):
         del _handlers[name]
     if locations and name in _locations:
         del _locations[name]
+
+#=============================================================================
+# inspection helpers
+#=============================================================================
+
+#------------------------------------------------------------------
+# general
+#------------------------------------------------------------------
+
+# TODO: needs UTs
+def _resolve(hasher, param="value"):
+    """
+    internal helper to resolve argument to hasher object
+    """
+    if is_crypt_handler(hasher):
+        return hasher
+    elif isinstance(hasher, unicode_or_str):
+        return get_crypt_handler(hasher)
+    else:
+        raise exc.ExpectedTypeError(hasher, unicode_or_str, param)
+
+
+#: backend aliases
+ANY = "any"
+BUILTIN = "builtin"
+OS_CRYPT = "os_crypt"
+
+# TODO: needs UTs
+def has_backend(hasher, backend=ANY, safe=False):
+    """
+    Test if specified backend is available for hasher.
+
+    :param hasher:
+        Hasher name or object.
+
+    :param backend:
+        Name of backend, or ``"any"`` if any backend will do.
+        For hashers without multiple backends, will pretend
+        they have a single backend named ``"builtin"``.
+
+    :param safe:
+        By default, throws error if backend is unknown.
+        If ``safe=True``, will just return false value.
+
+    :raises ValueError:
+        * if hasher name is unknown.
+        * if backend is unknown to hasher, and safe=False.
+
+    :return:
+        True if backend available, False if not available,
+        and None if unknown + safe=True.
+    """
+    hasher = _resolve(hasher)
+
+    if backend == ANY:
+        if not hasattr(hasher, "get_backend"):
+            # single backend, assume it's loaded
+            return True
+
+        # multiple backends, check at least one is loadable
+        try:
+            hasher.get_backend()
+            return True
+        except exc.MissingBackendError:
+            return False
+
+    # test for specific backend
+    if hasattr(hasher, "has_backend"):
+        # multiple backends
+        if safe and backend not in hasher.backends:
+            return None
+        return hasher.has_backend(backend)
+
+    # single builtin backend
+    if backend == BUILTIN:
+        return True
+    elif safe:
+        return None
+    else:
+        raise exc.UnknownBackendError(hasher, backend)
+
+#------------------------------------------------------------------
+# os crypt
+#------------------------------------------------------------------
+
+# TODO: move unix_crypt_schemes list to here.
+# os_crypt_schemes -- alias for unix_crypt_schemes above
+
+
+# TODO: needs UTs
+@memoize_single_value
+def get_supported_os_crypt_schemes():
+    """
+    return tuple of schemes which :func:`os.crypt` natively supports.
+    """
+    if not os_crypt_present:
+        return ()
+    cache = tuple(name for name in os_crypt_schemes
+                  if get_crypt_handler(name).has_backend(OS_CRYPT))
+    if not cache:  # pragma: no cover -- sanity check
+        # no idea what OS this could happen on...
+        warn("crypt.crypt() function is present, but doesn't support any "
+             "formats known to passlib!", exc.PasslibRuntimeWarning)
+    return cache
+
+
+# TODO: needs UTs
+def has_os_crypt_support(hasher):
+    """
+    check if hash is supported by native :func:`os.crypt` function.
+    if :func:`crypt.crypt` is not present, will always return False.
+
+    :param hasher:
+        name or hasher object.
+
+    :returns bool:
+        True if hash format is supported by OS, else False.
+    """
+    return os_crypt_present and has_backend(hasher, OS_CRYPT, safe=True)
 
 #=============================================================================
 # eof

@@ -11,13 +11,12 @@ import logging; log = logging.getLogger(__name__)
 import sys
 # site
 # pkg
+from passlib import exc, registry
 from passlib.apps import django10_context, django14_context, django16_context
-from passlib.context import CryptContext
-import passlib.exc as exc
 from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3, suppress_cause
 from passlib.utils import memoized_property
 # tests
-from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, has_active_backend, handler_derived_from
+from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, handler_derived_from
 from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
 # local
 
@@ -493,7 +492,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             assert handler_derived_from(handler, testcase.handler)
             if handler.is_disabled:
                 continue
-            if not has_active_backend(handler):
+            if not registry.has_backend(handler):
                 # TODO: move this above get_handler_case(),
                 #       and omit MissingBackendError check.
                 assert scheme in ["django_bcrypt", "django_bcrypt_sha256"], "%r scheme should always have active backend" % scheme

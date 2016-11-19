@@ -111,6 +111,10 @@ else:
     unicode_or_bytes_types = (basestring,)
     native_string_types = (basestring,)
 
+# shorter preferred aliases
+unicode_or_bytes = unicode_or_bytes_types
+unicode_or_str = native_string_types
+
 # unicode -- unicode type, regardless of python version
 # bytes -- bytes type, regardless of python version
 # unicode_or_bytes_types -- types that text can occur in, whether encoded or not

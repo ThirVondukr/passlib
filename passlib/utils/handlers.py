@@ -2064,16 +2064,14 @@ class BackendMixin(PasswordHash):
 
         :returns:
             * ``True`` if backend is available.
-            * ``False`` if it's not.
+            * ``False`` if it's available / can't be loaded.
             * ``None`` if it's present, but won't load due to a security issue.
         """
         try:
             cls.set_backend(name, dryrun=True)
             return True
-        except exc.MissingBackendError:
+        except (exc.MissingBackendError, exc.PasslibSecurityError):
             return False
-        except exc.PasslibSecurityError:
-            return None
 
     @classmethod
     def set_backend(cls, name="any", dryrun=False):

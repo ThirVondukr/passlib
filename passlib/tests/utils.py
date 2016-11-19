@@ -122,15 +122,6 @@ def get_effective_rounds(handler, rounds=None):
     handler = unwrap_handler(handler)
     return handler(rounds=rounds, use_defaults=True).rounds
 
-def has_active_backend(handler):
-    """return active backend for handler, if any"""
-    if not hasattr(handler, "get_backend"):
-        return "always"
-    try:
-        return handler.get_backend()
-    except MissingBackendError:
-        return None
-
 def is_default_backend(handler, backend):
     """check if backend is the default for source"""
     try:

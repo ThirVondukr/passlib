@@ -101,6 +101,7 @@ __all__ = [
 sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
 
 # list of hashes algs supported by crypt() on at least one OS.
+# XXX: move to .registry for passlib 2.0?
 unix_crypt_schemes = [
     "sha512_crypt", "sha256_crypt",
     "sha1_crypt", "bcrypt",
