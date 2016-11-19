@@ -2140,7 +2140,7 @@ class BackendMixin(PasswordHash):
 
         # validate name
         if name not in cls.backends:
-            raise ValueError("%s: unknown backend: %r" % (cls.name, name))
+            raise exc.UnknownBackendError(cls, name)
 
         # hand off to _set_backend()
         with _backend_lock:
