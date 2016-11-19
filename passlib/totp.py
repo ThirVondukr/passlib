@@ -1245,7 +1245,7 @@ class TOTP(object):
 
             >>> # valid token for this time period
             >>> totp.match('897212', 1419622729)
-            <TotpMatch counter=47320757 time=1419622729>
+            <TotpMatch counter=47320757 time=1419622729 cache_seconds=60>
 
             >>> # token from counter step 30 sec ago (within allowed window)
             >>> totp.match('000492', 1419622729)
@@ -1272,8 +1272,7 @@ class TOTP(object):
         assert counter >= last_counter, "sanity check failed: counter went backward"
 
         if counter == last_counter:
-            raise UsedTokenError("Token has already been used, please wait for another.",
-                                 expire_time=(last_counter + 1) * self.period)
+            raise UsedTokenError(expire_time=(last_counter + 1) * self.period)
 
         # NOTE: By returning match tied to <time>, not <client_time>, we're
         #       causing .skipped to reflect the observed skew, independent of

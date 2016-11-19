@@ -99,16 +99,20 @@ class TokenError(ValueError):
     Derives from :exc:`!ValueError`.
 
     Usually one of the more specific subclasses below will be raised:
-    :class:`InvalidTokenError`, :class:`TokenMatchError`, :class:`UsedTokenError`.
+
+    * :class:`MalformedTokenError` -- invalid chars, too few digits
+    * :class:`InvalidTokenError` -- no match found
+    * :class:`UsedTokenError` -- match found, but token already used
 
     .. versionadded:: 1.7
     """
-    _default_message = None
+
+    #: default message to use if none provided -- subclasses may fill this in
+    _default_message = 'Token not acceptable'
 
     def __init__(self, msg=None, *args, **kwds):
         if msg is None:
             msg = self._default_message
-        assert msg # external code should be able to rely on str(err) always being True
         ValueError.__init__(self, msg, *args, **kwds)
 
 
@@ -133,9 +137,11 @@ class UsedTokenError(TokenError):
     Error raised by :mod:`passlib.totp` if a token is reused.
     Derives from :exc:`TokenError`.
 
+    .. autoattribute:: expire_time
+
     .. versionadded:: 1.7
     """
-    _default_message = ""
+    _default_message = "Token has already been used, please wait for another."
 
     #: optional value indicating when current counter period will end,
     #: and a new token can be generated.

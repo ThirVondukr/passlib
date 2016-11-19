@@ -64,8 +64,8 @@ Most of this information will be serialized by :meth:`TOTP.to_uri` and :meth:`TO
 .. autoattribute:: TOTP.issuer
 .. autoattribute:: TOTP.digits
 .. autoattribute:: TOTP.alg
-.. autoattribute:: TOTP.changed
 .. autoattribute:: TOTP.period
+.. autoattribute:: TOTP.changed
 
 Token Generation
 ================
