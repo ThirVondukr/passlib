@@ -114,7 +114,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     #--------------------
     # HasManyIdents
     #--------------------
-    default_ident = IDENT_2A
+    default_ident = IDENT_2B
     ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
     ident_aliases = {u("2"): IDENT_2, u("2a"): IDENT_2A,  u("2y"): IDENT_2Y,
                      u("2b"): IDENT_2B}
@@ -232,7 +232,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             warn(
                 "encountered a bcrypt salt with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
-                "to fix this; see Passlib 1.5.3 changelog.",
+                "to fix this; this will be an error under Passlib 2.0",
                 PasslibHashWarning)
         return salt
 
@@ -243,7 +243,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             warn(
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
-                "to fix this; see Passlib 1.5.3 changelog.",
+                "to fix this; this will be an error under Passlib 2.0",
                 PasslibHashWarning)
         return checksum
 
@@ -778,11 +778,10 @@ class bcrypt(_NoBackend, _BcryptCommon):
         If specified, it must be one of the following:
 
         * ``"2"`` - the first revision of BCrypt, which suffers from a minor security flaw and is generally not used anymore.
-        * ``"2a"`` - some implementations suffered from a very rare security flaw.
-          current default for compatibility purposes.
+        * ``"2a"`` - some implementations suffered from rare security flaws, replaced by 2b.
         * ``"2y"`` - format specific to the *crypt_blowfish* BCrypt implementation,
           identical to ``"2a"`` in all but name.
-        * ``"2b"`` - latest revision of the official BCrypt algorithm (will be default in Passlib 1.7).
+        * ``"2b"`` - latest revision of the official BCrypt algorithm, current default.
 
     :param bool truncate_error:
         By default, BCrypt will silently truncate passwords larger than 72 bytes.
@@ -813,6 +812,10 @@ class bcrypt(_NoBackend, _BcryptCommon):
     .. versionchanged:: 1.6.3
 
         Added support for ``"2b"`` variant.
+
+    .. versionchanged:: 1.7
+
+        Now defaults to ``"2b"`` variant.
     """
     #=============================================================================
     # backend
@@ -881,6 +884,10 @@ class _wrapped_bcrypt(bcrypt):
         # disable check performed by bcrypt(), since this doesn't truncate passwords.
         pass
 
+#=============================================================================
+# bcrypt sha256 wrapper
+#=============================================================================
+
 class bcrypt_sha256(_wrapped_bcrypt):
     """This class implements a composition of BCrypt+SHA256, and follows the :ref:`password-hash-api`.
 
@@ -893,10 +900,20 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     .. versionchanged:: 1.7
 
-        Now defaults to '2b' bcrypt algorithm.
+        Now defaults to ``"2b"`` variant.
     """
+    #===================================================================
+    # class attrs
+    #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "bcrypt_sha256"
 
+    #--------------------
+    # GenericHandler
+    #--------------------
     # this is locked at 2a/2b for now.
     ident_values = (IDENT_2A, IDENT_2B)
 
@@ -904,6 +921,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
     ident_aliases = (lambda ident_values: dict(item for item in bcrypt.ident_aliases.items()
                                                if item[1] in ident_values))(ident_values)
     default_ident = IDENT_2B
+
+    #===================================================================
+    # formatting
+    #===================================================================
 
     # sample hash:
     # $bcrypt-sha256$2a,6$/3OeRpbOf8/l6nPPRdZPp.$nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
@@ -923,10 +944,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
     _hash_re = re.compile(r"""
         ^
         [$]bcrypt-sha256
-        [$](?P<variant>[a-z0-9]+)
+        [$](?P<variant>2[ab])
         ,(?P<rounds>\d{1,2})
         [$](?P<salt>[^$]{22})
-        ([$](?P<digest>.{31}))?
+        (?:[$](?P<digest>.{31}))?
         $
         """, re.X)
 
@@ -954,11 +975,16 @@ class bcrypt_sha256(_wrapped_bcrypt):
                    checksum=m.group("digest"),
                    )
 
+    _template = u("$bcrypt-sha256$%s,%d$%s$%s")
+
     def to_string(self):
-        hash = u("%s%s,%d$%s$%s") % (self.prefix, self.ident.strip(_UDOLLAR),
-                                     self.rounds, self.salt, self.checksum)
+        hash = self._template % (self.ident.strip(_UDOLLAR),
+                                 self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
 
+    #===================================================================
+    # checksum
+    #===================================================================
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
         # NOTE: bcrypt doesn't fully mix entropy for bytes 55-72 of password
@@ -976,8 +1002,16 @@ class bcrypt_sha256(_wrapped_bcrypt):
         # hand result off to normal bcrypt algorithm
         return super(bcrypt_sha256, self)._calc_checksum(key)
 
+    #===================================================================
+    # other
+    #===================================================================
+
     # XXX: have _needs_update() mark the $2a$ ones for upgrading?
     #      maybe do that after we switch to hex encoding?
+
+    #===================================================================
+    # eoc
+    #===================================================================
 
 #=============================================================================
 # eof

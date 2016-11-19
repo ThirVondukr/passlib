@@ -433,14 +433,20 @@ class _bcrypt_sha256_test(HandlerCase):
         (UPASS_TABLE.encode("utf-8"),
             '$bcrypt-sha256$2a,5$.US1fQ4TQS.ZTz/uJ5Kyn.$QNdPDOTKKT5/sovNz1iWg26quOU4Pje'),
 
+        # ensure 2b support
+        ("password",
+            '$bcrypt-sha256$2b,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu'),
+        (UPASS_TABLE,
+            '$bcrypt-sha256$2b,5$.US1fQ4TQS.ZTz/uJ5Kyn.$QNdPDOTKKT5/sovNz1iWg26quOU4Pje'),
+
         # test >72 chars is hashed correctly -- under bcrypt these hash the same.
         # NOTE: test_60_truncate_size() handles this already, this is just for overkill :)
         (repeat_string("abc123",72),
-            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$r/hyEtqJ0teqPEmfTLoZ83ciAI1Q74.'),
+            '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$r/hyEtqJ0teqPEmfTLoZ83ciAI1Q74.'),
         (repeat_string("abc123",72)+"qwr",
-            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$021KLEif6epjot5yoxk0m8I0929ohEa'),
+            '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$021KLEif6epjot5yoxk0m8I0929ohEa'),
         (repeat_string("abc123",72)+"xyz",
-            '$bcrypt-sha256$2a,5$X1g1nh3g0v4h6970O68cxe$7.1kgpHduMGEjvM3fX6e/QCvfn6OKja'),
+            '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$7.1kgpHduMGEjvM3fX6e/QCvfn6OKja'),
         ]
 
     known_correct_configs =[

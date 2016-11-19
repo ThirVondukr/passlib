@@ -168,6 +168,9 @@ Bugfixes
 Other Changes
 -------------
 
+* :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.bcrypt_sha256`
+  now default to the "2b" format.
+
 * :class:`passlib.apache.HtpasswdFile` updated to match Apache 2.4's
   hash schemes, as well as all host OS crypt formats; allowing for much more
   secure hashes in htpasswd files.  You can now specify if the default hash
