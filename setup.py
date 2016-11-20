@@ -82,17 +82,17 @@ as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user applications.
 
-* See the `documentation <http://packages.python.org/passlib>`_
+* See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
 * See the `homepage <https://bitbucket.org/ecollins/passlib>`_
   for the latest news and more information.
 
-* See the `changelog <http://packages.python.org/passlib/history.html>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history.html>`_
   for a description of what's new in Passlib.
 
 All releases are signed with the gpg key
-`4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+`4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """
 
 KEYWORDS = "password secret hash security crypt md5-crypt \
@@ -143,7 +143,7 @@ setup(
 
     url = "https://bitbucket.org/ecollins/passlib",
     download_url =
-        ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
+        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 
     description = SUMMARY,

@@ -12,16 +12,16 @@ as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user application.
 
-* See the `documentation <http://packages.python.org/passlib>`_
+* See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
-* See the `changelog <http://packages.python.org/passlib/history.html>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history.html>`_
   for a description of what's new in Passlib.
 
 * Visit `PyPI <https://pypi.python.org/pypi/passlib>`_
   for the latest stable release.
   All releases are signed with the gpg key
-  `4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+  `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 
 * Additional questions about usage or features? Feel free to post on our
   `mailing list <http://groups.google.com/group/passlib-users>`_.
@@ -50,8 +50,8 @@ This example barely touches on the range of features available.
 Online Resources
 ================
 * Homepage -   https://bitbucket.org/ecollins/passlib
-* Documentation - http://packages.python.org/passlib
-* Mailing list - http://groups.google.com/group/passlib-users
+* Documentation - https://passlib.readthedocs.io
+* Mailing list - https://groups.google.com/group/passlib-users
 
 * Downloads -  https://pypi.python.org/pypi/passlib
 * Source -     https://bitbucket.org/ecollins/passlib/src

@@ -16,7 +16,7 @@ Passlib |release| documentation
 
         This is the documentation for a development version of Passlib.
         For documentation of the latest stable version,
-        see `<https://pythonhosted.com/passlib>`_.
+        see `<https://passlib.readthedocs.io>`_.
 
 Welcome
 =======
