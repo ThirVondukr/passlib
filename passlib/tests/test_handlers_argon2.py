@@ -195,8 +195,10 @@ class _base_argon2_test(HandlerCase):
         #
 
         if self.backend == "argon2_cffi":
-            # incorrectly returns False -- should either be True, or throw parse error
-            self.assertFalse(handler.verify("password", sample1))
+            # argon2_cffi v16.1 would incorrectly return False here.
+            # but v16.2 patches so it throws error on data parameter.
+            # our code should detect that, and adapt it into a NotImplementedError
+            self.assertRaises(NotImplementedError, handler.verify, "password", sample1)
 
             # incorrectly returns sample3, dropping data parameter
             self.assertEqual(handler.genhash("password", sample1), sample3)
@@ -214,8 +216,10 @@ class _base_argon2_test(HandlerCase):
         #
 
         if self.backend == "argon2_cffi":
-            # incorrectly returns True -- should either be False, or throw parse error
-            self.assertTrue(handler.verify("password", sample2))
+            # argon2_cffi v16.1 would incorrectly return True here.
+            # but v16.2 patches so it throws error on data parameter.
+            # our code should detect that, and adapt it into a NotImplementedError
+            self.assertRaises(NotImplementedError, handler.verify,"password", sample2)
 
             # incorrectly returns sample3, dropping data parameter
             self.assertEqual(handler.genhash("password", sample1), sample3)

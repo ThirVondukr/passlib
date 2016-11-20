@@ -484,7 +484,8 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         if self is not None:
             self._validate_constraints(self.memory_cost, self.parallelism)
 
-            # as of cffi 16.1, lacks support in hash_secret(), so genhash() will get here...
+            # as of cffi 16.1, lacks support in hash_secret(), so genhash() will get here.
+            # as of cffi 16.2, support removed from verify_secret() as well.
             if backend == "argon2_cffi" and self.data is not None:
                 raise NotImplementedError("argon2_cffi backend doesn't support the 'data' parameter")
 
