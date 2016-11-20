@@ -337,7 +337,8 @@ class _bcrypt_test(HandlerCase):
         # test hash() / genconfig() don't generate invalid salts anymore
         #
         def check_padding(hash):
-            assert hash.startswith("$2a$") and len(hash) >= 28
+            assert hash.startswith(("$2a$", "$2b$")) and len(hash) >= 28, \
+                "unexpectedly malformed hash: %r" % (hash,)
             self.assertTrue(hash[28] in '.Oeu',
                             "unused bits incorrectly set in hash: %r" % (hash,))
         for i in irange(6):
@@ -350,7 +351,7 @@ class _bcrypt_test(HandlerCase):
         #
         with self.assertWarningList(["salt too large", corr_desc]):
             hash = bcrypt.genconfig(salt="."*21 + "A.", rounds=5, relaxed=True)
-        self.assertEqual(hash, "$2a$05$" + "." * (22 + 31))
+        self.assertEqual(hash, "$2b$05$" + "." * (22 + 31))
 
         #
         # test public methods against good & bad hashes
