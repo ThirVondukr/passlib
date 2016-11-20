@@ -154,6 +154,12 @@ setup(
     tests_require = 'nose >= 1.1',
     test_suite = 'nose.collector',
 
+    extras_require={
+        "argon2": "argon2_cffi>=16.2",
+        "bcrypt": "bcrypt>=3.1.0",
+        "totp": "cryptography",
+    },
+
     # extra opts
     script_args=args,
     **opts

@@ -42,6 +42,8 @@ Optional Libraries
    `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ is currently the recommended
    option -- it's actively maintained, and compatible with both CPython and PyPy.
 
+   Use ``pip install passlib[bcrypt]`` to get the recommended bcrypt setup.
+
 * `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_, or
   `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_ (>= 1.2.2)
 
@@ -50,10 +52,14 @@ Optional Libraries
    `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_  is currently the recommended
    option.
 
+   Use ``pip install passlib[argon2]`` to get the recommended argon2 setup.
+
 * `Cryptography <https://pypi.python.org/pypi/cryptography>`_
 
    If installed, will be used to enable encryption of TOTP secrets for storage
    (see :mod:`passlib.totp`).
+
+   Use ``pip install passlib[totp]`` to get the recommended TOTP setup.
 
 * `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
 
