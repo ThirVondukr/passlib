@@ -226,16 +226,20 @@ class _bcrypt_test(HandlerCase):
 
     def fuzz_verifier_pybcrypt(self):
         # test against py-bcrypt, if available
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2B, IDENT_2X, IDENT_2Y, _detect_pybcrypt
+        from passlib.handlers.bcrypt import (
+            IDENT_2, IDENT_2A, IDENT_2B, IDENT_2X, IDENT_2Y,
+            _PyBcryptBackend,
+        )
         from passlib.utils import to_native_str
-        try:
-            import bcrypt as bcrypt_mod
-        except ImportError:
+
+        loaded = _PyBcryptBackend._load_backend_mixin("pybcrypt", False)
+        if not loaded:
             return
-        if not _detect_pybcrypt():
-            return
-        hash.bcrypt._load_backend_pybcrypt()  # called for side-effect of init'ing lock
-        lock = hash.bcrypt._calc_lock # reuse threadlock workaround for pybcrypt 0.2
+
+        from passlib.handlers.bcrypt import _pybcrypt as bcrypt_mod
+
+        lock = _PyBcryptBackend._calc_lock # reuse threadlock workaround for pybcrypt 0.2
+
         def check_pybcrypt(secret, hash):
             """pybcrypt"""
             secret = to_native_str(secret, self.fuzz_password_encoding)
