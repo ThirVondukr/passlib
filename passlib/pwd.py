@@ -144,7 +144,12 @@ def _ensure_unique(source, param="source"):
     # check if it has dup elements
     if isinstance(source, _set_types) or len(set(source)) == len(source):
         if hashable:
-            cache.add(source)
+            try:
+                cache.add(source)
+            except TypeError:
+                # XXX: under pypy, "list() in set()" above doesn't throw TypeError,
+                #      but trying to add unhashable it to a set *does*.
+                pass
         return True
 
     # build list of duplicate values
