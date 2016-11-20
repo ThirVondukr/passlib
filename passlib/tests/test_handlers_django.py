@@ -28,7 +28,7 @@ UPASS_LETMEIN = u('l\xe8tmein')
 def vstr(version):
     return ".".join(str(e) for e in version)
 
-class _DjangoHelper(object):
+class _DjangoHelper(TestCase):
     __unittest_skip = True
 
     #: minimum django version where hash alg is present / that we support testing against

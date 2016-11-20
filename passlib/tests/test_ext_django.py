@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 import sys
 # site
 # pkg
-from passlib import exc, registry
+from passlib import apps as _apps, exc, registry
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.utils.compat import iteritems, unicode, get_method_function, u, PY3, suppress_cause
 from passlib.utils import memoized_property
@@ -114,12 +114,16 @@ def create_mock_setter():
 
 # build config dict that matches stock django
 # TODO: move these to passlib.apps
-if DJANGO_VERSION >= (1, 9):
+if DJANGO_VERSION >= (1, 10):
+    stock_config = _apps.django110_context.to_dict()
+    stock_rounds = 30000
+elif DJANGO_VERSION >= (1, 9):
+    stock_config = _apps.django16_context.to_dict()
     stock_rounds = 24000
 else:  # 1.8
+    stock_config = _apps.django16_context.to_dict()
     stock_rounds = 20000
 
-stock_config = django16_context.to_dict()
 stock_config.update(
     deprecated="auto",
     django_pbkdf2_sha1__default_rounds=stock_rounds,
@@ -304,7 +308,8 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertNotEqual(user.password, None)
         else:
             self.assertEqual(user.password, hash)
-        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.has_usable_password(),
+                        "hash should be usable: %r" % (user.password,))
         self.assertEqual(user.pop_saved_passwords(),
                          [] if saved is None else [saved])
 
@@ -650,8 +655,11 @@ class DjangoExtensionTest(_ExtensionTest):
         from django.contrib.auth import hashers
 
         # should return native django hasher if available
-        hasher = get_passlib_hasher("hex_md5")
-        self.assertIsInstance(hasher, hashers.UnsaltedMD5PasswordHasher)
+        if DJANGO_VERSION > (1,10):
+            self.assertRaises(ValueError, get_passlib_hasher, "hex_md5")
+        else:
+            hasher = get_passlib_hasher("hex_md5")
+            self.assertIsInstance(hasher, hashers.UnsaltedMD5PasswordHasher)
 
         hasher = get_passlib_hasher("django_bcrypt")
         self.assertIsInstance(hasher, hashers.BCryptPasswordHasher)
