@@ -10,7 +10,7 @@ import os
 from warnings import warn
 # site
 # pkg
-from passlib import registry
+from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
@@ -436,17 +436,25 @@ def _init_default_schemes():
             host_best = name
             break
 
+    # check if we have a bcrypt backend -- otherwise issue warning
+    # XXX: would like to not spam this unless the user *requests* apache 24
+    bcrypt = "bcrypt" if registry.has_backend("bcrypt") else None
+    if not bcrypt:
+        warn("HtpasswdFile: no bcrypt backends available, "
+             "using fallback default scheme for apache 2.4",
+             exc.PasslibSecurityWarning)
+
     defaults = dict(
         # strongest hash builtin to specific apache version
-        portable_apache_24="bcrypt",
+        portable_apache_24=bcrypt or "apr_md5_crypt",
         portable_apache_22="apr_md5_crypt",
 
         # strongest hash across current host & specific apache version
-        host_apache_24="bcrypt",
+        host_apache_24=bcrypt or host_best or "apr_md5_crypt",
         host_apache_22=host_best or "apr_md5_crypt",
 
         # strongest hash on a linux host
-        linux_apache_24="bcrypt",
+        linux_apache_24=bcrypt or "sha256_crypt",
         linux_apache_22="sha256_crypt",
     )
 
