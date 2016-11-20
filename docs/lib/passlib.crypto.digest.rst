@@ -16,13 +16,15 @@ Hash Functions
 .. autofunction:: norm_hash_name
 .. autofunction:: lookup_hash
 
-.. autoclass:: HashInfo()
+.. rst-class:: float-center
 
 .. note::
 
     :func:`!lookup_hash` supports all hashes available directly in :mod:`hashlib`,
     as well as offered through :func:`hashlib.new`.
     It will also fallback to passlib's builtin MD4 implementation if one is not natively available.
+
+.. autoclass:: HashInfo()
 
 ..
     HMAC Functions

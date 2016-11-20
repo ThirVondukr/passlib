@@ -21,6 +21,8 @@ Exceptions
 
 .. autoexception:: PasslibSecurityError
 
+.. autoexception:: UnknownHashError
+
 TOTP Exceptions
 ---------------
 .. autoexception:: TokenError

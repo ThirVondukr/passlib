@@ -4,12 +4,12 @@
 :class:`passlib.hash.cisco_type7` - Cisco "Type 7" hash
 ==================================================================
 
-.. versionadded:: 1.6
-
-.. warning::
+.. danger::
 
     This is not a hash, this is a reversible plaintext encoding.
     **This format can be trivially decoded**.
+
+.. versionadded:: 1.6
 
 .. currentmodule:: passlib.hash
 

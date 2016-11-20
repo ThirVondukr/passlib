@@ -51,13 +51,13 @@ Getting Started
 This documentation is organized into two main parts:
 a narrative walkthrough of Passlib, and a top-down API reference.
 
-:doc:`narrative`
+:doc:`narr/index`
 
     New users in particular will want to visit the walkthrough, as it provides
     introductory documentation including installation requirements,
     an overview of what passlib provides, and a guide for getting started quickly.
 
-:doc:`reference`
+:doc:`lib/index`
 
     The API reference contains a top-down reference of the :mod:`!passlib` package.
 
@@ -65,7 +65,7 @@ a narrative walkthrough of Passlib, and a top-down API reference.
 
     This section contains additional things that don't
     fit anywhere else, including an :doc:`FAQ <faq>` and a complete
-    :doc:`changelog <history>`.
+    :doc:`changelog <history/index>`.
 
 Online Resources
 ================
@@ -75,7 +75,7 @@ Online Resources
         :column-alignment: lr
 
         =================== ===================================================
-        Latest Docs:        `<http://packages.python.org/passlib>`_
+        Latest Docs:        `<https://passlib.readthedocs.io>`_
         Project Home:       `<https://bitbucket.org/ecollins/passlib>`_
         News & Discussion:  `<http://groups.google.com/group/passlib-users>`_
         Downloads @ PyPI:   `<https://pypi.python.org/pypi/passlib>`_

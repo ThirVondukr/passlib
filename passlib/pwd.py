@@ -434,7 +434,7 @@ def genword(entropy=None, length=None, returns=None, **kwds):
         based on the requested entropy amount, and the size of the character set.
 
         If both ``entropy`` and ``length`` are specified,
-        the larger effective length will be used.
+        the stronger value will be used.
 
         This can also be one of a handful of aliases to predefined
         entropy amounts: ``"weak"`` (24), ``"fair"`` (36),
@@ -453,9 +453,9 @@ def genword(entropy=None, length=None, returns=None, **kwds):
 
     :param charset:
         The character set to draw from, if not specified explicitly by **chars**.
-        Defaults to ``"ascii_62"``, but can be any of:
+        Can be any of:
 
-        * ``"ascii_62"`` -- all digits and ascii upper & lowercase letters.
+        * ``"ascii_62"`` (the default) -- all digits and ascii upper & lowercase letters.
           Provides ~5.95 entropy per character.
 
         * ``"ascii_50"`` -- subset which excludes visually similar characters
@@ -697,7 +697,7 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
         based on the requested entropy amount, and the size of the character set.
 
         If both ``entropy`` and ``length`` are specified,
-        the larger effective length will be used.
+        the stronger value will be used.
 
         This can also be one of a handful of aliases to predefined
         entropy amounts: ``"weak"`` (24), ``"fair"`` (36),

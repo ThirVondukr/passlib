@@ -7,7 +7,7 @@
 
 .. _predefined-context-example:
 
-This module contains a number of preconfigured :ref:`CryptContext <context-overview>` instances
+This module contains a number of preconfigured :ref:`CryptContext <context-reference>` instances
 that are provided by Passlib for easily handling the hash formats used by various applications.
 
 .. rst-class:: html-toggle
@@ -252,4 +252,4 @@ Custom Applications
 
     .. seealso::
 
-        The :doc:`/new_app_quickstart` for additional details.
+        The :doc:`/narr/quickstart` for additional details.

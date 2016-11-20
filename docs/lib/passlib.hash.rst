@@ -9,11 +9,13 @@ Overview
 ========
 The :mod:`!passlib.hash` module contains all the password hash algorithms built into Passlib.
 While each hash has its own options and output format,
-they all inherit from the :mod:`passlib.ifc`.\ :class:`!PasswordHash` API.
+they all inherit from the :mod:`~passlib.ifc.PasswordHash` base interface.
 The following pages describe each hash in detail,
 including its format, underlying algorithm, and known security issues.
 
-.. warning::
+.. rst-class:: float-center
+
+.. danger::
 
     **Many of the hash algorithms listed below are *NOT* secure.**
 
@@ -21,61 +23,14 @@ including its format, underlying algorithm, and known security issues.
     support dealing with legacy data and systems.
 
     If you're looking to choose a hash algorithm for a new application,
-    see the :doc:`Quickstart Guide </new_app_quickstart>` instead of picking
+    see the :doc:`Quickstart Guide </narr/quickstart>` instead of picking
     one from this list.
 
-.. rst-class:: html-toggle
-
-Usage
------
-All of the hashes in this module can be used in two ways:
-
-1. They can be imported from :mod:`!passlib.hash` and used directly,
-   as in the following example with the :class:`md5_crypt` hash::
-
-        >>> # import the desired hash
-        >>> from passlib.hash import md5_crypt
-
-        >>> # hash the password - hash() takes care of salt generation, unicode encoding, etc.
-        >>> hash = md5_crypt.hash("password")
-        >>> hash
-        '$1$IU54yC7Y$nI1wF8ltcRvaRHwMIjiJq1'
-
-        >>> # verify a password against an existing hash:
-        >>> md5_crypt.verify("password", hash)
-        True
-
-2. Alternately, when working with multiple algorithms at once, it is frequently useful
-   to construct a :ref:`CryptContext <context-overview>` object instead;
-   and reference the hashes by name only. For example, the following
-   code creates a :class:`!CryptContext` object which recognizes both
-   the :class:`md5_crypt` and :class:`des_crypt` hash algorithms::
-
-        >>> # import and create the context object
-        >>> from passlib.context import CryptContext
-        >>> pwd_context = CryptContext(schemes=["md5_crypt", "des_crypt"])
-
-        >>> # hash two different passwords (context objects used the first scheme as the default)
-        >>> hash1 = pwd_context.hash("password")
-        >>> hash1
-        '$1$2y72Yi12$o6Yu2OyjN.9FiK.9HJ7i5.'
-        >>> hash2 = pwd_context.hash("letmein", scheme="des_crypt")
-        >>> hash2
-        '0WMdk/ven8bok'
-
-        >>> # the context object takes care of figuring out which hash belongs to which algorithm.
-        >>> pwd_context.verify("password", hash1)
-        True
-        >>> pwd_context.verify("letmein", hash1)
-        False
-        >>> pwd_context.verify("letmein", hash2)
-        True
+.. rst-class:: float-center
 
 .. seealso::
 
-    For additional details and usage examples, see the
-    :doc:`PasswordHash </password_hash_api>` and :doc:`CryptContext </lib/passlib.context>`
-    reference.
+    :ref:`hash-tutorial` -- for general usage examples
 
 .. _mcf-hashes:
 

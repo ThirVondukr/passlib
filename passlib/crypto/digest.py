@@ -207,18 +207,22 @@ def lookup_hash(digest, return_unknown=False):
     Can be used to look up a hash constructor by name, normalize hash name representation, etc.
 
     :arg digest:
-        A string containing a :mod:`!hashlib` digest name (e.g. ``"sha256"``),
-        an IANA-assigned hash name, or even a digest constructor (e.g. :func:`hashlib.sha256`).
+        This can be any of:
+
+        * A string containing a :mod:`!hashlib` digest name (e.g. ``"sha256"``),
+        * A string containing an IANA-assigned hash name,
+        * A digest constructor function (e.g. ``hashlib.sha256``).
+
         Case is ignored, underscores are converted to hyphens,
         and various other cleanups are made.
 
     :param return_unknown:
-        By default, this function will throw a :exc:`~passlib.exc.KnownHashError` if no hash constructor
+        By default, this function will throw an :exc:`~passlib.exc.UnknownHashError` if no hash constructor
         can be found.  However, if this flag is False, it will instead return a dummy record
         without a constructor function.  This is mainly used by :func:`norm_hash_name`.
 
     :returns HashInfo:
-        :class:`!HashInfo` instance containing information about specified digest.
+        :class:`HashInfo` instance containing information about specified digest.
 
         Multiple calls resolving to the same hash should always
         return the same :class:`!HashInfo` instance.
@@ -323,8 +327,8 @@ def norm_hash_name(name, format="hashlib"):
           with Python's :mod:`!hashlib`.
 
         * ``"iana"`` - normalizes name to IANA-assigned hash function name.
-          for hashes which IANA hasn't assigned a name for, issues a warning,
-          and then uses a heuristic to give a "best guess".
+          For hashes which IANA hasn't assigned a name for, this issues a warning,
+          and then uses a heuristic to return a "best guess" name.
 
     :returns:
         Hash name, returned as native :class:`!str`.

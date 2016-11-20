@@ -2,12 +2,9 @@
 :class:`passlib.hash.mssql2000` - MS SQL 2000 password hash
 ==================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This hash is not very secure, and should not be used for any purposes
-    besides manipulating existing MSSQL 2000 password hashes.
 
 .. currentmodule:: passlib.hash
 

@@ -6,34 +6,39 @@ Need to quickly get password hash support added into your new application,
 and don't have time to wade through pages of documentation,
 comparing and contrasting all the different schemes? Read on...
 
-Really Quick Start
-==================
-The fastest route is to use the preconfigured
-:data:`~passlib.apps.custom_app_context` object.
-It supports the :class:`~passlib.hash.sha256_crypt`
-and :class:`~passlib.hash.sha512_crypt` schemes,
-and defaults to 40000 hash iterations for increased strength.
-For applications which want to quickly add password hashing,
-all they need to do is the following::
+..
+    NOTE: commented this out for now, considering deprecating
+    the "custom_app_context", since it's hard to convey policy changes to users.
+    May reenable if decide this is still good route to go.
 
-    >>> # import the context under an app-specific name (so it can easily be replaced later)
-    >>> from passlib.apps import custom_app_context as pwd_context
+    Really Quick Start
+    ==================
+    The fastest route is to use the preconfigured
+    :data:`~passlib.apps.custom_app_context` object.
+    It supports the :class:`~passlib.hash.sha256_crypt`
+    and :class:`~passlib.hash.sha512_crypt` schemes,
+    and defaults to 40000 hash iterations for increased strength.
+    For applications which want to quickly add password hashing,
+    all they need to do is the following::
 
-    >>> # encrypting a password...
-    >>> hash = pwd_context.hash("somepass")
+        >>> # import the context under an app-specific name (so it can easily be replaced later)
+        >>> from passlib.apps import custom_app_context as pwd_context
 
-    >>> # verifying a password...
-    >>> ok = pwd_context.verify("somepass", hash)
+        >>> # encrypting a password...
+        >>> hash = pwd_context.hash("somepass")
 
-    >>> # [optional] encrypting a password for an admin account...
-    >>> #            the custom_app_context is preconfigured so that
-    >>> #            if the category is set to "admin" instead of None,
-    >>> #            it uses a stronger setting of 80000 rounds:
-    >>> hash = pwd_context.hash("somepass", category="admin")
+        >>> # verifying a password...
+        >>> ok = pwd_context.verify("somepass", hash)
 
-For applications which started using this preset, but whose needs
-have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
-instance; see below for more...
+        >>> # [optional] encrypting a password for an admin account...
+        >>> #            the custom_app_context is preconfigured so that
+        >>> #            if the category is set to "admin" instead of None,
+        >>> #            it uses a stronger setting of 80000 rounds:
+        >>> hash = pwd_context.hash("somepass", category="admin")
+
+    For applications which started using this preset, but whose needs
+    have grown beyond it, it is recommended to create your own :mod:`CryptContext <passlib.context>`
+    instance; see below for more...
 
 .. index:: Passlib; recommended hash algorithms
 
@@ -42,13 +47,18 @@ instance; see below for more...
 
 Choosing a Hash
 ================
-*If you already know what hash algorithm(s) you want to use,
-skip to the next section,* `Creating and Using a CryptContext`_.
 
 If you'd like to set up a configuration that's right for your
 application, the first thing to do is choose a password hashing scheme.
 Passlib contains a large number of schemes, but most of them
 should only be used when a specific format is explicitly required.
+
+.. rst-class:: float-center without-title
+
+.. seealso::
+
+    If you already know what hash algorithm(s) you want to use,
+    skip to the next section: `Creating and Using a CryptContext`_.
 
 The Options
 -----------
@@ -56,21 +66,21 @@ There are currently four good choices [#choices]_ for secure hashing:
 
     * :class:`~passlib.hash.argon2`
     * :class:`~passlib.hash.bcrypt`
-    * :class:`~passlib.hash.sha512_crypt`
     * :class:`~passlib.hash.pbkdf2_sha256` / :class:`~passlib.hash.pbkdf2_sha512`
+    * :class:`~passlib.hash.sha256_crypt` / :class:`~passlib.hash.sha512_crypt`
 
 All four hashes share the following properties:
 
-    * no known vulnerabilities.
-    * based on documented & widely reviewed algorithms.
-    * public-domain or BSD-licensed reference implementations available.
+    * No known vulnerabilities.
+    * Based on documented & widely reviewed algorithms.
+    * Public-domain or BSD-licensed reference implementations available.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
-    * at least 96 bits of salt.
-    * basic algorithm has seen heavy scrutiny and use for at least 10 years
-      (except for Argon2, born around 2013).
-    * in use across a number of OSes and/or a wide variety of applications.
+    * At least 96 bits of salt.
+    * Basic algorithm has seen heavy scrutiny and use for at least 10 years
+      *(except for Argon2, born around 2013)*.
+    * In use across a number of OSes and/or a wide variety of applications.
 
-Argon2 is much younger than the others, but has seen heavy scrunity,
+While Argon2 is much younger than the others, it has seen heavy scrutiny,
 and was purpose-designed for password hashing.  In the near future, it stands likely to
 become *the* recommended standard.
 
@@ -88,9 +98,9 @@ being much newer than the others, it has seen heavy scrutiny.  Since the Argon2 
 had the foresight to provide not just a reference implementation, but a standard
 hash encoding format, these hashes should be reliably interoperatable across all implementations.
 
-Issues: In it's default configuration, Argon2 uses more memory than the other hashes
-(However, this is one of it's hallmarks as a "memory hard" hashing algorithm, and contributes to it's security.
-Furthermore the exact amount used is configurable).  It's only main drawback is that as of 2016-6-20
+*Issues:* In it's default configuration, Argon2 uses more memory than the other hashes.
+However, this is one of it's hallmarks as a "memory hard" hashing algorithm, and contributes to it's security.
+Furthermore the exact amount used is configurable.  It's only main drawback is that as of 2016-6-20
 it's only 3 years old.  It's seen only a few minor adjustments since 2013,
 but as it is just now gaining widespread use, the next few years are the period in which it will
 likely either prove itself, or be found wanting.  It's for this reason,
@@ -106,7 +116,7 @@ hashes to be readable by the native BSD crypt() function, this is the hash to us
 There is also an alternative LDAP-formatted version
 (:class:`~passlib.hash.ldap_bcrypt`) available.
 
-Issues: Neither the original Blowfish,
+*Issues:* Neither the original Blowfish,
 nor the modified version which BCrypt uses, have been NIST approved;
 this matter of concern is what motivated the development of SHA512-Crypt.
 As well, its rounds parameter is logarithmically scaled,
@@ -115,6 +125,26 @@ which can be an issue for applications that handle a large number
 of simultaneous logon attempts (e.g. web apps). Finally, BCrypt only hashes
 the first 72 characters of a password, and will silently truncate longer ones
 (Passlib's non-standard :class:`~passlib.hash.bcrypt_sha256` works around this last issue).
+
+PBKDF2
+......
+:class:`~passlib.hash.pbkdf2_sha512` is a custom hash format designed for Passlib.
+However, it directly uses the
+`PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
+key derivation function, which was standardized in 2000, and found across a
+`wide variety <http://en.wikipedia.org/wiki/PBKDF2#Systems_that_use_PBKDF2>`_
+of applications and platforms. Unlike the previous two hashes,
+PBKDF2 has a simple and portable design,
+which is resistant (but not immune) to collision and preimage attacks
+on the underlying message digest.
+There is also :class:`~passlib.hash.pbkdf2_sha256`, which may be faster
+on 32 bit processors; as well as LDAP-formatted versions of these (
+:class:`~passlib.hash.ldap_pbkdf2_sha512` and
+:class:`~passlib.hash.ldap_pbkdf2_sha256`).
+
+*Issues:* PBKDF2 has no major security or portability issues,
+and compares favorably against bcrypt.  However, bcrypt has proven slightly
+more resistant to modern GPU-based cracking techniques.
 
 SHA512-Crypt
 ............
@@ -129,7 +159,7 @@ on 32 bit processors; as well as LDAP-formatted versions of these (
 :class:`~passlib.hash.ldap_sha512_crypt` and
 :class:`~passlib.hash.ldap_sha256_crypt`).
 
-Issues: Like :class:`~passlib.hash.md5_crypt`, its algorithm
+*Issues:* Like :class:`~passlib.hash.md5_crypt`, its algorithm
 composes the underlying message digest hash in a baroque
 and somewhat arbitrary set of combinations.
 So far this "kitchen sink" design has been successful in its
@@ -155,31 +185,6 @@ via :mod:`crypt`, which will be used by Passlib.
     References to this algorithm are frequently confused with a raw SHA-512 hash.
     While :class:`!sha512_crypt` uses the SHA-512 hash as a cryptographic primitive,
     the algorithm's resulting password hash is far more secure.
-
-PBKDF2
-......
-:class:`~passlib.hash.pbkdf2_sha512` is a custom hash format designed for Passlib.
-However, it directly uses the
-`PBKDF2 <http://tools.ietf.org/html/rfc2898#section-5.2>`_
-key derivation function, which was standardized in 2000, and found across a
-`wide variety <http://en.wikipedia.org/wiki/PBKDF2#Systems_that_use_PBKDF2>`_
-of applications and platforms. Unlike the previous two hashes,
-PBKDF2 has a simple and portable design,
-which is resistant (but not immune) to collision and preimage attacks
-on the underlying message digest.
-There is also :class:`~passlib.hash.pbkdf2_sha256`, which may be faster
-on 32 bit processors; as well as LDAP-formatted versions of these (
-:class:`~passlib.hash.ldap_pbkdf2_sha512` and
-:class:`~passlib.hash.ldap_pbkdf2_sha256`).
-
-Issues: PBKDF2 has no security or portability issues.
-However, it has only come into wide use as a password hash
-in recent years; mainly hampered by the fact that there is no
-standard format for encoding password hashes using this algorithm
-(which is why Passlib has its own :ref:`custom format <mcf-pbkdf2-format>`).
-
-Furthermore, when compared to Argon2 and BCrypt, PBKDF2 has proven more susceptible to cracking
-using modern GPU-based techniques.
 
 Making a Decision
 -----------------
@@ -228,7 +233,7 @@ Creating and Using a CryptContext
 =================================
 Once you've chosen what password hash(es) you want to use,
 the next step is to define a :class:`~passlib.context.CryptContext` object
-to manage your hashes, and relating configuration information.
+to manage your hashes and related policy configuration.
 Insert the following code into your application::
 
     #
@@ -240,17 +245,20 @@ Insert the following code into your application::
     # create a single global instance for your app...
     #
     pwd_context = CryptContext(
-        # replace this list with the hash(es) you wish to support.
+        # Replace this list with the hash(es) you wish to support.
         # this example sets pbkdf2_sha256 as the default,
-        # with support for legacy des_crypt hashes.
+        # with additional support for reading legacy des_crypt hashes.
         schemes=["pbkdf2_sha256", "des_crypt"],
-        default="pbkdf2_sha256",
-        deprecated=["auto"],
 
-        # set the number of rounds that should be used...
-        # (appropriate values may vary for different schemes,
-        # and the amount of time you wish it to take)
-        pbkdf2_sha256__rounds = 29000,
+        # Automatically mark all but first hasher in list as deprecated.
+        # (this will be the default in Passlib 2.0)
+        deprecated="auto",
+
+        # Optionally, set the number of rounds that should be used.
+        # Appropriate values may vary for different schemes,
+        # and the amount of time you wish it to take.
+        # Leaving this alone is usually safe, and will use passlib's defaults.
+        ## pbkdf2_sha256__rounds = 29000,
         )
 
 To start using your CryptContext, import the context you created wherever it's needed::
@@ -269,16 +277,21 @@ To start using your CryptContext, import the context you created wherever it's n
     >>> pwd_context.verify("wrongpass", hash)
     False
 
+There's many more features packed into the context objects, read
+the walkthrough for more...
+
+.. rst-class:: float-center
+
 .. seealso::
 
-    * :mod:`passlib.hash` -- list of all hashes supported by passlib.
-    * :ref:`CryptContext Overview & Tutorial <context-overview>` -- walkthrough of how to use the CryptContext class.
-    * :ref:`CryptContext Reference <context-reference>` -- reference for the CryptContext api.
+    * :ref:`context-tutorial` -- full details of using the CryptContext class
+    * :mod:`passlib.context` -- CryptContext API reference
+    * :mod:`passlib.hash` -- list of all hashes supported by Passlib.
 
 .. rubric:: Footnotes
 
-.. [#choices] BCrypt and PBKDF2, followed by SHA512-Crypt, are the most commonly
-              used password hashes as of June 2016, when this document
-              last updated. You should make sure you are reading a current
+.. [#choices] As of June 2016, the most commonly used password hashes are BCrypt and PBKDF2,
+              followed by SHA512-Crypt, with Argon2 rapidly moving up the ranks.
+              You should make sure you are reading a current
               copy of the Passlib documentation, in case the state
               of things has changed.

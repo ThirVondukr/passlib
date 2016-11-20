@@ -14,7 +14,7 @@
 
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
 overrides all of Django's password hashing functions, replacing them
-with wrappers around a Passlib :ref:`CryptContext <context-overview>` object
+with wrappers around a Passlib :ref:`CryptContext <context-reference>` object
 whose configuration is controlled from Django's ``settings``.
 While this extension's utility is diminished with the advent
 of Django 1.4's *hashers* framework, this plugin still has a number

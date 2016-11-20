@@ -88,7 +88,7 @@ providing full-strength password hashing for multi-user applications.
 * See the `homepage <https://bitbucket.org/ecollins/passlib>`_
   for the latest news and more information.
 
-* See the `changelog <https://passlib.readthedocs.io/en/stable/history.html>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
   for a description of what's new in Passlib.
 
 All releases are signed with the gpg key

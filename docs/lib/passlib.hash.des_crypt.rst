@@ -2,10 +2,7 @@
 :class:`passlib.hash.des_crypt` - DES Crypt
 =======================================================================
 
-.. warning::
-
-    This algorithm is extremely weak by modern standards,
-    and should not be used if possible.
+.. include:: ../_fragments/trivial_hash_warning.rst
 
 .. currentmodule:: passlib.hash
 

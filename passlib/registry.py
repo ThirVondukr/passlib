@@ -509,7 +509,7 @@ def has_backend(hasher, backend=ANY, safe=False):
 @memoize_single_value
 def get_supported_os_crypt_schemes():
     """
-    return tuple of schemes which :func:`os.crypt` natively supports.
+    return tuple of schemes which :func:`crypt.crypt` natively supports.
     """
     if not os_crypt_present:
         return ()
@@ -525,7 +525,7 @@ def get_supported_os_crypt_schemes():
 # TODO: needs UTs
 def has_os_crypt_support(hasher):
     """
-    check if hash is supported by native :func:`os.crypt` function.
+    check if hash is supported by native :func:`crypt.crypt` function.
     if :func:`crypt.crypt` is not present, will always return False.
 
     :param hasher:

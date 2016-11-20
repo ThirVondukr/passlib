@@ -4,13 +4,9 @@
 :class:`passlib.hash.lmhash` - LanManager Hash
 ==================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This scheme has been deprecated since Windows NT, and is  notoriously weak.
-    It should be used for compatibility with existing systems;
-    **do not use** in new code.
 
 .. currentmodule:: passlib.hash
 
@@ -122,9 +118,13 @@ the handling of non-ASCII characters.
   MS Windows implementation.
 
   Thus if an application wishes to provide support for non-ASCII passwords,
-  it must decide which encoding to use. Passlib uses ``cp437`` as a
-  default, but this may need to be overridden via
-  ``lmhash.hash(secret, encoding="some-other-codec")``.
+  it must decide which encoding to use.
+
+  Passlib uses ``cp437`` as it's default encoding for unicode strings.
+  However, if your database used a different encoding, you will need to either
+  first encode the passwords into bytes, or override the default encoding
+  via ``lmhash.hash(secret, encoding="some-other-codec")``
+
   All known encodings are ``us-ascii``-compatible, so for ASCII passwords,
   the default should be sufficient.
 

@@ -4,10 +4,7 @@
 :class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
 
-.. warning::
-
-    This hash is not secure, and should not be used for any purposes
-    besides manipulating existing PostgreSQL password hashes.
+.. include:: ../_fragments/insecure_hash_warning.rst
 
 .. currentmodule:: passlib.hash
 

@@ -4,14 +4,8 @@
 :class:`passlib.hash.md5_crypt` - MD5 Crypt
 ==================================================================
 
-.. warning::
+.. include:: ../_fragments/insecure_hash_warning.rst
 
-    As of 2012-6-7, this algorithm is "no longer considered safe"
-    by its author [#phk]_, citing the increased
-    speed of the MD5 hash on modern hardware, and MD5-Crypt's
-    lack of a variable time-cost parameter. See Passlib's
-    :ref:`recommended hashes <recommended-hashes>` for a replacement.
-    
 .. currentmodule:: passlib.hash
 
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,

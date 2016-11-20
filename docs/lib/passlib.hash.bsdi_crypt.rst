@@ -2,11 +2,9 @@
 :class:`passlib.hash.bsdi_crypt` - BSDi Crypt
 =================================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. note::
-
-    This algorithm is weak by modern standards, and should not be used in new applications.
 
 This algorithm was developed by BSDi for their BSD/OS distribution.
 It's based on :class:`~passlib.hash.des_crypt`, and contains a larger

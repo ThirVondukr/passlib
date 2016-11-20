@@ -1,13 +1,12 @@
 .. index:: CryptContext; overview
 
-.. _context-overview:
 .. _context-tutorial:
 
 .. currentmodule:: passlib.context
 
-==============================================
-:mod:`passlib.context` - CryptContext Tutorial
-==============================================
+===============================================
+:class:`~passlib.context.CryptContext` Tutorial
+===============================================
 
 Overview
 ========
@@ -25,6 +24,8 @@ password hashes at once:
 The following sections contain a walkthrough of this class, starting
 with some simple examples, and working up to a complex "full-integration" example.
 
+.. rst-class:: float-center
+
 .. seealso:: The :mod:`passlib.context` api reference,
     which lists all the options and methods supported by this class.
 
@@ -32,8 +33,8 @@ with some simple examples, and working up to a complex "full-integration" exampl
 
 .. rst-class:: emphasize-children
 
-Tutorial / Walkthrough
-======================
+Walkthrough Outline
+===================
 * `Basic Usage`_
 * `Using Default Settings`_
 * `Loading & Saving a CryptContext`_
@@ -47,14 +48,14 @@ Tutorial / Walkthrough
 .. _context-basic-example:
 
 Basic Usage
------------
-At its base, the :class:`!CryptContext` class is just a list of
+===========
+At its base, the :class:`!CryptContext` class is just a collection of
 :class:`~passlib.ifc.PasswordHash` objects, imported by name
 from the :mod:`passlib.hash` module. The following snippet creates
 a new context object which supports three hash algorithms
-(:doc:`sha256_crypt <passlib.hash.sha256_crypt>`,
-:doc:`md5_crypt <passlib.hash.md5_crypt>`, and
-:doc:`des_crypt <passlib.hash.des_crypt>`)::
+(:doc:`sha256_crypt </lib/passlib.hash.sha256_crypt>`,
+:doc:`md5_crypt </lib/passlib.hash.md5_crypt>`, and
+:doc:`des_crypt </lib/passlib.hash.des_crypt>`)::
 
     >>> from passlib.context import CryptContext
     >>> myctx = CryptContext(schemes=["sha256_crypt", "md5_crypt", "des_crypt"])
@@ -110,15 +111,15 @@ which probably provide a better argument for *why* you'd want to use it.
 .. _context-default-settings-example:
 
 Using Default Settings
-----------------------
+======================
 While encrypting and verifying hashes is useful enough, it's not much
 more than could be done by importing the objects into a list.
 The next feature of the :class:`!CryptContext` class is that it
 can store various customized settings for the different algorithms,
 instead of hardcoding them into each :meth:`!hash` call.
-As an example, the :class:`sha256_crypt <passlib.hash.sha256_crypt>`
+As an example, the :class:`sha256_crypt </lib/passlib.hash.sha256_crypt>`
 algorithm supports a ``rounds`` parameter which defaults to 80000,
-and the :class:`ldap_salted_md5 <passlib.hash.ldap_salted_md5>` algorithm uses
+and the :class:`ldap_salted_md5 </lib/passlib.hash.ldap_salted_md5>` algorithm uses
 8-byte salts by default::
 
     >>> from passlib.context import CryptContext
@@ -163,7 +164,7 @@ These is done by passing the CryptContext constructor a keyword with the format 
 .. _context-serialization-example:
 
 Loading & Saving a CryptContext
--------------------------------
+===============================
 The previous example built up a :class:`!CryptContext` instance
 in two stages, first by calling the constructor, and then the :meth:`update`
 method to make some additional changes. The same configuration
@@ -229,7 +230,7 @@ policies from the code, and into a configuration file with other security settin
 .. _context-migration-example:
 
 Deprecation & Hash Migration
-----------------------------
+============================
 The final and possibly most useful feature of the :class:`CryptContext` class
 is that it can take care of deprecating and migrating existing hashes,
 re-hashing them using the current default algorithm and settings.
@@ -237,7 +238,7 @@ All that is required is that a few settings be added to the configuration,
 and that the application call one extra method whenever a user logs in.
 
 Deprecating Algorithms
-......................
+----------------------
 The first setting that enables the hash migration features is the ``deprecated``
 setting. This should be a list algorithms which are no longer desirable to have
 around, but are included in ``schemes`` to provide legacy support.
@@ -275,7 +276,7 @@ check to see if the hash has been deprecated using the
     strings, and other configurable behaviors that are detailed later.
 
 Integrating Hash Migration
-..........................
+--------------------------
 To summarize the process described in the previous section,
 all the actions an application would usually need to
 perform can be combined into the following bit of skeleton code:
@@ -312,7 +313,7 @@ that uses 2 fewer calls (and is much more efficient internally):
 .. _context-min-rounds-example:
 
 Settings Rounds Limitations
-...........................
+---------------------------
 In addition to deprecating entire algorithms, the deprecations system
 also allows you to place limits on algorithms that support the
 variable time-cost parameter ``rounds``:
@@ -366,6 +367,12 @@ If an existing hash below the minimum is tested, it will show up as needing reha
       and :ref:`max_rounds <context-max-rounds-option>` constructor options.
 
     * the :meth:`~CryptContext.needs_update` and :meth:`~CryptContext.verify_and_update` methods.
+
+Undocumented Features
+=====================
+
+.. todo:: Document usage of the :ref:`harden_verify <context-harden-verify-option>` option.
+.. todo:: Document usage of the :ref:`context-disabled-hashes` options.
 
 .. rst-class:: html-toggle
 

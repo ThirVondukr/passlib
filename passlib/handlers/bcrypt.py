@@ -695,7 +695,7 @@ class _PyBcryptBackend(_BcryptCommon):
 #-----------------------------------------------------------------------
 class _OsCryptBackend(_BcryptCommon):
     """
-    backend which uses os.crypt()
+    backend which uses :func:`crypt.crypt`
     """
 
     @classmethod

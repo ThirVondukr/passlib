@@ -14,8 +14,10 @@ as the of a new generation of "memory hard" functions.
 
     Be careful when using this algorithm, as the memory and CPU requirements
     needed to achieve adequate security are generally higher than acceptable for heavily used
-    production systems [#scrypt-cost]_: unlike many password hashes, increasing
-    the rounds value of scrypt will increase the *memory* required, as well as the time.
+    production systems [#scrypt-cost]_. This is because (unlike many password hashes), increasing
+    the rounds value of scrypt will increase the *memory* required as well as the time.
+
+    Unless you know what you're doing, **You probably want** :doc:`argon2 <passlib.hash.argon2>` **instead.**
 
 This class can be used directly as follows::
 

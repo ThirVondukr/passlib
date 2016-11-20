@@ -4,9 +4,9 @@
 
 .. currentmodule:: passlib.totp
 
-===================================
-:mod:`passlib.totp` - TOTP Tutorial
-===================================
+====================================
+:class:`~passlib.totp.TOTP` Tutorial
+====================================
 
 Overview
 ========

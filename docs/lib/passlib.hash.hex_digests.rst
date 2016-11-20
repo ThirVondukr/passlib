@@ -2,7 +2,7 @@
 :samp:`passlib.hash.hex_{digest}` - Generic Hexadecimal Digests
 ===============================================================
 
-.. warning::
+.. danger::
 
     Using a single round of any cryptographic hash
     (especially without a salt) is so insecure

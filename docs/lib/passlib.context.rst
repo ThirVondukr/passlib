@@ -14,7 +14,7 @@ and helper utilities.
 
 .. seealso::
 
-    * :ref:`CryptContext Overview & Tutorial <context-overview>` --
+    * :ref:`context-tutorial` --
       overview of this class and walkthrough of how to use it.
 
 .. rst-class:: emphasize-children toc-always-open

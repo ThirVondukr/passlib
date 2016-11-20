@@ -15,7 +15,7 @@ providing full-strength password hashing for multi-user application.
 * See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
-* See the `changelog <https://passlib.readthedocs.io/en/stable/history.html>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
   for a description of what's new in Passlib.
 
 * Visit `PyPI <https://pypi.python.org/pypi/passlib>`_

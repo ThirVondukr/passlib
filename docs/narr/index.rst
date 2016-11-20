@@ -14,9 +14,9 @@ Walkthrough & Tutorials
     .. toctree::
         :maxdepth: 2
 
-        install
+        /install
         overview
-        new_app_quickstart
+        quickstart
 
 **Tutorials**
 
@@ -25,5 +25,6 @@ Walkthrough & Tutorials
     .. toctree::
         :maxdepth: 2
 
-        lib/passlib.context-tutorial
-        lib/passlib.totp-tutorial
+        hash-tutorial
+        context-tutorial
+        totp-tutorial

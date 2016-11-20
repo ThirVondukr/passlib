@@ -6,8 +6,8 @@ Table Of Contents
     :maxdepth: 4
 
     Introduction <index>
-    narrative
-    reference
+    narr/index
+    lib/index
     other
 
 * :ref:`General Index <genindex>`

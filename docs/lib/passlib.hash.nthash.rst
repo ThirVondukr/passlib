@@ -4,14 +4,9 @@
 :class:`passlib.hash.nthash` - Windows' NT-HASH
 ==================================================================
 
+.. include:: ../_fragments/trivial_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This scheme is very weak, the MD4 digest
-    it is based on has been severely compromised for many years.
-    It should be used for compatibility with existing systems;
-    **do not use** in new code.
 
 .. currentmodule:: passlib.hash
 

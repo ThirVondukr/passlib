@@ -5,134 +5,61 @@
 .. module:: passlib.ifc
     :synopsis: abstract interfaces used by Passlib
 
-.. _password-hash-api:
-
 =============================================
 :mod:`passlib.ifc` -- Password Hash Interface
 =============================================
 
+.. _password-hash-api:
+
 Overview
 ========
-While the exact options and behavior will vary between algorithms,
-all of the hashes provided by Passlib use the same interface,
-defined by the following abstract base class:
+This module provides the :class:`!PasswordHash` abstract base class.
+This class defines the common methods and attributes present
+on all the hashes importable from the :mod:`passlib.hash` module.
+Additionally, the :class:`passlib.context.CryptContext` class is deliberately
+designed to parallel many of this interface's methods.
 
+.. rst-class:: float-center
+
+.. seealso::
+
+    :ref:`hash-tutorial` -- Overview of this interface and how to use it.
+
+PasswordHash API
+================
 .. class:: PasswordHash()
 
-    This class provides an abstract interface for
-    an arbitrary password hashing algorithm.
-    While it offers a number of methods and attributes,
-    but most applications will only need the two primary methods:
+    This class provides an abstract interface for an arbitrary password hasher.
 
-    * :meth:`~PasswordHash.hash` - generate new salt, return hash of password.
-    * :meth:`~PasswordHash.verify` - verify password against existing hash.
+    Applications will generally not construct instances directly --
+    most of the operations are performed via classmethods, allowing
+    instances of a given class to be an internal detail used to implement
+    the various operations.
 
-    One additional support method is provided:
+    While :class:`!PasswordHash` offers a number of methods and attributes,
+    most applications will only need the two primary methods:
 
-    * :meth:`~PasswordHash.identify` - check if hash belongs to this algorithm.
+    * :meth:`PasswordHash.hash` - generate new salt, return hash of password.
+    * :meth:`PasswordHash.verify` - verify password against existing hash.
+
+    Two additional support methods are also provided:
+
+    * :meth:`PasswordHash.using` - create subclass with customized configuration.
+    * :meth:`PasswordHash.identify` - check if hash belongs to this algorithm.
 
     Each hash algorithm also provides a number of :ref:`informational attributes <informational-attributes>`,
     allowing programmatic inspection of its options and parameter limits.
 
-.. _password-hash-examples:
+.. seealso::
 
-Usage Examples
-==============
-The following code shows how to use the primary
-methods of the :class:`~passlib.ifc.PasswordHash` interface --
-:meth:`~PasswordHash.hash` and :meth:`~PasswordHash.verify` --
-using the :class:`~passlib.hash.pbkdf2_sha256` hash as an example::
-
-    >>> # import the handler class
-    >>> from passlib.hash import pbkdf2_sha256
-
-    >>> # hash a password using the default settings:
-    >>> hash = pbkdf2_sha256.hash("password")
-    >>> hash
-    '$pbkdf2-sha256$29000$791b633vXau19h4jxPj/Pw$qyzGzFapr0oDhS60GR8Ss40Y/wwd8AcaJoJ5/KKnnN8'
-
-    >>> # note that each call to hash() generates a new salt,
-    >>> # and thus the contents of the hash will differ, despite using the same password:
-    >>> pbkdf2_sha256.hash("password")
-    '$pbkdf2-sha256$29000$njNmDCGEUIoRwvi/1/ofQw$nYU.7v.fvG9UyT.7sTMbWSG98KSm/Tr4rS9Ob5UkYPw
-
-    >>> # if the hash supports a variable number of iterations (which pbkdf2_sha256 does),
-    >>> # you can override the default using the replace() method and the 'rounds' keyword:
-    >>> pbkdf2_sha256.using(rounds=12345).hash("password")
-    '$pbkdf2-sha256$12345$QwjBmJPSOsf4HyNE6L239g$8m1pnP69EYeOiKKb5sNSiYw9M8pJMyeW.CSm0KKO.GI'
-                    ^^^^^
-
-    >>> # on the other end of things, the verify() method takes care of
-    >>> # checking if a password matches an existing hash string:
-    >>> pbkdf2_sha256.verify("password", hash)
-    True
-    >>> pbkdf2_sha256.verify("letmeinplz", hash)
-    False
-
-.. note::
-
-    Whether a hash supports a particular configuration keyword (such as ``rounds``)
-    can be determined from its documentation page; but also programmatically from
-    its :attr:`~PasswordHash.setting_kwds` attribute.
-
-That concludes the most basic example, but there are a few more
-common use-cases, such as how to use the :meth:`~PasswordHash.identify` method::
-
-    >>> # attempting to call verify() with another algorithm's hash will result in a ValueError:
-    >>> from passlib.hash import pbkdf2_sha256, md5_crypt
-    >>> other_hash = md5_crypt.hash("password")
-    >>> pbkdf2_sha256.verify("password", other_hash)
-    Traceback (most recent call last):
-        <traceback omitted>
-    ValueError: not a valid pbkdf2_sha256 hash
-
-    >>> # this can be prevented by using the identify method,
-    >>> # determines whether a hash belongs to a given algorithm:
-    >>> hash = pbkdf2_sha256.hash("password")
-    >>> pbkdf2_sha256.identify(hash)
-    True
-    >>> pbkdf2_sha256.identify(other_hash)
-    False
-
-While the initial :meth:`~PasswordHash.hash` example works for most hashes,
-a small number of algorithms require you provide external data
-(such as a username) every time a hash is calculated.
-An example of this is the :class:`~passlib.hash.oracle10` algorithm::
-
-    >>> # for oracle10, encrypt requires a username:
-    >>> from passlib.hash import oracle10
-    >>> hash = oracle10.hash("secret", user="admin")
-    'B858CE295C95193F'
-
-    >>> # the difference between this and something like the rounds setting (above)
-    >>> # is that oracle10 also requires the username when verifying a hash:
-    >>> oracle10.verify("secret", hash, user="admin")
-    True
-
-    >>> # if either the username OR password is wrong, verify() will fail:
-    >>> oracle10.verify("secret", hash, user="wronguser")
-    False
-    >>> oracle10.verify("wrongpassword", hash, user="admin")
-    False
-
-    >>> # forgetting to include the username when it's required will cause a TypeError:
-    >>> hash = oracle10.hash("password")
-    Traceback (most recent call last):
-        <traceback omitted>
-    TypeError: user must be unicode or bytes, not None
-
-.. note::
-
-    Whether a hash requires external parameters (such as ``user``)
-    can be determined from its documentation page; but also programmatically from
-    its :attr:`~PasswordHash.context_kwds` attribute.
+    :ref:`hash-tutorial` -- Overview of this interface and how to use it.
 
 .. _primary-methods:
 
-Primary Methods
-===============
+Hashing & Verification Methods
+==============================
 Most applications will only need to use two methods:
-:meth:`~PasswordHash.hash` to generate new hashes, and :meth:`~PasswordHash.verify`
+:meth:`PasswordHash.hash` to generate new hashes, and :meth:`PasswordHash.verify`
 to check passwords against existing hashes.
 These methods provide an easy interface for working with a password hash,
 and abstract away details such as salt generation, hash normalization,
@@ -154,12 +81,12 @@ and hash comparison.
 
         All additional keywords are algorithm-specific, and will be listed
         in that hash's documentation; though many of the more common keywords
-        are listed under :attr:`~PasswordHash.setting_kwds`
-        and :attr:`~PasswordHash.context_kwds`.
+        are listed under :attr:`PasswordHash.setting_kwds`
+        and :attr:`PasswordHash.context_kwds`.
 
         .. deprecated:: 1.7
 
-            Passing :attr:`~PasswordHash.setting_kwds` such as ``rounds`` and ``salt_size``
+            Passing :attr:`PasswordHash.setting_kwds` such as ``rounds`` and ``salt_size``
             directly into the :meth:`hash` method is deprecated.  Callers should instead
             use ``handler.using(**settings).hash(secret)``.  Support for the old method
             is is tentatively scheduled for removal in Passlib 2.0.
@@ -203,7 +130,7 @@ and hash comparison.
 
 .. classmethod:: PasswordHash.encrypt(secret, \*\*kwds)
 
-    Legacy alias for :meth:`hash`.
+    Legacy alias for :meth:`PasswordHash.hash`.
 
     .. deprecated:: 1.7
 
@@ -225,7 +152,7 @@ and hash comparison.
     :type secret: unicode or bytes
     :param hash:
         A string containing the hash to check against,
-        such as returned by :meth:`~hash`.
+        such as returned by :meth:`PasswordHash.hash`.
 
         Hashes may be specified as :class:`!unicode` or
         ``ascii``-encoded :class:`!bytes`.
@@ -236,12 +163,12 @@ and hash comparison.
         The ones that do typically require external contextual information
         in order to calculate the digest. For these hashes,
         the values must match the ones passed to the original
-        :meth:`~PasswordHash.hash` call when the hash was generated,
+        :meth:`PasswordHash.hash` call when the hash was generated,
         or the password will not verify.
 
         These additional keywords are algorithm-specific, and will be listed
         in that hash's documentation; though the more common keywords
-        are listed under :attr:`~PasswordHash.context_kwds`.
+        are listed under :attr:`PasswordHash.context_kwds`.
         Examples of common keywords include ``user``.
 
     :returns:
@@ -255,8 +182,8 @@ and hash comparison.
     :raises ValueError:
         * if ``hash`` does not match this algorithm's format.
         * if the ``secret`` contains forbidden characters (see
-          :meth:`~PasswordHash.hash`).
-        * if a configuration/salt string generated by :meth:`~PasswordHash.genconfig`
+          :meth:`PasswordHash.hash`).
+        * if a configuration/salt string generated by :meth:`PasswordHash.genconfig`
           is passed in as the value for ``hash`` (these strings look
           similar to a full hash, but typically lack the digest portion
           needed to verify a password).
@@ -266,52 +193,9 @@ and hash comparison.
         instead of a properly-formed hash; previous releases were inconsistent
         in their handling of these two border cases.
 
-.. classmethod:: PasswordHash.using(relaxed=False, \*\*settings)
+.. seealso::
 
-    This method takes in a set of algorithm-specific settings,
-    and returns a new handler object which uses the specified default settings instead.
-
-    :param \*\*settings:
-
-        All keywords are algorithm-specific, and will be listed
-        in that hash's documentation; though many of the more common keywords
-        are listed under :attr:`~PasswordHash.setting_kwds`.
-        Examples of common keywords include ``rounds`` and ``salt_size``.
-
-    :returns:
-        A new object which adheres to :class:`!PasswordHash` api.
-
-    :raises ValueError:
-
-        * If a keywords's value is invalid (e.g. if a ``salt`` string
-          is too small, or a ``rounds`` value is out of range).
-
-    :raises TypeError:
-
-        * if a ``kwd`` argument has an incorrect type.
-
-    .. versionadded:: 1.7
-
-.. _hash-unicode-behavior:
-
-.. note::
-
-    Regarding unicode passwords & non-ASCII characters:
-
-    For the majority of hash algorithms and use-cases, passwords should
-    be provided as either :class:`!unicode` or ``utf-8``-encoded :class:`!bytes`.
-    There are only two major exceptions:
-
-    * Some systems have legacy hashes that were generated using a different
-      character encoding. In this case, all :class:`!unicode` passwords
-      should be encoded using the correct encoding before they are hashed;
-      otherwise non-ASCII passwords may not :meth:`!verify` successfully.
-
-    * For historical reasons, :class:`~passlib.hash.lmhash` uses ``cp437``
-      as its default encoding. It will handle :class:`!unicode` correctly;
-      but non-ASCII passwords provided as :class:`!bytes` must either be encoded
-      using ``"cp437"``, or :class:`!lmhash`'s ``encoding`` keyword must
-      be set to indicate which encoding was used.
+    * :ref:`hash-verifying` tutorial for a usage example
 
 .. _crypt-methods:
 
@@ -319,7 +203,7 @@ and hash comparison.
 
 Crypt Methods
 =============
-Taken together, the :meth:`~PasswordHash.genconfig` and :meth:`~PasswordHash.genhash`
+Taken together, the :meth:`PasswordHash.genconfig` and :meth:`PasswordHash.genhash`
 are two tightly-coupled methods that mimic the standard Unix
 "crypt" interface. The first method generates salt / configuration
 strings from a set of settings, and the second hashes the password
@@ -327,7 +211,7 @@ using the provided configuration string.
 
 .. seealso::
 
-    Most applications will find :meth:`~PasswordHash.hash` much more useful,
+    Most applications will find :meth:`PasswordHash.hash` much more useful,
     as it combines the functionality of these two methods into one.
 
 .. classmethod:: PasswordHash.genconfig(\*\*setting_kwds)
@@ -343,15 +227,15 @@ using the provided configuration string.
 
     Returns a configuration string encoding settings for hash generation.
 
-    This function takes in all the same :attr:`~PasswordHash.setting_kwds`
-    as :meth:`~PasswordHash.hash`, fills in suitable defaults,
+    This function takes in all the same :attr:`PasswordHash.setting_kwds`
+    as :meth:`PasswordHash.hash`, fills in suitable defaults,
     and encodes the settings into a single "configuration" string,
-    suitable passing to :meth:`~PasswordHash.genhash`.
+    suitable passing to :meth:`PasswordHash.genhash`.
 
     :param \*\*kwds:
         All additional keywords are algorithm-specific, and will be listed
         in that hash's documentation; though many of the more common keywords
-        are listed under :attr:`~PasswordHash.setting_kwds`
+        are listed under :attr:`PasswordHash.setting_kwds`
         Examples of common keywords include ``salt`` and ``rounds``.
 
     :returns:
@@ -359,7 +243,7 @@ using the provided configuration string.
 
     :raises ValueError, TypeError:
         This function raises exceptions for the same
-        reasons as :meth:`~PasswordHash.hash`.
+        reasons as :meth:`PasswordHash.hash`.
 
     .. versionchanged:: 1.7
 
@@ -388,8 +272,8 @@ using the provided configuration string.
     :arg config:
         configuration string to use when encrypting secret.
         this can either be an existing hash that was previously
-        returned by :meth:`~PasswordHash.genhash`, or a configuration string
-        that was previously created by :meth:`~PasswordHash.genconfig`.
+        returned by :meth:`PasswordHash.genhash`, or a configuration string
+        that was previously created by :meth:`PasswordHash.genconfig`.
 
         .. versionchanged:: 1.7
 
@@ -402,12 +286,12 @@ using the provided configuration string.
         The ones that do typically require external contextual information
         in order to calculate the digest. For these hashes,
         the values must match the ones passed to the original
-        :meth:`~PasswordHash.hash` call when the hash was generated,
+        :meth:`PasswordHash.hash` call when the hash was generated,
         or the password will not verify.
 
         These additional keywords are algorithm-specific, and will be listed
         in that hash's documentation; though the more common keywords
-        are listed under ::attr:`~PasswordHash.context_kwds`.
+        are listed under ::attr:`PasswordHash.context_kwds`.
         Examples of common keywords include ``user``.
 
     :returns:
@@ -416,7 +300,7 @@ using the provided configuration string.
 
     :raises ValueError, TypeError:
         This function raises exceptions for the same
-        reasons as :meth:`~PasswordHash.hash`.
+        reasons as :meth:`PasswordHash.hash`.
 
     .. warning::
 
@@ -428,9 +312,44 @@ using the provided configuration string.
 
 .. _support-methods:
 
-Support Methods
-===============
-There is currently one additional support method, :meth:`~PasswordHash.identify`:
+Factory Creation
+================
+One powerful method offered by the :class:`!PasswordHash` class :meth:`PasswordHash.using`.
+This method allows you to quickly create subclasses of a specific hash,
+providing it with preconfigured defaults specific to your application:
+
+.. classmethod:: PasswordHash.using(relaxed=False, \*\*settings)
+
+    This method takes in a set of algorithm-specific settings,
+    and returns a new handler object which uses the specified default settings instead.
+
+    :param \*\*settings:
+
+        All keywords are algorithm-specific, and will be listed
+        in that hash's documentation; though many of the more common keywords
+        are listed under :attr:`PasswordHash.setting_kwds`.
+        Examples of common keywords include ``rounds`` and ``salt_size``.
+
+    :returns:
+        A new object which adheres to :class:`!PasswordHash` api.
+
+    :raises ValueError:
+
+        * If a keywords's value is invalid (e.g. if a ``salt`` string
+          is too small, or a ``rounds`` value is out of range).
+
+    :raises TypeError:
+
+        * if a ``kwd`` argument has an incorrect type.
+
+    .. versionadded:: 1.7
+
+.. seealso:: :ref:`hash-configuring` tutorial for a usage example
+
+Hash Inspection Methods
+=======================
+There are currently two hash inspection methods, :meth:`PasswordHash.identify`
+and :meth:`PasswordHash.needs_update`.
 
 .. classmethod:: PasswordHash.identify(hash)
 
@@ -460,7 +379,7 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
 
         If you are considering using this method to select from multiple
         algorithms (e.g. in order to verify a password), you will be better served
-        by the :ref:`CryptContext <context-overview>` class.
+        by the :ref:`CryptContext <context-reference>` class.
 
 .. automethod:: PasswordHash.needs_update
 
@@ -476,13 +395,10 @@ There is currently one additional support method, :meth:`~PasswordHash.identify`
 
 .. _informational-attributes:
 
-Informational Attributes
-========================
-
 .. _general-attributes:
 
-General Information
--------------------
+General Informational Attributes
+================================
 Each hash provides a handful of informational attributes, allowing
 programs to dynamically adapt to the requirements of different
 hash algorithms. The following attributes should be defined for all
@@ -501,10 +417,10 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.setting_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.using` control hash generation,
+    Tuple listing the keywords supported by :meth:`PasswordHash.using` control hash generation,
     and which will be encoded into the resulting hash.
 
-    (These keywords will also be accepted by :meth:`~PasswordHash.hash` and :meth:`~PasswordHash.genconfig`,
+    (These keywords will also be accepted by :meth:`PasswordHash.hash` and :meth:`PasswordHash.genconfig`,
      though that behavior is deprecated as of Passlib 1.7; and will be removed in Passlib 2.0).
 
     This list commonly includes keywords for controlling salt generation,
@@ -581,7 +497,7 @@ the hashes in passlib:
         This will be present if and only if the hash truncates passwords
         larger than some limit (reported via it's :attr:`truncate_size` attribute).
         By default, they will silently truncate passwords above their limit.
-        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        Setting ``truncate_error=True`` will cause :meth:`PasswordHash.hash`
         to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
 
     .. index::
@@ -590,7 +506,7 @@ the hashes in passlib:
     .. _relaxed-keyword:
 
     ``relaxed``
-        By default, passing an invalid value to :meth:`~PasswordHash.using`
+        By default, passing an invalid value to :meth:`PasswordHash.using`
         will result in a :exc:`ValueError`. However, if ``relaxed=True``
         then Passlib will attempt to correct the error and (if successful)
         issue a :exc:`~passlib.exc.PasslibHashWarning` instead.
@@ -605,8 +521,8 @@ the hashes in passlib:
 
 .. attribute:: PasswordHash.context_kwds
 
-    Tuple listing the keywords supported by :meth:`~PasswordHash.hash`,
-    :meth:`~PasswordHash.verify`, and :meth:`~PasswordHash.genhash`.
+    Tuple listing the keywords supported by :meth:`PasswordHash.hash`,
+    :meth:`PasswordHash.verify`, and :meth:`PasswordHash.genhash`.
     These keywords are different from the settings kwds in that the context keywords
     affect the hash, but are not encoded within it, and thus must be provided each time
     the hash is calculated.
@@ -642,7 +558,7 @@ the hashes in passlib:
         the correct encoding (:class:`~passlib.hash.lmhash` is perhaps the worst offender).
         Hashes which provide this keyword will always expose
         their default encoding programmatically via the
-        :attr:`~PasswordHash.default_encoding` attribute.
+        :attr:`PasswordHash.default_encoding` attribute.
 
 .. attribute:: truncate_size
 
@@ -651,15 +567,17 @@ the hashes in passlib:
     the entire password provided.
 
     Hashes which specify this setting will also support a ``truncate_error``
-    flag via their :meth:`~PasswordHash.using` method, to configure
+    flag via their :meth:`PasswordHash.using` method, to configure
     how truncation is handled.
+
+.. seealso:: :ref:`hash-configuring` tutorial for a usage example
 
 .. _salt-attributes:
 
-Salt Information
-----------------
+Salt Information Attributes
+===========================
 For schemes which support a salt string,
-``"salt"`` should be listed in their :attr:`~PasswordHash.setting_kwds`,
+``"salt"`` should be listed in their :attr:`PasswordHash.setting_kwds`,
 and the following attributes should be defined:
 
 .. attribute:: PasswordHash.max_salt_size
@@ -671,7 +589,7 @@ and the following attributes should be defined:
 .. attribute:: PasswordHash.min_salt_size
 
     The minimum number of bytes/characters required for the salt.
-    Must be an integer between 0 and :attr:`~PasswordHash.max_salt_size`.
+    Must be an integer between 0 and :attr:`PasswordHash.max_salt_size`.
 
 .. attribute:: PasswordHash.default_salt_size
 
@@ -697,16 +615,16 @@ and the following attributes should be defined:
     .. attribute:: PasswordHash.default_salt_chars
 
         sequence of characters used to generate new salts.
-        this is typically the same as :attr:`~PasswordHash.salt_chars`, but some
+        this is typically the same as :attr:`PasswordHash.salt_chars`, but some
         hashes accept a larger-than-useful range, and this will
         contain only the "common" values used for generation.
 
 .. _rounds-attributes:
 
-Rounds Information
-------------------
+Rounds Information Attributes
+=============================
 For schemes which support a variable time-cost parameter,
-``"rounds"`` should be listed in their :attr:`~PasswordHash.setting_kwds`,
+``"rounds"`` should be listed in their :attr:`PasswordHash.setting_kwds`,
 and the following attributes should be defined:
 
 .. attribute:: PasswordHash.max_rounds
@@ -720,14 +638,14 @@ and the following attributes should be defined:
 
     The minimum number of rounds the scheme allows.
     Specifying a value below this will result in a :exc:`ValueError`.
-    Will always be an integer between 0 and :attr:`~PasswordHash.max_rounds`.
+    Will always be an integer between 0 and :attr:`PasswordHash.max_rounds`.
 
 .. attribute:: PasswordHash.default_rounds
 
     The default number of rounds that will be used if none is explicitly
-    provided to :meth:`~PasswordHash.hash`.
-    This will always be an integer between :attr:`~PasswordHash.min_rounds`
-    and :attr:`~PasswordHash.max_rounds`.
+    provided to :meth:`PasswordHash.hash`.
+    This will always be an integer between :attr:`PasswordHash.min_rounds`
+    and :attr:`PasswordHash.max_rounds`.
 
 .. attribute:: PasswordHash.rounds_cost
 
@@ -740,6 +658,9 @@ and the following attributes should be defined:
     * ``"log2"`` - time taken scales exponentially with rounds value
       (e.g. :class:`~passlib.hash.bcrypt`)
 
+.. todo:: document the additional :meth:`PasswordHash.using` keywords
+   available for setting rounds limits.
+
 ..
     todo: haven't decided if this is how I want the api look before
     formally publishing it in the documentation:
@@ -751,7 +672,7 @@ and the following attributes should be defined:
     .. note::
 
         For the most part, applications will not need this interface,
-        outside of perhaps calling the :meth:`~PasswordHash.get_backend`
+        outside of perhaps calling the :meth:`PasswordHash.get_backend`
         to determine which the active backend.
 
     Some hashes provided by Passlib have multiple backends which they
@@ -778,7 +699,7 @@ and the following attributes should be defined:
     .. method:: PasswordHash.get_backend()
 
         This method should return the name of the currently active backend
-        that will be used by :meth:`!hash` and :meth:`!verify`.
+        that will be used by :meth:`PasswordHash.hash` and :meth:`PasswordHash.verify`.
 
         :raises passlib.exc.MissingBackendError:
             in the rare case that *no* backends can be loaded.
@@ -792,36 +713,7 @@ and the following attributes should be defined:
 
         This method can be used to select a specific backend.
         The ``backend`` argument must be one of the backends listed
-        in :attr:`~PasswordHash.backends`, or the special value ``"default"``.
+        in :attr:`PasswordHash.backends`, or the special value ``"default"``.
 
         :raises passlib.exc.MissingBackendError:
             if the specified backend is not available.
-
-.. index:: rounds; choosing the right value
-
-.. _rounds-selection-guidelines:
-
-Choosing the right rounds value
-===============================
-For hash algorithms with a variable time-cost,
-Passlib's :attr:`~PasswordHash.default_rounds` values attempt to be secure enough for
-the average [#avgsys]_ system. But the "right" value for a given hash
-is dependant on the server, its cpu, its expected load, and its users.
-Since larger values mean increased work for an attacker,
-*the right* ``rounds`` *value for a given hash & server should be the largest
-possible value that doesn't cause intolerable delay for your users*.
-
-For most public facing services, you can generally have signin
-take upwards of 250ms - 400ms before users start getting annoyed.
-For superuser accounts, it should take as much time as the admin can stand
-(usually ~4x more delay than a regular account).
-
-Passlib's :attr:`!default_rounds` values are retuned periodically,
-starting with a rough estimate of what an "average" system is capable of,
-and then setting all :samp:`{hash}.default_rounds` values to take ~300ms on such a system.
-However, some older algorithms (e.g. :class:`~passlib.hash.bsdi_crypt`) are weak enough that
-a tradeoff must be made, choosing "secure but intolerably slow" over "fast but unacceptably insecure".
-For this reason, it is strongly recommended to not use a value much lower than Passlib's default.
-
-.. [#avgsys] For Passlib 1.6.3, all hashes were retuned to take ~300ms on a
-   system with a 3.0 ghz 64 bit CPU.

@@ -2,9 +2,7 @@
 :class:`passlib.hash.crypt16` - Crypt16
 =======================================================================
 
-.. warning::
-
-    This algorithm is dangerously weak, and should not be used if at all possible.
+.. include:: ../_fragments/trivial_hash_warning.rst
 
 .. currentmodule:: passlib.hash
 

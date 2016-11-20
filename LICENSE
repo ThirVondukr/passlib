@@ -4,6 +4,13 @@
 Copyrights & Licenses
 =====================
 
+Credits
+=======
+Passlib is primarily developed by Eli Collins.
+
+Special thanks to Darin Gordon for testing and
+feedback on the :mod:`passlib.totp` module.
+
 License for Passlib
 ===================
 Passlib is (c) `Assurance Technologies <http://www.assurancetechnologies.com>`_,

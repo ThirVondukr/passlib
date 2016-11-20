@@ -2,12 +2,9 @@
 :class:`passlib.hash.mssql2005` - MS SQL 2005 password hash
 ==================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This hash is not very secure, and should not be used for any purposes
-    besides manipulating existing MSSQL 2005 password hashes.
 
 .. currentmodule:: passlib.hash
 

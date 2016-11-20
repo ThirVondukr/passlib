@@ -68,7 +68,7 @@ Optional Libraries
 
 * `SCrypt <https://pypi.python.org/pypi/scrypt>`_ (>= 0.6)
 
-   If installed, this will be used to provider support for the :class:`~passlib.hash.scrypt`
+   If installed, this will be used to provide support for the :class:`~passlib.hash.scrypt`
    hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.
 
 .. versionchanged:: 1.7
@@ -81,6 +81,14 @@ Installation Instructions
 To install from PyPi using :command:`pip`::
 
     pip install passlib
+
+..
+    As noted above, you can ensure you have feature-specific extras installed
+    via any of::
+
+        pip install passlib[argon2]
+        pip install passlib[bcrypt]
+        pip install passlib[totp]
 
 To install from the source using :command:`setup.py`::
 
@@ -117,7 +125,7 @@ Tests may also be run via ``setup.py test`` or the included ``tox.ini`` file.
 Building the Documentation
 ==========================
 The latest copy of this documentation should always be available
-online at `<http://packages.python.org/passlib>`_.
+online at `<https://passlib.readthedocs.io>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 

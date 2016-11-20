@@ -5,7 +5,7 @@
 .. module:: passlib.hosts
     :synopsis: encrypting & verifying operating system passwords
 
-This module provides some preconfigured :ref:`CryptContext <context-overview>`
+This module provides some preconfigured :ref:`CryptContext <context-reference>`
 instances for encrypting & verifying password hashes tied to user accounts of various operating systems.
 While (most) of the objects are available cross-platform,
 their use is oriented primarily towards Linux and BSD variants.

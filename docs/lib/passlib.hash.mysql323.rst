@@ -4,13 +4,9 @@
 :class:`passlib.hash.mysql323` - MySQL 3.2.3 password hash
 ========================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. warning::
-
-    This algorithm is extremely weak, and should not be used
-    for any purposes besides manipulating existing Mysql 3.2.3-4.0
-    password hashes.
 
 This class implements the first of MySQL's password hash functions,
 used to store its user account passwords. Introduced in MySQL 3.2.3

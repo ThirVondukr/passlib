@@ -2,9 +2,7 @@
 :class:`passlib.hash.bigcrypt` - BigCrypt
 =======================================================================
 
-.. warning::
-
-    This algorithm is dangerously weak, and should not be used if at all possible.
+.. include:: ../_fragments/trivial_hash_warning.rst
 
 .. currentmodule:: passlib.hash
 

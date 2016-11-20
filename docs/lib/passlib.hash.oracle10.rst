@@ -2,12 +2,9 @@
 :class:`passlib.hash.oracle10` - Oracle 10g password hash
 ==================================================================
 
+.. include:: ../_fragments/trivial_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. warning::
-
-    This hash is not secure, and should not be used for any purposes
-    besides manipulating existing Oracle 10 password hashes.
 
 This class implements the hash algorithm used by the Oracle Database up to
 version 10g Rel.2. It was superseded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.

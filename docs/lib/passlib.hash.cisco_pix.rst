@@ -4,12 +4,9 @@
 :class:`passlib.hash.cisco_pix` - Cisco PIX hash
 ==================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    These hashes are not secure, and should not be used for any purposes
-    besides manipulating existing hashes.
 
 .. todo::
 
