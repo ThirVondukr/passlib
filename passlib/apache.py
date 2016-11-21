@@ -427,6 +427,10 @@ class _CommonFile(object):
 # c.f. http://httpd.apache.org/docs/2.4/programs/htpasswd.html vs the 2.2 docs.
 #=============================================================================
 
+#: set of default schemes that (if chosen) should be using bcrypt,
+#: but can't due to lack of bcrypt.
+_warn_no_bcrypt = set()
+
 def _init_default_schemes():
 
     #: pick strongest one for host
@@ -439,10 +443,10 @@ def _init_default_schemes():
     # check if we have a bcrypt backend -- otherwise issue warning
     # XXX: would like to not spam this unless the user *requests* apache 24
     bcrypt = "bcrypt" if registry.has_backend("bcrypt") else None
+    _warn_no_bcrypt.clear()
     if not bcrypt:
-        warn("HtpasswdFile: no bcrypt backends available, "
-             "using fallback default scheme for apache 2.4",
-             exc.PasslibSecurityWarning)
+        _warn_no_bcrypt.update(["portable_apache_24", "host_apache_24",
+                                "linux_apache_24", "portable", "host"])
 
     defaults = dict(
         # strongest hash builtin to specific apache version
@@ -706,6 +710,10 @@ class HtpasswdFile(_CommonFile):
                  DeprecationWarning, stacklevel=2)
             default_scheme = kwds.pop("default")
         if default_scheme:
+            if default_scheme in _warn_no_bcrypt:
+                warn("HtpasswdFile: no bcrypt backends available, "
+                     "using fallback for default scheme %r" % default_scheme,
+                     exc.PasslibSecurityWarning)
             default_scheme = htpasswd_defaults.get(default_scheme, default_scheme)
             context = context.copy(default=default_scheme)
         self.context = context
