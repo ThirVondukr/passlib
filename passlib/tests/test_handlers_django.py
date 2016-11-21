@@ -12,7 +12,7 @@ import warnings
 from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
-from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
+from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest, \
         TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
 from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
 from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION
@@ -34,8 +34,20 @@ class _DjangoHelper(TestCase):
     #: minimum django version where hash alg is present / that we support testing against
     min_django_version = MIN_DJANGO_VERSION
 
-    def fuzz_verifier_django(self):
+    #: max django version where hash alg is present
+    max_django_version = None
+
+    def _require_django_support(self):
         if DJANGO_VERSION < self.min_django_version:
+            raise self.skipTest("Django >= %s not installed" % vstr(self.min_django_version))
+        if self.max_django_version and DJANGO_VERSION > self.max_django_version:
+            raise self.skipTest("Django <= %s not installed" % vstr(self.max_django_version))
+        return True
+
+    def fuzz_verifier_django(self):
+        try:
+            self._require_django_support()
+        except SkipTest:
             return None
         from django.contrib.auth.hashers import check_password
 
@@ -53,8 +65,9 @@ class _DjangoHelper(TestCase):
 
     def test_90_django_reference(self):
         """run known correct hashes through Django's check_password()"""
-        if DJANGO_VERSION < self.min_django_version:
-            raise self.skipTest("Django >= %s not installed" % vstr(self.min_django_version))
+        self._require_django_support()
+        # XXX: esp. when it's no longer supported by django,
+        #      should verify it's *NOT* recognized
         from django.contrib.auth.hashers import check_password
         assert self.known_correct_hashes
         for secret, hash in self.iter_known_hashes():
@@ -69,8 +82,9 @@ class _DjangoHelper(TestCase):
 
     def test_91_django_generation(self):
         """test against output of Django's make_password()"""
-        if DJANGO_VERSION < self.min_django_version:
-            raise self.skipTest("Django >= %s not installed" % vstr(self.min_django_version))
+        self._require_django_support()
+        # XXX: esp. when it's no longer supported by django,
+        #      should verify it's *NOT* recognized
         from passlib.utils import tick
         from django.contrib.auth.hashers import make_password
         name = self.handler.django_name # set for all the django_* handlers
@@ -108,6 +122,7 @@ class django_disabled_test(HandlerCase):
 class django_des_crypt_test(HandlerCase, _DjangoHelper):
     """test django_des_crypt"""
     handler = hash.django_des_crypt
+    max_django_version = (1,9)
 
     known_correct_hashes = [
         # ensures only first two digits of salt count.
@@ -148,6 +163,7 @@ class django_des_crypt_test(HandlerCase, _DjangoHelper):
 class django_salted_md5_test(HandlerCase, _DjangoHelper):
     """test django_salted_md5"""
     handler = hash.django_salted_md5
+    max_django_version = (1,9)
 
     django_has_encoding_glitch = True
 
@@ -187,6 +203,7 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
 class django_salted_sha1_test(HandlerCase, _DjangoHelper):
     """test django_salted_sha1"""
     handler = hash.django_salted_sha1
+    max_django_version = (1,9)
 
     django_has_encoding_glitch = True
 
