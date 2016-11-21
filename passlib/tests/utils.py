@@ -6,6 +6,8 @@ from __future__ import with_statement
 # core
 from binascii import unhexlify
 import contextlib
+from functools import wraps
+import hashlib
 import logging; log = logging.getLogger(__name__)
 import random
 import re
@@ -24,7 +26,7 @@ from passlib.exc import MissingBackendError
 import passlib.registry as registry
 from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless, SkipTest
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
-                          classproperty, rng, getrandstr, is_ascii_safe, to_native_str, \
+                          classproperty, rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
 from passlib.utils.compat import iteritems, irange, u, unicode, PY2
 import passlib.utils.handlers as uh
@@ -251,10 +253,6 @@ def limit(value, lower, upper):
     elif value > upper:
         return upper
     return value
-
-def randintgauss(lower, upper, mu, sigma):
-    """hack used by fuzz testing"""
-    return int(limit(rng.normalvariate(mu, sigma), lower, upper))
 
 def quicksleep(delay):
     """because time.sleep() doesn't even have 10ms accuracy on some OSes"""
@@ -542,6 +540,81 @@ class TestCase(_TestCase):
             return self.skipTest("GAE doesn't offer read/write filesystem access")
 
     #===================================================================
+    # reproducible random helpers
+    #===================================================================
+
+    #: global thread lock for random state
+    #: XXX: could split into global & per-instance locks if need be
+    _random_global_lock = threading.Lock()
+
+    #: cache of global seed value, initialized on first call to getRandom()
+    _random_global_seed = None
+
+    #: per-instance cache of name -> RNG
+    _random_cache = None
+
+    def getRandom(self, name="default", seed=None):
+        """
+        Return a :class:`random.Random` object for current test method to use.
+        Within an instance, multiple calls with the same name will return
+        the same object.
+
+        When first created, each RNG will be seeded with value derived from
+        a global seed, the test class module & name, the current test method name,
+        and the **name** parameter.
+
+        The global seed taken from the $RANDOM_TEST_SEED env var,
+        the $PYTHONHASHSEED env var, or a randomly generated the
+        first time this method is called. In all cases, the value
+        is logged for reproducibility.
+
+        :param name:
+            name to uniquely identify separate RNGs w/in a test
+            (e.g. for threaded tests).
+
+        :param seed:
+            override global seed when initialzing rng.
+
+        :rtype: random.Random
+        """
+        # check cache
+        cache = self._random_cache
+        if cache and name in cache:
+            return cache[name]
+
+        with self._random_global_lock:
+
+            # check cache again, and initialize it
+            cache = self._random_cache
+            if cache and name in cache:
+                return cache[name]
+            elif not cache:
+                cache = self._random_cache = {}
+
+            # init global seed
+            global_seed = seed or TestCase._random_global_seed
+            if global_seed is None:
+                # NOTE: checking PYTHONHASHSEED, because if that's set,
+                #       the test runner wants something reproducible.
+                global_seed = TestCase._random_global_seed = \
+                    int(os.environ.get("RANDOM_TEST_SEED") or
+                        os.environ.get("PYTHONHASHSEED") or
+                        sys_rng.getrandbits(32))
+                # XXX: would it be better to print() this?
+                log.info("using RANDOM_TEST_SEED=%d", global_seed)
+
+            # create seed
+            cls = type(self)
+            source = "\n".join([str(global_seed), cls.__module__, cls.__name__,
+                                self._testMethodName, name])
+            digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+            seed = int(digest[:16], 16)
+
+            # create rng
+            value = cache[name] = random.Random(seed)
+            return value
+
+    #===================================================================
     # other
     #===================================================================
     _mktemp_queue = None
@@ -563,11 +636,13 @@ class TestCase(_TestCase):
         queue.append(path)
         return path
 
-    def patchAttr(self, obj, attr, value):
+    def patchAttr(self, obj, attr, value, require_existing=True):
         """monkeypatch object value, restoring original value on cleanup"""
         try:
             orig = getattr(obj, attr)
         except AttributeError:
+            if require_existing:
+                raise
             def cleanup():
                 try:
                     delattr(obj, attr)
@@ -719,7 +794,7 @@ class HandlerCase(TestCase):
     def get_sample_hash(self):
         """test random sample secret/hash pair"""
         known = list(self.iter_known_hashes())
-        return rng.choice(known)
+        return self.getRandom().choice(known)
 
     #---------------------------------------------------------------
     # test helpers
@@ -2311,20 +2386,30 @@ class HandlerCase(TestCase):
         def vname(v):
             return (v.__doc__ or v.__name__).splitlines()[0]
 
-        # do as many tests as possible for max_time seconds
+        # init rng -- using separate one for each thread
+        # so things are predictable for given RANDOM_TEST_SEED
+        # (relies on test_78_fuzz_threading() to give threads unique names)
         if threaded:
-            tname = threading.current_thread().name
+            thread_name = threading.current_thread().name
         else:
-            tname = "fuzz test"
+            thread_name = "fuzz test"
+        rng = self.getRandom(name=thread_name)
+        generator = self.FuzzHashGenerator(self, rng)
+
+        # do as many tests as possible for max_time seconds
         log.debug("%s: %s: started; max_time=%r verifiers=%d (%s)",
-                  self.descriptionPrefix, tname, max_time, len(verifiers),
+                  self.descriptionPrefix, thread_name, max_time, len(verifiers),
                   ", ".join(vname(v) for v in verifiers))
         start = tick()
         stop = start + max_time
         count = 0
         while tick() <= stop:
             # generate random password & options
-            secret, other, settings, ctx = self.get_fuzz_settings()
+            opts = generator.generate()
+            secret = opts['secret']
+            other = opts['other']
+            settings = opts['settings']
+            ctx = opts['context']
             if ctx:
                 settings['context'] = ctx
 
@@ -2355,7 +2440,7 @@ class HandlerCase(TestCase):
             count += 1
 
         log.debug("%s: %s: done; elapsed=%r count=%r",
-                  self.descriptionPrefix, tname, tick() - start, count)
+                  self.descriptionPrefix, thread_name, tick() - start, count)
 
     def test_78_fuzz_threading(self):
         """multithreaded fuzz testing -- random password & options using multiple threads
@@ -2421,12 +2506,6 @@ class HandlerCase(TestCase):
     # fuzz constants & helpers
     #---------------------------------------------------------------
 
-    # alphabet for randomly generated passwords
-    fuzz_password_alphabet = u('qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113')
-
-    # encoding when testing bytes
-    fuzz_password_encoding = "utf-8"
-
     @property
     def max_fuzz_time(self):
         """amount of time to spend on fuzz testing"""
@@ -2454,6 +2533,12 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     # fuzz verifiers
     #---------------------------------------------------------------
+
+    #: list of custom fuzz-test verifiers (in addition to hasher itself,
+    #: and backend-specific wrappers of hasher).  each element is
+    #: name of method that will return None / a verifier callable.
+    fuzz_verifiers = ("fuzz_verifier_default",)
+
     def get_fuzz_verifiers(self, threaded=False):
         """return list of password verifiers (including external libs)
 
@@ -2465,16 +2550,14 @@ class HandlerCase(TestCase):
         verifiers = []
 
         # call all methods starting with prefix in order to create
-        # any verifiers.
-        prefix = "fuzz_verifier_"
-        for name in dir(self):
-            if name.startswith(prefix):
-                func = getattr(self, name)()
-                if func is not None:
-                    verifiers.append(func)
+        for method_name in self.fuzz_verifiers:
+            func = getattr(self, method_name)()
+            if func is not None:
+                verifiers.append(func)
 
         # create verifiers for any other available backends
-        # NOTE: skipping this under threading test, since backend switching isn't threadsafe.
+        # NOTE: skipping this under threading test,
+        #       since backend switching isn't threadsafe (yet)
         if hasattr(handler, "backends") and TEST_MODE("full") and not threaded:
             def maker(backend):
                 def func(secret, hash):
@@ -2505,89 +2588,143 @@ class HandlerCase(TestCase):
     #---------------------------------------------------------------
     # fuzz settings generation
     #---------------------------------------------------------------
-    def get_fuzz_settings(self):
-        """generate random password and options for fuzz testing"""
-        settings_prefix = "fuzz_setting_"
-        context_prefix = "fuzz_context_"
-        settings = {}
-        context = {}
-        for name in dir(self):
-            if name.startswith(settings_prefix):
-                prefix = settings_prefix
-                kwds = settings
-            elif name.startswith(context_prefix):
-                prefix = context_prefix
-                kwds = context
+    class FuzzHashGenerator(object):
+        """
+        helper which takes care of generating random
+        passwords & configuration options to test hash with.
+        separate from test class so we can create one per thread.
+        """
+        #==========================================================
+        # class attrs
+        #==========================================================
+
+        # alphabet for randomly generated passwords
+        password_alphabet = u('qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113')
+
+        # encoding when testing bytes
+        password_encoding = "utf-8"
+
+        # map of setting kwd -> method name.
+        # will ignore setting if method returns None.
+        # subclasses should make copy of dict.
+        settings_map = dict(rounds="random_rounds",
+                            salt_size="random_salt_size",
+                            ident="random_ident")
+
+        # map of context kwd -> method name.
+        context_map = {}
+
+        #==========================================================
+        # init / generation
+        #==========================================================
+
+        def __init__(self, test, rng):
+            self.test = test
+            self.handler = test.handler
+            self.rng = rng
+
+        def generate(self):
+            """
+            generate random password and options for fuzz testing.
+            :returns:
+                `(secret, other_secret, settings_kwds, context_kwds)`
+            """
+            def gendict(map):
+                out = {}
+                for key, meth in map.items():
+                    func = getattr(self, meth)
+                    value = getattr(self, meth)()
+                    if value is not None:
+                        out[key] = value
+                return out
+            secret, other = self.random_password_pair()
+            return dict(secret=secret,
+                        other=other,
+                        settings=gendict(self.settings_map),
+                        context=gendict(self.context_map),
+                        )
+
+        #==========================================================
+        # helpers
+        #==========================================================
+        def randintgauss(self,lower, upper, mu, sigma):
+            """generate random int w/ gauss distirbution"""
+            value = self.rng.normalvariate(mu, sigma)
+            return int(limit(value, lower, upper))
+
+        #==========================================================
+        # settings generation
+        #==========================================================
+
+        def random_rounds(self):
+            handler = self.handler
+            if not has_rounds_info(handler):
+                return None
+            default = handler.default_rounds or handler.min_rounds
+            lower = handler.min_rounds
+            if handler.rounds_cost == "log2":
+                upper = default
             else:
-                continue
-            value = getattr(self, name)()
-            if value is not None:
-                kwds[name[len(prefix):]] = value
-        secret, other = self.get_fuzz_password_pair()
-        return secret, other, settings, context
+                upper = min(default*2, handler.max_rounds)
+            return self.randintgauss(lower, upper, default, default*.5)
 
-    def fuzz_setting_rounds(self):
-        handler = self.handler
-        if not has_rounds_info(handler):
-            return None
-        default = handler.default_rounds or handler.min_rounds
-        lower = handler.min_rounds
-        if handler.rounds_cost == "log2":
-            upper = default
-        else:
-            upper = min(default*2, handler.max_rounds)
-        return randintgauss(lower, upper, default, default*.5)
+        def random_salt_size(self):
+            handler = self.handler
+            if not (has_salt_info(handler) and 'salt_size' in handler.setting_kwds):
+                return None
+            default = handler.default_salt_size
+            lower = handler.min_salt_size
+            upper = handler.max_salt_size or default*4
+            return self.randintgauss(lower, upper, default, default*.5)
 
-    def fuzz_setting_salt_size(self):
-        handler = self.handler
-        if not (has_salt_info(handler) and 'salt_size' in handler.setting_kwds):
-            return None
-        default = handler.default_salt_size
-        lower = handler.min_salt_size
-        upper = handler.max_salt_size or default*4
-        return randintgauss(lower, upper, default, default*.5)
+        def random_ident(self):
+            rng = self.rng
+            handler = self.handler
+            if 'ident' not in handler.setting_kwds or not hasattr(handler, "ident_values"):
+                return None
+            if rng.random() < .5:
+                return None
+            # resolve wrappers before reading values
+            handler = getattr(handler, "wrapped", handler)
+            return rng.choice(handler.ident_values)
 
-    def fuzz_setting_ident(self):
-        handler = self.handler
-        if 'ident' not in handler.setting_kwds or not hasattr(handler, "ident_values"):
-            return None
-        if rng.random() < .5:
-            return None
-        # resolve wrappers before reading values
-        handler = getattr(handler, "wrapped", handler)
-        return rng.choice(handler.ident_values)
+        #==========================================================
+        # fuzz password generation
+        #==========================================================
+        def random_password_pair(self):
+            """generate random password, and non-matching alternate password"""
+            secret = self.random_password()
+            while True:
+                other = self.random_password()
+                if self.accept_password_pair(secret, other):
+                    break
+            rng = self.rng
+            if rng.randint(0,1):
+                secret = secret.encode(self.password_encoding)
+            if rng.randint(0,1):
+                other = other.encode(self.password_encoding)
+            return secret, other
 
-    #---------------------------------------------------------------
-    # fuzz password generation
-    #---------------------------------------------------------------
-    def get_fuzz_password(self):
-        """generate random passwords for fuzz testing"""
-        # occasionally try an empty password
-        if rng.random() < .0001:
-            return u('')
-        # otherwise alternate between large and small passwords.
-        if rng.random() < .5:
-            size = randintgauss(1, 50, 15, 15)
-        else:
-            size = randintgauss(50, 99, 70, 20)
-        return getrandstr(rng, self.fuzz_password_alphabet, size)
+        def random_password(self):
+            """generate random passwords for fuzz testing"""
+            # occasionally try an empty password
+            rng = self.rng
+            if rng.random() < .0001:
+                return u('')
+            # otherwise alternate between large and small passwords.
+            if rng.random() < .5:
+                size = self.randintgauss(1, 50, 15, 15)
+            else:
+                size = self.randintgauss(50, 99, 70, 20)
+            return getrandstr(rng, self.password_alphabet, size)
 
-    def accept_fuzz_pair(self, secret, other):
-        """verify fuzz pair contains different passwords"""
-        return secret != other
+        def accept_password_pair(self, secret, other):
+            """verify fuzz pair contains different passwords"""
+            return secret != other
 
-    def get_fuzz_password_pair(self):
-        """generate random password, and non-matching alternate password"""
-        secret = self.get_fuzz_password()
-        while True:
-            other = self.get_fuzz_password()
-            if self.accept_fuzz_pair(secret, other):
-                break
-        if rng.randint(0,1):
-            secret = secret.encode(self.fuzz_password_encoding)
-        if rng.randint(0,1):
-            other = other.encode(self.fuzz_password_encoding)
-        return secret, other
+        #==========================================================
+        # eoc FuzzGenerator
+        #==========================================================
 
     #===================================================================
     # "disabled hasher" api
@@ -2617,7 +2754,7 @@ class HandlerCase(TestCase):
                         msg="identify() didn't recognize disable() result: %r" % (disabled_default))
 
         # w/ existing hash
-        stub = random.choice(self.known_other_hashes)[1]
+        stub = self.getRandom().choice(self.known_other_hashes)[1]
         disabled_stub = handler.disable(stub)
         self.assertIsInstance(disabled_stub, str,
                               msg="disable() must return native string")
@@ -2901,12 +3038,13 @@ class OsCryptMixin(HandlerCase):
 
         # create a wrapper for fuzzy verified to use
         from crypt import crypt
+        encoding = self.FuzzHashGenerator.password_encoding
 
         def check_crypt(secret, hash):
             """stdlib-crypt"""
             if not self.crypt_supports_variant(hash):
                 return "skip"
-            secret = to_native_str(secret, self.fuzz_password_encoding)
+            secret = to_native_str(secret, encoding)
             return crypt(secret, hash) == hash
 
         return check_crypt
@@ -3002,12 +3140,18 @@ class UserHandlerMixin(HandlerCase):
     #===================================================================
     # modify fuzz testing
     #===================================================================
-    fuzz_user_alphabet = u("asdQWE123")
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-    def fuzz_context_user(self):
-        if not self.requires_user and rng.random() < .1:
-            return None
-        return getrandstr(rng, self.fuzz_user_alphabet, rng.randint(2,10))
+        context_map = HandlerCase.FuzzHashGenerator.context_map.copy()
+        context_map.update(user="random_user")
+
+        user_alphabet = u("asdQWE123")
+
+        def random_user(self):
+            rng = self.rng
+            if not self.test.requires_user and rng.random() < .1:
+                return None
+            return getrandstr(rng, self.user_alphabet, rng.randint(2,10))
 
     #===================================================================
     # eoc
@@ -3034,7 +3178,9 @@ class EncodingHandlerMixin(HandlerCase):
         u("\u00AC\u00BA"),
     ]
 
-    fuzz_password_alphabet = u('qwerty1234<>.@*#! \u00AC')
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        password_alphabet = u('qwerty1234<>.@*#! \u00AC')
 
     def populate_context(self, secret, kwds):
         """insert encoding into kwds"""

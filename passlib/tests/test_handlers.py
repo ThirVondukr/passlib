@@ -14,7 +14,7 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
+        TEST_MODE, UserHandlerMixin, EncodingHandlerMixin
 # module
 
 #=============================================================================
@@ -747,12 +747,14 @@ class ldap_plaintext_test(HandlerCase):
         ("ldap_md5", "{MD5}/F4DjTilcDIIVEHn/nAQsA==")
     ]
 
-    def get_fuzz_password(self):
-        # NOTE: this hash currently rejects the empty string.
-        while True:
-            pwd = super(ldap_plaintext_test, self).get_fuzz_password()
-            if pwd:
-                return pwd
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        def random_password(self):
+            # NOTE: this hash currently rejects the empty string.
+            while True:
+                pwd = super(ldap_plaintext_test.FuzzHashGenerator, self).random_password()
+                if pwd:
+                    return pwd
 
 class _ldap_md5_crypt_test(HandlerCase):
     # NOTE: since the ldap_{crypt} handlers are all wrappers, don't need
@@ -1205,9 +1207,11 @@ class mysql323_test(HandlerCase):
         h2 = self.do_encrypt("my pass")
         self.assertEqual(h, h2)
 
-    def accept_fuzz_pair(self, secret, other):
-        # override to handle whitespace
-        return secret.replace(" ","") != other.replace(" ","")
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        def accept_password_pair(self, secret, other):
+            # override to handle whitespace
+            return secret.replace(" ","") != other.replace(" ","")
 
 class mysql41_test(HandlerCase):
     handler = hash.mysql41

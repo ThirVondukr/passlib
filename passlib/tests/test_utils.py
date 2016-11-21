@@ -4,7 +4,7 @@
 #=============================================================================
 from __future__ import with_statement
 # core
-import random
+from functools import partial
 import warnings
 # site
 # pkg
@@ -86,13 +86,12 @@ class MiscTest(TestCase):
             self.assertIs(prop.im_func, prop.__func__)
 
     def test_getrandbytes(self):
-        """test getrandbytes()"""
-        from passlib.utils import getrandbytes, rng
-        def f(*a,**k):
-            return getrandbytes(rng, *a, **k)
-        self.assertEqual(len(f(0)), 0)
-        a = f(10)
-        b = f(10)
+        """getrandbytes()"""
+        from passlib.utils import getrandbytes
+        wrapper = partial(getrandbytes, self.getRandom())
+        self.assertEqual(len(wrapper(0)), 0)
+        a = wrapper(10)
+        b = wrapper(10)
         self.assertIsInstance(a, bytes)
         self.assertEqual(len(a), 10)
         self.assertEqual(len(b), 10)
@@ -103,7 +102,7 @@ class MiscTest(TestCase):
         """getrandstr()"""
         from passlib.utils import getrandstr
 
-        wrapper = partial(getrandstr, random.Random(seed=seed))
+        wrapper = partial(getrandstr, self.getRandom(seed=seed))
 
         # count 0
         self.assertEqual(wrapper('abc',0), '')
@@ -158,10 +157,10 @@ class MiscTest(TestCase):
         import random
         from passlib.utils import genseed
         rng = random.Random(genseed())
-        a = rng.randint(0, 100000)
+        a = rng.randint(0, 10**10)
 
         rng = random.Random(genseed())
-        b = rng.randint(0, 100000)
+        b = rng.randint(0, 10**10)
 
         self.assertNotEqual(a,b)
 
@@ -752,6 +751,7 @@ class _Base64Test(TestCase):
         """test encode_bytes/decode_bytes against random data"""
         engine = self.engine
         from passlib.utils import getrandbytes, getrandstr
+        rng = self.getRandom()
         saw_zero = False
         for i in irange(500):
             #
@@ -759,11 +759,11 @@ class _Base64Test(TestCase):
             #
 
             # generate some random bytes
-            size = random.randint(1 if saw_zero else 0, 12)
+            size = rng.randint(1 if saw_zero else 0, 12)
             if not size:
                 saw_zero = True
             enc_size = (4*size+2)//3
-            raw = getrandbytes(random, size)
+            raw = getrandbytes(rng, size)
 
             # encode them, check invariants
             encoded = engine.encode_bytes(raw)
@@ -779,9 +779,9 @@ class _Base64Test(TestCase):
 
             # generate some random encoded data
             if size % 4 == 1:
-                size += random.choice([-1,1,2])
+                size += rng.choice([-1,1,2])
             raw_size = 3*size//4
-            encoded = getrandstr(random, engine.bytemap, size)
+            encoded = getrandstr(rng, engine.bytemap, size)
 
             # decode them, check invariants
             raw = engine.decode_bytes(encoded)
@@ -798,7 +798,8 @@ class _Base64Test(TestCase):
         """test repair_unused()"""
         # NOTE: this test relies on encode_bytes() always returning clear
         # padding bits - which should be ensured by test vectors.
-        from passlib.utils import rng, getrandstr
+        from passlib.utils import getrandstr
+        rng = self.getRandom()
         engine = self.engine
         check_repair_unused = self.engine.check_repair_unused
         i = 0
@@ -873,6 +874,7 @@ class _Base64Test(TestCase):
     #===================================================================
     def check_int_pair(self, bits, encoded_pairs):
         """helper to check encode_intXX & decode_intXX functions"""
+        rng = self.getRandom()
         engine = self.engine
         encode = getattr(engine, "encode_int%s" % bits)
         decode = getattr(engine, "decode_int%s" % bits)
@@ -902,13 +904,13 @@ class _Base64Test(TestCase):
         from passlib.utils import getrandstr
         for i in irange(100):
             # generate random value, encode, and then decode
-            value = random.randint(0, upper-1)
+            value = rng.randint(0, upper-1)
             encoded = encode(value)
             self.assertEqual(len(encoded), chars)
             self.assertEqual(decode(encoded), value)
 
             # generate some random encoded data, decode, then encode.
-            encoded = getrandstr(random, engine.bytemap, chars)
+            encoded = getrandstr(rng, engine.bytemap, chars)
             value = decode(encoded)
             self.assertGreaterEqual(value, 0, "decode %r out of bounds:" % encoded)
             self.assertLess(value, upper, "decode %r out of bounds:" % encoded)

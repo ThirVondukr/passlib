@@ -4,10 +4,11 @@
 #=============================================================================
 from __future__ import with_statement, division
 # core
+from functools import partial
 # site
 # pkg
 # module
-from passlib.utils import rng, getrandbytes
+from passlib.utils import getrandbytes
 from passlib.tests.utils import TestCase
 
 #=============================================================================
@@ -82,6 +83,7 @@ class DesTest(TestCase):
     def test_02_shrink(self):
         """shrink_des_key()"""
         from passlib.crypto.des import expand_des_key, shrink_des_key, INT_64_MASK
+        rng = self.getRandom()
 
         # make sure reverse works for some random keys
         # uses bytes, ints are tested under # 01
@@ -105,7 +107,7 @@ class DesTest(TestCase):
     def _random_parity(self, key):
         """randomize parity bits"""
         from passlib.crypto.des import _KDATA_MASK, _KPARITY_MASK, INT_64_MASK
-        from passlib.utils import rng
+        rng = self.getRandom()
         return (key & _KDATA_MASK) | (rng.randint(0,INT_64_MASK) & _KPARITY_MASK)
 
     def test_03_encrypt_bytes(self):

@@ -6,7 +6,6 @@
 from binascii import hexlify
 import hashlib
 import logging; log = logging.getLogger(__name__)
-import random
 import struct
 import warnings
 # site
@@ -60,6 +59,7 @@ class ScryptEngineTest(TestCase):
     def test_smix(self):
         """smix()"""
         from passlib.crypto.scrypt._builtin import ScryptEngine
+        rng = self.getRandom()
 
         #-----------------------------------------------------------------------
         # test vector from (expired) scrypt rfc draft
@@ -89,22 +89,23 @@ class ScryptEngineTest(TestCase):
             """)
 
         # NOTE: p value should be ignored, so testing w/ random inputs.
-        engine = ScryptEngine(n=16, r=1, p=random.randint(1, 1023))
+        engine = ScryptEngine(n=16, r=1, p=rng.randint(1, 1023))
         self.assertEqual(engine.smix(input), output)
 
     def test_bmix(self):
         """bmix()"""
         from passlib.crypto.scrypt._builtin import ScryptEngine
+        rng = self.getRandom()
 
         # NOTE: bmix() call signature currently takes in list of 32*r uint32 elements,
         #       and writes to target buffer of same size.
 
         def check_bmix(r, input, output):
             """helper to check bmix() output against reference"""
-            # NOTE: * n & p values should be ignored, so testing w/ random inputs.
+            # NOTE: * n & p values should be ignored, so testing w/ rng inputs.
             #       * target buffer contents should be ignored, so testing w/ random inputs.
-            engine = ScryptEngine(r=r, n=1 << random.randint(1, 32), p=random.randint(1, 1023))
-            target = [random.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
+            engine = ScryptEngine(r=r, n=1 << rng.randint(1, 32), p=rng.randint(1, 1023))
+            target = [rng.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
             engine.bmix(input, target)
             self.assertEqual(target, list(output))
 
@@ -112,7 +113,7 @@ class ScryptEngineTest(TestCase):
             # this removes the special case patching, so we also test original bmix function.
             if r == 1:
                 del engine.bmix
-                target = [random.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
+                target = [rng.randint(0, 1 << 32) for _ in range((2 * r) * 16)]
                 engine.bmix(input, target)
                 self.assertEqual(target, list(output))
 
@@ -385,6 +386,7 @@ class _CommonScryptTest(TestCase):
         if self._already_tested_others:
             raise self.skipTest("already run under %r backend test" % self._already_tested_others)
         self._already_tested_others = self.backend
+        rng = self.getRandom()
 
         # get available backends
         orig = scrypt_mod.backend
@@ -401,12 +403,12 @@ class _CommonScryptTest(TestCase):
         # generate some random options, and cross-check output
         for _ in range(10):
             # NOTE: keeping values low due to builtin test
-            secret = getrandbytes(random, random.randint(0, 64))
-            salt = getrandbytes(random, random.randint(0, 64))
-            n = 1<<random.randint(1, 10)
-            r = random.randint(1, 8)
-            p = random.randint(1, 3)
-            ks = random.randint(1, 64)
+            secret = getrandbytes(rng, rng.randint(0, 64))
+            salt = getrandbytes(rng, rng.randint(0, 64))
+            n = 1 << rng.randint(1, 10)
+            r = rng.randint(1, 8)
+            p = rng.randint(1, 3)
+            ks = rng.randint(1, 64)
             previous = None
             backends = set()
             for name in available:
@@ -535,6 +537,8 @@ class _CommonScryptTest(TestCase):
 
     def test_keylen_param(self):
         """'keylen' parameter"""
+        rng = self.getRandom()
+
         def run_scrypt(keylen):
             return hexstr(scrypt_mod.scrypt("secret", "salt", 2, 2, 2, keylen))
 
@@ -544,7 +548,7 @@ class _CommonScryptTest(TestCase):
         self.assertEqual(run_scrypt(1), 'da')
 
         # pick random value
-        ksize = random.randint(0, 1<<10)
+        ksize = rng.randint(0, 1 << 10)
         self.assertEqual(len(run_scrypt(ksize)), 2*ksize) # 2 hex chars per output
 
         # one more than upper bound

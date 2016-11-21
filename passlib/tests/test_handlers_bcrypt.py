@@ -6,16 +6,15 @@ from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
 import os
-import sys
 import warnings
 # site
 # pkg
 from passlib import hash
-from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, u, get_method_function
-from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
-        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
-from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
+from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
+from passlib.utils import repeat_string, to_bytes
+from passlib.utils.compat import irange
+from passlib.tests.utils import HandlerCase, TEST_MODE
+from passlib.tests.test_handlers import UPASS_TABLE
 # module
 
 #=============================================================================
@@ -192,6 +191,12 @@ class _bcrypt_test(HandlerCase):
         ident = bcrypt.from_string(hash)
         return (safe_crypt("test", ident + "04$5BJqKfqMQvV7nS.yUguNcu") or "").startswith(ident)
 
+    fuzz_verifiers = HandlerCase.fuzz_verifiers + (
+        "fuzz_verifier_bcrypt",
+        "fuzz_verifier_pybcrypt",
+        "fuzz_verifier_bcryptor",
+    )
+
     def fuzz_verifier_bcrypt(self):
         # test against bcrypt, if available
         from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2B, IDENT_2X, IDENT_2Y, _detect_pybcrypt
@@ -204,7 +209,7 @@ class _bcrypt_test(HandlerCase):
             return
         def check_bcrypt(secret, hash):
             """bcrypt"""
-            secret = to_bytes(secret, self.fuzz_password_encoding)
+            secret = to_bytes(secret, self.FuzzHashGenerator.password_encoding)
             if hash.startswith(IDENT_2B):
                 # bcrypt <1.1 lacks 2B support
                 hash = IDENT_2A + hash[4:]
@@ -242,7 +247,7 @@ class _bcrypt_test(HandlerCase):
 
         def check_pybcrypt(secret, hash):
             """pybcrypt"""
-            secret = to_native_str(secret, self.fuzz_password_encoding)
+            secret = to_native_str(secret, self.FuzzHashGenerator.password_encoding)
             if len(secret) > 200:  # vulnerable to wraparound bug
                 secret = secret[:200]
             if hash.startswith((IDENT_2B, IDENT_2Y)):
@@ -267,7 +272,7 @@ class _bcrypt_test(HandlerCase):
             return
         def check_bcryptor(secret, hash):
             """bcryptor"""
-            secret = to_native_str(secret, self.fuzz_password_encoding)
+            secret = to_native_str(secret, self.FuzzHashGenerator.password_encoding)
             if hash.startswith((IDENT_2B, IDENT_2Y)):
                 hash = IDENT_2A + hash[4:]
             elif hash.startswith(IDENT_2):
@@ -280,23 +285,30 @@ class _bcrypt_test(HandlerCase):
             return Engine(False).hash_key(secret, hash) == hash
         return check_bcryptor
 
-    def get_fuzz_settings(self):
-        secret, other, settings, context = super(_bcrypt_test,self).get_fuzz_settings()
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
-        from passlib.utils import to_bytes
-        ident = settings.get('ident')
-        if ident == IDENT_2X:
-            # 2x is just recognized, not supported. don't test with it.
-            del settings['ident']
-        elif ident == IDENT_2 and other and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
-            # avoid false failure due to flaw in 0-revision bcrypt:
-            # repeated strings like 'abc' and 'abcabc' hash identically.
-            other = self.get_fuzz_password()
-        return secret, other, settings, context
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(5, 8, 6, 1)
+        def generate(self):
+            opts = super(_bcrypt_test.FuzzHashGenerator, self).generate()
+
+            secret = opts['secret']
+            other = opts['other']
+            settings = opts['settings']
+            ident = settings.get('ident')
+
+            if ident == IDENT_2X:
+                # 2x is just recognized, not supported. don't test with it.
+                del settings['ident']
+
+            elif ident == IDENT_2 and other and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
+                # avoid false failure due to flaw in 0-revision bcrypt:
+                # repeated strings like 'abc' and 'abcabc' hash identically.
+                opts['other'] = self.random_password_pair()
+
+            return opts
+
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(5, 8, 6, 1)
 
     #===================================================================
     # custom tests
@@ -514,9 +526,11 @@ class _bcrypt_sha256_test(HandlerCase):
     #===================================================================
     # fuzz testing -- cloned from bcrypt
     #===================================================================
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(5, 8, 6, 1)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(5, 8, 6, 1)
 
 # create test cases for specific backends
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")

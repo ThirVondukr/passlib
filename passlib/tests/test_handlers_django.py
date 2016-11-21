@@ -5,16 +5,13 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
-import os
-import warnings
 # site
 # pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, u, get_method_function
-from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest, \
-        TEST_MODE, UserHandlerMixin, randintgauss, EncodingHandlerMixin
-from passlib.tests.test_handlers import UPASS_WAV, UPASS_USD, UPASS_TABLE
+from passlib.utils.compat import u
+from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest
+from passlib.tests.test_handlers import UPASS_USD, UPASS_TABLE
 from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION
 # module
 
@@ -43,6 +40,10 @@ class _DjangoHelper(TestCase):
         if self.max_django_version and DJANGO_VERSION > self.max_django_version:
             raise self.skipTest("Django <= %s not installed" % vstr(self.max_django_version))
         return True
+
+    extra_fuzz_verifiers = HandlerCase.fuzz_verifiers + (
+        "fuzz_verifier_django",
+    )
 
     def fuzz_verifier_django(self):
         try:
@@ -89,8 +90,9 @@ class _DjangoHelper(TestCase):
         from django.contrib.auth.hashers import make_password
         name = self.handler.django_name # set for all the django_* handlers
         end = tick() + self.max_fuzz_time/2
+        generator = self.FuzzHashGenerator(self, self.getRandom())
         while tick() < end:
-            secret, other = self.get_fuzz_password_pair()
+            secret, other = generator.random_password_pair()
             if not secret: # django rejects empty passwords.
                 continue
             if self.django_has_encoding_glitch and isinstance(secret, bytes):
@@ -188,17 +190,19 @@ class django_salted_md5_test(HandlerCase, _DjangoHelper):
         'md5$aa$bb',
     ]
 
-    def fuzz_setting_salt_size(self):
-        # workaround for django14 regression --
-        # 1.4 won't accept hashes with empty salt strings, unlike 1.3 and earlier.
-        # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
-        # for now, we avoid salt_size==0 under 1.4
-        handler = self.handler
-        default = handler.default_salt_size
-        assert handler.min_salt_size == 0
-        lower = 1
-        upper = handler.max_salt_size or default*4
-        return randintgauss(lower, upper, default, default*.5)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        def random_salt_size(self):
+            # workaround for django14 regression --
+            # 1.4 won't accept hashes with empty salt strings, unlike 1.3 and earlier.
+            # looks to be fixed in a future release -- https://code.djangoproject.com/ticket/18144
+            # for now, we avoid salt_size==0 under 1.4
+            handler = self.handler
+            default = handler.default_salt_size
+            assert handler.min_salt_size == 0
+            lower = 1
+            upper = handler.max_salt_size or default*4
+            return self.randintgauss(lower, upper, default, default*.5)
 
 class django_salted_sha1_test(HandlerCase, _DjangoHelper):
     """test django_salted_sha1"""
@@ -231,7 +235,8 @@ class django_salted_sha1_test(HandlerCase, _DjangoHelper):
         'sha1$c2e86$0f75',
     ]
 
-    fuzz_setting_salt_size = get_method_function(django_salted_md5_test.fuzz_setting_salt_size)
+    # reuse custom random_salt_size() helper...
+    FuzzHashGenerator = django_salted_md5_test.FuzzHashGenerator
 
 class django_pbkdf2_sha256_test(HandlerCase, _DjangoHelper):
     """test django_pbkdf2_sha256"""
@@ -286,13 +291,16 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
         kwds.setdefault("rounds", 4)
         super(django_bcrypt_test, self).populate_settings(kwds)
 
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(5, 8, 6, 1)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-    def fuzz_setting_ident(self):
-        # omit multi-ident tests, only $2a$ counts for this class
-        return None
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(5, 8, 6, 1)
+
+        def random_ident(self):
+            # omit multi-ident tests, only $2a$ counts for this class
+            # XXX: enable this to check 2a / 2b?
+            return None
 
 @skipUnless(hash.bcrypt.has_backend(), "no bcrypt backends available")
 class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
@@ -333,13 +341,16 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
         kwds.setdefault("rounds", 4)
         super(django_bcrypt_sha256_test, self).populate_settings(kwds)
 
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(5, 8, 6, 1)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-    def fuzz_setting_ident(self):
-        # omit multi-ident tests, only $2a$ counts for this class
-        return None
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(5, 8, 6, 1)
+
+        def random_ident(self):
+            # omit multi-ident tests, only $2a$ counts for this class
+            # XXX: enable this to check 2a / 2b?
+            return None
 
 #=============================================================================
 # eof

@@ -8,7 +8,7 @@ import warnings
 # site
 # pkg
 from passlib import hash
-from passlib.tests.utils import HandlerCase, TEST_MODE, randintgauss
+from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
 # module
 
@@ -94,9 +94,11 @@ class _scrypt_test(HandlerCase):
             kwds.setdefault("rounds", 6)
         super(_scrypt_test, self).populate_settings(kwds)
 
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(4, 10, 6, 1)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
+
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(4, 10, 6, 1)
 
 # create test cases for specific backends
 scrypt_scrypt_test = _scrypt_test.create_backend_case("scrypt")

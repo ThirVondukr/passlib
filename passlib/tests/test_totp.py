@@ -6,7 +6,6 @@
 import datetime
 from functools import partial
 import logging; log = logging.getLogger(__name__)
-import random
 import sys
 import time as _time
 # site
@@ -15,6 +14,7 @@ from passlib import exc
 from passlib.utils.compat import unicode, u
 from passlib.tests.utils import TestCase, time_call
 # subject
+from passlib import totp as totp_module
 from passlib.totp import TOTP, AppWallet, AES_SUPPORT
 # local
 __all__ = [
@@ -62,14 +62,6 @@ while True:
         max_time_t <<= 1
     except ValueError:
         break
-
-def randtime():
-    """return random epoch time"""
-    return random.random() * max_time_t
-
-def randcounter():
-    """return random counter"""
-    return random.randint(0, (1 << 32) - 1)
 
 def to_b32_size(raw_size):
     return (raw_size * 8 + 4) // 5
@@ -379,18 +371,29 @@ class TotpTest(TestCase):
         from passlib.crypto.digest import lookup_hash
         lookup_hash.clear_cache()
 
+        # monkeypatch module's rng to be deterministic
+        self.patchAttr(totp_module, "rng", self.getRandom())
+
     #=============================================================================
     # general helpers
     #=============================================================================
+    def randtime(self):
+        """
+        helper to generate random epoch time
+        :returns float: epoch time
+        """
+        return self.getRandom().random() * max_time_t
+
     def randotp(self, cls=None, **kwds):
         """
         helper which generates a random TOTP instance.
         """
+        rng = self.getRandom()
         if "key" not in kwds:
             kwds['new'] = True
-        kwds.setdefault("digits", random.randint(6, 10))
-        kwds.setdefault("alg", random.choice(["sha1", "sha256", "sha512"]))
-        kwds.setdefault("period", random.randint(10, 120))
+        kwds.setdefault("digits", rng.randint(6, 10))
+        kwds.setdefault("alg", rng.choice(["sha1", "sha256", "sha512"]))
+        kwds.setdefault("period", rng.randint(10, 120))
         return (cls or TOTP)(**kwds)
 
     def test_randotp(self):
@@ -735,7 +738,7 @@ class TotpTest(TestCase):
         otp = self.randotp(TotpFactory)
 
         for _ in range(10):
-            time = randtime()
+            time = self.randtime()
             tint = int(time)
 
             self.assertEqual(otp.normalize_time(time), tint)
@@ -761,6 +764,7 @@ class TotpTest(TestCase):
 
     def test_key_attrs(self):
         """pretty_key() and .key attributes"""
+        rng = self.getRandom()
 
         # test key attrs
         otp = TOTP(KEY1_RAW, "raw")
@@ -775,7 +779,7 @@ class TotpTest(TestCase):
         self.assertEqual(otp.pretty_key(format="hex"), 'e01c-630c-2184-b076-ce99')
 
         # quick fuzz test: make attr access works for random key & random size
-        otp = TOTP(new=True, size=random.randint(10, 20))
+        otp = TOTP(new=True, size=rng.randint(10, 20))
         _ = otp.hex_key
         _ = otp.base32_key
         _ = otp.pretty_key()
@@ -832,7 +836,7 @@ class TotpTest(TestCase):
 
         # generate token
         otp = TOTP(new=True)
-        time = randtime()
+        time = self.randtime()
         result = otp.generate(time)
         token = result.token
         self.assertIsInstance(token, unicode)
@@ -972,7 +976,7 @@ class TotpTest(TestCase):
         # init generator & helper
         otp = self.randotp()
         period = otp.period
-        time = randtime()
+        time = self.randtime()
         token = otp.generate(time).token
         common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
@@ -1019,7 +1023,7 @@ class TotpTest(TestCase):
         # init generator & helper
         otp = self.randotp()
         period = otp.period
-        time = randtime()
+        time = self.randtime()
         common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
         assertRaises = partial(self.assertVerifyRaises, **common)
@@ -1043,7 +1047,7 @@ class TotpTest(TestCase):
         # init generator & helper
         otp = self.randotp()
         period = otp.period
-        time = randtime()
+        time = self.randtime()
         tdata = otp.generate(time)
         token = tdata.token
         counter = tdata.counter

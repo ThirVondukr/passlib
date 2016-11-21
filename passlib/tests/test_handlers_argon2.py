@@ -9,7 +9,7 @@ import warnings
 # site
 # pkg
 from passlib import hash
-from passlib.tests.utils import HandlerCase, TEST_MODE, randintgauss
+from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
 # module
 
@@ -282,13 +282,18 @@ class _base_argon2_test(HandlerCase):
                                "$c29tZXNhbHQAAAAAAAAAAA"
                                "$rqnbEp1/jFDUEKZZmw+z14amDsFqMDC53dIe57ZHD38")
 
-    def fuzz_setting_memory_cost(self):
-        if self.backend == "argon2pure":
-            return randintgauss(128, 384, 256, 128)
-        else:
-            return randintgauss(128, 32767, 16384, 4096)
+    class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-    # TODO: fuzz parallelism, digest_size
+        settings_map = HandlerCase.FuzzHashGenerator.settings_map.copy()
+        settings_map.update(memory_cost="random_memory_cost")
+
+        def random_memory_cost(self):
+            if self.test.backend == "argon2pure":
+                return self.randintgauss(128, 384, 256, 128)
+            else:
+                return self.randintgauss(128, 32767, 16384, 4096)
+
+        # TODO: fuzz parallelism, digest_size
 
 #-----------------------------------------
 # test suites for specific backends
@@ -349,9 +354,11 @@ class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")
         if info['logM'] < 16
     )
 
-    def fuzz_setting_rounds(self):
-        # decrease default rounds for fuzz testing to speed up volume.
-        return randintgauss(1, 3, 2, 1)
+    class FuzzHashGenerator(_base_argon2_test.FuzzHashGenerator):
+
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(1, 3, 2, 1)
 
 #=============================================================================
 # eof
