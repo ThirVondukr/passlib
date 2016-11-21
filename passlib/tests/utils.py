@@ -280,6 +280,20 @@ def time_call(func, setup=None, maxtime=1, bestof=3):
             return delta/number, int(log(number, 10))
         number *= 10
 
+def run_with_fixed_seeds(count=128, master_seed=0x243F6A8885A308D3):
+    """
+    decorator run test method w/ multiple fixed seeds.
+    """
+    def builder(func):
+        @wraps(func)
+        def wrapper(*args, **kwds):
+            rng = random.Random(master_seed)
+            for _ in irange(count):
+                kwds['seed'] = rng.getrandbits(32)
+                func(*args, **kwds)
+        return wrapper
+    return builder
+
 #=============================================================================
 # custom test harness
 #=============================================================================

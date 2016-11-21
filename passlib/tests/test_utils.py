@@ -11,7 +11,7 @@ import warnings
 # module
 from passlib.utils import is_ascii_safe
 from passlib.utils.compat import irange, PY2, PY3, u, unicode, join_bytes, PYPY
-from passlib.tests.utils import TestCase, hb
+from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
 #=============================================================================
 # byte funcs
@@ -98,40 +98,49 @@ class MiscTest(TestCase):
         self.assertEqual(len(b), 10)
         self.assertNotEqual(a, b)
 
-    def test_getrandstr(self):
-        """test getrandstr()"""
-        from passlib.utils import getrandstr, rng
-        def f(*a,**k):
-            return getrandstr(rng, *a, **k)
+    @run_with_fixed_seeds(count=1024)
+    def test_getrandstr(self, seed):
+        """getrandstr()"""
+        from passlib.utils import getrandstr
+
+        wrapper = partial(getrandstr, random.Random(seed=seed))
 
         # count 0
-        self.assertEqual(f('abc',0), '')
+        self.assertEqual(wrapper('abc',0), '')
 
         # count <0
-        self.assertRaises(ValueError, f, 'abc', -1)
+        self.assertRaises(ValueError, wrapper, 'abc', -1)
 
         # letters 0
-        self.assertRaises(ValueError, f, '', 0)
+        self.assertRaises(ValueError, wrapper, '', 0)
 
         # letters 1
-        self.assertEqual(f('a',5), 'aaaaa')
+        self.assertEqual(wrapper('a', 5), 'aaaaa')
+
+        # NOTE: the following parts are non-deterministic,
+        #       with a small chance of failure (outside chance it may pick
+        #       a string w/o one char, even more remote chance of picking
+        #       same string).  to combat this, we run it against multiple
+        #       fixed seeds (using run_with_fixed_seeds decorator),
+        #       and hope that they're sufficient to test the range of behavior.
 
         # letters
-        x = f(u('abc'), 32)
-        y = f(u('abc'), 32)
+        x = wrapper(u('abc'), 32)
+        y = wrapper(u('abc'), 32)
         self.assertIsInstance(x, unicode)
         self.assertNotEqual(x,y)
         self.assertEqual(sorted(set(x)), [u('a'),u('b'),u('c')])
 
         # bytes
-        x = f(b'abc', 32)
-        y = f(b'abc', 32)
+        x = wrapper(b'abc', 32)
+        y = wrapper(b'abc', 32)
         self.assertIsInstance(x, bytes)
         self.assertNotEqual(x,y)
         # NOTE: decoding this due to py3 bytes
         self.assertEqual(sorted(set(x.decode("ascii"))), [u('a'),u('b'),u('c')])
 
-        # generate_password
+    def test_generate_password(self):
+        """generate_password()"""
         from passlib.utils import generate_password
         warnings.filterwarnings("ignore", "The function.*generate_password\(\) is deprecated")
         self.assertEqual(len(generate_password(15)), 15)
