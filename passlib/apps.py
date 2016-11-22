@@ -113,9 +113,9 @@ django16_context = LazyCryptContext(
 )
 
 django110_context = LazyCryptContext(
-    # FIXME: doesn't include django's argon2 wrapper
     schemes=["django_pbkdf2_sha256", "django_pbkdf2_sha1",
-             "django_bcrypt", "django_disabled"],
+             "django_argon2", "django_bcrypt", "django_bcrypt_sha256",
+             "django_disabled"],
 )
 
 # this will always point to latest version

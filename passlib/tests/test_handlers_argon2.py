@@ -153,6 +153,7 @@ class _base_argon2_test(HandlerCase):
     def do_stub_encrypt(self, handler=None, **settings):
         if self.backend == "argon2_cffi":
             # overriding default since no way to get stub config from argon2._calc_hash()
+            # (otherwise test_21b_max_rounds blocks trying to do max rounds)
             handler = (handler or self.handler).using(**settings)
             self = handler(use_defaults=True)
             self.checksum = self._stub_checksum

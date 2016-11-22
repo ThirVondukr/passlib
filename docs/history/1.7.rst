@@ -129,6 +129,8 @@ Other Changes
 * :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.bcrypt_sha256`
   now default to the "2b" format.
 
+* added support for Django's Argon2 wrapper (:class:`~passlib.hash.django_argon2`)
+
 * :class:`passlib.apache.HtpasswdFile` has been updated to support all of Apache 2.4's
   hash schemes, as well as all host OS crypt formats; allowing for much more
   secure hashes in htpasswd files.  You can now specify if the default hash

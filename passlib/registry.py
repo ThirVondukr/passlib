@@ -100,6 +100,7 @@ _locations = dict(
     cta_pbkdf2_sha1 = "passlib.handlers.pbkdf2",
     crypt16 = "passlib.handlers.des_crypt",
     des_crypt = "passlib.handlers.des_crypt",
+    django_argon2 = "passlib.handlers.django",
     django_bcrypt = "passlib.handlers.django",
     django_bcrypt_sha256 = "passlib.handlers.django",
     django_pbkdf2_sha256 = "passlib.handlers.django",

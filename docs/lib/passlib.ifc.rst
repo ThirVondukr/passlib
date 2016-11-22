@@ -11,8 +11,8 @@
 
 .. _password-hash-api:
 
-Overview
-========
+PasswordHash API
+================
 This module provides the :class:`!PasswordHash` abstract base class.
 This class defines the common methods and attributes present
 on all the hashes importable from the :mod:`passlib.hash` module.
@@ -25,8 +25,8 @@ designed to parallel many of this interface's methods.
 
     :ref:`hash-tutorial` -- Overview of this interface and how to use it.
 
-PasswordHash API
-================
+Base Abstract Class
+===================
 .. class:: PasswordHash()
 
     This class provides an abstract interface for an arbitrary password hasher.

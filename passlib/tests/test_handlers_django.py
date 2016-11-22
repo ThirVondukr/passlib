@@ -5,6 +5,7 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
+import warnings
 # site
 # pkg
 from passlib import hash
@@ -351,6 +352,49 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
             # omit multi-ident tests, only $2a$ counts for this class
             # XXX: enable this to check 2a / 2b?
             return None
+
+from passlib.tests.test_handlers_argon2 import _base_argon2_test
+
+@skipUnless(hash.argon2.has_backend(), "no argon2 backends available")
+class django_argon2_test(HandlerCase, _DjangoHelper):
+    """test django_bcrypt"""
+    handler = hash.django_argon2
+
+    # NOTE: most of this adapted from _base_argon2_test & argon2pure test
+
+    known_correct_hashes = [
+        # sample test
+        ("password", 'argon2$argon2i$v=19$m=256,t=1,p=1$c29tZXNhbHQ$AJFIsNZTMKTAewB4+ETN1A'),
+
+        # sample w/ all parameters different
+        ("password", 'argon2$argon2i$v=19$m=380,t=2,p=2$c29tZXNhbHQ$SrssP8n7m/12VWPM8dvNrw'),
+
+        # generated from django 1.10.3
+        (UPASS_LETMEIN, 'argon2$argon2i$v=19$m=512,t=2,p=2$V25jN1l4UUJZWkR1$MxpA1BD2Gh7+D79gaAw6sQ'),
+    ]
+
+    def setUpWarnings(self):
+        super(django_argon2_test, self).setUpWarnings()
+        warnings.filterwarnings("ignore", ".*Using argon2pure backend.*")
+
+    def do_stub_encrypt(self, handler=None, **settings):
+        # overriding default since no way to get stub config from argon2._calc_hash()
+        # (otherwise test_21b_max_rounds blocks trying to do max rounds)
+        handler = (handler or self.handler).using(**settings)
+        self = handler.wrapped(use_defaults=True)
+        self.checksum = self._stub_checksum
+        assert self.checksum
+        return handler._wrap_hash(self.to_string())
+
+    def test_03_legacy_hash_workflow(self):
+        # override base method
+        raise self.skipTest("legacy 1.6 workflow not supported")
+
+    class FuzzHashGenerator(_base_argon2_test.FuzzHashGenerator):
+
+        def random_rounds(self):
+            # decrease default rounds for fuzz testing to speed up volume.
+            return self.randintgauss(1, 3, 2, 1)
 
 #=============================================================================
 # eof

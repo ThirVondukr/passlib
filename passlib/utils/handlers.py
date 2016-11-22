@@ -2444,6 +2444,9 @@ class PrefixWrapper(object):
     :param lazy: if True and wrapped handler is specified by name, don't look it up until needed.
     """
 
+    #: list of attributes which should be cloned by .using()
+    _using_clone_attrs = ()
+
     def __init__(self, name, wrapped, prefix=u(''), orig_prefix=u(''), lazy=False,
                  doc=None, ident=None):
         self.name = name
@@ -2605,6 +2608,8 @@ class PrefixWrapper(object):
         # then create identical wrapper which wraps the new subclass.
         wrapper = PrefixWrapper(self.name, subcls, prefix=self.prefix, orig_prefix=self.orig_prefix)
         wrapper._derived_from = self
+        for attr in self._using_clone_attrs:
+            setattr(wrapper, attr, getattr(self, attr))
         return wrapper
 
     def needs_update(self, hash, **kwds):
