@@ -6,7 +6,7 @@ from __future__ import with_statement
 # core
 from binascii import unhexlify
 import contextlib
-from functools import wraps
+from functools import wraps, partial
 import hashlib
 import logging; log = logging.getLogger(__name__)
 import random
@@ -636,7 +636,7 @@ class TestCase(_TestCase):
         queue.append(path)
         return path
 
-    def patchAttr(self, obj, attr, value, require_existing=True):
+    def patchAttr(self, obj, attr, value, require_existing=True, wrap=False):
         """monkeypatch object value, restoring original value on cleanup"""
         try:
             orig = getattr(obj, attr)
@@ -651,6 +651,9 @@ class TestCase(_TestCase):
             self.addCleanup(cleanup)
         else:
             self.addCleanup(setattr, obj, attr, orig)
+        if wrap:
+            value = partial(value, orig)
+            wraps(orig)(value)
         setattr(obj, attr, value)
 
     #===================================================================

@@ -2577,6 +2577,19 @@ class PrefixWrapper(object):
             return getattr(self.wrapped, attr)
         raise AttributeError("missing attribute: %r" % (attr,))
 
+    def __setattr__(self, attr, value):
+        # if proxy attr present on wrapped object,
+        # and we own it, modify *it* instead.
+        # TODO: needs UTs
+        # TODO: any other cases where wrapped is "owned"?
+        #       currently just if created via .using()
+        if attr in self._proxy_attrs and self._derived_from:
+            wrapped = self.wrapped
+            if hasattr(wrapped, attr):
+                setattr(wrapped, attr, value)
+                return
+        return object.__setattr__(self, attr, value)
+
     def _unwrap_hash(self, hash):
         """given hash belonging to wrapper, return orig version"""
         # NOTE: assumes hash has been validated as unicode already

@@ -1021,6 +1021,10 @@ class _CryptConfig(object):
 
         # if whole alg is deprecated, patch it's needs_update() method.
         # XXX: could do this check at context level, and remove need for patch.
+        #      at least should give a way to test if deprecated hash's
+        #      data is itself outdated w/in hash's config,
+        #      that's needed in a few places (e.g. passlib.ext.django)
+        subcls._Context__orig_needs_update = subcls.needs_update
         if deprecated:
             subcls.needs_update = _always_needs_update
 

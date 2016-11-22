@@ -243,6 +243,16 @@ class PasswordHash(object):
     # but are documented here so there's a list of them *somewhere*.
 
     #---------------------------------------------------------------
+    # extra metdata
+    #---------------------------------------------------------------
+
+    #: optionally present if hasher corresponds to format built into Django.
+    #: this attribute (if not None) should be the Django 'algorithm' name.
+    #: also indicates to passlib.ext.django that (when installed in django),
+    #: django's native hasher should be used in preference to this one.
+    ## django_name
+
+    #---------------------------------------------------------------
     # checksum information - defined for many hashes
     #---------------------------------------------------------------
     ## checksum_chars
