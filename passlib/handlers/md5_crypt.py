@@ -7,7 +7,8 @@ from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import h64, safe_crypt, test_crypt, repeat_string
+from passlib.utils import safe_crypt, test_crypt, repeat_string
+from passlib.utils.binary import h64
 from passlib.utils.compat import unicode, u
 import passlib.utils.handlers as uh
 # local

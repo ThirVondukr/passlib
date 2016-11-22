@@ -17,7 +17,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import h64, to_unicode
+from passlib.utils import to_unicode
+from passlib.utils.binary import h64
 from passlib.utils.compat import byte_elem_value, irange, u, \
                                  uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh

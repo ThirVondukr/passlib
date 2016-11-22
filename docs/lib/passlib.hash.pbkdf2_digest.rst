@@ -84,10 +84,10 @@ follow the same format, :samp:`$pbkdf2-{digest}${rounds}${salt}${checksum}`.
   this is encoded as a positive decimal number with no zero-padding
   (``6400`` in the example).
 
-* :samp:`{salt}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
+* :samp:`{salt}` - this is the :func:`adapted base64 encoding <passlib.utils.binary.ab64_encode>`
   of the raw salt bytes passed into the PBKDF2 function.
 
-* :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.ab64_encode>`
+* :samp:`{checksum}` - this is the :func:`adapted base64 encoding <passlib.utils.binary.ab64_encode>`
   of the raw derived key bytes returned from the PBKDF2 function.
   Each scheme uses the digest size of its specific hash algorithm (:samp:`{digest}`)
   as the size of the raw derived key. This is enlarged
@@ -99,7 +99,7 @@ The password is encoded into UTF-8 if not already encoded,
 and run through :func:`~passlib.crypto.digest.pbkdf2_hmac`
 along with the decoded salt, the number of rounds,
 and a prf built from HMAC + the respective message digest.
-The result is then encoded using :func:`~passlib.utils.ab64_encode`.
+The result is then encoded using :func:`~passlib.utils.binary.ab64_encode`.
 
 .. rubric:: Footnotes
 

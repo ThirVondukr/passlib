@@ -28,7 +28,8 @@ _argon2pure = None  # dynamically imported by _load_backend_argon2pure()
 # pkg
 from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
-from passlib.utils import to_bytes, b64s_encode, b64s_decode
+from passlib.utils import to_bytes
+from passlib.utils.binary import b64s_encode, b64s_decode
 from passlib.utils.compat import u, unicode, bascii_to_str
 import passlib.utils.handlers as uh
 # local

@@ -81,7 +81,7 @@ Interface
 Format & Algorithm
 ==================
 Cisco PIX / ASA hashes consist of a 12 byte digest, encoded as a 16 character
-:data:`HASH64 <passlib.utils.h64>`-encoded string. An example
+:data:`HASH64 <passlib.utils.binary.h64>`-encoded string. An example
 hash (of ``"password"``) is ``"NuLKvvWGg.x9HEKO"``.
 
 The PIX / ASA digests are calculated as follows:
@@ -110,7 +110,7 @@ The PIX / ASA digests are calculated as follows:
 5. Discard every 4th byte of the 16-byte MD5 hash, starting
    with the 4th byte.
 
-6. Encode the 12-byte result using :data:`HASH64 <passlib.utils.h64>`.
+6. Encode the 12-byte result using :data:`HASH64 <passlib.utils.binary.h64>`.
 
 Security Issues
 ===============

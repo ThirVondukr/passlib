@@ -41,7 +41,7 @@ Interface
 Format
 ======
 A des-crypt hash string consists of 13 characters, drawn from ``[./0-9A-Za-z]``.
-The first 2 characters form a :data:`hash64 <passlib.utils.h64>`-encoded
+The first 2 characters form a :data:`hash64 <passlib.utils.binary.h64>`-encoded
 12 bit integer used as the salt, with the remaining characters
 forming a hash64-encoded 64-bit integer checksum.
 
@@ -59,7 +59,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
 1. Given a password string and a salt string.
 
 2. The 2 character salt string is decoded to a 12-bit integer salt value;
-   The salt string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   The salt string uses little-endian :data:`hash64 <passlib.utils.binary.h64>`
    encoding.
 
 3. If the password is less than 8 bytes, it's NULL padded at the end to 8 bytes.
@@ -86,7 +86,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    lsb-padded with 2 zero bits.
 
 7. The resulting 66-bit integer is encoded in big-endian order using the
-   :data:`hash64-big <passlib.utils.h64big>` format.
+   :data:`hash64-big <passlib.utils.binary.h64big>` format.
 
 Security Issues
 ===============
@@ -117,7 +117,7 @@ This implementation of des-crypt differs from others in a few ways:
 * Restricted salt string character set:
 
   The underlying algorithm expects salt strings to use the
-  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set to encode
+  :data:`hash64 <passlib.utils.binary.HASH64_CHARS>` character set to encode
   a 12-bit integer. Many implementations of des-crypt will
   accept a salt containing other characters, but
   vary wildly in how they are handled, including errors and implementation-specific value mappings.

@@ -115,7 +115,7 @@ and other implementations, in a few ways:
   The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, Passlib strictly limits salts to the
-  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
+  :data:`hash64 <passlib.utils.binary.HASH64_CHARS>` character set,
   as nearly all implementations of sha256-crypt generate
   and expect salts containing those characters,
   but may have unexpected behaviors for other character values.

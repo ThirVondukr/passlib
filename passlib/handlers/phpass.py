@@ -13,7 +13,7 @@ from hashlib import md5
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import h64
+from passlib.utils.binary import h64
 from passlib.utils.compat import u, uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local

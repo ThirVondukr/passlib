@@ -57,7 +57,7 @@
         .. currentmodule:: passlib.hash
 
         * *bugfix:* :class:`django_des_crypt` now accepts all
-          :data:`hash64 <passlib.utils.h64>` characters in its salts;
+          :data:`hash64 <passlib.utils.binary.h64>` characters in its salts;
           previously it accepted only lower-case hexadecimal characters (:issue:`22`).
 
         * Additional unittests added for all

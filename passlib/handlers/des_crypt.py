@@ -8,7 +8,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import h64, h64big, safe_crypt, test_crypt, to_unicode
+from passlib.utils import safe_crypt, test_crypt, to_unicode
+from passlib.utils.binary import h64, h64big
 from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode, suppress_cause
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh

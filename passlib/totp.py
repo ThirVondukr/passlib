@@ -36,7 +36,8 @@ except ImportError:
 from passlib import exc
 from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, UsedTokenError
 from passlib.utils import (to_unicode, to_bytes, consteq,
-                           getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr, BASE64_CHARS)
+                           getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
+from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
 from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
                                   irange, byte_elem_value, UnicodeIO, suppress_cause)
 from passlib.utils.decor import hybrid_method, memoized_property
@@ -117,28 +118,6 @@ def group_string(value, sep="-"):
 #-----------------------------------------------------------------------------
 # encoding helpers
 #-----------------------------------------------------------------------------
-
-def b32encode(key):
-    """
-    wrapper around :func:`base64.b32encode` which strips padding,
-    and returns a native string.
-    """
-    # NOTE: using upper case by default here, since base32 has less ambiguity
-    #       in that case ('i & l' are visually more similar than 'I & L')
-    return bascii_to_str(base64.b32encode(key).rstrip(b"="))
-
-def b32decode(key):
-    """
-    wrapper around :func:`base64.b32decode`
-    which handles common mistyped chars, and inserts padding.
-    """
-    if isinstance(key, unicode):
-        key = key.encode("ascii")
-    # XXX: could correct '1' -> 'I', but could be a mistyped lower-case 'l', so leaving it alone.
-    key = key.replace(b"8", b"B") # replace commonly mistyped char
-    key = key.replace(b"0", b"O") # ditto
-    pad = -len(key) % 8 # pad things so final string is multiple of 8
-    return base64.b32decode(key + b"=" * pad, True)
 
 def _decode_bytes(key, format):
     """

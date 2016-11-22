@@ -25,8 +25,9 @@ _bcryptor = None # dynamically imported by _load_backend_bcryptor()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
-from passlib.utils import bcrypt64, safe_crypt, repeat_string, to_bytes, parse_version, \
+from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
+from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 

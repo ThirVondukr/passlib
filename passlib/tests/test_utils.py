@@ -549,7 +549,7 @@ class Base64EngineTest(TestCase):
     # NOTE: most Base64Engine testing done via _Base64Test subclasses below.
 
     def test_constructor(self):
-        from passlib.utils import Base64Engine, AB64_CHARS
+        from passlib.utils.binary import Base64Engine, AB64_CHARS
 
         # bad charmap type
         self.assertRaises(TypeError, Base64Engine, 1)
@@ -562,7 +562,7 @@ class Base64EngineTest(TestCase):
 
     def test_ab64_decode(self):
         """ab64_decode()"""
-        from passlib.utils import ab64_decode
+        from passlib.utils.binary import ab64_decode
 
         # accept bytes or unicode
         self.assertEqual(ab64_decode(b"abc"), hb("69b7"))
@@ -590,7 +590,7 @@ class Base64EngineTest(TestCase):
 
     def test_ab64_encode(self):
         """ab64_encode()"""
-        from passlib.utils import ab64_encode
+        from passlib.utils.binary import ab64_encode
 
         # accept bytes
         self.assertEqual(ab64_encode(hb("69b7")), b"abc")
@@ -609,7 +609,7 @@ class Base64EngineTest(TestCase):
 
     def test_b64s_decode(self):
         """b64s_decode()"""
-        from passlib.utils import b64s_decode
+        from passlib.utils.binary import b64s_decode
 
         # accept bytes or unicode
         self.assertEqual(b64s_decode(b"abc"), hb("69b7"))
@@ -632,7 +632,7 @@ class Base64EngineTest(TestCase):
 
     def test_b64s_encode(self):
         """b64s_encode()"""
-        from passlib.utils import b64s_encode
+        from passlib.utils.binary import b64s_encode
 
         # accept bytes
         self.assertEqual(b64s_encode(hb("69b7")), b"abc")
@@ -966,7 +966,7 @@ class _Base64Test(TestCase):
 
 # NOTE: testing H64 & H64Big should be sufficient to verify
 # that Base64Engine() works in general.
-from passlib.utils import h64, h64big
+from passlib.utils.binary import h64, h64big
 
 class H64_Test(_Base64Test):
     """test H64 codec functions"""

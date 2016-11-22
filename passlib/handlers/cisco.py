@@ -9,7 +9,8 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import h64, right_pad_string, to_unicode
+from passlib.utils import right_pad_string, to_unicode
+from passlib.utils.binary import h64
 from passlib.utils.compat import unicode, u, join_byte_values, \
              join_byte_elems, iter_byte_values, uascii_to_str
 import passlib.utils.handlers as uh

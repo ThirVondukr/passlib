@@ -15,8 +15,9 @@ from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWar
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import (handlers as uh, to_bytes,
                            to_unicode, splitcomma,
-                           as_bool, timer, rng, getrandstr, BASE64_CHARS,
+                           as_bool, timer, rng, getrandstr,
                            )
+from passlib.utils.binary import BASE64_CHARS
 from passlib.utils.compat import (iteritems, num_types, irange,
                                   PY2, PY3, unicode, SafeConfigParser,
                                   NativeStringIO, BytesIO,

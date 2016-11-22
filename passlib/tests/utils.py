@@ -1347,7 +1347,7 @@ class HandlerCase(TestCase):
     def prepare_salt(self, salt):
         """prepare generated salt"""
         if self.fuzz_salts_need_bcrypt_repair:
-            from passlib.utils import bcrypt64
+            from passlib.utils.binary import bcrypt64
             salt = bcrypt64.repair_unused(salt)
         return salt
 

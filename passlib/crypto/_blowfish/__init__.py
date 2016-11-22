@@ -54,7 +54,8 @@ released under the BSD license::
 from itertools import chain
 import struct
 # pkg
-from passlib.utils import bcrypt64, getrandbytes, rng
+from passlib.utils import getrandbytes, rng
+from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import BytesIO, unicode, u, native_string_types
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
 # local

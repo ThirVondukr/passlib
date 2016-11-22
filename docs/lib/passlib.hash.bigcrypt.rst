@@ -25,11 +25,11 @@ Format
 An example hash (of the string ``passphrase``) is ``S/8NbAAlzbYO66hAa9XZyWy2``.
 A bigcrypt hash string has the format :samp:`{salt}{checksum_1}{checksum_2...}{checksum_n}` for some integer :samp:`{n}>0`, where:
 
-* :samp:`{salt}` is the salt, stored as a 2 character :data:`hash64 <passlib.utils.h64>`-encoded
+* :samp:`{salt}` is the salt, stored as a 2 character :data:`hash64 <passlib.utils.binary.h64>`-encoded
   12-bit integer (``S/`` in the example).
 
 * each :samp:`{checksum_i}` is a separate checksum, stored as an 11 character
-  :data:`hash64-big <passlib.utils.h64big>`-encoded 64-bit integer (``8NbAAlzbYO6`` and ``6hAa9XZyWy2``
+  :data:`hash64-big <passlib.utils.binary.h64big>`-encoded 64-bit integer (``8NbAAlzbYO6`` and ``6hAa9XZyWy2``
   in the example).
 
 * the integer :samp:`n` (the number of checksums) is determined by the formula
@@ -65,7 +65,7 @@ The bigcrypt algorithm is designed to re-use the original des-crypt algorithm:
 
 4. The 2 character salt string is decoded to a 12-bit integer salt value;
    The salt string uses little-endian
-   :data:`hash64 <passlib.utils.h64>` encoding.
+   :data:`hash64 <passlib.utils.binary.h64>` encoding.
 
 5. 25 repeated rounds of modified DES encryption are performed;
    starting with a null input block,
@@ -79,7 +79,7 @@ The bigcrypt algorithm is designed to re-use the original des-crypt algorithm:
    lsb-padded with 2 zero bits.
 
 7. The resulting 66-bit integer is encoded in big-endian order
-   using the :data:`hash64-big <passlib.utils.h64big>` format.
+   using the :data:`hash64-big <passlib.utils.binary.h64big>` format.
    This forms the first checksum segment.
 
 8. For each additional block of 8 bytes in the padded password (from step 2),

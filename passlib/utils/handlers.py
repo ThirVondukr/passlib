@@ -18,10 +18,15 @@ from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import (
     consteq, getrandstr, getrandbytes,
-    BASE64_CHARS, HASH64_CHARS, rng, to_native_str,
+    rng, to_native_str,
     is_crypt_handler, to_unicode,
     MAX_PASSWORD_SIZE, accepts_keyword, as_bool,
     update_mixin_classes)
+from passlib.utils.binary import (
+    BASE64_CHARS, HASH64_CHARS, PADDED_BASE64_CHARS,
+    HEX_CHARS, UPPER_HEX_CHARS, LOWER_HEX_CHARS,
+    ALL_BYTE_VALUES,
+)
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
@@ -47,22 +52,14 @@ __all__ = [
 
     # other helpers
     'PrefixWrapper',
+
+    # TODO: a bunch of other things are commonly assumed in this namespace
+    #       (e.g. HEX_CHARS etc); need to audit uses and update this list.
 ]
 
 #=============================================================================
 # constants
 #=============================================================================
-
-# common salt_chars & checksum_chars values
-# (BASE64_CHARS, HASH64_CHARS imported above)
-PADDED_BASE64_CHARS = BASE64_CHARS + u("=")
-HEX_CHARS = u("0123456789abcdefABCDEF")
-UPPER_HEX_CHARS = u("0123456789ABCDEF")
-LOWER_HEX_CHARS = u("0123456789abcdef")
-
-# special byte string containing all possible byte values
-# XXX: treated as singleton by some of the code for efficiency.
-ALL_BYTE_VALUES = join_byte_values(irange(256))
 
 # deprecated aliases - will be removed after passlib 1.8
 H64_CHARS = HASH64_CHARS
@@ -821,7 +818,7 @@ class GenericHandler(MinimalHandler):
         if value is None:
             return None
         if isinstance(value, bytes):
-            from passlib.utils import ab64_encode
+            from passlib.utils.binary import ab64_encode
             value = ab64_encode(value).decode("ascii")
         elif not isinstance(value, unicode):
             value = unicode(value)

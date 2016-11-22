@@ -119,13 +119,13 @@ An scram hash string has the format :samp:`$scram${rounds}${salt}${alg1}={digest
   zero-padding not allowed. this value must be in ``range(1, 2**32)``.
 
 * :samp:`{salt}` is a base64 salt string (``.Z/znnNOKWUsBaCU`` in the example),
-  encoded using :func:`~passlib.utils.ab64_encode`.
+  encoded using :func:`~passlib.utils.binary.ab64_encode`.
 
 * :samp:`{alg}` is a lowercase IANA hash function name [#hnames]_, which should
   match the digest in the SCRAM mechanism name.
 
 * :samp:`{digest}` is a base64 digest for the specific algorithm,
-  encoded using :func:`~passlib.utils.ab64_encode`.
+  encoded using :func:`~passlib.utils.binary.ab64_encode`.
   Digests for ``sha-1``, ``sha-256``, and ``sha-512`` are present in the example.
 
 * There will always be one or more :samp:`{alg}={digest}` pairs, separated by a

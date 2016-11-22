@@ -24,11 +24,11 @@ An example hash (of the string ``passphrase``) is ``aaX/UmCcBrceQ0kQGGWKTbuE``.
 A crypt16 hash string has the format :samp:`{salt}{checksum_1}{checksum_2}`, where:
 
 * :samp:`{salt}` is the salt, stored as a 2 character
-  :data:`hash64 <passlib.utils.h64>`-encoded 12-bit integer (``aa`` in the
+  :data:`hash64 <passlib.utils.binary.h64>`-encoded 12-bit integer (``aa`` in the
   example).
 
 * each :samp:`{checksum_i}` is a separate checksum, stored as an 11 character
-  :data:`hash64-big <passlib.utils.h64big>`-encoded 64-bit integer
+  :data:`hash64-big <passlib.utils.binary.h64big>`-encoded 64-bit integer
   (``X/UmCcBrceQ`` and ``0kQGGWKTbuE`` in the example).
 
 .. note::
@@ -47,7 +47,7 @@ The crypt16 algorithm uses a weakened version of the des-crypt algorithm:
 1. Given a password string and a salt string.
 
 2. The 2 character salt string is decoded to a 12-bit integer salt value;
-   The salt string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   The salt string uses little-endian :data:`hash64 <passlib.utils.binary.h64>`
    encoding.
 
 3. If the password is larger than 16 bytes, the end is truncated to 16 bytes.
@@ -71,7 +71,7 @@ The crypt16 algorithm uses a weakened version of the des-crypt algorithm:
    lsb-padded with 2 zero bits.
 
 7. The resulting 66-bit integer is encoded in big-endian order
-   using the :data:`hash64-big <passlib.utils.h64big>` format.
+   using the :data:`hash64-big <passlib.utils.binary.h64big>` format.
    This is the first checksum segment.
 
 8. The second checksum segment is created by repeating

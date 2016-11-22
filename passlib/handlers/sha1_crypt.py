@@ -9,7 +9,8 @@
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import h64, safe_crypt, test_crypt
+from passlib.utils import safe_crypt, test_crypt
+from passlib.utils.binary import h64
 from passlib.utils.compat import u, unicode, irange
 from passlib.crypto.digest import compile_hmac
 import passlib.utils.handlers as uh

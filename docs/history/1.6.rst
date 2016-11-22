@@ -392,7 +392,7 @@ Internal Changes
     .. currentmodule:: passlib.utils
 
     * :mod:`!passlib.utils.h64` has been replaced by an instance of the
-      new :class:`~passlib.utils.Base64Engine` class. This  instance is
+      new :class:`~passlib.utils.binary.Base64Engine` class. This  instance is
       imported under the same name, and has (mostly) the same interface;
       but should be faster, more flexible, and better unit-tested.
 

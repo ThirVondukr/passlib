@@ -8,7 +8,8 @@ from base64 import b64encode, b64decode
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils import ab64_decode, ab64_encode, to_unicode
+from passlib.utils import to_unicode
+from passlib.utils.binary import ab64_decode, ab64_encode
 from passlib.utils.compat import str_to_bascii, u, uascii_to_str, unicode
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh

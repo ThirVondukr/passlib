@@ -604,7 +604,7 @@ and the following attributes should be defined:
     in a salt string.
 
     For most :ref:`modular-crypt-format` hashes,
-    this is equal to :data:`passlib.utils.HASH64_CHARS`.
+    this is equal to :data:`passlib.utils.binary.HASH64_CHARS`.
     For the rare hashes where the ``salt`` parameter must be specified
     in bytes, this will be a placeholder :class:`!bytes` object containing
     all 256 possible byte values.
