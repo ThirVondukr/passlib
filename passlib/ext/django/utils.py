@@ -19,8 +19,8 @@ except ImportError:
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils import memoized_property
 from passlib.utils.compat import get_method_function, iteritems, OrderedDict
+from passlib.utils.decor import memoized_property
 # local
 __all__ = [
     "DJANGO_VERSION",

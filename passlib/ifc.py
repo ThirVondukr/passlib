@@ -7,8 +7,7 @@ import logging; log = logging.getLogger(__name__)
 import sys
 # site
 # pkg
-from passlib.utils.compat import unicode
-from passlib.utils import deprecated_method
+from passlib.utils.decor import deprecated_method
 # local
 __all__ = [
     "PasswordHash",

@@ -26,9 +26,10 @@ from passlib.exc import MissingBackendError
 import passlib.registry as registry
 from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless, SkipTest
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
-                          classproperty, rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
+                          rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
 from passlib.utils.compat import iteritems, irange, u, unicode, PY2
+from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
 __all__ = [

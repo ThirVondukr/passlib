@@ -11,8 +11,9 @@ import re
 # site
 # pkg
 from passlib.handlers.misc import plaintext
-from passlib.utils import unix_crypt_schemes, classproperty, to_unicode
+from passlib.utils import unix_crypt_schemes, to_unicode
 from passlib.utils.compat import uascii_to_str, unicode, u
+from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
 __all__ = [

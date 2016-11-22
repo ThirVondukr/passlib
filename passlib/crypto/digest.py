@@ -32,8 +32,9 @@ except ImportError:
 # pkg
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
-                          SequenceMixin, memoized_property
+                          SequenceMixin
 from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, PY3
+from passlib.utils.decor import memoized_property
 # local
 __all__ = [
     # hash utils

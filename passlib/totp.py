@@ -35,10 +35,11 @@ except ImportError:
 # pkg
 from passlib import exc
 from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, UsedTokenError
-from passlib.utils import (to_unicode, to_bytes, consteq, memoized_property, hybrid_method,
+from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr, BASE64_CHARS)
 from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
                                   irange, byte_elem_value, UnicodeIO, suppress_cause)
+from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
 # local

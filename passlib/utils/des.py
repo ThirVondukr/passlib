@@ -14,7 +14,7 @@ warn("the 'passlib.utils.des' module has been relocated to 'passlib.crypto.des' 
 #=============================================================================
 # relocated functions
 #=============================================================================
-from passlib.utils import deprecated_function
+from passlib.utils.decor import deprecated_function
 from passlib.crypto.des import expand_des_key, des_encrypt_block, des_encrypt_int_block
 
 expand_des_key = deprecated_function(deprecated="1.7", removed="1.8",

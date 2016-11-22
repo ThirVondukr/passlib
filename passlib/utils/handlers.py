@@ -17,14 +17,15 @@ from passlib.exc import MissingBackendError, PasslibConfigWarning, \
 from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import (
-    classproperty, consteq, getrandstr, getrandbytes,
+    consteq, getrandstr, getrandbytes,
     BASE64_CHARS, HASH64_CHARS, rng, to_native_str,
-    is_crypt_handler, to_unicode, deprecated_method,
+    is_crypt_handler, to_unicode,
     MAX_PASSWORD_SIZE, accepts_keyword, as_bool,
     update_mixin_classes)
 from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
+from passlib.utils.decor import classproperty, deprecated_method
 # local
 __all__ = [
     # helpers for implementing MCF handlers

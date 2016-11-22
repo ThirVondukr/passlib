@@ -34,7 +34,7 @@ class MiscTest(TestCase):
         self.assertTrue('irange' in dir(compat))
 
     def test_classproperty(self):
-        from passlib.utils import classproperty
+        from passlib.utils.decor import classproperty
 
         class test(object):
             xvar = 1
@@ -47,7 +47,7 @@ class MiscTest(TestCase):
         self.assertIs(prop.im_func, prop.__func__)
 
     def test_deprecated_function(self):
-        from passlib.utils import deprecated_function
+        from passlib.utils.decor import deprecated_function
         # NOTE: not comprehensive, just tests the basic behavior
 
         @deprecated_function(deprecated="1.6", removed="1.8")
@@ -65,7 +65,7 @@ class MiscTest(TestCase):
             self.assertEqual(test_func(1,2), (1,2))
 
     def test_memoized_property(self):
-        from passlib.utils import memoized_property
+        from passlib.utils.decor import memoized_property
 
         class dummy(object):
             counter = 0

@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.exc import ExpectedTypeError
-from passlib.utils import deprecated_function
+from passlib.utils.decor import deprecated_function
 from passlib.utils.compat import native_string_types
 from passlib.crypto.digest import norm_hash_name, lookup_hash, pbkdf1 as _pbkdf1, pbkdf2_hmac, compile_hmac
 # local

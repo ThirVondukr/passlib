@@ -14,7 +14,8 @@ import os
 # pkg
 from passlib import exc
 from passlib.utils.compat import PY2, irange, itervalues, int_types
-from passlib.utils import rng, getrandstr, to_unicode, memoized_property
+from passlib.utils import rng, getrandstr, to_unicode
+from passlib.utils.decor import memoized_property
 # local
 __all__ = [
     "genword", "default_charsets",

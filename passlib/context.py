@@ -13,8 +13,8 @@ from warnings import warn
 # pkg
 from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
-from passlib.utils import (handlers as uh, to_bytes, deprecated_method,
-                           to_unicode, splitcomma, memoized_property,
+from passlib.utils import (handlers as uh, to_bytes,
+                           to_unicode, splitcomma,
                            as_bool, timer, rng, getrandstr, BASE64_CHARS,
                            )
 from passlib.utils.compat import (iteritems, num_types, irange,
@@ -22,6 +22,7 @@ from passlib.utils.compat import (iteritems, num_types, irange,
                                   NativeStringIO, BytesIO,
                                   unicode_or_bytes_types, native_string_types,
                                   )
+from passlib.utils.decor import deprecated_method, memoized_property
 # local
 __all__ = [
     'CryptContext',

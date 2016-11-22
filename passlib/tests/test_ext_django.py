@@ -15,7 +15,7 @@ from passlib.ext.django.utils import (
     DJANGO_VERSION, MIN_DJANGO_VERSION, DjangoTranslator,
 )
 from passlib.utils.compat import iteritems, get_method_function, u
-from passlib.utils import memoized_property
+from passlib.utils.decor import memoized_property
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE, handler_derived_from
 from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
