@@ -560,14 +560,11 @@ class DjangoContextAdapter(DjangoTranslator):
             # 'preferred' alg, even if it's otherwise deprecated. To try and
             # replicate this behavior if preferred is set, we look up the
             # passlib hasher, and call it's original needs_update() method.
-            # TODO: * To make this less hackneyed, need to straighten things out
-            #         on CryptContext end so we don't have to work around
-            #         it's annoying monkeypatching.
-            #       * Should also solve redundancy that verify() call
-            #         above is already identifying hash.
+            # TODO: Solve redundancy that verify() call
+            #       above is already identifying hash.
             hasher = self.django_to_passlib(preferred)
             if (hasher.identify(encoded) and
-                    not hasher._Context__orig_needs_update(encoded, secret=password)):
+                    not hasher.needs_update(encoded, secret=password)):
                 # alg is 'preferred' and hash itself doesn't need updating,
                 # so nothing to do.
                 return correct

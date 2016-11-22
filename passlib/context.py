@@ -472,7 +472,7 @@ class CryptPolicy(object):
                  DeprecationWarning, stacklevel=2)
         if hasattr(name, "name"):
             name = name.name
-        return self._context._is_deprecated_scheme(name, category)
+        return self._context.handler(name, category).deprecated
 
     #===================================================================
     # serialization
@@ -1017,17 +1017,7 @@ class _CryptConfig(object):
         assert subcls is not handler, "expected unique variant of handler"
         ##subcls._Context__category = category
         subcls._Context__orig_handler = handler
-        subcls._Context__deprecated = deprecated
-
-        # if whole alg is deprecated, patch it's needs_update() method.
-        # XXX: could do this check at context level, and remove need for patch.
-        #      at least should give a way to test if deprecated hash's
-        #      data is itself outdated w/in hash's config,
-        #      that's needed in a few places (e.g. passlib.ext.django)
-        subcls._Context__orig_needs_update = subcls.needs_update
-        if deprecated:
-            subcls.needs_update = _always_needs_update
-
+        subcls.deprecated = deprecated  # attr reserved for this purpose
         return subcls
 
     def _get_record_options_with_flag(self, scheme, category):
@@ -1742,14 +1732,6 @@ class CryptContext(object):
         else:
             return schemes
 
-    # XXX: need to decide if exposing this would be useful to applications
-    #      in any way that isn't already served by to_dict();
-    #      and then decide whether to expose ability as deprecated_schemes(),
-    #      is_deprecated(), or a just add a schemes(deprecated=True) flag.
-    def _is_deprecated_scheme(self, scheme, category=None):
-        """helper used by unittests to check if scheme is deprecated"""
-        return self._get_record(scheme, category)._Context__deprecated
-
     def default_scheme(self, category=None, resolve=False, unconfigured=False):
         """return name of scheme that :meth:`hash` will use by default.
 
@@ -2257,7 +2239,7 @@ class CryptContext(object):
                  "Passlib 1.7, and will be removed in Passlib 2.0",
                  DeprecationWarning)
         record = self._get_or_identify_record(hash, scheme, category)
-        return record.needs_update(hash, secret=secret)
+        return record.deprecated or record.needs_update(hash, secret=secret)
 
     @deprecated_method(deprecated="1.6", removed="2.0", replacement="CryptContext.needs_update()")
     def hash_needs_update(self, hash, scheme=None, category=None):
@@ -2585,7 +2567,7 @@ class CryptContext(object):
             if self.harden_verify:
                 self.dummy_verify(timer() - start)
             return False, None
-        elif record.needs_update(hash, secret=secret):
+        elif record.deprecated or record.needs_update(hash, secret=secret):
             # NOTE: we re-hash with default scheme, not current one.
             return True, self.hash(secret, category=category, **kwds)
         else:

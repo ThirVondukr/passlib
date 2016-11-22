@@ -490,7 +490,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             # setup constants & imports, pick a sample secret/hash combo
             #-------------------------------------------------------
             handler = ctx.handler(scheme)
-            deprecated = ctx._is_deprecated_scheme(scheme)
+            deprecated = ctx.handler(scheme).deprecated
             assert not deprecated or scheme != ctx.default_scheme()
             try:
                 testcase = get_handler_case(scheme)

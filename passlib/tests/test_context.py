@@ -525,7 +525,7 @@ sha512_crypt__min_rounds = 45000
         """test 'deprecated' context option parsing"""
         def getdep(ctx, category=None):
             return [name for name in ctx.schemes()
-                    if ctx._is_deprecated_scheme(name, category)]
+                    if ctx.handler(name, category).deprecated]
 
         # no schemes - all deprecated values allowed
         cc = CryptContext(deprecated=["md5_crypt"])
@@ -1685,7 +1685,7 @@ sha512_crypt__min_rounds = 45000
         """test deprecated='auto' is handled correctly"""
 
         def getstate(ctx, category=None):
-            return [ctx._is_deprecated_scheme(scheme, category) for scheme in ctx.schemes()]
+            return [ctx.handler(scheme, category).deprecated for scheme in ctx.schemes()]
 
         # correctly reports default
         ctx = CryptContext("sha256_crypt,md5_crypt,des_crypt", deprecated="auto")
@@ -1841,7 +1841,7 @@ class LazyCryptContextTest(TestCase):
         self.assertFalse(has_crypt_handler("dummy_2", True))
 
         self.assertEqual(cc.schemes(), ("dummy_2", "des_crypt"))
-        self.assertTrue(cc._is_deprecated_scheme("des_crypt"))
+        self.assertTrue(cc.handler("des_crypt").deprecated)
 
         self.assertTrue(has_crypt_handler("dummy_2", True))
 
@@ -1858,7 +1858,7 @@ class LazyCryptContextTest(TestCase):
         self.assertFalse(has_crypt_handler("dummy_2", True))
 
         self.assertEqual(cc.schemes(), ("dummy_2", "des_crypt"))
-        self.assertTrue(cc._is_deprecated_scheme("des_crypt"))
+        self.assertTrue(cc.handler("des_crypt").deprecated)
 
         self.assertTrue(has_crypt_handler("dummy_2", True))
 
