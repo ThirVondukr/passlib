@@ -1,26 +1,32 @@
-"""passlib setup script"""
+"""
+passlib setup script
+
+This script honors one environmental variable:
+PASSLIB_SETUP_TAG_RELEASE
+    if "yes" (the default), revision tag is appended to version.
+    for release, this is explicitly set to "no".
+"""
 #=============================================================================
 # init script env -- ensure cwd = root of source dir
 #=============================================================================
 import os
-root_dir = os.path.abspath(os.path.join(__file__,".."))
+root_dir = os.path.abspath(os.path.join(__file__, ".."))
 os.chdir(root_dir)
 
 #=============================================================================
 # imports
 #=============================================================================
 import re
+from setuptools import setup, find_packages
+import subprocess
 import sys
 import time
-
-py3k = (sys.version_info[0] >= 3)
-
-from setuptools import setup, find_packages
+PY3 = (sys.version_info[0] >= 3)
 
 #=============================================================================
 # init setup options
 #=============================================================================
-opts = { "cmdclass": { } }
+opts = {"cmdclass": {}}
 args = sys.argv[1:]
 
 #=============================================================================
@@ -35,40 +41,35 @@ except ImportError:
 #=============================================================================
 # version string / datestamps
 #=============================================================================
-from passlib import __version__ as VERSION
 
-# if this is an hg checkout of passlib, add datestamp to version string.
-# XXX: could check for *absence* of PKG-INFO instead
-if os.path.exists(os.path.join(root_dir, "passlib.komodoproject")):
+# pull version string from passlib
+from passlib import __version__ as version
 
-    # check for --for-release flag indicating this isn't a snapshot
-    for_release = False
-    i = 0
-    while i < len(args):
-        v = args[i]
-        if v == '--for-release':
-            for_release = True
-            del args[i]
-            break
-        elif not v.startswith("-"):
-            break
-        i += 1
+# by default, stamp HG revision to end of version
+if os.environ.get("PASSLIB_SETUP_TAG_RELEASE", "y").lower() in "yes y true t 1".split():
+    # call HG via subprocess
+    # NOTE: for py26 compat, using Popen() instead of check_output()
+    try:
+        proc = subprocess.Popen(["hg", "tip", "--template", "{date(date, '%Y%m%d%H%M%S')}+hg.{node|short}"],
+                                stdout=subprocess.PIPE)
+        stamp, _ = proc.communicate()
+        if proc.returncode:
+            raise subprocess.CalledProcessError(1, [])
+        stamp = stamp.decode("ascii")
+    except (OSError, subprocess.CalledProcessError):
+        # fallback - just use build date
+        stamp = time.strftime("%Y%m%d%H%M%S")
 
-    if for_release:
-        assert '.dev' not in VERSION and '.post' not in VERSION
+    # modify version
+    if version.endswith((".dev0", ".post0")):
+        version = version[:-1] + stamp
     else:
-        # add datestamp if doing a snapshot
-        dstr = time.strftime("%Y%m%d")
-        if VERSION.endswith(".dev0") or VERSION.endswith(".post0"):
-            VERSION = VERSION[:-1] + dstr
-        else:
-            assert '.dev' not in VERSION and '.post' not in VERSION
-            VERSION += ".post" + dstr
+        version += ".post" + stamp
 
-        # subclass build_py & sdist so they rewrite passlib/__init__.py
-        # to have the correct version string
-        from passlib._setup.stamp import stamp_distutils_output
-        stamp_distutils_output(opts, VERSION)
+    # subclass build_py & sdist so they rewrite passlib/__init__.py
+    # to have the correct version string
+    from passlib._setup.stamp import stamp_distutils_output
+    stamp_distutils_output(opts, version)
 
 #=============================================================================
 # static text
@@ -121,9 +122,9 @@ Topic :: Software Development :: Libraries
 # TODO: "Programming Language :: Python :: Implementation :: IronPython" -- issue 34
 
 is_release = False
-if '.dev' in VERSION:
+if '.dev' in version:
     CLASSIFIERS.append("Development Status :: 3 - Alpha")
-elif '.post' in VERSION:
+elif '.post' in version:
     CLASSIFIERS.append("Development Status :: 4 - Beta")
 else:
     is_release = True
@@ -135,29 +136,32 @@ else:
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     # package info
-    packages = find_packages(root_dir),
-    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/wordsets/*.txt"] },
+    packages=find_packages(root_dir),
+    package_data={
+        "passlib.tests": ["*.cfg"],
+        "passlib": ["_data/wordsets/*.txt"],
+    },
     zip_safe=True,
 
     # metadata
-    name = "passlib",
-    version = VERSION,
-    author = "Eli Collins",
-    author_email = "elic@assurancetechnologies.com",
-    license = "BSD",
+    name="passlib",
+    version=version,
+    author="Eli Collins",
+    author_email="elic@assurancetechnologies.com",
+    license="BSD",
 
-    url = "https://bitbucket.org/ecollins/passlib",
-    download_url =
-        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
+    url="https://bitbucket.org/ecollins/passlib",
+    download_url=
+        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + version + ".tar.gz")
         if is_release else None,
 
-    description = SUMMARY,
-    long_description = DESCRIPTION,
-    keywords = KEYWORDS,
-    classifiers = CLASSIFIERS,
+    description=SUMMARY,
+    long_description=DESCRIPTION,
+    keywords=KEYWORDS,
+    classifiers=CLASSIFIERS,
 
-    tests_require = 'nose >= 1.1',
-    test_suite = 'nose.collector',
+    tests_require='nose >= 1.1',
+    test_suite='nose.collector',
 
     extras_require={
         "argon2": "argon2_cffi>=16.2",
@@ -169,6 +173,7 @@ setup(
     script_args=args,
     **opts
 )
+
 #=============================================================================
 # eof
 #=============================================================================
