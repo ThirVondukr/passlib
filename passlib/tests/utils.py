@@ -1391,6 +1391,7 @@ class HandlerCase(TestCase):
         """test non-string salt values"""
         self.require_salt()
         salt_type = self.salt_type
+        salt_size = getattr(self.handler, "min_salt_size", 0) or 8
 
         # should always throw error for random class.
         class fake(object):
@@ -1399,12 +1400,12 @@ class HandlerCase(TestCase):
 
         # unicode should be accepted only if salt_type is unicode.
         if salt_type is not unicode:
-            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u('x'))
+            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u('x') * salt_size)
 
         # bytes should be accepted only if salt_type is bytes,
         # OR if salt type is unicode and running PY2 - to allow native strings.
         if not (salt_type is bytes or (PY2 and salt_type is unicode)):
-            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x')
+            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x' * salt_size)
 
     def test_using_salt_size(self):
         """Handler.using() -- default_salt_size"""
@@ -2651,7 +2652,7 @@ class HandlerCase(TestCase):
         #==========================================================
         # helpers
         #==========================================================
-        def randintgauss(self,lower, upper, mu, sigma):
+        def randintgauss(self, lower, upper, mu, sigma):
             """generate random int w/ gauss distirbution"""
             value = self.rng.normalvariate(mu, sigma)
             return int(limit(value, lower, upper))

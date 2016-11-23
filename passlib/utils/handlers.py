@@ -2548,6 +2548,9 @@ class PrefixWrapper(object):
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
                     "is_disabled", "truncate_size", "truncate_error",
+
+                    # internal info attrs needed for test inspection
+                    "_salt_is_bytes",
                     )
 
     def __repr__(self):
