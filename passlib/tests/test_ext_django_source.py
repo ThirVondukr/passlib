@@ -14,8 +14,10 @@ from passlib.ext.django.utils import DJANGO_VERSION, DjangoTranslator, _PasslibH
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE
 from .test_ext_django import (
-    has_min_django, stock_config, settings, _ExtensionSupport,
+    has_min_django, stock_config, _ExtensionSupport,
 )
+if has_min_django:
+    from .test_ext_django import settings
 # local
 __all__ = [
     "HashersTest",
