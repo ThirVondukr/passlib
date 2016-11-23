@@ -157,10 +157,30 @@ class SequenceMixin(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-def accepts_keyword(func, key):
-    """test if function accepts specified keyword"""
-    spec = inspect.getargspec(get_method_function(func))
-    return key in spec.args or spec.keywords is not None
+if PY3:
+    # getargspec() is deprecated, use this under py3.
+    # even though it's a lot more awkward to get basic info :|
+
+    _VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
+    _VAR_ANY_SET = set([_VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL])
+
+    def accepts_keyword(func, key):
+        """test if function accepts specified keyword"""
+        params = inspect.signature(get_method_function(func)).parameters
+        if not params:
+            return False
+        arg = params.get(key)
+        if arg and arg.kind not in _VAR_ANY_SET:
+            return True
+        # XXX: annoying what we have to do to determine if VAR_KWDS in use.
+        return params[list(params)[-1]].kind == _VAR_KEYWORD
+
+else:
+
+    def accepts_keyword(func, key):
+        """test if function accepts specified keyword"""
+        spec = inspect.getargspec(get_method_function(func))
+        return key in spec.args or spec.keywords is not None
 
 def update_mixin_classes(target, add=None, remove=None, append=False,
                          before=None, after=None, dryrun=False):
