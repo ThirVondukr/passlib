@@ -190,7 +190,7 @@ class _bsdi_crypt_test(HandlerCase):
         self.assertFalse(handler.needs_update(odd_hash))
 
         # new hashes shouldn't have even rounds
-        new_hash = handler.encrypt("stub")
+        new_hash = handler.hash("stub")
         self.assertFalse(handler.needs_update(new_hash))
 
 # create test cases for specific backends
