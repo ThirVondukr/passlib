@@ -1,13 +1,8 @@
 .. _whats-new:
 
-==========
-1.7 Series
-==========
-
-.. seealso::
-
-    The `Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_
-    for a list of future changes that may impact applications.
+===========
+Passlib 1.7
+===========
 
 .. rst-class:: emphasize-children toc-always-open
 
