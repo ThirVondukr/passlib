@@ -14,23 +14,6 @@
 
 Constants
 =========
-
-Base64 Encoding
-===============
-
-Base64Engine Class
-------------------
-Passlib has to deal with a number of different Base64 encodings,
-with varying endianness, as well as wildly different character <-> value
-mappings. This is all encapsulated in the :class:`Base64Engine` class,
-which provides common encoding actions for an arbitrary base64-style encoding
-scheme. There are also a couple of predefined instances which are commonly
-used by the hashes in Passlib.
-
-.. autoclass:: Base64Engine
-
-Common Character Maps
----------------------
 .. data:: BASE64_CHARS
 
     Character map used by standard MIME-compatible Base64 encoding scheme.
@@ -51,6 +34,23 @@ Common Character Maps
     Base64 character map used by :class:`~passlib.hash.bcrypt`.
     The ordering is wildly different from both the standard base64 character map,
     and the common hash64 character map.
+
+..
+   TODO: document the other constants
+
+Base64 Encoding
+===============
+
+Base64Engine Class
+------------------
+Passlib has to deal with a number of different Base64 encodings,
+with varying endianness, as well as wildly different character <-> value
+mappings. This is all encapsulated in the :class:`Base64Engine` class,
+which provides common encoding actions for an arbitrary base64-style encoding
+scheme. There are also a couple of predefined instances which are commonly
+used by the hashes in Passlib.
+
+.. autoclass:: Base64Engine
 
 Predefined Instances
 --------------------
@@ -77,8 +77,10 @@ Other
 -----
 .. autofunction:: ab64_encode
 .. autofunction:: ab64_decode
-.. autofunction:: b32_encode
-.. autofunction:: b32_decode
+.. autofunction:: b64s_encode
+.. autofunction:: b64s_decode
+.. autofunction:: b32encode
+.. autofunction:: b32decode
 
 ..
     .. data:: AB64_CHARS

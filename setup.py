@@ -88,15 +88,20 @@ providing full-strength password hashing for multi-user applications.
 * See the `homepage <https://bitbucket.org/ecollins/passlib>`_
   for the latest news and more information.
 
-* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history.html>`_
   for a description of what's new in Passlib.
 
 All releases are signed with the gpg key
 `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """
 
-KEYWORDS = "password secret hash security crypt md5-crypt \
-sha256-crypt sha512-crypt bcrypt apache htpasswd htdigest pbkdf2"
+KEYWORDS = """\
+password secret hash security
+crypt md5-crypt
+sha256-crypt sha512-crypt  pbkdf2 argon2 scrypt bcrypt
+apache htpasswd htdigest
+totp 2fa
+"""
 
 CLASSIFIERS = """\
 Intended Audience :: Developers

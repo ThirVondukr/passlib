@@ -2594,7 +2594,7 @@ class CryptContext(object):
     def disable(self, hash=None):
         """
         return a string to disable logins for user,
-        usually by returning an unusable string such as ``"!"``.
+        usually by returning a non-verifying string such as ``"!"``.
 
         :param hash:
             Callers can optionally provide the account's existing hash.

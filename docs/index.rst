@@ -77,6 +77,6 @@ Online Resources
         =================== ===================================================
         Latest Docs:        `<https://passlib.readthedocs.io>`_
         Project Home:       `<https://bitbucket.org/ecollins/passlib>`_
-        News & Discussion:  `<http://groups.google.com/group/passlib-users>`_
+        News & Discussion:  `<https://groups.google.com/group/passlib-users>`_
         Downloads @ PyPI:   `<https://pypi.python.org/pypi/passlib>`_
         =================== ===================================================
