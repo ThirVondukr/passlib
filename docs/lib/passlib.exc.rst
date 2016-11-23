@@ -1,6 +1,6 @@
-===============================================================
-:mod:`passlib.exc` - exceptions and warnings raised by Passlib
-===============================================================
+============================================
+:mod:`passlib.exc` - Exceptions and warnings
+============================================
 
 .. module:: passlib.exc
     :synopsis: exceptions & warnings raised by Passlib
@@ -17,7 +17,18 @@ Exceptions
 
 .. autoexception:: PasswordSizeError
 
+.. autoexception:: PasswordTruncateError
+
 .. autoexception:: PasslibSecurityError
+
+.. autoexception:: UnknownHashError
+
+TOTP Exceptions
+---------------
+.. autoexception:: TokenError
+.. autoexception:: MalformedTokenError
+.. autoexception:: InvalidTokenError
+.. autoexception:: UsedTokenError
 
 Warnings
 ========

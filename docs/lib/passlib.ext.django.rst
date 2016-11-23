@@ -8,14 +8,22 @@
 
 .. versionadded:: 1.6
 
-.. note::
+.. versionchanged:: 1.7
 
-    Passlib 1.7's :mod:`passlib.ext.django` extension will drop
-    support for Django 1.5 and earlier, and require Django 1.6 or newer.
+    As of Passlib 1.7, this module requires Django 1.8 or newer.
+
+.. rst-class:: float-center without-title
+
+.. warning::
+
+    This extension is a high maintenance, with an uncertain number of users.
+    The current plan is to split this out as a separate package concurrent
+    with Passlib 1.8, and then judge whether it should continue to be maintained
+    in it's own right. See :issue:`81`.
 
 This module contains a `Django <http://www.djangoproject.com>`_ plugin which
 overrides all of Django's password hashing functions, replacing them
-with wrappers around a Passlib :ref:`CryptContext <context-overview>` object
+with wrappers around a Passlib :ref:`CryptContext <context-reference>` object
 whose configuration is controlled from Django's ``settings``.
 While this extension's utility is diminished with the advent
 of Django 1.4's *hashers* framework, this plugin still has a number
@@ -41,7 +49,9 @@ of uses:
     This plugin should be considered "release candidate" quality.
     It works, and has good unittest coverage, but has seen only
     limited real-world use. Please report any issues.
-    It has been tested with Django 0.9.6 - 1.4.
+    It has been tested with Django 1.8 - 1.9.
+
+    (Support for Django 1.0 - 1.7 was dropped after Passlib 1.6).
 
 Installation
 =============
@@ -124,6 +134,13 @@ Module Contents
     The :class:`!CryptContext` instance that drives this plugin.
     It can be imported and examined to inspect the current configuration,
     changes made to it will immediately alter how Django hashes passwords.
+
+    (Do not replace the reference with another CryptContext, it will break things;
+    just update the context in-place).
+
+.. function:: context_changed
+ 
+    If the context is modified after loading, call this function to clear internal caches.
 
 .. module:: passlib.ext.django.utils
 

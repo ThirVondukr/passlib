@@ -4,10 +4,7 @@
 :class:`passlib.hash.postgres_md5` - PostgreSQL MD5 password hash
 ==================================================================
 
-.. warning::
-
-    This hash is not secure, and should not be used for any purposes
-    besides manipulating existing PostgreSQL password hashes.
+.. include:: ../_fragments/insecure_hash_warning.rst
 
 .. currentmodule:: passlib.hash
 
@@ -21,7 +18,7 @@ That aside, this class can be used directly as follows::
     >>> from passlib.hash import postgres_md5
 
     >>> # encrypt password using specified username
-    >>> hash = postgres_md5.encrypt("password", user="username")
+    >>> hash = postgres_md5.hash("password", user="username")
     >>> hash
     'md55a231fcdb710d73268c4f44283487ba2'
 

@@ -2,12 +2,9 @@
 :class:`passlib.hash.oracle10` - Oracle 10g password hash
 ==================================================================
 
+.. include:: ../_fragments/trivial_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. warning::
-
-    This hash is not secure, and should not be used for any purposes
-    besides manipulating existing Oracle 10 password hashes.
 
 This class implements the hash algorithm used by the Oracle Database up to
 version 10g Rel.2. It was superseded by a newer algorithm in :class:`Oracle 11 <passlib.hash.oracle11>`.
@@ -17,7 +14,7 @@ a username for all encrypt/verify operations)::
     >>> from passlib.hash import oracle10 as oracle10
 
     >>> # encrypt password using specified username
-    >>> hash = oracle10.encrypt("password", user="username")
+    >>> hash = oracle10.hash("password", user="username")
     >>> hash
     '872805F3F4C83365'
 

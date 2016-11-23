@@ -15,7 +15,7 @@ and are can be used directly as follows::
     >>> from passlib.hash import ldap_salted_md5 as lsm
 
     >>> # encrypt password
-    >>> hash = lsm.encrypt("password")
+    >>> hash = lsm.hash("password")
     >>> hash
     '{SMD5}OqsUXNHIhHbznxrqHoIM+ZT8DmE='
 

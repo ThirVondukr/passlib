@@ -9,9 +9,10 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import h64, right_pad_string, to_unicode
-from passlib.utils.compat import b, bascii_to_str, bytes, unicode, u, join_byte_values, \
-             join_byte_elems, byte_elem_value, iter_byte_values, uascii_to_str, str_to_uascii
+from passlib.utils import right_pad_string, to_unicode
+from passlib.utils.binary import h64
+from passlib.utils.compat import unicode, u, join_byte_values, \
+             join_byte_elems, iter_byte_values, uascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -22,13 +23,13 @@ __all__ = [
 #=============================================================================
 # cisco pix firewall hash
 #=============================================================================
-class cisco_pix(uh.HasUserContext, uh.StaticHandler):
-    """This class implements the password hash used by Cisco PIX firewalls,
+class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
+    """This class implements the password hash used by (older) Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
     It does a single round of hashing, and relies on the username
     as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
+    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
     have the following extra keyword:
 
     :type user: str
@@ -42,34 +43,81 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         Conversely, this *must* be omitted or set to ``""`` in order to correctly
         hash passwords which don't have an associated user account
         (such as the "enable" password).
+
+    :param bool truncate_error:
+        By default, this will silently truncate passwords larger than 16 bytes.
+        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
+        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+        .. versionadded:: 1.7
+
+    .. versionadded:: 1.6
     """
     #===================================================================
     # class attrs
     #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "cisco_pix"
+    setting_kwds = ("truncate_error",)
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_size = 16
     checksum_chars = uh.HASH64_CHARS
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 16
+
+    #--------------------
+    # custom
+    #--------------------
+
+    #: control flag signalling "cisco_asa" mode
+    _is_asa = False
 
     #===================================================================
     # methods
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
-            # XXX: no idea what unicode policy is, but all examples are
-            # 7-bit ascii compatible, so using UTF-8
-            secret = secret.encode("utf-8")
 
+        # This function handles both the cisco_pix & cisco_asa formats:
+        #   * PIX had a limit of 16 character passwords, and always appended the username.
+        #   * ASA 7.0 (2005) increases this limit to 32, and conditionally appends the username.
+        # The two behaviors are controlled based on the _is_asa class-level flag.
+        asa = self._is_asa
+
+        # XXX: No idea what unicode policy is, but all examples are
+        #      7-bit ascii compatible, so using UTF-8.
+        if isinstance(secret, unicode):
+            secret = secret.encode("utf-8")
+        seclen = len(secret)
+
+        # check for truncation (during .hash() calls only)
+        if self.use_defaults:
+            self._check_truncate_policy(secret)
+
+        # PIX/ASA: Per-user accounts use the first 4 chars of the username as the salt,
+        #          whereas global "enable" passwords don't have any salt at all.
+        # ASA only: Don't append user if password is 28 or more characters.
         user = self.user
-        if user:
-            # not positive about this, but it looks like per-user
-            # accounts use the first 4 chars of the username as the salt,
-            # whereas global "enable" passwords don't have any salt at all.
+        if user and not (asa and seclen > 27):
             if isinstance(user, unicode):
                 user = user.encode("utf-8")
             secret += user[:4]
 
-        # null-pad or truncate to 16 bytes
-        secret = right_pad_string(secret, 16)
+        # PIX: null-pad or truncate to 16 bytes.
+        # ASA: increase to 32 bytes if password is 13 or more characters.
+        if asa and seclen > 12:
+            padsize = 32
+        else:
+            padsize = 16
+        secret = right_pad_string(secret, padsize)
 
         # md5 digest
         hash = md5(secret).digest()
@@ -84,6 +132,44 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     # eoc
     #===================================================================
 
+
+class cisco_asa(cisco_pix):
+    """
+    This class implements the password hash used by Cisco ASA/PIX 7.0 and newer (2005).
+    Aside from a different internal algorithm, it's use and format is identical
+    to the older :class:`cisco_pix` class.
+
+    For passwords less than 13 characters, this should be identical to :class:`!cisco_pix`,
+    but will generate a different hash for anything larger
+    (See the `Format & Algorithm`_ section for the details).
+
+    Unlike cisco_pix, this will truncate passwords larger than 32 bytes.
+
+    .. versionadded:: 1.7
+    """
+    #===================================================================
+    # class attrs
+    #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
+    name = "cisco_asa"
+
+    #--------------------
+    # TruncateMixin
+    #--------------------
+    truncate_size = 32
+
+    #--------------------
+    # cisco_pix
+    #--------------------
+    _is_asa = True
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
 #=============================================================================
 # type 7
 #=============================================================================
@@ -93,8 +179,7 @@ class cisco_type7(uh.GenericHandler):
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genhash` methods
-    have the following optional keywords:
+    The :meth:`~passlib.ifc.PasswordHash.using` method accepts the following optional keywords:
 
     :type salt: int
     :param salt:
@@ -119,9 +204,21 @@ class cisco_type7(uh.GenericHandler):
     #===================================================================
     # class attrs
     #===================================================================
+
+    #--------------------
+    # PasswordHash
+    #--------------------
     name = "cisco_type7"
     setting_kwds = ("salt",)
+
+    #--------------------
+    # GenericHandler
+    #--------------------
     checksum_chars = uh.UPPER_HEX_CHARS
+
+    #--------------------
+    # HasSalt
+    #--------------------
 
     # NOTE: encoding could handle max_salt_value=99, but since key is only 52
     #       chars in size, not sure what appropriate behavior is for that edge case.
@@ -132,16 +229,12 @@ class cisco_type7(uh.GenericHandler):
     # methods
     #===================================================================
     @classmethod
-    def genconfig(cls):
-        return None
-
-    @classmethod
-    def genhash(cls, secret, config):
-        # special case to handle ``config=None`` in same style as StaticHandler
-        if config is None:
-            return cls.encrypt(secret)
-        else:
-            return super(cisco_type7, cls).genhash(secret, config)
+    def using(cls, salt=None, **kwds):
+        subcls = super(cisco_type7, cls).using(**kwds)
+        if salt is not None:
+            salt = subcls._norm_salt(salt, relaxed=kwds.get("relaxed"))
+            subcls._generate_salt = staticmethod(lambda: salt)
+        return subcls
 
     @classmethod
     def from_string(cls, hash):
@@ -153,29 +246,35 @@ class cisco_type7(uh.GenericHandler):
 
     def __init__(self, salt=None, **kwds):
         super(cisco_type7, self).__init__(**kwds)
-        self.salt = self._norm_salt(salt)
+        if salt is not None:
+            salt = self._norm_salt(salt)
+        elif self.use_defaults:
+            salt = self._generate_salt()
+            assert self._norm_salt(salt) == salt, "generated invalid salt: %r" % (salt,)
+        else:
+            raise TypeError("no salt specified")
+        self.salt = salt
 
-    def _norm_salt(self, salt):
-        """the salt for this algorithm is an integer 0-52, not a string"""
-        # XXX: not entirely sure that values >15 are valid, so for
-        # compatibility we don't output those values, but we do accept them.
-        if salt is None:
-            if self.use_defaults:
-                salt = self._generate_salt()
-            else:
-                raise TypeError("no salt specified")
+    @classmethod
+    def _norm_salt(cls, salt, relaxed=False):
+        """
+        validate & normalize salt value.
+        .. note::
+            the salt for this algorithm is an integer 0-52, not a string
+        """
         if not isinstance(salt, int):
             raise uh.exc.ExpectedTypeError(salt, "integer", "salt")
-        if salt < 0 or salt > self.max_salt_value:
-            msg = "salt/offset must be in 0..52 range"
-            if self.relaxed:
-                warn(msg, uh.PasslibHashWarning)
-                salt = 0 if salt < 0 else self.max_salt_value
-            else:
-                raise ValueError(msg)
-        return salt
+        if 0 <= salt <= cls.max_salt_value:
+            return salt
+        msg = "salt/offset must be in 0..52 range"
+        if relaxed:
+            warn(msg, uh.PasslibHashWarning)
+            return 0 if salt < 0 else cls.max_salt_value
+        else:
+            raise ValueError(msg)
 
-    def _generate_salt(self):
+    @staticmethod
+    def _generate_salt():
         return uh.rng.randint(0, 15)
 
     def to_string(self):

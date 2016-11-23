@@ -4,12 +4,12 @@
 :class:`passlib.hash.cisco_type7` - Cisco "Type 7" hash
 ==================================================================
 
-.. versionadded:: 1.6
-
-.. warning::
+.. danger::
 
     This is not a hash, this is a reversible plaintext encoding.
     **This format can be trivially decoded**.
+
+.. versionadded:: 1.6
 
 .. currentmodule:: passlib.hash
 
@@ -23,7 +23,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import cisco_type7
 
     >>> # encode password
-    >>> h = cisco_type7.encrypt("password")
+    >>> h = cisco_type7.hash("password")
     >>> h
     '044B0A151C36435C0D'
 

@@ -1,9 +1,22 @@
 .. image:: _static/masthead.png
    :align: center
+   :class: show-for-small
+
+.. rst-class:: float-right without-title
+
+.. seealso:: :ref:`What's new in Passlib 1.7 <whats-new>`
 
 ==========================================
 Passlib |release| documentation
 ==========================================
+
+.. only:: devcopy
+
+   .. warning::
+
+        This is the documentation for a development version of Passlib.
+        For documentation of the latest stable version,
+        see `<https://passlib.readthedocs.io>`_.
 
 Welcome
 =======
@@ -14,98 +27,45 @@ for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user application.
 
 As a quick sample, the following code hashes and then verifies a password
-using the :doc:`SHA256-Crypt </lib/passlib.hash.sha256_crypt>` algorithm::
+using the :doc:`PBKDF2-SHA256 </lib/passlib.hash.pbkdf2_digest>` algorithm::
 
     >>> # import the hash algorithm
-    >>> from passlib.hash import sha256_crypt
+    >>> from passlib.hash import pbkdf2_sha256
 
     >>> # generate new salt, and hash a password
-    >>> hash = sha256_crypt.encrypt("toomanysecrets")
+    >>> hash = pbkdf2_sha256.hash("toomanysecrets")
     >>> hash
-    '$5$rounds=80000$zvpXD3gCkrt7tw.1$QqeTSolNHEfgryc5oMgiq1o8qCEAcmye3FoMSuvgToC'
+    '$pbkdf2-sha256$29000$N2YMIWQsBWBMae09x1jrPQ$1t8iyB2A.WF/Z5JZv.lfCIhXXN33N23OSgQYThBYRfk'
 
     >>> # verifying the password
-    >>> sha256_crypt.verify("toomanysecrets", hash)
+    >>> pbkdf2_sha256.verify("toomanysecrets", hash)
     True
-    >>> sha256_crypt.verify("joshua", hash)
+    >>> pbkdf2_sha256.verify("joshua", hash)
     False
 
-Content Summary
+.. rst-class:: toc-always-open
+
+Getting Started
 ===============
 
-.. rst-class:: floater
+This documentation is organized into two main parts:
+a narrative walkthrough of Passlib, and a top-down API reference.
 
-.. seealso:: :ref:`What's new in Passlib 1.6.3 <whats-new>`
+:doc:`narr/index`
 
-Introductory Materials
-----------------------
+    New users in particular will want to visit the walkthrough, as it provides
+    introductory documentation including installation requirements,
+    an overview of what passlib provides, and a guide for getting started quickly.
 
-    :doc:`install`
-        requirements & installation instructions
+:doc:`lib/index`
 
-    :doc:`overview`
-        describes how Passlib is laid out
+    The API reference contains a top-down reference of the :mod:`!passlib` package.
 
-    :doc:`New Application Quickstart <new_app_quickstart>`
-        choosing a password hash for new applications
+:doc:`other`
 
-----
-
-Password Hashing Algorithms
----------------------------
-    :mod:`passlib.hash`
-        all the password hashes supported by Passlib --
-            - :doc:`Overview <lib/passlib.hash>`
-            - :ref:`mcf-hashes`
-            - :ref:`ldap-hashes`
-            - :ref:`database-hashes`
-            - :ref:`windows-hashes`
-            - :ref:`other-hashes`
-
-    :doc:`PasswordHash interface <password_hash_api>`
-        examples & documentation of the common hash interface
-        used by all the hash algorithms in Passlib.
-
-CryptContext Objects
---------------------
-    :mod:`passlib.context`
-        provides the :class:`!CryptContext` class, a flexible container
-        for managing and migrating between multiple hash algorithms.
-
-    :mod:`passlib.apps`
-        predefined CryptContext objects for managing the hashes used by
-        MySQL, PostgreSQL, OpenLDAP, and others applications.
-
-    :mod:`passlib.hosts`
-        predefined CryptContext objects for managing the hashes
-        found in Linux & BSD "shadow" files.
-
-Application Helpers
--------------------
-    :mod:`passlib.apache`
-        classes for manipulating Apache's ``htpasswd`` and ``htdigest`` files.
-
-    :mod:`passlib.ext.django`
-        Django plugin which monkeypatches support for (almost) any hash in Passlib.
-
-..
-    Support Modules
-    ---------------
-        :mod:`passlib.exc`
-
-            custom warnings and exceptions used by Passlib
-    :mod:`passlib.registry`
-    :mod:`passlib.utils`
-
-----
-
-Other Documents
----------------
-    :doc:`modular_crypt_format`
-        reference listing "modular crypt format" support across Unix systems.
-
-    :doc:`Changelog <history>`
-        Passlib's release history
+    This section contains additional things that don't
+    fit anywhere else, including an :doc:`FAQ <faq>` and a complete
+    :doc:`changelog <history/index>`.
 
 Online Resources
 ================
@@ -114,12 +74,9 @@ Online Resources
         :class: fullwidth
         :column-alignment: lr
 
-        ================ ===================================================
-        Homepage:        `<https://bitbucket.org/ecollins/passlib>`_
-        Online Docs:     `<http://packages.python.org/passlib>`_
-        Discussion:      `<http://groups.google.com/group/passlib-users>`_
-        ---------------- ---------------------------------------------------
-        ---------------- ---------------------------------------------------
-        Downloads:       `<https://pypi.python.org/pypi/passlib>`_
-        Source:          `<https://bitbucket.org/ecollins/passlib/src>`_
-        ================ ===================================================
+        =================== ===================================================
+        Latest Docs:        `<https://passlib.readthedocs.io>`_
+        Project Home:       `<https://bitbucket.org/ecollins/passlib>`_
+        News & Discussion:  `<http://groups.google.com/group/passlib-users>`_
+        Downloads @ PyPI:   `<https://pypi.python.org/pypi/passlib>`_
+        =================== ===================================================

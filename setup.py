@@ -15,12 +15,7 @@ import time
 
 py3k = (sys.version_info[0] >= 3)
 
-try:
-    from setuptools import setup
-    has_distribute = True
-except ImportError:
-    from distutils.core import setup
-    has_distribute = False
+from setuptools import setup, find_packages
 
 #=============================================================================
 # init setup options
@@ -87,17 +82,17 @@ as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
 providing full-strength password hashing for multi-user applications.
 
-* See the `documentation <http://packages.python.org/passlib>`_
+* See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
 * See the `homepage <https://bitbucket.org/ecollins/passlib>`_
   for the latest news and more information.
 
-* See the `changelog <http://packages.python.org/passlib/history.html>`_
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
   for a description of what's new in Passlib.
 
 All releases are signed with the gpg key
-`4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+`4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """
 
 KEYWORDS = "password secret hash security crypt md5-crypt \
@@ -108,7 +103,6 @@ Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Natural Language :: English
 Operating System :: OS Independent
-Programming Language :: Python :: 2.5
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
@@ -136,17 +130,8 @@ else:
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     # package info
-    packages = [
-        "passlib",
-            "passlib.ext",
-                "passlib.ext.django",
-            "passlib.handlers",
-            "passlib.tests",
-            "passlib.utils",
-                "passlib.utils._blowfish",
-            "passlib._setup",
-        ],
-    package_data = { "passlib.tests": ["*.cfg"] },
+    packages = find_packages(root_dir),
+    package_data = { "passlib.tests": ["*.cfg"], "passlib":["_data/wordsets/*.txt"] },
     zip_safe=True,
 
     # metadata
@@ -158,7 +143,7 @@ setup(
 
     url = "https://bitbucket.org/ecollins/passlib",
     download_url =
-        ("http://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
+        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + VERSION + ".tar.gz")
         if is_release else None,
 
     description = SUMMARY,
@@ -168,6 +153,12 @@ setup(
 
     tests_require = 'nose >= 1.1',
     test_suite = 'nose.collector',
+
+    extras_require={
+        "argon2": "argon2_cffi>=16.2",
+        "bcrypt": "bcrypt>=3.1.0",
+        "totp": "cryptography",
+    },
 
     # extra opts
     script_args=args,

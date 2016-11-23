@@ -2,12 +2,9 @@
 :class:`passlib.hash.mssql2000` - MS SQL 2000 password hash
 ==================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This hash is not very secure, and should not be used for any purposes
-    besides manipulating existing MSSQL 2000 password hashes.
 
 .. currentmodule:: passlib.hash
 
@@ -20,7 +17,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import mssql2000 as m20
 
     >>> # encrypt password
-    >>> h = m20.encrypt("password")
+    >>> h = m20.hash("password")
     >>> h
     '0x0100200420C4988140FD3920894C3EDC188E94F428D57DAD5905F6CC1CBAF950CAD4C63F272B2C91E4DEEB5E6444'
 

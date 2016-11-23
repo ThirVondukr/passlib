@@ -4,14 +4,8 @@
 :class:`passlib.hash.md5_crypt` - MD5 Crypt
 ==================================================================
 
-.. warning::
+.. include:: ../_fragments/insecure_hash_warning.rst
 
-    As of 2012-6-7, this algorithm is "no longer considered safe"
-    by its author [#phk]_, citing the increased
-    speed of the MD5 hash on modern hardware, and MD5-Crypt's
-    lack of a variable time-cost parameter. See Passlib's
-    :ref:`recommended hashes <recommended-hashes>` for a replacement.
-    
 .. currentmodule:: passlib.hash
 
 This algorithm was developed for FreeBSD in 1994 by Poul-Henning Kamp,
@@ -32,7 +26,7 @@ The :class:`!md5_crypt` class can be can be used directly as follows::
     >>> from passlib.hash import md5_crypt
 
     >>> # generate new salt, encrypt password
-    >>> h = md5_crypt.encrypt("password")
+    >>> h = md5_crypt.hash("password")
     >>> h
     '$1$3azHgidD$SrJPt7B.9rekpmwJwtON31'
 
@@ -43,7 +37,7 @@ The :class:`!md5_crypt` class can be can be used directly as follows::
     False
 
     >>> # encrypt password using cisco-compatible 4-char salt
-    >>> md5_crypt.encrypt("password", salt_size=4)
+    >>> md5_crypt.using(salt_size=4).hash("password")
     '$1$wu98$9UuD3hvrwehnqyF1D548N0'
 
 .. seealso::
@@ -152,7 +146,7 @@ The MD5-Crypt algorithm [#f1]_ calculates a checksum as follows:
     following order: ``12,6,0,13,7,1,14,8,2,15,9,3,5,10,4,11``.
 
 18. Encode the resulting 16 byte string into a 22 character
-    :data:`hash64 <passlib.utils.h64>`-encoded string
+    :data:`hash64 <passlib.utils.binary.h64>`-encoded string
     (the 2 msb bits encoded by the last hash64 character are used as 0 padding).
     This results in the portion of the md5 crypt hash string referred to as :samp:`{checksum}` in the format section.
 
@@ -178,7 +172,7 @@ Passlib's implementation of md5-crypt differs from the reference implementation 
   The underlying algorithm can unambiguously handle salt strings
   which contain any possible byte value besides ``\x00`` and ``$``.
   However, Passlib strictly limits salts to the
-  :data:`hash64 <passlib.utils.HASH64_CHARS>` character set,
+  :data:`hash64 <passlib.utils.binary.HASH64_CHARS>` character set,
   as nearly all implementations of md5-crypt generate
   and expect salts containing those characters,
   but may have unexpected behaviors for other character values.

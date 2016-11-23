@@ -6,7 +6,6 @@ from __future__ import with_statement
 # core
 import os
 import re
-import time
 from distutils.dist import Distribution
 # pkg
 # local

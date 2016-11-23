@@ -4,14 +4,9 @@
 :class:`passlib.hash.nthash` - Windows' NT-HASH
 ==================================================================
 
+.. include:: ../_fragments/trivial_hash_warning.rst
+
 .. versionadded:: 1.6
-
-.. warning::
-
-    This scheme is very weak, the :mod:`~passlib.utils.md4` digest
-    it is based on has been severely compromised for many years.
-    It should be used for compatibility with existing systems;
-    **do not use** in new code.
 
 .. currentmodule:: passlib.hash
 
@@ -23,7 +18,7 @@ This class can be used directly as follows::
     >>> from passlib.hash import nthash
 
     >>> # encrypt password
-    >>> h = nthash.encrypt("password")
+    >>> h = nthash.hash("password")
     >>> h
     '8846f7eaee8fb117ad06bdd830b7586c'
 
@@ -45,7 +40,7 @@ A nthash consists of 32 hexadecimal digits, which encode the digest.
 An example hash (of ``password``) is ``8846f7eaee8fb117ad06bdd830b7586c``.
 
 The digest is calculated by encoding the secret using ``UTF-16-LE``,
-taking the :mod:`~passlib.utils.md4` digest, and then encoding
+taking the MD4 digest, and then encoding
 that as hexadecimal.
 
 FreeBSD Variant
@@ -66,7 +61,7 @@ NTHASH digest. An example digest (of ``password``) is
 
     It has no salt and a single fixed round.
 
-    The :meth:`~passlib.ifc.PasswordHash.encrypt` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
+    The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
 
     .. versionchanged:: 1.6
         This hash was named ``nthash`` under previous releases of Passlib.

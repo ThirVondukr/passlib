@@ -17,8 +17,6 @@ sys.path.insert(0, os.curdir)
 # core
 from binascii import hexlify
 import logging; log = logging.getLogger(__name__)
-import os
-import warnings
 # site
 # pkg
 try:
@@ -26,7 +24,8 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import u, print_, unicode, next_method_attr
+from passlib.utils.compat import u, print_, unicode
+from passlib.tests.utils import time_call
 # local
 
 #=============================================================================
@@ -71,24 +70,7 @@ class benchmark:
         else:
             raise ValueError("invalid mode: %r" % (mode,))
 
-    @staticmethod
-    def measure(func, setup=None, maxtime=1, bestof=3):
-        """timeit() wrapper which tries to get as accurate a measurement as
-        possible w/in maxtime seconds.
-
-        :returns:
-            ``(avg_seconds_per_call, log10_number_of_repetitions)``
-        """
-        from timeit import Timer
-        from math import log
-        timer = Timer(func, setup=setup or '')
-        number = 1
-        while True:
-            delta = min(timer.repeat(bestof, number))
-            maxtime -= delta*bestof
-            if maxtime < 0:
-                return delta/number, int(log(number, 10))
-            number *= 10
+    measure = staticmethod(time_call)
 
     @staticmethod
     def pptime(secs, precision=3):
@@ -186,7 +168,6 @@ def test_context_init():
         default="another",
         blank__min_rounds=1500,
         blank__max_rounds=2500,
-        another__vary_rounds=100,
     )
     def helper():
         CryptContext(**kwds)
@@ -199,11 +180,12 @@ def test_context_calls():
         schemes=[BlankHandler, AnotherHandler],
         default="another",
         blank__min_rounds=1500,
+        blank__default_rounds=2001,
         blank__max_rounds=2500,
         another__vary_rounds=100,
     )
     def helper():
-        hash = ctx.encrypt(SECRET, rounds=2001)
+        hash = ctx.hash(SECRET)
         ctx.verify(SECRET, hash)
         ctx.verify_and_update(SECRET, hash)
         ctx.verify_and_update(OTHER, hash)
@@ -219,11 +201,11 @@ def test_bcrypt_builtin():
     import os
     os.environ['PASSLIB_BUILTIN_BCRYPT'] = 'enabled'
     bcrypt.set_backend("builtin")
-    bcrypt.default_rounds = 10
+    handler = bcrypt.using(rounds = 10)
     def helper():
-        hash = bcrypt.encrypt(SECRET)
-        bcrypt.verify(SECRET, hash)
-        bcrypt.verify(OTHER, hash)
+        hash = handler.hash(SECRET)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
     return helper
 
 @benchmark.constructor()
@@ -231,11 +213,11 @@ def test_bcrypt_ffi():
     "test bcrypt 'bcrypt' backend"
     from passlib.hash import bcrypt
     bcrypt.set_backend("bcrypt")
-    bcrypt.default_rounds = 8
+    handler = bcrypt.using(rounds=8)
     def helper():
-        hash = bcrypt.encrypt(SECRET)
-        bcrypt.verify(SECRET, hash)
-        bcrypt.verify(OTHER, hash)
+        hash = handler.hash(SECRET)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
     return helper
 
 @benchmark.constructor()
@@ -244,7 +226,7 @@ def test_md5_crypt_builtin():
     from passlib.hash import md5_crypt
     md5_crypt.set_backend("builtin")
     def helper():
-        hash = md5_crypt.encrypt(SECRET)
+        hash = md5_crypt.hash(SECRET)
         md5_crypt.verify(SECRET, hash)
         md5_crypt.verify(OTHER, hash)
     return helper
@@ -254,7 +236,7 @@ def test_ldap_salted_md5():
     """test ldap_salted_md5"""
     from passlib.hash import ldap_salted_md5 as handler
     def helper():
-        hash = handler.encrypt(SECRET, salt='....')
+        hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
@@ -262,10 +244,20 @@ def test_ldap_salted_md5():
 @benchmark.constructor()
 def test_phpass():
     """test phpass"""
-    from passlib.hash import phpass as handler
-    kwds = dict(salt='.'*8, rounds=16)
+    from passlib.hash import phpass
+    handler = phpass.using(salt='.'*8, rounds=16)
     def helper():
-        hash = handler.encrypt(SECRET, **kwds)
+        hash = handler.hash(SECRET)
+        handler.verify(SECRET, hash)
+        handler.verify(OTHER, hash)
+    return helper
+
+@benchmark.constructor()
+def test_sha1_crypt():
+    from passlib.hash import sha1_crypt
+    handler = sha1_crypt.using(salt='.'*8, rounds=10000)
+    def helper():
+        hash = handler.hash(SECRET)
         handler.verify(SECRET, hash)
         handler.verify(OTHER, hash)
     return helper
@@ -275,18 +267,32 @@ def test_phpass():
 #=============================================================================
 @benchmark.constructor()
 def test_pbkdf2_sha1():
-    from passlib.utils.pbkdf2 import pbkdf2
+    from passlib.crypto.digest import pbkdf2_hmac
     def helper():
-        result = hexlify(pbkdf2("abracadabra", "open sesasme", 40960, 20, "hmac-sha1"))
-        assert result == 'ad317ed77bce584c90932b609e37e3736e6297bf', result
+        result = hexlify(pbkdf2_hmac("sha1", "abracadabra", "open sesame", 10240, 20))
+        assert result == 'e45ce658e79b16107a418ad4634836f5f0601ad1', result
     return helper
 
 @benchmark.constructor()
 def test_pbkdf2_sha256():
-    from passlib.utils.pbkdf2 import pbkdf2
+    from passlib.crypto.digest import pbkdf2_hmac
     def helper():
-        result = hexlify(pbkdf2("abracadabra", "open sesasme", 10240, 32, "hmac-sha256"))
-        assert result == '21d1ac0d474aaec49feb4f2172a266223e43edcf1052643dd27d82ebd5fa10c6', result
+        result = hexlify(pbkdf2_hmac("sha256", "abracadabra", "open sesame", 10240, 32))
+        assert result == 'fadef97054306c93c55213cd57111d6c0791735dcdde8ac32f9f934b49c5af1e', result
+    return helper
+
+#=============================================================================
+# entropy estimates
+#=============================================================================
+@benchmark.constructor()
+def test_average_entropy():
+    from passlib.pwd import _self_info_rate
+    testc = "abcdef"*100000
+    def helper():
+        _self_info_rate(testc)
+        _self_info_rate(testc, True)
+        _self_info_rate(iter(testc))
+        _self_info_rate(iter(testc), True)
     return helper
 
 #=============================================================================

@@ -2,7 +2,7 @@
 :samp:`passlib.hash.hex_{digest}` - Generic Hexadecimal Digests
 ===============================================================
 
-.. warning::
+.. danger::
 
     Using a single round of any cryptographic hash
     (especially without a salt) is so insecure
@@ -23,7 +23,7 @@ and can be used directly as follows::
     >>> from passlib.hash import hex_sha1 as hex_sha1
 
     >>> # encrypt password
-    >>> h = hex_sha1.encrypt("password")
+    >>> h = hex_sha1.hash("password")
     >>> h
     '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8'
 

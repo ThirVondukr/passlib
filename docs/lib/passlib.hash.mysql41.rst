@@ -4,13 +4,9 @@
 :class:`passlib.hash.mysql41` - MySQL 4.1 password hash
 =====================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. warning::
-
-    This algorithm is extremely weak, and should not be used
-    for any purposes besides manipulating existing Mysql 4.1+
-    password hashes.
 
 This class implements the second of MySQL's password hash functions,
 used to store its user account passwords. Introduced in MySQL 4.1.1

@@ -1,11 +1,12 @@
 .. index:: CryptContext; reference
 
-.. currentmodule:: passlib.context
+.. module:: passlib.context
+    :synopsis: CryptContext class, for managing multiple password hash schemes
 
 .. _context-reference:
 
 ======================================================
-:mod:`passlib.context` - CryptContext Reference
+:mod:`passlib.context` - CryptContext Hash Manager
 ======================================================
 This page provides a complete reference of all the methods
 and options supported by the :class:`!CryptContext` class
@@ -13,10 +14,10 @@ and helper utilities.
 
 .. seealso::
 
-    * :ref:`CryptContext Overview & Tutorial <context-overview>` --
+    * :ref:`context-tutorial` --
       overview of this class and walkthrough of how to use it.
 
-.. rst-class:: emphasize-children
+.. rst-class:: emphasize-children toc-always-open
 
 The CryptContext Class
 ======================
@@ -45,7 +46,7 @@ The CryptContext Class
 
 .. index:: CryptContext; keyword options
 
-.. rst-class:: html-toggle expanded
+.. rst-class:: html-toggle expanded toc-always-open
 
 Constructor Keywords
 --------------------
@@ -68,7 +69,7 @@ Options which directly affect the behavior of the CryptContext instance:
 
     The most important option in the constructor,
     This option controls what hashes can be used
-    by the :meth:`~CryptContext.encrypt` method,
+    by the :meth:`~CryptContext.hash` method,
     which hashes will be recognized by :meth:`~CryptContext.verify`
     and :meth:`~CryptContext.identify`, and other effects
     throughout the instance.
@@ -109,23 +110,23 @@ Options which directly affect the behavior of the CryptContext instance:
     You can use the :meth:`~CryptContext.default_scheme` method
     to retrieve the name of the current default scheme.
     As an example, the following demonstrates the effect
-    of this parameter on the :meth:`~CryptContext.encrypt`
+    of this parameter on the :meth:`~CryptContext.hash`
     method::
 
         >>> from passlib.context import CryptContext
         >>> myctx = CryptContext(schemes=["sha256_crypt", "md5_crypt"])
 
-        >>> # encrypt() uses the first scheme
+        >>> # hash() uses the first scheme
         >>> myctx.default_scheme()
         'sha256_crypt'
-        >>> myctx.encrypt("password")
+        >>> myctx.hash("password")
         '$5$rounds=80000$R5ZIZRTNPgbdcWq5$fT/Oeqq/apMa/0fbx8YheYWS6Z3XLTxCzEtutsk2cJ1'
 
         >>> # but setting default causes the second scheme to be used.
         >>> myctx.update(default="md5_crypt")
         >>> myctx.default_scheme()
         'md5_crypt'
-        >>> myctx.encrypt("password")
+        >>> myctx.hash("password")
         '$1$Rr0C.KI8$Kvciy8pqfL9BQ2CJzEzfZ/'
 
     .. seealso:: the :ref:`context-basic-example` example in the tutorial.
@@ -153,6 +154,18 @@ Options which directly affect the behavior of the CryptContext instance:
 
     .. seealso:: :ref:`context-migration-example` in the tutorial
 
+:samp:`truncate_error`
+
+    By default, some algorithms will truncate large passwords
+    (e.g. :class:`~passlib.hash.bcrypt` truncates ones larger than 72 bytes).
+    Such hashes accept a ``truncate_error=True`` option to make them
+    raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
+
+    This can also be set at the CryptContext level,
+    and will passed to all hashes that support it.
+
+    .. versionadded:: 1.7
+
 .. _context-min-verify-time-option:
 
 ``min_verify_time``
@@ -163,8 +176,41 @@ Options which directly affect the behavior of the CryptContext instance:
     or fractional number of seconds.
 
     .. deprecated:: 1.6
-        This option has not proved very useful, and will
-        be removed in version 1.8.
+        This option has not proved very useful, is ignored by 1.7,
+        and will be removed in version 1.8.
+
+    .. versionchanged:: 1.7
+        Per deprecation roadmap above, this option is now ignored.
+
+        See ``harden_verify`` below for a replacement.
+
+.. _context-harden-verify-option:
+
+``harden_verify``
+
+    If set to ``true``, CryptContext will pause the first time :meth:`verify`
+    is called, in order to calculate the "average" time it would take
+    to verify a hash created using the default settings.
+
+    Subsequent :meth:`verify` calls using will have their time padded
+    to this minimum time, in order to make it harder for an attacker
+    to guess which accounts have weak hashes.
+
+    Applications may also wish to call :meth:`~CryptContext.dummy_verify` for login
+    attempts where the user does not exist, in order to mask which
+    users accounts have valid hashes.
+
+    This option can be set to ``True`` or ``False`` (the default).
+
+    The default (may) be changed in a later 2.x release.
+
+    .. warning::
+
+        This feature is new, and adjustments may need to be made
+        to when (and how) the code calculates what the "minimum verification time"
+        is supposed to be.
+
+    .. versionadded:: 1.7
 
 .. _context-algorithm-options:
 
@@ -178,10 +224,25 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
 .. _context-default-rounds-option:
 
+:samp:`{scheme}__rounds`
+
+    Set the number of rounds required for this scheme
+    when generating new hashes (using :meth:`~CryptContext.hash`).
+    Existing hashes which have a different number of rounds will be marked
+    as deprecated.
+
+    This essentially sets ``default_rounds``, ``min_rounds``, and ``max_rounds`` all at once.
+    If any of those options are also specified, they will override the value specified
+    by ``rounds``.
+
+    .. versionadded:: 1.7
+
+        Previous releases of Passlib treated this as an alias for ``default_rounds``.
+
 :samp:`{scheme}__default_rounds`
 
     Sets the default number of rounds to use with this scheme
-    when generating new hashes (using :meth:`~CryptContext.encrypt`).
+    when generating new hashes (using :meth:`~CryptContext.hash`).
 
     If not set, this will fall back to the an algorithm-specific
     :attr:`~passlib.ifc.PasswordHash.default_rounds`.
@@ -190,15 +251,15 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
         >>> from passlib.context import CryptContext
 
-        >>> # no explicit default_rounds set, so encrypt() uses sha256_crypt's default (80000)
+        >>> # no explicit default_rounds set, so hash() uses sha256_crypt's default (80000)
         >>> myctx = CryptContext(["sha256_crypt"])
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
         >>> # but if a default is specified, it will be used instead.
         >>> myctx = CryptContext(["sha256_crypt"], sha256_crypt__default_rounds=77123)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=77123$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
@@ -206,9 +267,15 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
 :samp:`{scheme}__vary_rounds`
 
+    .. deprecated:: 1.7
+
+        This option has been deprecated as of Passlib 1.7, and will be removed in Passlib 2.0.
+        The (very minimal) security benefit it provides was judged to not be worth code complexity
+        it requires.
+
     Instead of using a fixed rounds value (such as specified by
     ``default_rounds``, above); this option will cause each call
-    to :meth:`~CryptContext.encrypt` to vary the default rounds value
+    to :meth:`~CryptContext.hash` to vary the default rounds value
     by some amount.
 
     This can be an integer value, in which case each call will use a rounds
@@ -220,13 +287,13 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 
     As an example of how this parameter operates::
 
-        >>> # without vary_rounds set, encrypt() uses the same amount each time:
+        >>> # without vary_rounds set, hash() uses the same amount each time:
         >>> from passlib.context import CryptContext
         >>> myctx = CryptContext(schemes=["sha256_crypt"],
         ...                      sha256_crypt__default_rounds=80000)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=80000$60Y7mpmAhUv6RDvj$AdseAOq6bKUZRDRTr/2QK1t38qm3P6sYeXhXKnBAmg0'
                    ^^^^^
 
@@ -235,9 +302,9 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
         >>> myctx = CryptContext(schemes=["sha256_crypt"],
         ...                      sha256_crypt__default_rounds=80000,
         ...                      sha256_crypt__vary_rounds=0.1)
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=83966$bMpgQxN2hXo2kVr4$jL4Q3ov41UPgSbO7jYL0PdtsOg5koo4mCa.UEF3zan.'
-        >>> myctx.encrypt("fooey")
+        >>> myctx.hash("fooey")
         '$5$rounds=72109$43BBHC/hYPHzL69c$VYvVIdKn3Zdnvu0oJHVlo6rr0WjiMTGmlrZrrH.GxnA'
                    ^^^^^
 
@@ -275,7 +342,7 @@ in ``schemes``, and :samp:`{option}` one of the parameters below:
 :samp:`{scheme}__{other-option}`
 
     Finally, any other options are assumed to correspond to one of the
-    that algorithm's :meth:`!encrypt` :attr:`settings <~passlib.ifc.PasswordHash.setting_kwds>`,
+    that algorithm's :meth:`!hash` :attr:`settings <~passlib.ifc.PasswordHash.setting_kwds>`,
     such as setting a ``salt_size``.
 
     .. seealso:: the :ref:`context-default-settings-example` example in the tutorial.
@@ -289,6 +356,11 @@ Global Algorithm Options
     For instance, ``all__vary_rounds=0.1`` would set the ``vary_rounds``
     option for all the schemes where it was not overridden with an
     explicit :samp:`{scheme}__vary_rounds` option.
+
+    .. deprecated:: 1.7
+
+        This special scheme is deprecated as of Passlib 1.7, and will be removed in Passlib 2.0.
+        It's only legitimate use was for ``vary_rounds``, which is also being removed in Passlib 2.0.
 
 .. _user-categories:
 
@@ -330,13 +402,13 @@ For example, a CryptContext could be set up as follows::
 
     >>> # In this case, calling encrypt with ``category=None`` would result
     >>> # in a hash that used 77000 sha256-crypt rounds:
-    >>> myctx.encrypt("password", category=None)
+    >>> myctx.hash("password", category=None)
     '$5$rounds=77000$sj3XI0AbKlEydAKt$BhFvyh4.IoxaUeNlW6rvQ.O0w8BtgLQMYorkCOMzf84'
                ^^^^^
 
     >>> # But if the application passed in ``category="staff"`` when an administrative
     >>> # account set their password, 88000 rounds would be used:
-    >>> myctx.encrypt("password", category="staff")
+    >>> myctx.hash("password", category="staff")
     '$5$rounds=88000$w7XIdKfTI9.YLwmA$MIzGvs6NU1QOQuuDHhICLmDsdW/t94Bbdfxdh/6NJl7'
                ^^^^^
 
@@ -350,9 +422,11 @@ purpose is to act as a container for multiple password hashes.
 Most applications will only need to make use two methods in a CryptContext
 instance:
 
+.. automethod:: CryptContext.hash
 .. automethod:: CryptContext.encrypt
 .. automethod:: CryptContext.verify
 .. automethod:: CryptContext.identify
+.. automethod:: CryptContext.dummy_verify
 
 .. rst-class:: html-toggle
 
@@ -371,12 +445,26 @@ Hash Migration
 Applications which want to detect and re-encrypt deprecated
 hashes will want to use one of the following methods:
 
-
 .. automethod:: CryptContext.verify_and_update
 .. automethod:: CryptContext.needs_update
 .. automethod:: CryptContext.hash_needs_update
 
 .. rst-class:: html-toggle expanded
+
+.. _context-disabled-hashes:
+
+Disabled Hash Managment
+-----------------------
+.. versionadded:: 1.7
+
+It's frequently useful to disable a user's ability to login by
+replacing their password hash with a standin that's guaranteed
+to never verify, against *any* password.   CryptContext offers
+some convenience methods for this through the following API.
+
+.. automethod:: CryptContext.disable
+.. automethod:: CryptContext.enable
+.. automethod:: CryptContext.is_enabled
 
 Alternate Constructors
 ----------------------

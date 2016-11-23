@@ -2,11 +2,9 @@
 :class:`passlib.hash.bsdi_crypt` - BSDi Crypt
 =================================================================================
 
+.. include:: ../_fragments/insecure_hash_warning.rst
+
 .. currentmodule:: passlib.hash
-
-.. note::
-
-    This algorithm is weak by modern standards, and should not be used in new applications.
 
 This algorithm was developed by BSDi for their BSD/OS distribution.
 It's based on :class:`~passlib.hash.des_crypt`, and contains a larger
@@ -17,12 +15,12 @@ It class can be used directly as follows::
     >>> from passlib.hash import bsdi_crypt
 
     >>> # generate new salt, encrypt password
-    >>> hash = bsdi_crypt.encrypt("password")
+    >>> hash = bsdi_crypt.hash("password")
     >>> hash
     '_7C/.Bf/4gZk10RYRs4Y'
 
     >>> # same, but with explict number of rounds
-    >>> bsdi_crypt.encrypt("password", rounds=10001)
+    >>> bsdi_crypt.using(rounds=10001).hash("password")
     '_FQ0.amG/zwCMip7DnBk'
 
     >>> # verify password
@@ -54,7 +52,7 @@ A bsdi_crypt hash string consists of a 21 character string of the form :samp:`_{
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
-* :samp:`{rounds}` is the number of rounds, stored as a 4 character :data:`hash64 <passlib.utils.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
+* :samp:`{rounds}` is the number of rounds, stored as a 4 character :data:`hash64 <passlib.utils.binary.h64>`-encoded 24-bit integer (``EQ0.`` in the example).
 * :samp:`{salt}` is the salt, stored as as a 4 character hash64-encoded 24-bit integer (``jzhS`` in the example).
 * :samp:`{checksum}` is the checksum, stored as an 11 character hash64-encoded 64-bit integer (``VeUyoSqLupI`` in the example).
 
@@ -70,11 +68,11 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
 1. Given a password string, a salt string, and rounds string.
 
 2. The 4 character rounds string is decoded to a 24-bit integer rounds value;
-   The rounds string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   The rounds string uses little-endian :data:`hash64 <passlib.utils.binary.h64>`
    encoding.
 
 3. The 4 character salt string is decoded to a 24-bit integer salt value;
-   The salt string uses little-endian :data:`hash64 <passlib.utils.h64>`
+   The salt string uses little-endian :data:`hash64 <passlib.utils.binary.h64>`
    encoding.
 
 4. The password is NULL-padded on the end to the smallest non-zero multiple of 8 bytes.
@@ -105,7 +103,7 @@ The checksum is formed by a modified version of the DES cipher in encrypt mode:
    lsb-padded with 2 zero bits.
 
 9. The resulting 66-bit integer is encoded in big-endian order
-   using the :data:`hash64-big <passlib.utils.h64big>` format.
+   using the :data:`hash64-big <passlib.utils.binary.h64big>` format.
 
 .. _bsdi-crypt-security-issues:
 

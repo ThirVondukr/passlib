@@ -4,13 +4,20 @@
 Copyrights & Licenses
 =====================
 
+Credits
+=======
+Passlib is primarily developed by Eli Collins.
+
+Special thanks to Darin Gordon for testing and
+feedback on the :mod:`passlib.totp` module.
+
 License for Passlib
 ===================
 Passlib is (c) `Assurance Technologies <http://www.assurancetechnologies.com>`_,
 and is released under the `BSD license <http://www.opensource.org/licenses/bsd-license.php>`_::
 
     Passlib
-    Copyright (c) 2008-2015 Assurance Technologies, LLC.
+    Copyright (c) 2008-2016 Assurance Technologies, LLC.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,7 +67,7 @@ which is available under the following license::
 
 DES
 ---
-The source file ``passlib/utils/des.py`` contains code derived from
+The source file ``passlib/crypto/des.py`` contains code derived from
 `UnixCrypt.java <http://www.dynamic.net.au/christos/crypt/UnixCrypt2.txt>`_,
 a pure-java implementation of the historic unix-crypt password hash algorithm.
 It is available under the following license::
@@ -83,7 +90,7 @@ It is available under the following license::
 
 jBCrypt
 -------
-The source file ``passlib/utils/_blowfish/base.py`` contains code derived
+The source file ``passlib/crypto/_blowfish/base.py`` contains code derived
 from `jBcrypt 0.2 <http://www.mindrot.org/projects/jBCrypt/>`_, a Java
 implementation of the BCrypt password hash algorithm. It is available under
 a BSD/ISC license::
@@ -101,3 +108,9 @@ a BSD/ISC license::
     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTUOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Wordsets
+--------
+The EFF wordsets in ``passlib/_data/wordsets`` are (c) 2016 the Electronic Freedom Foundation.
+They were downloaded from `<https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases>`_,
+and are released under the `Creative Commons License <https://www.eff.org/copyright>`_.
