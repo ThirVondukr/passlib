@@ -10,6 +10,8 @@ SEP2="-----------------------------------------------------"
 # init config
 #
 
+export PASSLIB_SETUP_TAG_RELEASE=no
+
 if [ -z "$DRY_RUN" ]; then
     echo "DRY_RUN not set"
     exit 1
@@ -23,7 +25,7 @@ else
     UPLOAD_DOCS_ARG="upload_docs"
 fi
 
-VSTR=`python setup.py --for-release --version`
+VSTR=`python setup.py --version`
 VTAIL="Release-${VSTR}"
 
 echo "$SEP1"
@@ -41,11 +43,11 @@ if [ -z "$SKIP_PYPI" ]; then
 
     # upload source
     echo "\n$SEP1\nbuilding and uploading source to pypi\n$SEP2"
-    python setup.py --for-release sdist bdist_wheel $UPLOAD_ARG
+    python setup.py sdist bdist_wheel $UPLOAD_ARG
 
     # upload docs
     echo "\n$SEP1\nbuilding and uploading docs to pypi\n$SEP2"
-    PASSLIB_DOCS="for-pypi" python setup.py --for-release build_sphinx $UPLOAD_DOCS_ARG
+    PASSLIB_DOCS="for-pypi" python setup.py build_sphinx $UPLOAD_DOCS_ARG
 
 fi
 

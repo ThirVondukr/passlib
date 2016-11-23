@@ -4,7 +4,7 @@
 Release History
 ===============
 
-.. centered:: This documentation is for the :ref:`1.7.0 Release <whats-new>` of Passlib.
+.. centered:: This is the documentation for the :ref:`1.7.0 Release <whats-new>` of Passlib.
 
 .. rst-class:: float-right
 

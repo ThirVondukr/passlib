@@ -11,8 +11,8 @@
 
 .. rst-class:: emphasize-children toc-always-open
 
-**1.7.0** (NOT YET RELEASED)
-============================
+**1.7.0** (2016-11-22)
+======================
 
 Overview
 --------
@@ -28,16 +28,18 @@ Overview
     * Support for :class:`~passlib.hash.argon2` and
       :class:`~passlib.hash.scrypt` hashes.
 
-    .. currentmodule:: passlib.ifc
-
-    * The misnamed :meth:`PasswordHash.encrypt` method is deprecated, new code should
-      now call :meth:`PasswordHash.hash` instead.  This is part of a much
-      larger project to clean up passlib's password hashing API,
-      including the new :meth:`PasswordHash.using` factory constructor.
-
     * TOTP Two-Factor Authentications helpers in the :mod:`passlib.totp` module.
 
+    .. currentmodule:: passlib.ifc
+
+    * The misnamed :meth:`PasswordHash.encrypt` method has been renamed to  :meth:`PasswordHash.hash`
+      (and the old alias deprecated).  This is part of a much
+      larger project to clean up passlib's password hashing API,
+      see the :ref:`hash-tutorial` for a walkthrough.
+
     * Large speedup of the internal PBKDF2 routines.
+
+    * Updated documentation
 
 Requirements
 ------------
@@ -100,47 +102,33 @@ New Features
       speedup, it will now take advantage of the external `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
       library, or stdlib's :func:`hashlib.pbkdf2_hmac` (when available).
 
-Bugfixes
---------
-    * :class:`~passlib.hash.bcrypt`: Passlib will now detect and work around
-      a fatal concurrency bug in py-bcrypt 0.2 and earlier
-      (a :exc:`~passlib.exc.PasslibSecurityWarning` will also be issued).
-      Nevertheless, users are *strongly* encouraged to upgrade to py-bcrypt 0.3
-      or another bcrypt library if you are using the
-      :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
-
-    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
-      to the hashes that support them, but ignore them for hashes that don't (:issue:`63`).
-
-    * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
-      rather than throwing a parse error (:issue:`73`).
-
-    * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9,
-      and some internal cleanups (:issue:`68`).
-
-    * The :class:`~passlib.hash.django_disabled` hash now appends
-      a 40-char alphanumeric string, to match Django's behavior.
-
 Other Changes
 -------------
 
-*Public Changes*
+*Other changes of note in Passlib 1.7:*
 
-* :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.bcrypt_sha256`
-  now default to the "2b" format.
+    .. currentmodule:: passlib.ifc
 
-* added support for Django's Argon2 wrapper (:class:`~passlib.hash.django_argon2`)
+    * New workflows have been for configuring the hashers through :meth:`PasswordHash.using`,
+      and testing hashes through :meth:`PasswordHash.needs_update`.
+      See the :ref:`hash-tutorial` for a walkthrough.
 
-* :class:`passlib.apache.HtpasswdFile` has been updated to support all of Apache 2.4's
-  hash schemes, as well as all host OS crypt formats; allowing for much more
-  secure hashes in htpasswd files.  You can now specify if the default hash
-  should be compatible with apache 2.2 / 2.4, and host-specific or portable.
-  See the ``default_schemes`` keyword for details.
+    * :class:`~passlib.hash.bcrypt` and :class:`~passlib.hash.bcrypt_sha256`
+      now default to the "2b" format.
 
-* Large parts of the documentation have been rewritten, to separate
-  tutorial & api reference content, and provide more detail on various features.
+    * Added support for Django's Argon2 wrapper (:class:`~passlib.hash.django_argon2`)
 
-* Official documentation is now at https://passlib.readthedocs.io
+    * :class:`passlib.apache.HtpasswdFile` has been updated to support all of Apache 2.4's
+      hash schemes, as well as all host OS crypt formats; allowing for much more
+      secure hashes in htpasswd files.
+
+      You can now specify if the default hash should be compatible with apache 2.2 or 2.4, and host-specific or portable.
+      See the ``default_schemes`` keyword for details.
+
+    * Large parts of the documentation have been rewritten, to separate
+      tutorial & api reference content, and provide more detail on various features.
+
+    * Official documentation is now at https://passlib.readthedocs.io
 
 *Internal Changes*
 
@@ -158,6 +146,27 @@ Other Changes
 
     * :func:`~passlib.utils.consteq` is now wraps stdlib's :func:`hmac.compare_digest`
       when available (python 2.7.11, python 3.3 and up).
+
+Bugfixes
+--------
+    * :class:`~passlib.hash.bcrypt`: Passlib will now detect and work around
+      a fatal concurrency bug in py-bcrypt 0.2 and earlier
+      (a :exc:`~passlib.exc.PasslibSecurityWarning` will also be issued).
+      Nevertheless, users are *strongly* encouraged to upgrade to py-bcrypt 0.3
+      or another bcrypt library if you are using the
+      :doc:`bcrypt </lib/passlib.hash.bcrypt>` hash.
+
+    * :class:`~passlib.CryptContext` instances now pass contextual keywords (such as `"user"`)
+      to the hashes that support them, but ignore them for hashes that don't (:issue:`63`).
+
+    * The :mod:`passlib.apache` htpasswd helpers now preserve blank lines and comments,
+      rather than throwing a parse error (:issue:`73`).
+
+    * :mod:`passlib.ext.django` and unittests: compatibility fixes for Django 1.9 / 1.10,
+      and some internal refactoring (:issue:`68`).
+
+    * The :class:`~passlib.hash.django_disabled` hash now appends
+      a 40-char alphanumeric string, to match Django's behavior.
 
 .. _encrypt-method-cleanup:
 
@@ -266,19 +275,14 @@ Other Deprecations
     * Some deprecations and internal changes have been made to the :mod:`passlib.utils.handlers`
       module, which provides the common framework Passlib uses to implement hashers.
 
-    .. warning::
+    .. caution::
 
-      Developers who are importing from the :mod:`!passlib.utils.handlers` module directly are strongly encouraged
-      to contact the Passlib `mailing list <http://groups.google.com/group/passlib-users>`_.
-      Backwards-incompatible relocations will occur in the Passlib 1.8 / 1.9 releases.
+      More backwards-incompatible relocations are planned for the internal
+      :mod:`!passlib.utils` module in the Passlib 1.8 / 1.9 releases.
 
 Backwards Incompatibilities
 ---------------------------
 Changes in existing behavior:
-
-    * **[moderate]** :mod:`passlib.apache`: New hashes generated by :class:`~passlib.apache.HtpasswdFile` now use the strongest
-      algorithm available on the host, rather than one that is guaranteed to be portable.
-      Applications can explicitly set ``HtPasswdFile(default_scheme="portable")`` to restore the old behavior.
 
     * **[minor]** M2Crypto no longer used to accelerate pbkdf2-hmac-sha1; applications relying on this
       to speed up :class:`~passlib.hash.pbkdf2_sha1` should install

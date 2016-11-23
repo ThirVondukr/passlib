@@ -503,7 +503,8 @@ class DjangoBehaviorTest(_ExtensionTest):
             if not registry.has_backend(handler):
                 # TODO: move this above get_handler_case(),
                 #       and omit MissingBackendError check.
-                assert scheme in ["django_bcrypt", "django_bcrypt_sha256"], "%r scheme should always have active backend" % scheme
+                assert scheme in ["django_bcrypt", "django_bcrypt_sha256", "django_argon2"], \
+                    "%r scheme should always have active backend" % scheme
                 continue
             try:
                 secret, hash = sample_hashes[scheme]
