@@ -302,7 +302,7 @@ class _bcrypt_test(HandlerCase):
             elif ident == IDENT_2 and other and repeat_string(to_bytes(other), len(to_bytes(secret))) == to_bytes(secret):
                 # avoid false failure due to flaw in 0-revision bcrypt:
                 # repeated strings like 'abc' and 'abcabc' hash identically.
-                opts['other'] = self.random_password_pair()
+                opts['secret'], opts['other'] = self.random_password_pair()
 
             return opts
 
