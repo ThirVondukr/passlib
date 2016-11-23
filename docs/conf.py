@@ -20,6 +20,11 @@ import sys, os
 # make sure root of source dir in sys.path
 sys.path.insert(0, os.path.abspath(os.pardir))
 
+# ignore warnings when documenting deprecated passlib methods
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning,
+                        module="passlib[.].*")
+
 #=============================================================================
 # imports
 #=============================================================================
