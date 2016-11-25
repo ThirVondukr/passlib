@@ -96,7 +96,7 @@ These classes can be used directly as follows::
 
     >>> from passlib.hash import django_pbkdf2_sha256 as handler
 
-    >>> # encrypt password
+    >>> # hash password
     >>> h = handler.hash("password")
     >>> h
     'pbkdf2_sha256$10000$s1w0UXDd00XB$+4ORmyvVWAQvoAEWlDgN34vlaJx1ZTZpa1pCSRey2Yk='
@@ -176,7 +176,7 @@ These classes can be used directly as follows::
 
     >>> from passlib.hash import django_salted_sha1 as handler
 
-    >>> # encrypt password
+    >>> # hash password
     >>> h = handler.hash("password")
     >>> h
     'sha1$c6218$161d1ac8ab38979c5a31cbaba4a67378e7e60845'

@@ -538,7 +538,7 @@ class GenericHandler(MinimalHandler):
     .. automethod:: genconfig
     .. automethod:: genhash
     .. automethod:: identify
-    .. automethod:: encrypt
+    .. automethod:: hash
     .. automethod:: verify
     """
 
@@ -731,8 +731,7 @@ class GenericHandler(MinimalHandler):
             # this block of code.
             settings = extract_settings_kwds(cls, kwds)
             if settings:
-                # TODO: uncomment this ones UTs are adjusted to expect warning...
-                # warn_hash_settings_deprecation(cls, settings)
+                warn_hash_settings_deprecation(cls, settings)
                 return cls.using(**settings).hash(secret, **kwds)
         # NOTE: at this point, 'kwds' should just contain context_kwds subset
         validate_secret(secret)
@@ -845,7 +844,7 @@ class GenericHandler(MinimalHandler):
         """
         # FIXME: this may not work for hashes with non-standard settings.
         # XXX: how should this handle checksum/salt encoding?
-        # need to work that out for encrypt anyways.
+        # need to work that out for hash() anyways.
         self = cls.from_string(hash)
         # XXX: could split next few lines out as self._parsehash() for subclassing
         # XXX: could try to resolve ident/variant to publically suitable alias.

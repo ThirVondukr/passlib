@@ -29,8 +29,8 @@ class unix_fallback(uh.ifc.DisabledHash, uh.StaticHandler):
     behavior as found in /etc/shadow on most unix variants.
     If used, should be the last scheme in the context.
 
-    * this class will positive identify all hash strings.
-    * for security, newly encrypted passwords will hash to ``!``.
+    * this class will positively identify all hash strings.
+    * for security, passwords will always hash to ``!``.
     * it rejects all passwords if the hash is NOT an empty string (``!`` or ``*`` are frequently used).
     * by default it rejects all passwords if the hash is an empty string,
       but if ``enable_wildcard=True`` is passed to verify(),

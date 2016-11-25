@@ -334,7 +334,7 @@ class scram_test(HandlerCase):
     def test_93_derive_digest(self):
         """test scram.derive_digest()"""
         # NOTE: this just does a light test, since derive_digest
-        # is used by encrypt / verify, and is tested pretty well via those.
+        # is used by hash / verify, and is tested pretty well via those.
         hash = self.handler.derive_digest
 
         # check various encodings of password work.
@@ -357,17 +357,17 @@ class scram_test(HandlerCase):
         self.assertEqual(hash(u("IX"), s1.decode("latin-1"), 1000, 'sha1'), d1)
 
     def test_94_saslprep(self):
-        """test encrypt/verify use saslprep"""
+        """test hash/verify use saslprep"""
         # NOTE: this just does a light test that saslprep() is being
         # called in various places, relying in saslpreps()'s tests
         # to verify full normalization behavior.
 
-        # encrypt unnormalized
+        # hash unnormalized
         h = self.do_encrypt(u("I\u00ADX"))
         self.assertTrue(self.do_verify(u("IX"), h))
         self.assertTrue(self.do_verify(u("\u2168"), h))
 
-        # encrypt normalized
+        # hash normalized
         h = self.do_encrypt(u("\xF3"))
         self.assertTrue(self.do_verify(u("o\u0301"), h))
         self.assertTrue(self.do_verify(u("\u200Do\u0301"), h))
@@ -389,7 +389,7 @@ class scram_test(HandlerCase):
         # should have own set
         self.assertEqual(subcls.default_algs, ["md5", "sha-1"])
 
-        # test encrypt output
+        # test hash output
         h1 = subcls.hash("dummy")
         self.assertEqual(handler.extract_digest_algs(h1), ["md5", "sha-1"])
 

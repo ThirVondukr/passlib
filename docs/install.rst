@@ -104,21 +104,30 @@ Testing
 Passlib contains a comprehensive set of unittests (about 38% of the total code),
 which provide nearly complete coverage, and verification of the hash
 algorithms using multiple external sources (if detected at runtime).
+
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
 `Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library
 (as well as the ``unittest2`` library under Python 2.6).
 
-Once Passlib and Nose have been installed, the main suite of tests may be run from the source directory::
+Once Passlib and Nose have been installed, the main suite of tests may be run using::
 
-    nosetests --tests passlib/tests
+    nosetests --tests passlib.tests
 
-To run the full test suite, which includes internal cross-checks and mock-testing
-of features not provided natively by the host OS::
+By default, this runs the main battery of tests, but omits some additional ones
+(such as internal cross-checks, and mock-testing of features not provided natively by the host OS).
+To run these tests as well, set the following environmental variable::
 
-    PASSLIB_TEST_MODE="full" nosetests --tests passlib/tests
+    PASSLIB_TEST_MODE="full" nosetests --tests passlib.tests
+
+To run a quick check to confirm just basic functionality, with a pared-down set of tests::
+
+    PASSLIB_TEST_MODE="quick" nosetests --tests passlib.tests
 
 Tests may also be run via ``setup.py test`` or the included ``tox.ini`` file.
+The ``tox.ini`` file is used to test passlib before each release, 
+and contains a number different environment setups.
+These tests require `tox <https://pypi.python.org/pypi/tox>`_ 2.5 or later.
 
 .. rst-class:: html-toggle
 
@@ -129,7 +138,7 @@ online at `<https://passlib.readthedocs.io>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.3 or newer)
+1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.4 or newer)
 2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.8 or newer).
 3. Download the Passlib source
 4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.

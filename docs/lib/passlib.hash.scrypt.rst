@@ -23,7 +23,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import scrypt
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> h = scrypt.hash("password")
     >>> h
     '$scrypt$ln=16,r=8,p=1$aM15713r3Xsvxbi31lqr1Q$nFNh2CVHVjNldFVKDHDlm4CbdRSCdEBsjjJxD+iCs5E'

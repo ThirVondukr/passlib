@@ -13,7 +13,7 @@ It can be used directly as follows::
 
     >>> from passlib.hash import unix_disabled
 
-    >>> # 'encrypting' a password always results in "!" or "*"
+    >>> # 'hashing' a password always results in "!" or "*"
     >>> unix_disabled.hash("password")
     '!'
 

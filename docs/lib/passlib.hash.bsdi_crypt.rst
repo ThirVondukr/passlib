@@ -14,7 +14,7 @@ It class can be used directly as follows::
 
     >>> from passlib.hash import bsdi_crypt
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> hash = bsdi_crypt.hash("password")
     >>> hash
     '_7C/.Bf/4gZk10RYRs4Y'

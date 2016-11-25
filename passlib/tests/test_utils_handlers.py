@@ -86,7 +86,7 @@ class SkeletonTest(TestCase):
         self.assertRaises(ValueError, d1.verify, 's', b'_c')
         self.assertRaises(ValueError, d1.verify, 's', u('_c'))
 
-        # check default encrypt method
+        # check default hash method
         self.assertEqual(d1.hash('s'), '_a')
         self.assertEqual(d1.hash('s', flag=True), '_b')
 
@@ -126,7 +126,7 @@ class SkeletonTest(TestCase):
                     raise ValueError("no hash specified")
                 return cls.genhash(secret, hash) == hash.lower()
 
-        # encrypt should issue api warnings, but everything else should be fine.
+        # hash should issue api warnings, but everything else should be fine.
         with self.assertWarningList("d1.*should be updated.*_calc_checksum"):
             hash = d1.hash("test")
         self.assertEqual(hash, '7c622762588a0e5cc786ad0a143156f9fd38eea3')
@@ -708,7 +708,7 @@ class PrefixWrapperTest(TestCase):
         self.assertEqual(d1.genhash("password", dph), dph)
         self.assertRaises(ValueError, d1.genhash, "password", lph)
 
-        # encrypt
+        # hash
         self.assertEqual(d1.hash("password"), dph)
 
         # identify

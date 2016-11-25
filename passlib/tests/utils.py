@@ -730,7 +730,7 @@ class HandlerCase(TestCase):
          "vt0RLE8uZ4oPwcelCjmw2kSYu.Ec6ycULevoBK25fs2xXgMNrCzIMVcgEJAstJeonj1"),
     ]
 
-    # passwords used to test basic encrypt behavior - generally
+    # passwords used to test basic hash behavior - generally
     # don't need to be overidden.
     stock_passwords = [
         u("test"),
@@ -1352,7 +1352,7 @@ class HandlerCase(TestCase):
         return salt
 
     def test_14_salt_chars(self):
-        """test encrypt() honors salt_chars"""
+        """test hash() honors salt_chars"""
         self.require_salt_info()
 
         handler = self.handler
@@ -3069,7 +3069,7 @@ class UserHandlerMixin(HandlerCase):
     """helper for handlers w/ 'user' context kwd; mixin for HandlerCase
 
     this overrides the HandlerCase test harness methods
-    so that a username is automatically inserted to encrypt/verify
+    so that a username is automatically inserted to hash/verify
     calls. as well, passing in a pair of strings as the password
     will be interpreted as (secret,user)
     """
@@ -3166,7 +3166,7 @@ class EncodingHandlerMixin(HandlerCase):
     """helper for handlers w/ 'encoding' context kwd; mixin for HandlerCase
 
     this overrides the HandlerCase test harness methods
-    so that an encoding can be inserted to encrypt/verify
+    so that an encoding can be inserted to hash/verify
     calls by passing in a pair of strings as the password
     will be interpreted as (secret,encoding)
     """

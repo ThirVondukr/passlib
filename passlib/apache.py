@@ -618,7 +618,7 @@ class HtpasswdFile(_CommonFile):
 
     :type context: :class:`~passlib.context.CryptContext`
     :param context:
-        :class:`!CryptContext` instance used to encrypt
+        :class:`!CryptContext` instance used to create
         and verify the hashes found in the htpasswd file.
         The default value is a pre-built context which supports all
         of the hashes officially allowed in an htpasswd file.
@@ -643,7 +643,7 @@ class HtpasswdFile(_CommonFile):
             in Passlib 1.8.
 
     :param default:
-        Change the default algorithm used to encrypt new passwords.
+        Change the default algorithm used to hash new passwords.
 
         .. deprecated:: 1.6
             This has been renamed to *default_scheme* for clarity.

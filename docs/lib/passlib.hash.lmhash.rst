@@ -20,7 +20,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import lmhash
 
-    >>> # encrypt password
+    >>> # hash password
     >>> h = lmhash.hash("password")
     >>> h
     'e52cac67419a9a224a3b108f3fa6cb6d'

@@ -23,7 +23,7 @@ The CryptContext Class
 ======================
 .. class:: CryptContext(schemes=None, \*\*kwds)
 
-    Helper for encrypting passwords using different algorithms.
+    Helper for hashing passwords using different algorithms.
 
     At its base, this is a proxy object that makes it easy to use
     multiple :class:`~passlib.ifc.PasswordHash` objects at the same time.
@@ -104,7 +104,7 @@ Options which directly affect the behavior of the CryptContext instance:
     Specifies the name of the default scheme.
 
     This option controls which of the configured
-    schemes will be used as the default when encrypting
+    schemes will be used as the default when creating
     new hashes. This parameter is optional; if omitted,
     the first non-deprecated algorithm in ``schemes`` will be used.
     You can use the :meth:`~CryptContext.default_scheme` method
@@ -400,7 +400,7 @@ For example, a CryptContext could be set up as follows::
     ...                      sha256_crypt__default_rounds=77000,
     ...                      staff__sha256_crypt__default_rounds=88000)
 
-    >>> # In this case, calling encrypt with ``category=None`` would result
+    >>> # In this case, calling hash() with ``category=None`` would result
     >>> # in a hash that used 77000 sha256-crypt rounds:
     >>> myctx.hash("password", category=None)
     '$5$rounds=77000$sj3XI0AbKlEydAKt$BhFvyh4.IoxaUeNlW6rvQ.O0w8BtgLQMYorkCOMzf84'
@@ -442,7 +442,7 @@ style methods provided by all the :class:`~passlib.ifc.PasswordHash` objects:
 
 Hash Migration
 --------------
-Applications which want to detect and re-encrypt deprecated
+Applications which want to detect and regenerate deprecated
 hashes will want to use one of the following methods:
 
 .. automethod:: CryptContext.verify_and_update

@@ -26,7 +26,7 @@ All of these classes can be used directly as follows::
 
     >>> from passlib.hash import pbkdf2_sha256
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> hash = pbkdf2_sha256.hash("password")
     >>> hash
     '$pbkdf2-sha256$6400$0ZrzXitFSGltTQnBWOsdAw$Y11AchqV4b0sUisdZd0Xr97KWoymNE0LNNrnEgY4H9M'

@@ -879,7 +879,7 @@ sha512_crypt__min_rounds = 45000
         ]
 
     def test_40_basic(self):
-        """test basic encrypt/identify/verify functionality"""
+        """test basic hash/identify/verify functionality"""
         handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
@@ -934,7 +934,7 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------------------
 
         # test unicode category strings are accepted under py2
-        # this tests basic _get_record() used by encrypt/genhash/verify.
+        # this tests basic _get_record() used by hash/genhash/verify.
         # we have to omit scheme=xxx so codepath is tested fully
         if PY2:
             c2 = cc.copy(default="phpass")

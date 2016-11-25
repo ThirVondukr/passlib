@@ -16,10 +16,10 @@ as "hasher" classes which can be imported from the :mod:`passlib.hash` module.
 In turn, all of the hashers have a uniform interface,
 which is documented in the :ref:`hash-tutorial`.
 
-*A word of warning:* the hashes in this library marked as "insecure"
-are provided for historical purposes only.  Still others are specialized in ways that are not generally useful.
+*A word of warning:* Some the hashes in this library are marked as "insecure",
+and are provided for historical purposes only.  Still others are specialized in ways that are not generally useful.
 If you are creating a new application and need to choose a password hash,
-see the :doc:`quickstart`.
+please read the :doc:`quickstart` first.
 
 .. rst-class:: float-center
 
@@ -43,8 +43,8 @@ Over time, they have to support a number of tasks:
 
 In these situations, loading and handling multiple hash algorithms becomes
 complicated and tedious. The :mod:`passlib.context` module provides a single class,
-:class:`!CryptContext`, which attempts to solve all of these problems...
-or at least relieve applications developers of (most of) the burden.
+:class:`!CryptContext`, which attempts to solve all of these problems
+(or at least relieve developers of most of the burden).
 
 This class handles managing multiple password hash schemes,
 deprecation & migration of old hashes, and supports a simple configuration

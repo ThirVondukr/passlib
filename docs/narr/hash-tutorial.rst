@@ -68,15 +68,15 @@ First, import the desired hash.  The following example uses the :class:`~passlib
     >>> # import the desired hasher
     >>> from passlib.hash import pbkdf2_sha256
 
-Use :meth:`PasswordHash.hash` to hash a password.  It takes care of unicode encoding,
-picking default rounds values::
+Use :meth:`PasswordHash.hash` to hash a password.  This call takes care of unicode encoding,
+picking default rounds values, and generating a random salt::
 
     >>> hash = pbkdf2_sha256.hash("password")
     >>> hash
     '$pbkdf2-sha256$29000$9t7be09prfXee2/NOUeotQ$Y.RDnnq8vsezSZSKy1QNy6xhKPdoBIwc.0XDdRm9sJ8'
 
-Note that each call generates a new salt, and thus the contents of the resulting
-hash will differ, despite using the same password::
+Note that since each call generates a new salt, the contents of the resulting
+hash will differ between calls (despite using the same password as input)::
 
     >>> hash2 = pbkdf2_sha256.hash("password")
     >>> hash2
@@ -98,12 +98,12 @@ against an existing hash::
 
 Unicode & non-ASCII Characters
 ------------------------------
-Sidenote regarding unicode passwords & non-ASCII characters:
+*Sidenote regarding unicode passwords & non-ASCII characters:*
 
 For the majority of hash algorithms and use-cases, passwords should
 be provided as either :class:`!unicode` (or ``utf-8``-encoded :class:`!bytes`).
 
-One major exception legacy hashes that were generated
+One exception is legacy hashes that were generated
 using a different character encoding. In this case, passwords should be
 encoded using the correct encoding before they are passed to :meth:`!verify`;
 otherwise users may not be able to log in successfully.
@@ -119,9 +119,9 @@ Customizing the Configuration
    **Changed in 1.7:**
 
    This section has changed under Passlib 1.7.  Prior releases required you
-   to pass configuration options to each call of :meth:`PasswordHash.hash`
+   to pass configuration options to each call of :meth:`PasswordHash.encrypt`
    That pattern is deprecated, and will be removed in Passlib 2.0;
-   code should be switched to use :meth:`PasswordHash.using`...
+   code should be switched to use :meth:`PasswordHash.using` + :meth:`PasswordHash.hash`...
 
 Each hasher contains a number of :ref:`informational attributes <informational-attributes>`,
 many of which can be customized to change the properties of the hashes
@@ -252,10 +252,14 @@ which determines whether a hash belongs to a given algorithm::
     >>> pbkdf2_sha256.identify(other_hash)
     False
 
-Note that most cases where an application will need to use this to
-sort out multiple hash formats, it will be more useful to switch to
-a  :ref:`CryptContext <context-tutorial>` object, which handles this
-(and many similar tasks) automatically.
+.. rst-class:: float-center
+
+.. seealso::
+
+    In most cases where an application needs to
+    distinguish between multiple hash formats, it will be more useful to switch to
+    a  :ref:`CryptContext <context-tutorial>` object, which automatically handles this
+    and many similar tasks.
 
 .. todo::
 

@@ -48,7 +48,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     for the MD5-Crypt algorithms; it doesn't handle any of the
     parsing/validation of the hash strings themselves.
 
-    :arg pwd: password chars/bytes to encrypt
+    :arg pwd: password chars/bytes to hash
     :arg salt: salt chars to use
     :arg use_apr: use apache variant
 

@@ -13,7 +13,7 @@ a username for all encrypt/verify operations)::
 
     >>> from passlib.hash import oracle10 as oracle10
 
-    >>> # encrypt password using specified username
+    >>> # hash password using specified username
     >>> hash = oracle10.hash("password", user="username")
     >>> hash
     '872805F3F4C83365'
