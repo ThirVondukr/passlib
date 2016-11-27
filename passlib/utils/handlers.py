@@ -89,7 +89,7 @@ def guess_app_stacklevel(start=1):
     try:
         while frame:
             name = frame.f_globals.get('__name__', "")
-            if not name.startswith("passlib.") or name.startswith("passlib.tests."):
+            if name.startswith("passlib.tests.") or not name.startswith("passlib."):
                 return max(1, count)
             count += 1
             frame = frame.f_back
@@ -100,7 +100,7 @@ def guess_app_stacklevel(start=1):
 def warn_hash_settings_deprecation(handler, kwds):
     warn("passing settings to %(handler)s.hash() is deprecated, and won't be supported in Passlib 2.0; "
          "use '%(handler)s.using(**settings).hash(secret)' instead" % dict(handler=handler.name),
-         stacklevel=guess_app_stacklevel(2))
+         DeprecationWarning, stacklevel=guess_app_stacklevel(2))
 
 def extract_settings_kwds(handler, kwds):
     """

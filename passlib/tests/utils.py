@@ -362,6 +362,10 @@ class TestCase(_TestCase):
             ctx = reset_warnings()
             ctx.__enter__()
             self.addCleanup(ctx.__exit__)
+
+            # ignore warnings about PasswordHash features deprecated in 1.7
+            # TODO: should be cleaned in 2.0, when support will be dropped.
+            #       should be kept until then, so we test the legacy paths.
             warnings.filterwarnings("ignore", "the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
             warnings.filterwarnings("ignore", "the 'vary_rounds' option is deprecated")
 
@@ -862,8 +866,12 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, context)
         if use_encrypt:
             # use legacy 1.6 api
-            context.update(**settings)
-            return (handler or self.handler).encrypt(secret, **context)
+            warnings = []
+            if settings:
+                context.update(**settings)
+                warnings.append("passing settings to.*is deprecated")
+            with self.assertWarningList(warnings):
+                return (handler or self.handler).encrypt(secret, **context)
         else:
             # use 1.7 api
             return (handler or self.handler).using(**settings).hash(secret, **context)

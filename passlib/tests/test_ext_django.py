@@ -137,8 +137,9 @@ stock_config.update(
 # override sample hashes used in test cases
 from passlib.hash import django_pbkdf2_sha256
 sample_hashes = dict(
-    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256.hash("not a password",
-                          rounds=stock_config.get("django_pbkdf2_sha256__default_rounds")))
+    django_pbkdf2_sha256=("not a password", django_pbkdf2_sha256
+                          .using(rounds=stock_config.get("django_pbkdf2_sha256__default_rounds"))
+                          .hash("not a password"))
 )
 
 #=============================================================================
