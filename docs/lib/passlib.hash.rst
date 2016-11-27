@@ -20,11 +20,9 @@ including its format, underlying algorithm, and known security issues.
     **Many of the hash algorithms listed below are *NOT* secure.**
 
     Passlib supports a wide array of hash algorithms, primarily to
-    support dealing with legacy data and systems.
-
-    If you're looking to choose a hash algorithm for a new application,
-    see the :doc:`Quickstart Guide </narr/quickstart>` instead of picking
-    one from this list.
+    support legacy data and systems.
+    If you want to choose a secure algorithm for a new application,
+    see the :doc:`Quickstart Guide </narr/quickstart>`.
 
 .. rst-class:: float-center
 
@@ -49,7 +47,7 @@ by other applications and password hash schemes.
 
 Active Unix Hashes
 ------------------
-All these schemes are actively in use by various Unix flavors to store user passwords.
+All the following schemes are actively in use by various Unix flavors to store user passwords
 They all follow the modular crypt format.
 
 .. toctree::
@@ -73,8 +71,8 @@ found in many Linux & BSD password files:
 Deprecated Unix Hashes
 ----------------------
 The following schemes are supported by various Unix systems
-use the modular crypt format, and are noticably stronger than the previous group.
-However, they have all since been deprecated in favor of stronger algorithms:
+using the modular crypt format, but are no longer considered secure,
+and have been deprecated in favor of the `Active Unix Hashes`_ (above).
 
 * :class:`passlib.hash.bsd_nthash` - FreeBSD's MCF-compatible encoding of :doc:`nthash <passlib.hash.nthash>` digests
 

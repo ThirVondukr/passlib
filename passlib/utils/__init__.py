@@ -425,6 +425,8 @@ def saslprep(source, param="value"):
     #              http://docs.python.org/library/stringprep.html
 
     # validate type
+    # XXX: support bytes (e.g. run through want_unicode)?
+    #      might be easier to just integrate this into cryptcontext.
     if not isinstance(source, unicode):
         raise TypeError("input must be unicode string, not %s" %
                         (type(source),))
