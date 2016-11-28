@@ -5,7 +5,7 @@
 
 .. rst-class:: float-right
 
-.. seealso:: :ref:`What's new in Passlib 1.7 <whats-new>`
+.. seealso:: :ref:`What's new in Passlib 1.8 <whats-new>`
 
 ==========================================
 Passlib |release| documentation

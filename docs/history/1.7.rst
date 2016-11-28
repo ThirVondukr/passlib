@@ -11,8 +11,6 @@ Passlib 1.7
   keywords.  This usage was deprecated in 1.7.0, but warning wasn't properly enabled.
   See :ref:`hash-configuring` for the preferred way to pass settings.
 
-.. _whats-new:
-
 .. rst-class:: emphasize-children toc-always-open
 
 **1.7.0** (2016-11-22)

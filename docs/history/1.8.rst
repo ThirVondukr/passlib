@@ -1,0 +1,10 @@
+.. _whats-new:
+
+===========
+Passlib 1.8
+===========
+
+**1.8.0** (NOT YET RELEASED)
+============================
+
+* 1.8 is under development, and tenatively scheduled for release in late 2017

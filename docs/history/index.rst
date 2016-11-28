@@ -8,7 +8,12 @@ Release History
 
 .. seealso::
 
-    **For the latest release:** see :ref:`What's New <whats-new>` in Passlib 1.7
+    **For the latest release:** see :ref:`What's New <whats-new>` in Passlib 1.8
+
+.. toctree::
+    :maxdepth: 2
+
+    1.8 Series <1.8>
 
 .. toctree::
     :maxdepth: 2
