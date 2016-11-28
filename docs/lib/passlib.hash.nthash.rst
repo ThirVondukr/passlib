@@ -17,7 +17,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import nthash
 
-    >>> # encrypt password
+    >>> # hash password
     >>> h = nthash.hash("password")
     >>> h
     '8846f7eaee8fb117ad06bdd830b7586c'

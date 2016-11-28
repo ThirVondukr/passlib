@@ -17,7 +17,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import sha256_crypt
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> hash = sha256_crypt.hash("password")
     >>> hash
     '$5$rounds=80000$wnsT7Yr92oJoP28r$cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5'

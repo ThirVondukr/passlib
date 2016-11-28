@@ -1,13 +1,17 @@
+===========
+Passlib 1.7
+===========
+
+**1.7.1** (NOT YET RELEASED)
+============================
+
+.. py:currentmodule:: passlib.ifc
+
+* bugfix: :meth:`PasswordHash.hash` will now warn if passed any settings
+  keywords.  This usage was deprecated in 1.7.0, but warning wasn't properly enabled.
+  See :ref:`hash-configuring` for the preferred way to pass settings.
+
 .. _whats-new:
-
-==========
-1.7 Series
-==========
-
-.. seealso::
-
-    The `Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_
-    for a list of future changes that may impact applications.
 
 .. rst-class:: emphasize-children toc-always-open
 

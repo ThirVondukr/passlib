@@ -60,7 +60,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     for the SHA256-Crypt and SHA512-Crypt algorithms; it doesn't
     handle any of the parsing/validation of the hash strings themselves.
 
-    :arg pwd: password chars/bytes to encrypt
+    :arg pwd: password chars/bytes to hash
     :arg salt: salt chars to use
     :arg rounds: linear rounds cost
     :arg use_512: use sha512-crypt instead of sha256-crypt mode

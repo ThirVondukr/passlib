@@ -30,7 +30,7 @@ newer systems.  They can be used directly as follows::
 
     >>> from passlib.hash import cisco_pix as pix
 
-    >>> # encrypt password using specified username
+    >>> # hash password using specified username
     >>> hash = pix.hash("password", user="user")
     >>> hash
     'A5XOy94YKDPXCo7U'
@@ -45,7 +45,7 @@ newer systems.  They can be used directly as follows::
     >>> pm.verify("letmein", hash, user="user")
     False
 
-    >>> # encrypt password without associate user account
+    >>> # hash password without associated user account
     >>> hash2 = pix.hash("password")
     >>> hash2
     'NuLKvvWGg.x9HEKO'

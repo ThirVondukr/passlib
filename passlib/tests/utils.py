@@ -362,6 +362,10 @@ class TestCase(_TestCase):
             ctx = reset_warnings()
             ctx.__enter__()
             self.addCleanup(ctx.__exit__)
+
+            # ignore warnings about PasswordHash features deprecated in 1.7
+            # TODO: should be cleaned in 2.0, when support will be dropped.
+            #       should be kept until then, so we test the legacy paths.
             warnings.filterwarnings("ignore", "the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
             warnings.filterwarnings("ignore", "the 'vary_rounds' option is deprecated")
 
@@ -730,7 +734,7 @@ class HandlerCase(TestCase):
          "vt0RLE8uZ4oPwcelCjmw2kSYu.Ec6ycULevoBK25fs2xXgMNrCzIMVcgEJAstJeonj1"),
     ]
 
-    # passwords used to test basic encrypt behavior - generally
+    # passwords used to test basic hash behavior - generally
     # don't need to be overidden.
     stock_passwords = [
         u("test"),
@@ -862,8 +866,12 @@ class HandlerCase(TestCase):
         secret = self.populate_context(secret, context)
         if use_encrypt:
             # use legacy 1.6 api
-            context.update(**settings)
-            return (handler or self.handler).encrypt(secret, **context)
+            warnings = []
+            if settings:
+                context.update(**settings)
+                warnings.append("passing settings to.*is deprecated")
+            with self.assertWarningList(warnings):
+                return (handler or self.handler).encrypt(secret, **context)
         else:
             # use 1.7 api
             return (handler or self.handler).using(**settings).hash(secret, **context)
@@ -1352,7 +1360,7 @@ class HandlerCase(TestCase):
         return salt
 
     def test_14_salt_chars(self):
-        """test encrypt() honors salt_chars"""
+        """test hash() honors salt_chars"""
         self.require_salt_info()
 
         handler = self.handler
@@ -3069,7 +3077,7 @@ class UserHandlerMixin(HandlerCase):
     """helper for handlers w/ 'user' context kwd; mixin for HandlerCase
 
     this overrides the HandlerCase test harness methods
-    so that a username is automatically inserted to encrypt/verify
+    so that a username is automatically inserted to hash/verify
     calls. as well, passing in a pair of strings as the password
     will be interpreted as (secret,user)
     """
@@ -3166,7 +3174,7 @@ class EncodingHandlerMixin(HandlerCase):
     """helper for handlers w/ 'encoding' context kwd; mixin for HandlerCase
 
     this overrides the HandlerCase test harness methods
-    so that an encoding can be inserted to encrypt/verify
+    so that an encoding can be inserted to hash/verify
     calls by passing in a pair of strings as the password
     will be interpreted as (secret,encoding)
     """

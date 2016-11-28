@@ -23,7 +23,7 @@ It can be used directly as follows::
 
     >>> from passlib.hash import fshp
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> hash = fshp.hash("password")
     >>> hash
     '{FSHP1|16|16384}PtoqcGUetmVEy/uR8715TNqKa8+teMF9qZO1lA9lJNUm1EQBLPZ+qPRLeEPHqy6C'

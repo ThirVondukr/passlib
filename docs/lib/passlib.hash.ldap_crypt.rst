@@ -20,7 +20,7 @@ elsewhere in Passlib, and can be used directly as follows::
 
     >>> from passlib.hash import ldap_md5_crypt
 
-    >>> # encrypt password
+    >>> # hash password
     >>> hash = ldap_md5_crypt.hash("password")
     >>> hash
     '{CRYPT}$1$gwvn5BO0$3dyk8j.UTcsNUPrLMsU6/0'

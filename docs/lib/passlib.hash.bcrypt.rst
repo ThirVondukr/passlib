@@ -13,7 +13,7 @@ for new applications. This class can be used directly as follows::
 
     >>> from passlib.hash import bcrypt
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> h = bcrypt.hash("password")
     >>> h
     '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'

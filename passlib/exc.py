@@ -261,7 +261,7 @@ def ExpectedStringError(value, param):
     return ExpectedTypeError(value, "unicode or bytes", param)
 
 #------------------------------------------------------------------------
-# encrypt/verify parameter errors
+# hash/verify parameter errors
 #------------------------------------------------------------------------
 def MissingDigestError(handler=None):
     """raised when verify() method gets passed config string instead of hash"""

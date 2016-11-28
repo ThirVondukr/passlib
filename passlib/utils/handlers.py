@@ -89,7 +89,7 @@ def guess_app_stacklevel(start=1):
     try:
         while frame:
             name = frame.f_globals.get('__name__', "")
-            if not name.startswith("passlib.") or name.startswith("passlib.tests."):
+            if name.startswith("passlib.tests.") or not name.startswith("passlib."):
                 return max(1, count)
             count += 1
             frame = frame.f_back
@@ -100,7 +100,7 @@ def guess_app_stacklevel(start=1):
 def warn_hash_settings_deprecation(handler, kwds):
     warn("passing settings to %(handler)s.hash() is deprecated, and won't be supported in Passlib 2.0; "
          "use '%(handler)s.using(**settings).hash(secret)' instead" % dict(handler=handler.name),
-         stacklevel=guess_app_stacklevel(2))
+         DeprecationWarning, stacklevel=guess_app_stacklevel(2))
 
 def extract_settings_kwds(handler, kwds):
     """
@@ -538,7 +538,7 @@ class GenericHandler(MinimalHandler):
     .. automethod:: genconfig
     .. automethod:: genhash
     .. automethod:: identify
-    .. automethod:: encrypt
+    .. automethod:: hash
     .. automethod:: verify
     """
 
@@ -731,8 +731,7 @@ class GenericHandler(MinimalHandler):
             # this block of code.
             settings = extract_settings_kwds(cls, kwds)
             if settings:
-                # TODO: uncomment this ones UTs are adjusted to expect warning...
-                # warn_hash_settings_deprecation(cls, settings)
+                warn_hash_settings_deprecation(cls, settings)
                 return cls.using(**settings).hash(secret, **kwds)
         # NOTE: at this point, 'kwds' should just contain context_kwds subset
         validate_secret(secret)
@@ -845,7 +844,7 @@ class GenericHandler(MinimalHandler):
         """
         # FIXME: this may not work for hashes with non-standard settings.
         # XXX: how should this handle checksum/salt encoding?
-        # need to work that out for encrypt anyways.
+        # need to work that out for hash() anyways.
         self = cls.from_string(hash)
         # XXX: could split next few lines out as self._parsehash() for subclassing
         # XXX: could try to resolve ident/variant to publically suitable alias.

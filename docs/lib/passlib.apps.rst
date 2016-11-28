@@ -3,7 +3,7 @@
 ==================================================================
 
 .. module:: passlib.apps
-    :synopsis: encrypting & verifying passwords used in sql servers and other applications
+    :synopsis: hashing & verifying passwords used in sql servers and other applications
 
 .. _predefined-context-example:
 
@@ -23,7 +23,7 @@ Each of the objects in this module can be imported directly::
     >>> # a helper to let new applications *quickly* add password hashing.
     >>> from passlib.apps import custom_app_context
 
-Encrypting a password is simple (and salt generation is handled automatically)::
+Hashing a password is simple (and salt generation is handled automatically)::
 
     >>> hash = custom_app_context.hash("toomanysecrets")
     >>> hash
@@ -185,11 +185,11 @@ PostgreSQL
     This object should recognize password hashes stores in PostgreSQL's ``pg_shadow`` table;
     which are all assumed to follow the :class:`~passlib.hash.postgres_md5` format.
 
-    Note that the username must be provided whenever encrypting or verifying a postgres hash::
+    Note that the username must be provided whenever hashing or verifying a postgres hash::
 
         >>> from passlib.apps import postgres_context
 
-        >>> # encrypting a password...
+        >>> # hashing a password...
         >>> postgres_context.hash("somepass", user="dbadmin")
         'md578ed0f0ab2be0386645c1b74282917e7'
 

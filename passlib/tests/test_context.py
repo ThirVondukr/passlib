@@ -879,7 +879,7 @@ sha512_crypt__min_rounds = 45000
         ]
 
     def test_40_basic(self):
-        """test basic encrypt/identify/verify functionality"""
+        """test basic hash/identify/verify functionality"""
         handlers = [hash.md5_crypt, hash.des_crypt, hash.bsdi_crypt]
         cc = CryptContext(handlers, bsdi_crypt__default_rounds=5)
 
@@ -934,7 +934,7 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------------------
 
         # test unicode category strings are accepted under py2
-        # this tests basic _get_record() used by encrypt/genhash/verify.
+        # this tests basic _get_record() used by hash/genhash/verify.
         # we have to omit scheme=xxx so codepath is tested fully
         if PY2:
             c2 = cc.copy(default="phpass")
@@ -1036,30 +1036,31 @@ sha512_crypt__min_rounds = 45000
         #       and then discard the rest of these under 2.0.
 
         # hash specific settings
-        self.assertEqual(
-            cc.hash("password", scheme="phpass", salt='.'*8),
-            '$H$5........De04R5Egz0aq8Tf.1eVhY/',
-            )
-        self.assertEqual(
-            cc.hash("password", scheme="phpass", salt='.'*8, ident="P"),
-            '$P$5........De04R5Egz0aq8Tf.1eVhY/',
-            )
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
+            self.assertEqual(
+                cc.hash("password", scheme="phpass", salt='.'*8),
+                '$H$5........De04R5Egz0aq8Tf.1eVhY/',
+                )
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
+            self.assertEqual(
+                cc.hash("password", scheme="phpass", salt='.'*8, ident="P"),
+                '$P$5........De04R5Egz0aq8Tf.1eVhY/',
+                )
 
         # NOTE: more thorough job of rounds limits done below.
 
         # min rounds
-        with self.assertWarningList([]):
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
             self.assertEqual(
                 cc.hash("password", rounds=1999, salt="nacl"),
                 '$5$rounds=1999$nacl$nmfwJIxqj0csloAAvSER0B8LU0ERCAbhmMug4Twl609',
                 )
 
-        with self.assertWarningList([]):
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
             self.assertEqual(
                 cc.hash("password", rounds=2001, salt="nacl"),
                 '$5$rounds=2001$nacl$8PdeoPL4aXQnJ0woHhqgIw/efyfCKC2WHneOpnvF.31'
                 )
-
         # NOTE: max rounds, etc tested in genconfig()
 
         # bad scheme values
@@ -1294,7 +1295,8 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(cc1.verify_and_update("stub", des_hash), (True, None))
 
         # des_crypt should throw error due to unknown context keyword
-        self.assertRaises(TypeError, cc1.hash, "stub", user="root")
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
+            self.assertRaises(TypeError, cc1.hash, "stub", user="root")
         self.assertRaises(TypeError, cc1.verify, "stub", des_hash, user="root")
         self.assertRaises(TypeError, cc1.verify_and_update, "stub", des_hash, user="root")
 
@@ -1315,7 +1317,8 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(cc2.verify_and_update("stub", des_hash, user="root"), (True, None))
 
         # verify error with unknown kwd
-        self.assertRaises(TypeError, cc2.hash, "stub", badkwd="root")
+        with self.assertWarningList(["passing settings to.*is deprecated"]):
+            self.assertRaises(TypeError, cc2.hash, "stub", badkwd="root")
         self.assertRaises(TypeError, cc2.verify, "stub", des_hash, badkwd="root")
         self.assertRaises(TypeError, cc2.verify_and_update, "stub", des_hash, badkwd="root")
 

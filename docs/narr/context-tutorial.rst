@@ -87,7 +87,7 @@ interface, and hashing and verifying passwords is equally as straightforward::
     True
 
 If not told otherwise, the context object will use the first algorithm listed
-in ``schemes`` when encrypting new hashes. This default can be changed by
+in ``schemes`` when creating new hashes. This default can be changed by
 using the ``default`` keyword::
 
     >>> myctx = CryptContext(schemes=["sha256_crypt", "md5_crypt", "des_crypt"],
@@ -112,7 +112,7 @@ which probably provide a better argument for *why* you'd want to use it.
 
 Using Default Settings
 ======================
-While encrypting and verifying hashes is useful enough, it's not much
+While creating and verifying hashes is useful enough, it's not much
 more than could be done by importing the objects into a list.
 The next feature of the :class:`!CryptContext` class is that it
 can store various customized settings for the different algorithms,
@@ -409,7 +409,7 @@ All of the documented :ref:`context-options` are allowed.
     pbkdf2_sha256__min_rounds = 10000
     pbkdf2_sha256__max_rounds = 50000
 
-    ; set the default rounds to use when encrypting new passwords.
+    ; set the default rounds to use when hashing new passwords.
     pbkdf2_sha1__default_rounds = 15000
 
     ; applications can choose to treat certain user accounts differently,

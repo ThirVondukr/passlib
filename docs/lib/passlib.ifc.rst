@@ -270,7 +270,7 @@ using the provided configuration string.
 
     :type config: unicode or bytes
     :arg config:
-        configuration string to use when encrypting secret.
+        configuration string to use when hashing the secret.
         this can either be an existing hash that was previously
         returned by :meth:`PasswordHash.genhash`, or a configuration string
         that was previously created by :meth:`PasswordHash.genconfig`.

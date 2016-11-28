@@ -13,7 +13,7 @@ It can used directly as follows::
 
     >>> from passlib.hash import des_crypt
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> hash = des_crypt.hash("password")
     'JQMuyS6H.AGMo'
 

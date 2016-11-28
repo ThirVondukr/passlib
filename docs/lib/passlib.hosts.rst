@@ -3,10 +3,10 @@
 ============================================
 
 .. module:: passlib.hosts
-    :synopsis: encrypting & verifying operating system passwords
+    :synopsis: hashing & verifying operating system passwords
 
 This module provides some preconfigured :ref:`CryptContext <context-reference>`
-instances for encrypting & verifying password hashes tied to user accounts of various operating systems.
+instances for hashing & verifying password hashes tied to user accounts of various operating systems.
 While (most) of the objects are available cross-platform,
 their use is oriented primarily towards Linux and BSD variants.
 
@@ -27,7 +27,7 @@ Each of the objects in this module can be imported directly::
     >>> # which is configured to recognized most hashes found in Linux /etc/shadow files.
     >>> from passlib.apps import linux_context
 
-Encrypting a password is simple (and salt generation is handled automatically)::
+Hashing a password is simple (and salt generation is handled automatically)::
 
     >>> hash = linux_context.hash("toomanysecrets")
     >>> hash
@@ -112,7 +112,7 @@ Current Host OS
       are available on a given system (via ``host_context.schemes()``).
     * it defaults to the strongest algorithm available,
       automatically configured to an appropriate strength
-      for encrypting new passwords.
+      for hashing new passwords.
     * whereas :func:`!crypt` typically defaults to using
       :mod:`~passlib.hash.des_crypt`; and provides little introspection.
 

@@ -36,7 +36,7 @@ This class can be used like any other Passlib hash, as follows::
 
     >>> from passlib.hash import scram
 
-    >>> # generate new salt, encrypt password against default list of algorithms
+    >>> # generate new salt, hash password against default list of algorithms
     >>> hash = scram.hash("password")
     >>> hash
     '$scram$6400$.Z/znnNOKWUsBaCU$sha-1=cRseQyJpnuPGn3e6d6u6JdJWk.0,sha-256=5G

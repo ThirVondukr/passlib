@@ -15,7 +15,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import mssql2005 as m25
 
-    >>> # encrypt password
+    >>> # hash password
     >>> h = m25.hash("password")
     >>> h
     '0x01006ACDF9FF5D2E211B392EEF1175EFFE13B3A368CE2F94038B'

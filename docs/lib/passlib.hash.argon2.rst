@@ -17,7 +17,7 @@ for new applications. This class can be used directly as follows::
 
     >>> from passlib.hash import argon2
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> h = argon2.hash("password")
     >>> h
     '$argon2i$v=19$m=512,t=2,p=2$aI2R0hpDyLm3ltLa+1/rvQ$LqPKjd6n8yniKtAithoR7A'

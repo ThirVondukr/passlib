@@ -15,7 +15,7 @@ This class can be used directly as follows::
 
     >>> from passlib.hash import bcrypt_sha256
 
-    >>> # generate new salt, encrypt password
+    >>> # generate new salt, hash password
     >>> h = bcrypt_sha256.hash("password")
     >>> h
     '$bcrypt-sha256$2a,12$LrmaIX5x4TRtAwEfwJZa1.$2ehnw6LvuIUTM0iz4iz9hTxv21B6KFO'

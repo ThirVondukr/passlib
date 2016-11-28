@@ -19,7 +19,7 @@ That aside, this class can be used as follows::
 
     >>> from passlib.hash import mysql323
 
-    >>> # encrypt password
+    >>> # hash password
     >>> mysql323.hash("password")
     '5d2e19393cc5ef67'
 

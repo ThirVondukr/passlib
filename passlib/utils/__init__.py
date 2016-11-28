@@ -402,12 +402,15 @@ def saslprep(source, param="value"):
         unicode string to normalize & validate
 
     :param param:
-        Optional noun used to refer to identify source parameter in error messages
+        Optional noun identifying source parameter in error messages
         (Defaults to the string ``"value"``). This is mainly useful to make the caller's error
-        messages make more sense.
+        messages make more sense contextually.
 
     :raises ValueError:
         if any characters forbidden by the SASLPrep profile are encountered.
+
+    :raises TypeError:
+        if input is not :class:`!unicode`
 
     :returns:
         normalized unicode string
@@ -425,6 +428,8 @@ def saslprep(source, param="value"):
     #              http://docs.python.org/library/stringprep.html
 
     # validate type
+    # XXX: support bytes (e.g. run through want_unicode)?
+    #      might be easier to just integrate this into cryptcontext.
     if not isinstance(source, unicode):
         raise TypeError("input must be unicode string, not %s" %
                         (type(source),))
