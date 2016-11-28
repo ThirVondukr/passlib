@@ -4,7 +4,78 @@
 Passlib 1.8
 ===========
 
+.. rst-class:: emphasize-children toc-always-open
+
 **1.8.0** (NOT YET RELEASED)
 ============================
 
-* 1.8 is under development, and tenatively scheduled for release in late 2017
+Overview
+--------
+
+.. rst-class:: without-title
+
+.. warning::
+
+   **1.8 is under development,** and tenatively scheduled for release in late 2017.
+
+   See https://passlib.readthedocs.io/en/stable/history/1.7.html for the latest release.
+
+Backwards Incompatibilities
+---------------------------
+The following previously-deprecated features were removed,
+though few of these should be in use, as they've been deprecated
+for a number of years / releases:
+
+    **passlib.apache:**
+
+    .. py:currentmodule:: passlib.apache
+
+    *  :mod:`passlib.apache`: A number of deprecated options & methods were removed from
+       :class:`HtpasswdFile` and :class:`Htdigest`:
+
+       - Support for setting ``encoding=None`` removed, use ``return_unicode=True`` instead.
+       - ``autoload=False`` keyword removed, use ``new=True`` instead.
+       - :meth:`!load` method no longer supports ``force=False``, use :meth:`~HtpasswdFile.load_if_changed` instead.
+       - :meth:`!update` alias removed, use :meth:`~HtpasswdFile.set_password` instead.
+       - :meth:`!find` alias removed, use :meth:`~HtpasswdFile.get_hash` instead.
+       - :meth:`!verify` alias removed, use :meth:`~HtpasswdFile.check_password` instead.
+       - ``default`` keyword removed, use ``default_scheme`` instead.
+
+    **passlib.context:**
+
+    .. py:currentmodule:: passlib.context
+
+    * The :class:`!passlib.context.CryptPolicy` class was removed.
+      Code should be using the equivalent :meth:`~CryptContext` methods instead.
+
+    * Concurrent with that, :class:`CryptContext`'s ``policy`` keyword and attribute
+      were removed, along with :class:`LazyCryptContext`'s ``create_policy`` keyword.
+
+    * :meth:`!CryptContext.replace` alias removed, use :meth:`CryptContext.using` instead.
+
+    * :class:`CryptContext`'s ``min_verify_time`` keyword removed, use ``harden_verify=True`` instead.
+
+    **passlib.hash:**
+
+    .. py:currentmodule:: passlib.hash
+
+    * :class:`!passlib.hash.unix_fallback` was removed, use :class:`~unix_disabled` instead.
+
+    **other modules:**
+
+    * In :mod:`passlib.ext.django`, support for ``CONFIG=None`` was dropped.
+
+    * The deprecated :mod:`!passlib.win32` module was removed, use :class:`passlib.hash.lmhash` hash instead.
+
+    **internal details:**
+
+    .. py:currentmodule:: passlib.hash
+
+    * The :meth:`!passlib.hash.nthash.raw_nthash` alias was removed, use :meth:`nthash.raw` instead.
+
+    * In :mod:`passlib.utils.handlers`: :class:`!StaticHandler` subclasses must now always implement
+      :meth:`!_calc_checksum`, the old genhash-based style is no longer supported or checked for.
+
+    * The deprecated :func:`passlib.utils.des.mdes_encrypt_int_block` method was removed.
+
+    * The :func:`passlib.utils.pbkdf2.norm_hash_name` alias was removed, use :func:`passlib.crypto.digest.norm_hash_name` instead.

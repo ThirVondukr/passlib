@@ -12,14 +12,10 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.exc import ExpectedTypeError
-from passlib.utils.decor import deprecated_function
 from passlib.utils.compat import native_string_types
-from passlib.crypto.digest import norm_hash_name, lookup_hash, pbkdf1 as _pbkdf1, pbkdf2_hmac, compile_hmac
+from passlib.crypto.digest import lookup_hash, pbkdf1 as _pbkdf1, pbkdf2_hmac, compile_hmac
 # local
 __all__ = [
-    # hash utils
-    "norm_hash_name",
-
     # prf utils
     "get_prf",
 
@@ -36,13 +32,6 @@ from warnings import warn
 warn("the module 'passlib.utils.pbkdf2' is deprecated as of Passlib 1.7, "
      "and will be removed in Passlib 2.0, please use 'passlib.crypto' instead",
      DeprecationWarning)
-
-#=============================================================================
-# hash helpers
-#=============================================================================
-
-norm_hash_name = deprecated_function(deprecated="1.7", removed="1.8", func_module=__name__,
-    replacement="passlib.crypto.digest.norm_hash_name")(norm_hash_name)
 
 #=============================================================================
 # prf lookup

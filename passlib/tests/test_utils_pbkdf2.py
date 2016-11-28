@@ -23,60 +23,6 @@ from passlib.utils.compat import u, JYTHON
 from passlib.tests.utils import TestCase, hb
 
 #=============================================================================
-# test assorted crypto helpers
-#=============================================================================
-class UtilsTest(TestCase):
-    """test various utils functions"""
-    descriptionPrefix = "passlib.utils.pbkdf2"
-
-    ndn_formats = ["hashlib", "iana"]
-    ndn_values = [
-        # (iana name, hashlib name, ... other unnormalized names)
-        ("md5", "md5",          "SCRAM-MD5-PLUS", "MD-5"),
-        ("sha1", "sha-1",       "SCRAM-SHA-1", "SHA1"),
-        ("sha256", "sha-256",   "SHA_256", "sha2-256"),
-        ("ripemd", "ripemd",    "SCRAM-RIPEMD", "RIPEMD"),
-        ("ripemd160", "ripemd-160",
-                                "SCRAM-RIPEMD-160", "RIPEmd160"),
-        ("test128", "test-128", "TEST128"),
-        ("test2", "test2", "TEST-2"),
-        ("test3_128", "test3-128", "TEST-3-128"),
-    ]
-
-    def setUp(self):
-        super(UtilsTest, self).setUp()
-        warnings.filterwarnings("ignore", ".*passlib.utils.pbkdf2.*deprecated", DeprecationWarning)
-
-    def test_norm_hash_name(self):
-        """norm_hash_name()"""
-        from itertools import chain
-        from passlib.utils.pbkdf2 import norm_hash_name
-        from passlib.crypto.digest import _known_hash_names
-
-        # test formats
-        for format in self.ndn_formats:
-            norm_hash_name("md4", format)
-        self.assertRaises(ValueError, norm_hash_name, "md4", None)
-        self.assertRaises(ValueError, norm_hash_name, "md4", "fake")
-
-        # test types
-        self.assertEqual(norm_hash_name(u("MD4")), "md4")
-        self.assertEqual(norm_hash_name(b"MD4"), "md4")
-        self.assertRaises(TypeError, norm_hash_name, None)
-
-        # test selected results
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", '.*unknown hash')
-            for row in chain(_known_hash_names, self.ndn_values):
-                for idx, format in enumerate(self.ndn_formats):
-                    correct = row[idx]
-                    for value in row:
-                        result = norm_hash_name(value, format)
-                        self.assertEqual(result, correct,
-                                         "name=%r, format=%r:" % (value,
-                                                                  format))
-
-#=============================================================================
 # test PBKDF1 support
 #=============================================================================
 class Pbkdf1_Test(TestCase):

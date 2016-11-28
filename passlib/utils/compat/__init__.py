@@ -112,6 +112,7 @@ else:
     native_string_types = (basestring,)
 
 # shorter preferred aliases
+# TODO: align compat module w/ crowbar.compat naming
 unicode_or_bytes = unicode_or_bytes_types
 unicode_or_str = native_string_types
 

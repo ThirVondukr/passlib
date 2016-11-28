@@ -15,66 +15,12 @@ import passlib.utils.handlers as uh
 # local
 __all__ = [
     "unix_disabled",
-    "unix_fallback",
     "plaintext",
 ]
 
 #=============================================================================
 # handler
 #=============================================================================
-class unix_fallback(uh.ifc.DisabledHash, uh.StaticHandler):
-    """This class provides the fallback behavior for unix shadow files, and follows the :ref:`password-hash-api`.
-
-    This class does not implement a hash, but instead provides fallback
-    behavior as found in /etc/shadow on most unix variants.
-    If used, should be the last scheme in the context.
-
-    * this class will positively identify all hash strings.
-    * for security, passwords will always hash to ``!``.
-    * it rejects all passwords if the hash is NOT an empty string (``!`` or ``*`` are frequently used).
-    * by default it rejects all passwords if the hash is an empty string,
-      but if ``enable_wildcard=True`` is passed to verify(),
-      all passwords will be allowed through if the hash is an empty string.
-
-    .. deprecated:: 1.6
-        This has been deprecated due to its "wildcard" feature,
-        and will be removed in Passlib 1.8. Use :class:`unix_disabled` instead.
-    """
-    name = "unix_fallback"
-    context_kwds = ("enable_wildcard",)
-
-    @classmethod
-    def identify(cls, hash):
-        if isinstance(hash, unicode_or_bytes_types):
-            return True
-        else:
-            raise uh.exc.ExpectedStringError(hash, "hash")
-
-    def __init__(self, enable_wildcard=False, **kwds):
-        warn("'unix_fallback' is deprecated, "
-             "and will be removed in Passlib 1.8; "
-             "please use 'unix_disabled' instead.",
-             DeprecationWarning)
-        super(unix_fallback, self).__init__(**kwds)
-        self.enable_wildcard = enable_wildcard
-
-    def _calc_checksum(self, secret):
-        if self.checksum:
-            # NOTE: hash will generally be "!", but we want to preserve
-            # it in case it's something else, like "*".
-            return self.checksum
-        else:
-            return u("!")
-
-    @classmethod
-    def verify(cls, secret, hash, enable_wildcard=False):
-        uh.validate_secret(secret)
-        if not isinstance(hash, unicode_or_bytes_types):
-            raise uh.exc.ExpectedStringError(hash, "hash")
-        elif hash:
-            return False
-        else:
-            return enable_wildcard
 
 _MARKER_CHARS = u("*!")
 _MARKER_BYTES = b"*!"
@@ -99,8 +45,8 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
         (:attr:`!unix_disabled.default_marker` will contain the default value)
 
     .. versionadded:: 1.6
-        This class was added as a replacement for the now-deprecated
-        :class:`unix_fallback` class, which had some undesirable features.
+        This class was added as a replacement for the now-removed
+        :class:`!unix_fallback` class.
     """
     name = "unix_disabled"
     setting_kwds = ("marker",)

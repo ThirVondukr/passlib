@@ -280,7 +280,7 @@ CryptContext
     * All new (and hopefully clearer) :ref:`tutorial <context-tutorial>`
       and :ref:`reference <context-reference>` documentation.
 
-    *   The :class:`CryptPolicy` class and the :attr:`!CryptContext.policy` attribute have been deprecated.
+    *   The :class:`!CryptPolicy` class and the :attr:`!CryptContext.policy` attribute have been deprecated.
 
         This was a semi-internal class, which most applications
         were not involved with at all, but to be conservative about
@@ -303,7 +303,7 @@ CryptContext
       can now be set to the special string ``"auto"``; which will
       automatically deprecate all schemes except for the default one.
 
-    * The :ref:`min_verify_time <context-min-verify-time-option>` keyword
+    * The ``min_verify_time`` keyword
       has been deprecated, will be ignored in release 1.7, and will be removed in release 1.8.
       It was never very useful, and now complicates the internal code needlessly.
 

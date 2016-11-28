@@ -607,9 +607,9 @@ class DjangoExtensionTest(_ExtensionTest):
         self.load_extension(PASSLIB_CONFIG="disabled", check=False)
         self.assert_unpatched()
 
-        # check legacy config=None
-        with self.assertWarningList("PASSLIB_CONFIG=None is deprecated"):
-            self.load_extension(PASSLIB_CONFIG=None, check=False)
+        # check onfig=None is rejected
+        self.assertRaises(TypeError, self.load_extension, PASSLIB_CONFIG=None,
+                          check=False)
         self.assert_unpatched()
 
         # try stock django 1.0 context
@@ -699,9 +699,9 @@ class DjangoExtensionTest(_ExtensionTest):
     #===================================================================
     def test_11_config_disabled(self):
         """test PASSLIB_CONFIG='disabled'"""
-        # test config=None (deprecated)
-        with self.assertWarningList("PASSLIB_CONFIG=None is deprecated"):
-            self.load_extension(PASSLIB_CONFIG=None, check=False)
+        # test config=None is rejected
+        self.assertRaises(TypeError, self.load_extension, PASSLIB_CONFIG=None,
+                          check=False)
         self.assert_unpatched()
 
         # test disabled config

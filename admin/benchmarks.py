@@ -90,10 +90,6 @@ class benchmark:
 sample_config_1p = os.path.join(root, "passlib", "tests", "sample_config_1s.cfg")
 
 from passlib.context import CryptContext
-if hasattr(CryptContext, "from_path"):
-    CryptPolicy = None
-else:
-    from passlib.context import CryptPolicy
 
 class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     name = "blank"
@@ -133,12 +129,8 @@ OTHER =  u("setecastronomy")
 def test_context_from_path():
     """test speed of CryptContext.from_path()"""
     path = sample_config_1p
-    if CryptPolicy:
-        def helper():
-            CryptPolicy.from_path(path)
-    else:
-        def helper():
-            CryptContext.from_path(path)
+    def helper():
+        CryptContext.from_path(path)
     return helper
 
 @benchmark.constructor()
@@ -150,14 +142,9 @@ def test_context_update():
         deprecated = [ "des_crypt" ],
         sha512_crypt__min_rounds=4000,
         )
-    if CryptPolicy:
-        policy=CryptPolicy.from_path(sample_config_1p)
-        def helper():
-            policy.replace(**kwds)
-    else:
-        ctx = CryptContext.from_path(sample_config_1p)
-        def helper():
-            ctx.copy(**kwds)
+    ctx = CryptContext.from_path(sample_config_1p)
+    def helper():
+        ctx.copy(**kwds)
     return helper
 
 @benchmark.constructor()

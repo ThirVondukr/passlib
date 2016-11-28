@@ -56,7 +56,6 @@ def _load_master_config():
         # disabled handlers
         'django_disabled',
         'unix_disabled',
-        'unix_fallback',
     ]
     for name in excluded:
         schemes.remove(name)

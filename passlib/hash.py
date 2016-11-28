@@ -45,7 +45,7 @@ if False:
     from passlib.handlers.fshp import fshp
     from passlib.handlers.ldap_digests import ldap_bcrypt, ldap_bsdi_crypt, ldap_des_crypt, ldap_md5, ldap_md5_crypt, ldap_plaintext, ldap_salted_md5, ldap_salted_sha1, ldap_sha1, ldap_sha1_crypt, ldap_sha256_crypt, ldap_sha512_crypt
     from passlib.handlers.md5_crypt import apr_md5_crypt, md5_crypt
-    from passlib.handlers.misc import plaintext, unix_disabled, unix_fallback
+    from passlib.handlers.misc import plaintext, unix_disabled
     from passlib.handlers.mssql import mssql2000, mssql2005
     from passlib.handlers.mysql import mysql323, mysql41
     from passlib.handlers.oracle import oracle10, oracle11

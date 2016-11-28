@@ -107,17 +107,14 @@ class _CommonFile(object):
     #===================================================================
     # init
     #===================================================================
-    def __init__(self, path=None, new=False, autoload=True, autosave=False,
+    # XXX: add a new() classmethod, ala TOTP.new()?
+
+    def __init__(self, path=None, new=False, autosave=False,
                  encoding="utf-8", return_unicode=PY3,
                  ):
         # set encoding
         if not encoding:
-            warn("``encoding=None`` is deprecated as of Passlib 1.6, "
-                 "and will cause a ValueError in Passlib 1.8, "
-                 "use ``return_unicode=False`` instead.",
-                 DeprecationWarning, stacklevel=2)
-            encoding = "utf-8"
-            return_unicode = False
+            raise TypeError("'encoding' is required")
         elif not is_ascii_codec(encoding):
             # htpasswd/htdigest files assumes 1-byte chars, and use ":" separator,
             # so only ascii-compatible encodings are allowed.
@@ -131,11 +128,6 @@ class _CommonFile(object):
         self._mtime = 0
 
         # init db
-        if not autoload:
-            warn("``autoload=False`` is deprecated as of Passlib 1.6, "
-                 "and will be removed in Passlib 1.8, use ``new=True`` instead",
-                 DeprecationWarning, stacklevel=2)
-            new = True
         if path and not new:
             self.load()
         else:
@@ -181,33 +173,17 @@ class _CommonFile(object):
         self.load()
         return True
 
-    def load(self, path=None, force=True):
+    def load(self, path=None):
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 
         :type path: str
         :arg path: local file to load from
-
-        :type force: bool
-        :param force:
-            if ``force=False``, only load from ``self.path`` if file
-            has changed since last load.
-
-            .. deprecated:: 1.6
-                This keyword will be removed in Passlib 1.8;
-                Applications should use :meth:`load_if_changed` instead.
         """
         if path is not None:
             with open(path, "rb") as fh:
                 self._mtime = 0
                 self._load_lines(fh)
-        elif not force:
-            warn("%(name)s.load(force=False) is deprecated as of Passlib 1.6,"
-                 "and will be removed in Passlib 1.8; "
-                 "use %(name)s.load_if_changed() instead." %
-                 dict(name=self.__class__.__name__),
-                 DeprecationWarning, stacklevel=2)
-            return self.load_if_changed()
         elif self._path:
             with open(self._path, "rb") as fh:
                 self._mtime = os.path.getmtime(self._path)
@@ -554,7 +530,7 @@ class HtpasswdFile(_CommonFile):
 
         .. versionadded:: 1.6
             This feature was previously enabled by setting ``autoload=False``.
-            That alias has been deprecated, and will be removed in Passlib 1.8
+            That alias was removed in Passlib 1.8
 
     :type autosave: bool
     :param autosave:
@@ -606,7 +582,7 @@ class HtpasswdFile(_CommonFile):
 
         .. versionadded:: 1.6
             This keyword was previously named ``default``. That alias
-            has been deprecated, and will be removed in Passlib 1.8.
+            was removed in Passlib 1.8.
 
         .. versionchanged:: 1.6.3
 
@@ -631,23 +607,6 @@ class HtpasswdFile(_CommonFile):
             formats to an htpasswd file. However, the resulting file
             will probably not be usable by another application,
             and particularly not by Apache.
-
-    :param autoload:
-        Set to ``False`` to prevent the constructor from automatically
-        loaded the file from disk.
-
-        .. deprecated:: 1.6
-            This has been replaced by the *new* keyword.
-            Instead of setting ``autoload=False``, you should use
-            ``new=True``. Support for this keyword will be removed
-            in Passlib 1.8.
-
-    :param default:
-        Change the default algorithm used to hash new passwords.
-
-        .. deprecated:: 1.6
-            This has been renamed to *default_scheme* for clarity.
-            Support for this alias will be removed in Passlib 1.8.
 
     Loading & Saving
     ================
@@ -704,12 +663,6 @@ class HtpasswdFile(_CommonFile):
     #===================================================================
     def __init__(self, path=None, default_scheme=None, context=htpasswd_context,
                  **kwds):
-        if 'default' in kwds:
-            warn("``default`` is deprecated as of Passlib 1.6, "
-                 "and will be removed in Passlib 1.8, it has been renamed "
-                 "to ``default_scheem``.",
-                 DeprecationWarning, stacklevel=2)
-            default_scheme = kwds.pop("default")
         if default_scheme:
             if default_scheme in _warn_no_bcrypt:
                 warn("HtpasswdFile: no bcrypt backends available, "
@@ -763,24 +716,17 @@ class HtpasswdFile(_CommonFile):
         .. versionchanged:: 1.6
             This method was previously called ``update``, it was renamed
             to prevent ambiguity with the dictionary method.
-            The old alias is deprecated, and will be removed in Passlib 1.8.
+            The old alias was removed in Passlib 1.8.
         """
         hash = self.context.hash(password)
         return self.set_hash(user, hash)
-
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="set_password")
-    def update(self, user, password):
-        """set password for user"""
-        return self.set_password(user, password)
 
     def get_hash(self, user):
         """Return hash stored for user, or ``None`` if user not found.
 
         .. versionchanged:: 1.6
             This method was previously named ``find``, it was renamed
-            for clarity. The old name is deprecated, and will be removed
-            in Passlib 1.8.
+            for clarity. The old name was removed in Passlib 1.8.
         """
         try:
             return self._records[self._encode_user(user)]
@@ -804,12 +750,6 @@ class HtpasswdFile(_CommonFile):
         existing = self._set_record(user, hash)
         self._autosave()
         return existing
-
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="get_hash")
-    def find(self, user):
-        """return hash for user"""
-        return self.get_hash(user)
 
     # XXX: rename to something more explicit, like delete_user()?
     def delete(self, user):
@@ -839,7 +779,7 @@ class HtpasswdFile(_CommonFile):
         .. versionchanged:: 1.6
             This method was previously called ``verify``, it was renamed
             to prevent ambiguity with the :class:`!CryptContext` method.
-            The old alias is deprecated, and will be removed in Passlib 1.8.
+            The old alias was removed in Passlib 1.8.
         """
         user = self._encode_user(user)
         hash = self._records.get(user)
@@ -856,12 +796,6 @@ class HtpasswdFile(_CommonFile):
             self._records[user] = new_hash
             self._autosave()
         return ok
-
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="check_password")
-    def verify(self, user, password):
-        """verify password for user"""
-        return self.check_password(user, password)
 
     #===================================================================
     # eoc
@@ -919,7 +853,7 @@ class HtdigestFile(_CommonFile):
 
         .. versionadded:: 1.6
             This feature was previously enabled by setting ``autoload=False``.
-            That alias has been deprecated, and will be removed in Passlib 1.8
+            That alias was removed in Passlib 1.8
 
     :type autosave: bool
     :param autosave:
@@ -939,16 +873,6 @@ class HtdigestFile(_CommonFile):
         is the only other commonly encountered encoding.
 
         This is also exposed as a readonly instance attribute.
-
-    :param autoload:
-        Set to ``False`` to prevent the constructor from automatically
-        loaded the file from disk.
-
-        .. deprecated:: 1.6
-            This has been replaced by the *new* keyword.
-            Instead of setting ``autoload=False``, you should use
-            ``new=True``. Support for this keyword will be removed
-            in Passlib 1.8.
 
     Loading & Saving
     ================
@@ -1112,12 +1036,6 @@ class HtdigestFile(_CommonFile):
         hash = htdigest.hash(password, user, realm, encoding=self.encoding)
         return self.set_hash(user, realm, hash)
 
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="set_password")
-    def update(self, user, realm, password):
-        """set password for user"""
-        return self.set_password(user, realm, password)
-
     def get_hash(self, user, realm=None):
         """Return :class:`~passlib.hash.htdigest` hash stored for user.
 
@@ -1126,8 +1044,7 @@ class HtdigestFile(_CommonFile):
 
         .. versionchanged:: 1.6
             This method was previously named ``find``, it was renamed
-            for clarity. The old name is deprecated, and will be removed
-            in Passlib 1.8.
+            for clarity. The old name is was removed Passlib 1.8.
         """
         key = self._encode_key(user, realm)
         hash = self._records.get(key)
@@ -1162,12 +1079,6 @@ class HtdigestFile(_CommonFile):
         existing = self._set_record(key, hash)
         self._autosave()
         return existing
-
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="get_hash")
-    def find(self, user, realm):
-        """return hash for user"""
-        return self.get_hash(user, realm)
 
     # XXX: rename to something more explicit, like delete_user()?
     def delete(self, user, realm=None):
@@ -1218,7 +1129,7 @@ class HtdigestFile(_CommonFile):
         .. versionchanged:: 1.6
             This method was previously called ``verify``, it was renamed
             to prevent ambiguity with the :class:`!CryptContext` method.
-            The old alias is deprecated, and will be removed in Passlib 1.8.
+            The old alias was removed in Passlib 1.8.
         """
         if password is _UNSET:
             # called w/ two args - (user, password), use default realm
@@ -1230,12 +1141,6 @@ class HtdigestFile(_CommonFile):
             return None
         return htdigest.verify(password, hash, user, realm,
                                encoding=self.encoding)
-
-    @deprecated_method(deprecated="1.6", removed="1.8",
-                       replacement="check_password")
-    def verify(self, user, realm, password):
-        """verify password for user"""
-        return self.check_password(user, realm, password)
 
     #===================================================================
     # eoc

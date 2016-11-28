@@ -160,7 +160,6 @@ _locations = dict(
     sha512_crypt = "passlib.handlers.sha2_crypt",
     sun_md5_crypt = "passlib.handlers.sun_md5_crypt",
     unix_disabled = "passlib.handlers.misc",
-    unix_fallback = "passlib.handlers.misc",
 )
 
 # master regexp for detecting valid handler names

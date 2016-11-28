@@ -19,6 +19,10 @@ htpasswd and htdigest files; though the use of two helper classes.
     These classes will now preserve blank lines & "#" comments when updating
     htpasswd files; previous releases would throw a parse error.
 
+.. versionchanged:: 1.8
+
+    A number of methods deprecated since 1.6, have been removed.
+
 .. index:: Apache; htpasswd
 
 Htpasswd Files

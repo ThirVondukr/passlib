@@ -166,24 +166,6 @@ Options which directly affect the behavior of the CryptContext instance:
 
     .. versionadded:: 1.7
 
-.. _context-min-verify-time-option:
-
-``min_verify_time``
-
-    If specified, unsuccessful :meth:`~CryptContext.verify`
-    calls will be penalized, and take at least this may
-    seconds before the method returns. May be an integer
-    or fractional number of seconds.
-
-    .. deprecated:: 1.6
-        This option has not proved very useful, is ignored by 1.7,
-        and will be removed in version 1.8.
-
-    .. versionchanged:: 1.7
-        Per deprecation roadmap above, this option is now ignored.
-
-        See ``harden_verify`` below for a replacement.
-
 .. _context-harden-verify-option:
 
 ``harden_verify``
@@ -553,9 +535,3 @@ if any invalid-but-correctable values are encountered
 Other Helpers
 =============
 .. autoclass:: LazyCryptContext([schemes=None,] \*\*kwds [, onload=None])
-
-.. rst-class:: html-toggle
-
-The CryptPolicy Class (deprecated)
-==================================
-.. autoclass:: CryptPolicy

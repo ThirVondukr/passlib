@@ -927,45 +927,6 @@ class StaticHandler(GenericHandler):
     def to_string(self):
         return uascii_to_str(self._hash_prefix + self.checksum)
 
-    # per-subclass: stores dynamically created subclass used by _calc_checksum() stub
-    __cc_compat_hack = None
-
-    def _calc_checksum(self, secret):
-        """given secret; calcuate and return encoded checksum portion of hash
-        string, taking config from object state
-        """
-        # NOTE: prior to 1.6, StaticHandler required classes implement genhash
-        # instead of this method. so if we reach here, we try calling genhash.
-        # if that succeeds, we issue deprecation warning. if it fails,
-        # we'll just recurse back to here, but in a different instance.
-        # so before we call genhash, we create a subclass which handles
-        # throwing the NotImplementedError.
-        cls = self.__class__
-        assert cls.__module__ != __name__
-        wrapper_cls = cls.__cc_compat_hack
-        if wrapper_cls is None:
-            def inner(self, secret):
-                raise NotImplementedError("%s must implement _calc_checksum()" %
-                                          (cls,))
-            wrapper_cls = cls.__cc_compat_hack = type(cls.__name__ + "_wrapper",
-                  (cls,), dict(_calc_checksum=inner, __module__=cls.__module__))
-        context = dict((k,getattr(self,k)) for k in self.context_kwds)
-        # NOTE: passing 'config=None' here even though not currently allowed by ifc,
-        #       since it *is* allowed under the old 1.5 ifc we're checking for here.
-        try:
-            hash = wrapper_cls.genhash(secret, None, **context)
-        except TypeError as err:
-            if str(err) == "config must be string":
-                raise NotImplementedError("%s must implement _calc_checksum()" %
-                                          (cls,))
-            else:
-                raise
-        warn("%r should be updated to implement StaticHandler._calc_checksum() "
-             "instead of StaticHandler.genhash(), support for the latter "
-             "style will be removed in Passlib 1.8" % cls,
-             DeprecationWarning)
-        return str_to_uascii(hash)
-
 #=============================================================================
 # GenericHandler mixin classes
 #=============================================================================

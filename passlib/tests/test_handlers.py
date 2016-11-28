@@ -1864,41 +1864,6 @@ class unix_disabled_test(HandlerCase):
         self.assertRaises(ValueError, handler.hash, 'stub', marker='abc')
         self.assertRaises(ValueError, handler.using, marker='abc')
 
-class unix_fallback_test(HandlerCase):
-    handler = hash.unix_fallback
-    accepts_all_hashes = True
-
-    known_correct_hashes = [
-        # *everything* should hash to "!", and nothing should verify
-        ("password", "!"),
-        (UPASS_TABLE, "!"),
-    ]
-
-    # silence annoying deprecation warning
-    def setUp(self):
-        super(unix_fallback_test, self).setUp()
-        warnings.filterwarnings("ignore", "'unix_fallback' is deprecated")
-
-    def test_90_wildcard(self):
-        """test enable_wildcard flag"""
-        h = self.handler
-        self.assertTrue(h.verify('password','', enable_wildcard=True))
-        self.assertFalse(h.verify('password',''))
-        for c in "!*x":
-            self.assertFalse(h.verify('password',c, enable_wildcard=True))
-            self.assertFalse(h.verify('password',c))
-
-    def test_91_preserves_existing(self):
-        """test preserves existing disabled hash"""
-        handler = self.handler
-
-        # use marker if no hash
-        self.assertEqual(handler.genhash("stub", ""), "!")
-        self.assertEqual(handler.hash("stub"), "!")
-
-        # use hash if provided and valid
-        self.assertEqual(handler.genhash("stub", "!asd"), "!asd")
-
 #=============================================================================
 # eof
 #=============================================================================

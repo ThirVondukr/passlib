@@ -778,13 +778,7 @@ class DjangoContextAdapter(DjangoTranslator):
             config = getattr(settings, "PASSLIB_CONTEXT", _UNSET)
         if config is _UNSET:
             config = "passlib-default"
-        if config is None:
-            warn("setting PASSLIB_CONFIG=None is deprecated, "
-                 "and support will be removed in Passlib 1.8, "
-                 "use PASSLIB_CONFIG='disabled' instead.",
-                 DeprecationWarning)
-            config = "disabled"
-        elif not isinstance(config, (unicode, bytes, dict)):
+        if not isinstance(config, (unicode, bytes, dict)):
             raise exc.ExpectedTypeError(config, "str or dict", "PASSLIB_CONFIG")
 
         # load custom category func (if any)

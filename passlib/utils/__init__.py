@@ -116,9 +116,6 @@ unix_crypt_schemes = [
 # list of rounds_cost constants
 rounds_cost_values = [ "linear", "log2" ]
 
-# legacy import, will be removed in 1.8
-from passlib.exc import MissingBackendError
-
 # internal helpers
 _BEMPTY = b''
 _UEMPTY = u("")

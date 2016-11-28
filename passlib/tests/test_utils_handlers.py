@@ -90,54 +90,6 @@ class SkeletonTest(TestCase):
         self.assertEqual(d1.hash('s'), '_a')
         self.assertEqual(d1.hash('s', flag=True), '_b')
 
-    def test_01_calc_checksum_hack(self):
-        """test StaticHandler legacy attr"""
-        # release 1.5 StaticHandler required genhash(),
-        # not _calc_checksum, be implemented. we have backward compat wrapper,
-        # this tests that it works.
-
-        class d1(uh.StaticHandler):
-            name = "d1"
-
-            @classmethod
-            def identify(cls, hash):
-                if not hash or len(hash) != 40:
-                    return False
-                try:
-                    int(hash, 16)
-                except ValueError:
-                    return False
-                return True
-
-            @classmethod
-            def genhash(cls, secret, hash):
-                if secret is None:
-                    raise TypeError("no secret provided")
-                if isinstance(secret, unicode):
-                    secret = secret.encode("utf-8")
-                # NOTE: have to support hash=None since this is test of legacy 1.5 api
-                if hash is not None and not cls.identify(hash):
-                    raise ValueError("invalid hash")
-                return hashlib.sha1(b"xyz" + secret).hexdigest()
-
-            @classmethod
-            def verify(cls, secret, hash):
-                if hash is None:
-                    raise ValueError("no hash specified")
-                return cls.genhash(secret, hash) == hash.lower()
-
-        # hash should issue api warnings, but everything else should be fine.
-        with self.assertWarningList("d1.*should be updated.*_calc_checksum"):
-            hash = d1.hash("test")
-        self.assertEqual(hash, '7c622762588a0e5cc786ad0a143156f9fd38eea3')
-
-        self.assertTrue(d1.verify("test", hash))
-        self.assertFalse(d1.verify("xtest", hash))
-
-        # not defining genhash either, however, should cause NotImplementedError
-        del d1.genhash
-        self.assertRaises(NotImplementedError, d1.hash, 'test')
-
     #===================================================================
     # GenericHandler & mixins
     #===================================================================

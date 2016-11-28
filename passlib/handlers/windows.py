@@ -180,14 +180,6 @@ class nthash(uh.StaticHandler):
         # XXX: found refs that say only first 128 chars are used.
         return md4(secret.encode("utf-16-le")).digest()
 
-    @classmethod
-    def raw_nthash(cls, secret, hex=False):
-        warn("nthash.raw_nthash() is deprecated, and will be removed "
-             "in Passlib 1.8, please use nthash.raw() instead",
-             DeprecationWarning)
-        ret = nthash.raw(secret)
-        return hexlify(ret).decode("ascii") if hex else ret
-
     #===================================================================
     # eoc
     #===================================================================

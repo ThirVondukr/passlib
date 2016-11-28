@@ -36,10 +36,6 @@ Interface
 =========
 .. autoclass:: unix_disabled()
 
-Deprecated Interface
-====================
-.. autoclass:: unix_fallback()
-
 Deviations
 ==========
 According to the Linux ``shadow`` man page, an empty string is treated
