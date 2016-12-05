@@ -23,6 +23,15 @@ __all__ = [
 def get_command_class(opts, name):
     return opts['cmdclass'].get(name) or Distribution().get_command_class(name)
 
+def get_command_options(opts, command):
+    return opts.setdefault("command_options", {}).setdefault(command, {})
+
+def set_command_options(opts, command, _source_="setup.py", **kwds):
+    target = get_command_options(opts, command)
+    target.update(
+        (key, (_source_, value))
+        for key, value in kwds.items()
+    )
 
 def _get_file(path):
     with open(path, "r") as fh:
@@ -57,13 +66,15 @@ def stamp_source(base_dir, version, dry_run=False):
 
     #
     # update flag in setup.py
+    # (not present when called from bdist_wheel, etc)
     #
     path = os.path.join(base_dir, "setup.py")
-    content = _get_file(path)
-    content, count = re.subn('(?m)^stamp_build\s*=.*$',
-                    'stamp_build = False', content)
-    assert count == 1, "failed to update 'stamp_build' flag"
-    _replace_file(path, content, dry_run=dry_run)
+    if os.path.exists(path):
+        content = _get_file(path)
+        content, count = re.subn('(?m)^stamp_build\s*=.*$',
+                        'stamp_build = False', content)
+        assert count == 1, "failed to update 'stamp_build' flag"
+        _replace_file(path, content, dry_run=dry_run)
 
 
 def stamp_distutils_output(opts, version):
@@ -111,6 +122,28 @@ def append_hg_revision(version):
         version += ".post" + stamp
 
     return version
+
+def install_build_py_exclude(opts):
+
+    _build_py = get_command_class(opts, "build_py")
+
+    class build_py(_build_py):
+
+        user_options = _build_py.user_options + [
+            ("exclude-packages=", None,
+                "exclude packages from builds"),
+        ]
+
+        exclude_packages = None
+
+        def finalize_options(self):
+            _build_py.finalize_options(self)
+            target = self.packages
+            for package in self.exclude_packages or []:
+                if package in target:
+                    target.remove(package)
+
+    opts['cmdclass']['build_py'] = build_py
 
 #=============================================================================
 # eof

@@ -26,7 +26,6 @@ opts = dict(
     #==================================================================
     # sources
     #==================================================================
-    # XXX: could omit 'passlib._setup' for bdist_wheel & eggs
     packages=setuptools.find_packages(root_dir),
     package_data={
         "passlib.tests": ["*.cfg"],
@@ -142,7 +141,8 @@ from passlib import __version__ as version
 stamp_build = True  # NOTE: modified by stamp_distutils_output()
 if stamp_build:
     from passlib._setup.stamp import (
-        as_bool, append_hg_revision, stamp_distutils_output
+        as_bool, append_hg_revision, stamp_distutils_output,
+        install_build_py_exclude, set_command_options
     )
 
     # add HG revision to end of version
@@ -152,6 +152,12 @@ if stamp_build:
     # subclass build_py & sdist to rewrite source version string,
     # and clears stamp_build flag so this doesn't run again.
     stamp_distutils_output(opts, version)
+
+    # exclude 'passlib._setup' from builds, only needed for sdist
+    install_build_py_exclude(opts)
+    set_command_options(opts, "build_py",
+        exclude_packages=["passlib._setup"],
+    )
 
 opts['version'] = version
 
