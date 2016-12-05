@@ -2,16 +2,20 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement
+from __future__ import absolute_import, division, print_function
 # core
+from distutils.dist import Distribution
 import os
 import re
-from distutils.dist import Distribution
+import subprocess
+import time
 # pkg
 # local
 __all__ = [
     "stamp_source",
     "stamp_distutils_output",
+    "append_hg_revision",
+    "as_bool",
 ]
 #=============================================================================
 # helpers
@@ -19,19 +23,48 @@ __all__ = [
 def get_command_class(opts, name):
     return opts['cmdclass'].get(name) or Distribution().get_command_class(name)
 
+
+def _get_file(path):
+    with open(path, "r") as fh:
+        return fh.read()
+
+
+def _replace_file(path, content, dry_run=False):
+    if dry_run:
+        return
+    if os.path.exists(path):
+        # sdist likes to use hardlinks, have to remove them first,
+        # or we modify *source* file
+        os.unlink(path)
+    with open(path, "w") as fh:
+        fh.write(content)
+
+
 def stamp_source(base_dir, version, dry_run=False):
-    """update version string in passlib dist"""
+    """
+    update version info in passlib source
+    """
+    #
+    # update version string in toplevel package source
+    #
     path = os.path.join(base_dir, "passlib", "__init__.py")
-    with open(path) as fh:
-        input = fh.read()
-    output, count = re.subn('(?m)^__version__\s*=.*$',
+    content = _get_file(path)
+    content, count = re.subn('(?m)^__version__\s*=.*$',
                     '__version__ = ' + repr(version),
-                    input)
+                    content)
     assert count == 1, "failed to replace version string"
-    if not dry_run:
-        os.unlink(path) # sdist likes to use hardlinks
-        with open(path, "w") as fh:
-            fh.write(output)
+    _replace_file(path, content, dry_run=dry_run)
+
+    #
+    # update flag in setup.py
+    #
+    path = os.path.join(base_dir, "setup.py")
+    content = _get_file(path)
+    content, count = re.subn('(?m)^stamp_build\s*=.*$',
+                    'stamp_build = False', content)
+    assert count == 1, "failed to update 'stamp_build' flag"
+    _replace_file(path, content, dry_run=dry_run)
+
 
 def stamp_distutils_output(opts, version):
 
@@ -50,6 +83,34 @@ def stamp_distutils_output(opts, version):
             _sdist.make_release_tree(self, base_dir, files)
             stamp_source(base_dir, version, self.dry_run)
     opts['cmdclass']['sdist'] = sdist
+
+
+def as_bool(value):
+    return (value or "").lower() in "yes y true t 1".split()
+
+
+def append_hg_revision(version):
+
+    # call HG via subprocess
+    # NOTE: for py26 compat, using Popen() instead of check_output()
+    try:
+        proc = subprocess.Popen(["hg", "tip", "--template", "{date(date, '%Y%m%d%H%M%S')}+hg.{node|short}"],
+                                stdout=subprocess.PIPE)
+        stamp, _ = proc.communicate()
+        if proc.returncode:
+            raise subprocess.CalledProcessError(1, [])
+        stamp = stamp.decode("ascii")
+    except (OSError, subprocess.CalledProcessError):
+        # fallback - just use build date
+        stamp = time.strftime("%Y%m%d%H%M%S")
+
+    # modify version
+    if version.endswith((".dev0", ".post0")):
+        version = version[:-1] + stamp
+    else:
+        version += ".post" + stamp
+
+    return version
 
 #=============================================================================
 # eof

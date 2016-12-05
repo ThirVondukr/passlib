@@ -2,7 +2,7 @@
 passlib setup script
 
 This script honors one environmental variable:
-PASSLIB_SETUP_TAG_RELEASE
+SETUP_TAG_RELEASE
     if "yes" (the default), revision tag is appended to version.
     for release, this is explicitly set to "no".
 """
@@ -16,12 +16,8 @@ os.chdir(root_dir)
 #=============================================================================
 # imports
 #=============================================================================
-import re
 from setuptools import setup, find_packages
-import subprocess
 import sys
-import time
-PY3 = (sys.version_info[0] >= 3)
 
 #=============================================================================
 # init setup options
@@ -45,30 +41,19 @@ except ImportError:
 # pull version string from passlib
 from passlib import __version__ as version
 
-# by default, stamp HG revision to end of version
-if os.environ.get("PASSLIB_SETUP_TAG_RELEASE", "y").lower() in "yes y true t 1".split():
-    # call HG via subprocess
-    # NOTE: for py26 compat, using Popen() instead of check_output()
-    try:
-        proc = subprocess.Popen(["hg", "tip", "--template", "{date(date, '%Y%m%d%H%M%S')}+hg.{node|short}"],
-                                stdout=subprocess.PIPE)
-        stamp, _ = proc.communicate()
-        if proc.returncode:
-            raise subprocess.CalledProcessError(1, [])
-        stamp = stamp.decode("ascii")
-    except (OSError, subprocess.CalledProcessError):
-        # fallback - just use build date
-        stamp = time.strftime("%Y%m%d%H%M%S")
+# append hg revision to builds
+stamp_build = True  # NOTE: modified by stamp_distutils_output()
+if stamp_build:
+    from passlib._setup.stamp import (
+        as_bool, append_hg_revision, stamp_distutils_output
+    )
 
-    # modify version
-    if version.endswith((".dev0", ".post0")):
-        version = version[:-1] + stamp
-    else:
-        version += ".post" + stamp
+    # add HG revision to end of version
+    if as_bool(os.environ.get("SETUP_TAG_RELEASE", "yes")):
+        version = append_hg_revision(version)
 
-    # subclass build_py & sdist so they rewrite passlib/__init__.py
-    # to have the correct version string
-    from passlib._setup.stamp import stamp_distutils_output
+    # subclass build_py & sdist to rewrite source version string,
+    # and clears stamp_build flag so this doesn't run again.
     stamp_distutils_output(opts, version)
 
 #=============================================================================
@@ -136,6 +121,7 @@ else:
 # XXX: could omit 'passlib._setup' from eggs, but not sdist
 setup(
     # package info
+    # XXX: could omit 'passlib._setup' for bdist_wheel
     packages=find_packages(root_dir),
     package_data={
         "passlib.tests": ["*.cfg"],

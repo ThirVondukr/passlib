@@ -10,7 +10,7 @@ SEP2="-----------------------------------------------------"
 # init config
 #
 
-export PASSLIB_SETUP_TAG_RELEASE=no
+export SETUP_TAG_RELEASE=no
 
 if [ -z "$DRY_RUN" ]; then
     echo "DRY_RUN not set"
