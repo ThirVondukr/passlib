@@ -26,6 +26,7 @@ __all__ = [
 # constants
 #=============================================================================
 
+# XXX: rename / publically document this map?
 entropy_aliases = dict(
     # barest protection from throttled online attack
     unsafe=12,
@@ -435,20 +436,23 @@ def genword(entropy=None, length=None, returns=None, **kwds):
         '310f1a7ac793f'
 
     :param entropy:
-        Strength of resulting password, measured in bits of Shannon entropy
-        (defaults to 48).  An appropriate **length** value will be calculated
+        Strength of resulting password, measured in 'guessing entropy' bits.
+        An appropriate **length** value will be calculated
         based on the requested entropy amount, and the size of the character set.
 
-        If both ``entropy`` and ``length`` are specified,
-        the stronger value will be used.
-
-        This can also be one of a handful of aliases to predefined
-        entropy amounts: ``"weak"`` (24), ``"fair"`` (36),
+        This can be a positive integer, or one of the following preset
+        strings: ``"weak"`` (24), ``"fair"`` (36),
         ``"strong"`` (48), and ``"secure"`` (56).
+
+        If neither this or **length** is specified, **entropy** will default
+        to ``"strong"`` (48).
 
     :param length:
         Size of resulting password, measured in characters.
         If omitted, the size is auto-calculated based on the **entropy** parameter.
+
+        If both **entropy** and **length** are specified,
+        the stronger value will be used.
 
     :param returns:
         Controls what this function returns:
@@ -457,9 +461,15 @@ def genword(entropy=None, length=None, returns=None, **kwds):
         * If an integer, this function will return a list containing that many passwords.
         * If the ``iter`` constant, will return an iterator that yields passwords.
 
+    :param chars:
+
+        Optionally specify custom string of characters to use when randomly
+        generating a password. This option cannot be combined with **charset**.
+
     :param charset:
-        The character set to draw from, if not specified explicitly by **chars**.
-        Can be any of:
+
+        The predefined character set to draw from (if not specified by **chars**).
+        There are currently four presets available:
 
         * ``"ascii_62"`` (the default) -- all digits and ascii upper & lowercase letters.
           Provides ~5.95 entropy per character.
@@ -471,11 +481,6 @@ def genword(entropy=None, length=None, returns=None, **kwds):
           as well as some punctuation. Provides ~6.17 entropy per character.
 
         * ``"hex"`` -- Lower case hexadecimal.  Providers 4 bits of entropy per character.
-
-    :param chars:
-
-        Optionally specify custom charset as a string of characters.
-        This option cannot be combined with **charset**.
 
     :returns:
         :class:`!unicode` string containing randomly generated password;
@@ -698,20 +703,23 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
         'wheat dilemma reward rescue diary'
 
     :param entropy:
-        Strength of resulting password, measured in bits of Shannon entropy
-        (defaults to 48).  An appropriate **length** value will be calculated
-        based on the requested entropy amount, and the size of the character set.
+        Strength of resulting password, measured in 'guessing entropy' bits.
+        An appropriate **length** value will be calculated
+        based on the requested entropy amount, and the size of the word set.
 
-        If both ``entropy`` and ``length`` are specified,
-        the stronger value will be used.
-
-        This can also be one of a handful of aliases to predefined
-        entropy amounts: ``"weak"`` (24), ``"fair"`` (36),
+        This can be a positive integer, or one of the following preset
+        strings: ``"weak"`` (24), ``"fair"`` (36),
         ``"strong"`` (48), and ``"secure"`` (56).
+
+        If neither this or **length** is specified, **entropy** will default
+        to ``"strong"`` (48).
 
     :param length:
         Length of resulting password, measured in words.
         If omitted, the size is auto-calculated based on the **entropy** parameter.
+
+        If both **entropy** and **length** are specified,
+        the stronger value will be used.
 
     :param returns:
         Controls what this function returns:
@@ -720,8 +728,14 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
         * If an integer, this function will return a list containing that many passwords.
         * If the ``iter`` builtin, will return an iterator that yields passwords.
 
+    :param words:
+
+        Optionally specifies a list/set of words to use when randomly generating a passphrase.
+        This option cannot be combined with **wordset**.
+
     :param wordset:
-        Optionally use a pre-defined word-set when generating a passphrase.
+
+        The predefined word set to draw from (if not specified by **words**).
         There are currently four presets available:
 
         ``"eff_long"`` (the default)
@@ -755,10 +769,6 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
             This list offers words that are typically shorter than ``"eff_long"``
             (at the cost of slightly less entropy); and much shorter than
             ``"eff_prefixed"`` (at the cost of a longer unique prefix).
-
-    :param words:
-        Optionally specifies a list/set of words to use when randomly generating a passphrase.
-        This option cannot be combined with **wordset**.
 
     :param sep:
         Optional separator to use when joining words.

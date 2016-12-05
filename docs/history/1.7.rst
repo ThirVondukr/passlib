@@ -11,6 +11,8 @@ Passlib 1.7
   keywords.  This usage was deprecated in 1.7.0, but warning wasn't properly enabled.
   See :ref:`hash-configuring` for the preferred way to pass settings.
 
+* bugfix: setup.py: prevent erroneous version strings when run from an sdist.
+
 .. _whats-new:
 
 .. rst-class:: emphasize-children toc-always-open
@@ -179,7 +181,8 @@ Deprecations
 As part of a long-range plan to restructure and simplify both the API and the internals of Passlib,
 a number of methods have been deprecated & replaced.  The eventually goal is a large cleanup
 and overhaul as part of Passlib 2.0. There will be at least one more 1.x version
-before Passlib 2.0, to provide a final transitional release.
+before Passlib 2.0, to provide a final transitional release
+(see the `Passlib Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_).
 
 Password Hash API Deprecations
 ..............................
@@ -205,11 +208,12 @@ Password Hash API Deprecations
       To provide settings such as ``rounds`` and ``salt_size``, callers
       should use the new :meth:`PasswordHash.using`
       method, which generates a new hasher with a customized configuration.
+      For example, instead of::
 
-        >>>  # for example, instead of this:
         >>>  sha256_crypt.encrypt("secret", rounds=12345)
 
-        >>>  # callers should now use:
+      ... applications should now use::
+
         >>>  sha256_crypt.using(rounds=12345).hash("secret")
 
       Support for the old syntax will be removed in Passlib 2.0.
