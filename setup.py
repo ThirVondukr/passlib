@@ -16,14 +16,111 @@ os.chdir(root_dir)
 #=============================================================================
 # imports
 #=============================================================================
-from setuptools import setup, find_packages
+import setuptools
 import sys
 
 #=============================================================================
 # init setup options
 #=============================================================================
-opts = {"cmdclass": {}}
-args = sys.argv[1:]
+opts = dict(
+    #==================================================================
+    # sources
+    #==================================================================
+    # XXX: could omit 'passlib._setup' for bdist_wheel & eggs
+    packages=setuptools.find_packages(root_dir),
+    package_data={
+        "passlib.tests": ["*.cfg"],
+        "passlib": ["_data/wordsets/*.txt"],
+    },
+    zip_safe=True,
+
+    #==================================================================
+    # metadata
+    #==================================================================
+    name="passlib",
+    # NOTE: 'version' set below
+    author="Eli Collins",
+    author_email="elic@assurancetechnologies.com",
+    license="BSD",
+
+    url="https://bitbucket.org/ecollins/passlib",
+    # NOTE: 'download_url' set below
+
+    extras_require={
+        "argon2": "argon2_cffi>=16.2",
+        "bcrypt": "bcrypt>=3.1.0",
+        "totp": "cryptography",
+    },
+
+    #==================================================================
+    # details
+    #==================================================================
+    description=
+    "comprehensive password hashing framework supporting over 30 schemes",
+
+    long_description="""\
+Passlib is a password hashing library for Python 2 & 3, which provides
+cross-platform implementations of over 30 password hashing algorithms, as well
+as a framework for managing existing password hashes. It's designed to be useful
+for a wide range of tasks, from verifying a hash found in /etc/shadow, to
+providing full-strength password hashing for multi-user applications.
+
+* See the `documentation <https://passlib.readthedocs.io>`_
+  for details, installation instructions, and examples.
+
+* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
+  for the latest news and more information.
+
+* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
+  for a description of what's new in Passlib.
+
+All releases are signed with the gpg key
+`4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+""",
+
+    keywords="""\
+password secret hash security
+crypt md5-crypt
+sha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt
+apache htpasswd htdigest
+totp 2fa
+""",
+
+    classifiers="""\
+Intended Audience :: Developers
+License :: OSI Approved :: BSD License
+Natural Language :: English
+Operating System :: OS Independent
+Programming Language :: Python :: 2
+Programming Language :: Python :: 2.6
+Programming Language :: Python :: 2.7
+Programming Language :: Python :: 3
+Programming Language :: Python :: 3.3
+Programming Language :: Python :: 3.4
+Programming Language :: Python :: 3.5
+Programming Language :: Python :: 3.6
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: Jython
+Programming Language :: Python :: Implementation :: PyPy
+Topic :: Security :: Cryptography
+Topic :: Software Development :: Libraries
+""".splitlines(),
+
+    # TODO: add "Programming Language :: Python :: Implementation :: IronPython"
+    #       (blocked by issue 34)
+
+    #==================================================================
+    # testing
+    #==================================================================
+    tests_require='nose >= 1.1',
+    test_suite='nose.collector',
+
+    #==================================================================
+    # custom setup
+    #==================================================================
+    script_args=sys.argv[1:],
+    cmdclass={},
+)
 
 #=============================================================================
 # register docdist command (not required)
@@ -35,7 +132,7 @@ except ImportError:
     pass
 
 #=============================================================================
-# version string / datestamps
+# set version string
 #=============================================================================
 
 # pull version string from passlib
@@ -56,109 +153,31 @@ if stamp_build:
     # and clears stamp_build flag so this doesn't run again.
     stamp_distutils_output(opts, version)
 
+opts['version'] = version
+
 #=============================================================================
-# static text
+# set release status
 #=============================================================================
-SUMMARY = "comprehensive password hashing framework supporting over 30 schemes"
 
-DESCRIPTION = """\
-Passlib is a password hashing library for Python 2 & 3, which provides
-cross-platform implementations of over 30 password hashing algorithms, as well
-as a framework for managing existing password hashes. It's designed to be useful
-for a wide range of tasks, from verifying a hash found in /etc/shadow, to
-providing full-strength password hashing for multi-user applications.
-
-* See the `documentation <https://passlib.readthedocs.io>`_
-  for details, installation instructions, and examples.
-
-* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
-  for the latest news and more information.
-
-* See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
-  for a description of what's new in Passlib.
-
-All releases are signed with the gpg key
-`4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
-"""
-
-KEYWORDS = """\
-password secret hash security
-crypt md5-crypt
-sha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt
-apache htpasswd htdigest
-totp 2fa
-"""
-
-CLASSIFIERS = """\
-Intended Audience :: Developers
-License :: OSI Approved :: BSD License
-Natural Language :: English
-Operating System :: OS Independent
-Programming Language :: Python :: 2.6
-Programming Language :: Python :: 2.7
-Programming Language :: Python :: 3
-Programming Language :: Python :: Implementation :: CPython
-Programming Language :: Python :: Implementation :: Jython
-Programming Language :: Python :: Implementation :: PyPy
-Topic :: Security :: Cryptography
-Topic :: Software Development :: Libraries
-""".splitlines()
-
-# TODO: "Programming Language :: Python :: Implementation :: IronPython" -- issue 34
-
-is_release = False
 if '.dev' in version:
-    CLASSIFIERS.append("Development Status :: 3 - Alpha")
+    status = "Development Status :: 3 - Alpha"
 elif '.post' in version:
-    CLASSIFIERS.append("Development Status :: 4 - Beta")
+    status = "Development Status :: 4 - Beta"
 else:
-    is_release = True
-    CLASSIFIERS.append("Development Status :: 5 - Production/Stable")
+    status = "Development Status :: 5 - Production/Stable"
+
+    # only list download url for final release
+    opts.update(
+        download_url=("https://pypi.python.org/packages/source/p/passlib/"
+                      "passlib-" + version + ".tar.gz")
+    )
+
+opts['classifiers'].append(status)
 
 #=============================================================================
 # run setup
 #=============================================================================
-# XXX: could omit 'passlib._setup' from eggs, but not sdist
-setup(
-    # package info
-    # XXX: could omit 'passlib._setup' for bdist_wheel
-    packages=find_packages(root_dir),
-    package_data={
-        "passlib.tests": ["*.cfg"],
-        "passlib": ["_data/wordsets/*.txt"],
-    },
-    zip_safe=True,
-
-    # metadata
-    name="passlib",
-    version=version,
-    author="Eli Collins",
-    author_email="elic@assurancetechnologies.com",
-    license="BSD",
-
-    url="https://bitbucket.org/ecollins/passlib",
-    download_url=
-        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + version + ".tar.gz")
-        if is_release else None,
-
-    description=SUMMARY,
-    long_description=DESCRIPTION,
-    keywords=KEYWORDS,
-    classifiers=CLASSIFIERS,
-
-    tests_require='nose >= 1.1',
-    test_suite='nose.collector',
-
-    extras_require={
-        "argon2": "argon2_cffi>=16.2",
-        "bcrypt": "bcrypt>=3.1.0",
-        "totp": "cryptography",
-    },
-
-    # extra opts
-    script_args=args,
-    **opts
-)
+setuptools.setup(**opts)
 
 #=============================================================================
 # eof
