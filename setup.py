@@ -2,7 +2,7 @@
 passlib setup script
 
 This script honors one environmental variable:
-PASSLIB_SETUP_TAG_RELEASE
+SETUP_TAG_RELEASE
     if "yes" (the default), revision tag is appended to version.
     for release, this is explicitly set to "no".
 """
@@ -16,67 +16,48 @@ os.chdir(root_dir)
 #=============================================================================
 # imports
 #=============================================================================
-import re
-from setuptools import setup, find_packages
-import subprocess
+import setuptools
 import sys
-import time
-PY3 = (sys.version_info[0] >= 3)
 
 #=============================================================================
 # init setup options
 #=============================================================================
-opts = {"cmdclass": {}}
-args = sys.argv[1:]
+opts = dict(
+    #==================================================================
+    # sources
+    #==================================================================
+    packages=setuptools.find_packages(root_dir),
+    package_data={
+        "passlib.tests": ["*.cfg"],
+        "passlib": ["_data/wordsets/*.txt"],
+    },
+    zip_safe=True,
 
-#=============================================================================
-# register docdist command (not required)
-#=============================================================================
-try:
-    from passlib._setup.docdist import docdist
-    opts['cmdclass']['docdist'] = docdist
-except ImportError:
-    pass
+    #==================================================================
+    # metadata
+    #==================================================================
+    name="passlib",
+    # NOTE: 'version' set below
+    author="Eli Collins",
+    author_email="elic@assurancetechnologies.com",
+    license="BSD",
 
-#=============================================================================
-# version string / datestamps
-#=============================================================================
+    url="https://bitbucket.org/ecollins/passlib",
+    # NOTE: 'download_url' set below
 
-# pull version string from passlib
-from passlib import __version__ as version
+    extras_require={
+        "argon2": "argon2_cffi>=16.2",
+        "bcrypt": "bcrypt>=3.1.0",
+        "totp": "cryptography",
+    },
 
-# by default, stamp HG revision to end of version
-if os.environ.get("PASSLIB_SETUP_TAG_RELEASE", "y").lower() in "yes y true t 1".split():
-    # call HG via subprocess
-    # NOTE: for py26 compat, using Popen() instead of check_output()
-    try:
-        proc = subprocess.Popen(["hg", "tip", "--template", "{date(date, '%Y%m%d%H%M%S')}+hg.{node|short}"],
-                                stdout=subprocess.PIPE)
-        stamp, _ = proc.communicate()
-        if proc.returncode:
-            raise subprocess.CalledProcessError(1, [])
-        stamp = stamp.decode("ascii")
-    except (OSError, subprocess.CalledProcessError):
-        # fallback - just use build date
-        stamp = time.strftime("%Y%m%d%H%M%S")
+    #==================================================================
+    # details
+    #==================================================================
+    description=
+    "comprehensive password hashing framework supporting over 30 schemes",
 
-    # modify version
-    if version.endswith((".dev0", ".post0")):
-        version = version[:-1] + stamp
-    else:
-        version += ".post" + stamp
-
-    # subclass build_py & sdist so they rewrite passlib/__init__.py
-    # to have the correct version string
-    from passlib._setup.stamp import stamp_distutils_output
-    stamp_distutils_output(opts, version)
-
-#=============================================================================
-# static text
-#=============================================================================
-SUMMARY = "comprehensive password hashing framework supporting over 30 schemes"
-
-DESCRIPTION = """\
+    long_description="""\
 Passlib is a password hashing library for Python 2 & 3, which provides
 cross-platform implementations of over 30 password hashing algorithms, as well
 as a framework for managing existing password hashes. It's designed to be useful
@@ -94,85 +75,106 @@ providing full-strength password hashing for multi-user applications.
 
 All releases are signed with the gpg key
 `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
-"""
+""",
 
-KEYWORDS = """\
+    keywords="""\
 password secret hash security
 crypt md5-crypt
 sha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt
 apache htpasswd htdigest
 totp 2fa
-"""
+""",
 
-CLASSIFIERS = """\
+    classifiers="""\
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Natural Language :: English
 Operating System :: OS Independent
+Programming Language :: Python :: 2
 Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
+Programming Language :: Python :: 3.3
+Programming Language :: Python :: 3.4
+Programming Language :: Python :: 3.5
+Programming Language :: Python :: 3.6
 Programming Language :: Python :: Implementation :: CPython
 Programming Language :: Python :: Implementation :: Jython
 Programming Language :: Python :: Implementation :: PyPy
 Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
-""".splitlines()
+""".splitlines(),
 
-# TODO: "Programming Language :: Python :: Implementation :: IronPython" -- issue 34
+    # TODO: add "Programming Language :: Python :: Implementation :: IronPython"
+    #       (blocked by issue 34)
 
-is_release = False
+    #==================================================================
+    # testing
+    #==================================================================
+    tests_require='nose >= 1.1',
+    test_suite='nose.collector',
+
+    #==================================================================
+    # custom setup
+    #==================================================================
+    script_args=sys.argv[1:],
+    cmdclass={},
+)
+
+#=============================================================================
+# set version string
+#=============================================================================
+
+# pull version string from passlib
+from passlib import __version__ as version
+
+# append hg revision to builds
+stamp_build = True  # NOTE: modified by stamp_distutils_output()
+if stamp_build:
+    from passlib._setup.stamp import (
+        as_bool, append_hg_revision, stamp_distutils_output,
+        install_build_py_exclude, set_command_options
+    )
+
+    # add HG revision to end of version
+    if as_bool(os.environ.get("SETUP_TAG_RELEASE", "yes")):
+        version = append_hg_revision(version)
+
+    # subclass build_py & sdist to rewrite source version string,
+    # and clears stamp_build flag so this doesn't run again.
+    stamp_distutils_output(opts, version)
+
+    # exclude 'passlib._setup' from builds, only needed for sdist
+    install_build_py_exclude(opts)
+    set_command_options(opts, "build_py",
+        exclude_packages=["passlib._setup"],
+    )
+
+opts['version'] = version
+
+#=============================================================================
+# set release status
+#=============================================================================
+
 if '.dev' in version:
-    CLASSIFIERS.append("Development Status :: 3 - Alpha")
+    status = "Development Status :: 3 - Alpha"
 elif '.post' in version:
-    CLASSIFIERS.append("Development Status :: 4 - Beta")
+    status = "Development Status :: 4 - Beta"
 else:
-    is_release = True
-    CLASSIFIERS.append("Development Status :: 5 - Production/Stable")
+    status = "Development Status :: 5 - Production/Stable"
+
+    # only list download url for final release
+    opts.update(
+        download_url=("https://pypi.python.org/packages/source/p/passlib/"
+                      "passlib-" + version + ".tar.gz")
+    )
+
+opts['classifiers'].append(status)
 
 #=============================================================================
 # run setup
 #=============================================================================
-# XXX: could omit 'passlib._setup' from eggs, but not sdist
-setup(
-    # package info
-    packages=find_packages(root_dir),
-    package_data={
-        "passlib.tests": ["*.cfg"],
-        "passlib": ["_data/wordsets/*.txt"],
-    },
-    zip_safe=True,
-
-    # metadata
-    name="passlib",
-    version=version,
-    author="Eli Collins",
-    author_email="elic@assurancetechnologies.com",
-    license="BSD",
-
-    url="https://bitbucket.org/ecollins/passlib",
-    download_url=
-        ("https://pypi.python.org/packages/source/p/passlib/passlib-" + version + ".tar.gz")
-        if is_release else None,
-
-    description=SUMMARY,
-    long_description=DESCRIPTION,
-    keywords=KEYWORDS,
-    classifiers=CLASSIFIERS,
-
-    tests_require='nose >= 1.1',
-    test_suite='nose.collector',
-
-    extras_require={
-        "argon2": "argon2_cffi>=16.2",
-        "bcrypt": "bcrypt>=3.1.0",
-        "totp": "cryptography",
-    },
-
-    # extra opts
-    script_args=args,
-    **opts
-)
+setuptools.setup(**opts)
 
 #=============================================================================
 # eof
