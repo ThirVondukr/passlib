@@ -122,15 +122,6 @@ Topic :: Software Development :: Libraries
 )
 
 #=============================================================================
-# register docdist command (not required)
-#=============================================================================
-try:
-    from passlib._setup.docdist import docdist
-    opts['cmdclass']['docdist'] = docdist
-except ImportError:
-    pass
-
-#=============================================================================
 # set version string
 #=============================================================================
 
