@@ -965,6 +965,10 @@ class HandlerCase(TestCase):
             self.addCleanup(handler.set_backend, handler.get_backend())
             handler.set_backend(backend)
 
+        # patch some RNG references so they're reproducible.
+        from passlib.utils import handlers
+        self.patchAttr(handlers, "rng", self.getRandom("salt generator"))
+
     #===================================================================
     # basic tests
     #===================================================================
@@ -1254,21 +1258,22 @@ class HandlerCase(TestCase):
         """test hash() / genconfig() creates new salt each time"""
         self.require_salt()
         # odds of picking 'n' identical salts at random is '(.5**salt_bits)**n'.
-        # we want to pick the smallest N needed s.t. odds are <1/1000, just
-        # to eliminate false-positives. which works out to n>7-salt_bits.
-        # n=1 is sufficient for most hashes, but a few border cases (e.g.
-        # cisco_type7) have < 7 bits of salt, requiring more.
-        samples = max(1,7-self.salt_bits)
+        # we want to pick the smallest N needed s.t. odds are <1/10**d, just
+        # to eliminate false-positives. which works out to n>3.33+d-salt_bits.
+        # for 1/1e12 odds, n=1 is sufficient for most hashes, but a few border cases (e.g.
+        # cisco_type7) have < 16 bits of salt, requiring more.
+        samples = max(1, 4 + 12 - self.salt_bits)
+
         def sampler(func):
             value1 = func()
-            for i in irange(samples):
+            for _ in irange(samples):
                 value2 = func()
                 if value1 != value2:
                     return
             raise self.failureException("failed to find different salt after "
                                         "%d samples" % (samples,))
         sampler(self.do_genconfig)
-        sampler(lambda : self.do_encrypt("stub"))
+        sampler(lambda: self.do_encrypt("stub"))
 
     def test_12_min_salt_size(self):
         """test hash() / genconfig() honors min_salt_size"""

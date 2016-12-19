@@ -65,6 +65,14 @@ class WordGeneratorTest(TestCase):
     """test generation routines"""
     descriptionPrefix = "passlib.pwd.genword()"
 
+    def setUp(self):
+        super(WordGeneratorTest, self).setUp()
+
+        # patch some RNG references so they're reproducible.
+        from passlib.pwd import SequenceGenerator
+        self.patchAttr(SequenceGenerator, "rng",
+                       self.getRandom("pwd generator"))
+
     def assertResultContents(self, results, count, chars, unique=True):
         """check result list matches expected count & charset"""
         self.assertEqual(len(results), count)
