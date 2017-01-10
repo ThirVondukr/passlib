@@ -3,7 +3,7 @@ New Application Quickstart Guide
 ================================
 
 Need to quickly get password hash support added into your new application,
-butdon't have time to wade through pages of documentation,
+but don't have time to wade through pages of documentation,
 comparing and contrasting all the different schemes? Then read on...
 
 ..
