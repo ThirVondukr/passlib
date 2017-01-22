@@ -775,13 +775,13 @@ class bcrypt(_NoBackend, _BcryptCommon):
     :type ident: str
     :param ident:
         Specifies which version of the BCrypt algorithm will be used when creating a new hash.
-        Typically this option is not needed, as the default (``"2a"``) is usually the correct choice.
+        Typically this option is not needed, as the default (``"2b"``) is usually the correct choice.
         If specified, it must be one of the following:
 
         * ``"2"`` - the first revision of BCrypt, which suffers from a minor security flaw and is generally not used anymore.
         * ``"2a"`` - some implementations suffered from rare security flaws, replaced by 2b.
         * ``"2y"`` - format specific to the *crypt_blowfish* BCrypt implementation,
-          identical to ``"2a"`` in all but name.
+          identical to ``"2b"`` in all but name.
         * ``"2b"`` - latest revision of the official BCrypt algorithm, current default.
 
     :param bool truncate_error:

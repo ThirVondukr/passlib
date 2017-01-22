@@ -169,7 +169,7 @@ This implementation of bcrypt differs from others in a few ways:
   generated with the buggy algorithm. Passlib 1.6 recognizes (but does not
   currently support generating or verifying) these hashes.
 
-  ``$2y$``, the default for crypt_blowfish 1.1 and newer, indicates
+  ``$2y$``, the default for crypt_blowfish 1.1-1.2, indicates
   the hash was generated with the canonical OpenBSD-compatible algorithm,
   and should match *correctly* generated ``$2a$`` hashes.
   Passlib 1.6 can generate and verify these hashes.
@@ -179,6 +179,8 @@ This implementation of bcrypt differs from others in a few ways:
   incompatible with either the buggy or canonical algorithms. Passlib
   does not support this algorithmic variant either, though it should
   be *very* rarely encountered in practice.
+
+  (crypt_blowfish 1.3 switched to the ``$2b$`` standard as the default)
 
   .. versionchanged:: 1.6.3
 
@@ -224,3 +226,4 @@ This implementation of bcrypt differs from others in a few ways:
 
 .. [#wraparound] The wraparound flaw is described here -
             `<http://www.openwall.com/lists/oss-security/2012/01/02/4>`_
+

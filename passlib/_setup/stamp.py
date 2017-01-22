@@ -24,14 +24,10 @@ def get_command_class(opts, name):
     return opts['cmdclass'].get(name) or Distribution().get_command_class(name)
 
 def get_command_options(opts, command):
-    return opts.setdefault("command_options", {}).setdefault(command, {})
+    return opts.setdefault("options", {}).setdefault(command, {})
 
-def set_command_options(opts, command, _source_="setup.py", **kwds):
-    target = get_command_options(opts, command)
-    target.update(
-        (key, (_source_, value))
-        for key, value in kwds.items()
-    )
+def set_command_options(opts, command, **kwds):
+    get_command_options(opts, command).update(kwds)
 
 def _get_file(path):
     with open(path, "r") as fh:

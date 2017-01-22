@@ -53,15 +53,45 @@ KEY4_RAW = b'Hello!\xde\xad\xbe\xef'
 assert sys.float_info.radix == 2, "unexpected float_info.radix"
 assert sys.float_info.mant_dig >= 44, "double precision unexpectedly small"
 
-# work out maximum value acceptable by hosts's time_t
-# this is frequently 2**37, though smaller on some systems.
-max_time_t = 30
-while True:
-    try:
-        datetime.datetime.utcfromtimestamp(max_time_t << 1)
-        max_time_t <<= 1
-    except ValueError:
-        break
+def _get_max_time_t():
+    """
+    helper to calc max_time_t constant (see below)
+    """
+    value = 1 << 30  # even for 32 bit systems will handle this
+    year = 0
+    while True:
+        next_value = value << 1
+        try:
+            next_year = datetime.datetime.utcfromtimestamp(next_value-1).year
+        except (ValueError, OSError, OverflowError):
+            # utcfromtimestamp() may throw any of the following:
+            #
+            # * year out of range for datetime:
+            #   py < 3.6 throws ValueError.
+            #   (py 3.6.0 returns odd value instead, see workaround below)
+            #
+            # * int out of range for host's gmtime/localtime:
+            #   py2 throws ValueError, py3 throws OSError.
+            #
+            # * int out of range for host's time_t:
+            #   py2 throws ValueError, py3 throws OverflowError.
+            #
+            return value-1
+
+        # Workaround for python 3.6.0 issue --
+        # Instead of throwing ValueError if year out of range for datetime,
+        # Python 3.6 will do some weird behavior that masks high bits
+        # e.g. (1<<40) -> year 36812, but (1<<41) -> year 6118.
+        # (Filed as bug -- http://bugs.python.org/issue29346)
+        # This check stops at largest non-wrapping bit size.
+        if next_year < year:
+            return value-1
+
+        value = next_value
+
+#: Rough approximation of max value acceptable by hosts's time_t.
+#: This is frequently ~2**37 on 64 bit, and ~2**31 on 32 bit systems.
+max_time_t = _get_max_time_t()
 
 def to_b32_size(raw_size):
     return (raw_size * 8 + 4) // 5

@@ -654,7 +654,8 @@ class GenericHandler(MinimalHandler):
 
     @classmethod
     def from_string(cls, hash, **context): # pragma: no cover
-        """return parsed instance from hash/configuration string
+        r"""
+        return parsed instance from hash/configuration string
 
         :param \*\*context:
             context keywords to pass to constructor (if applicable).

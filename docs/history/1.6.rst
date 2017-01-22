@@ -115,8 +115,8 @@ Other Changes
 
     * Various documentation updates and corrections.
 
-**1.6** (2012-05-01)
-====================
+**1.6.0** (2012-05-01)
+======================
 
 Overview
 --------
