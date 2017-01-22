@@ -13,6 +13,9 @@ Passlib 1.7
 
 * bugfix: setup.py: prevent erroneous version strings when run from an sdist.
 
+* bugfix: TOTP tests: test setup now traps additional errors utcfromtimestamp()
+  may throw under python 3.
+
 .. _whats-new:
 
 .. rst-class:: emphasize-children toc-always-open
