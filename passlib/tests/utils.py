@@ -261,7 +261,7 @@ def quicksleep(delay):
     while tick()-start < delay:
         pass
 
-def time_call(func, setup=None, maxtime=1, bestof=3):
+def time_call(func, setup=None, maxtime=1, bestof=10):
     """
     timeit() wrapper which tries to get as accurate a measurement as possible w/in maxtime seconds.
 
