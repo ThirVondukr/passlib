@@ -16,6 +16,8 @@ Passlib 1.7
 * bugfix: TOTP tests: test setup now traps additional errors utcfromtimestamp()
   may throw under python 3.
 
+* various documentation updates
+
 .. _whats-new:
 
 .. rst-class:: emphasize-children toc-always-open
