@@ -124,7 +124,7 @@ def _get_hash_aliases(name):
         return result
 
     # try to clean name up some more
-    m = re.match("(?i)^(?P<name>[a-z]+)-?(?P<rev>\d)?-?(?P<size>\d{3,4})?$", name)
+    m = re.match(r"(?i)^(?P<name>[a-z]+)-?(?P<rev>\d)?-?(?P<size>\d{3,4})?$", name)
     if m:
         # roughly follows "SHA2-256" style format, normalize representation,
         # and checked table.

@@ -91,7 +91,7 @@ class PasswordHash(object):
     @abstractmethod
     def hash(cls, secret,  # *
              **setting_and_context_kwds):  # pragma: no cover -- abstract method
-        """
+        r"""
         Hash secret, returning result.
         Should handle generating salt, etc, and should return string
         containing identifier, salt & other configuration, as well as digest.

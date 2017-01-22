@@ -83,7 +83,7 @@ if sys.version_info < (2,7,4):
 #-----------------------------------------------------------------------------
 
 #: regex used to clean whitespace from tokens & keys
-_clean_re = re.compile(u("\s|[-=]"), re.U)
+_clean_re = re.compile(u(r"\s|[-=]"), re.U)
 
 _chunk_sizes = [4,6,5]
 
@@ -1140,7 +1140,7 @@ class TOTP(object):
 
     @classmethod
     def verify(cls, token, source, **kwds):
-        """
+        r"""
         Convenience wrapper around :meth:`TOTP.from_source` and :meth:`TOTP.match`.
 
         This parses a TOTP key & configuration from the specified source,

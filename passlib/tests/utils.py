@@ -246,7 +246,7 @@ def hb(source):
 
     usage: ``hb("deadbeef23")``
     """
-    return unhexlify(re.sub("\s", "", source))
+    return unhexlify(re.sub(r"\s", "", source))
 
 def limit(value, lower, upper):
     if value < lower:
@@ -366,8 +366,8 @@ class TestCase(_TestCase):
             # ignore warnings about PasswordHash features deprecated in 1.7
             # TODO: should be cleaned in 2.0, when support will be dropped.
             #       should be kept until then, so we test the legacy paths.
-            warnings.filterwarnings("ignore", "the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
-            warnings.filterwarnings("ignore", "the 'vary_rounds' option is deprecated")
+            warnings.filterwarnings("ignore", r"the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
+            warnings.filterwarnings("ignore", r"the 'vary_rounds' option is deprecated")
 
     #---------------------------------------------------------------
     # tweak message formatting so longMessage mode is only enabled
