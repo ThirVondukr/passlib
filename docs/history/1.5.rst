@@ -99,8 +99,8 @@ Passlib 1.5
 
     * improved version datestamps in build script.
 
-**1.5** (2011-07-11)
-====================
+**1.5.0** (2011-07-11)
+======================
 
 *"20% more unicode than the leading breakfast cereal"*
 
