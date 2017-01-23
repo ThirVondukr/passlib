@@ -116,51 +116,53 @@ def scrypt(secret, salt, n, r, p=1, keylen=32):
         raise ValueError("keylen too large, must be <= %d" % MAX_KEYLEN)
     return _scrypt(secret, salt, n, r, p, keylen)
 
-#: list of potential backends
-backend_values = ("scrypt", "builtin")
 
-def _builtin_first_run(*args, **kwds):
+def _load_builtin_backend():
     """
-    wrapper which issues warning first time it's used,
-    then replaces itself with actual function
-    (assumes this will be installed as _scrypt global when called)
+    Load pure-python scrypt implementation built into passlib.
     """
     slowdown = 10 if PYPY else 100
     warn("Using builtin scrypt backend, which is %dx slower than is required "
          "for adequate security. Installing scrypt support (via 'pip install scrypt') "
          "is strongly recommended" % slowdown, exc.PasslibSecurityWarning)
     from ._builtin import ScryptEngine
-    global _scrypt
-    _scrypt = ScryptEngine.execute
-    return _scrypt(*args, **kwds)
+    return ScryptEngine.execute
 
-def _load_backend(name):
+
+def _load_cffi_backend():
     """
-    try to load specified scrypt backend
+    Try to import the ctypes-based scrypt hash function provided by the
+    ``scrypt <https://pypi.python.org/pypi/scrypt/>``_ package.
     """
-    if name == "scrypt":
-        # try to import the ctypes-based scrypt hash function provided by the
-        # ``scrypt <https://pypi.python.org/pypi/scrypt/>``_ package.
-        try:
-            from scrypt import hash
-            return hash
-        except ImportError:
-            pass
-        try:
-            import scrypt
-        except ImportError as err:
-            if "scrypt" not in str(err):
-                # e.g. if cffi isn't set up right
-                # user should try importing scrypt explicitly to diagnose problem.
-                warn("'scrypt' package failed to import correctly (possible installation issue?)",
-                     exc.PasslibWarning)
-            # else: package just isn't installed
-        else:
-            warn("'scrypt' package is too old (lacks ``hash()`` method)", exc.PasslibWarning)
-        return None
-    if name == "builtin":
-        return _builtin_first_run
-    raise ValueError("unknown scrypt backend %r" % name)
+    try:
+        from scrypt import hash
+        return hash
+    except ImportError:
+        pass
+    # not available, but check to see if package present but outdated / not installed right
+    try:
+        import scrypt
+    except ImportError as err:
+        if "scrypt" not in str(err):
+            # e.g. if cffi isn't set up right
+            # user should try importing scrypt explicitly to diagnose problem.
+            warn("'scrypt' package failed to import correctly (possible installation issue?)",
+                 exc.PasslibWarning)
+        # else: package just isn't installed
+    else:
+        warn("'scrypt' package is too old (lacks ``hash()`` method)", exc.PasslibWarning)
+    return None
+
+
+#: list of potential backends
+backend_values = ("scrypt", "builtin")
+
+#: dict mapping backend name -> loader
+_backend_loaders = dict(
+    scrypt=_load_cffi_backend,  # XXX: rename backend constant to "cffi"?
+    builtin=_load_builtin_backend,
+)
+
 
 def _set_backend(name, dryrun=False):
     """
@@ -171,25 +173,37 @@ def _set_backend(name, dryrun=False):
     .. note:: mainly intended to be called by unittests, and scrypt hash handler
     """
     if name == "any":
-        return True
+        return
     elif name == "default":
         for name in backend_values:
             try:
-                _set_backend(name, dryrun=dryrun)
-                return
+                return _set_backend(name, dryrun=dryrun)
             except exc.MissingBackendError:
                 continue
         raise exc.MissingBackendError("no scrypt backends available")
     else:
-        hash = _load_backend(name)
+        loader = _backend_loaders.get(name)
+        if not loader:
+            raise ValueError("unknown scrypt backend: %r" % (name,))
+        hash = loader()
         if not hash:
             raise exc.MissingBackendError("scrypt backend %r not available" % name)
+        if dryrun:
+            return
         global _scrypt, backend
         backend = name
         _scrypt = hash
 
 # initialize backend
 _set_backend("default")
+
+
+def _has_backend(name):
+    try:
+        _set_backend(name, dryrun=True)
+        return True
+    except exc.MissingBackendError:
+        return False
 
 #==========================================================================
 # eof
