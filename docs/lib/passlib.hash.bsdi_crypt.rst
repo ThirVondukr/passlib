@@ -48,7 +48,7 @@ Interface
 Format
 ======
 An example hash (of the string ``password``) is ``_EQ0.jzhSVeUyoSqLupI``.
-A bsdi_crypt hash string consists of a 21 character string of the form :samp:`_{rounds}{salt}{checksum}`.
+A bsdi_crypt hash string consists of a 20 character string of the form :samp:`_{rounds}{salt}{checksum}`.
 All characters except the underscore prefix are drawn from ``[./0-9A-Za-z]``.
 
 * ``_`` - the underscore is used to distinguish this scheme from others, such as des-crypt.
