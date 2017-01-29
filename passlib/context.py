@@ -428,11 +428,7 @@ class CryptPolicy(object):
         warn("get_min_verify_time() and min_verify_time option is deprecated and ignored, "
              "and will be removed in Passlib 1.8", DeprecationWarning,
              stacklevel=2)
-        context = self._context
-        if context.harden_verify:
-            return context.min_verify_time
-        else:
-            return 0
+        return 0
 
     def get_options(self, name, category=None):
         """return dictionary of options specific to a given handler.
@@ -793,12 +789,12 @@ class _CryptConfig(object):
                                    "in policy: %r" % (scheme,))
         elif key == "min_verify_time":
             warn("'min_verify_time' was deprecated in Passlib 1.6, is "
-                 "ignored in 1.7, and will be removed in 1.8; use 'harden_verify' instead",
+                 "ignored in 1.7, and will be removed in 1.8",
                  DeprecationWarning)
         elif key == "harden_verify":
-            if cat:
-                raise ValueError("'harden_verify' cannot be specified per category")
-            value = as_bool(value, param="harden_verify")
+            warn("'harden_verify' is deprecated & ignored as of Passlib 1.7.1, "
+                 " and will be removed in 1.8",
+                 DeprecationWarning)
         elif key != "schemes":
             raise KeyError("unknown CryptContext keyword: %r" % (key,))
         return key, value
@@ -1595,7 +1591,7 @@ class CryptContext(object):
         #-----------------------------------------------------------
         config = _CryptConfig(source)
         self._config = config
-        self.reset_min_verify_time()
+        self._reset_dummy_verify()
         self._get_record = config.get_record
         self._identify_record = config.identify_record
         if config.context_kwds:
@@ -1987,149 +1983,20 @@ class CryptContext(object):
 
     #===================================================================
     # verify() hardening
+    # NOTE: this entire feature has been disabled.
+    #       all contents of this section are NOOPs as of 1.7.1,
+    #       and will be removed in 1.8.
     #===================================================================
 
-    # NOTE: the estimation is currently algorithm is a little rough, so
-    #       the control values are exposed here to make "poking" at them easier.
-
-    #: maximum samples to take when estimating min_verify_time
-    mvt_estimate_max_samples = 10
-
-    #: minimum samples to take when estimating min_verify_time
-    mvt_estimate_min_samples = 4
-
-    #: maximum time to spend estimating min_verify_time
-    #: (this value is overridden by min_samples)
-    mvt_estimate_max_time = 1.2
-
-    #: minimum measurement resolution required by estimate
-    mvt_estimate_resolution = 0.05
-
-    # XXX: make writable (once CryptPolicy is removed)?
-    @memoized_property
-    def harden_verify(self):
-        return self._config.get_context_option_with_flag(None, "harden_verify")[0]
-
-    #: global lock used to prevent multiple copies of _calc_min_verify_time()
-    #: from running at the same time (whether as part of same context or not);
-    #: as this would cause inaccurate measurements
-    _mvt_lock = threading.Lock()
-
-    # XXX: how to handle multiple categories? admin cateogry would stand out.
-    #      but dont' want multiple levels of min_verify_time, *right*?
-    #      maybe want to have CryptContext switch into a "nested" mode
-    #      if categories are put in place, and have it act like multiple contexts.
-
-    @memoized_property
-    def min_verify_time(self):
-        """
-        minimum time verify() should take, to mask presence of weak hashes.
-        when first accessed, an estimate is performed based on
-        how long default hash takes.
-        can be overridden by manually writing to this attribute.
-
-        will default to 0 (no estimate performed) unless 'harden_verify = true'
-        passed in CryptContext config.
-        """
-        with self._mvt_lock:
-            # check if value was set in another thread
-            value = type(self).min_verify_time.peek_cache(self)
-            if value is None:
-                # value wasn't set, use calc function
-                value = self._calc_min_verify_time()
-            return value
-
-    def _calc_min_verify_time(self):
-        """
-        calculate min_verify_time based on system performance.
-
-        .. warning::
-            this assumes caller has acquired :attr:`_mvt_lock`
-
-        :return:
-            estimated min_verify_time value
-        """
-        # load config
-        log.debug("estimating min_verify_time")
-        min_samples = self.mvt_estimate_min_samples
-        max_samples = self.mvt_estimate_max_samples
-        record = self._get_record(None, None)
-        repeat = 1
-
-        # generate random secret to test against,
-        # and generate sample hash
-        secret = getrandstr(rng, BASE64_CHARS, 16)
-        start = timer()
-        hash = record.hash(secret)
-        samples = [timer() - start]
-
-        # gather samples until condition met
-        loop_end = start + self.mvt_estimate_max_time
-        while True:
-            # gather sample
-            start = timer()
-            for _ in irange(repeat):
-                # XXX: using record.verify() instead of self.verify()
-                #      since that would cause recursion errors back to here
-                #      (and we can't temporarily set .min_verify_time=0
-                #      without temporarily letting other threads through
-                #      w/o any delay). presuming there's not a noticeable
-                #      overhead for the CryptContext.verify() wrapper.
-                record.verify(secret, hash)
-            end = timer()
-            elapsed = end - start
-
-            # make sure we're far enough above timer's minimum resolution
-            if elapsed < self.mvt_estimate_resolution:
-                repeat *= 2
-                continue
-            samples.append(elapsed / repeat)
-
-            # stop as soon as possible if we have plenty of samples
-            if len(samples) > max_samples:
-                break
-
-            # otherwise stop after max time, as long as we have bare minimum.
-            if end > loop_end and len(samples) > min_samples:
-                break
-
-        # calc median, to cheaply exclude outliers
-        samples.sort()
-        result = round(samples[(len(samples)+1)//2], 3)
-        log.debug("setting min_verify_time=%f (median of %d samples)",
-                  result, len(samples))
-        return result
+    mvt_estimate_max_samples = 20
+    mvt_estimate_min_samples = 10
+    mvt_estimate_max_time = 2
+    mvt_estimate_resolution = 0.01
+    harden_verify = None
+    min_verify_time = 0
 
     def reset_min_verify_time(self):
-        """
-        clear min_verify_time estimate,
-        will be recalculated next time :attr:`min_verify_time` is accessed
-        (i.e. when :meth:`verify` is called).
-        """
-        type(self).harden_verify.clear_cache(self)
-        type(self).min_verify_time.clear_cache(self)
-
-    def dummy_verify(self, elapsed=0):
-        """
-        Helper that applications can call when user wasn't found,
-        in order to simulate time it would take to hash a password.
-
-        Invokes :func:`time.sleep` for amount of time needed to make
-        total elapsed time >= :attr:`min_verify_time`.
-
-        :param elapsed:
-            optional amount of time spent hashing so far
-            (mainly used internally by :meth:`verify` and :meth:`verify_and_update`).
-
-        See :ref:`harden_verify <context-harden-verify-option>` for details
-        about this feature.
-
-        .. versionadded:: 1.7
-        """
-        assert elapsed >= 0
-        remaining = self.min_verify_time - elapsed
-        if remaining > 0:
-            time.sleep(remaining)
+        self._reset_dummy_verify()
 
     #===================================================================
     # password hash api
@@ -2465,19 +2332,14 @@ class CryptContext(object):
                  DeprecationWarning)
         if hash is None:
             # convenience feature -- let apps pass in hash=None when user
-            # isn't found / has no hash; mainly to get dummy_verify() benefit.
-            if self.harden_verify:
-                self.dummy_verify()
+            # isn't found / has no hash; useful because it invokes dummy_verify()
+            self.dummy_verify()
             return False
         record = self._get_or_identify_record(hash, scheme, category)
         strip_unused = self._strip_unused_context_kwds
         if strip_unused:
             strip_unused(kwds, record)
-        start = timer()
-        ok = record.verify(secret, hash, **kwds)
-        if not ok and self.harden_verify:
-            self.dummy_verify(timer() - start)
-        return ok
+        return record.verify(secret, hash, **kwds)
 
     def verify_and_update(self, secret, hash, scheme=None, category=None, **kwds):
         """verify password and re-hash the password if needed, all in a single call.
@@ -2549,9 +2411,8 @@ class CryptContext(object):
                  DeprecationWarning)
         if hash is None:
             # convenience feature -- let apps pass in hash=None when user
-            # isn't found / has no hash; mainly to get dummy_verify() benefit.
-            if self.harden_verify:
-                self.dummy_verify()
+            # isn't found / has no hash; useful because it invokes dummy_verify()
+            self.dummy_verify()
             return False, None
         record = self._get_or_identify_record(hash, scheme, category)
         strip_unused = self._strip_unused_context_kwds
@@ -2564,16 +2425,52 @@ class CryptContext(object):
         #      api to combine verify & needs_update to single call,
         #      potentially saving some round-trip parsing.
         #      but might make these codepaths more complex...
-        start = timer()
         if not record.verify(secret, hash, **clean_kwds):
-            if self.harden_verify:
-                self.dummy_verify(timer() - start)
             return False, None
         elif record.deprecated or record.needs_update(hash, secret=secret):
             # NOTE: we re-hash with default scheme, not current one.
             return True, self.hash(secret, category=category, **kwds)
         else:
             return True, None
+
+    #===================================================================
+    # missing-user helper
+    #===================================================================
+
+    #: secret used for dummy_verify()
+    _dummy_secret = "too many secrets"
+
+    @memoized_property
+    def _dummy_hash(self):
+        """
+        precalculated hash for dummy_verify() to use
+        """
+        return self.hash(self._dummy_secret)
+
+    def _reset_dummy_verify(self):
+        """
+        flush memoized values used by dummy_verify()
+        """
+        type(self)._dummy_hash.clear_cache(self)
+
+    def dummy_verify(self, elapsed=0):
+        """
+        Helper that applications can call when user wasn't found,
+        in order to simulate time it would take to hash a password.
+
+        Runs verify() against a dummy hash, to simulate verification
+        of a real account password.
+
+        :param elapsed:
+
+            .. deprecated:: 1.7.1
+
+                this option is ignored, and will be removed in passlib 1.8.
+
+        .. versionadded:: 1.7
+        """
+        self.verify(self._dummy_secret, self._dummy_hash)
+        return False
 
     #===================================================================
     # disabled hash support

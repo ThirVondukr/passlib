@@ -1580,106 +1580,32 @@ sha512_crypt__min_rounds = 45000
     #===================================================================
     def test_harden_verify_parsing(self):
         """harden_verify -- parsing"""
+        warnings.filterwarnings("ignore", ".*harden_verify.*",
+                                category=DeprecationWarning)
 
         # valid values
         ctx = CryptContext(schemes=["sha256_crypt"])
         self.assertEqual(ctx.harden_verify, None)
         self.assertEqual(ctx.using(harden_verify="").harden_verify, None)
-        self.assertEqual(ctx.using(harden_verify="true").harden_verify, True)
-        self.assertEqual(ctx.using(harden_verify="false").harden_verify, False)
-
-        # invalid value
-        self.assertRaises(ValueError, ctx.using, harden_verify="foo")
-
-        # forbid w/ category
-        self.assertRaises(ValueError, ctx.using, admin__context__harden_verify="true")
-
-    def test_harden_verify_estimate(self):
-        """harden_verify -- min_verify_time estimation"""
-        # setup
-        handler = DelayHash.using()
-        ctx = CryptContext(schemes=[handler])
-        maxtime = 0.25
-        scale = 0.01
-        accuracy = scale * 0.1
-        secret = "secret"
-        hash = handler.hash(secret)
-
-        # establish baseline w/ 0 delay
-        elapsed, _ = time_call(partial(ctx.verify, secret, hash), maxtime=maxtime)
-        self.assertAlmostEqual(elapsed, 0, delta=accuracy)
-
-        # run min_verify_time calc, see what it gets
-        ctx.reset_min_verify_time()
-        self.assertAlmostEqual(ctx.min_verify_time, 0, delta=accuracy)
-
-        # add delay, make sure verify sees it
-        handler.delay = scale
-        elapsed, _ = time_call(partial(ctx.verify, secret, hash), maxtime=maxtime)
-        self.assertAlmostEqual(elapsed, scale, delta=accuracy)
-
-        # re-run min_verify_time calc, see what it gets
-        ctx.reset_min_verify_time()
-        self.assertAlmostEqual(ctx.min_verify_time, scale, delta=accuracy)
-
-    # TODO: * check that min_verify_time honors thread lock
-    #       * check that min_verify_time correctly uses median
-    #       * check that mvt_* config settings are honored
+        self.assertEqual(ctx.using(harden_verify="true").harden_verify, None)
+        self.assertEqual(ctx.using(harden_verify="false").harden_verify, None)
 
     def test_dummy_verify(self):
-        """harden_verify -- min_verify_time honored by dummy_verify() methods"""
-        # setup
+        """
+        dummy_verify() method
+        """
+        # check dummy_verify() takes expected time
+        expected = 0.05
+        accuracy = 0.2
         handler = DelayHash.using()
-        maxtime = 0.25
-        scale = 0.01
-        accuracy = scale * 0.1
+        handler.delay = expected
+        ctx = CryptContext(schemes=[handler])
+        ctx.dummy_verify()  # prime the memoized helpers
+        elapsed, _ = time_call(ctx.dummy_verify)
+        self.assertAlmostEqual(elapsed, expected, delta=expected * accuracy)
 
-        ctx = CryptContext(schemes=[handler], harden_verify=False)
-        ctx.min_verify_time = scale
-
-        # check dummy_verify() honors mvt even if hardening is off
-        elapsed, _ = time_call(partial(ctx.dummy_verify), maxtime=maxtime)
-        self.assertAlmostEqual(elapsed, scale, delta=accuracy)
-
-        # check dummy_verify() honors elapsed kwd
-        elapsed, _ = time_call(partial(ctx.dummy_verify, elapsed=scale/2), maxtime=maxtime)
-        self.assertAlmostEqual(elapsed, scale/2, delta=accuracy)
-
-    def test_harden_verify_w_verify(self, verify_and_update=False):
-        """harden_verify -- min_verify_time honored by verify()"""
-        # setup
-        handler = DelayHash.using()
-        maxtime = 0.25
-        scale = 0.01
-        accuracy = scale * 0.1
-        secret = "secret"
-        other = "other"
-        hash = handler.hash(secret)
-
-        def time_verify(pwd):
-            if verify_and_update:
-                func = partial(ctx.verify_and_update, pwd, hash)
-            else:
-                func = partial(ctx.verify, pwd, hash)
-            elapsed, _ = time_call(func, maxtime=maxtime)
-            return elapsed
-
-        # w/o harden_verify, verify() should ignore min_verify_time even if failed
-        ctx = CryptContext(schemes=[handler], harden_verify=False)
-        ctx.min_verify_time = scale
-        self.assertAlmostEqual(time_verify(other), 0, delta=accuracy)
-
-        # w/ harden_verify, verify() should ignore min_verify_time if successful
-        ctx.update(harden_verify=True)
-        ctx.min_verify_time = scale
-        self.assertAlmostEqual(time_verify(secret), 0, delta=accuracy)
-
-        # w/ harden_verify, verify() should honor min_verify_time if failed
-        self.assertAlmostEqual(time_verify(other), scale, delta=accuracy)
-
-    def test_harden_verify_w_verify_and_update(self):
-        """harden_verify -- min_verify_time honored by verify_and_update()"""
-        self.test_harden_verify_w_verify(verify_and_update=True)
+        # TODO: test dummy_verify() invoked by .verify() when hash is None,
+        #       and same for .verify_and_update()
 
     #===================================================================
     # feature tests

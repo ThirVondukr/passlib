@@ -180,37 +180,21 @@ Options which directly affect the behavior of the CryptContext instance:
         and will be removed in version 1.8.
 
     .. versionchanged:: 1.7
-        Per deprecation roadmap above, this option is now ignored.
 
-        See ``harden_verify`` below for a replacement.
+        Per deprecation roadmap above, this option is now ignored.
 
 .. _context-harden-verify-option:
 
 ``harden_verify``
 
-    If set to ``true``, CryptContext will pause the first time :meth:`verify`
-    is called, in order to calculate the "average" time it would take
-    to verify a hash created using the default settings.
-
-    Subsequent :meth:`verify` calls using will have their time padded
-    to this minimum time, in order to make it harder for an attacker
-    to guess which accounts have weak hashes.
-
-    Applications may also wish to call :meth:`~CryptContext.dummy_verify` for login
-    attempts where the user does not exist, in order to mask which
-    users accounts have valid hashes.
-
-    This option can be set to ``True`` or ``False`` (the default).
-
-    The default (may) be changed in a later 2.x release.
-
-    .. warning::
-
-        This feature is new, and adjustments may need to be made
-        to when (and how) the code calculates what the "minimum verification time"
-        is supposed to be.
+    Companion to ``min_verify_time``, currently ignored.
 
     .. versionadded:: 1.7
+
+    .. deprecated:: 1.7.1
+
+        This option is ignored by 1.7.1, and will be removed in 1.8
+        along with ``min_verify_time``.
 
 .. _context-algorithm-options:
 

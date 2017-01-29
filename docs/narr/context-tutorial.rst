@@ -371,7 +371,6 @@ If an existing hash below the minimum is tested, it will show up as needing reha
 Undocumented Features
 =====================
 
-.. todo:: Document usage of the :ref:`harden_verify <context-harden-verify-option>` option.
 .. todo:: Document usage of the :ref:`context-disabled-hashes` options.
 
 .. rst-class:: html-toggle
@@ -419,9 +418,6 @@ All of the documented :ref:`context-options` are allowed.
     ; rounds value.
     admin__pbkdf2_sha1__min_rounds = 18000
     admin__pbkdf2_sha1__default_rounds = 20000
-
-    ; delay failed verify() calls to mask hashes with weak rounds
-    harden_verify = true
 
 Initializing the CryptContext
 -----------------------------

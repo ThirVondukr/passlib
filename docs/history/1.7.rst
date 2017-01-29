@@ -7,16 +7,33 @@ Passlib 1.7
 
 .. py:currentmodule:: passlib.ifc
 
-* bugfix: :meth:`PasswordHash.hash` will now warn if passed any settings
+This release rolls up assorted bug & compatibility fixes since 1.7.0.
+
+Bugfixes
+--------
+
+* :meth:`PasswordHash.hash` will now warn if passed any settings
   keywords.  This usage was deprecated in 1.7.0, but warning wasn't properly enabled.
   See :ref:`hash-configuring` for the preferred way to pass settings.
 
-* bugfix: setup.py: prevent erroneous version strings when run from an sdist.
+* setup.py: Prevent erroneous version strings when run from an sdist.
+  This should fix some reproducible-build issues observed downstream.
 
-* bugfix: TOTP tests: test setup now traps additional errors utcfromtimestamp()
-  may throw under python 3.
+* TOTP tests: Test suite now traps additional errors that :func:`datetime.utcfromtimestamp`
+  may throw under python 3, and works around python 3.6 bug `29100 <https://bugs.python.org/issue29100>`_.
+  This should fix some test failures under python 3.6 and certain bit-size architectures.
 
-* various documentation updates
+Deprecations
+------------
+
+* The :class:`!CryptContext` ``harden_verify`` flag has been deprecated,
+  turned into a NOOP, and will be removed in passlib 1.8 along with already-deprecated
+  ``min_verify_time`` (:issue:`83`).
+
+Other Changes
+-------------
+
+* Various documentation updates & corrections.
 
 .. _whats-new:
 
@@ -93,12 +110,6 @@ New Features
     * The :class:`~passlib.context.CryptContext` object now has helper
       methods for dealing with hashes representing
       :ref:`disabled accounts <context-disabled-hashes>` (:issue:`45`).
-
-    * The :class:`~passlib.context.CryptContext` object now supports
-      a :ref:`harden_verify <context-harden-verify-option>` option,
-      allowing applications to introduce a delay in verification
-      to help prevent attackers discovering weak or missing hashes
-      through timing attacks.
 
     * All hashers which truncate passwords (e.g. :class:`~passlib.hash.bcrypt`
       and :class:`~passlib.hash.des_crypt`) can now be configured to raise
@@ -306,8 +317,6 @@ Scheduled removal of features:
     * **[minor]** :mod:`passlib.context`: The :ref:`min_verify_time <context-min-verify-time-option>` keyword
       that was deprecated in release 1.6, is now completely ignored.
       Support will be removed entirely in release 1.8.
-      See the new :ref:`harden_verify <context-harden-verify-option>` keyword
-      that replaces it.
 
     * **[trivial]** :mod:`passlib.hash`: The internal :meth:`!PasswordHash.parse_rounds` method, deprecated in 1.6, has been removed.
 
