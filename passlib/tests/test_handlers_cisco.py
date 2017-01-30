@@ -10,9 +10,9 @@ import logging
 log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib import hash
+from passlib import hash, exc
 from passlib.utils.compat import u
-from .utils import UserHandlerMixin, HandlerCase
+from .utils import UserHandlerMixin, HandlerCase, repeat_string
 from .test_handlers import UPASS_TABLE
 # module
 __all__ = [
