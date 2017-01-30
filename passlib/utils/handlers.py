@@ -405,12 +405,19 @@ class TruncateMixin(MinimalHandler):
     PasswordHash mixin which provides a method
     that will check if secret would be truncated,
     and can be configured to throw an error.
+
+    .. warning::
+
+        Hashers using this mixin will generally need to override
+        the default PasswordHash.truncate_error policy of "True",
+        and will similarly want to override .truncate_verify_reject as well.
+
+        TODO: This should be done explicitly, but for now this mixin sets
+        these flags implicitly.
     """
 
-    #: whether passwords large enough to be truncated
-    #: should cause a PasswordTruncateError to be raised,
-    #: instead of being silently truncated.
     truncate_error = False
+    truncate_verify_reject = False
 
     @classmethod
     def using(cls, truncate_error=None, **kwds):
@@ -425,7 +432,8 @@ class TruncateMixin(MinimalHandler):
     def _check_truncate_policy(cls, secret):
         """
         make sure secret won't be truncated.
-        NOTE: this should only be called for .hash(), not for .verify()
+        NOTE: this should only be called for .hash(), not for .verify(),
+        which should honor the .truncate_verify_reject policy.
         """
         assert cls.truncate_size is not None, "truncate_size must be set by subclass"
         if cls.truncate_error and len(secret) > cls.truncate_size:
@@ -2548,6 +2556,7 @@ class PrefixWrapper(object):
                     "salt_chars", "default_salt_chars",
                     "backends", "has_backend", "get_backend", "set_backend",
                     "is_disabled", "truncate_size", "truncate_error",
+                    "truncate_verify_reject",
 
                     # internal info attrs needed for test inspection
                     "_salt_is_bytes",

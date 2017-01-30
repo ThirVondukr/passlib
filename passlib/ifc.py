@@ -58,9 +58,33 @@ class PasswordHash(object):
     #: depend on the provided password.
     is_disabled = False
 
-    #: if not None, should be an integer, indicating hash
-    #: will truncate any secrets larger than this value.
+    #: Should be None, or a positive integer indicating hash
+    #: doesn't support secrets larger than this value.
+    #: Whether hash throws error or silently truncates secret
+    #: depends on .truncate_error and .truncate_verify_reject flags below.
+    #: NOTE: calls may treat as boolean, since value will never be 0.
+    #: .. versionadded:: 1.7
+    #: .. TODO: passlib 1.8: deprecate/rename this attr to "max_secret_size"?
     truncate_size = None
+
+    # NOTE: these next two default to the optimistic "ideal",
+    #       most hashes in passlib have to default to False
+    #       for backward compat and/or expected behavior with existing hashes.
+
+    #: If True, .hash() should throw a :exc:`~passlib.exc.PasswordSizeError` for
+    #: any secrets larger than .truncate_size.  Many hashers default to False
+    #: for historical / compatibility purposes, indicating they will silently
+    #: truncate instead.  All such hashers SHOULD support changing
+    #: the policy via ``.using(truncate_error=True)``.
+    #: .. versionadded:: 1.7
+    #: .. TODO: passlib 1.8: deprecate/rename this attr to "truncate_hash_error"?
+    truncate_error = True
+
+    #: If True, .verify() should reject secrets larger than max_password_size.
+    #: Many hashers default to False for historical / compatibility purposes,
+    #: indicating they will match on the truncated portion instead.
+    #: .. versionadded:: 1.7.1
+    truncate_verify_reject = True
 
     #---------------------------------------------------------------
     # salt information -- if 'salt' in setting_kwds

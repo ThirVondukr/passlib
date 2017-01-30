@@ -28,8 +28,10 @@ class MissingBackendError(RuntimeError):
     """
 
 class PasswordSizeError(ValueError):
-    """Error raised if a password exceeds the maximum size allowed
-    by Passlib (4096 characters).
+    """
+    Error raised if a password exceeds the maximum size allowed
+    by Passlib (by default, 4096 characters); or if password exceeds
+    a hash-specific size limitation.
 
     Many password hash algorithms take proportionately larger amounts of time and/or
     memory depending on the size of the password provided. This could present

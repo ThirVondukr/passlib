@@ -33,7 +33,10 @@ Deprecations
 Other Changes
 -------------
 
-* Various documentation updates & corrections.
+* :mod:`!passlib.tests.utils`: General truncation policy details were hammered out,
+  and additional hasher tests were added to enforce them.
+
+* **documentation**: Various updates & corrections.
 
 .. _whats-new:
 

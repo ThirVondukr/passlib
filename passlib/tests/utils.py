@@ -22,6 +22,7 @@ import warnings
 from warnings import warn
 # site
 # pkg
+from passlib import exc
 from passlib.exc import MissingBackendError
 import passlib.registry as registry
 from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless, SkipTest
@@ -1984,69 +1985,182 @@ class HandlerCase(TestCase):
                 self.assertEqual(subcls.default_ident, ident, msg="alias %r:" % alias)
 
     #===================================================================
-    # passwords
+    # password size limits
     #===================================================================
-    def test_60_truncate_size(self):
-        """test password size limits"""
+    def test_truncate_error_setting(self):
+        """
+        validate 'truncate_error' setting & related attributes
+        """
+        # If it doesn't have truncate_size set,
+        # it shouldn't support truncate_error
+        hasher = self.handler
+        if hasher.truncate_size is None:
+            self.assertNotIn("truncate_error", hasher.setting_kwds)
+            return
+
+        # if hasher defaults to silently truncating,
+        # it MUST NOT use .truncate_verify_reject,
+        # because resulting hashes wouldn't verify!
+        if not hasher.truncate_error:
+            self.assertFalse(hasher.truncate_verify_reject)
+
+        # if hasher doesn't have configurable policy,
+        # it must throw error by default
+        if "truncate_error" not in hasher.setting_kwds:
+            self.assertTrue(hasher.truncate_error)
+            return
+
+        # test value parsing
+        def parse_value(value):
+            return hasher.using(truncate_error=value).truncate_error
+        self.assertEqual(parse_value(None), hasher.truncate_error)
+        self.assertEqual(parse_value(True), True)
+        self.assertEqual(parse_value("true"), True)
+        self.assertEqual(parse_value(False), False)
+        self.assertEqual(parse_value("false"), False)
+        self.assertRaises(ValueError, parse_value, "xxx")
+
+    def test_secret_wo_truncate_size(self):
+        """
+        test no password size limits enforced (if truncate_size=None)
+        """
+        # skip if hasher has a maximum password size
+        hasher = self.handler
+        if hasher.truncate_size is not None:
+            self.assertGreaterEqual(hasher.truncate_size, 1)
+            raise self.skipTest("truncate_size is set")
+
+        # NOTE: this doesn't do an exhaustive search to verify algorithm
+        # doesn't have some cutoff point, it just tries
+        # 1024-character string, and alters the last char.
+        # as long as algorithm doesn't clip secret at point <1024,
+        # the new secret shouldn't verify.
+
+        # hash a 1024-byte secret
+        secret = "too many secrets" * 16
+        alt = "x"
+        hash = self.do_encrypt(secret)
+
+        # check that verify doesn't silently reject secret
+        # (i.e. hasher mistakenly honors .truncate_verify_reject)
+        verify_success = not hasher.is_disabled
+        self.assertEqual(self.do_verify(secret, hash), verify_success,
+                         msg="verify rejected correct secret")
+
+        # alter last byte, should get different hash, which won't verify
+        alt_secret = secret[:-1] + alt
+        self.assertFalse(self.do_verify(alt_secret, hash),
+                         "full password not used in digest")
+
+    def test_secret_w_truncate_size(self):
+        """
+        test password size limits raise truncate_error (if appropriate)
+        """
+        #--------------------------------------------------
+        # check if test is applicable
+        #--------------------------------------------------
         handler = self.handler
+        truncate_size = handler.truncate_size
+        if not truncate_size:
+            raise self.skipTest("truncate_size not set")
 
-        sc = handler.truncate_size
-        base = "too many secrets" # 16 chars
-        alt = 'x' # char that's not in base string
-        if sc is not None:
-            # hash only counts the first <sc> characters; eg: bcrypt, des-crypt
-            self.assertGreaterEqual(sc, 1)
-            self.assertIn("truncate_error", handler.setting_kwds)
-
+        #--------------------------------------------------
+        # setup vars
+        #--------------------------------------------------
+        # try to get versions w/ and w/o truncate_error set.
+        # set to None if policy isn't configruable
+        size_error_type = exc.PasswordSizeError
+        if "truncate_error" in handler.setting_kwds:
             without_error = handler.using(truncate_error=False)
             with_error = handler.using(truncate_error=True)
+            size_error_type = exc.PasswordTruncateError
+        elif handler.truncate_error:
+            without_error = None
+            with_error = handler
+        else:
+            # NOTE: this mode is currently an error in test_truncate_error_setting()
+            without_error = handler
+            with_error = None
 
-            # create & hash string that's exactly sc+1 chars
-            secret = repeat_string(base, sc+1)
-            hash = self.do_encrypt(secret, handler=without_error)
+        # create some test secrets
+        base = "too many secrets"
+        alt = "x"  # char that's not in base, used to mutate test secrets
+        long_secret = repeat_string(base, truncate_size+1)
+        short_secret = long_secret[:-1]
+        alt_long_secret = long_secret[:-1] + alt
+        alt_short_secret = short_secret[:-1] + alt
+
+        # init flags
+        short_verify_success = not handler.is_disabled
+        long_verify_success = short_verify_success and \
+                              not handler.truncate_verify_reject
+
+        #--------------------------------------------------
+        # do tests on <truncate_size> length secret, and resulting hash.
+        # should pass regardless of truncate_error policy.
+        #--------------------------------------------------
+        assert without_error or with_error
+        for cand_hasher in [without_error, with_error]:
+
+            # create & hash string that's exactly <truncate_size> chars.
+            short_hash = self.do_encrypt(short_secret, handler=cand_hasher)
+
+            # check hash verifies, regardless of .truncate_verify_reject
+            self.assertEqual(self.do_verify(short_secret, short_hash,
+                                           handler=cand_hasher),
+                             short_verify_success)
+
+            # changing <truncate_size-1>'th char should invalidate hash
+            # if this fails, means (reported) truncate_size is too large.
+            self.assertFalse(self.do_verify(alt_short_secret, short_hash,
+                                            handler=with_error),
+                             "truncate_size value is too large")
+
+            # verify should truncate long secret before comparing
+            # (unless truncate_verify_reject is set)
+            self.assertEqual(self.do_verify(long_secret, short_hash,
+                                            handler=cand_hasher),
+                             long_verify_success)
+
+        #--------------------------------------------------
+        # do tests on <truncate_size+1> length secret,
+        # w/ truncate error disabled (should silently truncate)
+        #--------------------------------------------------
+        if without_error:
+
+            # create & hash string that's exactly truncate_size+1 chars
+            long_hash = self.do_encrypt(long_secret, handler=without_error)
+
+            # check verifies against secret (unless truncate_verify_reject=True)
+            self.assertEqual(self.do_verify(long_secret, long_hash,
+                                            handler=without_error),
+                             short_verify_success)
+
+            # check mutating last char doesn't change outcome.
+            # if this fails, means (reported) truncate_size is too small.
+            self.assertEqual(self.do_verify(alt_long_secret, long_hash,
+                                            handler=without_error),
+                             short_verify_success)
+
+            # check short_secret verifies against this hash
+            # if this fails, means (reported) truncate_size is too large.
+            self.assertTrue(self.do_verify(short_secret, long_hash,
+                                           handler=without_error))
+
+        #--------------------------------------------------
+        # do tests on <truncate_size+1> length secret,
+        # w/ truncate error
+        #--------------------------------------------------
+        if with_error:
 
             # with errors enabled, should forbid truncation.
-            err = self.assertRaises(uh.exc.PasswordTruncateError,
-                                    self.do_encrypt, secret, handler=with_error)
-            self.assertEqual(err.max_size, sc)
+            err = self.assertRaises(size_error_type, self.do_encrypt,
+                                    long_secret, handler=with_error)
+            self.assertEqual(err.max_size, truncate_size)
 
-            # make sure we can create & hash string that's exactly sc chars
-            self.do_encrypt(secret[:-1], handler=with_error)
-
-            # check sc value isn't too large by verifying that sc-1'th char
-            # affects hash
-            secret2 = secret[:-2] + alt + secret[-1]
-            self.assertFalse(self.do_verify(secret2, hash, handler=with_error),
-                            "truncate_size value is too large")
-
-            # check sc value isn't too small by verifying adding sc'th char
-            # *doesn't* affect hash
-            secret3 = secret[:-1] + alt
-            self.assertTrue(self.do_verify(secret3, hash, handler=with_error),
-                            "truncate_size value is too small")
-
-            # test parse values
-            self.assertEqual(handler.using(truncate_error=True).truncate_error, True)
-            self.assertEqual(handler.using(truncate_error="true").truncate_error, True)
-            self.assertEqual(handler.using(truncate_error=False).truncate_error, False)
-            self.assertEqual(handler.using(truncate_error="false").truncate_error, False)
-            self.assertRaises(ValueError, handler.using, truncate_error="xxx")
-
-        else:
-            # hash counts all characters; e.g. md5-crypt
-            self.assertNotIn("truncate_error", handler.setting_kwds)
-
-            # NOTE: this doesn't do an exhaustive search to verify algorithm
-            # doesn't have some cutoff point, it just tries
-            # 1024-character string, and alters the last char.
-            # as long as algorithm doesn't clip secret at point <1024,
-            # the new secret shouldn't verify.
-            secret = base * 64
-            hash = self.do_encrypt(secret)
-            secret2 = secret[:-1] + alt
-            self.assertFalse(self.do_verify(secret2, hash),
-                             "full password not used in digest")
-
+    #===================================================================
+    # password contents
+    #===================================================================
     def test_61_secret_case_sensitive(self):
         """test password case sensitivity"""
         hash_insensitive = self.secret_case_insensitive is True
@@ -2099,6 +2213,7 @@ class HandlerCase(TestCase):
         self.assertRaises(TypeError, self.do_genhash, 1, hash)
         self.assertRaises(TypeError, self.do_verify, 1, hash)
 
+    # xxx: move to password size limits section, above?
     def test_63_large_secret(self):
         """test MAX_PASSWORD_SIZE is enforced"""
         from passlib.exc import PasswordSizeError
@@ -2729,12 +2844,29 @@ class HandlerCase(TestCase):
             rng = self.rng
             if rng.random() < .0001:
                 return u('')
-            # otherwise alternate between large and small passwords.
-            if rng.random() < .5:
-                size = self.randintgauss(1, 50, 15, 15)
+
+            # check if truncate size needs to be considered
+            handler = self.handler
+            truncate_size = handler.truncate_error and handler.truncate_size
+            max_size = truncate_size or 999999
+
+            # pick endpoint
+            if max_size < 50 or rng.random() < .5:
+                # chance of small password (~15 chars)
+                size = self.randintgauss(1, min(max_size, 50), 15, 15)
             else:
-                size = self.randintgauss(50, 99, 70, 20)
-            return getrandstr(rng, self.password_alphabet, size)
+                # otherwise large password (~70 chars)
+                size = self.randintgauss(50, min(max_size, 99), 70, 20)
+
+            # generate random password
+            result = getrandstr(rng, self.password_alphabet, size)
+
+            # trim ones that encode past truncate point.
+            if truncate_size and isinstance(result, unicode):
+                while len(result.encode("utf-8")) > truncate_size:
+                    result = result[:-1]
+
+            return result
 
         def accept_password_pair(self, secret, other):
             """verify fuzz pair contains different passwords"""
