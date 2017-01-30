@@ -1,12 +1,3 @@
-glob:*.pyc
-glob:*.egg-info
-glob:.coverage
-glob:cover
-glob:build
-glob:dist
-glob:*$py.class
-glob:MANIFEST
-glob:.tox
-glob:app.yaml
-glob:.noseids
-^\.idea$
+^\.idea|\.coverage|cover|build|dist|MANIFEST|\.tox|\.noseids$
+^.*\.(pyc|egg-info|\$py\.class)$
+^hg-checklink.*$
