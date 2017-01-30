@@ -1,4 +1,6 @@
-"""passlib.handlers.cisco - Cisco password hashes"""
+"""
+passlib.handlers.cisco -- Cisco password hashes
+"""
 #=============================================================================
 # imports
 #=============================================================================
@@ -9,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 # pkg
-from passlib.utils import right_pad_string, to_unicode
+from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
 from passlib.utils.compat import unicode, u, join_byte_values, \
              join_byte_elems, iter_byte_values, uascii_to_str
@@ -17,23 +19,37 @@ import passlib.utils.handlers as uh
 # local
 __all__ = [
     "cisco_pix",
+    "cisco_asa",
     "cisco_type7",
 ]
 
 #=============================================================================
+# utils
+#=============================================================================
+
+#: dummy bytes used by spoil_digest var in cisco_pix._calc_checksum()
+_DUMMY_BYTES = b'\xFF' * 32
+
+#=============================================================================
 # cisco pix firewall hash
 #=============================================================================
-class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
-    """This class implements the password hash used by (older) Cisco PIX firewalls,
+class cisco_pix(uh.HasUserContext, uh.StaticHandler):
+    """
+    This class implements the password hash used by older Cisco PIX firewalls,
     and follows the :ref:`password-hash-api`.
     It does a single round of hashing, and relies on the username
     as the salt.
 
-    The :meth:`~passlib.ifc.PasswordHash.hash`, :meth:`~passlib.ifc.PasswordHash.genhash`, and :meth:`~passlib.ifc.PasswordHash.verify` methods
-    have the following extra keyword:
+    This class only allows passwords <= 16 bytes, anything larger
+    will result in a :exc:`~passlib.exc.PasswordSizeError` if passed to :meth:`~cisco_pix.hash`,
+    and be silently rejected if passed to :meth:`~cisco_pix.verify`.
 
-    :type user: str
-    :param user:
+    The :meth:`~passlib.ifc.PasswordHash.hash`,
+    :meth:`~passlib.ifc.PasswordHash.genhash`, and
+    :meth:`~passlib.ifc.PasswordHash.verify` methods
+    all support the following extra keyword:
+
+    :param str user:
         String containing name of user account this password is associated with.
 
         This is *required* in order to correctly hash passwords associated
@@ -44,14 +60,13 @@ class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
         hash passwords which don't have an associated user account
         (such as the "enable" password).
 
-    :param bool truncate_error:
-        By default, this will silently truncate passwords larger than 16 bytes.
-        Setting ``truncate_error=True`` will cause :meth:`~passlib.ifc.PasswordHash.hash`
-        to raise a :exc:`~passlib.exc.PasswordTruncateError` instead.
-
-        .. versionadded:: 1.7
-
     .. versionadded:: 1.6
+
+    .. versionchanged:: 1.7.1
+
+        Passwords > 16 bytes are now rejected / throw error instead of being silently truncated,
+        to match Cisco behavior.  A number of :ref:`bugs <passlib-asa96-bug>` were fixed
+        which caused prior releases to generate unverifiable hashes in certain cases.
     """
     #===================================================================
     # class attrs
@@ -61,7 +76,13 @@ class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
     # PasswordHash
     #--------------------
     name = "cisco_pix"
-    setting_kwds = ("truncate_error",)
+
+    truncate_size = 16
+
+    # NOTE: these are the default policy for PasswordHash,
+    #       but want to set them explicitly for now.
+    truncate_error = True
+    truncate_verify_reject = True
 
     #--------------------
     # GenericHandler
@@ -70,63 +91,155 @@ class cisco_pix(uh.TruncateMixin, uh.HasUserContext, uh.StaticHandler):
     checksum_chars = uh.HASH64_CHARS
 
     #--------------------
-    # TruncateMixin
-    #--------------------
-    truncate_size = 16
-
-    #--------------------
     # custom
     #--------------------
 
-    #: control flag signalling "cisco_asa" mode
+    #: control flag signalling "cisco_asa" mode, set by cisco_asa class
     _is_asa = False
 
     #===================================================================
     # methods
     #===================================================================
     def _calc_checksum(self, secret):
+        """
+        This function implements the "encrypted" hash format used by Cisco
+        PIX & ASA. It's behavior has been confirmed for ASA 9.6,
+        but is presumed correct for PIX & other ASA releases,
+        as it fits with known test vectors, and existing literature.
 
-        # This function handles both the cisco_pix & cisco_asa formats:
-        #   * PIX had a limit of 16 character passwords, and always appended the username.
-        #   * ASA 7.0 (2005) increases this limit to 32, and conditionally appends the username.
-        # The two behaviors are controlled based on the _is_asa class-level flag.
+        While nearly the same, the PIX & ASA hashes have slight differences,
+        so this function performs differently based on the _is_asa class flag.
+        Noteable changes from PIX to ASA include password size limit
+        increased from 16 -> 32, and other internal changes.
+        """
+        # select PIX vs or ASA mode
         asa = self._is_asa
 
-        # XXX: No idea what unicode policy is, but all examples are
-        #      7-bit ascii compatible, so using UTF-8.
+        #
+        # encode secret
+        #
+        # per ASA 8.4 documentation,
+        # http://www.cisco.com/c/en/us/td/docs/security/asa/asa84/configuration/guide/asa_84_cli_config/ref_cli.html#Supported_Character_Sets,
+        # it supposedly uses UTF-8 -- though some double-encoding issues have
+        # been observed when trying to actually *set* a non-ascii password
+        # via ASDM, and access via SSH seems to strip 8-bit chars.
+        #
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
-        seclen = len(secret)
 
-        # check for truncation (during .hash() calls only)
-        if self.use_defaults:
-            self._check_truncate_policy(secret)
+        #
+        # check if password too large
+        #
+        # Per ASA 9.6 changes listed in
+        # http://www.cisco.com/c/en/us/td/docs/security/asa/roadmap/asa_new_features.html,
+        # prior releases had a maximum limit of 32 characters.
+        # Testing with an ASA 9.6 system bears this out --
+        # setting 32-char password for a user account,
+        # and logins will fail if any chars are appended.
+        # (ASA 9.6 added new PBKDF2-based hash algorithm,
+        #  which supports larger passwords).
+        #
+        # Per PIX documentation
+        # http://www.cisco.com/en/US/docs/security/pix/pix50/configuration/guide/commands.html,
+        # it would not allow passwords > 16 chars.
+        #
+        # Thus, we unconditionally throw a password size error here,
+        # as nothing valid can come from a larger password.
+        # NOTE: assuming PIX has same behavior, but at 16 char limit.
+        #
+        spoil_digest = None
+        if len(secret) > self.truncate_size:
+            if self.use_defaults:
+                # called from hash()
+                msg = "Password too long (%s allows at most %d bytes)" % \
+                      (self.name, self.truncate_size)
+                raise uh.exc.PasswordSizeError(self.truncate_size, msg=msg)
+            else:
+                # called from verify() --
+                # We don't want to throw error, or return early,
+                # as that would let attacker know too much.  Instead, we set a
+                # flag to add some dummy data into the md5 digest, so that
+                # output won't match truncated version of secret, or anything
+                # else that's fixed and predictable.
+                spoil_digest = secret + _DUMMY_BYTES
 
-        # PIX/ASA: Per-user accounts use the first 4 chars of the username as the salt,
-        #          whereas global "enable" passwords don't have any salt at all.
-        # ASA only: Don't append user if password is 28 or more characters.
+        #
+        # append user to secret
+        #
+        # Policy appears to be:
+        #
+        # * Nothing appended for enable password (user = "")
+        #
+        # * ASA: If user present, but secret is >= 28 chars, nothing appended.
+        #
+        # * 1-2 byte users not allowed.
+        #   DEVIATION: we're letting them through, and repeating their
+        #   chars ala 3-char user, to simplify testing.
+        #   Could issue warning in the future though.
+        #
+        # * 3 byte user has first char repeated, to pad to 4.
+        #   (observed under ASA 9.6, assuming true elsewhere)
+        #
+        # * 4 byte users are used directly.
+        #
+        # * 5+ byte users are truncated to 4 bytes.
+        #
         user = self.user
-        if user and not (asa and seclen > 27):
+        if user:
             if isinstance(user, unicode):
                 user = user.encode("utf-8")
-            secret += user[:4]
+            if not asa or len(secret) < 28:
+                secret += repeat_string(user, 4)
 
-        # PIX: null-pad or truncate to 16 bytes.
-        # ASA: increase to 32 bytes if password is 13 or more characters.
-        if asa and seclen > 12:
-            padsize = 32
+        #
+        # pad / truncate result to limit
+        #
+        # While PIX always pads to 16 bytes, ASA increases to 32 bytes IFF
+        # secret+user > 16 bytes.  This makes PIX & ASA have different results
+        # where secret size in range(13,16), and user is present --
+        # PIX will truncate to 16, ASA will truncate to 32.
+        #
+        if asa and len(secret) > 16:
+            pad_size = 32
         else:
-            padsize = 16
-        secret = right_pad_string(secret, padsize)
+            pad_size = 16
+        secret = right_pad_string(secret, pad_size)
 
+        #
         # md5 digest
-        hash = md5(secret).digest()
+        #
+        if spoil_digest:
+            # make sure digest won't match truncated version of secret
+            secret += spoil_digest
+        digest = md5(secret).digest()
 
+        #
         # drop every 4th byte
-        hash = join_byte_elems(c for i,c in enumerate(hash) if i & 3 < 3)
+        # NOTE: guessing this was done because it makes output exactly
+        #       16 bytes, which may have been a general 'char password[]'
+        #       size limit under PIX
+        #
+        digest = join_byte_elems(c for i, c in enumerate(digest) if (i + 1) & 3)
 
+        #
         # encode using Hash64
-        return h64.encode_bytes(hash).decode("ascii")
+        #
+        return h64.encode_bytes(digest).decode("ascii")
+
+    # NOTE: works, but needs UTs.
+    # @classmethod
+    # def same_as_pix(cls, secret, user=""):
+    #     """
+    #     test whether (secret + user) combination should
+    #     have the same hash under PIX and ASA.
+    #
+    #     mainly present to help unittests.
+    #     """
+    #     # see _calc_checksum() above for details of this logic.
+    #     size = len(to_bytes(secret, "utf-8"))
+    #     if user and size < 28:
+    #         size += 4
+    #     return size < 17
 
     #===================================================================
     # eoc
@@ -140,12 +253,20 @@ class cisco_asa(cisco_pix):
     to the older :class:`cisco_pix` class.
 
     For passwords less than 13 characters, this should be identical to :class:`!cisco_pix`,
-    but will generate a different hash for anything larger
+    but will generate a different hash for most larger inputs
     (See the `Format & Algorithm`_ section for the details).
 
-    Unlike cisco_pix, this will truncate passwords larger than 32 bytes.
+    This class only allows passwords <= 32 bytes, anything larger
+    will result in a :exc:`~passlib.exc.PasswordSizeError` if passed to :meth:`~cisco_asa.hash`,
+    and be silently rejected if passed to :meth:`~cisco_asa.verify`.
 
     .. versionadded:: 1.7
+
+    .. versionchanged:: 1.7.1
+
+        Passwords > 32 bytes are now rejected / throw error instead of being silently truncated,
+        to match Cisco behavior.  A number of :ref:`bugs <passlib-asa96-bug>` were fixed
+        which caused prior releases to generate unverifiable hashes in certain cases.
     """
     #===================================================================
     # class attrs
@@ -174,7 +295,8 @@ class cisco_asa(cisco_pix):
 # type 7
 #=============================================================================
 class cisco_type7(uh.GenericHandler):
-    """This class implements the Type 7 password encoding used by Cisco IOS,
+    """
+    This class implements the "Type 7" password encoding used by Cisco IOS,
     and follows the :ref:`password-hash-api`.
     It has a simple 4-5 bit salt, but is nonetheless a reversible encoding
     instead of a real hash.

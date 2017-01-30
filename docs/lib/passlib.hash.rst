@@ -238,7 +238,45 @@ no identifying markers, identifying them is pretty much context-dependant.
 
 Cisco Hashes
 ============
-The following hashes are used in various places on Cisco IOS and ASA devices:
+..
+    TODO:
+
+    What was/were IOS types 1, 2, 3, and 6? Don't see many references.
+    Think type 6 is a reversible encryption format ala type 7,
+    per https://supportforums.cisco.com/discussion/11733226/when-use-type-6-encrypted-or-type-7-encrypted
+
+
+**Cisco IOS**
+
+The following hashes are used in various places on Cisco IOS, and
+are usually referred to by a Cisco-assigned "type" code:
+
+.. rst-class:: hidden
+
+.. toctree::
+    :maxdepth: 1
+
+    passlib.hash.cisco_type7
+
+* :doc:`passlib.hash.md5_crypt <passlib.hash.md5_crypt>` -- "Type 5" hashes are actually just the standard
+  Unix MD5-Crypt hash, the format is identical.
+
+* :doc:`passlib.hash.cisco_type7 <passlib.hash.cisco_type7>` -- "Type 7" isn't actually a hash,
+  but a reversible encoding designed to obscure passwords from idle view.
+
+* "Type 8" hashes are based on PBKDF2-HMAC-SHA256;
+  but not currently supported by passlib (:issue:`87`).
+
+* "Type 9" hashes are based on scrypt;
+  but not currently supported by passlib (:issue:`87`).
+
+**Cisco PIX & ASA**
+
+Separately from this, Cisco PIX & ASA firewalls have their own hash formats,
+generally identified by the "format" parameter in the :samp:`username {user} password {hash} {format}` config line
+they occur in.  The following are known & handled by passlib:
+
+.. rst-class:: hidden
 
 .. toctree::
     :maxdepth: 1
@@ -246,12 +284,19 @@ The following hashes are used in various places on Cisco IOS and ASA devices:
     passlib.hash.cisco_pix
     passlib.hash.cisco_asa
 
-* **Cisco "Type 5" hashes** - these are the same as :doc:`md5_crypt <passlib.hash.md5_crypt>`
+* :doc:`passlib.hash.cisco_pix <passlib.hash.cisco_pix>` -- PIX "encrypted" hashes
+  use a simple unsalted MD5-based algorithm.
 
-.. toctree::
-    :maxdepth: 1
+* :doc:`passlib.hash.cisco_asa <passlib.hash.cisco_asa>` -- ASA "encrypted" hashes
+  use a similar algorithm to PIX, with some minor improvements.
 
-    passlib.hash.cisco_type7
+* ASA "nt-encrypted" hashes
+  are the same as :class:`passlib.hash.nthash`,
+  except that they use base64 encoding rather than hexadecimal.
+
+* ASA 9.5 added support for "pbkdf2" hashes
+  (based on PBKDF2-HMAC-SHA512); which aren't currently supported
+  by passlib (:issue:`87`).
 
 .. _other-hashes:
 

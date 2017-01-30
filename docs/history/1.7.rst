@@ -5,14 +5,20 @@ Passlib 1.7
 **1.7.1** (NOT YET RELEASED)
 ============================
 
-.. py:currentmodule:: passlib.ifc
-
 This release rolls up assorted bug & compatibility fixes since 1.7.0.
 
 Bugfixes
 --------
+* .. py:currentmodule:: passlib.hash
 
-* :meth:`PasswordHash.hash` will now warn if passed any settings
+  :class:`cisco_asa` and :class:`cisco_pix`: Fixed a number of issues
+  which under :ref:`certain conditions <passlib-asa96-bug>`
+  caused prior releases to generate hashes that were unverifiable
+  on Cisco systems.
+
+* .. py:currentmodule:: passlib.ifc
+
+  :meth:`PasswordHash.hash` will now warn if passed any settings
   keywords.  This usage was deprecated in 1.7.0, but warning wasn't properly enabled.
   See :ref:`hash-configuring` for the preferred way to pass settings.
 
