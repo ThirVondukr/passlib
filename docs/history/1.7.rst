@@ -19,9 +19,9 @@ Bugfixes
 * setup.py: Prevent erroneous version strings when run from an sdist.
   This should fix some reproducible-build issues observed downstream.
 
-* TOTP tests: Test suite now traps additional errors that :func:`datetime.utcfromtimestamp`
-  may throw under python 3, and works around python 3.6 bug `29100 <https://bugs.python.org/issue29100>`_.
-  This should fix some test failures under python 3.6 and certain bit-size architectures.
+* :mod:`!passlib.tests.test_totp`: Test suite now traps additional errors that :func:`datetime.utcfromtimestamp`
+  may throw under python 3, which should fix some test failures on architectures with rarer ILP sizes.
+  It also works around Python 3.6 bug `29100 <https://bugs.python.org/issue29100>`_.
 
 Deprecations
 ------------

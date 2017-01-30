@@ -8,6 +8,7 @@ import hashlib
 import logging; log = logging.getLogger(__name__)
 import struct
 import warnings
+warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 # site
 # pkg
 from passlib import exc

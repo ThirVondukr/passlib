@@ -76,18 +76,27 @@ def _get_max_time_t():
             # * int out of range for host's time_t:
             #   py2 throws ValueError, py3 throws OverflowError.
             #
-            return value-1
+            break
 
         # Workaround for python 3.6.0 issue --
         # Instead of throwing ValueError if year out of range for datetime,
         # Python 3.6 will do some weird behavior that masks high bits
         # e.g. (1<<40) -> year 36812, but (1<<41) -> year 6118.
-        # (Filed as bug -- http://bugs.python.org/issue29346)
+        # (Appears to be bug http://bugs.python.org/issue29100)
         # This check stops at largest non-wrapping bit size.
         if next_year < year:
-            return value-1
+            break
 
         value = next_value
+
+    # 'value-1' is maximum.
+    value -= 1
+
+    # check for crazy case where we're beyond what datetime supports
+    # (caused by bug 29100 again). compare to max value that datetime
+    # module supports -- datetime.datetime(9999, 12, 31, 23, 59, 59, 999999)
+    max_datetime_timestamp = 253402318800
+    return min(value, max_datetime_timestamp)
 
 #: Rough approximation of max value acceptable by hosts's time_t.
 #: This is frequently ~2**37 on 64 bit, and ~2**31 on 32 bit systems.
