@@ -1,7 +1,7 @@
 .. index:: Cisco; ASA hash
 
 ==================================================================
-:class:`passlib.hash.cisco_asa` - Cisco ASA hash
+:class:`passlib.hash.cisco_asa` - Cisco ASA MD5 hash
 ==================================================================
 
 .. include:: ../_fragments/insecure_hash_warning.rst
@@ -10,9 +10,11 @@
 
 .. versionadded:: 1.7
 
-The :class:`!cisco_asa` handler provides support for the 2005 revision of the older :class:`!cisco_pix` hash.
-The usage, functionality, and format is the same as for :class:`!cisco_pix`,
+.. include:: ../_fragments/asa_verify_callout.rst
 
-.. seealso::
+The :class:`!cisco_asa` class provides support for Cisco ASA "encrypted" hash format.
+This is a revision of the older :class:`!cisco_pix` hash;
+and the usage and format is the same.
 
-    :doc:`cisco_pix <passlib.hash.cisco_pix>` documentation page.
+**See the** :doc:`cisco_pix <passlib.hash.cisco_pix>` **documentation page**
+for combined details of both these classes.

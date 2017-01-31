@@ -16,7 +16,7 @@ htpasswd and htdigest files; though the use of two helper classes.
 
 .. versionchanged:: 1.7
 
-    These classes will now preserve blank lines & "#" comments when updating
+    These classes will now preserve blank lines and "#" comments when updating
     htpasswd files; previous releases would throw a parse error.
 
 .. versionchanged:: 1.8

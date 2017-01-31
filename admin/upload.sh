@@ -13,7 +13,7 @@ SEP2="-----------------------------------------------------"
 export SETUP_TAG_RELEASE=no
 
 if [ -z "$DRY_RUN" ]; then
-    echo "DRY_RUN not set"
+    echo "DRY_RUN not set (0 or 1)"
     exit 1
 elif [ "$DRY_RUN" -eq 1 ]; then
     echo "dry run"

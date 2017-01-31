@@ -5,6 +5,7 @@
 # core
 import logging; log = logging.getLogger(__name__)
 import warnings
+warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 # site
 # pkg
 from passlib import hash
@@ -84,9 +85,9 @@ class _scrypt_test(HandlerCase):
         '$scrypt$ln=10,r=134217728,p=8$wvif8/4fg1Cq9V7L2dv73w$bJcLia1lyfQ1X2x0xflehwVXPzWIUQWWdnlGwfVzBeQ',
     ]
 
-    def setUp(self):
-        super(_scrypt_test, self).setUp()
-        warnings.filterwarnings("ignore", "Using builtin scrypt backend.*")
+    def setUpWarnings(self):
+        super(_scrypt_test, self).setUpWarnings()
+        warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 
     def populate_settings(self, kwds):
         # builtin is still just way too slow.

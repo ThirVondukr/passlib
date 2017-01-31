@@ -8,6 +8,7 @@ import hashlib
 import logging; log = logging.getLogger(__name__)
 import struct
 import warnings
+warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 # site
 # pkg
 from passlib import exc
@@ -392,7 +393,7 @@ class _CommonScryptTest(TestCase):
         # get available backends
         orig = scrypt_mod.backend
         available = set(name for name in scrypt_mod.backend_values
-                        if scrypt_mod._load_backend(name))
+                        if scrypt_mod._has_backend(name))
         scrypt_mod._set_backend(orig)
         available.discard(self.backend)
         if not available:

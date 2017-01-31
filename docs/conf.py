@@ -63,7 +63,7 @@ extensions = [
     'cloud_sptheme.ext.index_styling',
 
     # inserts toc into right hand nav bar (ala old style python docs)
-    'cloud_sptheme.ext.relbar_toc',
+    'cloud_sptheme.ext.relbar_links',
 
     # add "issue" role
     'cloud_sptheme.ext.issue_tracker',

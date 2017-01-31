@@ -226,9 +226,8 @@ if test_hashers_mod:
         #      that anyways? get_hashers_by_algorithm() should throw KeyError, right?
         test_pbkdf2_upgrade_new_hasher = _OMIT
 
-        # TODO: need to support wrapping django's harden-runtime feature w/ our own.
-        #       still won't be able to pass their tests, because what they test for
-        #       isn't how CryptContext.harden_verify works.
+        # TODO: support wrapping django's harden-runtime feature?
+        #       would help pass their tests.
         test_check_password_calls_harden_runtime = _OMIT
         test_bcrypt_harden_runtime = _OMIT
         test_pbkdf2_harden_runtime = _OMIT

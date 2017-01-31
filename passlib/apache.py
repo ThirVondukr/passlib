@@ -458,8 +458,8 @@ def _init_htpasswd_context():
         # (https://bz.apache.org/bugzilla/show_bug.cgi?id=49288)
         "bcrypt",
 
-        # not supported by apache (unless natively), but useful for editing htpasswd under
-        # windows and then deploying under unix.
+        # support not "builtin" to apache, instead it requires support through host's crypt().
+        # adding them here to allow editing htpasswd under windows and then deploying under unix.
         "sha256_crypt",
         "sha512_crypt",
         "des_crypt",
@@ -475,8 +475,8 @@ def _init_htpasswd_context():
     ]
 
     # apache can verify anything supported by the native crypt(),
-    # though htpasswd can only generate des_crypt hashes.
-    # (may overlap w/ builtin apache schemes)
+    # though htpasswd tool can only generate a limited set of hashes.
+    # (this list may overlap w/ builtin apache schemes)
     schemes.extend(registry.get_supported_os_crypt_schemes())
 
     # hack to remove dups and sort into preferred order

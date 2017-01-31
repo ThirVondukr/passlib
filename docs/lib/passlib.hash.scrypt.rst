@@ -55,7 +55,7 @@ Scrypt Backends
 
 This class will use the first available of two possible backends:
 
-1. The C-accelarated `scrypt <https://pypi.python.org/pypi/scrypt>`_ package, if installed.
+1. The C-accelerated `scrypt <https://pypi.python.org/pypi/scrypt>`_ package, if installed.
 2. A pure-python implementation of SCrypt, built into Passlib.
 
 .. warning::
