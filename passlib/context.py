@@ -228,8 +228,6 @@ class _CryptConfig(object):
                     raise KeyError("'schemes' context option is not allowed "
                                    "per category")
                 key, value = norm_context_option(cat, key, value)
-                if key == "min_verify_time": # ignored in 1.7, to be removed in 1.8
-                    continue
 
                 # store in context_options
                 # map structure: context_options[key][category] = value
@@ -284,10 +282,6 @@ class _CryptConfig(object):
                     if scheme not in schemes:
                         raise KeyError("deprecated scheme not found "
                                    "in policy: %r" % (scheme,))
-        elif key == "harden_verify":
-            warn("'harden_verify' is deprecated & ignored as of Passlib 1.7.1, "
-                 " and will be removed in 1.8",
-                 DeprecationWarning)
         elif key != "schemes":
             raise KeyError("unknown CryptContext keyword: %r" % (key,))
         return key, value
@@ -1422,23 +1416,6 @@ class CryptContext(object):
     ##    fh.close()
 
     #===================================================================
-    # verify() hardening
-    # NOTE: this entire feature has been disabled.
-    #       all contents of this section are NOOPs as of 1.7.1,
-    #       and will be removed in 1.8.
-    #===================================================================
-
-    mvt_estimate_max_samples = 20
-    mvt_estimate_min_samples = 10
-    mvt_estimate_max_time = 2
-    mvt_estimate_resolution = 0.01
-    harden_verify = None
-    min_verify_time = 0
-
-    def reset_min_verify_time(self):
-        self._reset_dummy_verify()
-
-    #===================================================================
     # password hash api
     #===================================================================
 
@@ -1893,19 +1870,13 @@ class CryptContext(object):
         """
         type(self)._dummy_hash.clear_cache(self)
 
-    def dummy_verify(self, elapsed=0):
+    def dummy_verify(self):
         """
         Helper that applications can call when user wasn't found,
         in order to simulate time it would take to hash a password.
 
         Runs verify() against a dummy hash, to simulate verification
         of a real account password.
-
-        :param elapsed:
-
-            .. deprecated:: 1.7.1
-
-                this option is ignored, and will be removed in passlib 1.8.
 
         .. versionadded:: 1.7
         """

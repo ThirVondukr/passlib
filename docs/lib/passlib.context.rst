@@ -166,19 +166,6 @@ Options which directly affect the behavior of the CryptContext instance:
 
     .. versionadded:: 1.7
 
-.. _context-harden-verify-option:
-
-``harden_verify``
-
-    Companion to ``min_verify_time``, currently ignored.
-
-    .. versionadded:: 1.7
-
-    .. deprecated:: 1.7.1
-
-        This option is ignored by 1.7.1, and will be removed in 1.8
-        along with ``min_verify_time``.
-
 .. _context-algorithm-options:
 
 Algorithm Options

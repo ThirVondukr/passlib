@@ -53,7 +53,7 @@ for a number of years / releases:
 
     * :meth:`!CryptContext.replace` alias removed, use :meth:`CryptContext.using` instead.
 
-    * :class:`CryptContext`'s ``min_verify_time`` keyword removed, use ``harden_verify=True`` instead.
+    * :class:`CryptContext`'s ``min_verify_time`` and ``harden_verify`` keywords removed.
 
     **passlib.hash:**
 

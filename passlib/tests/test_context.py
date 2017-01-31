@@ -1576,20 +1576,8 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
 
     #===================================================================
-    # harden_verify / min_verify_time
+    # dummy_verify()
     #===================================================================
-    def test_harden_verify_parsing(self):
-        """harden_verify -- parsing"""
-        warnings.filterwarnings("ignore", ".*harden_verify.*",
-                                category=DeprecationWarning)
-
-        # valid values
-        ctx = CryptContext(schemes=["sha256_crypt"])
-        self.assertEqual(ctx.harden_verify, None)
-        self.assertEqual(ctx.using(harden_verify="").harden_verify, None)
-        self.assertEqual(ctx.using(harden_verify="true").harden_verify, None)
-        self.assertEqual(ctx.using(harden_verify="false").harden_verify, None)
-
     def test_dummy_verify(self):
         """
         dummy_verify() method
