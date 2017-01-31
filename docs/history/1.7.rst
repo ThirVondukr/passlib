@@ -1,9 +1,11 @@
+.. _whats-new:
+
 ===========
 Passlib 1.7
 ===========
 
-**1.7.1** (NOT YET RELEASED)
-============================
+**1.7.1** (2017-1-30)
+=====================
 
 This release rolls up assorted bug & compatibility fixes since 1.7.0.
 
@@ -42,8 +44,6 @@ Other Changes
   and additional hasher tests were added to enforce them.
 
 * **documentation**: Various updates & corrections.
-
-.. _whats-new:
 
 .. rst-class:: emphasize-children toc-always-open
 
