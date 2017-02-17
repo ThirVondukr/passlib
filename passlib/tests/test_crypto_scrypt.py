@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 # pkg
 from passlib import exc
 from passlib.utils import getrandbytes
-from passlib.utils.compat import PYPY, u, bascii_to_str
+from passlib.utils.compat import PYPY, bascii_to_str
 from passlib.utils.decor import classproperty
 from passlib.tests.utils import TestCase, skipUnless, TEST_MODE, hb
 # subject
@@ -450,7 +450,7 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt(secret, "salt", 2, 2, 2, 16))
 
         # unicode
-        TEXT = u("abc\u00defg")
+        TEXT = u"abc\u00defg"
         self.assertEqual(run_scrypt(TEXT), '05717106997bfe0da42cf4779a2f8bd8')
 
         # utf8 bytes
@@ -475,7 +475,7 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt("secret", salt, 2, 2, 2, 16))
 
         # unicode
-        TEXT = u("abc\u00defg")
+        TEXT = u"abc\u00defg"
         self.assertEqual(run_scrypt(TEXT), 'a748ec0f4613929e9e5f03d1ab741d88')
 
         # utf8 bytes

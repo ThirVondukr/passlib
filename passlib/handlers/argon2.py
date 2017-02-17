@@ -30,7 +30,7 @@ from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
 from passlib.utils import to_bytes
 from passlib.utils.binary import b64s_encode, b64s_decode
-from passlib.utils.compat import u, unicode, bascii_to_str
+from passlib.utils.compat import unicode, bascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -109,11 +109,11 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #------------------------
     # GenericHandler
     #------------------------
-    ident = u("$argon2i")
+    ident = u"$argon2i"
     checksum_size = _default_settings.hash_len
 
     # NOTE: from_string() relies on the ordering of these...
-    ident_values = (u("$argon2i$"), u("$argon2d$"))
+    ident_values = (u"$argon2i$", u"$argon2d$")
 
     #------------------------
     # HasSalt

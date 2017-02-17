@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_bytes
-from passlib.utils.compat import str_to_uascii, unicode, u
+from passlib.utils.compat import str_to_uascii, unicode
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -33,7 +33,7 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     # algorithm information
     #===================================================================
     name = "postgres_md5"
-    _hash_prefix = u("md5")
+    _hash_prefix = u"md5"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
 

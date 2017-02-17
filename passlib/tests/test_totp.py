@@ -11,7 +11,7 @@ import time as _time
 # site
 # pkg
 from passlib import exc
-from passlib.utils.compat import unicode, u
+from passlib.utils.compat import unicode
 from passlib.tests.utils import TestCase, time_call
 # subject
 from passlib import totp as totp_module
@@ -174,7 +174,7 @@ class AppWalletTest(TestCase):
         self.assertEqual(wallet._secrets, ref)
 
         # accept unicode
-        wallet = AppWallet({u("1"): b"aaa", u("02"): b"bbb", u("C"): b"ccc"})
+        wallet = AppWallet({u"1": b"aaa", u"02": b"bbb", u"C": b"ccc"})
         self.assertEqual(wallet._secrets, ref)
 
         # normalize int tags
@@ -192,7 +192,7 @@ class AppWalletTest(TestCase):
         self.assertRaises(ValueError, AppWallet, {"ab*$": "aaa"})
 
         # coerce value to bytes
-        wallet = AppWallet({"1": u("aaa"), "02": "bbb", "C": b"ccc"})
+        wallet = AppWallet({"1": u"aaa", "02": "bbb", "C": b"ccc"})
         self.assertEqual(wallet._secrets, ref)
 
         # forbid invalid value types
@@ -747,7 +747,7 @@ class TotpTest(TestCase):
             otp = self.randotp(digits=7)
 
         # unicode & bytes
-        self.assertEqual(otp.normalize_token(u('1234567')), '1234567')
+        self.assertEqual(otp.normalize_token(u'1234567'), '1234567')
         self.assertEqual(otp.normalize_token(b'1234567'), '1234567')
 
         # int
@@ -1202,8 +1202,8 @@ class TotpTest(TestCase):
         from_source = TOTP.from_source
 
         # uri (unicode)
-        otp = from_source(u("otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
-                            "issuer=Example"))
+        otp = from_source(u"otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&"
+                            "issuer=Example")
         self.assertEqual(otp.key, KEY4_RAW)
 
         # uri (bytes)
@@ -1216,7 +1216,7 @@ class TotpTest(TestCase):
         self.assertEqual(otp.key, KEY4_RAW)
 
         # json (unicode)
-        otp = from_source(u('{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}'))
+        otp = from_source(u'{"v": 1, "type": "totp", "key": "JBSWY3DPEHPK3PXP"}')
         self.assertEqual(otp.key, KEY4_RAW)
 
         # json (bytes)
@@ -1237,7 +1237,7 @@ class TotpTest(TestCase):
         self.assertIs(otp2, otp1)
 
         # random string
-        self.assertRaises(ValueError, from_source, u("foo"))
+        self.assertRaises(ValueError, from_source, u"foo")
         self.assertRaises(ValueError, from_source, b"foo")
 
     #=============================================================================

@@ -13,7 +13,7 @@ from warnings import warn
 # pkg
 from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
-from passlib.utils.compat import unicode, u, join_byte_values, \
+from passlib.utils.compat import unicode, join_byte_values, \
              join_byte_elems, iter_byte_values, uascii_to_str
 import passlib.utils.handlers as uh
 # local
@@ -423,7 +423,7 @@ class cisco_type7(uh.GenericHandler):
         return raw.decode(encoding) if encoding else raw
 
     # type7 uses a xor-based vingere variant, using the following secret key:
-    _key = u("dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87")
+    _key = u"dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87"
 
     @classmethod
     def _cipher(cls, data, salt):

@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import safe_crypt, test_crypt, \
                           repeat_string, to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, u, \
+from passlib.utils.compat import byte_elem_value, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
@@ -246,9 +246,9 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
 #=============================================================================
 # handlers
 #=============================================================================
-_UROUNDS = u("rounds=")
-_UDOLLAR = u("$")
-_UZERO = u("0")
+_UROUNDS = u"rounds="
+_UDOLLAR = u"$"
+_UZERO = u"0"
 
 class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
                    uh.GenericHandler):
@@ -339,11 +339,11 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
 
     def to_string(self):
         if self.rounds == 5000 and self.implicit_rounds:
-            hash = u("%s%s$%s") % (self.ident, self.salt,
-                                   self.checksum or u(''))
+            hash = u"%s%s$%s" % (self.ident, self.salt,
+                                   self.checksum or u'')
         else:
-            hash = u("%srounds=%d$%s$%s") % (self.ident, self.rounds,
-                                             self.salt, self.checksum or u(''))
+            hash = u"%srounds=%d$%s$%s" % (self.ident, self.rounds,
+                                             self.salt, self.checksum or u'')
         return uascii_to_str(hash)
 
     #===================================================================
@@ -436,7 +436,7 @@ class sha256_crypt(_SHA2_Common):
     # class attrs
     #===================================================================
     name = "sha256_crypt"
-    ident = u("$5$")
+    ident = u"$5$"
     checksum_size = 43
     # NOTE: using 25/75 weighting of builtin & os_crypt backends
     default_rounds = 535000
@@ -496,7 +496,7 @@ class sha512_crypt(_SHA2_Common):
     # class attrs
     #===================================================================
     name = "sha512_crypt"
-    ident = u("$6$")
+    ident = u"$6$"
     checksum_size = 86
     _cdb_use_512 = True
     # NOTE: using 25/75 weighting of builtin & os_crypt backends

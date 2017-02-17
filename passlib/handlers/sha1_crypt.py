@@ -11,7 +11,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
-from passlib.utils.compat import u, unicode, irange
+from passlib.utils.compat import unicode, irange
 from passlib.crypto.digest import compile_hmac
 import passlib.utils.handlers as uh
 # local
@@ -62,7 +62,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #--GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
-    ident = u("$sha1$")
+    ident = u"$sha1$"
     checksum_size = 28
     checksum_chars = uh.HASH64_CHARS
 
@@ -132,7 +132,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             raise uh.exc.NullPasswordError(self)
         rounds = self.rounds
         # NOTE: this seed value is NOT the same as the config string
-        result = (u("%s$sha1$%s") % (self.salt, rounds)).encode("ascii")
+        result = (u"%s$sha1$%s" % (self.salt, rounds)).encode("ascii")
         # NOTE: this algorithm is essentially PBKDF1, modified to use HMAC.
         keyed_hmac = compile_hmac("sha1", secret)
         for _ in irange(rounds):

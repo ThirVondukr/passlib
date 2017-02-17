@@ -9,7 +9,6 @@ import warnings
 # site
 # pkg
 from passlib import hash
-from passlib.utils.compat import u
 from passlib.tests.utils import TestCase, HandlerCase
 from passlib.tests.test_handlers import UPASS_WAV
 # module
@@ -123,7 +122,7 @@ class cta_pbkdf2_sha1_test(HandlerCase):
         #
         # test vectors from original implementation
         #
-        (u("hashy the \N{SNOWMAN}"), '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
+        (u"hashy the \N{SNOWMAN}", '$p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0='),
 
         #
         # custom
@@ -201,11 +200,11 @@ class scram_test(HandlerCase):
 
         # test unicode passwords & saslprep (all the passwords below
         # should normalize to the same value: 'IX \xE0')
-        (u('IX \xE0'),             '$scram$6400$0BojBCBE6P2/N4bQ$'
+        (u'IX \xE0',             '$scram$6400$0BojBCBE6P2/N4bQ$'
                                    'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
-        (u('\u2168\u3000a\u0300'), '$scram$6400$0BojBCBE6P2/N4bQ$'
+        (u'\u2168\u3000a\u0300', '$scram$6400$0BojBCBE6P2/N4bQ$'
                                    'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
-        (u('\u00ADIX \xE0'),       '$scram$6400$0BojBCBE6P2/N4bQ$'
+        (u'\u00ADIX \xE0',       '$scram$6400$0BojBCBE6P2/N4bQ$'
                                    'sha-1=YniLes.b8WFMvBhtSACZyyvxeCc'),
     ]
 
@@ -287,7 +286,7 @@ class scram_test(HandlerCase):
         """test internal parsing of 'checksum' keyword"""
         # check non-bytes checksum values are rejected
         self.assertRaises(TypeError, self.handler, use_defaults=True,
-                          checksum={'sha-1':  u('X')*20})
+                          checksum={'sha-1':  u'X'*20})
 
         # check sha-1 is required
         self.assertRaises(ValueError, self.handler, use_defaults=True,
@@ -340,9 +339,9 @@ class scram_test(HandlerCase):
         # check various encodings of password work.
         s1 = b'\x01\x02\x03'
         d1 = b'\xb2\xfb\xab\x82[tNuPnI\x8aZZ\x19\x87\xcen\xe9\xd3'
-        self.assertEqual(hash(u("\u2168"), s1, 1000, 'sha-1'), d1)
+        self.assertEqual(hash(u"\u2168", s1, 1000, 'sha-1'), d1)
         self.assertEqual(hash(b"\xe2\x85\xa8", s1, 1000, 'SHA-1'), d1)
-        self.assertEqual(hash(u("IX"), s1, 1000, 'sha1'), d1)
+        self.assertEqual(hash(u"IX", s1, 1000, 'sha1'), d1)
         self.assertEqual(hash(b"IX", s1, 1000, 'SHA1'), d1)
 
         # check algs
@@ -354,7 +353,7 @@ class scram_test(HandlerCase):
         self.assertRaises(ValueError, hash, "IX", s1, 0, 'sha-1')
 
         # unicode salts accepted as of passlib 1.7 (previous caused TypeError)
-        self.assertEqual(hash(u("IX"), s1.decode("latin-1"), 1000, 'sha1'), d1)
+        self.assertEqual(hash(u"IX", s1.decode("latin-1"), 1000, 'sha1'), d1)
 
     def test_94_saslprep(self):
         """test hash/verify use saslprep"""
@@ -363,18 +362,18 @@ class scram_test(HandlerCase):
         # to verify full normalization behavior.
 
         # hash unnormalized
-        h = self.do_encrypt(u("I\u00ADX"))
-        self.assertTrue(self.do_verify(u("IX"), h))
-        self.assertTrue(self.do_verify(u("\u2168"), h))
+        h = self.do_encrypt(u"I\u00ADX")
+        self.assertTrue(self.do_verify(u"IX", h))
+        self.assertTrue(self.do_verify(u"\u2168", h))
 
         # hash normalized
-        h = self.do_encrypt(u("\xF3"))
-        self.assertTrue(self.do_verify(u("o\u0301"), h))
-        self.assertTrue(self.do_verify(u("\u200Do\u0301"), h))
+        h = self.do_encrypt(u"\xF3")
+        self.assertTrue(self.do_verify(u"o\u0301", h))
+        self.assertTrue(self.do_verify(u"\u200Do\u0301", h))
 
         # throws error if forbidden char provided
-        self.assertRaises(ValueError, self.do_encrypt, u("\uFDD0"))
-        self.assertRaises(ValueError, self.do_verify, u("\uFDD0"), h)
+        self.assertRaises(ValueError, self.do_encrypt, u"\uFDD0")
+        self.assertRaises(ValueError, self.do_verify, u"\uFDD0", h)
 
     def test_94_using_w_default_algs(self, param="default_algs"):
         """using() -- 'default_algs' parameter"""

@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode, xor_bytes
-from passlib.utils.compat import irange, u, \
+from passlib.utils.compat import irange, \
                                  uascii_to_str, unicode, str_to_uascii
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
@@ -141,7 +141,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     #===================================================================
     # methods
     #===================================================================
-    _hash_regex = re.compile(u("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$"), re.I)
+    _hash_regex = re.compile(u"^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
 
     @classmethod
     def from_string(cls, hash):
@@ -154,7 +154,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         chk = self.checksum
-        hash = u("S:%s%s") % (chk.upper(), self.salt.upper())
+        hash = u"S:%s%s" % (chk.upper(), self.salt.upper())
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):

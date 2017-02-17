@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import safe_crypt, test_crypt, repeat_string
 from passlib.utils.binary import h64
-from passlib.utils.compat import unicode, u
+from passlib.utils.compat import unicode
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -255,7 +255,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
     # class attrs
     #===================================================================
     name = "md5_crypt"
-    ident = u("$1$")
+    ident = u"$1$"
 
     #===================================================================
     # methods
@@ -329,7 +329,7 @@ class apr_md5_crypt(_MD5_Common):
     # class attrs
     #===================================================================
     name = "apr_md5_crypt"
-    ident = u("$apr1$")
+    ident = u"$apr1$"
 
     #===================================================================
     # methods

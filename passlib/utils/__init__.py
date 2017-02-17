@@ -50,7 +50,7 @@ from passlib.utils.decor import (
 )
 from passlib.exc import ExpectedStringError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
-                                  join_byte_elems, irange, imap, PY3, u,
+                                  join_byte_elems, irange, imap, PY3,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
                                   unicode_or_bytes_types,
                                   get_method_function, suppress_cause)
@@ -118,8 +118,8 @@ rounds_cost_values = [ "linear", "log2" ]
 
 # internal helpers
 _BEMPTY = b''
-_UEMPTY = u("")
-_USPACE = u(" ")
+_UEMPTY = u""
+_USPACE = u" "
 
 # maximum password size which passlib will allow; see exc.PasswordSizeError
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
@@ -569,7 +569,7 @@ def repeat_string(source, size):
         return source[:size]
 
 _BNULL = b"\x00"
-_UNULL = u("\x00")
+_UNULL = u"\x00"
 
 def right_pad_string(source, size, pad=None):
     """right-pad or truncate <source> string, so it has length <size>"""
@@ -600,7 +600,7 @@ def is_same_codec(left, right):
     return _lookup_codec(left).name == _lookup_codec(right).name
 
 _B80 = b'\x80'[0]
-_U80 = u('\x80')
+_U80 = u'\x80'
 def is_ascii_safe(source):
     """Check if string (bytes or unicode) contains only 7-bit ascii"""
     r = _B80 if isinstance(source, bytes) else _U80
@@ -758,7 +758,7 @@ else:
     # returning NULL / None. examples include ":", ":0", "*0", etc.
     # safe_crypt() returns None for any string starting with one of the
     # chars in this string...
-    _invalid_prefixes = u("*:!")
+    _invalid_prefixes = u"*:!"
 
     if PY3:
         def safe_crypt(secret, hash):
@@ -886,7 +886,7 @@ def genseed(value=None):
             # this method throws error for e.g. SystemRandom instances,
             # so fall back to extracting 4k of state
             value = value.getrandbits(1 << 15)
-    text = u("%s %s %s %.15f %.15f %s") % (
+    text = u"%s %s %s %.15f %.15f %s" % (
         # if caller specified a seed value, mix it in
         value,
 

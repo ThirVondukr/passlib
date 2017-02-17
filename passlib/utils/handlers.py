@@ -27,7 +27,7 @@ from passlib.utils.binary import (
     HEX_CHARS, UPPER_HEX_CHARS, LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,
 )
-from passlib.utils.compat import join_byte_values, irange, u, native_string_types, \
+from passlib.utils.compat import join_byte_values, irange, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, PY2, int_types
 from passlib.utils.decor import classproperty, deprecated_method
@@ -113,8 +113,8 @@ def extract_settings_kwds(handler, kwds):
 #=============================================================================
 # parsing helpers
 #=============================================================================
-_UDOLLAR = u("$")
-_UZERO = u("0")
+_UDOLLAR = u"$"
+_UZERO = u"0"
 
 def validate_secret(secret):
     """ensure secret has correct type & size"""
@@ -266,7 +266,7 @@ def parse_int(source, base=10, default=None, param="value", handler=None):
 #=============================================================================
 # formatting helpers
 #=============================================================================
-def render_mc2(ident, salt, checksum, sep=u("$")):
+def render_mc2(ident, salt, checksum, sep=u"$"):
     """format hash using 2-part modular crypt format; inverse of parse_mc2()
 
     returns native string with format :samp:`{ident}{salt}[${checksum}]`,
@@ -286,7 +286,7 @@ def render_mc2(ident, salt, checksum, sep=u("$")):
         parts = [ident, salt]
     return uascii_to_str(join_unicode(parts))
 
-def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
+def render_mc3(ident, rounds, salt, checksum, sep=u"$", rounds_base=10):
     """format hash using 3-part modular crypt format; inverse of parse_mc3()
 
     returns native string with format :samp:`{ident}[{rounds}$]{salt}[${checksum}]`,
@@ -303,9 +303,9 @@ def render_mc3(ident, rounds, salt, checksum, sep=u("$"), rounds_base=10):
         config or hash (native str)
     """
     if rounds is None:
-        rounds = u('')
+        rounds = u''
     elif rounds_base == 16:
-        rounds = u("%x") % rounds
+        rounds = u"%x" % rounds
     else:
         assert rounds_base == 10
         rounds = unicode(rounds)
@@ -821,7 +821,7 @@ class GenericHandler(MinimalHandler):
 
     # XXX: make this a global function?
     @staticmethod
-    def _sanitize(value, char=u("*")):
+    def _sanitize(value, char=u"*"):
         """default method to obscure sensitive fields"""
         if value is None:
             return None
@@ -908,7 +908,7 @@ class StaticHandler(GenericHandler):
     setting_kwds = ()
 
     # optional constant prefix subclasses can specify
-    _hash_prefix = u("")
+    _hash_prefix = u""
 
     @classmethod
     def from_string(cls, hash, **context):
@@ -2414,7 +2414,7 @@ class PrefixWrapper(object):
     #: list of attributes which should be cloned by .using()
     _using_clone_attrs = ()
 
-    def __init__(self, name, wrapped, prefix=u(''), orig_prefix=u(''), lazy=False,
+    def __init__(self, name, wrapped, prefix=u'', orig_prefix=u'', lazy=False,
                  doc=None, ident=None):
         self.name = name
         if isinstance(prefix, bytes):

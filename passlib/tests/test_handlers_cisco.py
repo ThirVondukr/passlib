@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib import hash, exc
-from passlib.utils.compat import u
 from .utils import UserHandlerMixin, HandlerCase, repeat_string
 from .test_handlers import UPASS_TABLE
 # module
@@ -151,8 +150,8 @@ class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
         # observed behaviors include:
         # * ssh cli stripping non-ascii chars entirely
         # * ASDM web iface double-encoding utf-8 strings
-        ((u("t\xe1ble").encode("utf-8"), 'user'), 'Og8fB4NyF0m5Ed9c'),
-        ((u("t\xe1ble").encode("utf-8").decode("latin-1").encode("utf-8"),
+        ((u"t\xe1ble".encode("utf-8"), 'user'), 'Og8fB4NyF0m5Ed9c'),
+        ((u"t\xe1ble".encode("utf-8").decode("latin-1").encode("utf-8"),
           'user'), 'cMvFC2XVBmK/68yB'),  # confirmed ASA 9.6 when typed into ASDM
         ]
 

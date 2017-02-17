@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import consteq, saslprep, to_native_str, splitcomma
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import bascii_to_str, iteritems, u, native_string_types
+from passlib.utils.compat import bascii_to_str, iteritems, native_string_types
 from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 # local
@@ -87,7 +87,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #--GenericHandler--
     name = "scram"
     setting_kwds = ("salt", "salt_size", "rounds", "algs")
-    ident = u("$scram$")
+    ident = u"$scram$"
 
     #--HasSalt--
     default_salt_size = 12
@@ -435,7 +435,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 ##        alg="sha-1",
 ##        salt='QSXCR+Q6sek8bf92'.decode("base64"),
 ##        rounds=4096,
-##        password=u("pencil"),
+##        password=u"pencil",
 ##    )
 ##    print_(engine.digest.encode("base64").rstrip())
 ##

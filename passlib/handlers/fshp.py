@@ -12,8 +12,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import bascii_to_str, iteritems, u,\
-                                 unicode
+from passlib.utils.compat import bascii_to_str, iteritems, u, unicode
 from passlib.crypto.digest import pbkdf1
 # local
 __all__ = [
@@ -67,7 +66,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
     checksum_chars = uh.PADDED_BASE64_CHARS
-    ident = u("{FSHP")
+    ident = u"{FSHP"
     # checksum_size is property() that depends on variant
 
     #--HasRawSalt--

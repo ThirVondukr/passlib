@@ -30,7 +30,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str
-from passlib.utils.compat import bascii_to_str, unicode, u, \
+from passlib.utils.compat import bascii_to_str, unicode, \
                                  byte_elem_value, str_to_uascii
 import passlib.utils.handlers as uh
 # local
@@ -82,7 +82,7 @@ class mysql323(uh.StaticHandler):
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
-        return u("%08x%08x") % (nr1 & MASK_31, nr2 & MASK_31)
+        return u"%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
 
     #===================================================================
     # eoc
@@ -102,7 +102,7 @@ class mysql41(uh.StaticHandler):
     # class attrs
     #===================================================================
     name = "mysql41"
-    _hash_prefix = u("*")
+    _hash_prefix = u"*"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 40
 

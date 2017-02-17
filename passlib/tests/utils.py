@@ -29,7 +29,7 @@ from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnl
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import iteritems, irange, u, unicode, PY2
+from passlib.utils.compat import iteritems, irange, unicode, PY2
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -738,8 +738,8 @@ class HandlerCase(TestCase):
     # passwords used to test basic hash behavior - generally
     # don't need to be overidden.
     stock_passwords = [
-        u("test"),
-        u("\u20AC\u00A5$"),
+        u"test",
+        u"\u20AC\u00A5$",
         b'\xe2\x82\xac\xc2\xa5$'
     ]
 
@@ -1383,7 +1383,7 @@ class HandlerCase(TestCase):
             self.do_stub_encrypt(salt=salt)
 
         # check some invalid salt chars, make sure they're rejected
-        source = u('\x00\xff')
+        source = u'\x00\xff'
         if raw:
             source = source.encode("latin-1")
         chunk = max(mn, 1)
@@ -1414,7 +1414,7 @@ class HandlerCase(TestCase):
 
         # unicode should be accepted only if salt_type is unicode.
         if salt_type is not unicode:
-            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u('x') * salt_size)
+            self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u'x' * salt_size)
 
         # bytes should be accepted only if salt_type is bytes,
         # OR if salt type is unicode and running PY2 - to allow native strings.
@@ -2230,7 +2230,7 @@ class HandlerCase(TestCase):
         chars = self.forbidden_characters
         if not chars:
             raise self.skipTest("none listed")
-        base = u('stub')
+        base = u'stub'
         if isinstance(chars, bytes):
             from passlib.utils.compat import iter_byte_chars
             chars = iter_byte_chars(chars)
@@ -2461,7 +2461,7 @@ class HandlerCase(TestCase):
         #
         # test hash='' is rejected for all but the plaintext hashes
         #
-        for hash in [u(''), b'']:
+        for hash in [u'', b'']:
             if self.accepts_all_hashes:
                 # then it accepts empty string as well.
                 self.assertTrue(self.do_identify(hash))
@@ -2732,7 +2732,7 @@ class HandlerCase(TestCase):
         #==========================================================
 
         # alphabet for randomly generated passwords
-        password_alphabet = u('qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113')
+        password_alphabet = u'qwertyASDF1234<>.@*#! \u00E1\u0259\u0411\u2113'
 
         # encoding when testing bytes
         password_encoding = "utf-8"
@@ -2843,7 +2843,7 @@ class HandlerCase(TestCase):
             # occasionally try an empty password
             rng = self.rng
             if rng.random() < .0001:
-                return u('')
+                return u''
 
             # check if truncate size needs to be considered
             handler = self.handler
@@ -3295,7 +3295,7 @@ class UserHandlerMixin(HandlerCase):
         context_map = HandlerCase.FuzzHashGenerator.context_map.copy()
         context_map.update(user="random_user")
 
-        user_alphabet = u("asdQWE123")
+        user_alphabet = u"asdQWE123"
 
         def random_user(self):
             rng = self.rng
@@ -3323,14 +3323,14 @@ class EncodingHandlerMixin(HandlerCase):
     # restrict stock passwords & fuzz alphabet to latin-1,
     # so different encodings can be tested safely.
     stock_passwords = [
-        u("test"),
+        u"test",
         b"test",
-        u("\u00AC\u00BA"),
+        u"\u00AC\u00BA",
     ]
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
-        password_alphabet = u('qwerty1234<>.@*#! \u00AC')
+        password_alphabet = u'qwerty1234<>.@*#! \u00AC'
 
     def populate_context(self, secret, kwds):
         """insert encoding into kwds"""

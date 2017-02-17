@@ -1046,10 +1046,10 @@ class TOTP(object):
         """
         digits = self_or_cls.digits
         if isinstance(token, int_types):
-            token = u("%0*d") % (digits, token)
+            token = u"%0*d" % (digits, token)
         else:
             token = to_unicode(token, param="token")
-            token = _clean_re.sub(u(""), token)
+            token = _clean_re.sub(u"", token)
             if not token.isdigit():
                 raise MalformedTokenError("Token must contain only the digits 0-9")
         if len(token) != digits:
@@ -1132,7 +1132,7 @@ class TOTP(object):
         #       if 31-bit mask removed (which breaks spec), would only get values 0-4.
         digits = self.digits
         assert 0 < digits < 11, "digits: sanity check failed"
-        return (u("%0*d") % (digits, value))[-digits:]
+        return (u"%0*d" % (digits, value))[-digits:]
 
     #=============================================================================
     # token verification
@@ -1541,12 +1541,12 @@ class TOTP(object):
         # NOTE: not using urllib.urlencode() because it encodes ' ' as '+';
         #       but spec says to use '%20', and not sure how fragile
         #       the various totp clients' parsers are.
-        argstr = u("&").join(u("%s=%s") % (key, quote(value, ''))
+        argstr = u"&".join(u"%s=%s" % (key, quote(value, ''))
                              for key, value in args)
         assert argstr, "argstr should never be empty"
 
         # render uri
-        return u("otpauth://totp/%s?%s") % (label, argstr)
+        return u"otpauth://totp/%s?%s" % (label, argstr)
 
     def _to_uri_params(self):
         """return list of (key, param) entries for URI"""

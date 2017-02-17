@@ -12,7 +12,7 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, u, get_method_function
+from passlib.utils.compat import irange, PY3, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
         TEST_MODE, UserHandlerMixin, EncodingHandlerMixin
 # module
@@ -22,9 +22,9 @@ from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
 #=============================================================================
 
 # some common unicode passwords which used as test cases
-UPASS_WAV = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
-UPASS_USD = u("\u20AC\u00A5$")
-UPASS_TABLE = u("t\u00e1\u0411\u2113\u0259")
+UPASS_WAV = u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'
+UPASS_USD = u"\u20AC\u00A5$"
+UPASS_TABLE = u"t\u00e1\u0411\u2113\u0259"
 
 PASS_TABLE_UTF8 = b't\xc3\xa1\xd0\x91\xe2\x84\x93\xc9\x99' # utf-8
 
@@ -130,7 +130,7 @@ class bigcrypt_test(HandlerCase):
         # check that _norm_checksum() also validates checksum size.
         # (current code uses regex in parser)
         self.assertRaises(ValueError, hash.bigcrypt, use_defaults=True,
-                          checksum=u('yh4XPJGsOZ'))
+                          checksum=u'yh4XPJGsOZ')
 
 #=============================================================================
 # bsdi crypt
@@ -263,7 +263,7 @@ class _des_crypt_test(HandlerCase):
         ('AlOtBsOl', 'cEpWz5IUCShqM'),
 
         # ensures utf-8 used for unicode
-        (u('hell\u00D6'), 'saykDgk3BPZ9E'),
+        (u'hell\u00D6', 'saykDgk3BPZ9E'),
         ]
     known_unidentified_hashes = [
         # bad char in otherwise correctly formatted hash
@@ -348,11 +348,11 @@ class fshp_test(HandlerCase):
         handler(variant=1, **kwds)
 
         # accepts bytes or unicode
-        handler(variant=u('1'), **kwds)
+        handler(variant=u'1', **kwds)
         handler(variant=b'1', **kwds)
 
         # aliases
-        handler(variant=u('sha256'), **kwds)
+        handler(variant=u'sha256', **kwds)
         handler(variant=b'sha256', **kwds)
 
         # rejects None
@@ -612,14 +612,14 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
         ('Yokohama', '5ecd9236d21095ce7584248b8d2c9f9e'),
 
         # ensures cp437 used for unicode
-        (u('ENCYCLOP\xC6DIA'), 'fed6416bffc9750d48462b9d7aaac065'),
-        (u('encyclop\xE6dia'), 'fed6416bffc9750d48462b9d7aaac065'),
+        (u'ENCYCLOP\xC6DIA', 'fed6416bffc9750d48462b9d7aaac065'),
+        (u'encyclop\xE6dia', 'fed6416bffc9750d48462b9d7aaac065'),
 
         # test various encoding values
-        ((u("\xC6"), None), '25d8ab4a0659c97aaad3b435b51404ee'),
-        ((u("\xC6"), "cp437"), '25d8ab4a0659c97aaad3b435b51404ee'),
-        ((u("\xC6"), "latin-1"), '184eecbbe9991b44aad3b435b51404ee'),
-        ((u("\xC6"), "utf-8"), '00dd240fcfab20b8aad3b435b51404ee'),
+        ((u"\xC6", None), '25d8ab4a0659c97aaad3b435b51404ee'),
+        ((u"\xC6", "cp437"), '25d8ab4a0659c97aaad3b435b51404ee'),
+        ((u"\xC6", "latin-1"), '184eecbbe9991b44aad3b435b51404ee'),
+        ((u"\xC6", "utf-8"), '00dd240fcfab20b8aad3b435b51404ee'),
     ]
 
     known_unidentified_hashes = [
@@ -669,7 +669,7 @@ class _md5_crypt_test(HandlerCase):
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$1$jQS7o98J$V6iTcr71CGgwW2laf17pi1'),
         ('test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
         (b'test', '$1$SuMrG47N$ymvzYjr7QcEQjaK5m1PGx1'),
-        (u('s'), '$1$ssssssss$YgmLTApYTv12qgTwBoj8i/'),
+        (u's', '$1$ssssssss$YgmLTApYTv12qgTwBoj8i/'),
 
         # ensures utf-8 used for unicode
         (UPASS_TABLE, '$1$d6/Ky1lU$/xpf8m7ftmWLF.TjHCqel0'),
@@ -735,9 +735,9 @@ class msdcc_test(UserHandlerMixin, HandlerCase):
         (("", "root"), "176a4c2bd45ac73687676c2f09045353"),
         (("test1", "TEST1"), "64cd29e36a8431a2b111378564a10631"),
         (("okolada", "nineteen_characters"), "290efa10307e36a79b3eebf2a6b29455"),
-        ((u("\u00FC"), u("\u00FC")), "48f84e6f73d6d5305f6558a33fa2c9bb"),
-        ((u("\u00FC\u00FC"), u("\u00FC\u00FC")), "593246a8335cf0261799bda2a2a9c623"),
-        ((u("\u20AC\u20AC"), "user"), "9121790702dda0fa5d353014c334c2ce"),
+        ((u"\u00FC", u"\u00FC"), "48f84e6f73d6d5305f6558a33fa2c9bb"),
+        ((u"\u00FC\u00FC", u"\u00FC\u00FC"), "593246a8335cf0261799bda2a2a9c623"),
+        ((u"\u20AC\u20AC", "user"), "9121790702dda0fa5d353014c334c2ce"),
 
         #
         # custom
@@ -773,9 +773,9 @@ class msdcc2_test(UserHandlerMixin, HandlerCase):
         (("test2", "TEST2"), "c6758e5be7fc943d00b97972a8a97620"),
         (("test3", "test3"), "360e51304a2d383ea33467ab0b639cc4"),
         (("test4", "test4"), "6f79ee93518306f071c47185998566ae"),
-        ((u("\u00FC"), "joe"), "bdb80f2c4656a8b8591bd27d39064a54"),
-        ((u("\u20AC\u20AC"), "joe"), "1e1e20f482ff748038e47d801d0d1bda"),
-        ((u("\u00FC\u00FC"), "admin"), "0839e4a07c00f18a8c65cf5b985b9e73"),
+        ((u"\u00FC", "joe"), "bdb80f2c4656a8b8591bd27d39064a54"),
+        ((u"\u20AC\u20AC", "joe"), "1e1e20f482ff748038e47d801d0d1bda"),
+        ((u"\u00FC\u00FC", "admin"), "0839e4a07c00f18a8c65cf5b985b9e73"),
 
         #
         # custom
@@ -868,7 +868,7 @@ class mssql2000_test(HandlerCase):
     known_malformed_hashes = [
         # non-hex char -----\/
         b'0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
-        u('0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3'),
+        u'0x01005B200543327G2E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B332752E1BC2E7C5DF0F9EBFE486E9BEE063E8D3B3',
     ]
 
 class mssql2005_test(HandlerCase):
@@ -1029,8 +1029,8 @@ class nthash_test(HandlerCase):
         #
         # http://msdn.microsoft.com/en-us/library/cc245828(v=prot.10).aspx
         #
-        ("OLDPASSWORD", u("6677b2c394311355b54f25eec5bfacf5")),
-        ("NEWPASSWORD", u("256781a62031289d3c2c98c14f1efc8c")),
+        ("OLDPASSWORD", u"6677b2c394311355b54f25eec5bfacf5"),
+        ("NEWPASSWORD", u"256781a62031289d3c2c98c14f1efc8c"),
 
         #
         # from JTR 1.7.9
@@ -1086,7 +1086,7 @@ class oracle10_test(UserHandlerMixin, HandlerCase):
         # http://www.petefinnigan.com/default/default_password_list.htm
         #
         (('tiger', 'scott'), 'F894844C34402B67'),
-        ((u('ttTiGGeR'), u('ScO')), '7AA1A84E31ED7771'),
+        ((u'ttTiGGeR', u'ScO'), '7AA1A84E31ED7771'),
         (("d_syspw", "SYSTEM"), '1B9F1F9A5CB9EB31'),
         (("strat_passwd", "strat_user"), 'AEBEDBB4EFB5225B'),
 
@@ -1324,7 +1324,7 @@ class _sha256_crypt_test(HandlerCase):
         ('test', '$5$rounds=11858$WH1ABM5sKhxbkgCK$aTQsjPkz0rBsH3lQlJxw9HDTDXPKBxC0LlVeV69P.t1'),
         ('Compl3X AlphaNu3meric', '$5$rounds=10350$o.pwkySLCzwTdmQX$nCMVsnF3TXWcBPOympBUUSQi6LGGloZoOsVJMGJ09UB'),
         ('4lpHa N|_|M3r1K W/ Cur5Es: #$%(*)(*%#', '$5$rounds=11944$9dhlu07dQMRWvTId$LyUI5VWkGFwASlzntk1RLurxX54LUhgAcJZIt0pYGT7'),
-        (u('with unic\u00D6de'), '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
+        (u'with unic\u00D6de', '$5$rounds=1000$IbG0EuGQXw5EkMdP$LQ5AfPf13KufFsKtmazqnzSGZ4pxtUNw3woQ.ELRDF4'),
         ]
 
     if TEST_MODE("full"):

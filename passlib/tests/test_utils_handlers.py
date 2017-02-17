@@ -16,7 +16,6 @@ from passlib.utils.compat import str_to_uascii, \
                                  uascii_to_str, unicode
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase
-from passlib.utils.compat import u
 # module
 log = getLogger(__name__)
 
@@ -50,8 +49,8 @@ class SkeletonTest(TestCase):
         class d1(uh.StaticHandler):
             name = "d1"
             context_kwds = ("flag",)
-            _hash_prefix = u("_")
-            checksum_chars = u("ab")
+            _hash_prefix = u"_"
+            checksum_chars = u"ab"
             checksum_size = 1
 
             def __init__(self, flag=False, **kwds):
@@ -59,18 +58,18 @@ class SkeletonTest(TestCase):
                 self.flag = flag
 
             def _calc_checksum(self, secret):
-                return u('b') if self.flag else u('a')
+                return u'b' if self.flag else u'a'
 
         # check default identify method
-        self.assertTrue(d1.identify(u('_a')))
+        self.assertTrue(d1.identify(u'_a'))
         self.assertTrue(d1.identify(b'_a'))
-        self.assertTrue(d1.identify(u('_b')))
+        self.assertTrue(d1.identify(u'_b'))
 
-        self.assertFalse(d1.identify(u('_c')))
+        self.assertFalse(d1.identify(u'_c'))
         self.assertFalse(d1.identify(b'_c'))
-        self.assertFalse(d1.identify(u('a')))
-        self.assertFalse(d1.identify(u('b')))
-        self.assertFalse(d1.identify(u('c')))
+        self.assertFalse(d1.identify(u'a'))
+        self.assertFalse(d1.identify(u'b'))
+        self.assertFalse(d1.identify(u'c'))
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
 
@@ -79,12 +78,12 @@ class SkeletonTest(TestCase):
 
         # check default verify method
         self.assertTrue(d1.verify('s', b'_a'))
-        self.assertTrue(d1.verify('s',u('_a')))
+        self.assertTrue(d1.verify('s',u'_a'))
         self.assertFalse(d1.verify('s', b'_b'))
-        self.assertFalse(d1.verify('s',u('_b')))
+        self.assertFalse(d1.verify('s',u'_b'))
         self.assertTrue(d1.verify('s', b'_b', flag=True))
         self.assertRaises(ValueError, d1.verify, 's', b'_c')
-        self.assertRaises(ValueError, d1.verify, 's', u('_c'))
+        self.assertRaises(ValueError, d1.verify, 's', u'_c')
 
         # check default hash method
         self.assertEqual(d1.hash('s'), '_a')
@@ -100,7 +99,7 @@ class SkeletonTest(TestCase):
             def from_string(cls, hash):
                 if isinstance(hash, bytes):
                     hash = hash.decode("ascii")
-                if hash == u('a'):
+                if hash == u'a':
                     return cls(checksum=hash)
                 else:
                     raise ValueError
@@ -113,7 +112,7 @@ class SkeletonTest(TestCase):
         self.assertFalse(d1.identify('b'))
 
         # check regexp
-        d1._hash_regex = re.compile(u('@.'))
+        d1._hash_regex = re.compile(u'@.')
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
         self.assertTrue(d1.identify('@a'))
@@ -121,7 +120,7 @@ class SkeletonTest(TestCase):
         del d1._hash_regex
 
         # check ident-based
-        d1.ident = u('!')
+        d1.ident = u'!'
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
         self.assertTrue(d1.identify('!a'))
@@ -134,23 +133,23 @@ class SkeletonTest(TestCase):
         class d1(uh.GenericHandler):
             name = 'd1'
             checksum_size = 4
-            checksum_chars = u('xz')
+            checksum_chars = u'xz'
 
         def norm_checksum(checksum=None, **k):
             return d1(checksum=checksum, **k).checksum
 
         # too small
-        self.assertRaises(ValueError, norm_checksum, u('xxx'))
+        self.assertRaises(ValueError, norm_checksum, u'xxx')
 
         # right size
-        self.assertEqual(norm_checksum(u('xxxx')), u('xxxx'))
-        self.assertEqual(norm_checksum(u('xzxz')), u('xzxz'))
+        self.assertEqual(norm_checksum(u'xxxx'), u'xxxx')
+        self.assertEqual(norm_checksum(u'xzxz'), u'xzxz')
 
         # too large
-        self.assertRaises(ValueError, norm_checksum, u('xxxxx'))
+        self.assertRaises(ValueError, norm_checksum, u'xxxxx')
 
         # wrong chars
-        self.assertRaises(ValueError, norm_checksum, u('xxyx'))
+        self.assertRaises(ValueError, norm_checksum, u'xxyx')
 
         # wrong type
         self.assertRaises(TypeError, norm_checksum, b'xxyx')
@@ -158,11 +157,11 @@ class SkeletonTest(TestCase):
         # relaxed
         # NOTE: this could be turned back on if we test _norm_checksum() directly...
         #with self.assertWarningList("checksum should be unicode"):
-        #    self.assertEqual(norm_checksum(b'xxzx', relaxed=True), u('xxzx'))
+        #    self.assertEqual(norm_checksum(b'xxzx', relaxed=True), u'xxzx')
         #self.assertRaises(TypeError, norm_checksum, 1, relaxed=True)
 
         # test _stub_checksum behavior
-        self.assertEqual(d1()._stub_checksum, u('xxxx'))
+        self.assertEqual(d1()._stub_checksum, u'xxxx')
 
     def test_12_norm_checksum_raw(self):
         """test GenericHandler + HasRawChecksum mixin"""
@@ -177,10 +176,10 @@ class SkeletonTest(TestCase):
         self.assertEqual(norm_checksum(b'1234'), b'1234')
 
         # test unicode
-        self.assertRaises(TypeError, norm_checksum, u('xxyx'))
+        self.assertRaises(TypeError, norm_checksum, u'xxyx')
 
         # NOTE: this could be turned back on if we test _norm_checksum() directly...
-        # self.assertRaises(TypeError, norm_checksum, u('xxyx'), relaxed=True)
+        # self.assertRaises(TypeError, norm_checksum, u'xxyx', relaxed=True)
 
         # test _stub_checksum behavior
         self.assertEqual(d1()._stub_checksum, b'\x00'*4)
@@ -439,9 +438,9 @@ class SkeletonTest(TestCase):
         class d1(uh.HasManyIdents, uh.GenericHandler):
             name = 'd1'
             setting_kwds = ('ident',)
-            default_ident = u("!A")
-            ident_values = (u("!A"), u("!B"))
-            ident_aliases = { u("A"): u("!A")}
+            default_ident = u"!A"
+            ident_values = (u"!A", u"!B")
+            ident_aliases = { u"A": u"!A"}
 
         def norm_ident(**k):
             return d1(**k).ident
@@ -449,25 +448,25 @@ class SkeletonTest(TestCase):
         # check ident=None
         self.assertRaises(TypeError, norm_ident)
         self.assertRaises(TypeError, norm_ident, ident=None)
-        self.assertEqual(norm_ident(use_defaults=True), u('!A'))
+        self.assertEqual(norm_ident(use_defaults=True), u'!A')
 
         # check valid idents
-        self.assertEqual(norm_ident(ident=u('!A')), u('!A'))
-        self.assertEqual(norm_ident(ident=u('!B')), u('!B'))
-        self.assertRaises(ValueError, norm_ident, ident=u('!C'))
+        self.assertEqual(norm_ident(ident=u'!A'), u'!A')
+        self.assertEqual(norm_ident(ident=u'!B'), u'!B')
+        self.assertRaises(ValueError, norm_ident, ident=u'!C')
 
         # check aliases
-        self.assertEqual(norm_ident(ident=u('A')), u('!A'))
+        self.assertEqual(norm_ident(ident=u'A'), u'!A')
 
         # check invalid idents
-        self.assertRaises(ValueError, norm_ident, ident=u('B'))
+        self.assertRaises(ValueError, norm_ident, ident=u'B')
 
         # check identify is honoring ident system
-        self.assertTrue(d1.identify(u("!Axxx")))
-        self.assertTrue(d1.identify(u("!Bxxx")))
-        self.assertFalse(d1.identify(u("!Cxxx")))
-        self.assertFalse(d1.identify(u("A")))
-        self.assertFalse(d1.identify(u("")))
+        self.assertTrue(d1.identify(u"!Axxx"))
+        self.assertTrue(d1.identify(u"!Bxxx"))
+        self.assertFalse(d1.identify(u"!Cxxx"))
+        self.assertFalse(d1.identify(u"A"))
+        self.assertFalse(d1.identify(u""))
         self.assertRaises(TypeError, d1.identify, None)
         self.assertRaises(TypeError, d1.identify, 1)
 
@@ -490,12 +489,12 @@ class SkeletonTest(TestCase):
 
         # simple hash w/ salt
         result = hash.des_crypt.parsehash("OgAwTx2l6NADI")
-        self.assertEqual(result, {'checksum': u('AwTx2l6NADI'), 'salt': u('Og')})
+        self.assertEqual(result, {'checksum': u'AwTx2l6NADI', 'salt': u'Og'})
 
         # parse rounds and extra implicit_rounds flag
         h = '$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9'
-        s = u('LKO/Ute40T3FNF95')
-        c = u('U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9')
+        s = u'LKO/Ute40T3FNF95'
+        c = u'U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9'
         result = hash.sha256_crypt.parsehash(h)
         self.assertEqual(result, dict(salt=s, rounds=5000,
                                       implicit_rounds=True, checksum=c))
@@ -507,14 +506,14 @@ class SkeletonTest(TestCase):
         # sanitize
         result = hash.sha256_crypt.parsehash(h, sanitize=True)
         self.assertEqual(result, dict(rounds=5000, implicit_rounds=True,
-            salt=u('LK**************'),
-             checksum=u('U0pr***************************************')))
+            salt=u'LK**************',
+             checksum=u'U0pr***************************************'))
 
         # parse w/o implicit rounds flag
         result = hash.sha256_crypt.parsehash('$5$rounds=10428$uy/jIAhCetNCTtb0$YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3')
         self.assertEqual(result, dict(
-            checksum=u('YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3'),
-            salt=u('uy/jIAhCetNCTtb0'),
+            checksum=u'YWvUOXbkqlqhyoPMpN8BMe.ZGsGx2aBvxTvDFI613c3',
+            salt=u'uy/jIAhCetNCTtb0',
             rounds=10428,
         ))
 
@@ -530,9 +529,9 @@ class SkeletonTest(TestCase):
         # sanitizing of raw checksums & salts
         result = hash.pbkdf2_sha1.parsehash(h1, sanitize=True)
         self.assertEqual(result, dict(
-            checksum=u('O26************************'),
+            checksum=u'O26************************',
             rounds=60000,
-            salt=u('Do********************'),
+            salt=u'Do********************',
         ))
 
     def test_92_bitsize(self):
@@ -674,7 +673,7 @@ class PrefixWrapperTest(TestCase):
     def test_12_ident(self):
         # test ident is proxied
         h = uh.PrefixWrapper("h2", "ldap_md5", "{XXX}")
-        self.assertEqual(h.ident, u("{XXX}{MD5}"))
+        self.assertEqual(h.ident, u"{XXX}{MD5}")
         self.assertIs(h.ident_values, None)
 
         # test lack of ident means no proxy
@@ -689,7 +688,7 @@ class PrefixWrapperTest(TestCase):
 
         # test custom ident overrides default
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{X")
-        self.assertEqual(h.ident, u("{X"))
+        self.assertEqual(h.ident, u"{X")
         self.assertIs(h.ident_values, None)
 
         # test custom ident must match
@@ -702,11 +701,11 @@ class PrefixWrapperTest(TestCase):
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
         self.assertIs(h.ident, None)
-        self.assertEqual(h.ident_values, (u("{XXX}$P$"), u("{XXX}$H$")))
+        self.assertEqual(h.ident_values, (u"{XXX}$P$", u"{XXX}$H$"))
 
         # test ident=True means use prefix even if hash has no ident.
         h = uh.PrefixWrapper("h5", "des_crypt", "{XXX}", ident=True)
-        self.assertEqual(h.ident, u("{XXX}"))
+        self.assertEqual(h.ident, u"{XXX}")
         self.assertIs(h.ident_values, None)
 
         # ... but requires prefix
@@ -715,7 +714,7 @@ class PrefixWrapperTest(TestCase):
         # orig_prefix + HasManyIdent - warning
         with self.assertWarningList("orig_prefix.*may not work correctly"):
             h = uh.PrefixWrapper("h7", "phpass", orig_prefix="$", prefix="?")
-        self.assertEqual(h.ident_values, None) # TODO: should output (u("?P$"), u("?H$")))
+        self.assertEqual(h.ident_values, None) # TODO: should output (u"?P$", u"?H$"))
         self.assertEqual(h.ident, None)
 
     def test_13_repr(self):
@@ -763,7 +762,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
     checksum_size = 40
     salt_chars = checksum_chars = uh.LOWER_HEX_CHARS
 
-    _hash_regex = re.compile(u("^@salt[0-9a-f]{42,44}$"))
+    _hash_regex = re.compile(u"^@salt[0-9a-f]{42,44}$")
 
     @classmethod
     def from_string(cls, hash):
@@ -774,7 +773,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         return cls(salt=hash[5:-40], checksum=hash[-40:])
 
     def to_string(self):
-        hash = u("@salt%s%s") % (self.salt, self.checksum)
+        hash = u"@salt%s%s" % (self.salt, self.checksum)
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):
@@ -790,7 +789,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 # TODO: provide data samples for algorithms
 #       (positive knowns, negative knowns, invalid identify)
 
-UPASS_TEMP = u('\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2')
+UPASS_TEMP = u'\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2'
 
 class UnsaltedHashTest(HandlerCase):
     handler = UnsaltedHash

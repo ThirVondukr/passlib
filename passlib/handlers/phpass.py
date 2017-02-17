@@ -14,7 +14,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils.binary import h64
-from passlib.utils.compat import u, uascii_to_str, unicode
+from passlib.utils.compat import uascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -79,9 +79,9 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     rounds_cost = "log2"
 
     #--HasManyIdents--
-    default_ident = u("$P$")
-    ident_values = (u("$P$"), u("$H$"))
-    ident_aliases = {u("P"):u("$P$"), u("H"):u("$H$")}
+    default_ident = u"$P$"
+    ident_values = (u"$P$", u"$H$")
+    ident_aliases = {u"P":u"$P$", u"H":u"$H$"}
 
     #===================================================================
     # formatting
@@ -105,10 +105,10 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self):
-        hash = u("%s%s%s%s") % (self.ident,
+        hash = u"%s%s%s%s" % (self.ident,
                               h64.encode_int6(self.rounds).decode("ascii"),
                               self.salt,
-                              self.checksum or u(''))
+                              self.checksum or u'')
         return uascii_to_str(hash)
 
     #===================================================================

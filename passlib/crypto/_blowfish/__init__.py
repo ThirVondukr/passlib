@@ -56,7 +56,7 @@ import struct
 # pkg
 from passlib.utils import getrandbytes, rng
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import BytesIO, unicode, u, native_string_types
+from passlib.utils.compat import BytesIO, unicode, native_string_types
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
 # local
 __all__ = [
@@ -101,11 +101,11 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     # parse ident
     assert isinstance(ident, native_string_types)
     add_null_padding = True
-    if ident == u('2a') or ident == u('2y') or ident == u('2b'):
+    if ident == u'2a' or ident == u'2y' or ident == u'2b':
         pass
-    elif ident == u('2'):
+    elif ident == u'2':
         add_null_padding = False
-    elif ident == u('2x'):
+    elif ident == u'2x':
         raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
                          "currently supported")
     else:

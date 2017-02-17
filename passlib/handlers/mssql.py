@@ -43,7 +43,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import consteq
-from passlib.utils.compat import bascii_to_str, unicode, u
+from passlib.utils.compat import bascii_to_str, unicode
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -61,7 +61,7 @@ def _raw_mssql(secret, salt):
 
 BIDENT = b"0x0100"
 ##BIDENT2 = b("\x01\x00")
-UIDENT = u("0x0100")
+UIDENT = u"0x0100"
 
 def _ident_mssql(hash, csize, bsize):
     """common identify for mssql 2000/2005"""

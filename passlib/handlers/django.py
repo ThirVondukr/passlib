@@ -13,7 +13,7 @@ from passlib.handlers.bcrypt import _wrapped_bcrypt
 from passlib.hash import argon2, bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, rng, getrandstr
 from passlib.utils.binary import BASE64_CHARS
-from passlib.utils.compat import str_to_uascii, uascii_to_str, unicode, u
+from passlib.utils.compat import str_to_uascii, uascii_to_str, unicode
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
@@ -115,7 +115,7 @@ class django_salted_sha1(DjangoSaltedHash):
     """
     name = "django_salted_sha1"
     django_name = "sha1"
-    ident = u("sha1$")
+    ident = u"sha1$"
     checksum_size = 40
 
     def _calc_checksum(self, secret):
@@ -153,7 +153,7 @@ class django_salted_md5(DjangoSaltedHash):
     """
     name = "django_salted_md5"
     django_name = "md5"
-    ident = u("md5$")
+    ident = u"md5$"
     checksum_size = 32
 
     def _calc_checksum(self, secret):
@@ -166,7 +166,7 @@ class django_salted_md5(DjangoSaltedHash):
 #=============================================================================
 
 django_bcrypt = uh.PrefixWrapper("django_bcrypt", bcrypt,
-    prefix=u('bcrypt$'), ident=u("bcrypt$"),
+    prefix=u'bcrypt$', ident=u"bcrypt$",
     # NOTE: this docstring is duplicated in the docs, since sphinx
     # seems to be having trouble reading it via autodata::
     doc="""This class implements Django 1.4's BCrypt wrapper, and follows the :ref:`password-hash-api`.
@@ -209,7 +209,7 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
 
     # XXX: we can't use .ident attr due to bcrypt code using it.
     #      working around that via django_prefix
-    django_prefix = u('bcrypt_sha256$')
+    django_prefix = u'bcrypt_sha256$'
 
     @classmethod
     def identify(cls, hash):
@@ -280,7 +280,7 @@ class django_pbkdf2_sha256(DjangoVariableHash):
     """
     name = "django_pbkdf2_sha256"
     django_name = "pbkdf2_sha256"
-    ident = u('pbkdf2_sha256$')
+    ident = u'pbkdf2_sha256$'
     min_salt_size = 1
     max_rounds = 0xffffffff # setting at 32-bit limit for now
     checksum_chars = uh.PADDED_BASE64_CHARS
@@ -331,7 +331,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     """
     name = "django_pbkdf2_sha1"
     django_name = "pbkdf2_sha1"
-    ident = u('pbkdf2_sha1$')
+    ident = u'pbkdf2_sha1$'
     checksum_size = 28 # 20 bytes -> base64
     default_rounds = pbkdf2_sha1.default_rounds # NOTE: django 1.6 uses 12000
     _digest = "sha1"
@@ -341,7 +341,7 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 #=============================================================================
 
 django_argon2 = uh.PrefixWrapper("django_argon2", argon2,
-    prefix=u('argon2'), ident=u('argon2$argon2i$'),
+    prefix=u'argon2', ident=u'argon2$argon2i$',
     # NOTE: this docstring is duplicated in the docs, since sphinx
     # seems to be having trouble reading it via autodata::
     doc="""This class implements Django 1.10's Argon2 wrapper, and follows the :ref:`password-hash-api`.
@@ -396,7 +396,7 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     name = "django_des_crypt"
     django_name = "crypt"
     setting_kwds = ("salt", "salt_size", "truncate_error")
-    ident = u("crypt$")
+    ident = u"crypt$"
     checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 11
     min_salt_size = default_salt_size = 2
@@ -481,7 +481,7 @@ class django_disabled(uh.ifc.DisabledHash, uh.StaticHandler):
     .. versionchanged:: 1.7 started appending an alphanumeric string.
     """
     name = "django_disabled"
-    _hash_prefix = u("!")
+    _hash_prefix = u"!"
     suffix_length = 40
 
     # XXX: move this to StaticHandler, or wherever _hash_prefix is being used?

@@ -93,7 +93,8 @@ _lazy_attrs = dict()
 if PY3:
     unicode = str
 
-    # TODO: once we drop python 3.2 support, can use u'' again!
+    # NOTE: don't need to use this for general u'xxx' case,
+    #       but DO need it as wrapper for u(r'xxx') case (mainly when compiling regexen)
     def u(s):
         assert isinstance(s, str)
         return s
@@ -106,7 +107,7 @@ else:
 
     def u(s):
         assert isinstance(s, str)
-        return s.decode("unicode_escape")
+        return s.decode("ascii")
 
     unicode_or_bytes_types = (basestring,)
     native_string_types = (basestring,)
@@ -125,7 +126,7 @@ unicode_or_str = native_string_types
 # unicode & bytes helpers
 #=============================================================================
 # function to join list of unicode strings
-join_unicode = u('').join
+join_unicode = u''.join
 
 # function to join list of byte strings
 join_bytes = b''.join
@@ -337,13 +338,13 @@ else:
 
         # pick default end sequence
         if end is None:
-            end = u("\n") if want_unicode else "\n"
+            end = u"\n" if want_unicode else "\n"
         elif not isinstance(end, unicode_or_bytes_types):
             raise TypeError("end must be None or a string")
 
         # pick default separator
         if sep is None:
-            sep = u(" ") if want_unicode else " "
+            sep = u" " if want_unicode else " "
         elif not isinstance(sep, unicode_or_bytes_types):
             raise TypeError("sep must be None or a string")
 

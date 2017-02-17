@@ -10,7 +10,7 @@ import warnings
 # site
 # pkg
 # module
-from passlib.utils.compat import PY3, u, JYTHON
+from passlib.utils.compat import PY3, JYTHON
 from passlib.tests.utils import TestCase, TEST_MODE, skipUnless, hb
 
 #=============================================================================
@@ -52,7 +52,7 @@ class HashInfoTest(TestCase):
         warnings.filterwarnings("ignore", '.*unknown hash')
 
         # test string types
-        self.assertEqual(norm_hash_name(u("MD4")), "md4")
+        self.assertEqual(norm_hash_name(u"MD4"), "md4")
         self.assertEqual(norm_hash_name(b"MD4"), "md4")
         self.assertRaises(TypeError, norm_hash_name, None)
 

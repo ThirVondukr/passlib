@@ -24,7 +24,7 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import u, print_, unicode
+from passlib.utils.compat import print_, unicode
 from passlib.tests.utils import time_call
 # local
 
@@ -93,12 +93,12 @@ from passlib.context import CryptContext
 
 class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     name = "blank"
-    ident = u("$b$")
+    ident = u"$b$"
     setting_kwds = ("rounds", "salt", "salt_size")
 
     checksum_size = 1
     min_salt_size = max_salt_size = 1
-    salt_chars = u("a")
+    salt_chars = u"a"
 
     min_rounds = 1000
     max_rounds = 3000
@@ -117,10 +117,10 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
 class AnotherHandler(BlankHandler):
     name = "another"
-    ident = u("$a$")
+    ident = u"$a$"
 
-SECRET = u("toomanysecrets")
-OTHER =  u("setecastronomy")
+SECRET = u"toomanysecrets"
+OTHER =  u"setecastronomy"
 
 #=============================================================================
 # CryptContext benchmarks

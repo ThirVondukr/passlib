@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import str_to_bascii, u, uascii_to_str, unicode
+from passlib.utils.compat import str_to_bascii, uascii_to_str, unicode
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
@@ -81,7 +81,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
     """create new Pbkdf2DigestHandler subclass for a specific hash"""
     name = 'pbkdf2_' + hash_name
     if ident is None:
-        ident = u("$pbkdf2-%s$") % (hash_name,)
+        ident = u"$pbkdf2-%s$" % (hash_name,)
     base = Pbkdf2DigestHandler
     return type(name, (base,), dict(
         __module__=module, # so ABCMeta won't clobber it.
@@ -128,7 +128,7 @@ def create_pbkdf2_hash(hash_name, digest_size, rounds=12000, ident=None, module=
 #------------------------------------------------------------------------
 # derived handlers
 #------------------------------------------------------------------------
-pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 131000, ident=u("$pbkdf2$"))
+pbkdf2_sha1 = create_pbkdf2_hash("sha1", 20, 131000, ident=u"$pbkdf2$")
 pbkdf2_sha256 = create_pbkdf2_hash("sha256", 32, 29000)
 pbkdf2_sha512 = create_pbkdf2_hash("sha512", 64, 25000)
 
@@ -183,7 +183,7 @@ class cta_pbkdf2_sha1(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Generic
     #--GenericHandler--
     name = "cta_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
-    ident = u("$p5k2$")
+    ident = u"$p5k2$"
     checksum_size = 20
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
@@ -279,8 +279,8 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #--GenericHandler--
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
-    ident = u("$p5k2$")
-    _stub_checksum = u("0" * 48 + "=")
+    ident = u"$p5k2$"
+    _stub_checksum = u"0" * 48 + "="
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
     #       sanity check. underlying algorithm (and reference implementation)
@@ -370,7 +370,7 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
     #--GenericHandler--
     name = "atlassian_pbkdf2_sha1"
     setting_kwds =("salt",)
-    ident = u("{PKCS5S2}")
+    ident = u"{PKCS5S2}"
     checksum_size = 32
 
     #--HasRawSalt--
@@ -436,7 +436,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     name = "grub_pbkdf2_sha512"
     setting_kwds = ("salt", "salt_size", "rounds")
 
-    ident = u("grub.pbkdf2.sha512.")
+    ident = u"grub.pbkdf2.sha512."
     checksum_size = 64
 
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide a
@@ -453,7 +453,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
 
     @classmethod
     def from_string(cls, hash):
-        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, sep=u("."),
+        rounds, salt, chk = uh.parse_mc3(hash, cls.ident, sep=u".",
                                          handler=cls)
         salt = unhexlify(salt.encode("ascii"))
         if chk:
@@ -463,7 +463,7 @@ class grub_pbkdf2_sha512(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.Gene
     def to_string(self):
         salt = hexlify(self.salt).decode("ascii").upper()
         chk = hexlify(self.checksum).decode("ascii").upper()
-        return uh.render_mc3(self.ident, self.rounds, salt, chk, sep=u("."))
+        return uh.render_mc3(self.ident, self.rounds, salt, chk, sep=u".")
 
     def _calc_checksum(self, secret):
         # TODO: find out what grub's policy is re: unicode

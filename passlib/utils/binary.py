@@ -22,7 +22,7 @@ from passlib.utils.compat import (
     PY3, bascii_to_str,
     irange, imap, iter_byte_chars, join_byte_values, join_byte_elems,
     nextgetter, suppress_cause,
-    u, unicode, unicode_or_bytes_types,
+    unicode, unicode_or_bytes_types,
 )
 from passlib.utils.decor import memoized_property
 # from passlib.utils import BASE64_CHARS, HASH64_CHARS
@@ -64,28 +64,28 @@ __all__ = [
 #-------------------------------------------------------------
 
 #: standard base64 charmap
-BASE64_CHARS = u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+BASE64_CHARS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 #: alt base64 charmap -- "." instead of "+"
-AB64_CHARS =   u("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./")
+AB64_CHARS =   u"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./"
 
 #: charmap used by HASH64 encoding.
-HASH64_CHARS = u("./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+HASH64_CHARS = u"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 #: charmap used by BCrypt
-BCRYPT_CHARS = u("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+BCRYPT_CHARS = u"./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 #: std base64 chars + padding char
-PADDED_BASE64_CHARS = BASE64_CHARS + u("=")
+PADDED_BASE64_CHARS = BASE64_CHARS + u"="
 
 #: all hex chars
-HEX_CHARS = u("0123456789abcdefABCDEF")
+HEX_CHARS = u"0123456789abcdefABCDEF"
 
 #: upper case hex chars
-UPPER_HEX_CHARS = u("0123456789ABCDEF")
+UPPER_HEX_CHARS = u"0123456789ABCDEF"
 
 #: lower case hex chars
-LOWER_HEX_CHARS = u("0123456789abcdef")
+LOWER_HEX_CHARS = u"0123456789abcdef"
 
 #-------------------------------------------------------------
 # byte strings

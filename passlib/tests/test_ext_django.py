@@ -14,7 +14,7 @@ from passlib.context import CryptContext
 from passlib.ext.django.utils import (
     DJANGO_VERSION, MIN_DJANGO_VERSION, DjangoTranslator,
 )
-from passlib.utils.compat import iteritems, get_method_function, u
+from passlib.utils.compat import iteritems, get_method_function
 from passlib.utils.decor import memoized_property
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE, handler_derived_from
@@ -689,9 +689,9 @@ class DjangoExtensionTest(_ExtensionTest):
                                   "v2RWkZQzctPdejyRqmmTDQpZN6wTh7.RUy9zF2LftT6")
         self.assertEqual(hasher.safe_summary(encoded),
             {'algorithm': 'sha256_crypt',
-             'salt': u('abcdab**********'),
+             'salt': u'abcdab**********',
              'rounds': 1234,
-             'hash': u('v2RWkZ*************************************'),
+             'hash': u'v2RWkZ*************************************',
              })
 
     #===================================================================

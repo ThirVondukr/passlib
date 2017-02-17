@@ -10,7 +10,6 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import u
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest
 from passlib.tests.test_handlers import UPASS_USD, UPASS_TABLE
 from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION
@@ -21,7 +20,7 @@ from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION
 #=============================================================================
 
 # standard string django uses
-UPASS_LETMEIN = u('l\xe8tmein')
+UPASS_LETMEIN = u'l\xe8tmein'
 
 def vstr(version):
     return ".".join(str(e) for e in version)
@@ -136,7 +135,7 @@ class django_des_crypt_test(HandlerCase, _DjangoHelper):
         # ensures utf-8 used for unicode
         (UPASS_USD, 'crypt$c2e86$c2hN1Bxd6ZiWs'),
         (UPASS_TABLE, 'crypt$0.aQs$0.wB.TT0Czvlo'),
-        (u("hell\u00D6"), "crypt$sa$saykDgk3BPZ9E"),
+        (u"hell\u00D6", "crypt$sa$saykDgk3BPZ9E"),
 
         # prevent regression of issue 22
         ("foo", 'crypt$MNVY.9ajgdvDQ$MNVY.9ajgdvDQ'),

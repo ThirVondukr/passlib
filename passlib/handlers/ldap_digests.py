@@ -106,7 +106,7 @@ class ldap_md5(_Base64DigestHelper):
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_md5"
-    ident = u("{MD5}")
+    ident = u"{MD5}"
     _hash_func = md5
     _hash_regex = re.compile(u(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$"))
 
@@ -116,7 +116,7 @@ class ldap_sha1(_Base64DigestHelper):
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
     name = "ldap_sha1"
-    ident = u("{SHA}")
+    ident = u"{SHA}"
     _hash_func = sha1
     _hash_regex = re.compile(u(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$"))
 
@@ -154,7 +154,7 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
         This format now supports variable length salts, instead of a fix 4 bytes.
     """
     name = "ldap_salted_md5"
-    ident = u("{SMD5}")
+    ident = u"{SMD5}"
     checksum_size = 16
     _hash_func = md5
     _hash_regex = re.compile(u(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$"))
@@ -193,7 +193,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
         This format now supports variable length salts, instead of a fix 4 bytes.
     """
     name = "ldap_salted_sha1"
-    ident = u("{SSHA}")
+    ident = u"{SSHA}"
     checksum_size = 20
     _hash_func = sha1
     _hash_regex = re.compile(u(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$"))
@@ -250,7 +250,7 @@ def _init_ldap_crypt_handlers():
     g = globals()
     for wname in unix_crypt_schemes:
         name = 'ldap_' + wname
-        g[name] = uh.PrefixWrapper(name, wname, prefix=u("{CRYPT}"), lazy=True)
+        g[name] = uh.PrefixWrapper(name, wname, prefix=u"{CRYPT}", lazy=True)
     del g
 _init_ldap_crypt_handlers()
 

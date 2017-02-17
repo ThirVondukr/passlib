@@ -12,7 +12,6 @@ from passlib import apache
 from passlib.exc import MissingBackendError
 from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
-from passlib.utils.compat import u
 from passlib.utils import to_bytes
 # module
 log = getLogger(__name__)
@@ -265,7 +264,7 @@ class HtpasswdFileTest(TestCase):
         # check sample utf-8
         ht = apache.HtpasswdFile.from_string(self.sample_04_utf8, encoding="utf-8",
                                              return_unicode=True)
-        self.assertEqual(ht.users(), [ u("user\u00e6") ])
+        self.assertEqual(ht.users(), [ u"user\u00e6" ])
 
         # encoding=None should throw error
         self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
@@ -274,7 +273,7 @@ class HtpasswdFileTest(TestCase):
         # check sample latin-1
         ht = apache.HtpasswdFile.from_string(self.sample_04_latin1,
                                               encoding="latin-1", return_unicode=True)
-        self.assertEqual(ht.users(), [ u("user\u00e6") ])
+        self.assertEqual(ht.users(), [ u"user\u00e6" ])
 
     def test_08_get_hash(self):
         """test get_hash()"""
@@ -569,13 +568,13 @@ class HtdigestFileTest(TestCase):
 
         # check sample utf-8
         ht = apache.HtdigestFile.from_string(self.sample_04_utf8, encoding="utf-8", return_unicode=True)
-        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
-        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
+        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
+        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
 
         # check sample latin-1
         ht = apache.HtdigestFile.from_string(self.sample_04_latin1, encoding="latin-1", return_unicode=True)
-        self.assertEqual(ht.realms(), [ u("realm\u00e6") ])
-        self.assertEqual(ht.users(u("realm\u00e6")), [ u("user\u00e6") ])
+        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
+        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
 
     def test_10_to_string(self):
         """test to_string()"""

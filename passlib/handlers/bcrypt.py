@@ -28,7 +28,7 @@ from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecur
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -39,11 +39,11 @@ __all__ = [
 #=============================================================================
 # support funcs & constants
 #=============================================================================
-IDENT_2 = u("$2$")
-IDENT_2A = u("$2a$")
-IDENT_2X = u("$2x$")
-IDENT_2Y = u("$2y$")
-IDENT_2B = u("$2b$")
+IDENT_2 = u"$2$"
+IDENT_2A = u"$2a$"
+IDENT_2X = u"$2x$"
+IDENT_2Y = u"$2y$"
+IDENT_2B = u"$2b$"
 _BNULL = b'\x00'
 
 # reference hash of "test", used in various self-checks
@@ -117,8 +117,8 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     #--------------------
     default_ident = IDENT_2B
     ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
-    ident_aliases = {u("2"): IDENT_2, u("2a"): IDENT_2A,  u("2y"): IDENT_2Y,
-                     u("2b"): IDENT_2B}
+    ident_aliases = {u"2": IDENT_2, u"2a": IDENT_2A,  u"2y": IDENT_2Y,
+                     u"2b": IDENT_2B}
 
     #--------------------
     # HasSalt
@@ -163,9 +163,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         if ident == IDENT_2X:
             raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
                              "currently supported")
-        rounds_str, data = tail.split(u("$"))
+        rounds_str, data = tail.split(u"$")
         rounds = int(rounds_str)
-        if rounds_str != u('%02d') % (rounds,):
+        if rounds_str != u'%02d' % (rounds,):
             raise uh.exc.MalformedHashError(cls, "malformed cost field")
         salt, chk = data[:22], data[22:]
         return cls(
@@ -176,14 +176,14 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         )
 
     def to_string(self):
-        hash = u("%s%02d$%s%s") % (self.ident, self.rounds, self.salt, self.checksum)
+        hash = u"%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
 
     # NOTE: this should be kept separate from to_string()
     #       so that bcrypt_sha256() can still use it, while overriding to_string()
     def _get_config(self, ident):
         """internal helper to prepare config string for backends"""
-        config = u("%s%02d$%s") % (ident, self.rounds, self.salt)
+        config = u"%s%02d$%s" % (ident, self.rounds, self.salt)
         return uascii_to_str(config)
 
     #===================================================================
@@ -850,7 +850,7 @@ class bcrypt(_NoBackend, _BcryptCommon):
 #=============================================================================
 # variants
 #=============================================================================
-_UDOLLAR = u("$")
+_UDOLLAR = u"$"
 
 # XXX: it might be better to have all the bcrypt variants share a common base class,
 #      and have the (django_)bcrypt_sha256 wrappers just proxy bcrypt instead of subclassing it.
@@ -940,7 +940,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     # XXX: we can't use .ident attr due to bcrypt code using it.
     #      working around that via prefix.
-    prefix = u('$bcrypt-sha256$')
+    prefix = u'$bcrypt-sha256$'
 
     _hash_re = re.compile(r"""
         ^
@@ -976,7 +976,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
                    checksum=m.group("digest"),
                    )
 
-    _template = u("$bcrypt-sha256$%s,%d$%s$%s")
+    _template = u"$bcrypt-sha256$%s,%d$%s$%s"
 
     def to_string(self):
         hash = self._template % (self.ident.strip(_UDOLLAR),

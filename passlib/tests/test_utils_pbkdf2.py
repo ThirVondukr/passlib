@@ -19,7 +19,7 @@ import warnings
 # site
 # pkg
 # module
-from passlib.utils.compat import u, JYTHON
+from passlib.utils.compat import JYTHON
 from passlib.tests.utils import TestCase, hb
 
 #=============================================================================

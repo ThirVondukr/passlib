@@ -19,7 +19,7 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, irange, u, \
+from passlib.utils.compat import byte_elem_value, irange, \
                                  uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
 # local
@@ -237,7 +237,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
 
-    ident_values = (u("$md5$"), u("$md5,"))
+    ident_values = (u"$md5$", u"$md5,")
 
     #===================================================================
     # instance attrs
@@ -268,11 +268,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # if so, parse and validate it.
         # by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
-        if hash.startswith(u("$md5$")):
+        if hash.startswith(u"$md5$"):
             rounds = 0
             salt_idx = 5
-        elif hash.startswith(u("$md5,rounds=")):
-            idx = hash.find(u("$"), 12)
+        elif hash.startswith(u"$md5,rounds="):
+            idx = hash.find(u"$", 12)
             if idx == -1:
                 raise uh.exc.MalformedHashError(cls, "unexpected end of rounds")
             rstr = hash[12:idx]
@@ -296,20 +296,20 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # to deal cleanly with some backward-compatible workarounds
         # implemented by original implementation.
         #
-        chk_idx = hash.rfind(u("$"), salt_idx)
+        chk_idx = hash.rfind(u"$", salt_idx)
         if chk_idx == -1:
             # ''-config for $-hash
             salt = hash[salt_idx:]
             chk = None
             bare_salt = True
         elif chk_idx == len(hash)-1:
-            if chk_idx > salt_idx and hash[-2] == u("$"):
+            if chk_idx > salt_idx and hash[-2] == u"$":
                 raise uh.exc.MalformedHashError(cls, "too many '$' separators")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None
             bare_salt = False
-        elif chk_idx > 0 and hash[chk_idx-1] == u("$"):
+        elif chk_idx > 0 and hash[chk_idx-1] == u"$":
             # $$-hash
             salt = hash[salt_idx:chk_idx-1]
             chk = hash[chk_idx+1:]
@@ -328,15 +328,15 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self, _withchk=True):
-        ss = u('') if self.bare_salt else u('$')
+        ss = u'' if self.bare_salt else u'$'
         rounds = self.rounds
         if rounds > 0:
-            hash = u("$md5,rounds=%d$%s%s") % (rounds, self.salt, ss)
+            hash = u"$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
         else:
-            hash = u("$md5$%s%s") % (self.salt, ss)
+            hash = u"$md5$%s%s" % (self.salt, ss)
         if _withchk:
             chk = self.checksum
-            hash = u("%s$%s") % (hash, chk)
+            hash = u"%s$%s" % (hash, chk)
         return uascii_to_str(hash)
 
     #===================================================================

@@ -20,7 +20,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
-from passlib.utils.compat import irange, u, unicode, str_to_uascii, PY2, PY26
+from passlib.utils.compat import irange, unicode, str_to_uascii, PY2, PY26
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
                                  quicksleep, time_call, handler_derived_from)
@@ -75,7 +75,7 @@ class CryptContextTest(TestCase):
     sample_1_resolved_dict = merge_dicts(sample_1_dict,
                                          schemes = sample_1_handlers)
 
-    sample_1_unnormalized = u("""\
+    sample_1_unnormalized = u"""\
 [passlib]
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
 default = md5_crypt
@@ -85,9 +85,9 @@ bsdi_crypt__default_rounds = 25001
 bsdi_crypt__max_rounds = 30001
 sha512_crypt__max_rounds = 50000
 sha512_crypt__min_rounds = 40000
-""")
+"""
 
-    sample_1_unicode = u("""\
+    sample_1_unicode = u"""\
 [passlib]
 schemes = des_crypt, md5_crypt, bsdi_crypt, sha512_crypt
 default = md5_crypt
@@ -97,7 +97,7 @@ bsdi_crypt__max_rounds = 30001
 sha512_crypt__max_rounds = 50000
 sha512_crypt__min_rounds = 40000
 
-""")
+"""
 
     #---------------------------------------------------------------
     # sample 1 external files
@@ -107,12 +107,12 @@ sha512_crypt__min_rounds = 40000
     sample_1_path = os.path.join(here, "sample1.cfg")
 
     # sample 1 with '\r\n' linesep
-    sample_1b_unicode = sample_1_unicode.replace(u("\n"), u("\r\n"))
+    sample_1b_unicode = sample_1_unicode.replace(u"\n", u"\r\n")
     sample_1b_path = os.path.join(here, "sample1b.cfg")
 
     # sample 1 using UTF-16 and alt section
-    sample_1c_bytes = sample_1_unicode.replace(u("[passlib]"),
-                                               u("[mypolicy]")).encode("utf-16")
+    sample_1c_bytes = sample_1_unicode.replace(u"[passlib]",
+                                               u"[mypolicy]").encode("utf-16")
     sample_1c_path = os.path.join(here, "sample1c.cfg")
 
     # enable to regenerate sample files
@@ -207,7 +207,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(ctx.to_dict(), self.sample_3_dict)
 
         # test unicode scheme names (issue 54)
-        ctx = CryptContext(schemes=[u("sha256_crypt")])
+        ctx = CryptContext(schemes=[u"sha256_crypt"])
         self.assertEqual(ctx.schemes(), ("sha256_crypt",))
 
     def test_02_from_string(self):
@@ -750,8 +750,8 @@ sha512_crypt__min_rounds = 45000
 
         # test unicode category strings are accepted under py2
         if PY2:
-            self.assertEqual(ctx.handler(category=u("staff"), unconfigured=True), hash.sha256_crypt)
-            self.assertEqual(ctx.handler(category=u("admin"), unconfigured=True), hash.md5_crypt)
+            self.assertEqual(ctx.handler(category=u"staff", unconfigured=True), hash.sha256_crypt)
+            self.assertEqual(ctx.handler(category=u"admin", unconfigured=True), hash.md5_crypt)
 
     def test_33_options(self):
         """test internal _get_record_options() method"""
@@ -938,8 +938,8 @@ sha512_crypt__min_rounds = 45000
         # we have to omit scheme=xxx so codepath is tested fully
         if PY2:
             c2 = cc.copy(default="phpass")
-            self.assertTrue(c2.genconfig(category=u("admin")).startswith("$P$5"))
-            self.assertTrue(c2.genconfig(category=u("staff")).startswith("$H$5"))
+            self.assertTrue(c2.genconfig(category=u"admin").startswith("$P$5"))
+            self.assertTrue(c2.genconfig(category=u"staff").startswith("$H$5"))
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genconfig)
@@ -1726,7 +1726,7 @@ class DelayHash(uh.StaticHandler):
     checksum_chars = uh.LOWER_HEX_CHARS
     checksum_size = 40
     delay = 0
-    _hash_prefix = u("$x$")
+    _hash_prefix = u"$x$"
 
     def _calc_checksum(self, secret):
         time.sleep(self.delay)

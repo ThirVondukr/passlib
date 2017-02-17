@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, str_consteq
-from passlib.utils.compat import unicode, u, unicode_or_bytes_types
+from passlib.utils.compat import unicode, unicode_or_bytes_types
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -22,7 +22,7 @@ __all__ = [
 # handler
 #=============================================================================
 
-_MARKER_CHARS = u("*!")
+_MARKER_CHARS = u"*!"
 _MARKER_BYTES = b"*!"
 
 class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
@@ -56,12 +56,12 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
 
     # TODO: rename attr to 'marker'...
     if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
-        default_marker = u("*")
+        default_marker = u"*"
     else:
         # use the linux default for other systems
         # (glibc also supports adding old hash after the marker
         # so it can be restored later).
-        default_marker = u("!")
+        default_marker = u"!"
 
     @classmethod
     def using(cls, marker=None, **kwds):
