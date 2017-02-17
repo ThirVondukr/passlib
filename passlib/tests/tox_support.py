@@ -2,6 +2,7 @@
 #=============================================================================
 # init script env
 #=============================================================================
+from __future__ import absolute_import, division, print_function
 import os, sys
 root_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 sys.path.insert(0, root_dir)
@@ -14,7 +15,6 @@ import re
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils.compat import print_
 # local
 __all__ = [
 ]
@@ -40,7 +40,7 @@ def do_hash_tests(*args):
     from passlib.tests import test_handlers
     names = [TH_PATH + ":" + name + suffix for name in dir(test_handlers)
              if not name.startswith("_") and any(re.match(arg,name) for arg in args)]
-    print_("\n".join(names))
+    print("\n".join(names))
     return not names
 
 def do_preset_tests(name):
@@ -48,7 +48,7 @@ def do_preset_tests(name):
     if name == "django" or name == "django-hashes":
         do_hash_tests("django_.*_test", "hex_md5_test")
         if name == "django":
-            print_("passlib.tests.test_ext_django")
+            print("passlib.tests.test_ext_django")
     else:
         raise ValueError("unknown name: %r" % name)
 

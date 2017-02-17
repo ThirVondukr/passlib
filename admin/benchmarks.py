@@ -6,6 +6,7 @@ parsing was being sped up. it could definitely be improved.
 #=============================================================================
 # init script env
 #=============================================================================
+from __future__ import absolute_import, division, print_function
 import re
 import os, sys
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
@@ -24,7 +25,7 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import print_, unicode
+from passlib.utils.compat import unicode
 from passlib.tests.utils import time_call
 # local
 
@@ -78,10 +79,10 @@ class benchmark:
         usec = int(secs * 1e6)
         if usec < 1000:
             return "%.*g usec" % (precision, usec)
-        msec = usec / 1000
+        msec = usec // 1000
         if msec < 1000:
             return "%.*g msec" % (precision, msec)
-        sec = msec / 1000
+        sec = msec // 1000
         return "%.*g sec" % (precision, sec)
 
 #=============================================================================
@@ -293,7 +294,7 @@ def main(*args):
                      if any(re.match(arg, k) for arg in args))
     helper = benchmark.run(source, maxtime=2, bestof=3)
     for name, secs, precision in helper:
-        print_("%-50s %9s (%d)" % (name, benchmark.pptime(secs), precision))
+        print("%-50s %9s (%d)" % (name, benchmark.pptime(secs), precision))
 
 if __name__ == "__main__":
     import sys

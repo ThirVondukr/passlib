@@ -429,7 +429,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 ##def _test_reference_scram():
 ##    "quick hack testing scram reference vectors"
 ##    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
-##    from passlib.utils.compat import print_
 ##
 ##    engine = _scram_engine(
 ##        alg="sha-1",
@@ -437,7 +436,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 ##        rounds=4096,
 ##        password=u"pencil",
 ##    )
-##    print_(engine.digest.encode("base64").rstrip())
+##    print(engine.digest.encode("base64").rstrip())
 ##
 ##    msg = engine.format_auth_msg(
 ##        username="user",
