@@ -4,6 +4,11 @@
 Passlib 1.7
 ===========
 
+**1.7.2** (NOT YET RELEASED)
+============================
+
+* :class:`~passlib.hash.argon` -- default hash size increased to 32 bytes (:issue:`88`).
+
 **1.7.1** (2017-1-30)
 =====================
 

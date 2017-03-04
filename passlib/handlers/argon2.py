@@ -63,8 +63,6 @@ else:
         time_cost = 2
         memory_cost = 512
         parallelism = 2
-        salt_len = 16
-        hash_len = 16
     _default_version = 0x13
 
 #=============================================================================
@@ -110,7 +108,8 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     # GenericHandler
     #------------------------
     ident = u("$argon2i")
-    checksum_size = _default_settings.hash_len
+    # NOTE: ignoring argon2_cffi's default of 16, to better match libargon2
+    checksum_size = 32
 
     # NOTE: from_string() relies on the ordering of these...
     ident_values = (u("$argon2i$"), u("$argon2d$"))
@@ -118,7 +117,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #------------------------
     # HasSalt
     #------------------------
-    default_salt_size = _default_settings.salt_len
+    default_salt_size = 16
     min_salt_size = 8
     max_salt_size = MAX_UINT32
 
