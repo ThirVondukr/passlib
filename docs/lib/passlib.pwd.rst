@@ -43,20 +43,10 @@ but are exported by this module for general use:
 
 Password Strength Estimation
 ============================
-Passlib does not current offer any password strength estimation routines.
+Passlib does not currently offer any password strength estimation routines.
 However, the (javascript-based) `zxcvbn <https://github.com/dropbox/zxcvbn>`_
-project is a very good choice. There are a few python ports of ZCVBN library, though as of 2016-11,
-none of them seem active and up to date.
+project is a *very* good choice. 
 
-The following is a list of known ZCVBN python ports, though it's not clear which of these
-is active and/or official:
-
-* https://github.com/dropbox/python-zxcvbn -- seemingly official python version,
-  but not updated since 2013, and not published on pypi.
-
-* https://github.com/rpearl/python-zxcvbn -- fork of official version,
-  also not updated since 2013, but released to pypi as `"zxcvbn" <https://pypi.python.org/pypi/zxcvbn>`_.
-
-* https://github.com/gordon86/python-zxcvbn -- fork that has some updates as of july 2015,
-  released to pypi as `"zxcvbn-py3" <https://pypi.python.org/pypi/zxcvbn-py3>`_ (and compatible
-  with 2 & 3, despite the name).
+Though there are a few different python ports of ZCVBN library, as of 2017-3-3,
+`zxcvbn-python <https://pypi.python.org/pypi/zxcvbn-python>` is the most up-to-date, 
+and is endorsed by the upstream zxcvbn developers.
