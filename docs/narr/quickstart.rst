@@ -72,7 +72,7 @@ There are currently four good choices [#choices]_ for secure hashing:
 All four hashes share the following properties:
 
     * No known vulnerabilities.
-    * Based on documented & widely reviewed algorithms.
+    * Based on documented and widely reviewed algorithms.
     * Public-domain or BSD-licensed reference implementations available.
     * variable rounds for configuring flexible cpu cost on a per-hash basis.
     * At least 96 bits of salt.
@@ -98,13 +98,13 @@ being much newer than the others, it has seen heavy scrutiny.  Since the Argon2 
 had the foresight to provide not just a reference implementation, but a standard
 hash encoding format, these hashes should be reliably interoperatable across all implementations.
 
-*Issues:* In it's default configuration, Argon2 uses more memory than the other hashes.
-However, this is one of it's hallmarks as a "memory hard" hashing algorithm, and contributes to it's security.
-Furthermore the exact amount used is configurable.  It's only main drawback is that as of 2016-6-20
-it's only 3 years old.  It's seen only a few minor adjustments since 2013,
+*Issues:* In its default configuration, Argon2 uses more memory than the other hashes.
+However, this is one of its hallmarks as a "memory hard" hashing algorithm, and contributes to its security.
+Furthermore the exact amount used is configurable.  Its only main drawback is that as of 2019-01-12,
+it's only 6 years old.  It's seen only a few minor adjustments since 2013,
 but as it is just now gaining widespread use, the next few years are the period in which it will
 likely either prove itself, or be found wanting.  It's for this reason,
-any cryptographic algorithm less than a decade old is generally considered "young" :)
+any cryptographic algorithm less than a decade old is generally considered "young". :)
 
 BCrypt
 ......
@@ -169,7 +169,7 @@ However, this design also hampers analysis of the algorithm
 for future flaws.
 
 While this algorithm is still considered secure, it has fallen out of favor
-in comparison to bcrypt & pbkdf2, due to it's non-standard construction.
+in comparison to bcrypt and pbkdf2, due to its non-standard construction.
 
 Furthermore, when compared to Argon2 and BCrypt,
 SHA512-Crypt and PBKDF2 have proven more susceptible to cracking using modern GPU-based techniques.
@@ -205,11 +205,11 @@ For new applications, this decision comes down to a couple of questions:
 
    * If they allow C extensions, continue...
 
-3. Do you want to use the latest & greatest, and don't mind increased memory usage
+3. Do you want to use the latest and greatest, and don't mind increased memory usage
    when hashing?
 
    * :class:`~passlib.hash.argon2` is a next-generation hashing algorithm,
-     attempting to become the new standard.  It's design has been being slightly tweaked
+     attempting to become the new standard.  Its design has been being slightly tweaked
      since 2013, but will quite likely become *the* standard in the next few years.
      You'll need to install the `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_
      support library.
