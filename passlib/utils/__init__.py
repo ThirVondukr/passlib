@@ -6,7 +6,12 @@ from passlib.utils.compat import JYTHON
 # core
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
 from base64 import b64encode, b64decode
-import collections
+try:
+    from collections.abc import Sequence
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Sequence
+    from collections import Iterable
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
 import itertools
@@ -276,14 +281,14 @@ def batch(source, size):
     """
     if size < 1:
         raise ValueError("size must be positive integer")
-    if isinstance(source, collections.Sequence):
+    if isinstance(source, Sequence):
         end = len(source)
         i = 0
         while i < end:
             n = i + size
             yield source[i:n]
             i = n
-    elif isinstance(source, collections.Iterable):
+    elif isinstance(source, Iterable):
         itr = iter(source)
         while True:
             chunk_itr = itertools.islice(itr, size)
