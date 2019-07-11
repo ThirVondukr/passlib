@@ -30,6 +30,7 @@ else:
 import time
 if stringprep:
     import unicodedata
+import timeit
 import types
 from warnings import warn
 # site
@@ -839,14 +840,7 @@ def test_crypt(secret, hash):
     assert secret and hash
     return safe_crypt(secret, hash) == hash
 
-# pick best timer function to expose as "tick" - lifted from timeit module.
-if sys.platform == "win32":
-    # On Windows, the best timer is time.clock()
-    from time import clock as timer
-else:
-    # On most other platforms the best timer is time.time()
-    from time import time as timer
-
+timer = timeit.default_timer
 # legacy alias, will be removed in passlib 2.0
 tick = timer
 
@@ -903,7 +897,7 @@ def genseed(value=None):
 
         # the current time, to whatever precision os uses
         time.time(),
-        time.clock(),
+        tick(),
 
         # if urandom available, might as well mix some bytes in.
         os.urandom(32).decode("latin-1") if has_urandom else 0,
