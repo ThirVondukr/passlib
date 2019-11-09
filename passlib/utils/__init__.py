@@ -6,7 +6,12 @@ from passlib.utils.compat import JYTHON
 # core
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
 from base64 import b64encode, b64decode
-import collections
+try:
+    from collections.abc import Sequence
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Sequence
+    from collections import Iterable
 from codecs import lookup as _lookup_codec
 from functools import update_wrapper
 import itertools
@@ -30,6 +35,7 @@ else:
 import time
 if stringprep:
     import unicodedata
+import timeit
 import types
 from warnings import warn
 # site
@@ -275,14 +281,14 @@ def batch(source, size):
     """
     if size < 1:
         raise ValueError("size must be positive integer")
-    if isinstance(source, collections.Sequence):
+    if isinstance(source, Sequence):
         end = len(source)
         i = 0
         while i < end:
             n = i + size
             yield source[i:n]
             i = n
-    elif isinstance(source, collections.Iterable):
+    elif isinstance(source, Iterable):
         itr = iter(source)
         while True:
             chunk_itr = itertools.islice(itr, size)
@@ -839,14 +845,7 @@ def test_crypt(secret, hash):
     assert secret and hash
     return safe_crypt(secret, hash) == hash
 
-# pick best timer function to expose as "tick" - lifted from timeit module.
-if sys.platform == "win32":
-    # On Windows, the best timer is time.clock()
-    from time import clock as timer
-else:
-    # On most other platforms the best timer is time.time()
-    from time import time as timer
-
+timer = timeit.default_timer
 # legacy alias, will be removed in passlib 2.0
 tick = timer
 
@@ -903,7 +902,7 @@ def genseed(value=None):
 
         # the current time, to whatever precision os uses
         time.time(),
-        time.clock(),
+        tick(),
 
         # if urandom available, might as well mix some bytes in.
         os.urandom(32).decode("latin-1") if has_urandom else 0,
