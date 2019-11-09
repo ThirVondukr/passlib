@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function
 from passlib.utils.compat import PY3
 # core
 import base64
-import collections
 import calendar
 import json
 import logging; log = logging.getLogger(__name__)
@@ -331,13 +330,12 @@ class AppWallet(object):
                 raise ValueError("unrecognized secrets string format")
 
         # ensure we have iterable of (tag, value) pairs
-        # XXX: could support lists/iterable, but not yet needed...
-        # if isinstance(source, list) or isinstance(source, collections.Iterator):
-        #     pass
         if source is None:
             return {}
         elif isinstance(source, dict):
             source = source.items()
+        # XXX: could support iterable of (tag,value) pairs, but not yet needed...
+        # elif check_type and (isinstance(source, str) or not isinstance(source, Iterable)):
         elif check_type:
             raise TypeError("'secrets' must be mapping, or list of items")
 

@@ -10,6 +10,7 @@ try:
     from collections.abc import Sequence
     from collections.abc import Iterable
 except ImportError:
+    # py2 compat
     from collections import Sequence
     from collections import Iterable
 from codecs import lookup as _lookup_codec
