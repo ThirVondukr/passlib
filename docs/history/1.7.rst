@@ -7,6 +7,23 @@ Passlib 1.7
 **1.7.2** (NOT YET RELEASED)
 ============================
 
+This release rolls up assorted bug & compatibility fixes since 1.7.1.
+
+Bugfixes
+--------
+
+* Python 3.8 compatibility fixes
+
+* **unittests**: ``crypt()`` unittests now account for linux systems running libxcrypt
+  (such as recent Fedora releases)
+
+Other Changes
+-------------
+
+* **setup.py**: now honors ``$SOURCE_DATE_EPOCH`` to help with reproducible builds
+
+* **documentation**: Various updates & corrections.
+
 **1.7.1** (2017-1-30)
 =====================
 
