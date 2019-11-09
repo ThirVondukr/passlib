@@ -1413,11 +1413,12 @@ class TOTP(object):
         if ":" in label:
             try:
                 issuer, label = label.split(":")
-            except ValueError: # too many ":"
+            except ValueError:  # too many ":"
                 raise cls._uri_parse_error("malformed label")
         else:
             issuer = None
         if label:
+            # NOTE: KeyURI spec says there may be leading spaces
             label = label.strip() or None
 
         # parse query params
@@ -1517,6 +1518,11 @@ class TOTP(object):
             >>> uri = tp.to_uri("user@example.org", "myservice.another-example.org")
             >>> uri
             'otpauth://totp/user@example.org?secret=S3JDVB7QD2R7JPXX&issuer=myservice.another-example.org'
+
+        .. versionchanged:: 1.7.2
+
+            This method now prepends the issuer URI label.  This is recommended by the KeyURI
+            specification, for compatibility with older clients.
         """
         # encode label
         if label is None:
@@ -1530,21 +1536,25 @@ class TOTP(object):
         label = quote(label, '@')
 
         # encode query parameters
-        args = self._to_uri_params()
+        params = self._to_uri_params()
         if issuer is None:
             issuer = self.issuer
         if issuer:
             self._check_issuer(issuer)
-            args.append(("issuer", issuer))
+            # NOTE: per KeyURI spec, including issuer as part of label is deprecated,
+            #       in favor of adding it to query params.  however, some QRCode clients
+            #       don't recognize the 'issuer' query parameter, so spec recommends (as of 2018-7)
+            #       to include both.
+            label = "%s:%s" % (quote(issuer, '@'), label)
+            params.append(("issuer", issuer))
         # NOTE: not using urllib.urlencode() because it encodes ' ' as '+';
         #       but spec says to use '%20', and not sure how fragile
         #       the various totp clients' parsers are.
-        argstr = u("&").join(u("%s=%s") % (key, quote(value, ''))
-                             for key, value in args)
-        assert argstr, "argstr should never be empty"
+        param_str = u("&").join(u("%s=%s") % (key, quote(value, '')) for key, value in params)
+        assert param_str, "param_str should never be empty"
 
         # render uri
-        return u("otpauth://totp/%s?%s") % (label, argstr)
+        return u("otpauth://totp/%s?%s") % (label, param_str)
 
     def _to_uri_params(self):
         """return list of (key, param) entries for URI"""

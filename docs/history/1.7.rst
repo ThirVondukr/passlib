@@ -14,6 +14,12 @@ Bugfixes
 
 * Python 3.8 compatibility fixes
 
+* .. py:currentmodule:: passlib.totp
+
+  :mod:`passlib.totp`: The :meth:`TOTP.to_uri` method now prepends the issuer to URI label,
+  (per the KeyURI spec).  This should fix some compatibility issues with older TOTP clients
+  (:issue:`92`)
+
 * **unittests**: ``crypt()`` unittests now account for linux systems running libxcrypt
   (such as recent Fedora releases)
 
