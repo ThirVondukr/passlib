@@ -61,7 +61,7 @@ Optional Libraries
 
    Use ``pip install passlib[totp]`` to get the recommended TOTP setup.
 
-* `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
+* `fastpbkdf2 <https://pypi.python.org/pypi/fastpbkdf2>`_
 
    If installed, will be used to greatly speed up :func:`~passlib.crypto.digest.pbkdf2_hmac`,
    and any pbkdf2-based hashes.
