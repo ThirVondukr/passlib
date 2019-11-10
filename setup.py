@@ -46,7 +46,7 @@ opts = dict(
     # NOTE: 'download_url' set below
 
     extras_require={
-        "argon2": "argon2_cffi>=16.2",
+        "argon2": "argon2_cffi>=18.2.0",
         "bcrypt": "bcrypt>=3.1.0",
         "totp": "cryptography",
     },

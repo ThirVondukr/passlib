@@ -1169,6 +1169,7 @@ class HasManyIdents(GenericHandler):
                     return value
 
         # failure!
+        # XXX: give this it's own error type?
         raise ValueError("invalid ident: %r" % (ident,))
 
     #===================================================================
