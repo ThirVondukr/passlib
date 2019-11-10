@@ -146,6 +146,12 @@ class _base_argon2_test(HandlerCase):
         "$argon2i$v=19$m=127,t=2,p=16$c29tZXNhbHQ$IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
     ]
 
+    known_parsehash_results = [
+        ('$argon2i$v=19$m=256,t=2,p=3$c29tZXNhbHQ$AJFIsNZTMKTAewB4+ETN1A',
+         dict(memory_cost=256, rounds=2, parallelism=3, salt=b'somesalt',
+              checksum=b'\x00\x91H\xb0\xd6S0\xa4\xc0{\x00x\xf8D\xcd\xd4')),
+    ]
+
     def setUpWarnings(self):
         super(_base_argon2_test, self).setUpWarnings()
         warnings.filterwarnings("ignore", ".*Using argon2pure backend.*")

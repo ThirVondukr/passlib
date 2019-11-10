@@ -20,6 +20,10 @@ Bugfixes
   (per the KeyURI spec).  This should fix some compatibility issues with older TOTP clients
   (:issue:`92`)
 
+* .. py:currentmodule:: passlib.hash
+
+  Fixed error in :meth:`argon2.parsehash` (:issue:`97`)
+
 * **unittests**: ``crypt()`` unittests now account for linux systems running libxcrypt
   (such as recent Fedora releases)
 

@@ -115,6 +115,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     # NOTE: from_string() relies on the ordering of these...
     ident_values = (u("$argon2i$"), u("$argon2d$"))
 
+    #: exclude these kwds from parsehash() result (most are aliases for other keys)
+    _unparsed_settings = uh.GenericHandler._unparsed_settings + \
+                         ("salt_len", "time_cost", "hash_len", "digest_size")
+
     #------------------------
     # HasSalt
     #------------------------
