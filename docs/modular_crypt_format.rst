@@ -174,6 +174,11 @@ and indicates which operating systems offer native support:
     :class:`~passlib.hash.sha1_crypt`    ``$sha1$``                                   y
     ==================================== ==================== =========== =========== =========== =========== =======
 
+.. note::
+
+    Linux systems using `libxcrypt <https://github.com/besser82/libxcrypt>`_ instead of ``libcrypt``
+    will have native support for additional formats, including nearly all those listed above.
+
 Additional Platforms
 --------------------
 The modular crypt format is also supported to some degree

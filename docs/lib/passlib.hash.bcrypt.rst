@@ -19,8 +19,8 @@ for new applications. This class can be used directly as follows::
     '$2a$12$NT0I31Sa7ihGEWpka9ASYrEFkhuTNeBQ2xfZskIiiJeyFXhRgS.Sy'
 
     >>> # the same, but with an explicit number of rounds
-    >>> bcrypt.using(rounds=8).hash("password")
-    '$2a$08$8wmNsdCH.M21f.LSBSnYjQrZ9l1EmtBc9uNPGL.9l75YE8D8FlnZC'
+    >>> bcrypt.using(rounds=13).hash("password")
+    '$2b$13$HMQTprwhaUwmir.g.ZYoXuRJhtsbra4uj.qJPHrKsX5nGlhpts0jm'
 
     >>> # verify password
     >>> bcrypt.verify("password", h)

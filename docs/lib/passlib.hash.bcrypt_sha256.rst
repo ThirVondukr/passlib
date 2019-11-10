@@ -21,13 +21,13 @@ This class can be used directly as follows::
     '$bcrypt-sha256$2a,12$LrmaIX5x4TRtAwEfwJZa1.$2ehnw6LvuIUTM0iz4iz9hTxv21B6KFO'
 
     >>> # the same, but with an explicit number of rounds
-    >>> bcrypt.using(rounds=8).hash("password")
-    '$bcrypt-sha256$2a,8$UE3dIZ.0I6XZtA/LdMrrle$Ag04/5zYu./12.OSqInXZnJ.WZoh1ua'
+    >>> bcrypt_sha256.using(rounds=13).hash("password")
+    '$bcrypt-sha256$2b,13$Mant9jKTadXYyFh7xp1W5.$J8xpPZR/HxH7f1vRCNUjBI7Ev1al0hu'
 
     >>> # verify password
-    >>> bcrypt.verify("password", h)
+    >>> bcrypt_sha256.verify("password", h)
     True
-    >>> bcrypt.verify("wrong", h)
+    >>> bcrypt_sha256.verify("wrong", h)
     False
 
 .. note::

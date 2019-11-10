@@ -19,14 +19,6 @@ Passlib |release| documentation
         For documentation of the latest stable version,
         see `<https://passlib.readthedocs.io>`_.
 
-.. only:: pypi
-
-   .. warning::
-
-        The official Passlib documentation have moved to `<https://passlib.readthedocs.io>`_.
-        Documentation at this location is still being maintained,
-        but will be updated much less frequently.
-
 Welcome
 =======
 Passlib is a password hashing library for Python 2 & 3, which provides

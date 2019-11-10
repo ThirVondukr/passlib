@@ -47,7 +47,7 @@ if [ -z "$SKIP_PYPI" ]; then
 
     # upload docs
     echo "\n$SEP1\nbuilding and uploading docs to pypi\n$SEP2"
-    PASSLIB_DOCS="for-pypi" python setup.py build_sphinx $UPLOAD_DOCS_ARG
+    SPHINX_BUILD_TAGS="for-pypi" python setup.py build_sphinx $UPLOAD_DOCS_ARG
 
 fi
 

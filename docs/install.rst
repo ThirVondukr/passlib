@@ -44,8 +44,8 @@ Optional Libraries
 
    Use ``pip install passlib[bcrypt]`` to get the recommended bcrypt setup.
 
-* `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_, or
-  `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_ (>= 1.2.2)
+* `argon2_cffi  <https://pypi.python.org/pypi/argon2_cffi>`_ (>= 18.2.0), or
+  `argon2pure  <https://pypi.python.org/pypi/argon2pure>`_ (>= 1.3)
 
    If any of these packages are installed, they will be used to provide
    support for the :class:`~passlib.hash.argon2` hash algorithm.
@@ -139,7 +139,7 @@ If you wish to generate your own copy of the documentation,
 you will need to:
 
 1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.4 or newer)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.8.2 or newer).
+2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.9.2 or newer).
 3. Download the Passlib source
 4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
 5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`

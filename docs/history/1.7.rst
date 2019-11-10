@@ -2,6 +2,50 @@
 Passlib 1.7
 ===========
 
+**1.7.2** (NOT YET RELEASED)
+============================
+
+This release rolls up assorted bug & compatibility fixes since 1.7.1.
+
+New Features
+------------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`argon2`: Now supports Argon2 "ID" and "D" hashes (assuming new enough backend library).
+  Now defaults to "ID" hashes instead of "I" hashes, but this can be overridden via ``type`` keyword.
+  (:issue:`101`)
+
+Bugfixes
+--------
+
+* Python 3.8 compatibility fixes
+
+* .. py:currentmodule:: passlib.totp
+
+  :mod:`passlib.totp`: The :meth:`TOTP.to_uri` method now prepends the issuer to URI label,
+  (per the KeyURI spec).  This should fix some compatibility issues with older TOTP clients
+  (:issue:`92`)
+
+* .. py:currentmodule:: passlib.hash
+
+  Fixed error in :meth:`argon2.parsehash` (:issue:`97`)
+
+* **unittests**: ``crypt()`` unittests now account for linux systems running libxcrypt
+  (such as recent Fedora releases)
+
+Other Changes
+-------------
+
+* **setup.py**: now honors ``$SOURCE_DATE_EPOCH`` to help with reproducible builds
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`argon2`: Now throws helpful error if "argon2" package is actually an incompatible
+  or supported version of argon2_cffi (:issue:`99`).
+
+* **documentation**: Various updates & corrections.
+
 **1.7.1** (2017-1-30)
 =====================
 

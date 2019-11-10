@@ -811,13 +811,25 @@ class GenericHandler(MinimalHandler):
     # experimental - the following methods are not finished or tested,
     # but way work correctly for some hashes
     #===================================================================
+
+    #: internal helper for forcing settings to be included, even if default matches
+    _always_parse_settings = ()
+
+    #: internal helper for excluding certain setting_kwds from parsehash() result
     _unparsed_settings = ("salt_size", "relaxed")
+
+    #: parsehash() keys that need to be sanitized
     _unsafe_settings = ("salt", "checksum")
 
     @classproperty
     def _parsed_settings(cls):
-        return (key for key in cls.setting_kwds
-                if key not in cls._unparsed_settings)
+        """
+        helper for :meth:`parsehash` --
+        returns list of attributes which should be extracted by parse_hash() from hasher object.
+
+        default implementation just takes setting_kwds, and excludes _unparsed_settings
+        """
+        return tuple(key for key in cls.setting_kwds if key not in cls._unparsed_settings)
 
     # XXX: make this a global function?
     @staticmethod
@@ -857,9 +869,13 @@ class GenericHandler(MinimalHandler):
         self = cls.from_string(hash)
         # XXX: could split next few lines out as self._parsehash() for subclassing
         # XXX: could try to resolve ident/variant to publically suitable alias.
+        # XXX: for v1.8, consider making "always" the default policy, and compare to class default
+        #      only for whitelisted attrs? or make this whole method obsolete by reworking
+        #      so "hasher" object & it's attrs are public?
         UNSET = object()
+        always = self._always_parse_settings
         kwds = dict((key, getattr(self, key)) for key in self._parsed_settings
-                    if getattr(self, key) != getattr(cls, key, UNSET))
+                    if key in always or getattr(self, key) != getattr(cls, key, UNSET))
         if checksum and self.checksum is not None:
             kwds['checksum'] = self.checksum
         if sanitize:
@@ -1114,6 +1130,7 @@ class HasManyIdents(GenericHandler):
                     return value
 
         # failure!
+        # XXX: give this it's own error type?
         raise ValueError("invalid ident: %r" % (ident,))
 
     #===================================================================
