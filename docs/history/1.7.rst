@@ -41,6 +41,11 @@ Other Changes
 
 * **setup.py**: now honors ``$SOURCE_DATE_EPOCH`` to help with reproducible builds
 
+* .. py:currentmodule:: passlib.hash
+
+  :class:`argon2`: Now throws helpful error if "argon2" package is actually an incompatible
+  or supported version of argon2_cffi (:issue:`99`).
+
 * **documentation**: Various updates & corrections.
 
 **1.7.1** (2017-1-30)

@@ -64,11 +64,23 @@ ALL_TYPES_SET = set(ALL_TYPES)
 # import cffi package
 # NOTE: we try to do this even if caller is going to use argon2pure,
 #       so that we can always use the libargon2 default settings when possible.
+_argon2_cffi_error = None
 try:
     import argon2 as _argon2_cffi
 except ImportError:
     _argon2_cffi = None
-
+else:
+    if not hasattr(_argon2_cffi, "Type"):
+        # they have incompatible "argon2" package installed, instead of "argon2_cffi" package.
+        _argon2_cffi_error = (
+            "'argon2' module points to unsupported 'argon2' pypi package; "
+            "please install 'argon2-cffi' instead."
+        )
+        _argon2_cffi = None
+    elif not hasattr(_argon2_cffi, "low_level"):
+        # they have pre-v16 argon2_cffi package
+        _argon2_cffi_error = "'argon2-cffi' is too old, please update to argon2_cffi >= 18.2.0"
+        _argon2_cffi = None
 
 # init default settings for our hasher class --
 # if we have argon2_cffi >= 16.0, use their default hasher settings, otherwise use static default
@@ -696,6 +708,8 @@ class _CffiBackend(_Argon2Common):
 
         # we automatically import this at top, so just grab info
         if _argon2_cffi is None:
+            if _argon2_cffi_error:
+                raise exc.PasslibSecurityError(_argon2_cffi_error)
             return False
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
         log.debug("detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
