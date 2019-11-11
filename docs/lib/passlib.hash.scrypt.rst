@@ -55,15 +55,20 @@ Scrypt Backends
 
 This class will use the first available of two possible backends:
 
-1. The C-accelerated `scrypt <https://pypi.python.org/pypi/scrypt>`_ package, if installed.
-2. A pure-python implementation of SCrypt, built into Passlib.
+1. Python stdlib's :func:`hashlib.scrypt` method (only present for Python 3.6+ and OpenSSL 1.1+)
+2. The C-accelerated `scrypt <https://pypi.python.org/pypi/scrypt>`_ package, if installed.
+3. A pure-python implementation of SCrypt, built into Passlib.
 
 .. warning::
 
-    *It is strongly recommended to install the external scrypt package*.
-
+    If :func:`hashlib.scrypt` is not present on your system, it is strongly recommended to install
+    the external scrypt package.
     The pure-python backend is intended as a reference and last-resort implementation only;
     it is 10-100x too slow to be usable in production at a secure ``rounds`` cost.
+
+.. versionchanged:: 1.7.2
+
+   Added support for using stdlib's :func:`hashlib.scrypt`
 
 Format & Algorithm
 ==================

@@ -18,6 +18,11 @@ New Features
   Now defaults to "ID" hashes instead of "I" hashes, but this can be overridden via ``type`` keyword.
   (:issue:`101`)
 
+* .. py:currentmodule:: passlib.hash
+
+  :class:`scrypt`: Now uses python 3.6 stdlib's :func:`hashlib.scrypt` as backend,
+  if present (:issue:`86`).
+
 Bugfixes
 --------
 
