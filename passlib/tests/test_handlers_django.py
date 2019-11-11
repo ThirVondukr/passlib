@@ -391,6 +391,10 @@ class django_argon2_test(HandlerCase, _DjangoHelper):
 
     class FuzzHashGenerator(_base_argon2_test.FuzzHashGenerator):
 
+        def random_type(self):
+            # override default since django only uses type I (see note in class)
+            return "I"
+
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(1, 3, 2, 1)
