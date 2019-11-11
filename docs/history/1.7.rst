@@ -23,6 +23,11 @@ Bugfixes
 
 * Python 3.8 compatibility fixes
 
+* :class:`passlib.apache.HtpasswdFile`: Now generates bcrypt hashes using
+  the ``"$2y$"`` prefix,  which should work properly with Apache 2.4's ``htpasswd`` tool.
+  Previous releases used the functionally equivalent ``"$2b$"`` prefix,
+  which ``htpasswd`` was unable to read (:issue:`95`).
+
 * .. py:currentmodule:: passlib.totp
 
   :mod:`passlib.totp`: The :meth:`TOTP.to_uri` method now prepends the issuer to URI label,
