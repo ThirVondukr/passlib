@@ -28,6 +28,7 @@ from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecur
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
 from passlib.utils.binary import bcrypt64
+from passlib.utils.compat import get_unbound_method_function
 from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
@@ -72,6 +73,8 @@ def _detect_pybcrypt():
     try:
         import bcrypt
     except ImportError:
+        # XXX: this is ignoring case where py-bcrypt's "bcrypt._bcrypt" C Ext fails to import;
+        #      would need to inspect actual ImportError message to catch that.
         return None
 
     # py-bcrypt has a "._bcrypt.__version__" attribute (confirmed for v0.1 - 0.4),
@@ -647,6 +650,7 @@ class _PyBcryptBackend(_BcryptCommon):
         try:
             import bcrypt as _pybcrypt
         except ImportError: # pragma: no cover
+            # XXX: should we raise AssertionError here? (if get here, _detect_pybcrypt() is broken)
             return False
 
         # determine pybcrypt version
@@ -666,7 +670,7 @@ class _PyBcryptBackend(_BcryptCommon):
             if mixin_cls._calc_lock is None:
                 import threading
                 mixin_cls._calc_lock = threading.Lock()
-            mixin_cls._calc_checksum = mixin_cls._calc_checksum_threadsafe.__func__
+            mixin_cls._calc_checksum = get_unbound_method_function(mixin_cls._calc_checksum_threadsafe)
 
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
