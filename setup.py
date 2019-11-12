@@ -46,9 +46,22 @@ opts = dict(
     # NOTE: 'download_url' set below
 
     extras_require={
+        # extras w/ recommended library for argon2 backend
         "argon2": "argon2_cffi>=18.2.0",
+
+        # extras w/ recommended library for bcrypt backend (if not present on host)
         "bcrypt": "bcrypt>=3.1.0",
+
+        # extras to make (full) use of "passlib.totp" module
         "totp": "cryptography",
+
+        # extras required to build passlib docs
+        # TODO: automate way to sync this w/ "./docs/requirements.txt"
+        "build_docs": [
+            "sphinx>=1.6",
+            "sphinxcontrib-fulltoc>=1.2.0",
+            "cloud_sptheme>=1.10.0",
+        ],
     },
 
     #==================================================================

@@ -56,7 +56,9 @@ Other Changes
   :class:`argon2`: Now throws helpful error if "argon2" package is actually an incompatible
   or supported version of argon2_cffi (:issue:`99`).
 
-* **documentation**: Various updates & corrections.
+* **documentation**: Various updates & corrections.  
+  building the documentation now requires Sphinx 1.6 or newer.
+  
 
 **1.7.1** (2017-1-30)
 =====================

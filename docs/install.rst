@@ -138,9 +138,8 @@ online at `<https://passlib.readthedocs.io>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.4 or newer)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.9.2 or newer).
-3. Download the Passlib source
-4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
+1. Download the Passlib source, extract it, and ``cd`` into the source directory.
+2. Install all the dependencies required via ``pip install -e .[build_docs]``
+3. Run :samp:`python setup.py build_sphinx`.
 5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
    to access the Passlib documentation in html format.
