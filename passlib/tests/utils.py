@@ -2529,9 +2529,23 @@ class HandlerCase(TestCase):
         for key in ("salt", "checksum"):
             if key in result3:
                 self.assertNotEqual(result3[key], correct3[key])
-                self.assertTrue(result3[key].endswith("**"), "%r is masked" % result3[key])
+                self.assert_is_masked(result3[key])
                 correct3[key] = result3[key]
         self.assertEqual(result3, correct3)
+
+    def assert_is_masked(self, value):
+        """
+        check value properly masked by :func:`passlib.utils.mask_value`
+        """
+        if value is None:
+            return
+        self.assertIsInstance(value, unicode)
+        # assumes mask_value() defaults will never show more than <show> chars (4);
+        # and show nothing if size less than 1/<pct> (8).
+        ref = value if len(value) < 8 else value[4:]
+        if set(ref) == set(["*"]):
+            return True
+        raise self.fail("value not masked: %r" % value)
 
     def test_71_parsehash_results(self):
         """
