@@ -2521,9 +2521,15 @@ class HandlerCase(TestCase):
         # but all else should be the same
         result3 = handler.parsehash(hash, sanitize=True)
         correct3 = result.copy()
+        if PY2:
+            # silence warning about bytes & unicode not comparing
+            # (sanitize may convert bytes into base64 text)
+            warnings.filterwarnings("ignore", ".*unequal comparison failed to convert.*",
+                                    category=UnicodeWarning)
         for key in ("salt", "checksum"):
             if key in result3:
                 self.assertNotEqual(result3[key], correct3[key])
+                self.assertTrue(result3[key].endswith("**"), "%r is masked" % result3[key])
                 correct3[key] = result3[key]
         self.assertEqual(result3, correct3)
 
