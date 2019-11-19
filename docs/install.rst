@@ -139,7 +139,7 @@ If you wish to generate your own copy of the documentation,
 you will need to:
 
 1. Download the Passlib source, extract it, and ``cd`` into the source directory.
-2. Install all the dependencies required via ``pip install -e .[build_docs]``
+2. Install all the dependencies required via ``pip install -e .[build_docs]``.
 3. Run :samp:`python setup.py build_sphinx`.
-5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
+4. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
    to access the Passlib documentation in html format.

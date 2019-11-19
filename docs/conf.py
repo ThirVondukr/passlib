@@ -82,6 +82,9 @@ extensions = [
     'cloud_sptheme.ext.autoattribute_search_bases',
     'cloud_sptheme.ext.docfield_markup',
     'cloud_sptheme.ext.escaped_samp_literals',
+
+    # silence "footnote not referenced" warning -- should maybe redo these in docs :)
+    'cloud_sptheme.ext.allow_unreferenced_footnotes',
     ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -158,6 +161,11 @@ modindex_common_prefix = ["passlib."]
 
 # appended to all pages
 rst_epilog = "\n.. |updated| replace:: %s\n" % updated
+
+# Intersphinx
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+}
 
 #=============================================================================
 # Options for all output
