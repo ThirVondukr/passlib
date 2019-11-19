@@ -541,6 +541,10 @@ def render_bytes(source, *args):
 
     Calling ``render_bytes(source, *args)`` should function roughly the same as
     ``source % args`` under Python 2.
+
+    .. todo::
+        python >= 3.5 added back limited support for bytes %,
+        can revisit when 3.3/3.4 is dropped.
     """
     if isinstance(source, bytes):
         source = source.decode("latin-1")
