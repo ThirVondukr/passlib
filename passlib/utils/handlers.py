@@ -315,6 +315,38 @@ def render_mc3(ident, rounds, salt, checksum, sep=u"$", rounds_base=10):
         parts = [ident, rounds, sep, salt]
     return uascii_to_str(join_unicode(parts))
 
+
+def mask_value(value, show=4, pct=0.125, char=u"*"):
+    """
+    helper to mask contents of sensitive field.
+
+    :param value:
+        raw value (str, bytes, etc)
+
+    :param show:
+        max # of characters to remain visible
+
+    :param pct:
+        don't show more than this % of input.
+
+    :param char:
+        character to use for masking
+
+    :rtype: str | None
+    """
+    if value is None:
+        return None
+    if not isinstance(value, unicode):
+        if isinstance(value, bytes):
+            from passlib.utils.binary import ab64_encode
+            value = ab64_encode(value).decode("ascii")
+        else:
+            value = unicode(value)
+    size = len(value)
+    show = min(show, int(size * pct))
+    return value[:show] + char * (size - show)
+
+
 #=============================================================================
 # parameter helpers
 #=============================================================================
@@ -831,21 +863,6 @@ class GenericHandler(MinimalHandler):
         """
         return tuple(key for key in cls.setting_kwds if key not in cls._unparsed_settings)
 
-    # XXX: make this a global function?
-    @staticmethod
-    def _sanitize(value, char=u"*"):
-        """default method to obscure sensitive fields"""
-        if value is None:
-            return None
-        if isinstance(value, bytes):
-            from passlib.utils.binary import ab64_encode
-            value = ab64_encode(value).decode("ascii")
-        elif not isinstance(value, unicode):
-            value = unicode(value)
-        size = len(value)
-        clip = min(4, size//8)
-        return value[:clip] + char * (size-clip)
-
     @classmethod
     def parsehash(cls, hash, checksum=True, sanitize=False):
         """[experimental method] parse hash into dictionary of settings.
@@ -880,7 +897,7 @@ class GenericHandler(MinimalHandler):
             kwds['checksum'] = self.checksum
         if sanitize:
             if sanitize is True:
-                sanitize = cls._sanitize
+                sanitize = mask_value
             for key in cls._unsafe_settings:
                 if key in kwds:
                     kwds[key] = sanitize(kwds[key])

@@ -9,12 +9,19 @@ Supported Platforms
 Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.3).
 It is known to work with the following Python implementations:
 
+.. rst-class:: float-right
+
+.. warning::
+
+    * Support for Python 2.6 and 3.3 will be dropped in Passlib 1.8
+
+    * Support for Python 2.x will be dropped in Passlib 2.0
+
 * CPython 2 -- v2.6 or newer.
 * CPython 3 -- v3.3 or newer.
 * PyPy -- v2.0 or newer.
 * PyPy3 -- v5.3 or newer.
 * Jython -- v2.7 or newer.
-* Pyston -- v0.5.1 or newer.
 
 Passlib should work with all operating systems and environments,
 as it contains builtin fallbacks for almost all OS-dependant features.
@@ -32,6 +39,13 @@ Optional Libraries
 * `bcrypt <https://pypi.python.org/pypi/bcrypt>`_,
   `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
+
+   .. rst-class:: float-right
+
+   .. warning::
+
+       Support for ``py-bcrypt`` and ``bcryptor`` will be dropped in Passlib 1.8,
+       as these libraries are unmaintained.
 
    If any of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
@@ -138,9 +152,8 @@ online at `<https://passlib.readthedocs.io>`_.
 If you wish to generate your own copy of the documentation,
 you will need to:
 
-1. Install `Sphinx <http://sphinx.pocoo.org/>`_ (1.4 or newer)
-2. Install the `Cloud Sphinx Theme <http://packages.python.org/cloud_sptheme>`_ (1.9.2 or newer).
-3. Download the Passlib source
-4. From the Passlib source directory, run :samp:`python setup.py build_sphinx`.
-5. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
+1. Download the Passlib source, extract it, and ``cd`` into the source directory.
+2. Install all the dependencies required via ``pip install -e .[build_docs]``.
+3. Run :samp:`python setup.py build_sphinx`.
+4. Once Sphinx completes its run, point a web browser to the file at :samp:`{SOURCE}/build/sphinx/html/index.html`
    to access the Passlib documentation in html format.

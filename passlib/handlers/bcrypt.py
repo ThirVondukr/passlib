@@ -616,6 +616,12 @@ class _BcryptorBackend(_BcryptCommon):
             import bcryptor as _bcryptor
         except ImportError: # pragma: no cover
             return False
+
+        # deprecated as of 1.7.2
+        if not dryrun:
+            warn("Support for `bcryptor` is deprecated, and will be removed in Passlib 1.8; "
+                 "Please use `pip install bcrypt` instead", DeprecationWarning)
+
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
@@ -652,6 +658,11 @@ class _PyBcryptBackend(_BcryptCommon):
         except ImportError: # pragma: no cover
             # XXX: should we raise AssertionError here? (if get here, _detect_pybcrypt() is broken)
             return False
+
+        # deprecated as of 1.7.2
+        if not dryrun:
+            warn("Support for `py-bcrypt` is deprecated, and will be removed in Passlib 1.8; "
+                 "Please use `pip install bcrypt` instead", DeprecationWarning)
 
         # determine pybcrypt version
         try:

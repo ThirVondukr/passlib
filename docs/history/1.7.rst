@@ -2,8 +2,8 @@
 Passlib 1.7
 ===========
 
-**1.7.2** (NOT YET RELEASED)
-============================
+**1.7.2** (2019-11-22)
+======================
 
 This release rolls up assorted bug & compatibility fixes since 1.7.1.
 
@@ -44,6 +44,26 @@ Bugfixes
 * **unittests**: ``crypt()`` unittests now account for linux systems running libxcrypt
   (such as recent Fedora releases)
 
+Deprecations
+------------
+
+.. rst-class:: float-center
+
+.. warning::
+
+    Due to lack of ``pip`` and ``venv`` support, Passlib is no longer fully tested on Python
+    2.6 & 3.3.  There are no known issues, and bugfixes against these versions will still be
+    accepted for the Passlib 1.7.x series.
+    However, **Passlib 1.8 will drop support for Python 2.6 & 3.3; and Passlib 2.0 will drop
+    support for Python 2.x entirely.**
+
+* Support for Python 2.6 & 3.3 is deprecated; and will be dropped in Passlib 1.8.
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: ``py-bcrypt`` and ``bcryptor`` backends are deprecated, and support
+  will be removed in Passlib 1.8.  Please switch to the ``bcrypt`` backend.
+
 Other Changes
 -------------
 
@@ -54,7 +74,9 @@ Other Changes
   :class:`argon2`: Now throws helpful error if "argon2" package is actually an incompatible
   or supported version of argon2_cffi (:issue:`99`).
 
-* **documentation**: Various updates & corrections.
+* **documentation**: Various updates & corrections.  
+  building the documentation now requires Sphinx 1.6 or newer.
+  
 
 **1.7.1** (2017-1-30)
 =====================
