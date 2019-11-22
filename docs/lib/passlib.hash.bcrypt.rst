@@ -48,11 +48,19 @@ Interface
 Bcrypt Backends
 ---------------
 
+.. rst-class:: float-center
+
+.. warning::
+
+   Support for ``py-bcrypt`` and ``bcryptor`` will be dropped in Passlib 1.8,
+   as these libraries are unmaintained.
+
+
 This class will use the first available of five possible backends:
 
 1. `bcrypt <https://pypi.python.org/pypi/bcrypt>`_, if installed.
-2. `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, if installed.
-3. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed.
+2. `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, if installed (DEPRECATED)
+3. `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_, if installed (DEPRECATED).
 4. stdlib's :func:`crypt.crypt()`, if the host OS supports BCrypt
    (primarily BSD-derived systems).
 5. A pure-python implementation of BCrypt, built into Passlib.

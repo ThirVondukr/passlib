@@ -40,6 +40,13 @@ Optional Libraries
   `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, or
   `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
 
+   .. rst-class:: float-right
+
+   .. warning::
+
+       Support for ``py-bcrypt`` and ``bcryptor`` will be dropped in Passlib 1.8,
+       as these libraries are unmaintained.
+
    If any of these packages are installed, they will be used to provide
    support for the BCrypt hash algorithm.
    This is required if you want to handle BCrypt hashes,

@@ -59,6 +59,13 @@ Deprecations
     However, **Passlib 1.8 will drop support for Python 2.6 & 3.3; and Passlib 2.0 will drop
     support for Python 2.x entirely.**
 
+* Support for Python 2.6 & 3.3 is deprecated; and will be dropped in Passlib 1.8.
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: ``py-bcrypt`` and ``bcryptor`` backends are deprecated, and support
+  will be removed in Passlib 1.8.  Please switch to the ``bcrypt`` backend.
+
 Other Changes
 -------------
 
