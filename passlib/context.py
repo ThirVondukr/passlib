@@ -1528,8 +1528,12 @@ class CryptContext(object):
 
         :type encoding: str
         :param encoding:
-            Encoding to use when decode bytes from string.
-            Defaults to ``"utf-8"``. Ignoring when loading from a dictionary.
+            Encoding to use when **source** is bytes.
+            Defaults to ``"utf-8"``. Ignored when loading from a dictionary.
+
+            .. deprecated:: 1.8
+
+                This keyword, and support for bytes input, will be dropped in Passlib 2.0
 
         :raises TypeError:
             * If the source cannot be identified.
