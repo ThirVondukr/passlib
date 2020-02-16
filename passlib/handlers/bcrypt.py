@@ -24,6 +24,7 @@ _pybcrypt = None # dynamically imported by _load_backend_pybcrypt()
 _bcryptor = None # dynamically imported by _load_backend_bcryptor()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
+from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
@@ -909,7 +910,9 @@ class _wrapped_bcrypt(bcrypt):
 #=============================================================================
 
 class bcrypt_sha256(_wrapped_bcrypt):
-    """This class implements a composition of BCrypt+SHA256, and follows the :ref:`password-hash-api`.
+    """
+    This class implements a composition of BCrypt + HMAC_SHA256,
+    and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
 
@@ -920,7 +923,13 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     .. versionchanged:: 1.7
 
-        Now defaults to ``"2b"`` variant.
+        Now defaults to ``"2b"`` bcrypt variant; though supports older hashes
+        generated using the ``"2a"`` bcrypt variant.
+
+    .. versionchanged:: 1.7.3
+
+        For increased security, updated to use HMAC-SHA256 instead of plain SHA256.
+        Now only supports the ``"2b"`` bcrypt variant.  Hash format updated to "v=2".
     """
     #===================================================================
     # class attrs
@@ -934,13 +943,43 @@ class bcrypt_sha256(_wrapped_bcrypt):
     #--------------------
     # GenericHandler
     #--------------------
-    # this is locked at 2a/2b for now.
+    # this is locked at 2b for now (with 2a allowed only for legacy v1 format)
     ident_values = (IDENT_2A, IDENT_2B)
 
     # clone bcrypt's ident aliases so they can be used here as well...
     ident_aliases = (lambda ident_values: dict(item for item in bcrypt.ident_aliases.items()
                                                if item[1] in ident_values))(ident_values)
     default_ident = IDENT_2B
+
+    #--------------------
+    # class specific
+    #--------------------
+
+    _supported_versions = {1, 2}
+
+    #===================================================================
+    # instance attrs
+    #===================================================================
+
+    #: wrapper version.
+    #: v1 -- used prior to passlib 1.7.3; performs ``bcrypt(sha256(secret), salt, cost)``
+    #: v2 -- new in passlib 1.7.3; performs `bcrypt(sha256_hmac(salt, secret), salt, cost)``
+    version = 2
+
+    #===================================================================
+    # configuration
+    #===================================================================
+
+    @classmethod
+    def using(cls, version=None, **kwds):
+        subcls = super(bcrypt_sha256, cls).using(**kwds)
+        if version is not None:
+            subcls.version = subcls._norm_version(version)
+        ident = subcls.default_ident
+        if subcls.version > 1 and ident != IDENT_2B:
+            raise ValueError("bcrypt %r hashes not allowed for version %r" %
+                             (ident, subcls.version))
+        return subcls
 
     #===================================================================
     # formatting
@@ -961,15 +1000,28 @@ class bcrypt_sha256(_wrapped_bcrypt):
     #      working around that via prefix.
     prefix = u('$bcrypt-sha256$')
 
-    _hash_re = re.compile(r"""
+    #: current version 2 hash format
+    _v2_hash_re = re.compile(r"""(?x)
         ^
-        [$]bcrypt-sha256
-        [$](?P<variant>2[ab])
-        ,(?P<rounds>\d{1,2})
+        [$]bcrypt-sha256[$]
+        v=(?P<version>\d+),
+        t=(?P<type>2b),
+        r=(?P<rounds>\d{1,2})
         [$](?P<salt>[^$]{22})
-        (?:[$](?P<digest>.{31}))?
+        (?:[$](?P<digest>[^$]{31}))?
         $
-        """, re.X)
+        """)
+
+    #: old version 1 hash format
+    _v1_hash_re = re.compile(r"""(?x)
+        ^
+        [$]bcrypt-sha256[$]
+        (?P<type>2[ab]),
+        (?P<rounds>\d{1,2})
+        [$](?P<salt>[^$]{22})
+        (?:[$](?P<digest>[^$]{31}))?
+        $
+        """)
 
     @classmethod
     def identify(cls, hash):
@@ -983,28 +1035,62 @@ class bcrypt_sha256(_wrapped_bcrypt):
         hash = to_unicode(hash, "ascii", "hash")
         if not hash.startswith(cls.prefix):
             raise uh.exc.InvalidHashError(cls)
-        m = cls._hash_re.match(hash)
-        if not m:
-            raise uh.exc.MalformedHashError(cls)
+        m = cls._v2_hash_re.match(hash)
+        if m:
+            version = int(m.group("version"))
+            if version < 2:
+                raise uh.exc.MalformedHashError(cls)
+        else:
+            m = cls._v1_hash_re.match(hash)
+            if m:
+                version = 1
+            else:
+                raise uh.exc.MalformedHashError(cls)
         rounds = m.group("rounds")
         if rounds.startswith(uh._UZERO) and rounds != uh._UZERO:
             raise uh.exc.ZeroPaddedRoundsError(cls)
-        return cls(ident=m.group("variant"),
-                   rounds=int(rounds),
-                   salt=m.group("salt"),
-                   checksum=m.group("digest"),
-                   )
+        return cls(
+            version=version,
+            ident=m.group("type"),
+            rounds=int(rounds),
+            salt=m.group("salt"),
+            checksum=m.group("digest"),
+        )
 
-    _template = u("$bcrypt-sha256$%s,%d$%s$%s")
+    _v2_template = u("$bcrypt-sha256$v=2,t=%s,r=%d$%s$%s")
+    _v1_template = u("$bcrypt-sha256$%s,%d$%s$%s")
 
     def to_string(self):
-        hash = self._template % (self.ident.strip(_UDOLLAR),
-                                 self.rounds, self.salt, self.checksum)
+        if self.version == 1:
+            template = self._v1_template
+        else:
+            template = self._v2_template
+        hash = template % (self.ident.strip(_UDOLLAR), self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
+
+    #===================================================================
+    # init
+    #===================================================================
+
+    def __init__(self, version=None, **kwds):
+        if version is not None:
+            self.version = self._norm_version(version)
+        super(bcrypt_sha256, self).__init__(**kwds)
+
+    #===================================================================
+    # version
+    #===================================================================
+
+    @classmethod
+    def _norm_version(cls, version):
+        if version not in cls._supported_versions:
+            raise ValueError("%s: unknown or unsupported version: %r" % (cls.name, version))
+        return version
 
     #===================================================================
     # checksum
     #===================================================================
+
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
         # NOTE: bcrypt doesn't fully mix entropy for bytes 55-72 of password
@@ -1015,9 +1101,31 @@ class bcrypt_sha256(_wrapped_bcrypt):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
 
+        if self.version == 1:
+            # version 1 -- old version just ran secret through sha256(),
+            # though this could be vulnerable to a breach attach
+            # (c.f. issue 114); which is why v2 switched to hmac wrapper.
+            digest = sha256(secret).digest()
+        else:
+            # version 2 -- running secret through HMAC keyed off salt.
+            # this prevents known secret -> sha256 password tables from being
+            # used to test against a bcrypt_sha256 hash.
+            # keying off salt (instead of constant string) should minimize chances of this
+            # colliding with existing table of hmac digest lookups as well.
+            # NOTE: salt in this case is the "bcrypt64"-encoded value, not the raw salt bytes,
+            #       to make things easier for parallel implementations of this hash --
+            #       saving them the trouble of implementing a "bcrypt64" decoder.
+            salt = self.salt
+            if salt[-1] not in self.final_salt_chars:
+                # forbidding salts with padding bits set, because bcrypt implementations
+                # won't consistently hash them the same.  since we control this format,
+                # just prevent these from even getting used.
+                raise ValueError("invalid salt string")
+            digest = compile_hmac("sha256", salt.encode("ascii"))(secret)
+
         # NOTE: output of b64encode() uses "+/" altchars, "=" padding chars,
         #       and no leading/trailing whitespace.
-        key = b64encode(sha256(secret).digest())
+        key = b64encode(digest)
 
         # hand result off to normal bcrypt algorithm
         return super(bcrypt_sha256, self)._calc_checksum(key)
@@ -1026,8 +1134,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
     # other
     #===================================================================
 
-    # XXX: have _needs_update() mark the $2a$ ones for upgrading?
-    #      maybe do that after we switch to hex encoding?
+    def _calc_needs_update(self, **kwds):
+        if self.version < type(self).version:
+            return True
+        return super(bcrypt_sha256, self)._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc

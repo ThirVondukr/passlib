@@ -124,7 +124,7 @@ Security Issues
   and only the first 72 bytes of a password are hashed... all the rest are ignored.
   Furthermore, bytes 55-72 are not fully mixed into the resulting hash (citation needed!).
   To work around both these issues, many applications first run the password through a message
-  digest such as SHA2-256. Passlib offers the premade :doc:`passlib.hash.bcrypt_sha256`
+  digest such as (HMAC-) SHA2-256. Passlib offers the premade :doc:`passlib.hash.bcrypt_sha256`
   to take care of this issue.
 
 Deviations

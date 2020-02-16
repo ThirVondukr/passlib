@@ -4,6 +4,20 @@
 Passlib 1.7
 ===========
 
+**1.7.3** (NOT YET RELEASED)
+============================
+
+This release rolls up assorted bug & compatibility fixes since 1.7.2.
+
+Bugfixes
+--------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt_sha256`:  Internal algorithm has been changed to use HMAC-SHA256 instead of
+  plain SHA256.  This should strengthen the hash against brute-force attempts which bypass
+  the intermediary hash by using known-sha256-digest lookup tables (:issue:`114`).
+
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
   returning bytes under Python 3 (:issue:`113`).
 
