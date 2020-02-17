@@ -402,7 +402,9 @@ class _bcrypt_test(HandlerCase):
         bcrypt = self.handler.using(rounds=4)
 
         # PASS1 = "test"
-        BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+        # bad contains invalid 'c' char at end of salt:
+        #                                    \/
+        BAD1 =  "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
         GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
 
         self.assertTrue(bcrypt.needs_update(BAD1))

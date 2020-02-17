@@ -104,6 +104,8 @@ Bcrypt hashes have the format :samp:`$2a${rounds}${salt}{checksum}`, where:
 * :samp:`{rounds}` is a cost parameter, encoded as 2 zero-padded decimal digits,
   which determines the number of iterations used via :samp:`{iterations}=2**{rounds}` (rounds is 12 in the example).
 * :samp:`{salt}` is a 22 character salt string, using the characters in the regexp range ``[./A-Za-z0-9]`` (``GhvMmNVjRW29ulnudl.Lbu`` in the example).
+  Note that due to padding bits within the encoding, the last character should always be one of ``[.Oeu]``:
+  under some bcrypt implementations, other final characters may result in false negatives when verifying.
 * :samp:`{checksum}` is a 31 character checksum, using the same characters as the salt (``AnUtN/LRfe1JsBm1Xu6LE3059z5Tr8m`` in the example).
 
 While BCrypt's basic algorithm is described in its design document [#f1]_,

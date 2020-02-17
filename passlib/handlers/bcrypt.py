@@ -128,7 +128,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     #--------------------
     min_salt_size = max_salt_size = 22
     salt_chars = bcrypt64.charmap
-        # NOTE: 22nd salt char must be in bcrypt64._padinfo2[1], not full charmap
+
+    # NOTE: 22nd salt char must be in restricted set of ``final_salt_chars``, not full set above.
+    final_salt_chars = ".Oeu"  # bcrypt64._padinfo2[1]
 
     #--------------------
     # HasRounds
@@ -195,10 +197,12 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
     @classmethod
     def needs_update(cls, hash, **kwds):
+        # NOTE: can't convert this to use _calc_needs_update() helper,
+        #       since _norm_hash() will correct salt padding before we can read it here.
         # check for incorrect padding bits (passlib issue 25)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        if hash.startswith(IDENT_2A) and hash[28] not in bcrypt64._padinfo2[1]:
+        if hash.startswith(IDENT_2A) and hash[28] not in cls.final_salt_chars:
             return True
 
         # TODO: try to detect incorrect 8bit/wraparound hashes using kwds.get("secret")
