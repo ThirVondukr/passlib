@@ -4,6 +4,9 @@
 Passlib 1.7
 ===========
 
+* :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
+  returning bytes under Python 3 (:issue:`113`).
+
 **1.7.2** (2019-11-22)
 ======================
 

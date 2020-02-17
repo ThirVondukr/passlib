@@ -792,6 +792,11 @@ else:
             if isinstance(hash, bytes):
                 hash = hash.decode("ascii")
             result = _crypt(secret, hash)
+            # NOTE: per issue 113, crypt() may return bytes in some odd cases.
+            #       assuming it should still return an ASCII hash though,
+            #       or there's a bigger issue at hand.
+            if isinstance(result, bytes):
+                result = result.decode("ascii")
             if not result or result[0] in _invalid_prefixes:
                 return None
             return result
