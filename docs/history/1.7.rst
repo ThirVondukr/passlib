@@ -24,6 +24,8 @@ Bugfixes
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` throwing :exc:`OSError`,
   which can happen as of Python 3.9 (:issue:`115`).
 
+* :mod:`passlib.ext.django`: fixed lru_cache import (django 3 compatibility)
+
 **1.7.2** (2019-11-22)
 ======================
 
