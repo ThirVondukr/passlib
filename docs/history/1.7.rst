@@ -21,6 +21,9 @@ Bugfixes
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
   returning bytes under Python 3 (:issue:`113`).
 
+* :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` throwing :exc:`OSError`,
+  which can happen as of Python 3.9 (:issue:`115`).
+
 **1.7.2** (2019-11-22)
 ======================
 

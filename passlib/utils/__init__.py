@@ -785,13 +785,21 @@ else:
                     secret = secret.decode("utf-8")
                 except UnicodeDecodeError:
                     return None
+                # sanity check it encodes back to original byte string,
+                # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
                 assert secret.encode("utf-8") == orig, \
                             "utf-8 spec says this can't happen!"
             if _NULL in secret:
                 raise ValueError("null character in secret")
             if isinstance(hash, bytes):
                 hash = hash.decode("ascii")
-            result = _crypt(secret, hash)
+            try:
+                result = _crypt(secret, hash)
+            except OSError:
+                # new in py39 -- per https://bugs.python.org/issue39289,
+                # crypt() now throws OSError for various things, mainly unknown hash formats
+                # translating that to None for now (may revise safe_crypt behavior in future)
+                return None
             # NOTE: per issue 113, crypt() may return bytes in some odd cases.
             #       assuming it should still return an ASCII hash though,
             #       or there's a bigger issue at hand.
