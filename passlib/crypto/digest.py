@@ -32,8 +32,8 @@ except ImportError:
 # pkg
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
-                          SequenceMixin
-from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, PY3
+                          SequenceMixin, as_bool
+from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, PY3, error_from
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -210,7 +210,10 @@ def _get_hash_const(name):
 
     return None
 
-def lookup_hash(digest, return_unknown=False):
+
+# XXX: rename "return_unknown" to "required"?
+def lookup_hash(digest, # *,
+                return_unknown=False, required=True):
     """
     Returns a :class:`HashInfo` record containing information about a given hash function.
     Can be used to look up a hash constructor by name, normalize hash name representation, etc.
@@ -225,10 +228,20 @@ def lookup_hash(digest, return_unknown=False):
         Case is ignored, underscores are converted to hyphens,
         and various other cleanups are made.
 
+    :param required:
+        By default (True), this function will throw an :exc:`~passlib.exc.UnknownHashError` if no hash constructor
+        can be found, or if the hash is not actually available.
+
+        If this flag is False, it will instead return a dummy :class:`!HashInfo` record
+        which will defer throwing the error until it's constructor function is called.
+        This is mainly used by :func:`norm_hash_name`.
+
     :param return_unknown:
-        By default, this function will throw an :exc:`~passlib.exc.UnknownHashError` if no hash constructor
-        can be found.  However, if this flag is False, it will instead return a dummy record
-        without a constructor function.  This is mainly used by :func:`norm_hash_name`.
+
+        .. deprecated:: 1.7.3
+
+            deprecated, and will be removed in passlib 2.0.
+            this acts like inverse of **required**.
 
     :returns HashInfo:
         :class:`HashInfo` instance containing information about specified digest.
@@ -244,6 +257,10 @@ def lookup_hash(digest, return_unknown=False):
         # NOTE: TypeError is to catch 'TypeError: unhashable type' (e.g. HashInfo)
         pass
 
+    # legacy alias
+    if return_unknown:
+        required = False
+
     # resolve ``digest`` to ``const`` & ``name_record``
     cache_by_name = True
     if isinstance(digest, unicode_or_bytes_types):
@@ -255,22 +272,19 @@ def lookup_hash(digest, return_unknown=False):
         # if name wasn't normalized to hashlib format,
         # get info for normalized name and reuse it.
         if name != digest:
-            info = lookup_hash(name, return_unknown=return_unknown)
-            if info.const is None:
-                # pass through dummy record
-                assert return_unknown
-                return info
+            info = lookup_hash(name, required=required)
             cache[digest] = info
             return info
 
         # else look up constructor
+        # NOTE: may return None, which is handled by HashInfo constructor
         const = _get_hash_const(name)
-        if const is None:
-            if return_unknown:
-                # return a dummy record (but don't cache it, so normal lookup still returns error)
-                return HashInfo(None, name_list)
-            else:
-                raise exc.UnknownHashError(name)
+
+        # if mock fips mode is enabled, replace with dummy constructor
+        # (to replicate how it would behave on a real fips system).
+        if const and mock_fips_mode and name not in _fips_algorithms:
+            def const(source=b""):
+                raise ValueError("%r disabled for fips by passlib set_mock_fips_mode()" % name)
 
     elif isinstance(digest, HashInfo):
         # handle border case where HashInfo is passed in.
@@ -303,10 +317,11 @@ def lookup_hash(digest, return_unknown=False):
         raise exc.ExpectedTypeError(digest, "digest name or constructor", "digest")
 
     # create new instance
-    info = HashInfo(const, name_list)
+    info = HashInfo(const=const, names=name_list, required=required)
 
     # populate cache
-    cache[const] = info
+    if const is not None:
+        cache[const] = info
     if cache_by_name:
         for name in name_list:
             if name:  # (skips iana name if it's empty)
@@ -342,9 +357,9 @@ def norm_hash_name(name, format="hashlib"):
     :returns:
         Hash name, returned as native :class:`!str`.
     """
-    info = lookup_hash(name, return_unknown=True)
-    if not info.const:
-        warn("norm_hash_name(): unknown hash: %r" % (name,), exc.PasslibRuntimeWarning)
+    info = lookup_hash(name, required=False)
+    if info.error_text:
+        warn("norm_hash_name(): " + info.error_text, exc.PasslibRuntimeWarning)
     if format == "hashlib":
         return info.name
     elif format == "iana":
@@ -365,6 +380,7 @@ class HashInfo(SequenceMixin):
     .. autoattribute:: name
     .. autoattribute:: iana_name
     .. autoattribute:: aliases
+    .. autoattribute:: supported
 
     This object can also be treated a 3-element sequence
     containing ``(const, digest_size, block_size)``.
@@ -391,7 +407,16 @@ class HashInfo(SequenceMixin):
     #: Hash's block size
     block_size = None
 
-    def __init__(self, const, names):
+    #: set when hash isn't available, will be filled in with string containing error text
+    #: that const() will raise.
+    error_text = None
+
+    #=========================================================================
+    # init
+    #=========================================================================
+
+    def __init__(self,  # *,
+                 const, names, required=True):
         """
         initialize new instance.
         :arg const:
@@ -400,15 +425,46 @@ class HashInfo(SequenceMixin):
             list of 2+ names. should be list of ``(name, iana_name, ... 0+ aliases)``.
             names must be lower-case. only iana name may be None.
         """
-        self.name = names[0]
+        # init names
+        name = self.name = names[0]
         self.iana_name = names[1]
         self.aliases = names[2:]
 
-        self.const = const
+        def set_unknown_const(msg):
+            def const(source=b""):
+                raise exc.UnknownHashError(name, message=msg)
+            if required:
+                const()
+            self.error_text = msg
+            self.const = const
+
+        # handle "constructor not available" case
         if const is None:
+            if names in _known_hash_names:
+                msg = "unsupported hash: %r" % name
+            else:
+                msg = "unknown hash: %r" % name
+            set_unknown_const(msg)
+            # TODO: load in preset digest size info for known hashes.
             return
 
-        hash = const()
+        # create hash instance to inspect
+        try:
+            hash = const()
+        except ValueError as err:
+            # per issue 116, FIPS compliant systems will have a constructor;
+            # but it will throw a ValueError with this message.  As of 1.7.3,
+            # translating this into DisabledHashError.
+            # "ValueError: error:060800A3:digital envelope routines:EVP_DigestInit_ex:disabled for fips"
+            if "disabled for fips" in str(err).lower():
+                msg = "%r hash disabled for fips" % name
+            else:
+                msg = "internal error in %r constructor\n(%s: %s)" % (name, type(err).__name__, err)
+            set_unknown_const(msg)
+            return
+
+        # store stats about hash
+        self.const = const
         self.digest_size = hash.digest_size
         self.block_size = hash.block_size
 
@@ -430,6 +486,14 @@ class HashInfo(SequenceMixin):
 
     def _as_tuple(self):
         return self.const, self.digest_size, self.block_size
+
+    @memoized_property
+    def supported(self):
+        """
+        whether hash is available for use
+        (if False, constructor will throw UnknownHashError if called)
+        """
+        return self.error_text is None
 
     @memoized_property
     def supported_by_fastpbkdf2(self):
@@ -458,6 +522,50 @@ class HashInfo(SequenceMixin):
     #=========================================================================
     # eoc
     #=========================================================================
+
+
+#---------------------------------------------------------------------
+# mock fips mode monkeypatch
+#---------------------------------------------------------------------
+
+#: flag for detecting if mock fips mode is enabled.
+mock_fips_mode = False
+
+
+#: algorithms allowed under FIPS mode (subset of hashlib.algorithms_available);
+#: per https://csrc.nist.gov/Projects/Hash-Functions FIPS 202 list.
+_fips_algorithms = {
+    # FIPS 180-4  and FIPS 202
+    'sha1',
+    'sha224',
+    'sha256',
+    'sha384',
+    'sha512',
+    # 'sha512/224',
+    # 'sha512/256',
+
+    # FIPS 202 only
+    'sha3_224',
+    'sha3_256',
+    'sha3_384',
+    'sha3_512',
+    'shake_128',
+    'shake_256',
+}
+
+
+def _set_mock_fips_mode(enable=True):
+    """
+    UT helper which monkeypatches lookup_hash() internals to replicate FIPS mode.
+    """
+    global mock_fips_mode
+    mock_fips_mode = enable
+    lookup_hash.clear_cache()
+
+
+# helper for UTs
+if as_bool(os.environ.get("PASSLIB_MOCK_FIPS_MODE")):
+    _set_mock_fips_mode()
 
 #=============================================================================
 # hmac utils

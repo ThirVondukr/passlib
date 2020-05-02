@@ -383,6 +383,40 @@ class hex_md5_test(HandlerCase):
         (UPASS_TABLE, '05473f8a19f66815e737b33264a0d0b0'),
     ]
 
+    # XXX: should test this for ALL the create_hex_md5() hashers.
+    def test_mock_fips_mode(self):
+        """
+        if md5 isn't available, a dummy instance should be created.
+        (helps on FIPS systems).
+        """
+        from passlib.exc import UnknownHashError
+        from passlib.crypto.digest import lookup_hash, _set_mock_fips_mode
+
+        # check if md5 is available so we can test mock helper
+        supported = lookup_hash("md5", required=False).supported
+        self.assertEqual(self.handler.supported, supported)
+        if supported:
+            _set_mock_fips_mode()
+            self.addCleanup(_set_mock_fips_mode, False)
+
+        # HACK: have to recreate hasher, since underlying digest is new.
+        #       could reload module and re-import, but this should be good enough.
+        from passlib.handlers.digests import create_hex_hash
+        hasher = create_hex_hash("md5")
+        self.assertFalse(hasher.supported)
+
+        # can identify hashes even if disabled
+        ref1 = '5f4dcc3b5aa765d61d8327deb882cf99'
+        ref2 = 'xxx'
+        self.assertTrue(hasher.identify(ref1))
+        self.assertFalse(hasher.identify(ref2))
+
+        # throw error if try to use it
+        pat = "'md5' hash disabled for fips"
+        self.assertRaisesRegex(UnknownHashError, pat, hasher.hash, "password")
+        self.assertRaisesRegex(UnknownHashError, pat, hasher.verify, "password", ref1)
+
+
 class hex_sha1_test(HandlerCase):
     handler = hash.hex_sha1
     known_correct_hashes = [

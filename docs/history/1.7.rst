@@ -26,6 +26,25 @@ Bugfixes
 
 * :mod:`passlib.ext.django`: fixed lru_cache import (django 3 compatibility)
 
+Other Changes
+-------------
+
+* Modified some internals to help run on FIPS systems (:issue:`116`):
+
+  In particular, when MD5 hash is not available, :class:`~passlib.hash.hex_md5`
+  will now return a dummy hasher which throws an error if used; rather than throwing
+  an uncaught :exc:`!ValueError` when an application attempts to import it.  (Similar behavior
+  added for the other unsalted digest hashes).
+
+  .. py:currentmodule:: passlib.crypto.digest
+
+  Also, :func:`lookup_hash`'s ``required=False`` kwd was modified to report unsupported hashes
+  via the :attr:`HashInfo.supported` attribute; rather than letting ValueErrors through uncaught.
+
+  This should allow CryptContext instances to be created on FIPS systems without having
+  a load-time error (though they will still receive an error if an attempt is made to actually
+  *use* a FIPS-disabled hash).
+
 **1.7.2** (2019-11-22)
 ======================
 

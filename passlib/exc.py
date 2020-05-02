@@ -155,14 +155,28 @@ class UsedTokenError(TokenError):
 
 
 class UnknownHashError(ValueError):
-    """Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
+    """
+    Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
     This exception derives from :exc:`!ValueError`.
 
+    As of version 1.7.3, this may also be raised if hash algorithm is known,
+    but has been disabled due to FIPS mode (message will include phrase "disabled for fips").
+
     .. versionadded:: 1.7
+
+    .. versionchanged: 1.7.3
+        added 'message' argument.
     """
-    def __init__(self, name):
+    def __init__(self, name, message=None):
         self.name = name
-        ValueError.__init__(self, "unknown hash algorithm: %r" % name)
+        if message is None:
+            message = "unknown hash algorithm: %r" % name
+        self.message = message
+        ValueError.__init__(self, name, message)
+
+    def __str__(self):
+        return self.message
+
 
 #=============================================================================
 # warnings

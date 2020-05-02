@@ -288,14 +288,19 @@ def get_unbound_method_function(func):
     """given unbound method, return underlying function"""
     return func if PY3 else func.__func__
 
-def suppress_cause(exc):
+def error_from(exc,  # *,
+               cause=None):
     """
     backward compat hack to suppress exception cause in python3.3+
 
     one python < 3.3 support is dropped, can replace all uses with "raise exc from None"
     """
-    exc.__cause__ = None
+    exc.__cause__ = cause
+    exc.__suppress_context__ = True
     return exc
+
+# legacy alias
+suppress_cause = error_from
 
 #=============================================================================
 # input/output
