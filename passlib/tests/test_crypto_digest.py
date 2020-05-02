@@ -30,8 +30,10 @@ class HashInfoTest(TestCase):
         ("md5",       "md5",         "SCRAM-MD5-PLUS",   "MD-5"),
         ("sha1",      "sha-1",       "SCRAM-SHA-1",      "SHA1"),
         ("sha256",    "sha-256",     "SHA_256",          "sha2-256"),
-        ("ripemd",    "ripemd",      "SCRAM-RIPEMD",     "RIPEMD"),
-        ("ripemd160", "ripemd-160",  "SCRAM-RIPEMD-160", "RIPEmd160"),
+        ("ripemd160", "ripemd-160",  "SCRAM-RIPEMD-160", "RIPEmd160",
+            # NOTE: there was an older "RIPEMD" & "RIPEMD-128", but python treates "RIPEMD"
+            #       as alias for "RIPEMD-160"
+            "ripemd", "SCRAM-RIPEMD"),
 
         # fake hashes (to check if fallback normalization behaves sanely)
         ("sha4_256",  "sha4-256",    "SHA4-256",         "SHA-4-256"),

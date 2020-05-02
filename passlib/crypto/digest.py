@@ -68,9 +68,11 @@ MAX_UINT64 = (1 << 64) - 1
 _known_hash_names = [
     # format: (hashlib/ssl name, iana name or standin, other known aliases ...)
 
+    #----------------------------------------------------
     # hashes with official IANA-assigned names
     # (as of 2012-03 - http://www.iana.org/assignments/hash-function-text-names)
-    ("md2", "md2"),
+    #----------------------------------------------------
+    ("md2", "md2"),  # NOTE: openssl dropped md2 support in v1.0.0
     ("md5", "md5"),
     ("sha1", "sha-1"),
     ("sha224", "sha-224", "sha2-224"),
@@ -80,12 +82,18 @@ _known_hash_names = [
 
     # TODO: add sha3 to this table.
 
+    #----------------------------------------------------
     # hashlib/ssl-supported hashes without official IANA names,
     # (hopefully-) compatible stand-ins have been chosen.
+    #----------------------------------------------------
+
+    ("blake2b", "blake-2b"),
+    ("blake2s", "blake-2s"),
     ("md4", "md4"),
-    ("sha", "sha-0", "sha0"),
-    ("ripemd", "ripemd"),
-    ("ripemd160", "ripemd-160"),
+    # NOTE: there was an older "ripemd" and "ripemd-128",
+    #       but python 2.7+ resolves "ripemd" -> "ripemd160",
+    #       so treating "ripemd" as alias here.
+    ("ripemd160", "ripemd-160", "ripemd"),
 ]
 
 #: cache of hash info instances used by lookup_hash()
