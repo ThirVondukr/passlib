@@ -96,6 +96,37 @@ _known_hash_names = [
     ("ripemd160", "ripemd-160", "ripemd"),
 ]
 
+
+#: dict mapping hashlib names to hardcoded digest info;
+#: so this is available even when hashes aren't present.
+_fallback_info = {
+    # name: (digest_size, block_size)
+    'blake2b': (64, 128),
+    'blake2s': (32, 64),
+    'md4': (16, 64),
+    'md5': (16, 64),
+    'sha1': (20, 64),
+    'sha224': (28, 64),
+    'sha256': (32, 64),
+    'sha384': (48, 128),
+    'sha3_224': (28, 144),
+    'sha3_256': (32, 136),
+    'sha3_384': (48, 104),
+    'sha3_512': (64, 72),
+    'sha512': (64, 128),
+    'shake128': (16, 168),
+    'shake256': (32, 136),
+}
+
+
+def _gen_fallback_info():
+    out = {}
+    for alg in sorted(hashlib.algorithms_available | {"md4"}):
+        info = lookup_hash(alg)
+        out[info.name] = (info.digest_size, info.block_size)
+    return out
+
+
 #: cache of hash info instances used by lookup_hash()
 _hash_info_cache = {}
 
@@ -437,6 +468,10 @@ class HashInfo(SequenceMixin):
                 const()
             self.error_text = msg
             self.const = const
+            try:
+                self.digest_size, self.block_size = _fallback_info[name]
+            except KeyError:
+                pass
 
         # handle "constructor not available" case
         if const is None:

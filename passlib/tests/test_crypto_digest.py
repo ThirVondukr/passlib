@@ -129,6 +129,7 @@ class HashInfoTest(TestCase):
         self.assertRaisesRegex(UnknownHashError, "unknown hash: 'xxx256'", info.const)
         self.assertEqual(info.name, "xxx256")
         self.assertEqual(info.digest_size, None)
+        self.assertEqual(info.block_size, None)
 
         # should cache stub records
         info2 = lookup_hash("xxx256", required=False)
@@ -154,6 +155,10 @@ class HashInfoTest(TestCase):
         info = lookup_hash("md5", required=False)
         self.assertRegex(info.error_text, pat)
         self.assertRaisesRegex(UnknownHashError, pat, info.const)
+
+        # should use hardcoded fallback info
+        self.assertEqual(info.digest_size, 16)
+        self.assertEqual(info.block_size, 64)
 
     def test_lookup_hash_metadata(self):
         """lookup_hash() -- metadata"""
