@@ -64,3 +64,10 @@ Passlib's source repository uses Mercurial.  When building Passlib from an hg cl
 
 * ``default`` is the bleeding edge of the next major release. It may sometimes be of alpha quality. 
 * ``stable`` is the latest released version plus any pending bugfixes, and should be safe to use in production. 
+
+Hosting
+=======
+Thanks to the people at `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_
+for providing the repository / issue tracker hosting, as well as the development of `Heptapod <https://heptapod.net/>`_!
+
+Thanks to `ReadTheDocs <https://readthedocs.io>`_ for providing documentation hosting!

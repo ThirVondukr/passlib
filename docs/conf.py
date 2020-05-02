@@ -172,7 +172,7 @@ intersphinx_mapping = {
 #=============================================================================
 todo_include_todos = True
 keep_warnings = True
-issue_tracker_url = "bb:ecollins/passlib"
+issue_tracker_url = "https://foss.heptapod.net/python-libs/passlib/issues/{issue}"
 
 #=============================================================================
 # Options for HTML output

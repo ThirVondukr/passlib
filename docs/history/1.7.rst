@@ -9,6 +9,20 @@ Passlib 1.7
 
 This release rolls up assorted bug & compatibility fixes since 1.7.2.
 
+Administrative Changes
+----------------------
+
+* **Passlib has moved to Heptapod!**
+
+  Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
+  has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,
+  and is powered by `Heptapod <https://heptapod.net/>`_.
+
+  Hosting for this and other open-source projects graciously provided by the people at
+  `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_!
+
+  The mailing list and documentation urls remain the same.
+
 Bugfixes
 --------
 

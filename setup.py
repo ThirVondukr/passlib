@@ -42,7 +42,7 @@ opts = dict(
     author_email="elic@assurancetechnologies.com",
     license="BSD",
 
-    url="https://bitbucket.org/ecollins/passlib",
+    url="https://passlib.readthedocs.io",
     # NOTE: 'download_url' set below
 
     extras_require={
@@ -80,7 +80,7 @@ providing full-strength password hashing for multi-user applications.
 * See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
-* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
+* See the `homepage <https://foss.heptapod.net/python-libs/passlib>`_
   for the latest news and more information.
 
 * See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
