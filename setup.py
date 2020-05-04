@@ -60,7 +60,7 @@ opts = dict(
         "build_docs": [
             "sphinx>=1.6",
             "sphinxcontrib-fulltoc>=1.2.0",
-            "cloud_sptheme>=1.10.0",
+            "cloud_sptheme>=1.10.1",
         ],
     },
 

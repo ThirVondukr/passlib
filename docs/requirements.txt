@@ -1,2 +1,2 @@
 sphinxcontrib-fulltoc
-hg+https://foss.heptapod.net/doc-utils/cloud_sptheme
+cloud_sptheme
