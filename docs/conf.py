@@ -43,7 +43,7 @@ for _tag in os.environ.get("SPHINX_BUILD_TAGS", "").split():
 
 # building the docs requires the Cloud Sphinx theme & extensions (>= v1.4),
 # which contains some sphinx extensions used by Passlib.
-# (https://bitbucket.org/ecollins/cloud_sptheme)
+# (https://foss.heptapod.net/doc-utils/cloud_sptheme)
 import cloud_sptheme as csp
 
 #=============================================================================

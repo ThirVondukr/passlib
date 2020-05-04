@@ -337,7 +337,7 @@ As part of a long-range plan to restructure and simplify both the API and the in
 a number of methods have been deprecated & replaced.  The eventually goal is a large cleanup
 and overhaul as part of Passlib 2.0. There will be at least one more 1.x version
 before Passlib 2.0, to provide a final transitional release
-(see the `Passlib Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_).
+(see the `Project Roadmap <https://foss.heptapod.net/python-libs/passlib/wikis/roadmap>`_).
 
 Password Hash API Deprecations
 ..............................

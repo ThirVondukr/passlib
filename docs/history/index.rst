@@ -34,6 +34,6 @@ Release History
 
 .. seealso::
 
-    See the `Project Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_
+    See the `Project Roadmap <https://foss.heptapod.net/python-libs/passlib/wikis/roadmap>`_
     for a list of future changes that may impact applications.
 
