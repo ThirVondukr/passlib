@@ -242,8 +242,7 @@ def _get_hash_const(name):
     return None
 
 
-# XXX: rename "return_unknown" to "required"?
-def lookup_hash(digest, # *,
+def lookup_hash(digest,  # *,
                 return_unknown=False, required=True):
     """
     Returns a :class:`HashInfo` record containing information about a given hash function.
@@ -389,7 +388,7 @@ def norm_hash_name(name, format="hashlib"):
         Hash name, returned as native :class:`!str`.
     """
     info = lookup_hash(name, required=False)
-    if info.error_text:
+    if info.unknown:
         warn("norm_hash_name(): " + info.error_text, exc.PasslibRuntimeWarning)
     if format == "hashlib":
         return info.name
@@ -442,6 +441,10 @@ class HashInfo(SequenceMixin):
     #: that const() will raise.
     error_text = None
 
+    #: set when error_text is due to hash algorithm being completely unknown
+    #: (not just unavailable on current system)
+    unknown = False
+
     #=========================================================================
     # init
     #=========================================================================
@@ -461,11 +464,17 @@ class HashInfo(SequenceMixin):
         self.iana_name = names[1]
         self.aliases = names[2:]
 
-        def set_unknown_const(msg):
+        def use_stub_const(msg):
+            """
+            helper that installs stub constructor which throws specified error <msg>.
+            """
             def const(source=b""):
                 raise exc.UnknownHashError(name, message=msg)
             if required:
+                # if caller only wants supported digests returned,
+                # just throw error immediately...
                 const()
+                assert "shouldn't get here"
             self.error_text = msg
             self.const = const
             try:
@@ -479,7 +488,8 @@ class HashInfo(SequenceMixin):
                 msg = "unsupported hash: %r" % name
             else:
                 msg = "unknown hash: %r" % name
-            set_unknown_const(msg)
+                self.unknown = True
+            use_stub_const(msg)
             # TODO: load in preset digest size info for known hashes.
             return
 
@@ -495,7 +505,7 @@ class HashInfo(SequenceMixin):
                 msg = "%r hash disabled for fips" % name
             else:
                 msg = "internal error in %r constructor\n(%s: %s)" % (name, type(err).__name__, err)
-            set_unknown_const(msg)
+            use_stub_const(msg)
             return
 
         # store stats about hash
