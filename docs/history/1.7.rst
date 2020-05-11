@@ -44,6 +44,9 @@ Bugfixes
 
 * :mod:`passlib.ext.django`: fixed lru_cache import (django 3 compatibility)
 
+* :mod:`!passlib.tests`: fixed bug where :meth:`HandlerCase.test_82_crypt_support` wasn't
+  being run on systems lacking support for hasher being tested.  Now runs regardless of support.
+
 Other Changes
 -------------
 

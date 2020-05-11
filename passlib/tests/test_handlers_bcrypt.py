@@ -155,8 +155,8 @@ class _bcrypt_test(HandlerCase):
     platform_crypt_support = [
         ("freedbsd|openbsd|netbsd", True),
         ("darwin", False),
-        # linux - may be present via addon, e.g. debian's libpam-unix2
-        # solaris - depends on policy
+        ("linux", None),  # may be present via addon, e.g. debian's libpam-unix2
+        ("solaris", None), # depends on system policy
     ]
 
     #===================================================================
