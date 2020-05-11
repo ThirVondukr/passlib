@@ -53,7 +53,7 @@ class HexDigestHash(uh.StaticHandler):
     # eoc
     #===================================================================
 
-def create_hex_hash(digest, module=__name__, django_name=None, required=False):
+def create_hex_hash(digest, module=__name__, django_name=None, required=True):
     """
     create hex-encoded unsalted hasher for specified digest algorithm.
 
@@ -87,9 +87,13 @@ It supports no optional or contextual keywords.
 # predefined handlers
 #=============================================================================
 
-hex_md4     = create_hex_hash("md4")
-hex_md5     = create_hex_hash("md5", django_name="unsalted_md5")
-hex_sha1    = create_hex_hash("sha1")
+# NOTE: some digests below are marked as "required=False", because these may not be present on
+#       FIPS systems (see issue 116).  if missing, will return stub hasher that throws error
+#       if an attempt is made to actually use hash/verify with them.
+
+hex_md4     = create_hex_hash("md4", required=False)
+hex_md5     = create_hex_hash("md5", django_name="unsalted_md5", required=False)
+hex_sha1    = create_hex_hash("sha1", required=False)
 hex_sha256  = create_hex_hash("sha256")
 hex_sha512  = create_hex_hash("sha512")
 
