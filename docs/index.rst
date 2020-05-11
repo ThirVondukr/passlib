@@ -21,9 +21,9 @@ Passlib |release| documentation
 
 .. rst-class:: without-title
 
-.. caution::
+.. note::
 
-  **2020-05-01: Passlib has moved to Heptapod!**
+  **2020-05-01: Passlib's public repositiory has moved to Heptapod!**
 
   Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
   has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,
@@ -64,6 +64,10 @@ Getting Started
 This documentation is organized into two main parts:
 a narrative walkthrough of Passlib, and a top-down API reference.
 
+:doc:`install`
+
+    See this page for system requirements & installation instructions.
+
 :doc:`narr/index`
 
     New users in particular will want to visit the walkthrough, as it provides
@@ -89,8 +93,9 @@ Online Resources
 
         =================== ===================================================
         Latest Docs:        `<https://passlib.readthedocs.io>`_
-        Project Home:       `<https://foss.heptapod.net/python-libs/passlib>`_
-        News & Discussion:  `<https://groups.google.com/group/passlib-users>`_
+        Latest News:        `<https://foss.heptapod.net/python-libs/passlib/wikis/home>`_
+        Public Repo:        `<https://foss.heptapod.net/python-libs/passlib>`_
+        Mailing List:       `<https://groups.google.com/group/passlib-users>`_
         Downloads @ PyPI:   `<https://pypi.python.org/pypi/passlib>`_
         =================== ===================================================
 

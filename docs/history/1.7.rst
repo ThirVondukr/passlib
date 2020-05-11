@@ -12,7 +12,11 @@ This release rolls up assorted bug & compatibility fixes since 1.7.2.
 Administrative Changes
 ----------------------
 
-* **Passlib has moved to Heptapod!**
+.. rst-class:: without-title
+
+.. note::
+
+  **Passlib has moved to Heptapod!**
 
   Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
   has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,

@@ -92,6 +92,14 @@ Optional Libraries
 
 Installation Instructions
 =========================
+
+.. rst-class:: float-right without-title
+
+.. caution::
+
+  All PyPI releases are signed with the gpg key
+  `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+
 To install from PyPi using :command:`pip`::
 
     pip install passlib

@@ -80,7 +80,7 @@ providing full-strength password hashing for multi-user applications.
 * See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
-* See the `homepage <https://foss.heptapod.net/python-libs/passlib>`_
+* See the `homepage <https://foss.heptapod.net/python-libs/passlib/wikis/home>`_
   for the latest news and more information.
 
 * See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
