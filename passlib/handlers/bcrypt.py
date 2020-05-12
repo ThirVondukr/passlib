@@ -30,7 +30,7 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode
 from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import get_unbound_method_function
-from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii, PY3, error_from
 import passlib.utils.handlers as uh
 
 # local
@@ -291,7 +291,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
         verify = mixin_cls.verify
 
-        err_types = (ValueError,)
+        err_types = (ValueError, uh.exc.MissingBackendError)
         if _bcryptor:
             err_types += (_bcryptor.engine.SaltError,)
 
@@ -302,6 +302,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             except err_types:
                 # backends without support for given ident will throw various
                 # errors about unrecognized version:
+                #   os_crypt -- internal code below throws MissingBackendError
+                #               if crypt fails for unknown reason;
+                #               and PasswordValueError if there's encoding issue w/ password.
                 #   pybcrypt, bcrypt -- raises ValueError
                 #   bcryptor -- raises bcryptor.engine.SaltError
                 return NotImplemented
@@ -741,25 +744,59 @@ class _OsCryptBackend(_BcryptCommon):
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
+        #
+        # run secret through crypt.crypt().
+        # if everything goes right, we'll get back a properly formed bcrypt hash.
+        #
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = safe_crypt(secret, config)
         if hash:
             assert hash.startswith(config) and len(hash) == len(config)+31
             return hash[-31:]
-        else:
-            # NOTE: Have to raise this error because python3's crypt.crypt() only accepts unicode.
-            #       This means it can't handle any passwords that aren't either unicode
-            #       or utf-8 encoded bytes.  However, hashing a password with an alternate
-            #       encoding should be a pretty rare edge case; if user needs it, they can just
-            #       install bcrypt backend.
-            # XXX: is this the right error type to raise?
-            #      maybe have safe_crypt() not swallow UnicodeDecodeError, and have handlers
-            #      like sha256_crypt trap it if they have alternate method of handling them?
-            raise uh.exc.MissingBackendError(
-                "non-utf8 encoded passwords can't be handled by crypt.crypt() under python3, "
-                "recommend running `pip install bcrypt`.",
-                )
+
+        #
+        # Check if this failed due to non-UTF8 bytes
+        # In detail: under py3, crypt.crypt() requires unicode inputs, which are then encoded to
+        # utf8 before passing them to os crypt() call.  this is done according to the "s" format
+        # specifier for PyArg_ParseTuple (https://docs.python.org/3/c-api/arg.html).
+        # There appears no way to get around that to pass raw bytes; so we just throw error here
+        # to let user know they need to use another backend if they want raw bytes support.
+        #
+        # XXX: maybe just let safe_crypt() throw UnicodeDecodeError under passlib 2.0,
+        #      and then catch it above? maybe have safe_crypt ALWAYS throw error
+        #      instead of returning None? (would save re-detecting what went wrong)
+        # XXX: isn't secret ALWAYS bytes at this point?
+        #
+        if PY3 and isinstance(secret, bytes):
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                raise error_from(uh.exc.PasswordValueError(
+                    "python3 crypt.crypt() ony supports bytes passwords using UTF8; "
+                    "passlib recommends running `pip install bcrypt` for general bcrypt support.",
+                    ), None)
+
+        #
+        # else crypt() call failed for unknown reason.
+        #
+        # NOTE: getting here should be considered a bug in passlib --
+        #       if os_crypt backend detection said there's support,
+        #       and we've already checked all known reasons above;
+        #       want them to file bug so we can figure out what happened.
+        #       in the meantime, users can avoid this by installing bcrypt-cffi backend;
+        #       which won't have this (or utf8) edgecases.
+        #
+        # XXX: throw something more specific, like an "InternalBackendError"?
+        # NOTE: if do change this error, need to update test_81_crypt_fallback() expectations
+        #       about what will be thrown; as well as safe_verify() above.
+        #
+        raise uh.exc.MissingBackendError(
+            "crypt.crypt() failed for unknown reason; "
+            "passlib recommends running `pip install bcrypt` for general bcrypt support."
+            # for debugging UTs --
+            "(secret=%r, config=%r)" % (secret, config),
+            )
 
 #-----------------------------------------------------------------------
 # builtin backend

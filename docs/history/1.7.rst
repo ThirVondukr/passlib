@@ -55,6 +55,13 @@ Bugfixes
 Other Changes
 -------------
 
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: OS native backend now raises the new :exc:`~passlib.exc.PasswordValueError`
+  if password is provided as non-UTF8 bytes under python 3.
+  These can't be passed through, due to limitation in stdlib's :func:`!crypt.crypt`.
+  (Prior to this release, it would it incorrectly raise :exc:`~passlib.exc.MissingBackendError` instead).
+
 * Modified some internals to help run on FIPS systems (:issue:`116`):
 
   In particular, when MD5 hash is not available, :class:`~passlib.hash.hex_md5`

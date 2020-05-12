@@ -15,6 +15,8 @@ Exceptions
 .. index::
     pair: environmental variable; PASSLIB_MAX_PASSWORD_SIZE
 
+.. autoexception:: PasswordValueError
+
 .. autoexception:: PasswordSizeError
 
 .. autoexception:: PasswordTruncateError

@@ -27,7 +27,21 @@ class MissingBackendError(RuntimeError):
     :class:`~passlib.hash.bcrypt`).
     """
 
-class PasswordSizeError(ValueError):
+
+class PasswordValueError(ValueError):
+    """
+    Error raised if a password can't be hashed / verified for various reasons.
+
+    May be thrown directly when password violates internal invariants of hasher
+    (e.g. some don't support NULL characters);  may also throw more specified subclasses,
+    such as :exc:`!PasswordSizeError`.
+
+    .. versionadded:: 1.7.3
+    """
+    pass
+
+
+class PasswordSizeError(PasswordValueError):
     """
     Error raised if a password exceeds the maximum size allowed
     by Passlib (by default, 4096 characters); or if password exceeds
@@ -59,7 +73,7 @@ class PasswordSizeError(ValueError):
         self.max_size = max_size
         if msg is None:
             msg = "password exceeds maximum allowed size"
-        ValueError.__init__(self, msg)
+        PasswordValueError.__init__(self, msg)
 
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
@@ -288,7 +302,7 @@ def MissingDigestError(handler=None):
 def NullPasswordError(handler=None):
     """raised by OS crypt() supporting hashes, which forbid NULLs in password"""
     name = _get_name(handler)
-    return ValueError("%s does not allow NULL bytes in password" % name)
+    return PasswordValueError("%s does not allow NULL bytes in password" % name)
 
 #------------------------------------------------------------------------
 # errors when parsing hashes
