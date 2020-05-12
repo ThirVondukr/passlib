@@ -25,7 +25,6 @@ class _bcrypt_test(HandlerCase):
     handler = hash.bcrypt
     reduce_default_rounds = True
     fuzz_salts_need_bcrypt_repair = True
-    has_os_crypt_fallback = False
 
     known_correct_hashes = [
         #
@@ -173,6 +172,8 @@ class _bcrypt_test(HandlerCase):
                 self.addCleanup(os.environ.__delitem__, key)
             os.environ[key] = "true"
         super(_bcrypt_test, self).setUp()
+
+        # silence this warning, will come up a bunch during testing of old 2a hashes.
         warnings.filterwarnings("ignore", ".*backend is vulnerable to the bsd wraparound bug.*")
 
     def populate_settings(self, kwds):
@@ -418,7 +419,12 @@ class _bcrypt_test(HandlerCase):
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")
 bcrypt_bcryptor_test = _bcrypt_test.create_backend_case("bcryptor")
-bcrypt_os_crypt_test = _bcrypt_test.create_backend_case("os_crypt")
+
+class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
+
+    # os crypt backend doesn't currently implement a per-call fallback if it fails
+    has_os_crypt_fallback = False
+
 bcrypt_builtin_test = _bcrypt_test.create_backend_case("builtin")
 
 #=============================================================================
@@ -430,8 +436,6 @@ class _bcrypt_sha256_test(HandlerCase):
     reduce_default_rounds = True
     forbidden_characters = None
     fuzz_salts_need_bcrypt_repair = True
-    alt_safe_crypt_handler = hash.bcrypt
-    has_os_crypt_fallback = True
 
     known_correct_hashes = [
         #-------------------------------------------------------------------
@@ -656,7 +660,15 @@ class _bcrypt_sha256_test(HandlerCase):
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
 bcrypt_sha256_pybcrypt_test = _bcrypt_sha256_test.create_backend_case("pybcrypt")
 bcrypt_sha256_bcryptor_test = _bcrypt_sha256_test.create_backend_case("bcryptor")
-bcrypt_sha256_os_crypt_test = _bcrypt_sha256_test.create_backend_case("os_crypt")
+
+class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):
+
+    @classmethod
+    def _get_safe_crypt_handler_backend(cls):
+        return bcrypt_os_crypt_test._get_safe_crypt_handler_backend()
+
+    has_os_crypt_fallback = False
+
 bcrypt_sha256_builtin_test = _bcrypt_sha256_test.create_backend_case("builtin")
 
 #=============================================================================

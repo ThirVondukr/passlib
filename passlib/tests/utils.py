@@ -2872,7 +2872,6 @@ class HandlerCase(TestCase):
             def gendict(map):
                 out = {}
                 for key, meth in map.items():
-                    func = getattr(self, meth)
                     value = getattr(self, meth)()
                     if value is not None:
                         out[key] = value
@@ -3102,12 +3101,6 @@ class OsCryptMixin(HandlerCase):
     # list of (platform_regex, True|False|None) entries.
     platform_crypt_support = []
 
-    #: flag indicating backend provides a fallback when safe_crypt() can't handle password
-    has_os_crypt_fallback = True
-
-    #: alternate handler to use when searching for backend to fake safe_crypt() support.
-    alt_safe_crypt_handler = None
-
     #===================================================================
     # instance attrs
     #===================================================================
@@ -3125,6 +3118,7 @@ class OsCryptMixin(HandlerCase):
     def setUp(self):
         assert self.backend == "os_crypt"
         if not self.handler.has_backend("os_crypt"):
+            # XXX: currently, any tests that use this are skipped entirely! (see issue 120)
             self._patch_safe_crypt()
         super(OsCryptMixin, self).setUp()
 
@@ -3135,9 +3129,7 @@ class OsCryptMixin(HandlerCase):
         backend will be None if none availabe.
         """
         # find handler that generates safe_crypt() compatible hash
-        handler = cls.alt_safe_crypt_handler
-        if not handler:
-            handler = unwrap_handler(cls.handler)
+        handler = unwrap_handler(cls.handler)
 
         # hack to prevent recursion issue when .has_backend() is called
         handler.get_backend()
@@ -3145,6 +3137,14 @@ class OsCryptMixin(HandlerCase):
         # find backend which isn't os_crypt
         alt_backend = get_alt_backend(handler, "os_crypt")
         return handler, alt_backend
+
+    @property
+    def has_os_crypt_fallback(self):
+        """
+        test if there's a fallback handler to test against if os_crypt can't support
+        a specified secret (may be explicitly set to False for some subclasses)
+        """
+        return self._get_safe_crypt_handler_backend()[0] is not None
 
     def _patch_safe_crypt(self):
         """if crypt() doesn't support current hash alg, this patches
