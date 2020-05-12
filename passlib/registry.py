@@ -518,8 +518,11 @@ def get_supported_os_crypt_schemes():
                   if get_crypt_handler(name).has_backend(OS_CRYPT))
     if not cache:  # pragma: no cover -- sanity check
         # no idea what OS this could happen on...
+        import platform
         warn("crypt.crypt() function is present, but doesn't support any "
-             "formats known to passlib!", exc.PasslibRuntimeWarning)
+             "formats known to passlib! (system=%r release=%r)" %
+             (platform.system(), platform.release()),
+             exc.PasslibRuntimeWarning)
     return cache
 
 
