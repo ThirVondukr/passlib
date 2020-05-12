@@ -11,8 +11,8 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
-from passlib.utils import repeat_string, to_bytes
-from passlib.utils.compat import irange
+from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
+from passlib.utils.compat import irange, PY3
 from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE
 # module
@@ -178,6 +178,7 @@ class _bcrypt_test(HandlerCase):
             else:
                 self.addCleanup(os.environ.__delitem__, key)
             os.environ[key] = "true"
+
         super(_bcrypt_test, self).setUp()
 
         # silence this warning, will come up a bunch during testing of old 2a hashes.
@@ -428,6 +429,10 @@ bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")
 bcrypt_bcryptor_test = _bcrypt_test.create_backend_case("bcryptor")
 
 class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
+
+    # os crypt doesn't support non-utf8 secret bytes
+    known_correct_hashes = [row for row in _bcrypt_test.known_correct_hashes
+                            if is_safe_crypt_input(row[0])]
 
     # os crypt backend doesn't currently implement a per-call fallback if it fails
     has_os_crypt_fallback = False

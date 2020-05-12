@@ -756,6 +756,19 @@ def as_bool(value, none=None, param="boolean"):
 # host OS helpers
 #=============================================================================
 
+def is_safe_crypt_input(value):
+    """
+    UT helper --
+    test if value is safe to pass to crypt.crypt();
+    under PY3, can't pass non-UTF8 bytes to crypt.crypt.
+    """
+    try:
+        if PY3 and isinstance(value, bytes):
+            value.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return False
+
 try:
     from crypt import crypt as _crypt
 except ImportError: # pragma: no cover
