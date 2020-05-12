@@ -32,13 +32,7 @@ Bugfixes
 
 * .. py:currentmodule:: passlib.hash
 
-  :class:`bcrypt_sha256`:  Internal algorithm has been changed to use HMAC-SHA256 instead of
-  plain SHA256.  This should strengthen the hash against brute-force attempts which bypass
-  the intermediary hash by using known-sha256-digest lookup tables (:issue:`114`).
-
-* .. py:currentmodule:: passlib.hash
-
-  :class:`bcrypt`: OS native backend wasn't being detected under Python 3 on BSD platforms.
+  :class:`bcrypt`: Under python 3, OS native backend wasn't being detected on BSD platforms.
   This was due to a few internal issues in feature-detection code, which have been fixed.
 
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
@@ -50,17 +44,24 @@ Bugfixes
 * :mod:`passlib.ext.django`: fixed lru_cache import (django 3 compatibility)
 
 * :mod:`!passlib.tests`: fixed bug where :meth:`HandlerCase.test_82_crypt_support` wasn't
-  being run on systems lacking support for hasher being tested.  Now runs regardless of support.
+  being run on systems lacking support for the hasher being tested.
+  This test now runs regardless of system support.
 
 Other Changes
 -------------
 
 * .. py:currentmodule:: passlib.hash
 
-  :class:`bcrypt`: OS native backend now raises the new :exc:`~passlib.exc.PasswordValueError`
-  if password is provided as non-UTF8 bytes under python 3.
-  These can't be passed through, due to limitation in stdlib's :func:`!crypt.crypt`.
-  (Prior to this release, it would it incorrectly raise :exc:`~passlib.exc.MissingBackendError` instead).
+  :class:`bcrypt_sha256`:  Internal algorithm has been changed to use HMAC-SHA256 instead of
+  plain SHA256.  This should strengthen the hash against brute-force attempts which bypass
+  the intermediary hash by using known-sha256-digest lookup tables (:issue:`114`).
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: OS native backend ("os_crypt") now raises the new :exc:`~passlib.exc.PasswordValueError`
+  if password is provided as non-UTF8 bytes under python 3
+  (These can't be passed through, due to limitation in stdlib's :func:`!crypt.crypt`).
+  Prior to this release, it confusingly raised :exc:`~passlib.exc.MissingBackendError` instead.
 
   Also improved legacy bcrypt format workarounds, to support a few more UTF8 edge cases than before.
 

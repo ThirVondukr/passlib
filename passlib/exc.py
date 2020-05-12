@@ -31,9 +31,10 @@ class MissingBackendError(RuntimeError):
 class PasswordValueError(ValueError):
     """
     Error raised if a password can't be hashed / verified for various reasons.
+    This exception derives from the builtin :exc:`!ValueError`.
 
     May be thrown directly when password violates internal invariants of hasher
-    (e.g. some don't support NULL characters);  may also throw more specified subclasses,
+    (e.g. some don't support NULL characters).  Hashers may also throw more specific subclasses,
     such as :exc:`!PasswordSizeError`.
 
     .. versionadded:: 1.7.3
@@ -47,12 +48,14 @@ class PasswordSizeError(PasswordValueError):
     by Passlib (by default, 4096 characters); or if password exceeds
     a hash-specific size limitation.
 
+    This exception derives from :exc:`PasswordValueError` (above).
+
     Many password hash algorithms take proportionately larger amounts of time and/or
     memory depending on the size of the password provided. This could present
     a potential denial of service (DOS) situation if a maliciously large
     password is provided to an application. Because of this, Passlib enforces
     a maximum size limit, but one which should be *much* larger
-    than any legitimate password. :exc:`!PasswordSizeError` derives
+    than any legitimate password. :exc:`PasswordSizeError` derives
     from :exc:`!ValueError`.
 
     .. note::
@@ -81,7 +84,7 @@ class PasswordSizeError(PasswordValueError):
 class PasswordTruncateError(PasswordSizeError):
     """
     Error raised if password would be truncated by hash.
-    This derives from :exc:`PasswordSizeError` and :exc:`ValueError`.
+    This derives from :exc:`PasswordSizeError` (above).
 
     Hashers such as :class:`~passlib.hash.bcrypt` can be configured to raises
     this error by setting ``truncate_error=True``.
