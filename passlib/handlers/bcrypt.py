@@ -416,11 +416,19 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         else:
             assert_lacks_8bit_bug(IDENT_2A)
             if detect_wrap_bug(IDENT_2A):
-                warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
-                     "the bsd wraparound bug, "
-                     "and should be upgraded or replaced with another backend "
-                     "(enabling workaround for now)." % backend,
-                     uh.exc.PasslibSecurityWarning)
+                if backend == "os_crypt":
+                    # don't make this a warning for os crypt (e.g. openbsd);
+                    # they'll have proper 2b implementation which will be used for new hashes.
+                    # so even if we didn't have a workaround, this bug wouldn't be a concern.
+                    log.debug("%r backend has $2a$ bsd wraparound bug, enabling workaround", backend)
+                else:
+                    # installed library has the bug -- want to let users know,
+                    # so they can upgrade it to something better (e.g. bcrypt cffi library)
+                    warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
+                         "the bsd wraparound bug, "
+                         "and should be upgraded or replaced with another backend "
+                         "(enabling workaround for now)." % backend,
+                         uh.exc.PasslibSecurityWarning)
                 mixin_cls._has_2a_wraparound_bug = True
 
         #----------------------------------------------------------------
