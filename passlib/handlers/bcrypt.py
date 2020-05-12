@@ -27,7 +27,8 @@ _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
-                          rng, getrandstr, test_crypt, to_unicode
+                          rng, getrandstr, test_crypt, to_unicode, \
+                          utf8_truncate, utf8_repeat_string
 from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import get_unbound_method_function
 from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii, PY3, error_from
@@ -158,6 +159,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     _lacks_2y_support = False
     _lacks_2b_support = False
     _fallback_ident = IDENT_2A
+    _require_valid_utf8_bytes = False
 
     #===================================================================
     # formatting
@@ -486,8 +488,18 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     @classmethod
     def _norm_digest_args(cls, secret, ident, new=False):
         # make sure secret is unicode
+        require_valid_utf8_bytes = cls._require_valid_utf8_bytes
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        elif require_valid_utf8_bytes:
+            # if backend requires utf8 bytes (os_crypt);
+            # make sure input actually is utf8, or don't bother enabling utf-8 specific helpers.
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                # XXX: could just throw PasswordValueError here, backend will just do that
+                #      when _calc_digest() is actually called.
+                require_valid_utf8_bytes = False
 
         # check max secret size
         uh.validate_secret(secret)
@@ -508,7 +520,15 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         # bcrypt only uses first 72 bytes anyways.
         # NOTE: not needed for 2y/2b, but might use 2a as fallback for them.
         if cls._has_2a_wraparound_bug and len(secret) >= 255:
-            secret = secret[:72]
+            if require_valid_utf8_bytes:
+                # backend requires valid utf8 bytes, so truncate secret to nearest valid segment.
+                # want to do this in constant time to not give away info about secret.
+                # NOTE: this only works because bcrypt will ignore everything past
+                #       secret[71], so padding to include a full utf8 sequence
+                #       won't break anything about the final output.
+                secret = utf8_truncate(secret, 72)
+            else:
+                secret = secret[:72]
 
         # special case handling for variants (ordered most common first)
         if ident == IDENT_2A:
@@ -535,7 +555,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 # we can fake $2$ behavior using the 2A/2Y/2B algorithm
                 # by repeating the password until it's at least 72 chars in length.
                 if secret:
-                    secret = repeat_string(secret, 72)
+                    if require_valid_utf8_bytes:
+                        # NOTE: this only works because bcrypt will ignore everything past
+                        #       secret[71], so padding to include a full utf8 sequence
+                        #       won't break anything about the final output.
+                        secret = utf8_repeat_string(secret, 72)
+                    else:
+                        secret = repeat_string(secret, 72)
                 ident = cls._fallback_ident
 
         elif ident == IDENT_2X:
@@ -744,6 +770,10 @@ class _OsCryptBackend(_BcryptCommon):
     """
     backend which uses :func:`crypt.crypt`
     """
+
+    #: set flag to ensure _prepare_digest_args() doesn't create invalid utf8 string
+    #: when truncating bytes.
+    _require_valid_utf8_bytes = PY3
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):

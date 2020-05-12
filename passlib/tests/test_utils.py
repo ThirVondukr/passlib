@@ -413,6 +413,125 @@ class MiscTest(TestCase):
         self.assertEqual(splitcomma(" a , b"), ['a', 'b'])
         self.assertEqual(splitcomma(" a, b, "), ['a', 'b'])
 
+    def test_utf8_truncate(self):
+        """
+        utf8_truncate()
+        """
+        from passlib.utils import utf8_truncate
+
+        #
+        # run through a bunch of reference strings,
+        # and make sure they truncate properly across all possible indexes
+        #
+        for source in [
+            # empty string
+            b"",
+            # strings w/ only single-byte chars
+            b"1",
+            b"123",
+            b'\x1a',
+            b'\x1a' * 10,
+            b'\x7f',
+            b'\x7f' * 10,
+            # strings w/ properly formed UTF8 continuation sequences
+            b'a\xc2\xa0\xc3\xbe\xc3\xbe',
+            b'abcdefghjusdfaoiu\xc2\xa0\xc3\xbe\xc3\xbedsfioauweoiruer',
+        ]:
+            source.decode("utf-8") # sanity check - should always be valid UTF8
+
+            end = len(source)
+            for idx in range(end + 16):
+                prefix = "source=%r index=%r: " % (source, idx)
+
+                result = utf8_truncate(source, idx)
+
+                # result should always be valid utf-8
+                result.decode("utf-8")
+
+                # result should never be larger than source
+                self.assertLessEqual(len(result), end, msg=prefix)
+
+                # result should always be in range(idx, idx+4)
+                self.assertGreaterEqual(len(result), min(idx, end), msg=prefix)
+                self.assertLess(len(result), min(idx + 4, end + 1), msg=prefix)
+
+                # should be strict prefix of source
+                self.assertEqual(result, source[:len(result)], msg=prefix)
+
+        #
+        # malformed utf8 --
+        # strings w/ only initial chars (should cut just like single-byte chars)
+        #
+        for source in [
+            b'\xca',
+            b'\xca' * 10,
+            # also test null bytes (not valid utf8, but this func should treat them like ascii)
+            b'\x00',
+            b'\x00' * 10,
+        ]:
+            end = len(source)
+            for idx in range(end + 16):
+                prefix = "source=%r index=%r: " % (source, idx)
+                result = utf8_truncate(source, idx)
+                self.assertEqual(result, source[:idx], msg=prefix)
+
+        #
+        # malformed utf8 --
+        # strings w/ only continuation chars (should cut at index+3)
+        #
+        for source in [
+            b'\xaa',
+            b'\xaa' * 10,
+        ]:
+            end = len(source)
+            for idx in range(end + 16):
+                prefix = "source=%r index=%r: " % (source, idx)
+                result = utf8_truncate(source, idx)
+                self.assertEqual(result, source[:idx+3], msg=prefix)
+
+        #
+        # string w/ some invalid utf8 --
+        # * \xaa byte is too many continuation byte after \xff start byte
+        # * \xab byte doesn't have preceding start byte
+        # XXX: could also test continuation bytes w/o start byte, WITHIN the string.
+        #      but think this covers edges well enough...
+        #
+        source = b'MN\xff\xa0\xa1\xa2\xaaOP\xab'
+
+        self.assertEqual(utf8_truncate(source, 0), b'')  # index="M", stops there
+
+        self.assertEqual(utf8_truncate(source, 1), b'M')  # index="N", stops there
+
+        self.assertEqual(utf8_truncate(source, 2), b'MN')  # index="\xff", stops there
+
+        self.assertEqual(utf8_truncate(source, 3),
+                         b'MN\xff\xa0\xa1\xa2')  # index="\xa0", runs out after index+3="\xa2"
+
+        self.assertEqual(utf8_truncate(source, 4),
+                         b'MN\xff\xa0\xa1\xa2\xaa')  # index="\xa1", runs out after index+3="\xaa"
+
+        self.assertEqual(utf8_truncate(source, 5),
+                         b'MN\xff\xa0\xa1\xa2\xaa')  # index="\xa2", stops before "O"
+
+        self.assertEqual(utf8_truncate(source, 6),
+                         b'MN\xff\xa0\xa1\xa2\xaa')  # index="\xaa", stops before "O"
+
+        self.assertEqual(utf8_truncate(source, 7),
+                         b'MN\xff\xa0\xa1\xa2\xaa')  # index="O", stops there
+
+        self.assertEqual(utf8_truncate(source, 8),
+                         b'MN\xff\xa0\xa1\xa2\xaaO')  # index="P", stops there
+
+        self.assertEqual(utf8_truncate(source, 9),
+                         b'MN\xff\xa0\xa1\xa2\xaaOP\xab')  # index="\xab", runs out at end
+
+        self.assertEqual(utf8_truncate(source, 10),
+                         b'MN\xff\xa0\xa1\xa2\xaaOP\xab')  # index=end
+
+        self.assertEqual(utf8_truncate(source, 11),
+                         b'MN\xff\xa0\xa1\xa2\xaaOP\xab')  # index=end+1
+
+
 #=============================================================================
 # byte/unicode helpers
 #=============================================================================

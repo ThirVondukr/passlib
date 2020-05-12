@@ -55,7 +55,7 @@ from passlib.utils.decor import (
     classproperty,
     hybrid_method,
 )
-from passlib.exc import ExpectedStringError
+from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
@@ -574,13 +574,20 @@ def xor_bytes(left, right):
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 def repeat_string(source, size):
-    """repeat or truncate <source> string, so it has length <size>"""
-    cur = len(source)
-    if size > cur:
-        mult = (size+cur-1)//cur
-        return (source*mult)[:size]
-    else:
-        return source[:size]
+    """
+    repeat or truncate <source> string, so it has length <size>
+    """
+    mult = 1 + (size - 1) // len(source)
+    return (source * mult)[:size]
+
+
+def utf8_repeat_string(source, size):
+    """
+    variant of repeat_string() which truncates to nearest UTF8 boundary.
+    """
+    mult = 1 + (size - 1) // len(source)
+    return utf8_truncate(source * mult, size)
+
 
 _BNULL = b"\x00"
 _UNULL = u("\x00")
@@ -594,6 +601,74 @@ def right_pad_string(source, size, pad=None):
         return source+pad*(size-cur)
     else:
         return source[:size]
+
+
+def utf8_truncate(source, index):
+    """
+    helper to truncate UTF8 byte string to nearest character boundary ON OR AFTER <index>.
+    returned prefix will always have length of at least <index>, and will stop on the
+    first byte that's not a UTF8 continuation byte (128 - 191 inclusive).
+    since utf8 should never take more than 4 bytes to encode known unicode values,
+    we can stop after ``index+3`` is reached.
+
+    :param bytes source:
+    :param int index:
+    :rtype: bytes
+    """
+    # general approach:
+    #
+    # * UTF8 bytes will have high two bits (0xC0) as one of:
+    #   00 -- ascii char
+    #   01 -- ascii char
+    #   10 -- continuation of multibyte char
+    #   11 -- start of multibyte char.
+    #   thus we can cut on anything where high bits aren't "10" (0x80; continuation byte)
+    #
+    # * UTF8 characters SHOULD always be 1 to 4 bytes, though they may be unbounded.
+    #   so we just keep going until first non-continuation byte is encountered, or end of str.
+    #   this should work predictably even for malformed/non UTF8 inputs.
+
+    if not isinstance(source, bytes):
+        raise ExpectedTypeError(source, bytes, "source")
+
+    # validate index
+    end = len(source)
+    if index < 0:
+        index = max(0, index + end)
+    if index >= end:
+        return source
+
+    # can stop search after 4 bytes, won't ever have longer utf8 sequence.
+    end = min(index + 3, end)
+
+    # loop until we find non-continuation byte
+    while index < end:
+        if byte_elem_value(source[index]) & 0xC0 != 0x80:
+            # found single-char byte, or start-char byte.
+            break
+        # else: found continuation byte.
+        index += 1
+    else:
+        assert index == end
+
+    # truncate at final index
+    result = source[:index]
+
+    def sanity_check():
+        # try to decode source
+        try:
+            text = source.decode("utf-8")
+        except UnicodeDecodeError:
+            # if source isn't valid utf8, byte level match is enough
+            return True
+
+        # validate that result was cut on character boundary
+        assert text.startswith(result.decode("utf-8"))
+        return True
+
+    assert sanity_check()
+
+    return result
 
 #=============================================================================
 # encoding helpers
