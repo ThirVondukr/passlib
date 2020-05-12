@@ -36,6 +36,11 @@ Bugfixes
   plain SHA256.  This should strengthen the hash against brute-force attempts which bypass
   the intermediary hash by using known-sha256-digest lookup tables (:issue:`114`).
 
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: OS native backend wasn't being detected under Python 3 on BSD platforms.
+  This was due to an internal issue in feature-detection code, which has been fixed.
+
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
   returning bytes under Python 3 (:issue:`113`).
 

@@ -49,7 +49,7 @@ IDENT_2B = u("$2b$")
 _BNULL = b'\x00'
 
 # reference hash of "test", used in various self-checks
-TEST_HASH_2A = b"$2a$04$5BJqKfqMQvV7nS.yUguNcueVirQqDBGaLXSqj.rs.pZPlNR0UX/HK"
+TEST_HASH_2A = "$2a$04$5BJqKfqMQvV7nS.yUguNcueVirQqDBGaLXSqj.rs.pZPlNR0UX/HK"
 
 def _detect_pybcrypt():
     """
@@ -408,7 +408,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         # check for 2y support
         #----------------------------------------------------------------
-        test_hash_2y = TEST_HASH_2A.replace(b"2a", b"2y")
+        test_hash_2y = TEST_HASH_2A.replace("2a", "2y")
         result = safe_verify("test", test_hash_2y)
         if not result:
             raise RuntimeError("%s incorrectly rejected $2y$ hash" % backend)
@@ -428,7 +428,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         # check for 2b support
         #----------------------------------------------------------------
-        test_hash_2b = TEST_HASH_2A.replace(b"2a", b"2b")
+        test_hash_2b = TEST_HASH_2A.replace("2a", "2b")
         result = safe_verify("test", test_hash_2b)
         if not result:
             raise RuntimeError("%s incorrectly rejected $2b$ hash" % backend)

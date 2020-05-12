@@ -59,7 +59,7 @@ from passlib.exc import ExpectedStringError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
-                                  unicode_or_bytes_types,
+                                  unicode_or_str, unicode_or_bytes_types,
                                   get_method_function, suppress_cause)
 # local
 __all__ = [
@@ -860,7 +860,13 @@ def test_crypt(secret, hash):
     :arg hash: known hash of password to use as reference
     :returns: True or False
     """
-    assert secret and hash
+    # safe_crypt() always returns unicode, which means that for py3,
+    # 'hash' can't be bytes, or "== hash" will never be True.
+    # under py2 unicode & str(bytes) will compare fine;
+    # so just enforcing "unicode_or_str" limitation
+    assert isinstance(hash, unicode_or_str), \
+        "hash must be unicode_or_str, got %s" % type(hash)
+    assert hash, "hash must be non-empty"
     return safe_crypt(secret, hash) == hash
 
 timer = timeit.default_timer
