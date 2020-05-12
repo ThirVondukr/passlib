@@ -68,6 +68,13 @@ class _bcrypt_test(HandlerCase):
                 '$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
 
         #
+        # 8bit bug (fixed in 2y/2b)
+        #
+
+        # NOTE: see assert_lacks_8bit_bug() for origins of this test vector.
+        (b"\xd1\x91", "$2y$05$6bNw2HLQYeqHYyBfLMsv/OUcZd0LKP39b87nBw3.S2tVZSqiQX6eu"),
+
+        #
         # bsd wraparound bug (fixed in 2b)
         #
 

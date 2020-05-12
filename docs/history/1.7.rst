@@ -39,7 +39,7 @@ Bugfixes
 * .. py:currentmodule:: passlib.hash
 
   :class:`bcrypt`: OS native backend wasn't being detected under Python 3 on BSD platforms.
-  This was due to an internal issue in feature-detection code, which has been fixed.
+  This was due to a few internal issues in feature-detection code, which have been fixed.
 
 * :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
   returning bytes under Python 3 (:issue:`113`).
