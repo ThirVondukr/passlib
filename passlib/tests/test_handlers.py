@@ -399,10 +399,10 @@ class hex_md5_test(HandlerCase):
             _set_mock_fips_mode()
             self.addCleanup(_set_mock_fips_mode, False)
 
-        # HACK: have to recreate hasher, since underlying digest is new.
+        # HACK: have to recreate hasher, since underlying HashInfo has changed.
         #       could reload module and re-import, but this should be good enough.
         from passlib.handlers.digests import create_hex_hash
-        hasher = create_hex_hash("md5")
+        hasher = create_hex_hash("md5", required=False)
         self.assertFalse(hasher.supported)
 
         # can identify hashes even if disabled

@@ -35,9 +35,10 @@ class UtilsTest(TestCase):
         ("md5", "md5",          "SCRAM-MD5-PLUS", "MD-5"),
         ("sha1", "sha-1",       "SCRAM-SHA-1", "SHA1"),
         ("sha256", "sha-256",   "SHA_256", "sha2-256"),
-        ("ripemd", "ripemd",    "SCRAM-RIPEMD", "RIPEMD"),
-        ("ripemd160", "ripemd-160",
-                                "SCRAM-RIPEMD-160", "RIPEmd160"),
+        ("ripemd160", "ripemd-160", "SCRAM-RIPEMD-160", "RIPEmd160",
+            # NOTE: there was an older "RIPEMD" & "RIPEMD-128", but python treates "RIPEMD"
+            #       as alias for "RIPEMD-160"
+            "ripemd", "SCRAM-RIPEMD"),
         ("test128", "test-128", "TEST128"),
         ("test2", "test2", "TEST-2"),
         ("test3_128", "test3-128", "TEST-3-128"),
