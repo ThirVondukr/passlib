@@ -175,9 +175,14 @@ class _bsdi_crypt_test(HandlerCase):
     ]
 
     platform_crypt_support = [
-        ("freebsd|openbsd|netbsd|darwin", True),
+        # openbsd 5.8 dropped everything except bcrypt
+        ("openbsd[6789]", False),
+        ("openbsd5", None),
+        ("openbsd", True),
+
+        ("freebsd|netbsd|darwin", True),
         ("solaris", False),
-        # linux - may be present in libxcrypt
+        ("linux", None),  # may be present if libxcrypt is in use
     ]
 
     def test_77_fuzz_input(self, **kwds):
@@ -277,7 +282,12 @@ class _des_crypt_test(HandlerCase):
         ]
 
     platform_crypt_support = [
-        ("freebsd|openbsd|netbsd|linux|solaris|darwin", True),
+        # openbsd 5.8 dropped everything except bcrypt
+        ("openbsd[6789]", False),
+        ("openbsd5", None),
+        ("openbsd", True),
+
+        ("freebsd|netbsd|linux|solaris|darwin", True),
     ]
 
 # create test cases for specific backends
@@ -719,7 +729,12 @@ class _md5_crypt_test(HandlerCase):
         ]
 
     platform_crypt_support = [
-        ("freebsd|openbsd|netbsd|linux|solaris", True),
+        # openbsd 5.8 dropped everything except bcrypt
+        ("openbsd[6789]", False),
+        ("openbsd5", None),
+        ("openbsd", True),
+
+        ("freebsd|netbsd|linux|solaris", True),
         ("darwin", False),
     ]
 
@@ -1289,7 +1304,7 @@ class _sha1_crypt_test(HandlerCase):
     platform_crypt_support = [
         ("netbsd", True),
         ("freebsd|openbsd|solaris|darwin", False),
-        # linux - may be present in libxcrypt
+        ("linux", None),  # may be present if libxcrypt is in use
     ]
 
 # create test cases for specific backends
@@ -1425,9 +1440,9 @@ class _sha256_crypt_test(HandlerCase):
 
     platform_crypt_support = [
         ("freebsd(9|1\d)|linux", True),
-        ("freebsd8", None), # added in freebsd 8.3
+        ("freebsd8", None),  # added in freebsd 8.3
         ("freebsd|openbsd|netbsd|darwin", False),
-        # solaris - depends on policy
+        ("solaris", None),  # depends on policy
     ]
 
 # create test cases for specific backends

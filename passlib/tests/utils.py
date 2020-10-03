@@ -3272,6 +3272,8 @@ class OsCryptMixin(HandlerCase):
 
         # look for first entry that matches current system
         # XXX: append "/" + platform.release() to string?
+        # XXX: probably should rework to support rows being dicts w/ "minver" / "maxver" keys,
+        #      instead of hack where we add major # as part of platform regex.
         using_backend = not self.using_patched_crypt
         name = self.handler.name
         platform = sys.platform

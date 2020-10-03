@@ -162,7 +162,7 @@ class _bcrypt_test(HandlerCase):
         ("freedbsd|openbsd|netbsd", True),
         ("darwin", False),
         ("linux", None),  # may be present via addon, e.g. debian's libpam-unix2
-        ("solaris", None), # depends on system policy
+        ("solaris", None),  # depends on system policy
     ]
 
     #===================================================================
