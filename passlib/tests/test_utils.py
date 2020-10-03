@@ -9,7 +9,7 @@ import warnings
 # site
 # pkg
 # module
-from passlib.utils import is_ascii_safe
+from passlib.utils import is_ascii_safe, to_bytes
 from passlib.utils.compat import irange, PY2, PY3, u, unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
@@ -169,41 +169,66 @@ class MiscTest(TestCase):
     def test_crypt(self):
         """test crypt.crypt() wrappers"""
         from passlib.utils import has_crypt, safe_crypt, test_crypt
+        from passlib.registry import get_supported_os_crypt_schemes, get_crypt_handler
 
         # test everything is disabled
+        supported = get_supported_os_crypt_schemes()
         if not has_crypt:
+            self.assertEqual(supported, ())
             self.assertEqual(safe_crypt("test", "aa"), None)
-            self.assertFalse(test_crypt("test", "aaqPiZY5xR5l."))
+            self.assertFalse(test_crypt("test", "aaqPiZY5xR5l."))  # des_crypt() hash of "test"
             raise self.skipTest("crypt.crypt() not available")
 
-        # XXX: this assumes *every* crypt() implementation supports des_crypt.
-        #      if this fails for some platform, this test will need modifying.
+        # expect there to be something supported, if crypt() is present
+        if not supported:
+            # NOTE: failures here should be investigated.  usually means one of:
+            # 1) at least one of passlib's os_crypt detection routines is giving false negative
+            # 2) crypt() ONLY supports some hash alg which passlib doesn't know about
+            # 3) crypt() is present but completely disabled (never encountered this yet)
+            raise self.fail("crypt() present, but no supported schemes found!")
 
-        # test return type
-        self.assertIsInstance(safe_crypt(u("test"), u("aa")), unicode)
+        # pick cheap alg if possible, with minimum rounds, to speed up this test.
+        # NOTE: trusting hasher class works properly (should have been verified using it's own UTs)
+        for scheme in ("md5_crypt", "sha256_crypt"):
+            if scheme in supported:
+                break
+        else:
+            scheme = supported[-1]
+        hasher = get_crypt_handler(scheme)
+        if getattr(hasher, "min_rounds", None):
+            hasher = hasher.using(rounds=hasher.min_rounds)
 
-        # test ascii password
-        h1 = u('aaqPiZY5xR5l.')
-        self.assertEqual(safe_crypt(u('test'), u('aa')), h1)
-        self.assertEqual(safe_crypt(b'test', b'aa'), h1)
+        # helpers to generate hashes & config strings to work with
+        def get_hash(secret):
+            assert isinstance(secret, unicode)
+            hash = hasher.hash(secret)
+            if isinstance(hash, bytes):  # py2
+                hash = hash.decode("utf-8")
+            assert isinstance(hash, unicode)
+            return hash
+
+        # test ascii password & return type
+        s1 = u("test")
+        h1 = get_hash(s1)
+        result = safe_crypt(s1, h1)
+        self.assertIsInstance(result, unicode)
+        self.assertEqual(result, h1)
+        self.assertEqual(safe_crypt(to_bytes(s1), to_bytes(h1)), h1)
+
+        # make sure crypt doesn't just blindly return h1 for whatever we pass in
+        h1x = h1[:-2] + 'xx'
+        self.assertEqual(safe_crypt(s1, h1x), h1)
 
         # test utf-8 / unicode password
-        h2 = u('aahWwbrUsKZk.')
-        self.assertEqual(safe_crypt(u('test\u1234'), 'aa'), h2)
-        self.assertEqual(safe_crypt(b'test\xe1\x88\xb4', 'aa'), h2)
-
-        # test latin-1 password
-        hash = safe_crypt(b'test\xff', 'aa')
-        if PY3: # py3 supports utf-8 bytes only.
-            self.assertEqual(hash, None)
-        else: # but py2 is fine.
-            self.assertEqual(hash, u('aaOx.5nbTU/.M'))
+        s2 = u('test\u1234')
+        h2 = get_hash(s2)
+        self.assertEqual(safe_crypt(s2, h2), h2)
+        self.assertEqual(safe_crypt(to_bytes(s2), to_bytes(h2)), h2)
 
         # test rejects null chars in password
-        self.assertRaises(ValueError, safe_crypt, '\x00', 'aa')
+        self.assertRaises(ValueError, safe_crypt, '\x00', h1)
 
         # check test_crypt()
-        h1x = h1[:-1] + 'x'
         self.assertTrue(test_crypt("test", h1))
         self.assertFalse(test_crypt("test", h1x))
 
@@ -213,13 +238,17 @@ class MiscTest(TestCase):
         import passlib.utils as mod
         orig = mod._crypt
         try:
-            fake = None
-            mod._crypt = lambda secret, hash: fake
-            for fake in [None, "", ":", ":0", "*0"]:
-                self.assertEqual(safe_crypt("test", "aa"), None)
+            retval = None
+            mod._crypt = lambda secret, hash: retval
+
+            for retval in [None, "", ":", ":0", "*0"]:
+                self.assertEqual(safe_crypt("test", h1), None)
                 self.assertFalse(test_crypt("test", h1))
-            fake = 'xxx'
-            self.assertEqual(safe_crypt("test", "aa"), "xxx")
+
+            retval = 'xxx'
+            self.assertEqual(safe_crypt("test", h1), "xxx")
+            self.assertFalse(test_crypt("test", h1))
+
         finally:
             mod._crypt = orig
 
