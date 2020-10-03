@@ -837,9 +837,10 @@ def is_safe_crypt_input(value):
     test if value is safe to pass to crypt.crypt();
     under PY3, can't pass non-UTF8 bytes to crypt.crypt.
     """
+    if crypt_accepts_bytes or not isinstance(value, bytes):
+        return True
     try:
-        if PY3 and isinstance(value, bytes):
-            value.decode("utf-8")
+        value.decode("utf-8")
         return True
     except UnicodeDecodeError:
         return False
@@ -863,24 +864,49 @@ else:
     _invalid_prefixes = u("*:!")
 
     if PY3:
+
+        # * pypy3 (as of v7.3.1) has a crypt which accepts bytes, or ASCII-only unicode.
+        # * whereas CPython3 (as of v3.9) has a crypt which doesn't take bytes,
+        #   but accepts ANY unicode (which it always encodes to UTF8).
+        crypt_accepts_bytes = True
+        try:
+            _crypt(b"\xEE", "xx")
+        except TypeError:
+            # CPython will throw TypeError
+            crypt_accepts_bytes = False
+        except:  # no pragma
+            # don't care about other errors this might throw,
+            # just want to see if we get past initial type-coercion step.
+            pass
+
         def safe_crypt(secret, hash):
-            if isinstance(secret, bytes):
-                # Python 3's crypt() only accepts unicode, which is then
+            if crypt_accepts_bytes:
+                # PyPy3 -- all bytes accepted, but unicode encoded to ASCII,
+                # so handling that ourselves.
+                if isinstance(secret, unicode):
+                    secret = secret.encode("utf-8")
+                if _BNULL in secret:
+                    raise ValueError("null character in secret")
+                if isinstance(hash, unicode):
+                    hash = hash.encode("ascii")
+            else:
+                # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
                 # encoding using utf-8 before passing to the C-level crypt().
                 # so we have to decode the secret.
-                orig = secret
-                try:
-                    secret = secret.decode("utf-8")
-                except UnicodeDecodeError:
-                    return None
-                # sanity check it encodes back to original byte string,
-                # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
-                assert secret.encode("utf-8") == orig, \
-                            "utf-8 spec says this can't happen!"
-            if _NULL in secret:
-                raise ValueError("null character in secret")
-            if isinstance(hash, bytes):
-                hash = hash.decode("ascii")
+                if isinstance(secret, bytes):
+                    orig = secret
+                    try:
+                        secret = secret.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return None
+                    # sanity check it encodes back to original byte string,
+                    # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
+                    assert secret.encode("utf-8") == orig, \
+                                "utf-8 spec says this can't happen!"
+                if _NULL in secret:
+                    raise ValueError("null character in secret")
+                if isinstance(hash, bytes):
+                    hash = hash.decode("ascii")
             try:
                 result = _crypt(secret, hash)
             except OSError:
@@ -897,6 +923,11 @@ else:
                 return None
             return result
     else:
+
+        #: see feature-detection in PY3 fork above
+        crypt_accepts_bytes = True
+
+        # Python 2 crypt handler
         def safe_crypt(secret, hash):
             if isinstance(secret, unicode):
                 secret = secret.encode("utf-8")

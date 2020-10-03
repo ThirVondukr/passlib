@@ -28,7 +28,7 @@ from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
-                          utf8_truncate, utf8_repeat_string
+                          utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import get_unbound_method_function
 from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii, PY3, error_from
@@ -773,7 +773,7 @@ class _OsCryptBackend(_BcryptCommon):
 
     #: set flag to ensure _prepare_digest_args() doesn't create invalid utf8 string
     #: when truncating bytes.
-    _require_valid_utf8_bytes = PY3
+    _require_valid_utf8_bytes = not crypt_accepts_bytes
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
