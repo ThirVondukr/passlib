@@ -369,6 +369,7 @@ class TestCase(_TestCase):
             #       should be kept until then, so we test the legacy paths.
             warnings.filterwarnings("ignore", r"the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
             warnings.filterwarnings("ignore", r"the 'vary_rounds' option is deprecated")
+            warnings.filterwarnings("ignore", r"Support for `(py-bcrypt|bcryptor)` is deprecated")
 
     #---------------------------------------------------------------
     # tweak message formatting so longMessage mode is only enabled
@@ -678,6 +679,8 @@ def doesnt_require_backend(func):
     decorator for HandlerCase.create_backend_case() --
     used to decorate methods that should be run even if backend isn't present
     (by default, full test suite is skipped when backend is missing)
+
+    NOTE: tests decorated with this should not rely on handler have expected (or any!) backend.
     """
     func._doesnt_require_backend = True
     return func
@@ -980,20 +983,27 @@ class HandlerCase(TestCase):
 
         # check if test is disabled due to missing backend;
         # and that it wasn't exempted via @doesnt_require_backend() decorator
-        skip_backend_reason = self._skip_backend_reason
-        if skip_backend_reason and self._test_requires_backend():
-            raise self.skipTest(skip_backend_reason)
+        test_requires_backend = self._test_requires_backend()
+        if test_requires_backend and self._skip_backend_reason:
+            raise self.skipTest(self._skip_backend_reason)
 
         super(HandlerCase, self).setUp()
 
         # if needed, select specific backend for duration of test
+        # NOTE: skipping this if create_backend_case() signalled we're skipping backend
+        #       (can only get here for @doesnt_require_backend decorated methods)
         handler = self.handler
         backend = self.backend
         if backend:
             if not hasattr(handler, "set_backend"):
                 raise RuntimeError("handler doesn't support multiple backends")
-            self.addCleanup(handler.set_backend, handler.get_backend())
-            handler.set_backend(backend)
+            try:
+                self.addCleanup(handler.set_backend, handler.get_backend())
+                handler.set_backend(backend)
+            except uh.exc.MissingBackendError:
+                if test_requires_backend:
+                    raise
+                # else test is decorated with @doesnt_require_backend, let it through.
 
         # patch some RNG references so they're reproducible.
         from passlib.utils import handlers
@@ -3180,7 +3190,7 @@ class OsCryptMixin(HandlerCase):
         reason = super(OsCryptMixin, cls)._get_skip_backend_reason(backend)
 
         from passlib.utils import has_crypt
-        if reason == cls.BACKEND_NOT_AVAILABLE and has_crypt:
+        if reason == cls._BACKEND_NOT_AVAILABLE and has_crypt:
             if TEST_MODE("full") and cls._get_safe_crypt_handler_backend()[1]:
                 # in this case, _patch_safe_crypt() will monkeypatch os_crypt
                 # to use another backend, just so we can test os_crypt fully.

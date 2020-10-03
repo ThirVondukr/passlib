@@ -627,7 +627,7 @@ class _ldap_sha1_crypt_test(HandlerCase):
         kwds.setdefault("rounds", 10)
         super(_ldap_sha1_crypt_test, self).populate_settings(kwds)
 
-    def test_77_fuzz_input(self):
+    def test_77_fuzz_input(self, **ignored):
         raise self.skipTest("unneeded")
 
 # create test cases for specific backends

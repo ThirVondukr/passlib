@@ -372,6 +372,8 @@ class AppWalletTest(TestCase):
         wallet.encrypt_cost += 3
         delta2, _ = time_call(partial(wallet.encrypt_key, KEY1_RAW), maxtime=0)
 
+        # TODO: rework timing test here to inject mock pbkdf2_hmac() function instead;
+        #       and test that it's being invoked w/ proper options.
         self.assertAlmostEqual(delta2, delta*8, delta=(delta*8)*0.5)
 
     #=============================================================================
