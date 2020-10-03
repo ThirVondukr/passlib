@@ -697,7 +697,7 @@ class GenericHandler(MinimalHandler):
         r"""
         return parsed instance from hash/configuration string
 
-        :param \*\*context:
+        :param \\*\\*context:
             context keywords to pass to constructor (if applicable).
 
         :raises ValueError: if hash is incorrectly formatted

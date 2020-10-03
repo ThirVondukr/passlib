@@ -228,7 +228,7 @@ class CryptPolicy(object):
         elif not isinstance(source, (bytes,unicode)):
             raise TypeError("source must be CryptPolicy, dict, config string, "
                             "or file path: %r" % (type(source),))
-        elif any(c in source for c in "\n\r\t") or not source.strip(" \t./\;:"):
+        elif any(c in source for c in "\n\r\t") or not source.strip(" \t./;:"):
             return cls(_internal_context=CryptContext.from_string(source))
         else:
             return cls(_internal_context=CryptContext.from_path(source))
@@ -2227,7 +2227,7 @@ class CryptContext(object):
             be used when hashing the password (e.g. different default scheme,
             different default rounds values, etc).
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             All other keyword options are passed to the selected algorithm's
             :meth:`PasswordHash.hash() <passlib.ifc.PasswordHash.hash>` method.
 
@@ -2304,7 +2304,7 @@ class CryptContext(object):
             This is mainly used when generating new hashes, it has little
             effect when verifying; this keyword is mainly provided for symmetry.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             All additional keywords are passed to the appropriate handler,
             and should match its :attr:`~passlib.ifc.PasswordHash.context_kwds`.
 
@@ -2384,7 +2384,7 @@ class CryptContext(object):
             If specified, this will cause any category-specific defaults to
             be used if the password has to be re-hashed.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             all additional keywords are passed to the appropriate handler,
             and should match that hash's
             :attr:`PasswordHash.context_kwds <passlib.ifc.PasswordHash.context_kwds>`.
