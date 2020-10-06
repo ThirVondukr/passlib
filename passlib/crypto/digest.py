@@ -31,7 +31,7 @@ except ImportError:
 # pkg
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, to_bytes, SequenceMixin, as_bool
-from passlib.utils.compat import int_types, unicode_or_bytes
+from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -735,7 +735,7 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
     salt = to_bytes(salt, param="salt")
 
     # validate rounds
-    if not isinstance(rounds, int_types):
+    if not isinstance(rounds, int):
         raise exc.ExpectedTypeError(rounds, "int", "rounds")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -743,7 +743,7 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
     # validate keylen
     if keylen is None:
         keylen = digest_size
-    elif not isinstance(keylen, int_types):
+    elif not isinstance(keylen, int):
         raise exc.ExpectedTypeError(keylen, "int or None", "keylen")
     elif keylen < 0:
         raise ValueError("keylen must be at least 0")
@@ -807,7 +807,7 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     digest_size = digest_info.digest_size
 
     # validate rounds
-    if not isinstance(rounds, int_types):
+    if not isinstance(rounds, int):
         raise exc.ExpectedTypeError(rounds, "int", "rounds")
     if rounds < 1:
         raise ValueError("rounds must be at least 1")
@@ -815,7 +815,7 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     # validate keylen
     if keylen is None:
         keylen = digest_size
-    elif not isinstance(keylen, int_types):
+    elif not isinstance(keylen, int):
         raise exc.ExpectedTypeError(keylen, "int or None", "keylen")
     elif keylen < 1:
         # XXX: could allow keylen=0, but want to be compat w/ stdlib

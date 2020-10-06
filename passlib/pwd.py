@@ -17,7 +17,6 @@ import os
 # site
 # pkg
 from passlib import exc
-from passlib.utils.compat import int_types
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
 # local
@@ -303,7 +302,7 @@ class SequenceGenerator(object):
         """
         if returns is None:
             return next(self)
-        elif isinstance(returns, int_types):
+        elif isinstance(returns, int):
             return [next(self) for _ in range(returns)]
         elif returns is iter:
             return self

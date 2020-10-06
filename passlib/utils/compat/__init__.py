@@ -37,7 +37,6 @@ def add_doc(obj, doc):
 __all__ = [
     # type detection
 ##    'is_mapping',
-    'int_types',
     'num_types',
     'unicode_or_bytes',
 
@@ -100,7 +99,6 @@ add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings
 # numeric
 #=============================================================================
 
-int_types = (int,)
 num_types = (int, float)
 
 #=============================================================================

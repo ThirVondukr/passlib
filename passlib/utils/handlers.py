@@ -26,7 +26,7 @@ from passlib.utils.binary import (
     HEX_CHARS, UPPER_HEX_CHARS, LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,
 )
-from passlib.utils.compat import join_unicode, unicode_or_bytes, int_types
+from passlib.utils.compat import join_unicode, unicode_or_bytes
 from passlib.utils.decor import classproperty, deprecated_method
 # local
 __all__ = [
@@ -369,7 +369,7 @@ def norm_integer(handler, value, min=1, max=None, # *
     :returns: validated value
     """
     # check type
-    if not isinstance(value, int_types):
+    if not isinstance(value, int):
         raise exc.ExpectedTypeError(value, "integer", param)
 
     # check minimum
@@ -1739,7 +1739,7 @@ class HasRounds(GenericHandler):
             vary_rounds = int(default_rounds * vary_rounds)
 
         # calculate bounds based on default_rounds +/- vary_rounds
-        assert vary_rounds >= 0 and isinstance(vary_rounds, int_types)
+        assert vary_rounds >= 0 and isinstance(vary_rounds, int)
         lower = linear_to_native(default_rounds - vary_rounds, False)
         upper = linear_to_native(default_rounds + vary_rounds, True)
         return cls._clip_to_desired_rounds(lower), cls._clip_to_desired_rounds(upper)

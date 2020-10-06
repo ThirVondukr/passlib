@@ -31,7 +31,7 @@ from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, Used
 from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
-from passlib.utils.compat import bascii_to_str, int_types, num_types
+from passlib.utils.compat import bascii_to_str, num_types
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
@@ -798,7 +798,7 @@ class TOTP(object):
         # validate digits
         if digits is None:
             digits = self.digits
-        if not isinstance(digits, int_types):
+        if not isinstance(digits, int):
             raise TypeError("digits must be an integer, not a %r" % type(digits))
         if digits < 6 or digits > 10:
             raise ValueError("digits must in range(6,11)")
@@ -828,7 +828,7 @@ class TOTP(object):
         """
         check that serial value (e.g. 'counter') is non-negative integer
         """
-        if not isinstance(value, int_types):
+        if not isinstance(value, int):
             raise exc.ExpectedTypeError(value, "int", param)
         if value < minval:
             raise ValueError("%s must be >= %d" % (param, minval))
@@ -974,7 +974,7 @@ class TOTP(object):
         :returns:
             unix epoch timestamp as :class:`int`.
         """
-        if isinstance(time, int_types):
+        if isinstance(time, int):
             return time
         elif isinstance(time, float):
             return int(time)
@@ -1022,7 +1022,7 @@ class TOTP(object):
             token as :class:`!str`, containing only digits 0-9.
         """
         digits = self_or_cls.digits
-        if isinstance(token, int_types):
+        if isinstance(token, int):
             token = u"%0*d" % (digits, token)
         else:
             token = to_unicode(token, param="token")
@@ -1089,7 +1089,7 @@ class TOTP(object):
         :returns: token as unicode string
         """
         # generate digest
-        assert isinstance(counter, int_types), "counter must be integer"
+        assert isinstance(counter, int), "counter must be integer"
         assert counter >= 0, "counter must be non-negative"
         keyed_hmac = self._keyed_hmac
         if keyed_hmac is None:

@@ -516,7 +516,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
     @classmethod
     def _norm_version(cls, version):
-        if not isinstance(version, uh.int_types):
+        if not isinstance(version, int):
             raise uh.exc.ExpectedTypeError(version, "integer", "version")
 
         # minimum valid version

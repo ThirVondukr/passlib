@@ -47,7 +47,6 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import int_types
 # local
 __all__ = [
     "expand_des_key",
@@ -612,7 +611,7 @@ def expand_des_key(key):
     if isinstance(key, bytes):
         if len(key) != 7:
             raise ValueError("key must be 7 bytes in size")
-    elif isinstance(key, int_types):
+    elif isinstance(key, int):
         if key < 0 or key > INT_56_MASK:
             raise ValueError("key must be 56-bit non-negative integer")
         return _unpack64(expand_des_key(_pack56(key)))
@@ -632,7 +631,7 @@ def shrink_des_key(key):
         if len(key) != 8:
             raise ValueError("key must be 8 bytes in size")
         return _pack56(shrink_des_key(_unpack64(key)))
-    elif isinstance(key, int_types):
+    elif isinstance(key, int):
         if key < 0 or key > INT_64_MASK:
             raise ValueError("key must be 64-bit non-negative integer")
     else:
@@ -746,13 +745,13 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         raise ValueError("salt must be 24-bit non-negative integer")
 
     # validate & unpack key
-    if not isinstance(key, int_types):
+    if not isinstance(key, int):
         raise exc.ExpectedTypeError(key, "int", "key")
     elif key < 0 or key > INT_64_MASK:
         raise ValueError("key must be 64-bit non-negative integer")
 
     # validate & unpack input
-    if not isinstance(input, int_types):
+    if not isinstance(input, int):
         raise exc.ExpectedTypeError(input, "int", "input")
     elif input < 0 or input > INT_64_MASK:
         raise ValueError("input must be 64-bit non-negative integer")
