@@ -3,6 +3,7 @@
 # imports
 #=============================================================================
 # core
+from binascii import Error as DecodeError
 import datetime
 from functools import partial
 import logging; log = logging.getLogger(__name__)
@@ -24,16 +25,6 @@ __all__ = [
 #=============================================================================
 # helpers
 #=============================================================================
-
-# XXX: python 3 changed what error base64.b16decode() throws, from TypeError to base64.Error().
-#      it wasn't until 3.3 that base32decode() also got changed.
-#      really should normalize this in the code to a single BinaryDecodeError,
-#      predicting this cross-version is getting unmanagable.
-Base32DecodeError = Base16DecodeError = TypeError
-if sys.version_info >= (3,0):
-    from binascii import Error as Base16DecodeError
-if sys.version_info >= (3,3):
-    from binascii import Error as Base32DecodeError
 
 PASS1 = "abcdef"
 PASS2 = b"\x00\xFF"
@@ -629,13 +620,13 @@ class TotpTest(TestCase):
         self.assertEqual(TOTP(' 4aog gdbb qsyh ntuz ').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(Base32DecodeError, TOTP, 'ao!ggdbbqsyhntuz')
+        self.assertRaises(DecodeError, TOTP, 'ao!ggdbbqsyhntuz')
 
         # handle hex encoding
         self.assertEqual(TOTP('e01c630c2184b076ce99', 'hex').key, KEY1_RAW)
 
             # .. w/ invalid char
-        self.assertRaises(Base16DecodeError, TOTP, 'X01c630c2184b076ce99', 'hex')
+        self.assertRaises(DecodeError, TOTP, 'X01c630c2184b076ce99', 'hex')
 
         # handle raw bytes
         self.assertEqual(TOTP(KEY1_RAW, "raw").key, KEY1_RAW)
@@ -1278,8 +1269,8 @@ class TotpTest(TestCase):
         self.assertRaises(ValueError, from_uri, "otpauth://totp/Example:alice@google.com?digits=6")
 
         # undecodable secret
-        self.assertRaises(Base32DecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
-                                                       "secret=JBSWY3DPEHP@3PXP")
+        self.assertRaises(DecodeError, from_uri, "otpauth://totp/Example:alice@google.com?"
+                                                 "secret=JBSWY3DPEHP@3PXP")
 
         #--------------------------------------------------------------------------------
         # label param
@@ -1468,8 +1459,7 @@ class TotpTest(TestCase):
         self.assertRaises(ValueError, from_dict, dict(v=1, type="totp"))
 
         # undecodable secret
-        self.assertRaises(Base32DecodeError, from_dict,
-                          dict(v=1, type="totp", key="JBSWY3DPEHP@3PXP"))
+        self.assertRaises(DecodeError, from_dict, dict(v=1, type="totp", key="JBSWY3DPEHP@3PXP"))
 
         #--------------------------------------------------------------------------------
         # label & issuer params

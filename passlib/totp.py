@@ -54,20 +54,6 @@ __all__ = [
 ]
 
 #=============================================================================
-# HACK: python < 2.7.4's urlparse() won't parse query strings unless the url scheme
-#       is one of the schemes in the urlparse.uses_query list. 2.7 abandoned
-#       this, and parses query if present, regardless of the scheme.
-#       as a workaround for older versions, we add "otpauth" to the known list.
-#       this was fixed by https://bugs.python.org/issue9374, in 2.7.4 release.
-#=============================================================================
-if sys.version_info < (2,7,4):
-    from urlparse import uses_query
-    if "otpauth" not in uses_query:
-        uses_query.append("otpauth")
-        log.debug("registered 'otpauth' scheme with urlparse.uses_query")
-    del uses_query
-
-#=============================================================================
 # internal helpers
 #=============================================================================
 
