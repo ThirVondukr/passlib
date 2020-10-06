@@ -13,7 +13,7 @@ It is known to work with the following Python implementations:
 
 .. warning::
 
-    **Passlib 1.8 is dropping support for Python 2.x, 3.3, and 3.4**;
+    **Passlib 1.8 will drop support for Python 2.x, 3.3, and 3.4**;
     and will require Python >= 3.5.  The 1.7 series will be the
     last to support Python 2.  (See :issue:`119` for rationale).
 
