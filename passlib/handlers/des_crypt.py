@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode, suppress_cause
+from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
@@ -579,8 +579,8 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         # parse salt value
         try:
             salt_value = h64.decode_int12(self.salt.encode("ascii"))
-        except ValueError: # pragma: no cover - caught by class
-            raise suppress_cause(ValueError("invalid chars in salt"))
+        except ValueError:  # pragma: no cover - caught by class
+            raise ValueError("invalid chars in salt") from None
 
         # convert first 8 byts of secret string into an integer,
         key1 = _crypt_secret_to_key(secret)

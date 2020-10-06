@@ -32,7 +32,7 @@ from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
 from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
-                                  byte_elem_value, UnicodeIO, suppress_cause)
+                                  byte_elem_value, UnicodeIO)
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
@@ -358,7 +358,7 @@ class AppWallet(object):
         try:
             return secrets[tag]
         except KeyError:
-            raise suppress_cause(KeyError("unknown secret tag: %r" % (tag,)))
+            raise KeyError("unknown secret tag: %r" % (tag,)) from None
 
     #========================================================================
     # encrypted key helpers -- used internally by TOTP

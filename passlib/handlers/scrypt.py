@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.crypto import scrypt as _scrypt
 from passlib.utils import h64, to_bytes
 from passlib.utils.binary import h64, b64s_decode, b64s_encode
-from passlib.utils.compat import bascii_to_str, suppress_cause
+from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -163,7 +163,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         try:
             _scrypt.validate(1 << cls.default_rounds, cls.block_size, cls.parallelism)
         except ValueError as err:
-            raise suppress_cause(ValueError("scrypt: invalid settings combination: " + str(err)))
+            raise ValueError("scrypt: invalid settings combination: " + str(err)) from None
 
         return subcls
 
@@ -287,7 +287,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             try:
                 salt.decode("ascii")
             except UnicodeDecodeError:
-                raise suppress_cause(NotImplementedError("scrypt $7$ hashes dont support non-ascii salts"))
+                raise NotImplementedError("scrypt $7$ hashes dont support non-ascii salts") from None
             return bascii_to_str(b"".join([
                 b"$7$",
                 h64.encode_int6(self.rounds),

@@ -178,20 +178,6 @@ def get_method_function(func):
     """given (potential) method, return underlying function"""
     return getattr(func, "__func__", func)
 
-def error_from(exc,  # *,
-               cause=None):
-    """
-    backward compat hack to suppress exception cause in python3.3+
-
-    one python < 3.3 support is dropped, can replace all uses with "raise exc from None"
-    """
-    exc.__cause__ = cause
-    exc.__suppress_context__ = True
-    return exc
-
-# legacy alias
-suppress_cause = error_from
-
 #=============================================================================
 # input/output
 #=============================================================================

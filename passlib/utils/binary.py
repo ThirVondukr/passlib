@@ -20,7 +20,6 @@ from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
     iter_byte_chars, join_byte_values, join_byte_elems,
-    suppress_cause,
     unicode, unicode_or_bytes_types,
 )
 from passlib.utils.decor import memoized_property
@@ -156,7 +155,7 @@ def b64s_decode(data):
         try:
             data = data.encode("ascii")
         except UnicodeEncodeError:
-            raise suppress_cause(ValueError("string argument should contain only ASCII characters"))
+            raise ValueError("string argument should contain only ASCII characters") from None
     off = len(data) & 3
     if off == 0:
         pass
@@ -169,7 +168,7 @@ def b64s_decode(data):
     try:
         return a2b_base64(data)
     except _BinAsciiError as err:
-        raise suppress_cause(TypeError(err))
+        raise TypeError(err) from None
 
 #=============================================================================
 # adapted-base64 encoding
@@ -202,7 +201,7 @@ def ab64_decode(data):
         try:
             data = data.encode("ascii")
         except UnicodeEncodeError:
-            raise suppress_cause(ValueError("string argument should contain only ASCII characters"))
+            raise ValueError("string argument should contain only ASCII characters") from None
     return b64s_decode(data.replace(b".", b"+"))
 
 #=============================================================================

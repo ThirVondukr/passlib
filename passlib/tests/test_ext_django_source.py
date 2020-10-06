@@ -8,7 +8,6 @@ test passlib.ext.django against django source tests
 import logging; log = logging.getLogger(__name__)
 # site
 # pkg
-from passlib.utils.compat import suppress_cause
 from passlib.ext.django.utils import DJANGO_VERSION, DjangoTranslator, _PasslibHasherWrapper
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE
@@ -59,10 +58,8 @@ elif has_min_django:
         try:
             from auth_tests import test_hashers as test_hashers_mod
         except ImportError as err:
-            raise suppress_cause(
-                EnvironmentError("error trying to import django tests "
-                                 "from source path (%r): %r" %
-                                 (source_path, err)))
+            raise  EnvironmentError("error trying to import django tests "
+                                    "from source path (%r): %r" % (source_path, err)) from None
         finally:
             sys.path.remove(tests_path)
 

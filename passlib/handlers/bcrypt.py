@@ -29,7 +29,7 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii, error_from
+from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -812,10 +812,10 @@ class _OsCryptBackend(_BcryptCommon):
             try:
                 secret.decode("utf-8")
             except UnicodeDecodeError:
-                raise error_from(uh.exc.PasswordValueError(
+                raise uh.exc.PasswordValueError(
                     "python3 crypt.crypt() ony supports bytes passwords using UTF8; "
                     "passlib recommends running `pip install bcrypt` for general bcrypt support.",
-                    ), None)
+                    ) from None
 
         #
         # else crypt() call failed for unknown reason.

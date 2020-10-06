@@ -32,7 +32,7 @@ except ImportError:
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
                           SequenceMixin, as_bool
-from passlib.utils.compat import int_types, unicode_or_bytes_types, error_from
+from passlib.utils.compat import int_types, unicode_or_bytes_types
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
