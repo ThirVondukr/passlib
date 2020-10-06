@@ -61,7 +61,6 @@ __all__ = [
     'iter_byte_values',
 
     # iteration helpers
-    'itervalues',
     'next',
 
     # collections
@@ -174,9 +173,6 @@ num_types = (int, float)
 # iteration helpers
 #=============================================================================
 if True:  # legacy PY3 indent
-
-    def itervalues(d):
-        return d.values()
 
     def nextgetter(obj):
         return obj.__next__

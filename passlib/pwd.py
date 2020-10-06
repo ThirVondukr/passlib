@@ -17,7 +17,7 @@ import os
 # site
 # pkg
 from passlib import exc
-from passlib.utils.compat import itervalues, int_types
+from passlib.utils.compat import int_types
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
 # local
@@ -86,7 +86,7 @@ def _self_info_rate(source):
         values = counts.values()
         size = sum(values)
     else:
-        values = itervalues(counts)
+        values = counts.values()
     if not size:
         return 0
     # NOTE: the following performs ``- sum(value / size * logf(value / size, 2) for value in values)``,
