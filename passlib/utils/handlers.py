@@ -27,7 +27,7 @@ from passlib.utils.binary import (
     ALL_BYTE_VALUES,
 )
 from passlib.utils.compat import join_byte_values, \
-                                 join_unicode, str_to_uascii, \
+                                 join_unicode, \
                                  join_unicode, unicode_or_bytes, int_types
 from passlib.utils.decor import classproperty, deprecated_method
 # local

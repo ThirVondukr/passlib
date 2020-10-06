@@ -15,7 +15,6 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
-from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
                                  quicksleep, time_call, handler_derived_from)
@@ -1155,7 +1154,7 @@ sha512_crypt__min_rounds = 45000
                 from hashlib import md5
                 if isinstance(secret, str):
                     secret = secret.encode("utf-8")
-                return str_to_uascii(md5(secret).hexdigest())
+                return md5(secret).hexdigest()
 
         # calling needs_update should query callback
         ctx = CryptContext([dummy])
@@ -1710,7 +1709,7 @@ class DelayHash(uh.StaticHandler):
         time.sleep(self.delay)
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
-        return str_to_uascii(hashlib.sha1(b"prefix" + secret).hexdigest())
+        return hashlib.sha1(b"prefix" + secret).hexdigest()
 
 #=============================================================================
 # LazyCryptContext

@@ -43,7 +43,7 @@ __all__ = [
 
     # unicode/bytes types & helpers
     'bascii_to_str',
-    'str_to_uascii', 'str_to_bascii',
+    'str_to_bascii',
     'join_unicode', 'join_bytes',
     'join_byte_values', 'join_byte_elems',
     'byte_elem_value',
@@ -82,10 +82,6 @@ if True:  # legacy PY3 indent
         assert isinstance(s, bytes)
         return s.decode("ascii")
 
-    def str_to_uascii(s):
-        assert isinstance(s, str)
-        return s
-
     def str_to_bascii(s):
         assert isinstance(s, str)
         return s.encode("ascii")
@@ -107,7 +103,6 @@ if True:  # legacy PY3 indent
 
 # TODO: move docstrings to funcs...
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
-add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
 add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # join_byte_values -- function to convert list of ordinal integers to byte string.

@@ -10,7 +10,6 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode, xor_bytes
-from passlib.utils.compat import str_to_uascii
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
 # local
@@ -160,7 +159,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()
-        return str_to_uascii(chk).upper()
+        return chk.upper()
 
     #===================================================================
     # eoc

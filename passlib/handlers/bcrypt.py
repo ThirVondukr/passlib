@@ -29,7 +29,6 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -688,7 +687,7 @@ class _BcryptorBackend(_BcryptCommon):
         hash = _bcryptor.engine.Engine(False).hash_key(secret, config)
         if not hash.startswith(config) or len(hash) != len(config) + 31:
             raise uh.exc.CryptBackendError(self, config, hash, source="bcryptor library")
-        return str_to_uascii(hash[-31:])
+        return hash[-31:]
 
 #-----------------------------------------------------------------------
 # pybcrypt backend
@@ -756,7 +755,7 @@ class _PyBcryptBackend(_BcryptCommon):
         hash = _pybcrypt.hashpw(secret, config)
         if not hash.startswith(config) or len(hash) != len(config) + 31:
             raise uh.exc.CryptBackendError(self, config, hash, source="pybcrypt library")
-        return str_to_uascii(hash[-31:])
+        return hash[-31:]
 
     _calc_checksum = _calc_checksum_raw
 

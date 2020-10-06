@@ -13,7 +13,6 @@ from passlib.handlers.bcrypt import _wrapped_bcrypt
 from passlib.hash import argon2, bcrypt, pbkdf2_sha1, pbkdf2_sha256
 from passlib.utils import to_unicode, rng, getrandstr
 from passlib.utils.binary import BASE64_CHARS
-from passlib.utils.compat import str_to_uascii
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local
@@ -121,7 +120,7 @@ class django_salted_sha1(DjangoSaltedHash):
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
-        return str_to_uascii(sha1(self.salt.encode("ascii") + secret).hexdigest())
+        return sha1(self.salt.encode("ascii") + secret).hexdigest()
 
 class django_salted_md5(DjangoSaltedHash):
     """This class implements Django's Salted MD5 hash, and follows the :ref:`password-hash-api`.
@@ -159,7 +158,7 @@ class django_salted_md5(DjangoSaltedHash):
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
-        return str_to_uascii(md5(self.salt.encode("ascii") + secret).hexdigest())
+        return md5(self.salt.encode("ascii") + secret).hexdigest()
 
 #=============================================================================
 # BCrypt

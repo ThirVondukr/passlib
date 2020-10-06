@@ -11,7 +11,6 @@ import warnings
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.exc import MissingBackendError, PasslibHashWarning
-from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase
 # module
@@ -748,7 +747,8 @@ class UnsaltedHash(uh.StaticHandler):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         data = b"boblious" + secret
-        return str_to_uascii(hashlib.sha1(data).hexdigest())
+        return hashlib.sha1(data).hexdigest()
+
 
 class SaltedHash(uh.HasSalt, uh.GenericHandler):
     """test algorithm with a salt"""
@@ -778,7 +778,8 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         data = self.salt.encode("ascii") + secret + self.salt.encode("ascii")
-        return str_to_uascii(hashlib.sha1(data).hexdigest())
+        return hashlib.sha1(data).hexdigest()
+
 
 #=============================================================================
 # test sample algorithms - really a self-test of HandlerCase

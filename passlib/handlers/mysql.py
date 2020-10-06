@@ -30,8 +30,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str
-from passlib.utils.compat import bascii_to_str, \
-                                 byte_elem_value, str_to_uascii
+from passlib.utils.compat import byte_elem_value
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -117,7 +116,7 @@ class mysql41(uh.StaticHandler):
         # FIXME: no idea if mysql has a policy about handling unicode passwords
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
-        return str_to_uascii(sha1(sha1(secret).digest()).hexdigest()).upper()
+        return sha1(sha1(secret).digest()).hexdigest().upper()
 
     #===================================================================
     # eoc
