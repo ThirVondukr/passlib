@@ -124,9 +124,17 @@ django_context = django110_context
 #=============================================================================
 # ldap
 #=============================================================================
-std_ldap_schemes = ["ldap_salted_sha1", "ldap_salted_md5",
-                      "ldap_sha1", "ldap_md5",
-                      "ldap_plaintext" ]
+
+#: standard ldap schemes
+std_ldap_schemes = [
+    "ldap_salted_sha512",
+    "ldap_salted_sha256",
+    "ldap_salted_sha1",
+    "ldap_salted_md5",
+    "ldap_sha1",
+    "ldap_md5",
+    "ldap_plaintext",
+]
 
 # create context with all std ldap schemes EXCEPT crypt
 ldap_nocrypt_context = LazyCryptContext(std_ldap_schemes)

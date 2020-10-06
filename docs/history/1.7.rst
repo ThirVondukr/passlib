@@ -35,6 +35,13 @@ Administrative Changes
 
   The mailing list and documentation urls remain the same.
 
+New Features
+------------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`ldap_salted_sha512`: LDAP "salted hash" support added for SHA-256 and SHA-512 (:issue:`124`).
+
 Bugfixes
 --------
 

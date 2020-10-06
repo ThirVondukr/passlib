@@ -62,6 +62,8 @@ Salted Hashes
 =============
 .. autoclass:: ldap_salted_md5()
 .. autoclass:: ldap_salted_sha1()
+.. autoclass:: ldap_salted_sha256()
+.. autoclass:: ldap_salted_sha512()
 
 These hashes have the format :samp:`{prefix}{data}`.
 
@@ -94,6 +96,9 @@ The LDAP salted hashes should not be considered very secure.
 * They currently use only 32 bits of entropy in their salt,
   which is only borderline sufficient to defeat rainbow tables,
   and cannot (portably) be increased.
+
+* The SHA2 salted hashes (SSHA256, SSHA512) are only marginally better.
+  they use the newer SHA2 hash; and 64 bits of entropy in their salt.
 
 Plaintext
 =========

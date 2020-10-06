@@ -168,6 +168,8 @@ and are supported by OpenLDAP.
 * :class:`passlib.hash.ldap_sha1` - SHA1 digest
 * :class:`passlib.hash.ldap_salted_md5` - salted MD5 digest
 * :class:`passlib.hash.ldap_salted_sha1` - salted SHA1 digest
+* :class:`passlib.hash.ldap_salted_sha256` - salted SHA256 digest
+* :class:`passlib.hash.ldap_salted_sha512` - salted SHA512 digest
 
 .. toctree::
     :maxdepth: 1
