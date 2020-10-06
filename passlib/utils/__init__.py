@@ -855,6 +855,9 @@ try:
 except ImportError: # pragma: no cover
     _crypt = None
     has_crypt = False
+    crypt_accepts_bytes = False
+    crypt_needs_lock = False
+    _safe_crypt_lock = None
     def safe_crypt(secret, hash):
         return None
 else:
