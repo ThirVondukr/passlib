@@ -19,7 +19,6 @@ import logging; log = logging.getLogger(__name__)
 from warnings import warn
 # site
 _bcrypt = None # dynamically imported by _load_backend_bcrypt()
-_pybcrypt = None # dynamically imported by _load_backend_pybcrypt()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.crypto.digest import compile_hmac
@@ -651,75 +650,6 @@ class _BcryptBackend(_BcryptCommon):
             raise uh.exc.CryptBackendError(self, config, hash, source="`bcrypt` package")
         return hash[-31:].decode("ascii")
 
-#-----------------------------------------------------------------------
-# pybcrypt backend
-#-----------------------------------------------------------------------
-class _PyBcryptBackend(_BcryptCommon):
-    """
-    backend which uses 'pybcrypt' package
-    """
-
-    #: classwide thread lock used for pybcrypt < 0.3
-    _calc_lock = None
-
-    @classmethod
-    def _load_backend_mixin(mixin_cls, name, dryrun):
-        # try to import pybcrypt
-        global _pybcrypt
-        if not _detect_pybcrypt():
-            # not installed, or bcrypt installed instead
-            return False
-        try:
-            import bcrypt as _pybcrypt
-        except ImportError: # pragma: no cover
-            # XXX: should we raise AssertionError here? (if get here, _detect_pybcrypt() is broken)
-            return False
-
-        # deprecated as of 1.7.2
-        if not dryrun:
-            warn("Support for `py-bcrypt` is deprecated, and will be removed in Passlib 1.8; "
-                 "Please use `pip install bcrypt` instead", DeprecationWarning)
-
-        # determine pybcrypt version
-        try:
-            version = _pybcrypt._bcrypt.__version__
-        except:
-            log.warning("(trapped) error reading pybcrypt version", exc_info=True)
-            version = "<unknown>"
-        log.debug("detected 'pybcrypt' backend, version %r", version)
-
-        # return calc function based on version
-        vinfo = parse_version(version) or (0, 0)
-        if vinfo < (0, 3):
-            warn("py-bcrypt %s has a major security vulnerability, "
-                 "you should upgrade to py-bcrypt 0.3 immediately."
-                 % version, uh.exc.PasslibSecurityWarning)
-            if mixin_cls._calc_lock is None:
-                import threading
-                mixin_cls._calc_lock = threading.Lock()
-            mixin_cls._calc_checksum = mixin_cls._calc_checksum_threadsafe
-
-        return mixin_cls._finalize_backend_mixin(name, dryrun)
-
-    def _calc_checksum_threadsafe(self, secret):
-        # as workaround for pybcrypt < 0.3's concurrency issue,
-        # we wrap everything in a thread lock. as long as bcrypt is only
-        # used through passlib, this should be safe.
-        with self._calc_lock:
-            return self._calc_checksum_raw(secret)
-
-    def _calc_checksum_raw(self, secret):
-        # py-bcrypt behavior:
-        #   py3: unicode secret encoded as utf-8 bytes,
-        #        hash encoded as ascii bytes, returns ascii unicode.
-        secret, ident = self._prepare_digest_args(secret)
-        config = self._get_config(ident)
-        hash = _pybcrypt.hashpw(secret, config)
-        if not hash.startswith(config) or len(hash) != len(config) + 31:
-            raise uh.exc.CryptBackendError(self, config, hash, source="pybcrypt library")
-        return hash[-31:]
-
-    _calc_checksum = _calc_checksum_raw
 
 #-----------------------------------------------------------------------
 # os crypt backend
@@ -898,7 +828,7 @@ class bcrypt(_NoBackend, _BcryptCommon):
     #       in order to load the appropriate backend.
 
     #: list of potential backends
-    backends = ("bcrypt", "pybcrypt", "os_crypt", "builtin")
+    backends = ("bcrypt", "os_crypt", "builtin")
 
     #: flag that this class's bases should be modified by SubclassBackendMixin
     _backend_mixin_target = True
@@ -907,7 +837,6 @@ class bcrypt(_NoBackend, _BcryptCommon):
     _backend_mixin_map = {
         None: _NoBackend,
         "bcrypt": _BcryptBackend,
-        "pybcrypt": _PyBcryptBackend,
         "os_crypt": _OsCryptBackend,
         "builtin": _BuiltinBackend,
     }
