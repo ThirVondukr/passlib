@@ -23,7 +23,7 @@ Passlib |release| documentation
 
 .. note::
 
-  **2020-05-01: Passlib's public repositiory has moved to Heptapod!**
+  **2020-05-01: Passlib's public repository has moved to Heptapod!**
 
   Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
   has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,
