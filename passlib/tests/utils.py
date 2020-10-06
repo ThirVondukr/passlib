@@ -366,6 +366,9 @@ class TestCase(_TestCase):
             ctx.__enter__()
             self.addCleanup(ctx.__exit__)
 
+            # ignore security warnings, tests may deliberately cause these
+            warnings.filterwarnings("ignore", category=exc.PasslibSecurityWarning)
+
             # ignore warnings about PasswordHash features deprecated in 1.7
             # TODO: should be cleaned in 2.0, when support will be dropped.
             #       should be kept until then, so we test the legacy paths.
