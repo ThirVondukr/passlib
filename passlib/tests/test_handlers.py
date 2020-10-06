@@ -10,7 +10,7 @@ import sys
 import warnings
 # site
 # pkg
-from passlib import hash
+from passlib import exc, hash
 from passlib.utils import repeat_string
 from passlib.utils.compat import irange, PY3, u, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
@@ -43,12 +43,30 @@ _handler_test_modules = [
 ]
 
 def get_handler_case(scheme):
-    """return HandlerCase instance for scheme, used by other tests"""
+    """
+    return HandlerCase instance for scheme, used by other tests.
+
+    :param scheme: name of hasher to locate test for (e.g. "bcrypt")
+
+    :raises KeyError:
+        if scheme isn't known hasher.
+
+    :raises MissingBackendError:
+        if hasher doesn't have any available backends.
+
+    :returns:
+        HandlerCase subclass (which derives from TestCase)
+    """
     from passlib.registry import get_crypt_handler
     handler = get_crypt_handler(scheme)
     if hasattr(handler, "backends") and scheme not in _omitted_backend_tests:
-        # NOTE: will throw MissingBackendError if none are installed.
-        backend = handler.get_backend()
+        # XXX: if no backends available, could proceed to pick first backend for test lookup;
+        #      should investigate if that would be useful to callers.
+        try:
+            backend = handler.get_backend()
+        except exc.MissingBackendError:
+            assert scheme in conditionally_available_hashes
+            raise
         name = "%s_%s_test" % (scheme, backend)
     else:
         name = "%s_test" % scheme
@@ -60,7 +78,9 @@ def get_handler_case(scheme):
             return getattr(mod, name)
         except AttributeError:
             pass
-    raise KeyError("test case %r not found" % name)
+    # every hasher should have test suite, so if we get here, means test is either missing,
+    # misnamed, or _handler_test_modules list is out of date.
+    raise RuntimeError("can't find test case named %r for %r" % (name, scheme))
 
 #: hashes which there may not be a backend available for,
 #: and get_handler_case() may (correctly) throw a MissingBackendError

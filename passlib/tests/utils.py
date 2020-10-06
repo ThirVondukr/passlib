@@ -665,6 +665,18 @@ class TestCase(_TestCase):
             wraps(orig)(value)
         setattr(obj, attr, value)
 
+    def getLogger(self):
+        """
+        return logger named after current test.
+        """
+        cls = type(self)
+        # NOTE: conditional on qualname for PY2 compat
+        path = cls.__module__ + "." + getattr(cls, "__qualname__", cls.__name__)
+        name = self._testMethodName
+        if name:
+            path = path + "." + name
+        return logging.getLogger(path)
+
     #===================================================================
     # eoc
     #===================================================================
