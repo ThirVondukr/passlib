@@ -64,6 +64,9 @@ opts = dict(
         ],
     },
 
+    # NOTE: 'python_requires' should be kept in sync w/ passlib.utils.compat's version check.
+    python_requires='>=3.5',
+
     #==================================================================
     # details
     #==================================================================
@@ -71,7 +74,7 @@ opts = dict(
     "comprehensive password hashing framework supporting over 30 schemes",
 
     long_description="""\
-Passlib is a password hashing library for Python 2 & 3, which provides
+Passlib is a password hashing library for Python 3, which provides
 cross-platform implementations of over 30 password hashing algorithms, as well
 as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to
@@ -103,12 +106,7 @@ Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Natural Language :: English
 Operating System :: OS Independent
-Programming Language :: Python :: 2
-Programming Language :: Python :: 2.6
-Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
-Programming Language :: Python :: 3.3
-Programming Language :: Python :: 3.4
 Programming Language :: Python :: 3.5
 Programming Language :: Python :: 3.6
 Programming Language :: Python :: 3.7

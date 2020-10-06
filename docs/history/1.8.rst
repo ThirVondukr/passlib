@@ -20,8 +20,17 @@ Overview
 
    See https://passlib.readthedocs.io/en/stable/history/1.7.html for the latest release.
 
+Requirements
+------------
+
+* **Passlib now requires Python >= 3.5.**  As of this release, support for Python 2.x, 3.3,
+  and 3.4 has been dropped.   If you need to use Passlib on an earlier version of Python,
+  please use the :doc:`1.7` series, which will be maintained in bugfix-only mode
+  for few more releases. (See :issue:`119` for rationale).
+
 Backwards Incompatibilities
 ---------------------------
+
 The following previously-deprecated features were removed,
 though few of these should be in use, as they've been deprecated
 for a number of years / releases:

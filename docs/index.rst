@@ -33,7 +33,7 @@ Passlib |release| documentation
 
 Welcome
 =======
-Passlib is a password hashing library for Python 2 & 3, which provides
+Passlib is a password hashing library for Python 3, which provides
 cross-platform implementations of over 30 password hashing algorithms, as well
 as a framework for managing existing password hashes. It's designed to be useful
 for a wide range of tasks, from verifying a hash found in /etc/shadow, to

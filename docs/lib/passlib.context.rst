@@ -507,9 +507,3 @@ if any invalid-but-correctable values are encountered
 Other Helpers
 =============
 .. autoclass:: LazyCryptContext([schemes=None,] \*\*kwds [, onload=None])
-
-.. rst-class:: html-toggle
-
-The CryptPolicy Class (deprecated)
-==================================
-.. autoclass:: CryptPolicy

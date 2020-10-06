@@ -10,18 +10,12 @@ Release History
 
     **For the latest release:** see :ref:`What's New <whats-new>` in Passlib 1.8
 
+.. rst-class:: float-center without-title
+
 .. toctree::
     :maxdepth: 2
 
     1.8 Series <1.8>
-
-.. rst-class:: float-center without-title
-
-.. warning::
-
-    **Passlib 1.8 will drop support for Python 2.x, 3.3, and 3.4**;
-    and will require Python >= 3.5.  The 1.7 series will be the last
-    to support Python 2.7.  (See :issue:`119` for rationale).
 
 .. toctree::
     :maxdepth: 2

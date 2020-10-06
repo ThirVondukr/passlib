@@ -11,8 +11,8 @@ PY2 = sys.version_info < (3,0)
 PY3 = sys.version_info >= (3,0)
 
 # make sure it's not an unsupported version, even if we somehow got this far
-if sys.version_info < (2,6) or (3,0) <= sys.version_info < (3,2):
-    raise RuntimeError("Passlib requires Python 2.6, 2.7, or >= 3.2 (as of passlib 1.7)")
+if sys.version_info < (3, 5):
+    raise RuntimeError("Passlib requires Python >= 3.5 (as of passlib 1.8)")
 
 PY26 = sys.version_info < (2,7)
 
