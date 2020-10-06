@@ -17,7 +17,7 @@ from passlib.utils import (handlers as uh, to_bytes,
                            as_bool, timer, rng, getrandstr,
                            )
 from passlib.utils.binary import BASE64_CHARS
-from passlib.utils.compat import (iteritems, num_types, irange,
+from passlib.utils.compat import (iteritems, num_types,
                                   unicode, SafeConfigParser,
                                   NativeStringIO, BytesIO,
                                   unicode_or_bytes_types, native_string_types,

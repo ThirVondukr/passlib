@@ -26,7 +26,7 @@ from passlib.utils.binary import (
     HEX_CHARS, UPPER_HEX_CHARS, LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,
 )
-from passlib.utils.compat import join_byte_values, irange, native_string_types, \
+from passlib.utils.compat import join_byte_values, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, int_types
 from passlib.utils.decor import classproperty, deprecated_method

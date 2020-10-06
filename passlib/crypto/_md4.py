@@ -20,7 +20,7 @@ Implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
 from binascii import hexlify
 import struct
 # site
-from passlib.utils.compat import bascii_to_str, irange
+from passlib.utils.compat import bascii_to_str
 # local
 __all__ = ["md4"]
 
@@ -176,7 +176,7 @@ class md4(object):
             state[a] = ((t<<s) & MASK_32) + (t>>(32-s))
 
         # add back into original state
-        for i in irange(4):
+        for i in range(4):
             orig[i] = (orig[i]+state[i]) & MASK_32
 
     def update(self, content):

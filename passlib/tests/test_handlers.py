@@ -11,7 +11,7 @@ import warnings
 # pkg
 from passlib import exc, hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, get_method_function
+from passlib.utils.compat import range, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
         TEST_MODE, UserHandlerMixin, EncodingHandlerMixin
 # module

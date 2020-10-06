@@ -11,7 +11,6 @@ import warnings
 from passlib import hash
 from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
 from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
-from passlib.utils.compat import irange
 from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE
 # module
@@ -365,9 +364,9 @@ class _bcrypt_test(HandlerCase):
                 "unexpectedly malformed hash: %r" % (hash,)
             self.assertTrue(hash[28] in '.Oeu',
                             "unused bits incorrectly set in hash: %r" % (hash,))
-        for i in irange(6):
+        for i in range(6):
             check_padding(bcrypt.genconfig())
-        for i in irange(3):
+        for i in range(3):
             check_padding(bcrypt.using(rounds=bcrypt.min_rounds).hash("bob"))
 
         #

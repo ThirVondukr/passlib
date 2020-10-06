@@ -47,8 +47,7 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import join_byte_values, byte_elem_value, \
-                                 irange, irange, int_types
+from passlib.utils.compat import join_byte_values, byte_elem_value, int_types
 # local
 __all__ = [
     "expand_des_key",
@@ -606,7 +605,7 @@ def _unpack56(value):
 ##    assert 0 <= value < 0x80, "value out of range"
 ##    return (value<<1) | (0x9669 >> ((value ^ (value >> 4)) & 0xf)) & 1
 
-_EXPAND_ITER = irange(49,-7,-7)
+_EXPAND_ITER = range(49, -7, -7)
 
 def expand_des_key(key):
     """convert DES from 7 bytes to 8 bytes (by inserting empty parity bits)"""

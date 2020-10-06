@@ -10,8 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode, xor_bytes
-from passlib.utils.compat import irange, \
-                                 uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
 # local
@@ -41,7 +40,7 @@ def des_cbc_encrypt(key, value, iv=b'\x00' * 8, pad=b'\x00'):
     """
     value += pad * (-len(value) % 8) # null pad to multiple of 8
     hash = iv # start things off
-    for offset in irange(0,len(value),8):
+    for offset in range(0, len(value), 8):
         chunk = xor_bytes(hash, value[offset:offset+8])
         hash = des_encrypt_block(key, chunk)
     return hash

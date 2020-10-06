@@ -6,14 +6,13 @@
 import os
 import textwrap
 # pkg
-from passlib.utils.compat import irange
 # local
 
 #=============================================================================
 # helpers
 #=============================================================================
 def varlist(name, count):
-    return ", ".join(name + str(x) for x in irange(count))
+    return ", ".join(name + str(x) for x in range(count))
 
 
 def indent_block(block, padding):
@@ -30,7 +29,7 @@ BFSTR = """\
 """.strip()
 
 def render_encipher(write, indent=0):
-    for i in irange(0, 15, 2):
+    for i in range(0, 15, 2):
         write(indent, """\
             # Feistel substitution on left word (round %(i)d)
             r ^= %(left)s ^ p%(i1)d
@@ -74,7 +73,7 @@ def write_expand_function(write, indent=0):
             # integrate key
             #=============================================================
         """)
-    for i in irange(18):
+    for i in range(18):
         write(indent+1, """\
             p%(i)d = P[%(i)d] ^ key_words[%(i)d]
         """, i=i)
@@ -99,7 +98,7 @@ def write_expand_function(write, indent=0):
 
         """)
 
-    for i in irange(2, 18, 2):
+    for i in range(2, 18, 2):
         write(indent+1, """\
             #------------------------------------------------
             # update P[%(i)d] and P[%(i1)d]

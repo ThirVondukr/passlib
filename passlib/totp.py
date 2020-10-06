@@ -32,7 +32,7 @@ from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
 from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
-                                  irange, byte_elem_value, UnicodeIO, suppress_cause)
+                                  byte_elem_value, UnicodeIO, suppress_cause)
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
@@ -92,7 +92,7 @@ def group_string(value, sep="-"):
     """
     klen = len(value)
     size = _get_group_size(klen)
-    return sep.join(value[o:o+size] for o in irange(0, klen, size))
+    return sep.join(value[o:o+size] for o in range(0, klen, size))
 
 #-----------------------------------------------------------------------------
 # encoding helpers
@@ -1273,8 +1273,8 @@ class TOTP(object):
         # XXX: if (end - start) is very large (e.g. for resync purposes),
         #      could start with expected value, and work outward from there,
         #      alternately checking before & after it until match is found.
-        # XXX: can't use irange(start, end) here since py2x/win32
-        #      throws error on values >= (1<<31), which 'end' can be.
+        # TODO: replace counter loop with "for counter in range(start, end)";
+        #       think this was holding from PY2+win32 issue with values > 32 bit (e.g. 'end').
         counter = start
         while counter < end:
             if consteq(token, generate(counter)):

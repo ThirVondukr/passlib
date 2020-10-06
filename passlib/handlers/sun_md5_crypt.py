@@ -19,8 +19,7 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, irange, \
-                                 uascii_to_str, unicode, str_to_bascii
+from passlib.utils.compat import byte_elem_value, uascii_to_str, unicode, str_to_bascii
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -73,7 +72,7 @@ MAGIC_HAMLET = (
 )
 
 # NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
-xr = irange(7)
+xr = range(7)
 _XY_ROUNDS = [
     tuple((i,i,i+3) for i in xr), # xrounds 0
     tuple((i,i+1,i+4) for i in xr), # xrounds 1

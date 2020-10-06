@@ -61,7 +61,6 @@ __all__ = [
     'iter_byte_values',
 
     # iteration helpers
-    'irange', #'lrange',
     'imap', 'lmap',
     'iteritems', 'itervalues',
     'next',
@@ -175,16 +174,12 @@ num_types = (int, float)
 #=============================================================================
 # iteration helpers
 #
-# irange - range iterable / view (xrange under py2, range under py3)
 # lrange - range list (range under py2, list(range()) under py3)
 #
 # imap - map to iterator
 # lmap - map to list
 #=============================================================================
 if True:  # legacy PY3 indent
-    irange = range
-    ##def lrange(*a,**k):
-    ##    return list(range(*a,**k))
 
     def lmap(*a, **k):
         return list(map(*a,**k))

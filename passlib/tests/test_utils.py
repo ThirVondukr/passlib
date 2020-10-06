@@ -9,7 +9,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe, to_bytes
-from passlib.utils.compat import irange, unicode, join_bytes, PYPY
+from passlib.utils.compat import unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
 #=============================================================================
@@ -30,7 +30,6 @@ class MiscTest(TestCase):
         # test synthentic dir()
         dir(compat)
         self.assertTrue('UnicodeIO' in dir(compat))
-        self.assertTrue('irange' in dir(compat))
 
     def test_classproperty(self):
         from passlib.utils.decor import classproperty
@@ -322,12 +321,12 @@ class MiscTest(TestCase):
         # NOTE: below code was used to generate stats for analysis
         ##from math import log as logb
         ##import timeit
-        ##multipliers = [ 1<<s for s in irange(9)]
+        ##multipliers = [ 1<<s for s in range(9)]
         ##correct =   u"abcdefgh"*(1<<4)
         ##incorrect = u"abcdxfgh"
         ##print
         ##first = True
-        ##for run in irange(1):
+        ##for run in range(1):
         ##    times = []
         ##    chars = []
         ##    for m in multipliers:
@@ -879,7 +878,7 @@ class _Base64Test(TestCase):
         from passlib.utils import getrandbytes, getrandstr
         rng = self.getRandom()
         saw_zero = False
-        for i in irange(500):
+        for i in range(500):
             #
             # test raw -> encode() -> decode() -> raw
             #
@@ -1028,7 +1027,7 @@ class _Base64Test(TestCase):
 
         # do random testing.
         from passlib.utils import getrandstr
-        for i in irange(100):
+        for i in range(100):
             # generate random value, encode, and then decode
             value = rng.randint(0, upper-1)
             encoded = encode(value)

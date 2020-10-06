@@ -62,7 +62,7 @@ from passlib.utils.decor import (
 )
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
-                                  join_byte_elems, irange, imap,
+                                  join_byte_elems, imap,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
                                   unicode_or_str, unicode_or_bytes_types,
                                   get_method_function, suppress_cause, PYPY)

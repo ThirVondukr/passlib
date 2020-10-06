@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
-    irange, imap, iter_byte_chars, join_byte_values, join_byte_elems,
+    imap, iter_byte_chars, join_byte_values, join_byte_elems,
     nextgetter, suppress_cause,
     unicode, unicode_or_bytes_types,
 )
@@ -92,7 +92,7 @@ LOWER_HEX_CHARS = u"0123456789abcdef"
 
 #: special byte string containing all possible byte values
 #: NOTE: for efficiency, this is treated as singleton by some of the code
-ALL_BYTE_VALUES = join_byte_values(irange(256))
+ALL_BYTE_VALUES = join_byte_values(range(256))
 
 #: some string constants we reuse
 B_EMPTY = b''
@@ -786,11 +786,11 @@ class Base64Engine(object):
         pad = -bits % 6
         bits += pad
         if self.big:
-            itr = irange(bits-6, -6, -6)
+            itr = range(bits-6, -6, -6)
             # shift to add lsb padding.
             value <<= pad
         else:
-            itr = irange(0, bits, 6)
+            itr = range(0, bits, 6)
             # padding is msb, so no change needed.
         return join_byte_elems(imap(self._encode64,
                                 ((value>>off) & 0x3f for off in itr)))

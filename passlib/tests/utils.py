@@ -28,7 +28,7 @@ import passlib.registry as registry
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import iteritems, irange, unicode
+from passlib.utils.compat import iteritems, unicode
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -282,7 +282,7 @@ def run_with_fixed_seeds(count=128, master_seed=0x243F6A8885A308D3):
         @wraps(func)
         def wrapper(*args, **kwds):
             rng = random.Random(master_seed)
-            for _ in irange(count):
+            for _ in range(count):
                 kwds['seed'] = rng.getrandbits(32)
                 func(*args, **kwds)
         return wrapper
@@ -1315,7 +1315,7 @@ class HandlerCase(TestCase):
 
         def sampler(func):
             value1 = func()
-            for _ in irange(samples):
+            for _ in range(samples):
                 value2 = func()
                 if value1 != value2:
                     return
@@ -1866,7 +1866,7 @@ class HandlerCase(TestCase):
         handler, subcls, small, medium, large, adj = self._create_using_rounds_helper()
 
         def get_effective_range(cls):
-            seen = set(get_effective_rounds(cls) for _ in irange(1000))
+            seen = set(get_effective_rounds(cls) for _ in range(1000))
             return min(seen), max(seen)
 
         def assert_rounds_range(vary_rounds, lower, upper):
@@ -2736,7 +2736,7 @@ class HandlerCase(TestCase):
             thread.setDaemon(True)
             thread.start()
             return thread
-        threads = [launch(n) for n in irange(thread_count)]
+        threads = [launch(n) for n in range(thread_count)]
 
         # wait until all threads exit
         timeout = self.max_fuzz_time * thread_count * 4

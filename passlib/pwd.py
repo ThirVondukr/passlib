@@ -17,7 +17,7 @@ import os
 # site
 # pkg
 from passlib import exc
-from passlib.utils.compat import irange, itervalues, int_types
+from passlib.utils.compat import itervalues, int_types
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
 # local
@@ -304,7 +304,7 @@ class SequenceGenerator(object):
         if returns is None:
             return next(self)
         elif isinstance(returns, int_types):
-            return [next(self) for _ in irange(returns)]
+            return [next(self) for _ in range(returns)]
         elif returns is iter:
             return self
         else:
@@ -673,7 +673,7 @@ class PhraseGenerator(SequenceGenerator):
     #=============================================================================
 
     def __next__(self):
-        words = (self.rng.choice(self.words) for _ in irange(self.length))
+        words = (self.rng.choice(self.words) for _ in range(self.length))
         return self.sep.join(words)
 
     #=============================================================================

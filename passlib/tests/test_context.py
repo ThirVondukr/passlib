@@ -15,7 +15,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
-from passlib.utils.compat import irange, unicode, str_to_uascii
+from passlib.utils.compat import unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
                                  quicksleep, time_call, handler_derived_from)
@@ -1546,7 +1546,7 @@ sha512_crypt__min_rounds = 45000
         handler = context.handler(scheme)
         salt = handler.default_salt_chars[0:1] * handler.max_salt_size
         seen = set()
-        for i in irange(300):
+        for i in range(300):
             h = context.genconfig(scheme, salt=salt)
             r = handler.from_string(h).rounds
             seen.add(r)

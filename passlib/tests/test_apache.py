@@ -11,7 +11,6 @@ import subprocess
 # pkg
 from passlib import apache, registry
 from passlib.exc import MissingBackendError
-from passlib.utils.compat import irange
 from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
@@ -242,7 +241,7 @@ class HtpasswdFileTest(TestCase):
 
         # users 1..6 of sample_01 run through all the main hash formats,
         # to make sure they're recognized.
-        for i in irange(1, 7):
+        for i in range(1, 7):
             i = str(i)
             try:
                 self.assertTrue(ht.check_password("user"+i, "pass"+i))
@@ -590,7 +589,7 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(TypeError, ht.check_password, 1, 'realm', 'pass5')
         self.assertRaises(TypeError, ht.check_password, 'user', 1, 'pass5')
         self.assertIs(ht.check_password("user5", "realm","pass5"), None)
-        for i in irange(1,5):
+        for i in range(1, 5):
             i = str(i)
             self.assertTrue(ht.check_password("user"+i, "realm", "pass"+i))
             self.assertIs(ht.check_password("user"+i, "realm", "pass5"), False)
