@@ -17,7 +17,7 @@ from passlib.utils import (handlers as uh, to_bytes,
                            as_bool, timer, rng, getrandstr,
                            )
 from passlib.utils.binary import BASE64_CHARS
-from passlib.utils.compat import (iteritems, num_types,
+from passlib.utils.compat import (num_types,
                                   unicode, SafeConfigParser,
                                   NativeStringIO, BytesIO,
                                   unicode_or_bytes_types, native_string_types,
@@ -182,7 +182,7 @@ class _CryptConfig(object):
         categories = set()
 
         # load source config into internal storage
-        for (cat, scheme, key), value in iteritems(source):
+        for (cat, scheme, key), value in source.items():
             categories.add(cat)
             explicit_scheme = scheme
             if not cat and not scheme and key in _global_settings:
@@ -984,8 +984,7 @@ class CryptContext(object):
         #-----------------------------------------------------------
         if parse_keys:
             parse = self._parse_config_key
-            source = dict((parse(key), value)
-                          for key, value in iteritems(source))
+            source = dict((parse(key), value) for key, value in source.items())
         if update and self._config is not None:
             # if updating, do nothing if source is empty,
             if not source:
@@ -1073,8 +1072,7 @@ class CryptContext(object):
     ##        return
     ##
     ##    def strip_items(target, filter):
-    ##        keys = [key for key,value in iteritems(target)
-    ##                if filter(key,value)]
+    ##        keys = [key for key,value in target.items() if filter(key,value)]
     ##        for key in keys:
     ##            del target[key]
     ##
@@ -1099,7 +1097,7 @@ class CryptContext(object):
     ##    strip_items(deprecated, lambda k,v: k and v==cur)
     ##
     ##    # remove redundant category options.
-    ##    for scheme, config in iteritems(scheme_options):
+    ##    for scheme, config in scheme_options.items():
     ##        if None in config:
     ##            cur = config[None]
     ##            strip_items(config, lambda k,v: k and v==cur)

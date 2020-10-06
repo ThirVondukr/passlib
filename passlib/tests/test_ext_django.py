@@ -14,7 +14,7 @@ from passlib.context import CryptContext
 from passlib.ext.django.utils import (
     DJANGO_VERSION, MIN_DJANGO_VERSION, DjangoTranslator,
 )
-from passlib.utils.compat import iteritems, get_method_function
+from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE, handler_derived_from
@@ -68,7 +68,7 @@ UNSET = object()
 
 def update_settings(**kwds):
     """helper to update django settings from kwds"""
-    for k,v in iteritems(kwds):
+    for k,v in kwds.items():
         if v is UNSET:
             if hasattr(settings, k):
                 delattr(settings, k)

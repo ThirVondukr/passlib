@@ -19,7 +19,7 @@ except ImportError:
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils.compat import get_method_function, iteritems, OrderedDict, unicode
+from passlib.utils.compat import get_method_function, OrderedDict, unicode
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -955,7 +955,7 @@ class _PasslibHasherWrapper(object):
         ]
         if hasattr(handler, "parsehash"):
             kwds = handler.parsehash(encoded, sanitize=mask_hash)
-            for key, value in iteritems(kwds):
+            for key, value in kwds.items():
                 key = self._translate_kwds.get(key, key)
                 items.append((_(key), value))
         return OrderedDict(items)
@@ -1122,7 +1122,7 @@ class _PatchManager(object):
     def check_all(self, strict=False):
         """run sanity check on all keys, issue warning if out of sync"""
         same = self._is_same_value
-        for path, (orig, expected) in iteritems(self._state):
+        for path, (orig, expected) in self._state.items():
             if same(self._get_path(path), expected):
                 continue
             msg = "another library has patched resource: %r" % path
@@ -1176,7 +1176,7 @@ class _PatchManager(object):
 
     ##def patch_many(self, **kwds):
     ##    "override specified resources with new values"
-    ##    for path, value in iteritems(kwds):
+    ##    for path, value in kwds.items():
     ##        self.patch(path, value)
 
     def monkeypatch(self, parent, name=None, enable=True, wrap=False):

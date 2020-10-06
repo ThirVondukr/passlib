@@ -28,7 +28,7 @@ import passlib.registry as registry
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import iteritems, unicode
+from passlib.utils.compat import unicode
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -1954,7 +1954,7 @@ class HandlerCase(TestCase):
 
         # check optional aliases list
         if cls.ident_aliases:
-            for alias, ident in iteritems(cls.ident_aliases):
+            for alias, ident in cls.ident_aliases.items():
                 self.assertIsInstance(alias, unicode,
                                       "cls.ident_aliases keys must be unicode:") # XXX: allow ints?
                 self.assertIsInstance(ident, unicode,

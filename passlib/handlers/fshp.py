@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import bascii_to_str, iteritems, u, unicode
+from passlib.utils.compat import bascii_to_str, u, unicode
 from passlib.crypto.digest import pbkdf1
 # local
 __all__ = [
@@ -92,7 +92,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         }
     _variant_aliases = dict(
         [(unicode(k),k) for k in _variant_info] +
-        [(v[0],k) for k,v in iteritems(_variant_info)]
+        [(v[0],k) for k,v in _variant_info.items()]
         )
 
     #===================================================================

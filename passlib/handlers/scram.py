@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import consteq, saslprep, to_native_str, splitcomma
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import bascii_to_str, iteritems, native_string_types
+from passlib.utils.compat import bascii_to_str, native_string_types
 from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 # local
@@ -318,7 +318,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def _norm_checksum(self, checksum, relaxed=False):
         if not isinstance(checksum, dict):
             raise uh.exc.ExpectedTypeError(checksum, "dict", "checksum")
-        for alg, digest in iteritems(checksum):
+        for alg, digest in checksum.items():
             if alg != norm_hash_name(alg, 'iana'):
                 raise ValueError("malformed algorithm name in scram hash: %r" %
                                  (alg,))
@@ -390,7 +390,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # check entire hash for consistency.
         if full:
             correct = failed = False
-            for alg, digest in iteritems(chkmap):
+            for alg, digest in chkmap.items():
                 other = self._calc_checksum(secret, alg)
                 # NOTE: could do this length check in norm_algs(),
                 # but don't need to be that strict, and want to be able
