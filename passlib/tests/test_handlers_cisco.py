@@ -4,7 +4,6 @@ passlib.tests.test_handlers_cisco - tests for Cisco-specific algorithms
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import absolute_import, division, print_function
 # core
 import logging
 log = logging.getLogger(__name__)

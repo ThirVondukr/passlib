@@ -2,7 +2,6 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement, division
 # core
 from binascii import hexlify
 import hashlib

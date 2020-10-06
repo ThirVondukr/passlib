@@ -6,7 +6,6 @@ maybe rename to "kdf" since it's getting more key derivation functions added.
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import division
 # core
 import logging; log = logging.getLogger(__name__)
 # site

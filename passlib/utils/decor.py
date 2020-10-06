@@ -5,7 +5,6 @@ passlib.utils.decor -- helper decorators & properties
 # imports
 #=============================================================================
 # core
-from __future__ import absolute_import, division, print_function
 import logging
 log = logging.getLogger(__name__)
 from functools import wraps, update_wrapper

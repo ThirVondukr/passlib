@@ -12,7 +12,6 @@ passlib.tests -- tests for passlib.utils.pbkdf2
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement
 # core
 import hashlib
 import warnings

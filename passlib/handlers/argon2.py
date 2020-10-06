@@ -15,7 +15,6 @@ References
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement, absolute_import
 # core
 import logging
 log = logging.getLogger(__name__)

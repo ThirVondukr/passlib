@@ -2,7 +2,6 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement
 # core
 from logging import getLogger
 import warnings

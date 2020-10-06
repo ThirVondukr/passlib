@@ -10,7 +10,6 @@ TODO:
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement, absolute_import
 # core
 from base64 import b64encode
 from hashlib import sha256

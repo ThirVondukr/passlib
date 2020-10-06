@@ -3,7 +3,6 @@
 small helper script used to compare timing of verify() & dummy_verify()
 """
 # core
-from __future__ import absolute_import, division, print_function, unicode_literals
 from argparse import ArgumentParser
 import sys
 from timeit import default_timer as tick

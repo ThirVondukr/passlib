@@ -3,7 +3,6 @@
 # imports
 #=============================================================================
 # core
-from __future__ import with_statement
 from passlib.utils.compat import PY3
 if PY3:
     from configparser import NoSectionError

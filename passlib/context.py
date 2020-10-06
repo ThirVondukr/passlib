@@ -3,7 +3,6 @@
 # imports
 #=============================================================================
 # core
-from __future__ import absolute_import, division, print_function
 import re
 import logging; log = logging.getLogger(__name__)
 import threading

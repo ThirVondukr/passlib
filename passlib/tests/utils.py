@@ -2,7 +2,6 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import with_statement
 # core
 from binascii import unhexlify
 import contextlib

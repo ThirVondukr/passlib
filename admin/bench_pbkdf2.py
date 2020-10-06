@@ -4,8 +4,6 @@ helper script to benchmark pbkdf2 implementations/backends
 #=============================================================================
 # init script env
 #=============================================================================
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 # make sure passlib source dir is first in import path
 import os, sys
 os.chdir(os.path.abspath(os.path.join(__file__, *[".."]*2)))

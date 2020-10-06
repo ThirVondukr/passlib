@@ -5,7 +5,6 @@ passlib.utils.binary - binary data encoding/decoding/manipulation
 # imports
 #=============================================================================
 # core
-from __future__ import absolute_import, division, print_function
 from base64 import (
     b64encode,
     b64decode,

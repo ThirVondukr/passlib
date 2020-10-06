@@ -2,7 +2,6 @@
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import absolute_import, division, print_function
 from passlib.utils.compat import PY3
 # core
 import base64

@@ -4,7 +4,6 @@ test passlib.ext.django against django source tests
 #=============================================================================
 # imports
 #=============================================================================
-from __future__ import absolute_import, division, print_function
 # core
 import logging; log = logging.getLogger(__name__)
 # site

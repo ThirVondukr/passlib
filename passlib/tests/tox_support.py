@@ -2,7 +2,6 @@
 #=============================================================================
 # init script env
 #=============================================================================
-from __future__ import absolute_import, division, print_function
 import os, sys
 root_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 sys.path.insert(0, root_dir)
