@@ -60,9 +60,6 @@ __all__ = [
     'byte_elem_value',
     'iter_byte_values',
 
-    # collections
-    'OrderedDict',
-
     # context helpers
     'nullcontext',
 
@@ -210,13 +207,6 @@ _lazy_attrs = dict(
     NativeStringIO="io.StringIO",
     SafeConfigParser="configparser.ConfigParser",
 )
-
-#=============================================================================
-# collections
-#=============================================================================
-
-# TODO: remove backport
-_lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 
 #=============================================================================
 # context managers

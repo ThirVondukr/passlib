@@ -3,6 +3,7 @@
 # imports
 #=============================================================================
 # core
+from collections import OrderedDict
 from functools import update_wrapper, wraps
 import logging; log = logging.getLogger(__name__)
 import sys
@@ -19,7 +20,7 @@ except ImportError:
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils.compat import get_method_function, OrderedDict, unicode
+from passlib.utils.compat import get_method_function, unicode
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
