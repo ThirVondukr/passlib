@@ -30,8 +30,7 @@ except ImportError:
     _fast_pbkdf2_hmac = None
 # pkg
 from passlib import exc
-from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
-                          SequenceMixin, as_bool
+from passlib.utils import join_bytes, to_native_str, to_bytes, SequenceMixin, as_bool
 from passlib.utils.compat import int_types, unicode_or_bytes
 from passlib.utils.decor import memoized_property
 # local
@@ -616,8 +615,8 @@ if as_bool(os.environ.get("PASSLIB_MOCK_FIPS_MODE")):
 #=============================================================================
 
 #: translation tables used by compile_hmac()
-_TRANS_5C = join_byte_values((x ^ 0x5C) for x in range(256))
-_TRANS_36 = join_byte_values((x ^ 0x36) for x in range(256))
+_TRANS_5C = bytes((x ^ 0x5C) for x in range(256))
+_TRANS_36 = bytes((x ^ 0x36) for x in range(256))
 
 def compile_hmac(digest, key, multipart=False):
     """

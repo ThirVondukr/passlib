@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
-    iter_byte_chars, join_byte_values, join_byte_elems,
+    iter_byte_chars,
     unicode_or_bytes,
 )
 from passlib.utils.decor import memoized_property
@@ -91,7 +91,7 @@ LOWER_HEX_CHARS = u"0123456789abcdef"
 
 #: special byte string containing all possible byte values
 #: NOTE: for efficiency, this is treated as singleton by some of the code
-ALL_BYTE_VALUES = join_byte_values(range(256))
+ALL_BYTE_VALUES = bytes(range(256))
 
 #: some string constants we reuse
 B_EMPTY = b''
@@ -385,7 +385,7 @@ class Base64Engine(object):
         chunks, tail = divmod(len(source), 3)
         next_value = iter(source).__next__
         gen = self._encode_bytes(next_value, chunks, tail)
-        out = join_byte_elems(map(self._encode64, gen))
+        out = bytes(map(self._encode64, gen))
         ##if tail:
         ##    padding = self.padding
         ##    if padding:
@@ -492,7 +492,7 @@ class Base64Engine(object):
             raise ValueError("input string length cannot be == 1 mod 4")
         next_value = map(self._decode64, source).__next__
         try:
-            return join_byte_values(self._decode_bytes(next_value, chunks, tail))
+            return bytes(self._decode_bytes(next_value, chunks, tail))
         except KeyError as err:
             raise ValueError("invalid character: %r" % (err.args[0],))
 
@@ -655,19 +655,19 @@ class Base64Engine(object):
         """encode byte string, first transposing source using offset list"""
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
-        tmp = join_byte_elems(source[off] for off in offsets)
+        tmp = bytes(source[off] for off in offsets)
         return self.encode_bytes(tmp)
 
     def decode_transposed_bytes(self, source, offsets):
         """decode byte string, then reverse transposition described by offset list"""
         # NOTE: if transposition does not use all bytes of source,
-        # the original can't be recovered... and join_byte_elems() will throw
+        # the original can't be recovered... and bytes() will throw
         # an error because 1+ values in <buf> will be None.
         tmp = self.decode_bytes(source)
         buf = [None] * len(offsets)
         for off, char in zip(offsets, tmp):
             buf[off] = char
-        return join_byte_elems(buf)
+        return bytes(buf)
 
     #===================================================================
     # integer decoding helpers - mainly used by des_crypt family
@@ -791,7 +791,7 @@ class Base64Engine(object):
         else:
             itr = range(0, bits, 6)
             # padding is msb, so no change needed.
-        return join_byte_elems(map(self._encode64,
+        return bytes(map(self._encode64,
                                 ((value>>off) & 0x3f for off in itr)))
 
     #---------------------------------------------------------------
@@ -811,7 +811,7 @@ class Base64Engine(object):
         raw = [value & 0x3f, (value>>6) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return join_byte_elems(map(self._encode64, raw))
+        return bytes(map(self._encode64, raw))
 
     def encode_int24(self, value):
         """encodes 24-bit integer -> 4 char string"""
@@ -821,7 +821,7 @@ class Base64Engine(object):
                (value>>12) & 0x3f, (value>>18) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return join_byte_elems(map(self._encode64, raw))
+        return bytes(map(self._encode64, raw))
 
     def encode_int30(self, value):
         """decode 5 char string -> 30 bit integer"""

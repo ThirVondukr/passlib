@@ -47,7 +47,7 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import join_byte_values, int_types
+from passlib.utils.compat import int_types
 # local
 __all__ = [
     "expand_des_key",
@@ -623,9 +623,8 @@ def expand_des_key(key):
     # but the parity bit would just be ignored in des_encrypt_block(),
     # so not bothering to use it.
     # XXX: could make parity-restoring optionally available via flag
-    ##return join_byte_values(expand_7bit((key >> shift) & 0x7f)
-    ##                        for shift in _EXPAND_ITER)
-    return join_byte_values(((key>>shift) & 0x7f)<<1 for shift in _EXPAND_ITER)
+    ##return bytes(expand_7bit((key >> shift) & 0x7f) for shift in _EXPAND_ITER)
+    return bytes(((key >> shift) & 0x7f) << 1 for shift in _EXPAND_ITER)
 
 def shrink_des_key(key):
     """convert DES key from 8 bytes to 7 bytes (by discarding the parity bits)"""

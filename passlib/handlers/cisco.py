@@ -13,7 +13,6 @@ from warnings import warn
 # pkg
 from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
-from passlib.utils.compat import join_byte_values, join_byte_elems
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -218,7 +217,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         #       16 bytes, which may have been a general 'char password[]'
         #       size limit under PIX
         #
-        digest = join_byte_elems(c for i, c in enumerate(digest) if (i + 1) & 3)
+        digest = bytes(c for i, c in enumerate(digest) if (i + 1) & 3)
 
         #
         # encode using Hash64
@@ -429,7 +428,7 @@ class cisco_type7(uh.GenericHandler):
         """xor static key against data - encrypts & decrypts"""
         key = cls._key
         key_size = len(key)
-        return join_byte_values(
+        return bytes(
             value ^ ord(key[(salt + idx) % key_size])
             for idx, value in enumerate(data)
         )

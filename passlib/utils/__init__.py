@@ -61,8 +61,7 @@ from passlib.utils.decor import (
     hybrid_method,
 )
 from passlib.exc import ExpectedStringError, ExpectedTypeError
-from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
-                                  join_byte_elems,
+from passlib.utils.compat import (add_doc, join_bytes,
                                   join_unicode,
                                   unicode_or_bytes,
                                   get_method_function, PYPY)
@@ -1059,7 +1058,8 @@ def getrandbytes(rng, count):
             yield value & 0xff
             value >>= 3
             i += 1
-    return join_byte_values(helper())
+    return bytes(helper())
+
 
 def getrandstr(rng, charset, count):
     """return string containing *count* number of chars/bytes, whose elements are drawn from specified charset, using specified rng"""
@@ -1088,7 +1088,7 @@ def getrandstr(rng, charset, count):
     if isinstance(charset, str):
         return join_unicode(helper())
     else:
-        return join_byte_elems(helper())
+        return bytes(helper())
 
 _52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 

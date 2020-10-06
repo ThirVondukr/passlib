@@ -45,7 +45,6 @@ __all__ = [
     'bascii_to_str',
     'str_to_bascii',
     'join_unicode', 'join_bytes',
-    'join_byte_values', 'join_byte_elems',
 
     # context helpers
     'nullcontext',
@@ -84,8 +83,6 @@ if True:  # legacy PY3 indent
         assert isinstance(s, str)
         return s.encode("ascii")
 
-    join_byte_values = join_byte_elems = bytes
-
     def iter_byte_chars(s):
         assert isinstance(s, bytes)
         # FIXME: there has to be a better way to do this
@@ -94,12 +91,6 @@ if True:  # legacy PY3 indent
 # TODO: move docstrings to funcs...
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
-
-# join_byte_values -- function to convert list of ordinal integers to byte string.
-
-# join_byte_elems --  function to convert list of byte elements to byte string;
-#                 i.e. what's returned by ``b('a')[0]``...
-#                 this is 97 under PY3.
 
 # byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
