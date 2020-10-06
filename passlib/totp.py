@@ -31,7 +31,7 @@ from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, Used
 from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
-from passlib.utils.compat import bascii_to_str, int_types, num_types, byte_elem_value
+from passlib.utils.compat import bascii_to_str, int_types, num_types
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
@@ -1099,8 +1099,9 @@ class TOTP(object):
         assert len(digest) == digest_size, "digest_size: sanity check failed"
 
         # derive 31-bit token value
+        # assert isinstance(digest, bytes)
         assert digest_size >= 20, "digest_size: sanity check 2 failed" # otherwise 0xF+4 will run off end of hash.
-        offset = byte_elem_value(digest[-1]) & 0xF
+        offset = digest[-1] & 0xF
         value = _unpack_uint32(digest[offset:offset+4])[0] & 0x7fffffff
 
         # render to decimal string, return last <digits> chars

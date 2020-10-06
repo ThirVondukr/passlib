@@ -19,7 +19,7 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, str_to_bascii
+from passlib.utils.compat import str_to_bascii
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -123,7 +123,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     round = 0
     while round < real_rounds:
         # convert last result byte string to list of byte-ints for easy access
-        rval = [ byte_elem_value(c) for c in result ].__getitem__
+        rval = [c for c in result].__getitem__
 
         # build up X bit by bit
         x = 0

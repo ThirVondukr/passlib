@@ -63,7 +63,7 @@ from passlib.utils.decor import (
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems,
-                                  join_unicode, byte_elem_value,
+                                  join_unicode,
                                   unicode_or_bytes,
                                   get_method_function, PYPY)
 # local
@@ -629,7 +629,7 @@ def utf8_truncate(source, index):
 
     # loop until we find non-continuation byte
     while index < end:
-        if byte_elem_value(source[index]) & 0xC0 != 0x80:
+        if source[index] & 0xC0 != 0x80:
             # found single-char byte, or start-char byte.
             break
         # else: found continuation byte.

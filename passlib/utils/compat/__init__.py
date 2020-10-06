@@ -46,7 +46,6 @@ __all__ = [
     'str_to_bascii',
     'join_unicode', 'join_bytes',
     'join_byte_values', 'join_byte_elems',
-    'byte_elem_value',
     'iter_byte_values',
 
     # context helpers
@@ -87,10 +86,6 @@ if True:  # legacy PY3 indent
         return s.encode("ascii")
 
     join_byte_values = join_byte_elems = bytes
-
-    def byte_elem_value(elem):
-        assert isinstance(elem, int)
-        return elem
 
     def iter_byte_values(s):
         assert isinstance(s, bytes)

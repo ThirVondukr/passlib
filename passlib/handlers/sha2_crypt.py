@@ -10,7 +10,6 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import safe_crypt, test_crypt, \
                           repeat_string, to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -162,7 +161,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     #===================================================================
     # digest S  - used instead of salt itself when calculating digest C
     #===================================================================
-    ds = hash_const(salt * (16 + byte_elem_value(da[0]))).digest()[:salt_len]
+    ds = hash_const(salt * (16 + da[0])).digest()[:salt_len]
     assert len(ds) == salt_len, "salt_len somehow > hash_len!"
 
     #===================================================================

@@ -47,7 +47,7 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 import struct
 # pkg
 from passlib import exc
-from passlib.utils.compat import join_byte_values, byte_elem_value, int_types
+from passlib.utils.compat import join_byte_values, int_types
 # local
 __all__ = [
     "expand_des_key",

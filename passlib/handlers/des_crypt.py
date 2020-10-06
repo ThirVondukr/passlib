@@ -10,7 +10,6 @@ from warnings import warn
 # pkg
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.utils.compat import byte_elem_value
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
@@ -37,8 +36,8 @@ def _crypt_secret_to_key(secret):
     #       but des_encrypt_int_block() would just ignore them...
     ##return sum(expand_7bit(byte_elem_value(c) & 0x7f) << (56-i*8)
     ##           for i, c in enumerate(secret[:8]))
-    return sum((byte_elem_value(c) & 0x7f) << (57-i*8)
-               for i, c in enumerate(secret[:8]))
+    return sum((c & 0x7f) << (57-i*8) for i, c in enumerate(secret[:8]))
+
 
 def _raw_des_crypt(secret, salt):
     """pure-python backed for des_crypt"""

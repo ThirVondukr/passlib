@@ -30,7 +30,6 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str
-from passlib.utils.compat import byte_elem_value
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -77,7 +76,7 @@ class mysql323(uh.StaticHandler):
         for c in secret:
             if c in WHITE:
                 continue
-            tmp = byte_elem_value(c)
+            tmp = c
             nr1 ^= ((((nr1 & 63)+add)*tmp) + (nr1 << 8)) & MASK_32
             nr2 = (nr2+((nr2 << 8) ^ nr1)) & MASK_32
             add = (add+tmp) & MASK_32
