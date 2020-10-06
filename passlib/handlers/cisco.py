@@ -13,7 +13,7 @@ from warnings import warn
 # pkg
 from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
-from passlib.utils.compat import join_byte_values, join_byte_elems, iter_byte_values
+from passlib.utils.compat import join_byte_values, join_byte_elems
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -425,13 +425,13 @@ class cisco_type7(uh.GenericHandler):
     _key = u"dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87"
 
     @classmethod
-    def _cipher(cls, data, salt):
+    def _cipher(cls, data: bytes, salt: int):
         """xor static key against data - encrypts & decrypts"""
         key = cls._key
         key_size = len(key)
         return join_byte_values(
             value ^ ord(key[(salt + idx) % key_size])
-            for idx, value in enumerate(iter_byte_values(data))
+            for idx, value in enumerate(data)
         )
 
 #=============================================================================

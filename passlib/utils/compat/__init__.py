@@ -46,7 +46,6 @@ __all__ = [
     'str_to_bascii',
     'join_unicode', 'join_bytes',
     'join_byte_values', 'join_byte_elems',
-    'iter_byte_values',
 
     # context helpers
     'nullcontext',
@@ -87,10 +86,6 @@ if True:  # legacy PY3 indent
 
     join_byte_values = join_byte_elems = bytes
 
-    def iter_byte_values(s):
-        assert isinstance(s, bytes)
-        return s
-
     def iter_byte_chars(s):
         assert isinstance(s, bytes)
         # FIXME: there has to be a better way to do this
@@ -108,7 +103,6 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
-add_doc(iter_byte_values, "iterate over byte string as sequence of ints 0-255")
 add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings")
 
 #=============================================================================
