@@ -29,7 +29,8 @@ class MiscTest(TestCase):
 
         # test synthentic dir()
         dir(compat)
-        self.assertTrue('UnicodeIO' in dir(compat))
+        # FIXME: find another lazy-loaded attr to check, all current ones removed after py2 comapt gone.
+        # self.assertTrue('UnicodeIO' in dir(compat))
 
     def test_classproperty(self):
         from passlib.utils.decor import classproperty

@@ -3,6 +3,8 @@
 # imports
 #=============================================================================
 # core
+from configparser import ConfigParser
+from io import StringIO
 import re
 import logging; log = logging.getLogger(__name__)
 import threading
@@ -18,8 +20,7 @@ from passlib.utils import (handlers as uh, to_bytes,
                            )
 from passlib.utils.binary import BASE64_CHARS
 from passlib.utils.compat import (num_types,
-                                  unicode, SafeConfigParser,
-                                  NativeStringIO, BytesIO,
+                                  unicode,
                                   unicode_or_bytes_types, native_string_types,
                                   )
 from passlib.utils.decor import deprecated_method, memoized_property
@@ -878,7 +879,7 @@ class CryptContext(object):
         """helper read INI from stream, extract passlib section as dict"""
         # NOTE: this expects a unicode stream,
         #       and resulting dict will always use native strings.
-        p = SafeConfigParser()
+        p = ConfigParser()
         p.read_file(stream, filename)
         # XXX: could change load() to accept list of items,
         #      and skip intermediate dict creation
@@ -966,7 +967,7 @@ class CryptContext(object):
         parse_keys = True
         if isinstance(source, unicode_or_bytes_types):
             source = to_unicode(source, encoding, param="source")
-            source = self._parse_ini_stream(NativeStringIO(source), section,
+            source = self._parse_ini_stream(StringIO(source), section,
                                             "<string passed to CryptContext.load()>")
         elif isinstance(source, CryptContext):
             # extract dict directly from config, so it can be merged later
@@ -1360,9 +1361,9 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`context-serialization-example` example in the tutorial.
         """
-        parser = SafeConfigParser()
+        parser = ConfigParser()
         self._write_to_parser(parser, section)
-        buf = NativeStringIO()
+        buf = StringIO()
         parser.write(buf)
         unregistered = self._get_unregistered_handlers()
         if unregistered:

@@ -40,9 +40,6 @@ def add_doc(obj, doc):
 # the default exported vars
 #=============================================================================
 __all__ = [
-    # io
-    'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
-
     # type detection
 ##    'is_mapping',
     'int_types',
@@ -179,17 +176,6 @@ def get_method_function(func):
     return getattr(func, "__func__", func)
 
 #=============================================================================
-# input/output
-#=============================================================================
-
-_lazy_attrs = dict(
-    BytesIO="io.BytesIO",
-    UnicodeIO="io.StringIO",
-    NativeStringIO="io.StringIO",
-    SafeConfigParser="configparser.ConfigParser",
-)
-
-#=============================================================================
 # context managers
 #=============================================================================
 
@@ -280,6 +266,7 @@ class _LazyOverlayModule(ModuleType):
         return list(attrs)
 
 # replace this module with overlay that will lazily import attributes.
+_lazy_attrs = dict()
 _LazyOverlayModule.replace_module(__name__, _lazy_attrs)
 
 #=============================================================================

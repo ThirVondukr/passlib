@@ -4,6 +4,7 @@
 # imports
 #=============================================================================
 # core
+from io import BytesIO
 import logging; log = logging.getLogger(__name__)
 import os
 from warnings import warn
@@ -15,7 +16,7 @@ from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import render_bytes, to_bytes, is_ascii_codec
 from passlib.utils.decor import deprecated_method
-from passlib.utils.compat import join_bytes, unicode, BytesIO
+from passlib.utils.compat import join_bytes, unicode
 # local
 __all__ = [
     'HtpasswdFile',
