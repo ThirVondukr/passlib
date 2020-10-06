@@ -32,7 +32,7 @@ except ImportError:
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
                           SequenceMixin, as_bool
-from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, PY3, error_from
+from passlib.utils.compat import irange, int_types, unicode_or_bytes_types, error_from
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -870,7 +870,7 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
 # NOTE: this env var is only present to support the admin/benchmark_pbkdf2 script
 _force_backend = os.environ.get("PASSLIB_PBKDF2_BACKEND") or "any"
 
-if PY3 and _force_backend in ["any", "from-bytes"]:
+if _force_backend in ["any", "from-bytes"]:
     from functools import partial
 
     def _get_pbkdf2_looper(digest_size):

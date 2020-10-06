@@ -10,7 +10,7 @@ import warnings
 # pkg
 # module
 from passlib.exc import UnknownHashError
-from passlib.utils.compat import PY3, JYTHON
+from passlib.utils.compat import JYTHON
 from passlib.tests.utils import TestCase, TEST_MODE, skipUnless, hb
 
 #=============================================================================
@@ -496,12 +496,7 @@ class Pbkdf2Test(TestCase):
         self.assertEqual("hashlib-ssl" in PBKDF2_BACKENDS, has_hashlib_ssl)
 
         # check for appropriate builtin
-        from passlib.utils.compat import PY3
-        if PY3:
-            self.assertIn("builtin-from-bytes", PBKDF2_BACKENDS)
-        else:
-            # XXX: only true as long as this is preferred over hexlify
-            self.assertIn("builtin-unpack", PBKDF2_BACKENDS)
+        self.assertIn("builtin-from-bytes", PBKDF2_BACKENDS)
 
     def test_border(self):
         """test border cases"""

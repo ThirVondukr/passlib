@@ -2,7 +2,6 @@
 #=============================================================================
 # imports
 #=============================================================================
-from passlib.utils.compat import PY3
 # core
 import base64
 import calendar
@@ -13,11 +12,7 @@ import struct
 import sys
 import time as _time
 import re
-if PY3:
-    from urllib.parse import urlparse, parse_qsl, quote, unquote
-else:
-    from urllib import quote, unquote
-    from urlparse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl, quote, unquote
 from warnings import warn
 # site
 try:

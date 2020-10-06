@@ -30,7 +30,7 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import get_unbound_method_function
-from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii, PY3, error_from
+from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii, error_from
 import passlib.utils.handlers as uh
 
 # local
@@ -809,7 +809,7 @@ class _OsCryptBackend(_BcryptCommon):
         #      instead of returning None? (would save re-detecting what went wrong)
         # XXX: isn't secret ALWAYS bytes at this point?
         #
-        if PY3 and isinstance(secret, bytes):
+        if isinstance(secret, bytes):
             try:
                 secret.decode("utf-8")
             except UnicodeDecodeError:

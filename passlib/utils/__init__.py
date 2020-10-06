@@ -62,7 +62,7 @@ from passlib.utils.decor import (
 )
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
-                                  join_byte_elems, irange, imap, PY3,
+                                  join_byte_elems, irange, imap,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
                                   unicode_or_str, unicode_or_bytes_types,
                                   get_method_function, suppress_cause, PYPY)
@@ -113,7 +113,7 @@ __all__ = [
 #=============================================================================
 
 # bitsize of system architecture (32 or 64)
-sys_bits = int(math.log(sys.maxsize if PY3 else sys.maxint, 2) + 1.5)
+sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
 
 # list of hashes algs supported by crypt() on at least one OS.
 # XXX: move to .registry for passlib 2.0?
@@ -166,30 +166,23 @@ class SequenceMixin(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-if PY3:
-    # getargspec() is deprecated, use this under py3.
-    # even though it's a lot more awkward to get basic info :|
+# getargspec() is deprecated, use this under py3.
+# even though it's a lot more awkward to get basic info :|
 
-    _VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
-    _VAR_ANY_SET = set([_VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL])
+_VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
+_VAR_ANY_SET = {_VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL}
 
-    def accepts_keyword(func, key):
-        """test if function accepts specified keyword"""
-        params = inspect.signature(get_method_function(func)).parameters
-        if not params:
-            return False
-        arg = params.get(key)
-        if arg and arg.kind not in _VAR_ANY_SET:
-            return True
-        # XXX: annoying what we have to do to determine if VAR_KWDS in use.
-        return params[list(params)[-1]].kind == _VAR_KEYWORD
+def accepts_keyword(func, key):
+    """test if function accepts specified keyword"""
+    params = inspect.signature(get_method_function(func)).parameters
+    if not params:
+        return False
+    arg = params.get(key)
+    if arg and arg.kind not in _VAR_ANY_SET:
+        return True
+    # XXX: annoying what we have to do to determine if VAR_KWDS in use.
+    return params[list(params)[-1]].kind == _VAR_KEYWORD
 
-else:
-
-    def accepts_keyword(func, key):
-        """test if function accepts specified keyword"""
-        spec = inspect.getargspec(get_method_function(func))
-        return key in spec.args or spec.keywords is not None
 
 def update_mixin_classes(target, add=None, remove=None, append=False,
                          before=None, after=None, dryrun=False):
@@ -333,11 +326,11 @@ def consteq(left, right):
     if isinstance(left, unicode):
         if not isinstance(right, unicode):
             raise TypeError("inputs must be both unicode or both bytes")
-        is_py3_bytes = False
+        is_bytes = False
     elif isinstance(left, bytes):
         if not isinstance(right, bytes):
             raise TypeError("inputs must be both unicode or both bytes")
-        is_py3_bytes = PY3
+        is_bytes = True
     else:
         raise TypeError("inputs must be both unicode or both bytes")
 
@@ -359,7 +352,7 @@ def consteq(left, right):
 
     # run constant-time string comparision
     # TODO: use izip instead (but first verify it's faster than zip for this case)
-    if is_py3_bytes:
+    if is_bytes:
         for l,r in zip(tmp, right):
             result |= l ^ r
     else:
@@ -554,19 +547,11 @@ def render_bytes(source, *args):
                             else arg for arg in args)
     return result.encode("latin-1")
 
-if PY3:
-    # new in py32
-    def bytes_to_int(value):
-        return int.from_bytes(value, 'big')
-    def int_to_bytes(value, count):
-        return value.to_bytes(count, 'big')
-else:
-    # XXX: can any of these be sped up?
-    from binascii import hexlify, unhexlify
-    def bytes_to_int(value):
-        return int(hexlify(value),16)
-    def int_to_bytes(value, count):
-        return unhexlify(('%%0%dx' % (count<<1)) % value)
+def bytes_to_int(value):
+    return int.from_bytes(value, 'big')
+
+def int_to_bytes(value, count):
+    return value.to_bytes(count, 'big')
 
 add_doc(bytes_to_int, "decode byte string as single big-endian integer")
 add_doc(int_to_bytes, "encode integer as single big-endian byte string")
@@ -760,22 +745,15 @@ def to_unicode(source, encoding="utf-8", param="value"):
     else:
         raise ExpectedStringError(source, param)
 
-if PY3:
-    def to_native_str(source, encoding="utf-8", param="value"):
-        if isinstance(source, bytes):
-            return source.decode(encoding)
-        elif isinstance(source, unicode):
-            return source
-        else:
-            raise ExpectedStringError(source, param)
-else:
-    def to_native_str(source, encoding="utf-8", param="value"):
-        if isinstance(source, bytes):
-            return source
-        elif isinstance(source, unicode):
-            return source.encode(encoding)
-        else:
-            raise ExpectedStringError(source, param)
+
+def to_native_str(source, encoding="utf-8", param="value"):
+    if isinstance(source, bytes):
+        return source.decode(encoding)
+    elif isinstance(source, unicode):
+        return source
+    else:
+        raise ExpectedStringError(source, param)
+
 
 add_doc(to_native_str,
     """Take in unicode or bytes, return native string.
@@ -837,7 +815,7 @@ def is_safe_crypt_input(value):
     """
     UT helper --
     test if value is safe to pass to crypt.crypt();
-    under PY3, can't pass non-UTF8 bytes to crypt.crypt.
+    since PY3 won't let us pass non-UTF8 bytes to crypt.crypt.
     """
     if crypt_accepts_bytes or not isinstance(value, bytes):
         return True
@@ -882,7 +860,7 @@ else:
     # chars in this string...
     _invalid_prefixes = u"*:!"
 
-    if PY3:
+    if True:  # legacy block from PY3 compat
 
         # * pypy3 (as of v7.3.1) has a crypt which accepts bytes, or ASCII-only unicode.
         # * whereas CPython3 (as of v3.9) has a crypt which doesn't take bytes,
@@ -942,27 +920,7 @@ else:
             if not result or result[0] in _invalid_prefixes:
                 return None
             return result
-    else:
 
-        #: see feature-detection in PY3 fork above
-        crypt_accepts_bytes = True
-
-        # Python 2 crypt handler
-        def safe_crypt(secret, hash):
-            if isinstance(secret, unicode):
-                secret = secret.encode("utf-8")
-            if _NULL in secret:
-                raise ValueError("null character in secret")
-            if isinstance(hash, unicode):
-                hash = hash.encode("ascii")
-            with _safe_crypt_lock:
-                result = _crypt(secret, hash)
-            if not result:
-                return None
-            result = result.decode("ascii")
-            if result[0] in _invalid_prefixes:
-                return None
-            return result
 
 add_doc(safe_crypt, """Wrapper around stdlib's crypt.
 

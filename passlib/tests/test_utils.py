@@ -9,7 +9,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe, to_bytes
-from passlib.utils.compat import irange, PY2, PY3, unicode, join_bytes, PYPY
+from passlib.utils.compat import irange, unicode, join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
 #=============================================================================
@@ -79,10 +79,6 @@ class MiscTest(TestCase):
         self.assertEqual(d.value, 0)
         self.assertEqual(d.value, 0)
         self.assertEqual(d.counter, 1)
-
-        prop = dummy.value
-        if not PY3:
-            self.assertIs(prop.im_func, prop.__func__)
 
     def test_getrandbytes(self):
         """getrandbytes()"""
@@ -272,10 +268,9 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, consteq, 1, b'')
 
         def consteq_supports_string(value):
-            # under PY2, it supports all unicode strings (when present at all),
-            # under PY3, compare_digest() only supports ascii unicode strings.
-            # confirmed for: cpython 2.7.9, cpython 3.4, pypy, pypy3, pyston
-            return (consteq is str_consteq or PY2 or is_ascii_safe(value))
+            # compare_digest() only supports ascii unicode strings.
+            # confirmed for: cpython 3.4, pypy3, pyston
+            return (consteq is str_consteq or is_ascii_safe(value))
 
         # check equal inputs compare correctly
         for value in [
@@ -568,19 +563,12 @@ class CodecTest(TestCase):
 
     def test_bytes(self):
         """test b() helper, bytes and native str type"""
-        if PY3:
-            import builtins
-            self.assertIs(bytes, builtins.bytes)
-        else:
-            import __builtin__ as builtins
-            self.assertIs(bytes, builtins.str)
+        import builtins
+        self.assertIs(bytes, builtins.bytes)
 
         self.assertIsInstance(b'', bytes)
         self.assertIsInstance(b'\x00\xff', bytes)
-        if PY3:
-            self.assertEqual(b'\x00\xff'.decode("latin-1"), "\x00\xff")
-        else:
-            self.assertEqual(b'\x00\xff', "\x00\xff")
+        self.assertEqual(b'\x00\xff'.decode("latin-1"), "\x00\xff")
 
     def test_to_bytes(self):
         """test to_bytes()"""
@@ -642,24 +630,17 @@ class CodecTest(TestCase):
         self.assertEqual(to_native_str(b'abc', 'ascii'), 'abc')
 
         # test invalid ascii
-        if PY3:
-            self.assertEqual(to_native_str(u'\xE0', 'ascii'), '\xE0')
-            self.assertRaises(UnicodeDecodeError, to_native_str, b'\xC3\xA0',
-                              'ascii')
-        else:
-            self.assertRaises(UnicodeEncodeError, to_native_str, u'\xE0',
-                              'ascii')
-            self.assertEqual(to_native_str(b'\xC3\xA0', 'ascii'), '\xC3\xA0')
+        self.assertEqual(to_native_str(u'\xE0', 'ascii'), '\xE0')
+        self.assertRaises(UnicodeDecodeError, to_native_str, b'\xC3\xA0',
+                          'ascii')
 
         # test latin-1
         self.assertEqual(to_native_str(u'\xE0', 'latin-1'), '\xE0')
         self.assertEqual(to_native_str(b'\xE0', 'latin-1'), '\xE0')
 
         # test utf-8
-        self.assertEqual(to_native_str(u'\xE0', 'utf-8'),
-                         '\xE0' if PY3 else '\xC3\xA0')
-        self.assertEqual(to_native_str(b'\xC3\xA0', 'utf-8'),
-                         '\xE0' if PY3 else '\xC3\xA0')
+        self.assertEqual(to_native_str(u'\xE0', 'utf-8'), '\xE0')
+        self.assertEqual(to_native_str(b'\xC3\xA0', 'utf-8'), '\xE0')
 
         # other types rejected
         self.assertRaises(TypeError, to_native_str, None, 'ascii')
@@ -743,8 +724,7 @@ class Base64EngineTest(TestCase):
         self.assertEqual(ab64_encode(hb("69b7")), b"abc")
 
         # reject unicode
-        self.assertRaises(TypeError if PY3 else UnicodeEncodeError,
-                          ab64_encode, hb("69b7").decode("latin-1"))
+        self.assertRaises(TypeError, ab64_encode, hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
         self.assertEqual(ab64_encode(hb("69b71d")), b"abcd")  # 0 mod 4
@@ -785,8 +765,7 @@ class Base64EngineTest(TestCase):
         self.assertEqual(b64s_encode(hb("69b7")), b"abc")
 
         # reject unicode
-        self.assertRaises(TypeError if PY3 else UnicodeEncodeError,
-                          b64s_encode, hb("69b7").decode("latin-1"))
+        self.assertRaises(TypeError, b64s_encode, hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
         self.assertEqual(b64s_encode(hb("69b71d")), b"abcd")  # 0 mod 4
@@ -850,7 +829,7 @@ class _Base64Test(TestCase):
 
     def test_decode_bytes_padding(self):
         """test decode_bytes() ignores padding bits"""
-        bchr = (lambda v: bytes([v])) if PY3 else chr
+        bchr = lambda v: bytes([v])
         engine = self.engine
         m = self.m
         decode = engine.decode_bytes

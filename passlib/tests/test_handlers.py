@@ -11,7 +11,7 @@ import warnings
 # pkg
 from passlib import exc, hash
 from passlib.utils import repeat_string
-from passlib.utils.compat import irange, PY3, get_method_function
+from passlib.utils.compat import irange, get_method_function
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
         TEST_MODE, UserHandlerMixin, EncodingHandlerMixin
 # module
@@ -641,8 +641,8 @@ class ldap_plaintext_test(HandlerCase):
     handler = hash.ldap_plaintext
     known_correct_hashes = [
         ("password", 'password'),
-        (UPASS_TABLE, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
-        (PASS_TABLE_UTF8, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
+        (UPASS_TABLE, UPASS_TABLE),
+        (PASS_TABLE_UTF8, UPASS_TABLE),
     ]
     known_unidentified_hashes = [
         "{FOO}bar",
@@ -1321,8 +1321,8 @@ class plaintext_test(HandlerCase):
         ('password', 'password'),
 
         # ensure unicode uses utf-8
-        (UPASS_TABLE, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
-        (PASS_TABLE_UTF8, UPASS_TABLE if PY3 else PASS_TABLE_UTF8),
+        (UPASS_TABLE, UPASS_TABLE),
+        (PASS_TABLE_UTF8, UPASS_TABLE),
     ]
 
 #=============================================================================

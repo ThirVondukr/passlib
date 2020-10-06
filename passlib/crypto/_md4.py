@@ -20,7 +20,7 @@ Implementated based on rfc at http://www.faqs.org/rfcs/rfc1320.html
 from binascii import hexlify
 import struct
 # site
-from passlib.utils.compat import bascii_to_str, irange, PY3
+from passlib.utils.compat import bascii_to_str, irange
 # local
 __all__ = ["md4"]
 
@@ -181,11 +181,7 @@ class md4(object):
 
     def update(self, content):
         if not isinstance(content, bytes):
-            if PY3:
-                raise TypeError("expected bytes")
-            else:
-                # replicate behavior of hashlib under py2
-                content = content.encode("ascii")
+            raise TypeError("expected bytes")
         buf = self._buf
         if buf:
             content = buf + content

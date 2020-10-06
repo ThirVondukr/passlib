@@ -29,7 +29,7 @@ from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
 from passlib.utils import classproperty, to_bytes, render_bytes
 from passlib.utils.binary import b64s_encode, b64s_decode
-from passlib.utils.compat import unicode, bascii_to_str, uascii_to_str, PY2
+from passlib.utils.compat import unicode, bascii_to_str, uascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -500,10 +500,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     def _norm_type(cls, value):
         # type check
         if not isinstance(value, unicode):
-            if PY2 and isinstance(value, bytes):
-                value = value.decode('ascii')
-            else:
-                raise uh.exc.ExpectedTypeError(value, "str", "type")
+            raise uh.exc.ExpectedTypeError(value, "str", "type")
 
         # check if type is valid
         if value in ALL_TYPES_SET:

@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 # pkg
 from passlib import exc
 from passlib.utils.compat import (
-    PY3, bascii_to_str,
+    bascii_to_str,
     irange, imap, iter_byte_chars, join_byte_values, join_byte_elems,
     nextgetter, suppress_cause,
     unicode, unicode_or_bytes_types,
@@ -384,10 +384,7 @@ class Base64Engine(object):
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         chunks, tail = divmod(len(source), 3)
-        if PY3:
-            next_value = nextgetter(iter(source))
-        else:
-            next_value = nextgetter(ord(elem) for elem in source)
+        next_value = nextgetter(iter(source))
         gen = self._encode_bytes(next_value, chunks, tail)
         out = join_byte_elems(imap(self._encode64, gen))
         ##if tail:
@@ -634,8 +631,7 @@ class Base64Engine(object):
             # all chars used by encoding are 7-bit ascii.
             last = self._encode64(self._decode64(last) & mask)
             assert last in padset, "failed to generate valid padding char"
-            if PY3:
-                last = bytes([last])
+            last = bytes([last])
         return True, source[:-1] + last
 
     def repair_unused(self, source):
@@ -723,9 +719,8 @@ class Base64Engine(object):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         if len(source) != 1:
             raise ValueError("source must be exactly 1 byte")
-        if PY3:
-            # convert to 8bit int before doing lookup
-            source = source[0]
+        # convert to 8bit int before doing lookup
+        source = source[0]
         try:
             return self._decode64(source)
         except KeyError:
@@ -808,10 +803,7 @@ class Base64Engine(object):
         """encodes 6-bit integer -> single hash64 character"""
         if value < 0 or value > 63:
             raise ValueError("value out of range")
-        if PY3:
-            return self.bytemap[value:value+1]
-        else:
-            return self._encode64(value)
+        return self.bytemap[value:value+1]
 
     def encode_int12(self, value):
         """encodes 12-bit integer -> 2 char string"""

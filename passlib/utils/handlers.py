@@ -28,7 +28,7 @@ from passlib.utils.binary import (
 )
 from passlib.utils.compat import join_byte_values, irange, native_string_types, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
-                                 join_unicode, unicode_or_bytes_types, PY2, int_types
+                                 join_unicode, unicode_or_bytes_types, int_types
 from passlib.utils.decor import classproperty, deprecated_method
 # local
 __all__ = [
@@ -1408,7 +1408,7 @@ class HasSalt(GenericHandler):
         else:
             if not isinstance(salt, unicode):
                 # NOTE: allowing bytes under py2 so salt can be native str.
-                if isinstance(salt, bytes) and (PY2 or relaxed):
+                if relaxed and isinstance(salt, bytes):
                     salt = salt.decode("ascii")
                 else:
                     raise exc.ExpectedTypeError(salt, "unicode", "salt")

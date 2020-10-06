@@ -17,7 +17,7 @@ import os
 # site
 # pkg
 from passlib import exc
-from passlib.utils.compat import PY2, irange, itervalues, int_types
+from passlib.utils.compat import irange, itervalues, int_types
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
 # local
@@ -312,10 +312,6 @@ class SequenceGenerator(object):
 
     def __iter__(self):
         return self
-
-    if PY2:
-        def next(self):
-            return self.__next__()
 
     #=============================================================================
     # eoc

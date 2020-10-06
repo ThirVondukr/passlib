@@ -23,7 +23,6 @@ except ImportError:
         assert reload, "expected builtin reload()"  # py2x
 # site
 # pkg
-from passlib.utils.compat import PY3
 # local
 
 #=============================================================================
@@ -124,9 +123,6 @@ def main():
     import passlib.crypto.digest as digest_mod
     for backend in ["from-bytes", "unpack", "hexlify"]:
         name = "p/%s" % backend
-        if backend == "from-bytes" and not PY3:
-            na(name)
-            continue
         os.environ['PASSLIB_PBKDF2_BACKEND'] = backend
         reload(digest_mod)
         benchmark(name,

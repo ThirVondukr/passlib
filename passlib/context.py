@@ -18,7 +18,7 @@ from passlib.utils import (handlers as uh, to_bytes,
                            )
 from passlib.utils.binary import BASE64_CHARS
 from passlib.utils.compat import (iteritems, num_types, irange,
-                                  PY2, PY3, unicode, SafeConfigParser,
+                                  unicode, SafeConfigParser,
                                   NativeStringIO, BytesIO,
                                   unicode_or_bytes_types, native_string_types,
                                   )
@@ -545,9 +545,6 @@ class _CryptConfig(object):
 
         # type check
         if category is not None and not isinstance(category, native_string_types):
-            if PY2 and isinstance(category, unicode):
-                # for compatibility with unicode-centric py2 apps
-                return self.get_record(scheme, category.encode("utf-8"))
             raise ExpectedTypeError(category, "str or None", "category")
         if scheme is not None and not isinstance(scheme, native_string_types):
             raise ExpectedTypeError(scheme, "str or None", "scheme")
@@ -868,10 +865,7 @@ class CryptContext(object):
 
     # XXX: would this be useful?
     ##def __str__(self):
-    ##    if PY3:
-    ##        return self.to_string()
-    ##    else:
-    ##        return self.to_string().encode("utf-8")
+    ##    return self.to_string()
 
     def __repr__(self):
         return "<CryptContext at 0x%0x>" % id(self)
@@ -882,15 +876,10 @@ class CryptContext(object):
     @staticmethod
     def _parse_ini_stream(stream, section, filename):
         """helper read INI from stream, extract passlib section as dict"""
-        # NOTE: this expects a unicode stream under py3,
-        # and a utf-8 bytes stream under py2,
-        # allowing the resulting dict to always use native strings.
+        # NOTE: this expects a unicode stream,
+        #       and resulting dict will always use native strings.
         p = SafeConfigParser()
-        if PY3:
-            # python 3.2 deprecated readfp in favor of read_file
-            p.read_file(stream, filename)
-        else:
-            p.readfp(stream, filename)
+        p.read_file(stream, filename)
         # XXX: could change load() to accept list of items,
         #      and skip intermediate dict creation
         return dict(p.items(section))
@@ -906,22 +895,9 @@ class CryptContext(object):
 
         .. versionadded:: 1.6
         """
-        def helper(stream):
+        with open(path, "rt", encoding=encoding) as stream:
             kwds = self._parse_ini_stream(stream, section, path)
-            return self.load(kwds, update=update)
-        if PY3:
-            # decode to unicode, which load() expected under py3
-            with open(path, "rt", encoding=encoding) as stream:
-                return helper(stream)
-        elif encoding in ["utf-8", "ascii"]:
-            # keep as utf-8 bytes, which load() expects under py2
-            with open(path, "rb") as stream:
-                return helper(stream)
-        else:
-            # transcode to utf-8 bytes
-            with open(path, "rb") as fh:
-                tmp = fh.read().decode(encoding).encode("utf-8")
-                return helper(BytesIO(tmp))
+        return self.load(kwds, update=update)
 
     def load(self, source, update=False, section="passlib", encoding="utf-8"):
         """Load new configuration into CryptContext, replacing existing config.
@@ -989,11 +965,7 @@ class CryptContext(object):
         #-----------------------------------------------------------
         parse_keys = True
         if isinstance(source, unicode_or_bytes_types):
-            if PY3:
-                source = to_unicode(source, encoding, param="source")
-            else:
-                source = to_bytes(source, "utf-8", source_encoding=encoding,
-                                  param="source")
+            source = to_unicode(source, encoding, param="source")
             source = self._parse_ini_stream(NativeStringIO(source), section,
                                             "<string passed to CryptContext.load()>")
         elif isinstance(source, CryptContext):
@@ -1400,10 +1372,7 @@ class CryptContext(object):
                 "# NOTE: the %s handler(s) are not registered with Passlib,\n"
                 "# this string may not correctly reproduce the current configuration.\n\n"
                 ) % ", ".join(repr(handler.name) for handler in unregistered))
-        out = buf.getvalue()
-        if not PY3:
-            out = out.decode("utf-8")
-        return out
+        return buf.getvalue()
 
     # XXX: is this useful enough to enable?
     ##def write_to_path(self, path, section="passlib", update=False):

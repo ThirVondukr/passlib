@@ -15,7 +15,7 @@ from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import render_bytes, to_bytes, is_ascii_codec
 from passlib.utils.decor import deprecated_method
-from passlib.utils.compat import join_bytes, unicode, BytesIO, PY3
+from passlib.utils.compat import join_bytes, unicode, BytesIO
 # local
 __all__ = [
     'HtpasswdFile',
@@ -50,8 +50,8 @@ class _CommonFile(object):
     encoding = None
 
     # whether users() and other public methods should return unicode or bytes?
-    # (defaults to False under PY2, True under PY3)
-    return_unicode = None
+    # (defaults to True)
+    return_unicode = True
 
     # if bound to local file, these will be set.
     _path = None # local file path
@@ -109,7 +109,7 @@ class _CommonFile(object):
     # XXX: add a new() classmethod, ala TOTP.new()?
 
     def __init__(self, path=None, new=False, autosave=False,
-                 encoding="utf-8", return_unicode=PY3,
+                 encoding="utf-8", return_unicode=True,
                  ):
         # set encoding
         if not encoding:
@@ -752,7 +752,7 @@ class HtpasswdFile(_CommonFile):
         .. versionadded:: 1.7
         """
         # assert self.context.identify(hash), "unrecognized hash format"
-        if PY3 and isinstance(hash, str):
+        if isinstance(hash, str):
             hash = hash.encode(self.encoding)
         user = self._encode_user(user)
         existing = self._set_record(user, hash)
@@ -1058,8 +1058,7 @@ class HtdigestFile(_CommonFile):
         hash = self._records.get(key)
         if hash is None:
             return None
-        if PY3:
-            hash = hash.decode(self.encoding)
+        hash = hash.decode(self.encoding)
         return hash
 
     def set_hash(self, user, realm=None, hash=_UNSET):
@@ -1081,7 +1080,7 @@ class HtdigestFile(_CommonFile):
             # called w/ two args - (user, hash), use default realm
             realm, hash = None, realm
         # assert htdigest.identify(hash), "unrecognized hash format"
-        if PY3 and isinstance(hash, str):
+        if isinstance(hash, str):
             hash = hash.encode(self.encoding)
         key = self._encode_key(user, realm)
         existing = self._set_record(key, hash)

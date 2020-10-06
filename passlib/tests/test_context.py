@@ -3,11 +3,7 @@
 # imports
 #=============================================================================
 # core
-from passlib.utils.compat import PY3
-if PY3:
-    from configparser import NoSectionError
-else:
-    from ConfigParser import NoSectionError
+from configparser import NoSectionError
 import datetime
 from functools import partial
 import logging; log = logging.getLogger(__name__)
@@ -19,7 +15,7 @@ from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
-from passlib.utils.compat import irange, unicode, str_to_uascii, PY2
+from passlib.utils.compat import irange, unicode, str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (TestCase, set_file, TICK_RESOLUTION,
                                  quicksleep, time_call, handler_derived_from)
@@ -747,11 +743,6 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(ctx.handler(category="admin", unconfigured=True), hash.md5_crypt)
         self.assertHandlerDerivedFrom(ctx.handler(category="staff"), hash.sha256_crypt)
 
-        # test unicode category strings are accepted under py2
-        if PY2:
-            self.assertEqual(ctx.handler(category=u"staff", unconfigured=True), hash.sha256_crypt)
-            self.assertEqual(ctx.handler(category=u"admin", unconfigured=True), hash.md5_crypt)
-
     def test_33_options(self):
         """test internal _get_record_options() method"""
 
@@ -927,14 +918,6 @@ sha512_crypt__min_rounds = 45000
         #--------------------------------------------------------------
         # border cases
         #--------------------------------------------------------------
-
-        # test unicode category strings are accepted under py2
-        # this tests basic _get_record() used by hash/genhash/verify.
-        # we have to omit scheme=xxx so codepath is tested fully
-        if PY2:
-            c2 = cc.copy(default="phpass")
-            self.assertTrue(c2.genconfig(category=u"admin").startswith("$P$5"))
-            self.assertTrue(c2.genconfig(category=u"staff").startswith("$H$5"))
 
         # throws error without schemes
         self.assertRaises(KeyError, CryptContext().genconfig)

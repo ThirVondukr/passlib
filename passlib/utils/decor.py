@@ -12,7 +12,6 @@ import types
 from warnings import warn
 # site
 # pkg
-from passlib.utils.compat import PY3
 # local
 __all__ = [
     "classproperty",
@@ -55,10 +54,7 @@ class hybrid_method(object):
     def __get__(self, obj, cls):
         if obj is None:
             obj = cls
-        if PY3:
-            return types.MethodType(self.func, obj)
-        else:
-            return types.MethodType(self.func, obj, cls)
+        return types.MethodType(self.func, obj)
 
 #=============================================================================
 # memoization
@@ -102,13 +98,6 @@ class memoized_property(object):
         value = self.__func__(obj)
         setattr(obj, self.__name__, value)
         return value
-
-    if not PY3:
-
-        @property
-        def im_func(self):
-            """py2 alias"""
-            return self.__func__
 
     def clear_cache(self, obj):
         """

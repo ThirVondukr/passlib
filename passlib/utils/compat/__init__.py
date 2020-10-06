@@ -7,8 +7,6 @@
 # python version
 #------------------------------------------------------------------------
 import sys
-PY2 = sys.version_info < (3,0)
-PY3 = sys.version_info >= (3,0)
 
 # make sure it's not an unsupported version, even if we somehow got this far
 if sys.version_info < (3, 5):
@@ -32,10 +30,7 @@ PYSTON = "Pyston" in sys.version
 # common imports
 #=============================================================================
 import logging; log = logging.getLogger(__name__)
-if PY3:
-    import builtins
-else:
-    import __builtin__ as builtins
+import builtins
 
 def add_doc(obj, doc):
     """add docstring to an object"""
@@ -45,9 +40,6 @@ def add_doc(obj, doc):
 # the default exported vars
 #=============================================================================
 __all__ = [
-    # python versions
-    'PY2', 'PY3',
-
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
 
@@ -91,7 +83,8 @@ _lazy_attrs = dict()
 #=============================================================================
 # unicode & bytes types
 #=============================================================================
-if PY3:
+
+if True:  # legacy PY3 indent
     unicode = str
 
     # NOTE: don't need to use this for general u'xxx' case,
@@ -103,15 +96,6 @@ if PY3:
     unicode_or_bytes_types = (str, bytes)
     native_string_types = (unicode,)
 
-else:
-    unicode = builtins.unicode
-
-    def u(s):
-        assert isinstance(s, str)
-        return s.decode("ascii")
-
-    unicode_or_bytes_types = (basestring,)
-    native_string_types = (basestring,)
 
 # shorter preferred aliases
 # TODO: align compat module w/ crowbar.compat naming
@@ -132,7 +116,7 @@ join_unicode = u''.join
 # function to join list of byte strings
 join_bytes = b''.join
 
-if PY3:
+if True:  # legacy PY3 indent
     def uascii_to_str(s):
         assert isinstance(s, unicode)
         return s
@@ -164,38 +148,7 @@ if PY3:
         # FIXME: there has to be a better way to do this
         return (bytes([c]) for c in s)
 
-else:
-    def uascii_to_str(s):
-        assert isinstance(s, unicode)
-        return s.encode("ascii")
-
-    def bascii_to_str(s):
-        assert isinstance(s, bytes)
-        return s
-
-    def str_to_uascii(s):
-        assert isinstance(s, str)
-        return s.decode("ascii")
-
-    def str_to_bascii(s):
-        assert isinstance(s, str)
-        return s
-
-    def join_byte_values(values):
-        return join_bytes(chr(v) for v in values)
-
-    join_byte_elems = join_bytes
-
-    byte_elem_value = ord
-
-    def iter_byte_values(s):
-        assert isinstance(s, bytes)
-        return (ord(c) for c in s)
-
-    def iter_byte_chars(s):
-        assert isinstance(s, bytes)
-        return s
-
+# TODO: move docstrings to funcs...
 add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
@@ -205,7 +158,7 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 # join_byte_elems --  function to convert list of byte elements to byte string;
 #                 i.e. what's returned by ``b('a')[0]``...
-#                 this is b('a') under PY2, but 97 under PY3.
+#                 this is 97 under PY3.
 
 # byte_elem_value -- function to convert byte element to integer -- a noop under PY3
 
@@ -215,12 +168,9 @@ add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings
 #=============================================================================
 # numeric
 #=============================================================================
-if PY3:
-    int_types = (int,)
-    num_types = (int, float)
-else:
-    int_types = (int, long)
-    num_types = (int, long, float)
+
+int_types = (int,)
+num_types = (int, float)
 
 #=============================================================================
 # iteration helpers
@@ -231,7 +181,7 @@ else:
 # imap - map to iterator
 # lmap - map to list
 #=============================================================================
-if PY3:
+if True:  # legacy PY3 indent
     irange = range
     ##def lrange(*a,**k):
     ##    return list(range(*a,**k))
@@ -250,21 +200,6 @@ if PY3:
 
     izip = zip
 
-else:
-    irange = xrange
-    ##lrange = range
-
-    lmap = map
-    from itertools import imap, izip
-
-    def iteritems(d):
-        return d.iteritems()
-    def itervalues(d):
-        return d.itervalues()
-
-    def nextgetter(obj):
-        return obj.next
-
 add_doc(nextgetter, "return function that yields successive values from iterable")
 
 #=============================================================================
@@ -277,10 +212,7 @@ add_doc(nextgetter, "return function that yields successive values from iterable
 #=============================================================================
 # introspection
 #=============================================================================
-if PY3:
-    method_function_attr = "__func__"
-else:
-    method_function_attr = "im_func"
+method_function_attr = "__func__"
 
 def get_method_function(func):
     """given (potential) method, return underlying function"""
@@ -288,7 +220,7 @@ def get_method_function(func):
 
 def get_unbound_method_function(func):
     """given unbound method, return underlying function"""
-    return func if PY3 else func.__func__
+    return func
 
 def error_from(exc,  # *,
                cause=None):
@@ -307,21 +239,13 @@ suppress_cause = error_from
 #=============================================================================
 # input/output
 #=============================================================================
-if PY3:
-    _lazy_attrs = dict(
-        BytesIO="io.BytesIO",
-        UnicodeIO="io.StringIO",
-        NativeStringIO="io.StringIO",
-        SafeConfigParser="configparser.ConfigParser",
-    )
 
-else:
-    _lazy_attrs = dict(
-        BytesIO="cStringIO.StringIO",
-        UnicodeIO="StringIO.StringIO",
-        NativeStringIO="cStringIO.StringIO",
-        SafeConfigParser="ConfigParser.SafeConfigParser",
-    )
+_lazy_attrs = dict(
+    BytesIO="io.BytesIO",
+    UnicodeIO="io.StringIO",
+    NativeStringIO="io.StringIO",
+    SafeConfigParser="configparser.ConfigParser",
+)
 
 #=============================================================================
 # collections

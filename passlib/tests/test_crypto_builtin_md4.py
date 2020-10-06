@@ -8,7 +8,7 @@ import hashlib
 # site
 # pkg
 # module
-from passlib.utils.compat import bascii_to_str, PY3
+from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import lookup_hash
 from passlib.tests.utils import TestCase, skipUnless
 # local
@@ -61,16 +61,10 @@ class _Common_MD4_Test(TestCase):
         h.update(b'bcdefghijklmnopqrstuvwxyz')
         self.assertEqual(h.hexdigest(), "d79e1c308aa5bbcdeea8ed63df412da9")
 
-        if PY3:
-            # reject unicode, hash should return digest of b''
-            h = md4()
-            self.assertRaises(TypeError, h.update, u'a')
-            self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
-        else:
-            # coerce unicode to ascii, hash should return digest of b'a'
-            h = md4()
-            h.update(u'a')
-            self.assertEqual(h.hexdigest(), "bde52cb31de33e46245e05fbdbd6fb24")
+        # reject unicode, hash should return digest of b''
+        h = md4()
+        self.assertRaises(TypeError, h.update, u'a')
+        self.assertEqual(h.hexdigest(), "31d6cfe0d16ae931b73c59d7e0c089c0")
 
     def test_md4_hexdigest(self):
         """hexdigest() method"""

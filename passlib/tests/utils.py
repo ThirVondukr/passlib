@@ -17,7 +17,7 @@ import threading
 import time
 import unittest
 from passlib.exc import PasslibHashWarning, PasslibConfigWarning
-from passlib.utils.compat import PY3, JYTHON
+from passlib.utils.compat import JYTHON
 import warnings
 from warnings import warn
 # site
@@ -28,7 +28,7 @@ import passlib.registry as registry
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import iteritems, irange, unicode, PY2
+from passlib.utils.compat import iteritems, irange, unicode
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -230,15 +230,10 @@ def get_file(path):
 
 def tonn(source):
     """convert native string to non-native string"""
-    if not isinstance(source, str):
-        return source
-    elif PY3:
+    if isinstance(source, str):
         return source.encode("utf-8")
     else:
-        try:
-            return source.decode("utf-8")
-        except UnicodeDecodeError:
-            return source.decode("latin-1")
+        return source
 
 def hb(source):
     """
@@ -672,8 +667,7 @@ class TestCase(unittest.TestCase):
         return logger named after current test.
         """
         cls = type(self)
-        # NOTE: conditional on qualname for PY2 compat
-        path = cls.__module__ + "." + getattr(cls, "__qualname__", cls.__name__)
+        path = cls.__module__ + "." + cls.__qualname__
         name = self._testMethodName
         if name:
             path = path + "." + name
@@ -1470,9 +1464,8 @@ class HandlerCase(TestCase):
         if salt_type is not unicode:
             self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u'x' * salt_size)
 
-        # bytes should be accepted only if salt_type is bytes,
-        # OR if salt type is unicode and running PY2 - to allow native strings.
-        if not (salt_type is bytes or (PY2 and salt_type is unicode)):
+        # bytes should be accepted only if salt_type is bytes
+        if salt_type is not bytes:
             self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=b'x' * salt_size)
 
     def test_using_salt_size(self):
@@ -2303,7 +2296,7 @@ class HandlerCase(TestCase):
         """
         check if we're expecting potential verify failure due to crypt.crypt() encoding limitation
         """
-        if PY3 and self.backend == "os_crypt" and isinstance(secret, bytes):
+        if self.backend == "os_crypt" and isinstance(secret, bytes):
             try:
                 secret.decode("utf-8")
             except UnicodeDecodeError:
@@ -2575,11 +2568,6 @@ class HandlerCase(TestCase):
         # but all else should be the same
         result3 = handler.parsehash(hash, sanitize=True)
         correct3 = result.copy()
-        if PY2:
-            # silence warning about bytes & unicode not comparing
-            # (sanitize may convert bytes into base64 text)
-            warnings.filterwarnings("ignore", ".*unequal comparison failed to convert.*",
-                                    category=UnicodeWarning)
         for key in ("salt", "checksum"):
             if key in result3:
                 self.assertNotEqual(result3[key], correct3[key])
