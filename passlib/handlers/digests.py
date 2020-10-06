@@ -9,7 +9,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
-from passlib.utils.compat import unicode, str_to_uascii
+from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.crypto.digest import lookup_hash
 # local
@@ -45,7 +45,7 @@ class HexDigestHash(uh.StaticHandler):
         return hash.lower()
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return str_to_uascii(self._hash_func(secret).hexdigest())
 
@@ -118,7 +118,7 @@ class htdigest(uh.MinimalHandler):
         if not encoding:
             encoding = cls.default_encoding
         uh.validate_secret(secret)
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode(encoding)
         user = to_bytes(user, encoding, "user")
         realm = to_bytes(realm, encoding, "realm")

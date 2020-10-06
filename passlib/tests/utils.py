@@ -28,7 +28,6 @@ import passlib.registry as registry
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import unicode
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -218,7 +217,7 @@ def patch_calc_min_rounds(handler):
 #=============================================================================
 def set_file(path, content):
     """set file to specified bytes"""
-    if isinstance(content, unicode):
+    if isinstance(content, str):
         content = content.encode("utf-8")
     with open(path, "wb") as fh:
         fh.write(content)
@@ -1447,7 +1446,7 @@ class HandlerCase(TestCase):
         if getattr(self.handler, "_salt_is_bytes", False):
             return bytes
         else:
-            return unicode
+            return str
 
     def test_15_salt_type(self):
         """test non-string salt values"""
@@ -1461,7 +1460,7 @@ class HandlerCase(TestCase):
         self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=fake())
 
         # unicode should be accepted only if salt_type is unicode.
-        if salt_type is not unicode:
+        if salt_type is not str:
             self.assertRaises(TypeError, self.do_encrypt, 'stub', salt=u'x' * salt_size)
 
         # bytes should be accepted only if salt_type is bytes
@@ -1941,24 +1940,24 @@ class HandlerCase(TestCase):
 
         # check ident_values list
         for value in cls.ident_values:
-            self.assertIsInstance(value, unicode,
-                                  "cls.ident_values must be unicode:")
+            self.assertIsInstance(value, str,
+                                  "cls.ident_values must be str:")
         self.assertTrue(len(cls.ident_values)>1,
                         "cls.ident_values must have 2+ elements:")
 
         # check default_ident value
-        self.assertIsInstance(cls.default_ident, unicode,
-                              "cls.default_ident must be unicode:")
+        self.assertIsInstance(cls.default_ident, str,
+                              "cls.default_ident must be str:")
         self.assertTrue(cls.default_ident in cls.ident_values,
                         "cls.default_ident must specify member of cls.ident_values")
 
         # check optional aliases list
         if cls.ident_aliases:
             for alias, ident in cls.ident_aliases.items():
-                self.assertIsInstance(alias, unicode,
-                                      "cls.ident_aliases keys must be unicode:") # XXX: allow ints?
-                self.assertIsInstance(ident, unicode,
-                                      "cls.ident_aliases values must be unicode:")
+                self.assertIsInstance(alias, str,
+                                      "cls.ident_aliases keys must be str:") # XXX: allow ints?
+                self.assertIsInstance(ident, str,
+                                      "cls.ident_aliases values must be str:")
                 self.assertTrue(ident in cls.ident_values,
                                 "cls.ident_aliases must map to cls.ident_values members: %r" % (ident,))
 
@@ -2581,7 +2580,7 @@ class HandlerCase(TestCase):
         """
         if value is None:
             return
-        self.assertIsInstance(value, unicode)
+        self.assertIsInstance(value, str)
         # assumes mask_value() defaults will never show more than <show> chars (4);
         # and show nothing if size less than 1/<pct> (8).
         ref = value if len(value) < 8 else value[4:]
@@ -2799,7 +2798,7 @@ class HandlerCase(TestCase):
 
         used by fuzz testing.
         verifiers should be callable with signature
-        ``func(password: unicode, hash: ascii str) -> ok: bool``.
+        ``func(password: str, hash: ascii str) -> ok: bool``.
         """
         handler = self.handler
         verifiers = []
@@ -2983,7 +2982,7 @@ class HandlerCase(TestCase):
             result = getrandstr(rng, self.password_alphabet, size)
 
             # trim ones that encode past truncate point.
-            if truncate_size and isinstance(result, unicode):
+            if truncate_size and isinstance(result, str):
                 while len(result.encode("utf-8")) > truncate_size:
                     result = result[:-1]
 

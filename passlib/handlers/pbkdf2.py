@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import str_to_bascii, uascii_to_str, unicode
+from passlib.utils.compat import str_to_bascii, uascii_to_str
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 # local

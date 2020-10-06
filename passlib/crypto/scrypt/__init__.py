@@ -107,10 +107,10 @@ def scrypt(secret, salt, n, r, p=1, keylen=32):
     """run SCrypt key derivation function using specified parameters.
 
     :arg secret:
-        passphrase string (unicode is encoded to bytes using utf-8).
+        passphrase string (str is encoded to bytes using utf-8).
 
     :arg salt:
-        salt string (unicode is encoded to bytes using utf-8).
+        salt string (str is encoded to bytes using utf-8).
 
     :arg n:
         integer 'N' parameter

@@ -12,7 +12,7 @@ import re
 # pkg
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, to_unicode
-from passlib.utils.compat import uascii_to_str, unicode, u
+from passlib.utils.compat import uascii_to_str, u
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -53,7 +53,7 @@ class _Base64DigestHelper(uh.StaticHandler):
         return cls.ident
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         chk = self._hash_func(secret).digest()
         return b64encode(chk).decode("ascii")
@@ -95,7 +95,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
         return uascii_to_str(hash)
 
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return self._hash_func(secret + self.salt).digest()
 
@@ -299,7 +299,7 @@ class ldap_plaintext(plaintext):
     :param encoding:
         This controls the character encoding to use (defaults to ``utf-8``).
 
-        This encoding will be used to encode :class:`!unicode` passwords
+        This encoding will be used to encode :class:`!str` passwords
         under Python 2, and decode :class:`!bytes` hashes under Python 3.
 
     .. versionchanged:: 1.6

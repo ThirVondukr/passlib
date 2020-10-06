@@ -11,7 +11,6 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
-from passlib.utils.compat import unicode
 from passlib.crypto.digest import compile_hmac
 import passlib.utils.handlers as uh
 # local
@@ -126,7 +125,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         return True
 
     def _calc_checksum_builtin(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         if _BNULL in secret:
             raise uh.exc.NullPasswordError(self)

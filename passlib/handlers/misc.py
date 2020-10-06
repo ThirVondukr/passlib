@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, str_consteq
-from passlib.utils.compat import unicode, unicode_or_bytes
+from passlib.utils.compat import unicode_or_bytes
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -161,7 +161,7 @@ class plaintext(uh.MinimalHandler):
     :param encoding:
         This controls the character encoding to use (defaults to ``utf-8``).
 
-        This encoding will be used to encode :class:`!unicode` passwords
+        This encoding will be used to encode :class:`!str` passwords
         under Python 2, and decode :class:`!bytes` hashes under Python 3.
 
     .. versionchanged:: 1.6

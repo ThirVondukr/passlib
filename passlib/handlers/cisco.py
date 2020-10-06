@@ -13,7 +13,7 @@ from warnings import warn
 # pkg
 from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
-from passlib.utils.compat import unicode, join_byte_values, \
+from passlib.utils.compat import join_byte_values, \
              join_byte_elems, iter_byte_values, uascii_to_str
 import passlib.utils.handlers as uh
 # local
@@ -124,7 +124,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         # been observed when trying to actually *set* a non-ascii password
         # via ASDM, and access via SSH seems to strip 8-bit chars.
         #
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
 
         #
@@ -186,7 +186,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         #
         user = self.user
         if user:
-            if isinstance(user, unicode):
+            if isinstance(user, str):
                 user = user.encode("utf-8")
             if not asa or len(secret) < 28:
                 secret += repeat_string(user, 4)
@@ -405,7 +405,7 @@ class cisco_type7(uh.GenericHandler):
     def _calc_checksum(self, secret):
         # XXX: no idea what unicode policy is, but all examples are
         # 7-bit ascii compatible, so using UTF-8
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return hexlify(self._cipher(secret, self.salt)).decode("ascii").upper()
 

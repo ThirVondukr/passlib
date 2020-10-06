@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_bytes
-from passlib.utils.compat import str_to_uascii, unicode
+from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -41,7 +41,7 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     # primary interface
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         user = to_bytes(self.user, "utf-8", param="user")
         return str_to_uascii(md5(secret + user).hexdigest())

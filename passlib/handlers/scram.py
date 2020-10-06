@@ -193,7 +193,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
             SaltedPassword  := Hi(Normalize(password), salt, i)
 
-        :type password: unicode or utf-8 bytes
+        :type password: str or utf-8 bytes
         :arg password: password to run through digest
 
         :type salt: bytes

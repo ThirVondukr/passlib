@@ -628,7 +628,7 @@ def compile_hmac(digest, key, multipart=False):
         digest name or constructor.
 
     :arg key:
-        secret key as :class:`!bytes` or :class:`!unicode` (unicode will be encoded using utf-8).
+        secret key as :class:`!bytes` or :class:`!str` (str will be encoded using utf-8).
 
     :param multipart:
         request a multipart constructor instead (see return description).
@@ -707,11 +707,11 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
         
     :arg secret:
         secret to use when generating the key.
-        may be :class:`!bytes` or :class:`unicode` (encoded using UTF-8).
+        may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
         
     :arg salt:
         salt string to use when generating key.
-        may be :class:`!bytes` or :class:`unicode` (encoded using UTF-8).
+        may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
 
     :param rounds:
         number of rounds to use to generate key.
@@ -772,11 +772,11 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
 
     :arg secret:
         passphrase to use to generate key.
-        may be :class:`!bytes` or :class:`unicode` (encoded using UTF-8).
+        may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
 
     :arg salt:
         salt string to use when generating key.
-        may be :class:`!bytes` or :class:`unicode` (encoded using UTF-8).
+        may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
 
     :param rounds:
         number of rounds to use to generate key.

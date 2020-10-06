@@ -63,7 +63,7 @@ from passlib.utils.decor import (
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems,
-                                  join_unicode, unicode, byte_elem_value,
+                                  join_unicode, byte_elem_value,
                                   unicode_or_bytes,
                                   get_method_function, PYPY)
 # local
@@ -323,16 +323,16 @@ def consteq(left, right):
     #       http://bugs.python.org/issue14955
 
     # validate types
-    if isinstance(left, unicode):
-        if not isinstance(right, unicode):
-            raise TypeError("inputs must be both unicode or both bytes")
+    if isinstance(left, str):
+        if not isinstance(right, str):
+            raise TypeError("inputs must be both str or both bytes")
         is_bytes = False
     elif isinstance(left, bytes):
         if not isinstance(right, bytes):
-            raise TypeError("inputs must be both unicode or both bytes")
+            raise TypeError("inputs must be both str or both bytes")
         is_bytes = True
     else:
-        raise TypeError("inputs must be both unicode or both bytes")
+        raise TypeError("inputs must be both str or both bytes")
 
     # do size comparison.
     # NOTE: the double-if construction below is done deliberately, to ensure
@@ -431,8 +431,8 @@ def saslprep(source, param="value"):
     # validate type
     # XXX: support bytes (e.g. run through want_unicode)?
     #      might be easier to just integrate this into cryptcontext.
-    if not isinstance(source, unicode):
-        raise TypeError("input must be unicode string, not %s" %
+    if not isinstance(source, str):
+        raise TypeError("input must be string, not %s" %
                         (type(source),))
 
     # mapping stage
@@ -583,7 +583,7 @@ def right_pad_string(source, size, pad=None):
     cur = len(source)
     if size > cur:
         if pad is None:
-            pad = _UNULL if isinstance(source, unicode) else _BNULL
+            pad = _UNULL if isinstance(source, str) else _BNULL
         return source+pad*(size-cur)
     else:
         return source[:size]
@@ -698,7 +698,7 @@ def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
         the source will be transcoded from *source_encoding* to *encoding*
         (via unicode).
 
-    :raises TypeError: if source is not unicode or bytes.
+    :raises TypeError: if source is not str or bytes.
 
     :returns:
         * unicode strings will be encoded using *encoding*, and returned.
@@ -713,7 +713,7 @@ def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
             return source.decode(source_encoding).encode(encoding)
         else:
             return source
-    elif isinstance(source, unicode):
+    elif isinstance(source, str):
         return source.encode(encoding)
     else:
         raise ExpectedStringError(source, param)
@@ -730,14 +730,14 @@ def to_unicode(source, encoding="utf-8", param="value"):
     :param param:
         optional name of variable/noun to reference when raising errors.
 
-    :raises TypeError: if source is not unicode or bytes.
+    :raises TypeError: if source is not str or bytes.
 
     :returns:
         * returns unicode strings unchanged.
         * returns bytes strings decoded using *encoding*
     """
     assert encoding
-    if isinstance(source, unicode):
+    if isinstance(source, str):
         return source
     elif isinstance(source, bytes):
         return source.decode(encoding)
@@ -748,17 +748,16 @@ def to_unicode(source, encoding="utf-8", param="value"):
 def to_native_str(source, encoding="utf-8", param="value"):
     if isinstance(source, bytes):
         return source.decode(encoding)
-    elif isinstance(source, unicode):
+    elif isinstance(source, str):
         return source
     else:
         raise ExpectedStringError(source, param)
 
 
 add_doc(to_native_str,
-    """Take in unicode or bytes, return native string.
+    """Take in str or bytes, returns str.
 
-    Python 2: encodes unicode using specified encoding, leaves bytes alone.
-    Python 3: leaves unicode alone, decodes bytes using specified encoding.
+    leaves str alone, decodes bytes using specified encoding.
 
     :raises TypeError: if source is not unicode or bytes.
 
@@ -879,11 +878,11 @@ else:
             if crypt_accepts_bytes:
                 # PyPy3 -- all bytes accepted, but unicode encoded to ASCII,
                 # so handling that ourselves.
-                if isinstance(secret, unicode):
+                if isinstance(secret, str):
                     secret = secret.encode("utf-8")
                 if _BNULL in secret:
                     raise ValueError("null character in secret")
-                if isinstance(hash, unicode):
+                if isinstance(hash, str):
                     hash = hash.encode("ascii")
             else:
                 # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
@@ -1086,7 +1085,7 @@ def getrandstr(rng, charset, count):
             value //= letters
             i += 1
 
-    if isinstance(charset, unicode):
+    if isinstance(charset, str):
         return join_unicode(helper())
     else:
         return join_byte_elems(helper())

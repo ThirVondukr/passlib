@@ -9,7 +9,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe, to_bytes
-from passlib.utils.compat import unicode, join_bytes, PYPY
+from passlib.utils.compat import join_bytes, PYPY
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
 #=============================================================================
@@ -121,7 +121,7 @@ class MiscTest(TestCase):
         # letters
         x = wrapper(u'abc', 32)
         y = wrapper(u'abc', 32)
-        self.assertIsInstance(x, unicode)
+        self.assertIsInstance(x, str)
         self.assertNotEqual(x,y)
         self.assertEqual(sorted(set(x)), [u'a',u'b',u'c'])
 
@@ -195,18 +195,18 @@ class MiscTest(TestCase):
 
         # helpers to generate hashes & config strings to work with
         def get_hash(secret):
-            assert isinstance(secret, unicode)
+            assert isinstance(secret, str)
             hash = hasher.hash(secret)
             if isinstance(hash, bytes):  # py2
                 hash = hash.decode("utf-8")
-            assert isinstance(hash, unicode)
+            assert isinstance(hash, str)
             return hash
 
         # test ascii password & return type
         s1 = u"test"
         h1 = get_hash(s1)
         result = safe_crypt(s1, h1)
-        self.assertIsInstance(result, unicode)
+        self.assertIsInstance(result, str)
         self.assertEqual(result, h1)
         self.assertEqual(safe_crypt(to_bytes(s1), to_bytes(h1)), h1)
 

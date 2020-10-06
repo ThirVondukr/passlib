@@ -9,7 +9,6 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_unicode, right_pad_string
-from passlib.utils.compat import unicode
 from passlib.crypto.digest import lookup_hash
 md4 = lookup_hash("md4").const
 import passlib.utils.handlers as uh
@@ -100,7 +99,7 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     def raw(cls, secret, encoding=None):
         """encode password using LANMAN hash algorithm.
 
-        :type secret: unicode or utf-8 encoded bytes
+        :type secret: str or utf-8 encoded bytes
         :arg secret: secret to hash
         :type encoding: str
         :arg encoding:
@@ -117,7 +116,7 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
         # http://www.freerainbowtables.com/phpBB3/viewtopic.php?t=387&p=12163
         from passlib.crypto.des import des_encrypt_block
         MAGIC = cls._magic
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             # perform uppercasing while we're still unicode,
             # to give a better shot at getting non-ascii chars right.
             # (though some codepages do NOT upper-case the same as unicode).
@@ -129,7 +128,7 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
             # but *that* might not always be right.
             secret = secret.upper()
         else:
-            raise TypeError("secret must be unicode or bytes")
+            raise TypeError("secret must be str or bytes")
         secret = right_pad_string(secret, 14)
         return des_encrypt_block(secret[0:7], MAGIC) + \
                des_encrypt_block(secret[7:14], MAGIC)
@@ -262,7 +261,7 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
     def raw(cls, secret, user):
         """encode password using mscash v1 algorithm
 
-        :arg secret: secret as unicode or utf-8 encoded bytes
+        :arg secret: secret as str or utf-8 encoded bytes
         :arg user: username to use as salt
 
         :returns: returns string of raw bytes
@@ -307,7 +306,7 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
     def raw(cls, secret, user):
         """encode password using msdcc v2 algorithm
 
-        :type secret: unicode or utf-8 bytes
+        :type secret: str or utf-8 bytes
         :arg secret: secret
 
         :type user: str

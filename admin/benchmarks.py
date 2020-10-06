@@ -24,7 +24,6 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.utils.compat import unicode
 from passlib.tests.utils import time_call
 # local
 
@@ -113,7 +112,7 @@ class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
 
     def _calc_checksum(self, secret):
-        return unicode(secret[0:1])
+        return secret[0:1]
 
 class AnotherHandler(BlankHandler):
     name = "another"

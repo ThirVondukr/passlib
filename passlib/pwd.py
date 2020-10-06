@@ -483,7 +483,7 @@ def genword(entropy=None, length=None, returns=None, **kwds):
         * ``"hex"`` -- Lower case hexadecimal.  Providers 4 bits of entropy per character.
 
     :returns:
-        :class:`!unicode` string containing randomly generated password;
+        :class:`!str` string containing randomly generated password;
         or list of 1+ passwords if :samp:`returns={int}` is specified.
     """
     gen = WordGenerator(length=length, entropy=entropy, **kwds)
@@ -775,7 +775,7 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
         Defaults to ``" "`` (a space), but can be an empty string, a hyphen, etc.
 
     :returns:
-        :class:`!unicode` string containing randomly generated passphrase;
+        :class:`!str` containing randomly generated passphrase;
         or list of 1+ passphrases if :samp:`returns={int}` is specified.
     """
     gen = PhraseGenerator(entropy=entropy, length=length, **kwds)

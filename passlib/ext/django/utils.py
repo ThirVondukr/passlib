@@ -20,7 +20,7 @@ except ImportError:
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
-from passlib.utils.compat import get_method_function, unicode
+from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -782,7 +782,7 @@ class DjangoContextAdapter(DjangoTranslator):
             config = getattr(settings, "PASSLIB_CONTEXT", _UNSET)
         if config is _UNSET:
             config = "passlib-default"
-        if not isinstance(config, (unicode, bytes, dict)):
+        if not isinstance(config, (str, bytes, dict)):
             raise exc.ExpectedTypeError(config, "str or dict", "PASSLIB_CONFIG")
 
         # load custom category func (if any)
@@ -985,7 +985,6 @@ class _PasslibHasherWrapper(object):
 
 ##from passlib.registry import register_crypt_handler
 ##from passlib.utils import classproperty, to_native_str, to_unicode
-##from passlib.utils.compat import unicode
 ##
 ##
 ##class _HasherHandler(object):
@@ -1023,7 +1022,7 @@ class _PasslibHasherWrapper(object):
 ##    @property
 ##    def ident(self):
 ##        # this should always be correct, as django relies on ident prefix.
-##        return unicode(self.django_name + "$")
+##        return self.django_name + "$"
 ##
 ##    @property
 ##    def identify(self, hash):
@@ -1040,7 +1039,7 @@ class _PasslibHasherWrapper(object):
 ##            opts['iterations'] = kwds.pop("rounds")
 ##        if kwds:
 ##            raise TypeError("unexpected keyword arguments: %r" % list(kwds))
-##        if isinstance(secret, unicode):
+##        if isinstance(secret, str):
 ##            secret = secret.encode("utf-8")
 ##        if salt is None:
 ##            salt = self.django_hasher.salt()
@@ -1049,7 +1048,7 @@ class _PasslibHasherWrapper(object):
 ##    @property
 ##    def verify(self, secret, hash):
 ##        hash = to_native_str(hash, "utf-8", "hash")
-##        if isinstance(secret, unicode):
+##        if isinstance(secret, str):
 ##            secret = secret.encode("utf-8")
 ##        return self.django_hasher.verify(secret, hash)
 ##

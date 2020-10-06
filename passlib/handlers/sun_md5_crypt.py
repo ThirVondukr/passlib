@@ -19,7 +19,7 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, uascii_to_str, unicode, str_to_bascii
+from passlib.utils.compat import byte_elem_value, uascii_to_str, str_to_bascii
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -150,7 +150,7 @@ def raw_sun_md5_crypt(secret, rounds, salt):
         h = md5(result)
         if coin:
             h.update(MAGIC_HAMLET)
-        h.update(unicode(round).encode("ascii"))
+        h.update(str(round).encode("ascii"))
         result = h.digest()
 
         round += 1
@@ -279,7 +279,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                 rounds = int(rstr)
             except ValueError:
                 raise uh.exc.MalformedHashError(cls, "bad rounds")
-            if rstr != unicode(rounds):
+            if rstr != str(rounds):
                 raise uh.exc.ZeroPaddedRoundsError(cls)
             if rounds == 0:
                 # NOTE: not sure if this is forbidden by spec or not;
@@ -348,7 +348,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     def _calc_checksum(self, secret):
         # NOTE: no reference for how sun_md5_crypt handles unicode
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         config = str_to_bascii(self.to_string(_withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")

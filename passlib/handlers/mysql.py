@@ -30,7 +30,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str
-from passlib.utils.compat import bascii_to_str, unicode, \
+from passlib.utils.compat import bascii_to_str, \
                                  byte_elem_value, str_to_uascii
 import passlib.utils.handlers as uh
 # local
@@ -65,7 +65,7 @@ class mysql323(uh.StaticHandler):
 
     def _calc_checksum(self, secret):
         # FIXME: no idea if mysql has a policy about handling unicode passwords
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
 
         MASK_32 = 0xffffffff
@@ -115,7 +115,7 @@ class mysql41(uh.StaticHandler):
 
     def _calc_checksum(self, secret):
         # FIXME: no idea if mysql has a policy about handling unicode passwords
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return str_to_uascii(sha1(sha1(secret).digest()).hexdigest()).upper()
 

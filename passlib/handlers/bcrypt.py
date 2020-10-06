@@ -29,7 +29,7 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import uascii_to_str, str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -488,7 +488,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     def _norm_digest_args(cls, secret, ident, new=False):
         # make sure secret is unicode
         require_valid_utf8_bytes = cls._require_valid_utf8_bytes
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         elif require_valid_utf8_bytes:
             # if backend requires utf8 bytes (os_crypt);
@@ -628,7 +628,7 @@ class _BcryptBackend(_BcryptCommon):
     # #       below method has a few edge cases where it chokes though.
     # @classmethod
     # def verify(cls, secret, hash):
-    #     if isinstance(hash, unicode):
+    #     if isinstance(hash, str):
     #         hash = hash.encode("ascii")
     #     ident = hash[:hash.index(b"$", 1)+1].decode("ascii")
     #     if ident not in cls.ident_values:
@@ -648,7 +648,7 @@ class _BcryptBackend(_BcryptCommon):
         #   returns ascii bytes
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
-        if isinstance(config, unicode):
+        if isinstance(config, str):
             config = config.encode("ascii")
         hash = _bcrypt.hashpw(secret, config)
         assert isinstance(hash, bytes)
@@ -682,8 +682,6 @@ class _BcryptorBackend(_BcryptCommon):
 
     def _calc_checksum(self, secret):
         # bcryptor behavior:
-        #   py2: unicode secret/hash encoded as ascii bytes before use,
-        #        bytes taken as-is; returns ascii bytes.
         #   py3: not supported
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
@@ -751,8 +749,6 @@ class _PyBcryptBackend(_BcryptCommon):
 
     def _calc_checksum_raw(self, secret):
         # py-bcrypt behavior:
-        #   py2: unicode secret/hash encoded as ascii bytes before use,
-        #        bytes taken as-is; returns ascii bytes.
         #   py3: unicode secret encoded as utf-8 bytes,
         #        hash encoded as ascii bytes, returns ascii unicode.
         secret, ident = self._prepare_digest_args(secret)
@@ -1191,7 +1187,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
         #       thus, have to use base64 (44 bytes) rather than hex (64 bytes).
         # XXX: it's later come out that 55-72 may be ok, so later revision of bcrypt_sha256
         #      may switch to hex encoding, since it's simpler to implement elsewhere.
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
 
         if self.version == 1:

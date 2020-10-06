@@ -304,8 +304,8 @@ def ExpectedTypeError(value, expected, param):
     return TypeError("%s must be %s, not %s" % (param, expected, name))
 
 def ExpectedStringError(value, param):
-    """error message when param was supposed to be unicode or bytes"""
-    return ExpectedTypeError(value, "unicode or bytes", param)
+    """error message when param was supposed to be str or bytes"""
+    return ExpectedTypeError(value, "str or bytes", param)
 
 #------------------------------------------------------------------------
 # hash/verify parameter errors

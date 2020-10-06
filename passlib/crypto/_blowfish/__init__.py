@@ -56,7 +56,6 @@ import struct
 # pkg
 from passlib.utils import getrandbytes, rng
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import unicode
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
 # local
 __all__ = [

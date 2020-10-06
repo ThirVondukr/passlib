@@ -43,7 +43,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import consteq
-from passlib.utils.compat import bascii_to_str, unicode
+from passlib.utils.compat import bascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -55,7 +55,7 @@ __all__ = [
 # mssql 2000
 #=============================================================================
 def _raw_mssql(secret, salt):
-    assert isinstance(secret, unicode)
+    assert isinstance(secret, str)
     assert isinstance(salt, bytes)
     return sha1(secret.encode("utf-16-le") + salt).digest()
 
@@ -65,7 +65,7 @@ UIDENT = u"0x0100"
 
 def _ident_mssql(hash, csize, bsize):
     """common identify for mssql 2000/2005"""
-    if isinstance(hash, unicode):
+    if isinstance(hash, str):
         if len(hash) == csize and hash.startswith(UIDENT):
             return True
     elif isinstance(hash, bytes):
@@ -79,7 +79,7 @@ def _ident_mssql(hash, csize, bsize):
 
 def _parse_mssql(hash, csize, bsize, handler):
     """common parser for mssql 2000/2005; returns 4 byte salt + checksum"""
-    if isinstance(hash, unicode):
+    if isinstance(hash, str):
         if len(hash) == csize and hash.startswith(UIDENT):
             try:
                 return unhexlify(hash[6:].encode("utf-8"))

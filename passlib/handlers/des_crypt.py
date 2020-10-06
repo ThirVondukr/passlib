@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.utils.compat import byte_elem_value, u, uascii_to_str, unicode
+from passlib.utils.compat import byte_elem_value, u, uascii_to_str
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
@@ -53,7 +53,7 @@ def _raw_des_crypt(secret, salt):
     salt_value = h64.decode_int12(salt)
 
     # gotta do something - no official policy since this predates unicode
-    if isinstance(secret, unicode):
+    if isinstance(secret, str):
         secret = secret.encode("utf-8")
     assert isinstance(secret, bytes)
 
@@ -89,7 +89,7 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     salt_value = h64.decode_int24(salt)
 
     # gotta do something - no official policy since this predates unicode
-    if isinstance(secret, unicode):
+    if isinstance(secret, str):
         secret = secret.encode("utf-8")
     assert isinstance(secret, bytes)
 
@@ -471,7 +471,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
         chk = _raw_des_crypt(secret, self.salt.encode("ascii"))
         idx = 8
@@ -569,7 +569,7 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     # backend
     #===================================================================
     def _calc_checksum(self, secret):
-        if isinstance(secret, unicode):
+        if isinstance(secret, str):
             secret = secret.encode("utf-8")
 
         # check for truncation (during .hash() calls only)

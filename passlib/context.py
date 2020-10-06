@@ -20,7 +20,6 @@ from passlib.utils import (handlers as uh, to_bytes,
                            )
 from passlib.utils.binary import BASE64_CHARS
 from passlib.utils.compat import (num_types,
-                                  unicode,
                                   unicode_or_bytes,
                                   )
 from passlib.utils.decor import deprecated_method, memoized_property
@@ -738,7 +737,7 @@ class CryptContext(object):
     def from_string(cls, source, section="passlib", encoding="utf-8"):
         """create new CryptContext instance from an INI-formatted string.
 
-        :type source: unicode or bytes
+        :type source: str or bytes
         :arg source:
             string containing INI-formatted content.
 
@@ -768,7 +767,7 @@ class CryptContext(object):
         .. seealso:: :meth:`to_string`, the inverse of this constructor.
         """
         if not isinstance(source, unicode_or_bytes):
-            raise ExpectedTypeError(source, "unicode or bytes", "source")
+            raise ExpectedTypeError(source, "str or bytes", "source")
         self = cls(_autoload=False)
         self.load(source, section=section, encoding=encoding)
         return self
@@ -912,7 +911,7 @@ class CryptContext(object):
                 the key/value pairs will be interpreted the same
                 keywords for the :class:`CryptContext` class constructor.
 
-            * a :class:`!unicode` or :class:`!bytes` string
+            * a :class:`!str` or :class:`!bytes` string
 
                 this will be interpreted as an INI-formatted file,
                 and appropriate key/value pairs will be loaded from
@@ -1443,7 +1442,7 @@ class CryptContext(object):
         If so, the password should be re-hashed using :meth:`hash`
         Otherwise, it will return ``False``.
 
-        :type hash: unicode or bytes
+        :type hash: str or bytes
         :arg hash:
             The hash string to examine.
 
@@ -1467,7 +1466,7 @@ class CryptContext(object):
             be used when determining if the hash needs to be updated
             (e.g. is below the minimum rounds).
 
-        :type secret: unicode, bytes, or None
+        :type secret: str, bytes, or None
         :param secret:
             Optional secret associated with the provided ``hash``.
             This is not required, or even currently used for anything...
@@ -1549,7 +1548,7 @@ class CryptContext(object):
         All registered algorithms will be checked, from first to last,
         and whichever one positively identifies the hash first will be returned.
 
-        :type hash: unicode or bytes
+        :type hash: str or bytes
         :arg hash:
             The hash string to test.
 
@@ -1587,7 +1586,7 @@ class CryptContext(object):
     def hash(self, secret, scheme=None, category=None, **kwds):
         """run secret through selected algorithm, returning resulting hash.
 
-        :type secret: unicode or bytes
+        :type secret: str or bytes
         :arg secret:
             the password to hash.
 
@@ -1626,7 +1625,7 @@ class CryptContext(object):
 
         .. seealso:: the :ref:`context-basic-example` example in the tutorial
         """
-        # XXX: could insert normalization to preferred unicode encoding here
+        # XXX: could insert normalization to preferred str encoding here
         if scheme is not None:
             # TODO: offer replacement alternative.
             #       ``context.handler(scheme).hash()`` would work,
@@ -1660,11 +1659,11 @@ class CryptContext(object):
         (limited to the schemes configured for this context).
         It will then check whether the password verifies against the hash.
 
-        :type secret: unicode or bytes
+        :type secret: str or bytes
         :arg secret:
             the secret to verify
 
-        :type hash: unicode or bytes
+        :type hash: str or bytes
         :arg hash:
             hash string to compare to
 
@@ -1740,11 +1739,11 @@ class CryptContext(object):
         which wish to update deprecated hashes, and this call takes
         care of all 3 steps efficiently.
 
-        :type secret: unicode or bytes
+        :type secret: str or bytes
         :arg secret:
             the secret to verify
 
-        :type secret: unicode or bytes
+        :type secret: str or bytes
         :arg hash:
             hash string to compare to.
 

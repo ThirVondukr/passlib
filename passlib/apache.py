@@ -16,7 +16,7 @@ from passlib.exc import ExpectedStringError
 from passlib.hash import htdigest
 from passlib.utils import render_bytes, to_bytes, is_ascii_codec
 from passlib.utils.decor import deprecated_method
-from passlib.utils.compat import join_bytes, unicode
+from passlib.utils.compat import join_bytes
 # local
 __all__ = [
     'HtpasswdFile',
@@ -50,7 +50,7 @@ class _CommonFile(object):
     # charset encoding used by file (defaults to utf-8)
     encoding = None
 
-    # whether users() and other public methods should return unicode or bytes?
+    # whether users() and other public methods should return str or bytes?
     # (defaults to True)
     return_unicode = True
 
@@ -76,7 +76,7 @@ class _CommonFile(object):
     def from_string(cls, data, **kwds):
         """create new object from raw string.
 
-        :type data: unicode or bytes
+        :type data: str or bytes
         :arg data:
             database to load, as single string.
 
@@ -352,7 +352,7 @@ class _CommonFile(object):
         :returns:
             encoded identifer as bytes
         """
-        if isinstance(value, unicode):
+        if isinstance(value, str):
             value = value.encode(self.encoding)
         elif not isinstance(value, bytes):
             raise ExpectedStringError(value, param)
@@ -373,7 +373,7 @@ class _CommonFile(object):
             (usually indicates wrong encoding set for file).
 
         :returns:
-            field as unicode or bytes, as appropriate.
+            field as str or bytes, as appropriate.
         """
         assert isinstance(value, bytes), "expected value to be bytes"
         if self.return_unicode:
@@ -794,7 +794,7 @@ class HtpasswdFile(_CommonFile):
         hash = self._records.get(user)
         if hash is None:
             return None
-        if isinstance(password, unicode):
+        if isinstance(password, str):
             # NOTE: encoding password to match file, making the assumption
             # that server will use same encoding to hash the password.
             password = password.encode(self.encoding)
