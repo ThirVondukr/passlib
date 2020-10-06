@@ -80,6 +80,9 @@ __all__ = [
     # collections
     'OrderedDict',
 
+    # context helpers
+    'nullcontext',
+
     # introspection
     'get_method_function', 'add_doc',
 ]
@@ -372,6 +375,28 @@ if PY26:
     _lazy_attrs['OrderedDict'] = 'passlib.utils.compat._ordered_dict.OrderedDict'
 else:
     _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
+
+#=============================================================================
+# context managers
+#=============================================================================
+
+try:
+    # new in py37
+    from contextlib import nullcontext
+except ImportError:
+
+    class nullcontext(object):
+        """
+        Context manager that does no additional processing.
+        """
+        def __init__(self, enter_result=None):
+            self.enter_result = enter_result
+
+        def __enter__(self):
+            return self.enter_result
+
+        def __exit__(self, *exc_info):
+            pass
 
 #=============================================================================
 # lazy overlay module

@@ -36,6 +36,11 @@ else:
 import time
 if stringprep:
     import unicodedata
+try:
+    import threading
+except ImportError:
+    # module optional before py37
+    threading = None
 import timeit
 import types
 from warnings import warn
@@ -60,7 +65,7 @@ from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
                                   unicode_or_str, unicode_or_bytes_types,
-                                  get_method_function, suppress_cause)
+                                  get_method_function, suppress_cause, PYPY)
 # local
 __all__ = [
     # constants
@@ -856,6 +861,20 @@ else:
     has_crypt = True
     _NULL = '\x00'
 
+    # XXX: replace this with lazy-evaluated bug detection?
+    if threading and PYPY and (7, 2, 0) <= sys.pypy_version_info <= (7, 3, 3):
+        #: internal lock used to wrap crypt() calls.
+        #: WARNING: if non-passlib code invokes crypt(), this lock won't be enough!
+        _safe_crypt_lock = threading.Lock()
+
+        #: detect if crypt.crypt() needs a thread lock around calls.
+        crypt_needs_lock = True
+
+    else:
+        from passlib.utils.compat import nullcontext
+        _safe_crypt_lock = nullcontext()
+        crypt_needs_lock = False
+
     # some crypt() variants will return various constant strings when
     # an invalid/unrecognized config string is passed in; instead of
     # returning NULL / None. examples include ":", ":0", "*0", etc.
@@ -908,7 +927,8 @@ else:
                 if isinstance(hash, bytes):
                     hash = hash.decode("ascii")
             try:
-                result = _crypt(secret, hash)
+                with _safe_crypt_lock:
+                    result = _crypt(secret, hash)
             except OSError:
                 # new in py39 -- per https://bugs.python.org/issue39289,
                 # crypt() now throws OSError for various things, mainly unknown hash formats
@@ -935,7 +955,8 @@ else:
                 raise ValueError("null character in secret")
             if isinstance(hash, unicode):
                 hash = hash.encode("ascii")
-            result = _crypt(secret, hash)
+            with _safe_crypt_lock:
+                result = _crypt(secret, hash)
             if not result:
                 return None
             result = result.decode("ascii")

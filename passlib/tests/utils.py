@@ -2728,7 +2728,9 @@ class HandlerCase(TestCase):
                     failed[0] += 1
                 raise
         def launch(n):
-            name = "Fuzz-Thread-%d" % (n,)
+            cls = type(self)
+            name = "Fuzz-Thread-%d ('%s:%s.%s')" % (n, cls.__module__, cls.__name__,
+                                                    self._testMethodName)
             thread = threading.Thread(target=wrapper, name=name)
             thread.setDaemon(True)
             thread.start()
@@ -3313,8 +3315,9 @@ class OsCryptMixin(HandlerCase):
                       (platform, name))
 
     #===================================================================
-    # fuzzy verified support -- add new verified that uses os crypt()
+    # fuzzy verified support -- add additional verifier that uses os crypt()
     #===================================================================
+
     def fuzz_verifier_crypt(self):
         """test results against OS crypt()"""
 
@@ -3326,14 +3329,17 @@ class OsCryptMixin(HandlerCase):
 
         # create a wrapper for fuzzy verified to use
         from crypt import crypt
+        from passlib.utils import _safe_crypt_lock
         encoding = self.FuzzHashGenerator.password_encoding
 
         def check_crypt(secret, hash):
             """stdlib-crypt"""
             if not self.crypt_supports_variant(hash):
                 return "skip"
+            # XXX: any reason not to use safe_crypt() here?  or just want to test against bare metal?
             secret = to_native_str(secret, encoding)
-            return crypt(secret, hash) == hash
+            with _safe_crypt_lock:
+                return crypt(secret, hash) == hash
 
         return check_crypt
 
