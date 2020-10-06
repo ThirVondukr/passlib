@@ -88,3 +88,7 @@ for a number of years / releases:
     * The deprecated :func:`passlib.utils.des.mdes_encrypt_int_block` method was removed.
 
     * The :func:`passlib.utils.pbkdf2.norm_hash_name` alias was removed, use :func:`passlib.crypto.digest.norm_hash_name` instead.
+
+    .. py:currentmodule:: passlib.utils
+
+    * Many PY2 compatibility helper inside :mod:`!passlib.utils.compat` have been removed.

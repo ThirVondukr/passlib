@@ -5,13 +5,14 @@
 # core
 from binascii import hexlify
 import hashlib
+from unittest import skipUnless
 import warnings
 # site
 # pkg
 # module
 from passlib.exc import UnknownHashError
 from passlib.utils.compat import JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, skipUnless, hb
+from passlib.tests.utils import TestCase, TEST_MODE, hb
 
 #=============================================================================
 # test assorted crypto helpers

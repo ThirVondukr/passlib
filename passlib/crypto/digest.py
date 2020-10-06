@@ -890,7 +890,12 @@ if _force_backend in ["any", "from-bytes"]:
 
     _builtin_backend = "from-bytes"
 
-elif _force_backend in ["any", "unpack", "from-bytes"]:
+elif _force_backend in ["unpack"]:
+
+    # XXX: should run bench_pbkdf2() to verify;
+    #      but think this can be removed now that we're always on python 3
+    #      (the from_bytes method should always be faster)
+
     from struct import Struct
     from passlib.utils import sys_bits
 
@@ -1004,7 +1009,7 @@ elif _force_backend in ["any", "unpack", "from-bytes"]:
     _builtin_backend = "unpack"
 
 else:
-    assert _force_backend in ["any", "hexlify"]
+    assert _force_backend in ["hexlify"]
 
     # XXX: older & slower approach that used int(hexlify()),
     #      keeping it around for a little while just for benchmarking.

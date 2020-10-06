@@ -3,16 +3,14 @@
 # imports
 #=============================================================================
 # core
-import logging; log = logging.getLogger(__name__)
-import os
+import logging
+log = logging.getLogger(__name__)
 import sys
 import warnings
 # site
 # pkg
 from passlib import exc, hash
-from passlib.utils import repeat_string
-from passlib.utils.compat import range, get_method_function
-from passlib.tests.utils import TestCase, HandlerCase, skipUnless, \
+from passlib.tests.utils import TestCase, HandlerCase, \
         TEST_MODE, UserHandlerMixin, EncodingHandlerMixin
 # module
 

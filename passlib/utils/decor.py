@@ -162,8 +162,7 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
     def build(func):
         is_classmethod = _is_method and isinstance(func, classmethod)
         if is_classmethod:
-            # NOTE: PY26 doesn't support "classmethod().__func__" directly...
-            func = func.__get__(None, type).__func__
+            func = func.__func__
         opts = dict(
             mod=func_module or func.__module__,
             name=func.__name__,

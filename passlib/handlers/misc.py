@@ -88,7 +88,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
         #       * linux may use "!" + hash to disable but preserve original hash
         #       * linux counts empty string as "any password";
         #         this code recognizes it, but treats it the same as "!"
-        if isinstance(hash, unicode):
+        if isinstance(hash, str):
             start = _MARKER_CHARS
         elif isinstance(hash, bytes):
             start = _MARKER_BYTES

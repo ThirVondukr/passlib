@@ -360,7 +360,8 @@ class TestCase(unittest.TestCase):
             self.addCleanup(ctx.__exit__)
 
             # ignore security warnings, tests may deliberately cause these
-            warnings.filterwarnings("ignore", category=exc.PasslibSecurityWarning)
+            # TODO: may want to filter out a few of this, but not blanket filter...
+            # warnings.filterwarnings("ignore", category=exc.PasslibSecurityWarning)
 
             # ignore warnings about PasswordHash features deprecated in 1.7
             # TODO: should be cleaned in 2.0, when support will be dropped.

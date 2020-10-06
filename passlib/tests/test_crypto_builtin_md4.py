@@ -5,12 +5,13 @@
 # core
 from binascii import hexlify
 import hashlib
+from unittest import skipUnless
 # site
 # pkg
 # module
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import lookup_hash
-from passlib.tests.utils import TestCase, skipUnless
+from passlib.tests.utils import TestCase
 # local
 __all__ = [
     "_Common_MD4_Test",
