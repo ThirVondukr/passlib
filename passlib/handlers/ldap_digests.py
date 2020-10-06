@@ -237,7 +237,7 @@ class ldap_salted_sha256(_SaltedBase64DigestHelper):
     .. versionadded:: 1.7.3
     """
     name = "ldap_salted_sha256"
-    ident = u("{SSHA256}")
+    ident = u"{SSHA256}"
     checksum_size = 32
     default_salt_size = 8
     _hash_func = sha256
@@ -277,7 +277,7 @@ class ldap_salted_sha512(_SaltedBase64DigestHelper):
     .. versionadded:: 1.7.3
     """
     name = "ldap_salted_sha512"
-    ident = u("{SSHA512}")
+    ident = u"{SSHA512}"
     checksum_size = 64
     default_salt_size = 8
     _hash_func = sha512
