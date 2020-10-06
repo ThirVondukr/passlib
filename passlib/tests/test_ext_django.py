@@ -6,6 +6,7 @@
 from __future__ import absolute_import, division, print_function
 import logging; log = logging.getLogger(__name__)
 import sys
+import re
 # site
 # pkg
 from passlib import apps as _apps, exc, registry
@@ -18,7 +19,7 @@ from passlib.utils.compat import iteritems, get_method_function
 from passlib.utils.decor import memoized_property
 # tests
 from passlib.tests.utils import TestCase, TEST_MODE, handler_derived_from
-from passlib.tests.test_handlers import get_handler_case, conditionally_available_hashes
+from passlib.tests.test_handlers import get_handler_case
 # local
 __all__ = [
     "DjangoBehaviorTest",
@@ -111,6 +112,22 @@ def create_mock_setter():
             del state[:]
     setter.popstate = popstate
     return setter
+
+
+def check_django_hasher_has_backend(name):
+    """
+    check whether django hasher is available;
+    or if it should be skipped because django lacks third-party library.
+    """
+    assert name
+    from django.contrib.auth.hashers import make_password
+    try:
+        make_password("", hasher=name)
+        return True
+    except ValueError as err:
+        if re.match("Couldn't load '.*?' algorithm .* No module named .*", str(err)):
+            return False
+        raise
 
 #=============================================================================
 # work up stock django config
@@ -329,6 +346,7 @@ class DjangoBehaviorTest(_ExtensionTest):
         and run against the passlib extension, to verify it matches
         those assumptions.
         """
+        log = self.getLogger()
         patched, config = self.patched, self.config
         # this tests the following methods:
         #   User.set_password()
@@ -441,6 +459,9 @@ class DjangoBehaviorTest(_ExtensionTest):
         # User.set_password() - n/a
 
         # User.check_password() - returns False
+        # FIXME: at some point past 1.8, some of these django started handler None differently;
+        #        and/or throwing TypeError.  need to investigate when that change occurred;
+        #        update these tests, and maybe passlib.ext.django as well.
         user = FakeUser()
         user.password = None
         self.assertFalse(user.check_password(PASS1))
@@ -490,26 +511,38 @@ class DjangoBehaviorTest(_ExtensionTest):
         # testing various bits of per-scheme behavior.
         #=======================================================
         for scheme in ctx.schemes():
+
+            #
+            # TODO: break this loop up into separate parameterized tests.
+            #
+
             #-------------------------------------------------------
             # setup constants & imports, pick a sample secret/hash combo
             #-------------------------------------------------------
+
             handler = ctx.handler(scheme)
+            log.debug("testing scheme: %r => %r", scheme, handler)
             deprecated = ctx.handler(scheme).deprecated
             assert not deprecated or scheme != ctx.default_scheme()
             try:
                 testcase = get_handler_case(scheme)
             except exc.MissingBackendError:
-                assert scheme in conditionally_available_hashes
                 continue
             assert handler_derived_from(handler, testcase.handler)
             if handler.is_disabled:
                 continue
-            if not registry.has_backend(handler):
-                # TODO: move this above get_handler_case(),
-                #       and omit MissingBackendError check.
+
+            # verify that django has a backend available
+            # (since our hasher may use different set of backends,
+            #  get_handler_case() above may work, but django will have nothing)
+            if not patched and not check_django_hasher_has_backend(handler.django_name):
                 assert scheme in ["django_bcrypt", "django_bcrypt_sha256", "django_argon2"], \
                     "%r scheme should always have active backend" % scheme
+                # TODO: make this a SkipTest() once this loop has been parameterized.
+                log.warn("skipping scheme %r due to missing django dependancy", scheme)
                 continue
+
+            # find a sample (secret, hash) pair to test with
             try:
                 secret, hash = sample_hashes[scheme]
             except KeyError:
@@ -520,7 +553,9 @@ class DjangoBehaviorTest(_ExtensionTest):
                         break
             other = 'dontletmein'
 
-            # User.set_password() - n/a
+            #-------------------------------------------------------
+            # User.set_password() - not tested here
+            #-------------------------------------------------------
 
             #-------------------------------------------------------
             # User.check_password()+migration against known hash

@@ -550,7 +550,7 @@ class _CommonScryptTest(TestCase):
         self.assertEqual(run_scrypt(1), 'da')
 
         # pick random value
-        ksize = rng.randint(0, 1 << 10)
+        ksize = rng.randint(1, 1 << 10)
         self.assertEqual(len(run_scrypt(ksize)), 2*ksize) # 2 hex chars per output
 
         # one more than upper bound

@@ -38,7 +38,7 @@ Aside from "archaic" schemes such as :class:`!des_crypt`,
 most of the password hashes supported by modern Unix flavors
 adhere to the :ref:`modular crypt format <modular-crypt-format>`,
 allowing them to be easily distinguished when used within the same file.
-The basic of format :samp:`${scheme}${hash}` has also been adopted for use
+Variants of this format's basic :samp:`${scheme}${salt}${digest}` structure have also been adopted for use
 by other applications and password hash schemes.
 
 .. _standard-unix-hashes:
@@ -114,8 +114,8 @@ of application-specific hash algorithms:
 
 Active Hashes
 -------------
-While most of these schemes generally require an application-specific
-implementation, natively used by any Unix flavor to store user passwords,
+While most of these schemes are generally application-specific, 
+and are not natively supported by any Unix OS,
 they can be used compatibly along side other modular crypt format hashes:
 
 .. toctree::
@@ -168,6 +168,8 @@ and are supported by OpenLDAP.
 * :class:`passlib.hash.ldap_sha1` - SHA1 digest
 * :class:`passlib.hash.ldap_salted_md5` - salted MD5 digest
 * :class:`passlib.hash.ldap_salted_sha1` - salted SHA1 digest
+* :class:`passlib.hash.ldap_salted_sha256` - salted SHA256 digest
+* :class:`passlib.hash.ldap_salted_sha512` - salted SHA512 digest
 
 .. toctree::
     :maxdepth: 1

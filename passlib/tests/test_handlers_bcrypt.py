@@ -11,8 +11,8 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
-from passlib.utils import repeat_string, to_bytes
-from passlib.utils.compat import irange
+from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
+from passlib.utils.compat import irange, PY3
 from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE
 # module
@@ -25,7 +25,6 @@ class _bcrypt_test(HandlerCase):
     handler = hash.bcrypt
     reduce_default_rounds = True
     fuzz_salts_need_bcrypt_repair = True
-    has_os_crypt_fallback = False
 
     known_correct_hashes = [
         #
@@ -67,6 +66,13 @@ class _bcrypt_test(HandlerCase):
         # keeping one of their 2y tests, because we are supporting that.
         (b'\xa3',
                 '$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq'),
+
+        #
+        # 8bit bug (fixed in 2y/2b)
+        #
+
+        # NOTE: see assert_lacks_8bit_bug() for origins of this test vector.
+        (b"\xd1\x91", "$2y$05$6bNw2HLQYeqHYyBfLMsv/OUcZd0LKP39b87nBw3.S2tVZSqiQX6eu"),
 
         #
         # bsd wraparound bug (fixed in 2b)
@@ -155,8 +161,8 @@ class _bcrypt_test(HandlerCase):
     platform_crypt_support = [
         ("freedbsd|openbsd|netbsd", True),
         ("darwin", False),
-        # linux - may be present via addon, e.g. debian's libpam-unix2
-        # solaris - depends on policy
+        ("linux", None),  # may be present via addon, e.g. debian's libpam-unix2
+        ("solaris", None),  # depends on system policy
     ]
 
     #===================================================================
@@ -172,7 +178,10 @@ class _bcrypt_test(HandlerCase):
             else:
                 self.addCleanup(os.environ.__delitem__, key)
             os.environ[key] = "true"
+
         super(_bcrypt_test, self).setUp()
+
+        # silence this warning, will come up a bunch during testing of old 2a hashes.
         warnings.filterwarnings("ignore", ".*backend is vulnerable to the bsd wraparound bug.*")
 
     def populate_settings(self, kwds):
@@ -402,7 +411,9 @@ class _bcrypt_test(HandlerCase):
         bcrypt = self.handler.using(rounds=4)
 
         # PASS1 = "test"
-        BAD1 = "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
+        # bad contains invalid 'c' char at end of salt:
+        #                                    \/
+        BAD1 =  "$2a$04$yjDgE74RJkeqC0/1NheSScrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
         GOOD1 = "$2a$04$yjDgE74RJkeqC0/1NheSSOrvKeu9IbKDpcQf/Ox3qsrRS/Kw42qIS"
 
         self.assertTrue(bcrypt.needs_update(BAD1))
@@ -416,7 +427,16 @@ class _bcrypt_test(HandlerCase):
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")
 bcrypt_bcryptor_test = _bcrypt_test.create_backend_case("bcryptor")
-bcrypt_os_crypt_test = _bcrypt_test.create_backend_case("os_crypt")
+
+class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
+
+    # os crypt doesn't support non-utf8 secret bytes
+    known_correct_hashes = [row for row in _bcrypt_test.known_correct_hashes
+                            if is_safe_crypt_input(row[0])]
+
+    # os crypt backend doesn't currently implement a per-call fallback if it fails
+    has_os_crypt_fallback = False
+
 bcrypt_builtin_test = _bcrypt_test.create_backend_case("builtin")
 
 #=============================================================================
@@ -428,13 +448,11 @@ class _bcrypt_sha256_test(HandlerCase):
     reduce_default_rounds = True
     forbidden_characters = None
     fuzz_salts_need_bcrypt_repair = True
-    alt_safe_crypt_handler = hash.bcrypt
-    has_os_crypt_fallback = True
 
     known_correct_hashes = [
-        #
-        # custom test vectors
-        #
+        #-------------------------------------------------------------------
+        # custom test vectors for old v1 format
+        #-------------------------------------------------------------------
 
         # empty
         ("",
@@ -458,20 +476,56 @@ class _bcrypt_sha256_test(HandlerCase):
 
         # test >72 chars is hashed correctly -- under bcrypt these hash the same.
         # NOTE: test_60_truncate_size() handles this already, this is just for overkill :)
-        (repeat_string("abc123",72),
+        (repeat_string("abc123", 72),
             '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$r/hyEtqJ0teqPEmfTLoZ83ciAI1Q74.'),
-        (repeat_string("abc123",72)+"qwr",
+        (repeat_string("abc123", 72) + "qwr",
             '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$021KLEif6epjot5yoxk0m8I0929ohEa'),
-        (repeat_string("abc123",72)+"xyz",
+        (repeat_string("abc123", 72) + "xyz",
             '$bcrypt-sha256$2b,5$X1g1nh3g0v4h6970O68cxe$7.1kgpHduMGEjvM3fX6e/QCvfn6OKja'),
+
+        #-------------------------------------------------------------------
+        # custom test vectors for v2 format
+        # TODO: convert to v2 format
+        #-------------------------------------------------------------------
+
+        # empty
+        ("",
+            '$bcrypt-sha256$v=2,t=2b,r=5$E/e/2AOhqM5W/KJTFQzLce$WFPIZKtDDTriqWwlmRFfHiOTeheAZWe'),
+
+        # ascii
+        ("password",
+            '$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$wOK1VFFtS8IGTrGa7.h5fs0u84qyPbS'),
+
+        # unicode / utf8
+        (UPASS_TABLE,
+            '$bcrypt-sha256$v=2,t=2b,r=5$.US1fQ4TQS.ZTz/uJ5Kyn.$pzzgp40k8reM1CuQb03PvE0IDPQSdV6'),
+        (UPASS_TABLE.encode("utf-8"),
+            '$bcrypt-sha256$v=2,t=2b,r=5$.US1fQ4TQS.ZTz/uJ5Kyn.$pzzgp40k8reM1CuQb03PvE0IDPQSdV6'),
+
+        # test >72 chars is hashed correctly -- under bcrypt these hash the same.
+        # NOTE: test_60_truncate_size() handles this already, this is just for overkill :)
+        (repeat_string("abc123", 72),
+            '$bcrypt-sha256$v=2,t=2b,r=5$X1g1nh3g0v4h6970O68cxe$zu1cloESVFIOsUIo7fCEgkdHaI9SSue'),
+        (repeat_string("abc123", 72) + "qwr",
+            '$bcrypt-sha256$v=2,t=2b,r=5$X1g1nh3g0v4h6970O68cxe$CBF9csfEdW68xv3DwE6xSULXMtqEFP.'),
+        (repeat_string("abc123", 72) + "xyz",
+            '$bcrypt-sha256$v=2,t=2b,r=5$X1g1nh3g0v4h6970O68cxe$zC/1UDUG2ofEXB6Onr2vvyFzfhEOS3S'),
         ]
 
     known_correct_configs =[
+        # v1
         ('$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe',
          "password", '$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu'),
+        # v2
+        ('$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe',
+         "password", '$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$wOK1VFFtS8IGTrGa7.h5fs0u84qyPbS'),
     ]
 
     known_malformed_hashes = [
+        #-------------------------------------------------------------------
+        # v1 format
+        #-------------------------------------------------------------------
+
         # bad char in otherwise correct hash
         #                           \/
         '$bcrypt-sha256$2a,5$5Hg1DKF!PE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
@@ -487,6 +541,33 @@ class _bcrypt_sha256_test(HandlerCase):
 
         # config string w/ $ added
         '$bcrypt-sha256$2a,5$5Hg1DKFqPE8C2aflZ5vVoe$',
+
+        #-------------------------------------------------------------------
+        # v2 format
+        #-------------------------------------------------------------------
+
+        # bad char in otherwise correct hash
+        #                                   \/
+        '$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKF!PE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unsupported version (for this format)
+        '$bcrypt-sha256$v=1,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unrecognized version
+        '$bcrypt-sha256$v=3,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unrecognized bcrypt variant
+        '$bcrypt-sha256$v=2,t=2c,r=5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # unsupported bcrypt variant
+        '$bcrypt-sha256$v=2,t=2a,r=5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+        '$bcrypt-sha256$v=2,t=2x,r=5$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # rounds zero-padded
+        '$bcrypt-sha256$v=2,t=2b,r=05$5Hg1DKFqPE8C2aflZ5vVoe$12BjNE0p7axMg55.Y/mHsYiVuFBDQyu',
+
+        # config string w/ $ added
+        '$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$',
     ]
 
     #===================================================================
@@ -514,11 +595,12 @@ class _bcrypt_sha256_test(HandlerCase):
     #===================================================================
     # override ident tests for now
     #===================================================================
-    def test_30_HasManyIdents(self):
+
+    def require_many_idents(self):
         raise self.skipTest("multiple idents not supported")
 
     def test_30_HasOneIdent(self):
-        # forbidding ident keyword, we only support "2a" for now
+        # forbidding ident keyword, we only support "2b" for now
         handler = self.handler
         handler(use_defaults=True)
         self.assertRaises(ValueError, handler, ident="$2y$", use_defaults=True)
@@ -526,17 +608,79 @@ class _bcrypt_sha256_test(HandlerCase):
     #===================================================================
     # fuzz testing -- cloned from bcrypt
     #===================================================================
+
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(5, 8, 6, 1)
 
+        def random_ident(self):
+            return "2b"
+
+    #===================================================================
+    # custom tests
+    #===================================================================
+
+    def test_using_version(self):
+        # default to v2
+        handler = self.handler
+        self.assertEqual(handler.version, 2)
+
+        # allow v1 explicitly
+        subcls = handler.using(version=1)
+        self.assertEqual(subcls.version, 1)
+
+        # forbid unknown ver
+        self.assertRaises(ValueError, handler.using, version=999)
+
+        # allow '2a' only for v1
+        subcls = handler.using(version=1, ident="2a")
+        self.assertRaises(ValueError, handler.using, ident="2a")
+
+    def test_calc_digest_v2(self):
+        """
+        test digest calc v2 matches bcrypt()
+        """
+        from passlib.hash import bcrypt
+        from passlib.crypto.digest import compile_hmac
+        from passlib.utils.binary import b64encode
+
+        # manually calc intermediary digest
+        salt = "nyKYxTAvjmy6lMDYMl11Uu"
+        secret = "test"
+        temp_digest = compile_hmac("sha256", salt.encode("ascii"))(secret.encode("ascii"))
+        temp_digest = b64encode(temp_digest).decode("ascii")
+        self.assertEqual(temp_digest, "J5TlyIDm+IcSWmKiDJm+MeICndBkFVPn4kKdJW8f+xY=")
+
+        # manually final hash from intermediary
+        # XXX: genhash() could be useful here
+        bcrypt_digest = bcrypt(ident="2b", salt=salt, rounds=12)._calc_checksum(temp_digest)
+        self.assertEqual(bcrypt_digest, "M0wE0Ov/9LXoQFCe.jRHu3MSHPF54Ta")
+        self.assertTrue(bcrypt.verify(temp_digest, "$2b$12$" + salt + bcrypt_digest))
+
+        # confirm handler outputs same thing.
+        # XXX: genhash() could be useful here
+        result = self.handler(ident="2b", salt=salt, rounds=12)._calc_checksum(secret)
+        self.assertEqual(result, bcrypt_digest)
+
+    #===================================================================
+    # eoc
+    #===================================================================
+
 # create test cases for specific backends
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
 bcrypt_sha256_pybcrypt_test = _bcrypt_sha256_test.create_backend_case("pybcrypt")
 bcrypt_sha256_bcryptor_test = _bcrypt_sha256_test.create_backend_case("bcryptor")
-bcrypt_sha256_os_crypt_test = _bcrypt_sha256_test.create_backend_case("os_crypt")
+
+class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):
+
+    @classmethod
+    def _get_safe_crypt_handler_backend(cls):
+        return bcrypt_os_crypt_test._get_safe_crypt_handler_backend()
+
+    has_os_crypt_fallback = False
+
 bcrypt_sha256_builtin_test = _bcrypt_sha256_test.create_backend_case("builtin")
 
 #=============================================================================

@@ -56,14 +56,14 @@ Format & Algorithm
 ==================
 The Argon2 hash format is defined by the argon2 reference implementation.
 It's compatible with the :ref:`PHC Format <phc-format>` and :ref:`modular-crypt-format`,
-and uses ``$argon2i$`` and ``$argon2d$``
-as it's identifying prefixes for all its strings. An example hash (of ``password``) is:
+and uses ``$argon2i$``, ``$argon2d$``, or ``$argon2id$`` as the identifying prefixes 
+for all its strings. An example hash (of ``password``) is:
 
   ``$argon2i$v=19$m=512,t=3,p=2$c29tZXNhbHQ$SqlVijFGiPG+935vDSGEsA``
 
 This string has the format :samp:`$argon2{X}$v={V}$m={M},t={T},p={P}${salt}${digest}`, where:
 
-* :samp:`{X}` is either ``i`` or ``d``, depending on the argon2 variant
+* :samp:`{X}` is either ``i``, ``d``, or ``id``; depending on the argon2 variant
   (``i`` in the example).
 
 * :samp:`{V}` is an integer representing the argon2 revision.
@@ -114,9 +114,6 @@ before it.  As of the release of Passlib 1.7, it has no known major security iss
 
 Deviations
 ==========
-* While passlib supports verifying type "d" Argon2 hashes, it does not support generating
-  them.  This is a deliberate choice, since type "d" is explicitly not designed for password hashing.
-
 * This implementation currently encodes all unicode passwords using UTF-8 before hashing,
   other implementations may vary, or offer a configurable encoding; though UTF-8 is assumed
   to be the default.

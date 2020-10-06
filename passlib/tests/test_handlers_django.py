@@ -5,6 +5,7 @@
 from __future__ import with_statement
 # core
 import logging; log = logging.getLogger(__name__)
+import re
 import warnings
 # site
 # pkg
@@ -12,7 +13,8 @@ from passlib import hash
 from passlib.utils import repeat_string
 from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest
 from passlib.tests.test_handlers import UPASS_USD, UPASS_TABLE
-from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION
+from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION, \
+    check_django_hasher_has_backend
 # module
 
 #=============================================================================
@@ -26,6 +28,10 @@ def vstr(version):
     return ".".join(str(e) for e in version)
 
 class _DjangoHelper(TestCase):
+    """
+    mixin for HandlerCase subclasses that are testing a hasher
+    which is also present in django.
+    """
     __unittest_skip = True
 
     #: minimum django version where hash alg is present / that we support testing against
@@ -39,10 +45,17 @@ class _DjangoHelper(TestCase):
     max_django_version = None
 
     def _require_django_support(self):
+        # make sure min django version
         if DJANGO_VERSION < self.min_django_version:
             raise self.skipTest("Django >= %s not installed" % vstr(self.min_django_version))
         if self.max_django_version and DJANGO_VERSION > self.max_django_version:
             raise self.skipTest("Django <= %s not installed" % vstr(self.max_django_version))
+
+        # make sure django has a backend for specified hasher
+        name = self.handler.django_name
+        if not check_django_hasher_has_backend(name):
+            raise self.skipTest('django hasher %r not available' % name)
+
         return True
 
     extra_fuzz_verifiers = HandlerCase.fuzz_verifiers + (

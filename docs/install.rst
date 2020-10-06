@@ -9,13 +9,13 @@ Supported Platforms
 Passlib requires Python 2 (>= 2.6) or Python 3 (>= 3.3).
 It is known to work with the following Python implementations:
 
-.. rst-class:: float-right
+.. rst-class:: float-right without-title
 
 .. warning::
 
-    * Support for Python 2.6 and 3.3 will be dropped in Passlib 1.8
-
-    * Support for Python 2.x will be dropped in Passlib 2.0
+    **Passlib 1.8 will drop support for Python 2.x, 3.3, and 3.4**;
+    and will require Python >= 3.5.  The 1.7 series will be the
+    last to support Python 2.  (See :issue:`119` for rationale).
 
 * CPython 2 -- v2.6 or newer.
 * CPython 3 -- v3.3 or newer.
@@ -92,6 +92,14 @@ Optional Libraries
 
 Installation Instructions
 =========================
+
+.. rst-class:: float-right without-title
+
+.. caution::
+
+  All PyPI releases are signed with the gpg key
+  `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
+
 To install from PyPi using :command:`pip`::
 
     pip install passlib

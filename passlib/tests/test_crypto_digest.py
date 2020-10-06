@@ -10,6 +10,7 @@ import warnings
 # site
 # pkg
 # module
+from passlib.exc import UnknownHashError
 from passlib.utils.compat import PY3, JYTHON
 from passlib.tests.utils import TestCase, TEST_MODE, skipUnless, hb
 
@@ -30,8 +31,10 @@ class HashInfoTest(TestCase):
         ("md5",       "md5",         "SCRAM-MD5-PLUS",   "MD-5"),
         ("sha1",      "sha-1",       "SCRAM-SHA-1",      "SHA1"),
         ("sha256",    "sha-256",     "SHA_256",          "sha2-256"),
-        ("ripemd",    "ripemd",      "SCRAM-RIPEMD",     "RIPEMD"),
-        ("ripemd160", "ripemd-160",  "SCRAM-RIPEMD-160", "RIPEmd160"),
+        ("ripemd160", "ripemd-160",  "SCRAM-RIPEMD-160", "RIPEmd160",
+            # NOTE: there was an older "RIPEMD" & "RIPEMD-128", but python treates "RIPEMD"
+            #       as alias for "RIPEMD-160"
+            "ripemd", "SCRAM-RIPEMD"),
 
         # fake hashes (to check if fallback normalization behaves sanely)
         ("sha4_256",  "sha4-256",    "SHA4-256",         "SHA-4-256"),
@@ -50,6 +53,7 @@ class HashInfoTest(TestCase):
         ctx.__enter__()
         self.addCleanup(ctx.__exit__)
         warnings.filterwarnings("ignore", '.*unknown hash')
+        warnings.filterwarnings("ignore", '.*unsupported hash')
 
         # test string types
         self.assertEqual(norm_hash_name(u"MD4"), "md4")
@@ -109,11 +113,52 @@ class HashInfoTest(TestCase):
         self.assertEqual(hexlify(const(b"abc").digest()),
                          b"a448017aaf21d8525fc10ae87aa6729d")
 
-        # 4. unknown names should be rejected
-        self.assertRaises(ValueError, lookup_hash, "xxx256")
-
         # should memoize records
         self.assertIs(lookup_hash("md5"), lookup_hash("md5"))
+
+    def test_lookup_hash_w_unknown_name(self):
+        """lookup_hash() -- unknown hash name"""
+        from passlib.crypto.digest import lookup_hash
+
+        # unknown names should be rejected by default
+        self.assertRaises(UnknownHashError, lookup_hash, "xxx256")
+
+        # required=False should return stub record instead
+        info = lookup_hash("xxx256", required=False)
+        self.assertFalse(info.supported)
+        self.assertRaisesRegex(UnknownHashError, "unknown hash: 'xxx256'", info.const)
+        self.assertEqual(info.name, "xxx256")
+        self.assertEqual(info.digest_size, None)
+        self.assertEqual(info.block_size, None)
+
+        # should cache stub records
+        info2 = lookup_hash("xxx256", required=False)
+        self.assertIs(info2, info)
+
+    def test_mock_fips_mode(self):
+        """
+        lookup_hash() -- test set_mock_fips_mode()
+        """
+        from passlib.crypto.digest import lookup_hash, _set_mock_fips_mode
+
+        # check if md5 is available so we can test mock helper
+        if not lookup_hash("md5", required=False).supported:
+            raise self.skipTest("md5 not supported")
+
+        # enable monkeypatch to mock up fips mode
+        _set_mock_fips_mode()
+        self.addCleanup(_set_mock_fips_mode, False)
+
+        pat = "'md5' hash disabled for fips"
+        self.assertRaisesRegex(UnknownHashError, pat, lookup_hash, "md5")
+
+        info = lookup_hash("md5", required=False)
+        self.assertRegex(info.error_text, pat)
+        self.assertRaisesRegex(UnknownHashError, pat, info.const)
+
+        # should use hardcoded fallback info
+        self.assertEqual(info.digest_size, 16)
+        self.assertEqual(info.block_size, 64)
 
     def test_lookup_hash_metadata(self):
         """lookup_hash() -- metadata"""

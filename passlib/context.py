@@ -962,8 +962,12 @@ class CryptContext(object):
 
         :type encoding: str
         :param encoding:
-            Encoding to use when decode bytes from string.
-            Defaults to ``"utf-8"``. Ignoring when loading from a dictionary.
+            Encoding to use when **source** is bytes.
+            Defaults to ``"utf-8"``. Ignored when loading from a dictionary.
+
+            .. deprecated:: 1.8
+
+                This keyword, and support for bytes input, will be dropped in Passlib 2.0
 
         :raises TypeError:
             * If the source cannot be identified.
@@ -1640,7 +1644,7 @@ class CryptContext(object):
             be used when hashing the password (e.g. different default scheme,
             different default rounds values, etc).
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             All other keyword options are passed to the selected algorithm's
             :meth:`PasswordHash.hash() <passlib.ifc.PasswordHash.hash>` method.
 
@@ -1717,7 +1721,7 @@ class CryptContext(object):
             This is mainly used when generating new hashes, it has little
             effect when verifying; this keyword is mainly provided for symmetry.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             All additional keywords are passed to the appropriate handler,
             and should match its :attr:`~passlib.ifc.PasswordHash.context_kwds`.
 
@@ -1797,7 +1801,7 @@ class CryptContext(object):
             If specified, this will cause any category-specific defaults to
             be used if the password has to be re-hashed.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             all additional keywords are passed to the appropriate handler,
             and should match that hash's
             :attr:`PasswordHash.context_kwds <passlib.ifc.PasswordHash.context_kwds>`.

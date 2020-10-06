@@ -2,6 +2,110 @@
 Passlib 1.7
 ===========
 
+.. rst-class:: without-title
+
+.. warning::
+
+    **Passlib 1.8 will drop support for Python 2.x, 3.3, and 3.4**;
+    and will require Python >= 3.5.  The 1.7 series will be the last
+    to support Python 2.7.  (See :issue:`119` for rationale).
+
+**1.7.3** (2020-10-06)
+======================
+
+This release rolls up assorted bug & compatibility fixes since 1.7.2.
+
+Administrative Changes
+----------------------
+
+.. rst-class:: without-title
+
+.. note::
+
+  **Passlib has moved to Heptapod!**
+
+  Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
+  has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,
+  and is powered by `Heptapod <https://heptapod.net/>`_.
+
+  Hosting for this and other open-source projects graciously provided by the people at
+  `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_!
+
+  The mailing list and documentation urls remain the same.
+
+New Features
+------------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`ldap_salted_sha512`: LDAP "salted hash" support added for SHA-256 and SHA-512 (:issue:`124`).
+
+Bugfixes
+--------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: Under python 3, OS native backend wasn't being detected on BSD platforms.
+  This was due to a few internal issues in feature-detection code, which have been fixed.
+
+* :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` unexpectedly
+  returning bytes under Python 3 (:issue:`113`).
+
+* :func:`passlib.utils.safe_crypt`: Support :func:`crypt.crypt` throwing :exc:`OSError`,
+  which can happen as of Python 3.9 (:issue:`115`).
+
+* :mod:`passlib.ext.django`: fixed lru_cache import (django 3 compatibility)
+
+* :mod:`!passlib.tests`: fixed bug where :meth:`HandlerCase.test_82_crypt_support` wasn't
+  being run on systems lacking support for the hasher being tested.
+  This test now runs regardless of system support.
+
+Deprecations
+------------
+
+* Support for Python 2.x, 3.3, and 3.4 is deprecated; and will be dropped in Passlib 1.8.
+
+Other Changes
+-------------
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt_sha256`:  Internal algorithm has been changed to use HMAC-SHA256 instead of
+  plain SHA256.  This should strengthen the hash against brute-force attempts which bypass
+  the intermediary hash by using known-sha256-digest lookup tables (:issue:`114`).
+
+* .. py:currentmodule:: passlib.hash
+
+  :class:`bcrypt`: OS native backend ("os_crypt") now raises the new :exc:`~passlib.exc.PasswordValueError`
+  if password is provided as non-UTF8 bytes under python 3
+  (These can't be passed through, due to limitation in stdlib's :func:`!crypt.crypt`).
+  Prior to this release, it confusingly raised :exc:`~passlib.exc.MissingBackendError` instead.
+
+  Also improved legacy bcrypt format workarounds, to support a few more UTF8 edge cases than before.
+
+* Modified some internals to help run on FIPS systems (:issue:`116`):
+
+  In particular, when MD5 hash is not available, :class:`~passlib.hash.hex_md5`
+  will now return a dummy hasher which throws an error if used; rather than throwing
+  an uncaught :exc:`!ValueError` when an application attempts to import it.  (Similar behavior
+  added for the other unsalted digest hashes).
+
+  .. py:currentmodule:: passlib.crypto.digest
+
+  Also, :func:`lookup_hash`'s ``required=False`` kwd was modified to report unsupported hashes
+  via the :attr:`HashInfo.supported` attribute; rather than letting ValueErrors through uncaught.
+
+  This should allow CryptContext instances to be created on FIPS systems without having
+  a load-time error (though they will still receive an error if an attempt is made to actually
+  *use* a FIPS-disabled hash).
+
+* Internal errors calling stdlib's :func:`crypt.crypt`, or third party libraries,
+  will now raise the new :exc:`~passlib.exc.InternalBackendError` (a RuntimeError);
+  where previously it would raise an :exc:`AssertionError`.
+
+* Various Python 3.9 compatibility fixes (including ``NotImplemented``-related warning, :issue:`125`)
+
+
 **1.7.2** (2019-11-22)
 ======================
 
@@ -54,10 +158,11 @@ Deprecations
     Due to lack of ``pip`` and ``venv`` support, Passlib is no longer fully tested on Python
     2.6 & 3.3.  There are no known issues, and bugfixes against these versions will still be
     accepted for the Passlib 1.7.x series.
-    However, **Passlib 1.8 will drop support for Python 2.6 & 3.3; and Passlib 2.0 will drop
-    support for Python 2.x entirely.**
+    However, **Passlib 1.8 will drop support for Python 2.x, 3.3, & 3.4,** and require Python >= 3.5.
 
-* Support for Python 2.6 & 3.3 is deprecated; and will be dropped in Passlib 1.8.
+* Support for Python 2.x, 3.3, and 3.4 is deprecated; and will be dropped in Passlib 1.8.
+  *(2020-10-06: Updated to include all of Python 2.x, 3.3, and 3.4; when 1.7.2 was released,
+  only Python 2.6 and 3.3 support was deprecated)*
 
 * .. py:currentmodule:: passlib.hash
 
@@ -280,7 +385,7 @@ As part of a long-range plan to restructure and simplify both the API and the in
 a number of methods have been deprecated & replaced.  The eventually goal is a large cleanup
 and overhaul as part of Passlib 2.0. There will be at least one more 1.x version
 before Passlib 2.0, to provide a final transitional release
-(see the `Passlib Roadmap <https://bitbucket.org/ecollins/passlib/wiki/Roadmap>`_).
+(see the `Project Roadmap <https://foss.heptapod.net/python-libs/passlib/wikis/roadmap>`_).
 
 Password Hash API Deprecations
 ..............................

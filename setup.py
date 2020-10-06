@@ -42,7 +42,7 @@ opts = dict(
     author_email="elic@assurancetechnologies.com",
     license="BSD",
 
-    url="https://bitbucket.org/ecollins/passlib",
+    url="https://passlib.readthedocs.io",
     # NOTE: 'download_url' set below
 
     extras_require={
@@ -60,7 +60,7 @@ opts = dict(
         "build_docs": [
             "sphinx>=1.6",
             "sphinxcontrib-fulltoc>=1.2.0",
-            "cloud_sptheme>=1.10.0",
+            "cloud_sptheme>=1.10.1",
         ],
     },
 
@@ -80,7 +80,7 @@ providing full-strength password hashing for multi-user applications.
 * See the `documentation <https://passlib.readthedocs.io>`_
   for details, installation instructions, and examples.
 
-* See the `homepage <https://bitbucket.org/ecollins/passlib>`_
+* See the `homepage <https://foss.heptapod.net/python-libs/passlib/wikis/home>`_
   for the latest news and more information.
 
 * See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
@@ -113,6 +113,7 @@ Programming Language :: Python :: 3.5
 Programming Language :: Python :: 3.6
 Programming Language :: Python :: 3.7
 Programming Language :: Python :: 3.8
+Programming Language :: Python :: 3.9
 Programming Language :: Python :: Implementation :: CPython
 Programming Language :: Python :: Implementation :: Jython
 Programming Language :: Python :: Implementation :: PyPy

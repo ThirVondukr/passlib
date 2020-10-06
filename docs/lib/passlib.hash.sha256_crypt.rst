@@ -70,9 +70,9 @@ An sha256-crypt hash string has the format :samp:`$5$rounds={rounds}${salt}${che
 * :samp:`{checksum}` is 43 characters drawn from the same set, encoding a 256-bit
   checksum (``cKhJImk5mfuSKV9b3mumNzlbstFUplKtQXXMo4G6Ep5`` in the example).
 
-There is also an alternate format :samp:`$5${salt}${checksum}`,
-which can be used when the rounds parameter is equal to 5000
-(see the ``implicit_rounds`` parameter above).
+The official implementation allows omitting the ``rounds`` section when it's set to 5000,
+resulting in an alternate hash format: :samp:`$5${salt}${checksum}`.
+(Passlib supports this via the ``implicit_rounds`` constructor parameter).
 
 The algorithm used by SHA256-Crypt is laid out in detail
 in the specification document linked to below [#f1]_.

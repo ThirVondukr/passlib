@@ -19,6 +19,18 @@ Passlib |release| documentation
         For documentation of the latest stable version,
         see `<https://passlib.readthedocs.io>`_.
 
+.. rst-class:: without-title
+
+.. note::
+
+  **2020-05-01: Passlib's public repository has moved to Heptapod!**
+
+  Due to BitBucket deprecating Mercurial support, Passlib's public repository and issue tracker
+  has been relocated.  It's now located at `<https://foss.heptapod.net/python-libs/passlib>`_,
+  and is powered by `Heptapod <https://heptapod.net/>`_.
+  Hosting is being graciously provided by the people at
+  `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_!
+
 Welcome
 =======
 Passlib is a password hashing library for Python 2 & 3, which provides
@@ -52,6 +64,10 @@ Getting Started
 This documentation is organized into two main parts:
 a narrative walkthrough of Passlib, and a top-down API reference.
 
+:doc:`install`
+
+    See this page for system requirements & installation instructions.
+
 :doc:`narr/index`
 
     New users in particular will want to visit the walkthrough, as it provides
@@ -77,7 +93,16 @@ Online Resources
 
         =================== ===================================================
         Latest Docs:        `<https://passlib.readthedocs.io>`_
-        Project Home:       `<https://bitbucket.org/ecollins/passlib>`_
-        News & Discussion:  `<https://groups.google.com/group/passlib-users>`_
+        Latest News:        `<https://foss.heptapod.net/python-libs/passlib/wikis/home>`_
+        Public Repo:        `<https://foss.heptapod.net/python-libs/passlib>`_
+        Mailing List:       `<https://groups.google.com/group/passlib-users>`_
         Downloads @ PyPI:   `<https://pypi.python.org/pypi/passlib>`_
         =================== ===================================================
+
+Hosting
+=======
+
+Thanks to the people at `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_
+for providing the repository / issue tracker hosting, as well as development of `Heptapod <https://heptapod.net/>`_!
+
+Thanks to `ReadTheDocs <https://readthedocs.io>`_ for providing documentation hosting!

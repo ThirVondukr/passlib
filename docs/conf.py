@@ -41,9 +41,9 @@ import datetime
 for _tag in os.environ.get("SPHINX_BUILD_TAGS", "").split():
     tags.add(_tag)
 
-# building the docs requires the Cloud Sphinx theme & extensions (>= v1.4),
+# building the docs requires the Cloud Sphinx theme & extensions (>= v1.10.1),
 # which contains some sphinx extensions used by Passlib.
-# (https://bitbucket.org/ecollins/cloud_sptheme)
+# (https://foss.heptapod.net/doc-utils/cloud_sptheme)
 import cloud_sptheme as csp
 
 #=============================================================================
@@ -172,7 +172,7 @@ intersphinx_mapping = {
 #=============================================================================
 todo_include_todos = True
 keep_warnings = True
-issue_tracker_url = "bb:ecollins/passlib"
+issue_tracker_url = "https://foss.heptapod.net/python-libs/passlib/issues/{issue}"
 
 #=============================================================================
 # Options for HTML output

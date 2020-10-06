@@ -49,14 +49,13 @@ This example barely touches on the range of features available.
 
 Online Resources
 ================
-* Homepage -   https://bitbucket.org/ecollins/passlib
-* Documentation - https://passlib.readthedocs.io
+* Latest Docs - https://passlib.readthedocs.io
+* Latest News - https://foss.heptapod.net/python-libs/passlib/wikis/home
 * Mailing list - https://groups.google.com/group/passlib-users
 
 * Downloads -  https://pypi.python.org/pypi/passlib
-* Source -     https://bitbucket.org/ecollins/passlib/src
-* Issues -     https://bitbucket.org/ecollins/passlib/issues
-* Roadmap -    https://bitbucket.org/ecollins/passlib/wiki/Roadmap
+* Source -     https://foss.heptapod.net/python-libs/passlib
+* Issues -     https://foss.heptapod.net/python-libs/passlib/issues
 
 Source
 =========
@@ -64,3 +63,10 @@ Passlib's source repository uses Mercurial.  When building Passlib from an hg cl
 
 * ``default`` is the bleeding edge of the next major release. It may sometimes be of alpha quality. 
 * ``stable`` is the latest released version plus any pending bugfixes, and should be safe to use in production. 
+
+Hosting
+=======
+Thanks to the people at `Octobus <https://octobus.net/>`_ and `CleverCloud <https://clever-cloud.com/>`_
+for providing the repository / issue tracker hosting, as well as the development of `Heptapod <https://heptapod.net/>`_!
+
+Thanks to `ReadTheDocs <https://readthedocs.io>`_ for providing documentation hosting!
