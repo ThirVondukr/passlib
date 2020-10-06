@@ -15,6 +15,7 @@ import sys
 import tempfile
 import threading
 import time
+import unittest
 from passlib.exc import PasslibHashWarning, PasslibConfigWarning
 from passlib.utils.compat import PY3, JYTHON
 import warnings
@@ -24,7 +25,6 @@ from warnings import warn
 from passlib import exc
 from passlib.exc import MissingBackendError
 import passlib.registry as registry
-from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnless, SkipTest
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
@@ -297,7 +297,7 @@ def run_with_fixed_seeds(count=128, master_seed=0x243F6A8885A308D3):
 # custom test harness
 #=============================================================================
 
-class TestCase(_TestCase):
+class TestCase(unittest.TestCase):
     """passlib-specific test case class
 
     this class adds a number of features to the standard TestCase...
@@ -332,7 +332,7 @@ class TestCase(_TestCase):
     #---------------------------------------------------------------
     @classproperty
     def __unittest_skip__(cls):
-        # NOTE: this attr is technically a unittest2 internal detail.
+        # NOTE: this attr is technically a unittest internal detail.
         name = cls.__name__
         return name.startswith("_") or \
                getattr(cls, "_%s__unittest_skip" % name, False)
@@ -409,7 +409,7 @@ class TestCase(_TestCase):
     # forbid a bunch of deprecated aliases so I stop using them
     #---------------------------------------------------------------
     def assertEquals(self, *a, **k):
-        raise AssertionError("this alias is deprecated by unittest2")
+        raise AssertionError("this alias is deprecated by stdlib unittest")
     assertNotEquals = assertRegexMatches = assertEquals
 
     #===================================================================
@@ -716,8 +716,7 @@ class HandlerCase(TestCase):
 
     .. note::
 
-        This is subclass of :class:`unittest.TestCase`
-        (or :class:`unittest2.TestCase` if available).
+        This is subclass of :class:`unittest.TestCase`.
     """
     #===================================================================
     # class attrs - should be filled in by subclass
@@ -2547,7 +2546,7 @@ class HandlerCase(TestCase):
 
     def require_parsehash(self):
         if not hasattr(self.handler, "parsehash"):
-            raise SkipTest("parsehash() not implemented")
+            raise self.skipTest("parsehash() not implemented")
 
     def test_70_parsehash(self):
         """
@@ -2735,7 +2734,7 @@ class HandlerCase(TestCase):
         def wrapper():
             try:
                 self.test_77_fuzz_input(threaded=True)
-            except SkipTest:
+            except unittest.SkipTest:
                 pass
             except:
                 with failed_lock:

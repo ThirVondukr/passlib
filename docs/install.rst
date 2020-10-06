@@ -130,8 +130,7 @@ algorithms using multiple external sources (if detected at runtime).
 
 All unit tests are contained within the :mod:`passlib.tests` subpackage,
 and are designed to be run using the
-`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library
-(as well as the ``unittest2`` library under Python 2.6).
+`Nose <http://somethingaboutorange.com/mrl/projects/nose>`_ unit testing library.
 
 Once Passlib and Nose have been installed, the main suite of tests may be run using::
 

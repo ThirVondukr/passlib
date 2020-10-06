@@ -5,12 +5,13 @@
 # core
 import logging; log = logging.getLogger(__name__)
 import re
+from unittest import skipUnless, SkipTest
 import warnings
 # site
 # pkg
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.tests.utils import TestCase, HandlerCase, skipUnless, SkipTest
+from passlib.tests.utils import TestCase, HandlerCase
 from passlib.tests.test_handlers import UPASS_USD, UPASS_TABLE
 from passlib.tests.test_ext_django import DJANGO_VERSION, MIN_DJANGO_VERSION, \
     check_django_hasher_has_backend

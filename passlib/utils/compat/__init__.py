@@ -14,8 +14,6 @@ PY3 = sys.version_info >= (3,0)
 if sys.version_info < (3, 5):
     raise RuntimeError("Passlib requires Python >= 3.5 (as of passlib 1.8)")
 
-PY26 = sys.version_info < (2,7)
-
 #------------------------------------------------------------------------
 # python implementation
 #------------------------------------------------------------------------
@@ -48,7 +46,7 @@ def add_doc(obj, doc):
 #=============================================================================
 __all__ = [
     # python versions
-    'PY2', 'PY3', 'PY26',
+    'PY2', 'PY3',
 
     # io
     'BytesIO', 'StringIO', 'NativeStringIO', 'SafeConfigParser',
@@ -328,10 +326,9 @@ else:
 #=============================================================================
 # collections
 #=============================================================================
-if PY26:
-    _lazy_attrs['OrderedDict'] = 'passlib.utils.compat._ordered_dict.OrderedDict'
-else:
-    _lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
+
+# TODO: remove backport
+_lazy_attrs['OrderedDict'] = 'collections.OrderedDict'
 
 #=============================================================================
 # context managers
