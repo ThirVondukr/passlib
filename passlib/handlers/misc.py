@@ -10,7 +10,7 @@ from warnings import warn
 # site
 # pkg
 from passlib.utils import to_native_str, str_consteq
-from passlib.utils.compat import unicode, unicode_or_bytes_types
+from passlib.utils.compat import unicode, unicode_or_bytes
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -176,7 +176,7 @@ class plaintext(uh.MinimalHandler):
 
     @classmethod
     def identify(cls, hash):
-        if isinstance(hash, unicode_or_bytes_types):
+        if isinstance(hash, unicode_or_bytes):
             return True
         else:
             raise uh.exc.ExpectedStringError(hash, "hash")

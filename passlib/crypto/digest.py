@@ -32,7 +32,7 @@ except ImportError:
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, join_byte_values, to_bytes, \
                           SequenceMixin, as_bool
-from passlib.utils.compat import int_types, unicode_or_bytes_types
+from passlib.utils.compat import int_types, unicode_or_bytes
 from passlib.utils.decor import memoized_property
 # local
 __all__ = [
@@ -292,7 +292,7 @@ def lookup_hash(digest,  # *,
 
     # resolve ``digest`` to ``const`` & ``name_record``
     cache_by_name = True
-    if isinstance(digest, unicode_or_bytes_types):
+    if isinstance(digest, unicode_or_bytes):
         # normalize name
         name_list = _get_hash_aliases(digest)
         name = name_list[0]

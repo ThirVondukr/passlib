@@ -64,7 +64,7 @@ from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems,
                                   join_unicode, unicode, byte_elem_value,
-                                  unicode_or_bytes_types,
+                                  unicode_or_bytes,
                                   get_method_function, PYPY)
 # local
 __all__ = [
@@ -790,7 +790,7 @@ def as_bool(value, none=None, param="boolean"):
     recognizes strings such as "true", "false"
     """
     assert none in [True, False, None]
-    if isinstance(value, unicode_or_bytes_types):
+    if isinstance(value, unicode_or_bytes):
         clean = value.lower().strip()
         if clean in _true_set:
             return True

@@ -39,7 +39,7 @@ __all__ = [
 ##    'is_mapping',
     'int_types',
     'num_types',
-    'unicode_or_bytes_types',
+    'unicode_or_bytes',
     'str',
 
     # unicode/bytes types & helpers
@@ -76,16 +76,8 @@ if True:  # legacy PY3 indent
         assert isinstance(s, str)
         return s
 
-    unicode_or_bytes_types = (str, bytes)
-
-
-# shorter preferred aliases
-# TODO: align compat module w/ crowbar.compat naming
-unicode_or_bytes = unicode_or_bytes_types
-
-# unicode -- unicode type, regardless of python version
-# bytes -- bytes type, regardless of python version
-# unicode_or_bytes_types -- types that text can occur in, whether encoded or not
+#: alias for isinstance() tests to detect any string type
+unicode_or_bytes = (str, bytes)
 
 #=============================================================================
 # unicode & bytes helpers

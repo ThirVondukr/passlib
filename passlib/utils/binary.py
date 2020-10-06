@@ -20,7 +20,7 @@ from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
     iter_byte_chars, join_byte_values, join_byte_elems,
-    unicode, unicode_or_bytes_types,
+    unicode, unicode_or_bytes,
 )
 from passlib.utils.decor import memoized_property
 # from passlib.utils import BASE64_CHARS, HASH64_CHARS
@@ -126,7 +126,7 @@ def compile_byte_translation(mapping, source=None):
         assert isinstance(source, bytes) and len(source) == 255
         target = list(iter_byte_chars(source))
     for k, v in mapping.items():
-        if isinstance(k, unicode_or_bytes_types):
+        if isinstance(k, unicode_or_bytes):
             k = ord(k)
         assert isinstance(k, int) and 0 <= k < 256
         if isinstance(v, unicode):

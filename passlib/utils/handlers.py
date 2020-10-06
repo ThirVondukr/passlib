@@ -28,7 +28,7 @@ from passlib.utils.binary import (
 )
 from passlib.utils.compat import join_byte_values, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
-                                 join_unicode, unicode_or_bytes_types, int_types
+                                 join_unicode, unicode_or_bytes, int_types
 from passlib.utils.decor import classproperty, deprecated_method
 # local
 __all__ = [
@@ -117,7 +117,7 @@ _UZERO = u"0"
 
 def validate_secret(secret):
     """ensure secret has correct type & size"""
-    if not isinstance(secret, unicode_or_bytes_types):
+    if not isinstance(secret, unicode_or_bytes):
         raise exc.ExpectedStringError(secret, "secret")
     if len(secret) > MAX_PASSWORD_SIZE:
         raise exc.PasswordSizeError(MAX_PASSWORD_SIZE)
