@@ -367,17 +367,18 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             return False
 
     def _calc_checksum_os_crypt(self, secret):
-        hash = safe_crypt(secret, self.to_string())
-        if hash:
-            # NOTE: avoiding full parsing routine via from_string().checksum,
-            # and just extracting the bit we need.
-            cs = self.checksum_size
-            assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
-            return hash[-cs:]
-        else:
+        config = self.to_string()
+        hash = safe_crypt(secret, config)
+        if hash is None:
             # py3's crypt.crypt() can't handle non-utf8 bytes.
             # fallback to builtin alg, which is always available.
             return self._calc_checksum_builtin(secret)
+        # NOTE: avoiding full parsing routine via from_string().checksum,
+        # and just extracting the bit we need.
+        cs = self.checksum_size
+        if not hash.startswith(self.ident) or hash[-cs-1] != _UDOLLAR:
+            raise uh.exc.CryptBackendError(self, config, hash)
+        return hash[-cs:]
 
     #---------------------------------------------------------------
     # builtin backend

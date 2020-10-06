@@ -15,6 +15,10 @@ class UnknownBackendError(ValueError):
         message = "%s: unknown backend: %r" % (hasher.name, backend)
         ValueError.__init__(self, message)
 
+
+# XXX: add a PasslibRuntimeError as base for Missing/Internal/Security runtime errors?
+
+
 class MissingBackendError(RuntimeError):
     """Error raised if multi-backend handler has no available backends;
     or if specifically requested backend is not available.
@@ -25,6 +29,15 @@ class MissingBackendError(RuntimeError):
     This is primarily raised by handlers which depend on
     external libraries (which is currently just
     :class:`~passlib.hash.bcrypt`).
+    """
+
+
+class InternalBackendError(RuntimeError):
+    """
+    Error raised if something unrecoverable goes wrong with backend call;
+    such as if ``crypt.crypt()`` returning a malformed hash.
+
+    .. versionadded:: 1.7.3
     """
 
 
@@ -101,6 +114,7 @@ class PasswordTruncateError(PasswordSizeError):
             msg = ("Password too long (%s truncates to %d characters)" %
                    (cls.name, cls.truncate_size))
         PasswordSizeError.__init__(self, cls.truncate_size, msg)
+
 
 class PasslibSecurityError(RuntimeError):
     """
@@ -336,6 +350,41 @@ def ChecksumSizeError(handler, raw=False):
     unit = "bytes" if raw else "chars"
     reason = "checksum must be exactly %d %s" % (checksum_size, unit)
     return MalformedHashError(handler, reason)
+
+#=============================================================================
+# sensitive info helpers
+#=============================================================================
+
+#: global flag, set temporarily by UTs to allow debug_only_repr() to display sensitive values.
+ENABLE_DEBUG_ONLY_REPR = False
+
+
+def debug_only_repr(value, param="hash"):
+    """
+    helper used to display sensitive data (hashes etc) within error messages.
+    currently returns placeholder test UNLESS unittests are running,
+    in which case the real value is displayed.
+
+    mainly useful to prevent hashes / secrets from being exposed in production tracebacks;
+    while still being visible from test failures.
+
+    NOTE: api subject to change, may formalize this more in the future.
+    """
+    if ENABLE_DEBUG_ONLY_REPR or value is None or isinstance(value, bool):
+        return repr(value)
+    return "<%s %s value omitted>" % (param, type(value))
+
+
+def CryptBackendError(handler, config, hash,  # *
+                      source="crypt.crypt()"):
+    """
+    helper to generate standard message when ``crypt.crypt()`` returns invalid result.
+    takes care of automatically masking contents of config & hash outside of UTs.
+    """
+    name = _get_name(handler)
+    msg = "%s returned invalid %s hash: config=%s hash=%s" % \
+          (source, name, debug_only_repr(config), debug_only_repr(hash))
+    raise InternalBackendError(msg)
 
 #=============================================================================
 # eof

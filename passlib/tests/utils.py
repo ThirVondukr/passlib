@@ -356,6 +356,8 @@ class TestCase(_TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         self.setUpWarnings()
+        # have uh.debug_only_repr() return real values for duration of test
+        self.patchAttr(exc, "ENABLE_DEBUG_ONLY_REPR", True)
 
     def setUpWarnings(self):
         """helper to init warning filters before subclass setUp()"""
@@ -3230,7 +3232,7 @@ class OsCryptMixin(HandlerCase):
     def test_80_faulty_crypt(self):
         """test with faulty crypt()"""
         hash = self.get_sample_hash()[1]
-        exc_types = (AssertionError,)
+        exc_types = (exc.InternalBackendError,)
         mock_crypt = self._use_mock_crypt()
 
         def test(value):
@@ -3260,11 +3262,11 @@ class OsCryptMixin(HandlerCase):
             self.assertTrue(self.do_verify("stub", h1))
         else:
             # handler should give up
-            from passlib.exc import MissingBackendError
+            from passlib.exc import InternalBackendError as err_type
             hash = self.get_sample_hash()[1]
-            self.assertRaises(MissingBackendError, self.do_encrypt, 'stub')
-            self.assertRaises(MissingBackendError, self.do_genhash, 'stub', hash)
-            self.assertRaises(MissingBackendError, self.do_verify, 'stub', hash)
+            self.assertRaises(err_type, self.do_encrypt, 'stub')
+            self.assertRaises(err_type, self.do_genhash, 'stub', hash)
+            self.assertRaises(err_type, self.do_verify, 'stub', hash)
 
     @doesnt_require_backend
     def test_82_crypt_support(self):

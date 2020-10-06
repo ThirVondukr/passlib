@@ -304,14 +304,15 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             except err_types:
                 # backends without support for given ident will throw various
                 # errors about unrecognized version:
-                #   os_crypt -- internal code below throws MissingBackendError
-                #               if crypt fails for unknown reason;
-                #               and PasswordValueError if there's encoding issue w/ password.
+                #   os_crypt -- internal code below throws
+                #       - PasswordValueError if there's encoding issue w/ password.
+                #       - InternalBackendError if crypt fails for unknown reason
+                #         (trapped below so we can debug it)
                 #   pybcrypt, bcrypt -- raises ValueError
                 #   bcryptor -- raises bcryptor.engine.SaltError
                 return NotImplemented
-            except AssertionError as err:
-                # _calc_checksum() code may also throw AssertionError
+            except uh.exc.InternalBackendError:
+                # _calc_checksum() code may also throw CryptBackendError
                 # if correct hash isn't returned (e.g. 2y hash converted to 2b,
                 # such as happens with bcrypt 3.0.0)
                 log.debug("trapped unexpected response from %r backend: verify(%r, %r):",
@@ -652,9 +653,9 @@ class _BcryptBackend(_BcryptCommon):
         if isinstance(config, unicode):
             config = config.encode("ascii")
         hash = _bcrypt.hashpw(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31, \
-            "config mismatch: %r => %r" % (config, hash)
         assert isinstance(hash, bytes)
+        if not hash.startswith(config) or len(hash) != len(config)+31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="`bcrypt` package")
         return hash[-31:].decode("ascii")
 
 #-----------------------------------------------------------------------
@@ -689,7 +690,8 @@ class _BcryptorBackend(_BcryptCommon):
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = _bcryptor.engine.Engine(False).hash_key(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31
+        if not hash.startswith(config) or len(hash) != len(config) + 31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="bcryptor library")
         return str_to_uascii(hash[-31:])
 
 #-----------------------------------------------------------------------
@@ -758,7 +760,8 @@ class _PyBcryptBackend(_BcryptCommon):
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = _pybcrypt.hashpw(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31
+        if not hash.startswith(config) or len(hash) != len(config) + 31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="pybcrypt library")
         return str_to_uascii(hash[-31:])
 
     _calc_checksum = _calc_checksum_raw
@@ -789,8 +792,9 @@ class _OsCryptBackend(_BcryptCommon):
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = safe_crypt(secret, config)
-        if hash:
-            assert hash.startswith(config) and len(hash) == len(config)+31
+        if hash is not None:
+            if not hash.startswith(config) or len(hash) != len(config) + 31:
+                raise uh.exc.CryptBackendError(self, config, hash)
             return hash[-31:]
 
         #
@@ -829,11 +833,12 @@ class _OsCryptBackend(_BcryptCommon):
         # NOTE: if do change this error, need to update test_81_crypt_fallback() expectations
         #       about what will be thrown; as well as safe_verify() above.
         #
-        raise uh.exc.MissingBackendError(
+        debug_only_repr = uh.exc.debug_only_repr
+        raise uh.exc.InternalBackendError(
             "crypt.crypt() failed for unknown reason; "
             "passlib recommends running `pip install bcrypt` for general bcrypt support."
             # for debugging UTs --
-            "(secret=%r, config=%r)" % (secret, config),
+            "(config=%s, secret=%s)" % (debug_only_repr(config), debug_only_repr(secret)),
             )
 
 #-----------------------------------------------------------------------

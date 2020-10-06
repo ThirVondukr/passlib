@@ -346,7 +346,6 @@ def mask_value(value, show=4, pct=0.125, char=u"*"):
     show = min(show, int(size * pct))
     return value[:show] + char * (size - show)
 
-
 #=============================================================================
 # parameter helpers
 #=============================================================================

@@ -89,6 +89,10 @@ Other Changes
   a load-time error (though they will still receive an error if an attempt is made to actually
   *use* a FIPS-disabled hash).
 
+* Internal errors calling stdlib's :func:`crypt.crypt`, or third party libraries,
+  will now raise the new :exc:`~passlib.exc.InternalBackendError` (a RuntimeError);
+  where previously it would raise an :exc:`AssertionError`.
+
 * Various Python 3.9 compatibility fixes (including ``NotImplemented``-related warning, :issue:`125`)
 
 
