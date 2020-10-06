@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
-    imap, iter_byte_chars, join_byte_values, join_byte_elems,
+    iter_byte_chars, join_byte_values, join_byte_elems,
     nextgetter, suppress_cause,
     unicode, unicode_or_bytes_types,
 )
@@ -386,7 +386,7 @@ class Base64Engine(object):
         chunks, tail = divmod(len(source), 3)
         next_value = nextgetter(iter(source))
         gen = self._encode_bytes(next_value, chunks, tail)
-        out = join_byte_elems(imap(self._encode64, gen))
+        out = join_byte_elems(map(self._encode64, gen))
         ##if tail:
         ##    padding = self.padding
         ##    if padding:
@@ -491,7 +491,7 @@ class Base64Engine(object):
         if tail == 1:
             # only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
-        next_value = nextgetter(imap(self._decode64, source))
+        next_value = nextgetter(map(self._decode64, source))
         try:
             return join_byte_values(self._decode_bytes(next_value, chunks, tail))
         except KeyError as err:
@@ -792,7 +792,7 @@ class Base64Engine(object):
         else:
             itr = range(0, bits, 6)
             # padding is msb, so no change needed.
-        return join_byte_elems(imap(self._encode64,
+        return join_byte_elems(map(self._encode64,
                                 ((value>>off) & 0x3f for off in itr)))
 
     #---------------------------------------------------------------
@@ -812,7 +812,7 @@ class Base64Engine(object):
         raw = [value & 0x3f, (value>>6) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return join_byte_elems(imap(self._encode64, raw))
+        return join_byte_elems(map(self._encode64, raw))
 
     def encode_int24(self, value):
         """encodes 24-bit integer -> 4 char string"""
@@ -822,7 +822,7 @@ class Base64Engine(object):
                (value>>12) & 0x3f, (value>>18) & 0x3f]
         if self.big:
             raw = reversed(raw)
-        return join_byte_elems(imap(self._encode64, raw))
+        return join_byte_elems(map(self._encode64, raw))
 
     def encode_int30(self, value):
         """decode 5 char string -> 30 bit integer"""
