@@ -400,21 +400,21 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         test_hash_20 = b"$2$04$5BJqKfqMQvV7nS.yUguNcuRfMMOXK0xPWavM7pOzjEi5ze5T1k8/S"
         result = safe_verify("test", test_hash_20)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_20_support = True
             log.debug("%r backend lacks $2$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2$ hash" % backend)
 
         #----------------------------------------------------------------
         # check for 2a support
         #----------------------------------------------------------------
         result = safe_verify("test", TEST_HASH_2A)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2a$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             # 2a support is required, and should always be present
             raise RuntimeError("%s lacks support for $2a$ hashes" % backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2a$ hash" % backend)
         else:
             assert_lacks_8bit_bug(IDENT_2A)
             if detect_wrap_bug(IDENT_2A):
@@ -438,11 +438,11 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         test_hash_2y = TEST_HASH_2A.replace("2a", "2y")
         result = safe_verify("test", test_hash_2y)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2y$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_2y_support = True
             log.debug("%r backend lacks $2y$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2y$ hash" % backend)
         else:
             # NOTE: Not using this as fallback candidate,
             #       lacks wide enough support across implementations.
@@ -458,11 +458,11 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         test_hash_2b = TEST_HASH_2A.replace("2a", "2b")
         result = safe_verify("test", test_hash_2b)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2b$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_2b_support = True
             log.debug("%r backend lacks $2b$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2b$ hash" % backend)
         else:
             mixin_cls._fallback_ident = IDENT_2B
             assert_lacks_8bit_bug(IDENT_2B)

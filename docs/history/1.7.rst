@@ -89,6 +89,9 @@ Other Changes
   a load-time error (though they will still receive an error if an attempt is made to actually
   *use* a FIPS-disabled hash).
 
+* Various Python 3.9 compatibility fixes (including ``NotImplemented``-related warning, :issue:`125`)
+
+
 **1.7.2** (2019-11-22)
 ======================
 

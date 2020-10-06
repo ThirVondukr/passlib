@@ -144,7 +144,7 @@ class SequenceMixin(object):
     subclass just needs to provide :meth:`_as_tuple()`.
     """
     def _as_tuple(self):
-        raise NotImplemented("implement in subclass")
+        raise NotImplementedError("implement in subclass")
 
     def __repr__(self):
         return repr(self._as_tuple())
