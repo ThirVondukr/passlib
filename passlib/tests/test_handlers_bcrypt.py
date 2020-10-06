@@ -201,7 +201,6 @@ class _bcrypt_test(HandlerCase):
     fuzz_verifiers = HandlerCase.fuzz_verifiers + (
         "fuzz_verifier_bcrypt",
         "fuzz_verifier_pybcrypt",
-        "fuzz_verifier_bcryptor",
     )
 
     def fuzz_verifier_bcrypt(self):
@@ -269,28 +268,6 @@ class _bcrypt_test(HandlerCase):
                 raise ValueError("py-bcrypt rejected hash: %r" % (hash,))
         return check_pybcrypt
 
-    def fuzz_verifier_bcryptor(self):
-        # test against bcryptor if available
-        from passlib.handlers.bcrypt import IDENT_2, IDENT_2A, IDENT_2Y, IDENT_2B
-        from passlib.utils import to_native_str
-        try:
-            from bcryptor.engine import Engine
-        except ImportError:
-            return
-        def check_bcryptor(secret, hash):
-            """bcryptor"""
-            secret = to_native_str(secret, self.FuzzHashGenerator.password_encoding)
-            if hash.startswith((IDENT_2B, IDENT_2Y)):
-                hash = IDENT_2A + hash[4:]
-            elif hash.startswith(IDENT_2):
-                # bcryptor doesn't support $2$ hashes; but we can fake it
-                # using the $2a$ algorithm, by repeating the password until
-                # it's 72 chars in length.
-                hash = IDENT_2A + hash[3:]
-                if secret:
-                    secret = repeat_string(secret, 72)
-            return Engine(False).hash_key(secret, hash) == hash
-        return check_bcryptor
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
@@ -424,7 +401,7 @@ class _bcrypt_test(HandlerCase):
 # create test cases for specific backends
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
 bcrypt_pybcrypt_test = _bcrypt_test.create_backend_case("pybcrypt")
-bcrypt_bcryptor_test = _bcrypt_test.create_backend_case("bcryptor")
+
 
 class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
 
@@ -669,7 +646,7 @@ class _bcrypt_sha256_test(HandlerCase):
 # create test cases for specific backends
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
 bcrypt_sha256_pybcrypt_test = _bcrypt_sha256_test.create_backend_case("pybcrypt")
-bcrypt_sha256_bcryptor_test = _bcrypt_sha256_test.create_backend_case("bcryptor")
+
 
 class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_crypt")):
 

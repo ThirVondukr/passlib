@@ -20,7 +20,6 @@ from warnings import warn
 # site
 _bcrypt = None # dynamically imported by _load_backend_bcrypt()
 _pybcrypt = None # dynamically imported by _load_backend_pybcrypt()
-_bcryptor = None # dynamically imported by _load_backend_bcryptor()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.crypto.digest import compile_hmac
@@ -291,8 +290,6 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         verify = mixin_cls.verify
 
         err_types = (ValueError, uh.exc.MissingBackendError)
-        if _bcryptor:
-            err_types += (_bcryptor.engine.SaltError,)
 
         def safe_verify(secret, hash):
             """verify() wrapper which traps 'unknown identifier' errors"""
@@ -306,7 +303,6 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 #       - InternalBackendError if crypt fails for unknown reason
                 #         (trapped below so we can debug it)
                 #   pybcrypt, bcrypt -- raises ValueError
-                #   bcryptor -- raises bcryptor.engine.SaltError
                 return NotImplemented
             except uh.exc.InternalBackendError:
                 # _calc_checksum() code may also throw CryptBackendError
@@ -507,7 +503,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             cls._check_truncate_policy(secret)
 
         # NOTE: especially important to forbid NULLs for bcrypt, since many
-        # backends (bcryptor, bcrypt) happily accept them, and then
+        # backends (bcrypt) happily accept them, and then
         # silently truncate the password at first NULL they encounter!
         if _BNULL in secret:
             raise uh.exc.NullPasswordError(cls)
@@ -654,40 +650,6 @@ class _BcryptBackend(_BcryptCommon):
         if not hash.startswith(config) or len(hash) != len(config)+31:
             raise uh.exc.CryptBackendError(self, config, hash, source="`bcrypt` package")
         return hash[-31:].decode("ascii")
-
-#-----------------------------------------------------------------------
-# bcryptor backend
-#-----------------------------------------------------------------------
-class _BcryptorBackend(_BcryptCommon):
-    """
-    backend which uses 'bcryptor' package
-    """
-
-    @classmethod
-    def _load_backend_mixin(mixin_cls, name, dryrun):
-        # try to import bcryptor
-        global _bcryptor
-        try:
-            import bcryptor as _bcryptor
-        except ImportError: # pragma: no cover
-            return False
-
-        # deprecated as of 1.7.2
-        if not dryrun:
-            warn("Support for `bcryptor` is deprecated, and will be removed in Passlib 1.8; "
-                 "Please use `pip install bcrypt` instead", DeprecationWarning)
-
-        return mixin_cls._finalize_backend_mixin(name, dryrun)
-
-    def _calc_checksum(self, secret):
-        # bcryptor behavior:
-        #   py3: not supported
-        secret, ident = self._prepare_digest_args(secret)
-        config = self._get_config(ident)
-        hash = _bcryptor.engine.Engine(False).hash_key(secret, config)
-        if not hash.startswith(config) or len(hash) != len(config) + 31:
-            raise uh.exc.CryptBackendError(self, config, hash, source="bcryptor library")
-        return hash[-31:]
 
 #-----------------------------------------------------------------------
 # pybcrypt backend
@@ -936,7 +898,7 @@ class bcrypt(_NoBackend, _BcryptCommon):
     #       in order to load the appropriate backend.
 
     #: list of potential backends
-    backends = ("bcrypt", "pybcrypt", "bcryptor", "os_crypt", "builtin")
+    backends = ("bcrypt", "pybcrypt", "os_crypt", "builtin")
 
     #: flag that this class's bases should be modified by SubclassBackendMixin
     _backend_mixin_target = True
@@ -946,7 +908,6 @@ class bcrypt(_NoBackend, _BcryptCommon):
         None: _NoBackend,
         "bcrypt": _BcryptBackend,
         "pybcrypt": _PyBcryptBackend,
-        "bcryptor": _BcryptorBackend,
         "os_crypt": _OsCryptBackend,
         "builtin": _BuiltinBackend,
     }

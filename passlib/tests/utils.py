@@ -368,7 +368,6 @@ class TestCase(unittest.TestCase):
             #       should be kept until then, so we test the legacy paths.
             warnings.filterwarnings("ignore", r"the method .*\.(encrypt|genconfig|genhash)\(\) is deprecated")
             warnings.filterwarnings("ignore", r"the 'vary_rounds' option is deprecated")
-            warnings.filterwarnings("ignore", r"Support for `(py-bcrypt|bcryptor)` is deprecated")
 
     #---------------------------------------------------------------
     # tweak message formatting so longMessage mode is only enabled

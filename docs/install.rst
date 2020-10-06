@@ -37,25 +37,12 @@ Google App Engine is supported as well.
 
 Optional Libraries
 ==================
-* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_,
-  `py-bcrypt <https://pypi.python.org/pypi/py-bcrypt>`_, or
-  `bcryptor <https://bitbucket.org/ares/bcryptor/overview>`_
+* `bcrypt <https://pypi.python.org/pypi/bcrypt>`_
 
-   .. rst-class:: float-right
-
-   .. warning::
-
-       Support for ``py-bcrypt`` and ``bcryptor`` will be dropped in Passlib 1.8,
-       as these libraries are unmaintained.
-
-   If any of these packages are installed, they will be used to provide
-   support for the BCrypt hash algorithm.
-   This is required if you want to handle BCrypt hashes,
-   and your OS does not provide native BCrypt support
-   via stdlib's :mod:`!crypt` (which includes pretty much all non-BSD systems).
-
-   `bcrypt <https://pypi.python.org/pypi/bcrypt>`_ is currently the recommended
-   option -- it's actively maintained, and compatible with both CPython and PyPy.
+   If installed, this will be used to handle :class:~passlib.hash.bcrypt` and
+   :class:`~passlib.hash.bcrypt_sha256` hashes.  If your system lacks :func:`crypt.crypt()`
+   support for bcrypt hashes, this library is *required* in order for passlib to provide
+   bcrypt support.
 
    Use ``pip install passlib[bcrypt]`` to get the recommended bcrypt setup.
 
@@ -85,6 +72,10 @@ Optional Libraries
 
    If installed, this will be used to provide support for the :class:`~passlib.hash.scrypt`
    hash algorithm.  If not installed, a MUCH slower builtin reference implementation will be used.
+
+.. versionchanged:: 1.8
+
+    Dropped support for  ``py-bcrypt`` and ``bcryptor`` backends.
 
 .. versionchanged:: 1.7
 
