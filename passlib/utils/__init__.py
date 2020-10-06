@@ -351,7 +351,6 @@ def consteq(left, right):
         result = 1
 
     # run constant-time string comparision
-    # TODO: use izip instead (but first verify it's faster than zip for this case)
     if is_bytes:
         for l,r in zip(tmp, right):
             result |= l ^ r
