@@ -40,10 +40,8 @@ __all__ = [
     'int_types',
     'num_types',
     'unicode_or_bytes',
-    'str',
 
     # unicode/bytes types & helpers
-    'u',
     'uascii_to_str', 'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
@@ -65,14 +63,6 @@ _lazy_attrs = dict()
 #=============================================================================
 # unicode & bytes types
 #=============================================================================
-
-if True:  # legacy PY3 indent
-
-    # NOTE: don't need to use this for general u'xxx' case,
-    #       but DO need it as wrapper for u(r'xxx') case (mainly when compiling regexen)
-    def u(s):
-        assert isinstance(s, str)
-        return s
 
 #: alias for isinstance() tests to detect any string type
 unicode_or_bytes = (str, bytes)

@@ -31,8 +31,7 @@ from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, Used
 from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
-from passlib.utils.compat import (u, bascii_to_str, int_types, num_types,
-                                  byte_elem_value)
+from passlib.utils.compat import bascii_to_str, int_types, num_types, byte_elem_value
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
@@ -62,7 +61,7 @@ __all__ = [
 #-----------------------------------------------------------------------------
 
 #: regex used to clean whitespace from tokens & keys
-_clean_re = re.compile(u(r"\s|[-=]"), re.U)
+_clean_re = re.compile(r"\s|[-=]", re.U)
 
 _chunk_sizes = [4,6,5]
 

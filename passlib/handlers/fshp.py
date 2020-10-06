@@ -12,7 +12,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
-from passlib.utils.compat import bascii_to_str, u
+from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf1
 # local
 __all__ = [
@@ -153,14 +153,14 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # formatting
     #===================================================================
 
-    _hash_regex = re.compile(u(r"""
+    _hash_regex = re.compile(r"""
             ^
             \{FSHP
             (\d+)\| # variant
             (\d+)\| # salt size
             (\d+)\} # rounds
             ([a-zA-Z0-9+/]+={0,3}) # digest
-            $"""), re.X)
+            $""", re.X)
 
     @classmethod
     def from_string(cls, hash):

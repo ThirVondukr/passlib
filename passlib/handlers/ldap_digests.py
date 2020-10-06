@@ -12,7 +12,7 @@ import re
 # pkg
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, to_unicode
-from passlib.utils.compat import uascii_to_str, u
+from passlib.utils.compat import uascii_to_str
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -110,7 +110,7 @@ class ldap_md5(_Base64DigestHelper):
     name = "ldap_md5"
     ident = u"{MD5}"
     _hash_func = md5
-    _hash_regex = re.compile(u(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$"))
+    _hash_regex = re.compile(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
 
 class ldap_sha1(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain SHA1 format, and follows the :ref:`password-hash-api`.
@@ -120,7 +120,7 @@ class ldap_sha1(_Base64DigestHelper):
     name = "ldap_sha1"
     ident = u"{SHA}"
     _hash_func = sha1
-    _hash_regex = re.compile(u(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$"))
+    _hash_regex = re.compile(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted MD5 format, and follows the :ref:`password-hash-api`.
@@ -159,7 +159,7 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
     ident = u"{SMD5}"
     checksum_size = 16
     _hash_func = md5
-    _hash_regex = re.compile(u(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$"))
+    _hash_regex = re.compile(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$")
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     """
@@ -201,7 +201,7 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
     checksum_size = 20
     _hash_func = sha1
     # NOTE: 32 = ceil((20 + 4) * 4/3)
-    _hash_regex = re.compile(u(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$"))
+    _hash_regex = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$")
 
 
 
@@ -242,7 +242,7 @@ class ldap_salted_sha256(_SaltedBase64DigestHelper):
     default_salt_size = 8
     _hash_func = sha256
     # NOTE: 48 = ceil((32 + 4) * 4/3)
-    _hash_regex = re.compile(u(r"^\{SSHA256\}(?P<tmp>[+/a-zA-Z0-9]{48,}={0,2})$"))
+    _hash_regex = re.compile(r"^\{SSHA256\}(?P<tmp>[+/a-zA-Z0-9]{48,}={0,2})$")
 
 
 class ldap_salted_sha512(_SaltedBase64DigestHelper):
@@ -282,7 +282,7 @@ class ldap_salted_sha512(_SaltedBase64DigestHelper):
     default_salt_size = 8
     _hash_func = sha512
     # NOTE: 91 = ceil((64 + 4) * 4/3)
-    _hash_regex = re.compile(u(r"^\{SSHA512\}(?P<tmp>[+/a-zA-Z0-9]{91,}={0,2})$"))
+    _hash_regex = re.compile(r"^\{SSHA512\}(?P<tmp>[+/a-zA-Z0-9]{91,}={0,2})$")
 
 
 class ldap_plaintext(plaintext):
@@ -309,7 +309,7 @@ class ldap_plaintext(plaintext):
     # is override identify()
 
     name = "ldap_plaintext"
-    _2307_pat = re.compile(u(r"^\{\w+\}.*$"))
+    _2307_pat = re.compile(r"^\{\w+\}.*$")
 
     @uh.deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod

@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.utils.compat import byte_elem_value, u, uascii_to_str
+from passlib.utils.compat import byte_elem_value, uascii_to_str
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
@@ -171,11 +171,11 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     #===================================================================
     # FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
-    _hash_regex = re.compile(u(r"""
+    _hash_regex = re.compile(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{11})?
-        $"""), re.X|re.I)
+        $""", re.X|re.I)
 
     @classmethod
     def from_string(cls, hash):
@@ -297,13 +297,13 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     #===================================================================
     # parsing
     #===================================================================
-    _hash_regex = re.compile(u(r"""
+    _hash_regex = re.compile(r"""
         ^
         _
         (?P<rounds>[./a-z0-9]{4})
         (?P<salt>[./a-z0-9]{4})
         (?P<chk>[./a-z0-9]{11})?
-        $"""), re.X|re.I)
+        $""", re.X|re.I)
 
     @classmethod
     def from_string(cls, hash):
@@ -442,11 +442,11 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     #===================================================================
     # internal helpers
     #===================================================================
-    _hash_regex = re.compile(u(r"""
+    _hash_regex = re.compile(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>([./a-z0-9]{11})+)?
-        $"""), re.X|re.I)
+        $""", re.X|re.I)
 
     @classmethod
     def from_string(cls, hash):
@@ -546,11 +546,11 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     #===================================================================
     # internal helpers
     #===================================================================
-    _hash_regex = re.compile(u(r"""
+    _hash_regex = re.compile(r"""
         ^
         (?P<salt>[./a-z0-9]{2})
         (?P<chk>[./a-z0-9]{22})?
-        $"""), re.X|re.I)
+        $""", re.X|re.I)
 
     @classmethod
     def from_string(cls, hash):
