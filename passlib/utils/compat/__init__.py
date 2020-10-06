@@ -60,9 +60,6 @@ __all__ = [
     'byte_elem_value',
     'iter_byte_values',
 
-    # iteration helpers
-    'next',
-
     # collections
     'OrderedDict',
 
@@ -174,12 +171,7 @@ num_types = (int, float)
 #=============================================================================
 if True:  # legacy PY3 indent
 
-    def nextgetter(obj):
-        return obj.__next__
-
     izip = zip
-
-add_doc(nextgetter, "return function that yields successive values from iterable")
 
 #=============================================================================
 # typing

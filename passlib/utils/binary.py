@@ -20,7 +20,7 @@ from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
     iter_byte_chars, join_byte_values, join_byte_elems,
-    nextgetter, suppress_cause,
+    suppress_cause,
     unicode, unicode_or_bytes_types,
 )
 from passlib.utils.decor import memoized_property
@@ -384,7 +384,7 @@ class Base64Engine(object):
         if not isinstance(source, bytes):
             raise TypeError("source must be bytes, not %s" % (type(source),))
         chunks, tail = divmod(len(source), 3)
-        next_value = nextgetter(iter(source))
+        next_value = iter(source).__next__
         gen = self._encode_bytes(next_value, chunks, tail)
         out = join_byte_elems(map(self._encode64, gen))
         ##if tail:
@@ -491,7 +491,7 @@ class Base64Engine(object):
         if tail == 1:
             # only 6 bits left, can't encode a whole byte!
             raise ValueError("input string length cannot be == 1 mod 4")
-        next_value = nextgetter(map(self._decode64, source))
+        next_value = map(self._decode64, source).__next__
         try:
             return join_byte_values(self._decode_bytes(next_value, chunks, tail))
         except KeyError as err:
