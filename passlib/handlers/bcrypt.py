@@ -29,7 +29,6 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import get_unbound_method_function
 from passlib.utils.compat import uascii_to_str, unicode, str_to_uascii, error_from
 import passlib.utils.handlers as uh
 
@@ -739,7 +738,7 @@ class _PyBcryptBackend(_BcryptCommon):
             if mixin_cls._calc_lock is None:
                 import threading
                 mixin_cls._calc_lock = threading.Lock()
-            mixin_cls._calc_checksum = get_unbound_method_function(mixin_cls._calc_checksum_threadsafe)
+            mixin_cls._calc_checksum = mixin_cls._calc_checksum_threadsafe
 
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 

@@ -173,15 +173,10 @@ num_types = (int, float)
 #=============================================================================
 # introspection
 #=============================================================================
-method_function_attr = "__func__"
 
 def get_method_function(func):
     """given (potential) method, return underlying function"""
-    return getattr(func, method_function_attr, func)
-
-def get_unbound_method_function(func):
-    """given unbound method, return underlying function"""
-    return func
+    return getattr(func, "__func__", func)
 
 def error_from(exc,  # *,
                cause=None):

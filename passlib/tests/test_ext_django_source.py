@@ -88,7 +88,6 @@ if test_hashers_mod:
     from django.core.signals import setting_changed
     from django.dispatch import receiver
     from django.utils.module_loading import import_string
-    from passlib.utils.compat import get_unbound_method_function
 
     class HashersTest(test_hashers_mod.TestUtilsHashPass, _ExtensionSupport):
         """
@@ -101,7 +100,7 @@ if test_hashers_mod:
         #==================================================================
 
         # port patchAttr() helper method from passlib.tests.utils.TestCase
-        patchAttr = get_unbound_method_function(TestCase.patchAttr)
+        patchAttr = TestCase.patchAttr
 
         #==================================================================
         # custom setup
