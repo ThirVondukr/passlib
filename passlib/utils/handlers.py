@@ -27,7 +27,7 @@ from passlib.utils.binary import (
     ALL_BYTE_VALUES,
 )
 from passlib.utils.compat import join_byte_values, \
-                                 uascii_to_str, join_unicode, str_to_uascii, \
+                                 join_unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes, int_types
 from passlib.utils.decor import classproperty, deprecated_method
 # local
@@ -283,7 +283,7 @@ def render_mc2(ident, salt, checksum, sep=u"$"):
         parts = [ident, salt, sep, checksum]
     else:
         parts = [ident, salt]
-    return uascii_to_str(join_unicode(parts))
+    return join_unicode(parts)
 
 def render_mc3(ident, rounds, salt, checksum, sep=u"$", rounds_base=10):
     """format hash using 3-part modular crypt format; inverse of parse_mc3()
@@ -312,7 +312,7 @@ def render_mc3(ident, rounds, salt, checksum, sep=u"$", rounds_base=10):
         parts = [ident, rounds, sep, salt, sep, checksum]
     else:
         parts = [ident, rounds, sep, salt]
-    return uascii_to_str(join_unicode(parts))
+    return join_unicode(parts)
 
 
 def mask_value(value, show=4, pct=0.125, char=u"*"):
@@ -964,7 +964,7 @@ class StaticHandler(GenericHandler):
         return hash
 
     def to_string(self):
-        return uascii_to_str(self._hash_prefix + self.checksum)
+        return self._hash_prefix + self.checksum
 
 #=============================================================================
 # GenericHandler mixin classes
@@ -2611,7 +2611,7 @@ class PrefixWrapper(object):
         if not hash.startswith(orig_prefix):
             raise exc.InvalidHashError(self.wrapped)
         wrapped = self.prefix + hash[len(orig_prefix):]
-        return uascii_to_str(wrapped)
+        return wrapped
 
     #: set by _using(), helper for test harness' handler_derived_from()
     _derived_from = None

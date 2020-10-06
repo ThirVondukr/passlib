@@ -11,8 +11,7 @@ import warnings
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.exc import MissingBackendError, PasslibHashWarning
-from passlib.utils.compat import str_to_uascii, \
-                                 uascii_to_str
+from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase
 # module
@@ -773,7 +772,7 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         hash = u"@salt%s%s" % (self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

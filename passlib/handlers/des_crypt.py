@@ -10,7 +10,7 @@ from warnings import warn
 # pkg
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
-from passlib.utils.compat import byte_elem_value, uascii_to_str
+from passlib.utils.compat import byte_elem_value
 from passlib.crypto.des import des_encrypt_int_block
 import passlib.utils.handlers as uh
 # local
@@ -185,7 +185,7 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
 
     def to_string(self):
         hash = u"%s%s" % (self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # digest calculation
@@ -321,7 +321,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def to_string(self):
         hash = u"_%s%s%s" % (h64.encode_int24(self.rounds).decode("ascii"),
                                self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # validation
@@ -459,7 +459,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         hash = u"%s%s" % (self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     def _norm_checksum(self, checksum, relaxed=False):
         checksum = super(bigcrypt, self)._norm_checksum(checksum, relaxed=relaxed)
@@ -563,7 +563,7 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         hash = u"%s%s" % (self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # backend

@@ -19,7 +19,7 @@ from warnings import warn
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, uascii_to_str, str_to_bascii
+from passlib.utils.compat import byte_elem_value, str_to_bascii
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -336,7 +336,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         if _withchk:
             chk = self.checksum
             hash = u"%s$%s" % (hash, chk)
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # primary interface

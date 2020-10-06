@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 from passlib.utils import safe_crypt, test_crypt, \
                           repeat_string, to_unicode
 from passlib.utils.binary import h64
-from passlib.utils.compat import byte_elem_value, uascii_to_str
+from passlib.utils.compat import byte_elem_value
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -343,7 +343,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
         else:
             hash = u"%srounds=%d$%s$%s" % (self.ident, self.rounds,
                                              self.salt, self.checksum or u'')
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # backends

@@ -10,7 +10,7 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode, xor_bytes
-from passlib.utils.compat import uascii_to_str, str_to_uascii
+from passlib.utils.compat import str_to_uascii
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
 # local
@@ -154,7 +154,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         chk = self.checksum
         hash = u"S:%s%s" % (chk.upper(), self.salt.upper())
-        return uascii_to_str(hash)
+        return hash
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

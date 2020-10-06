@@ -12,7 +12,6 @@ import re
 # pkg
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, to_unicode
-from passlib.utils.compat import uascii_to_str
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -92,7 +91,7 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
     def to_string(self):
         data = self.checksum + self.salt
         hash = self.ident + b64encode(data).decode("ascii")
-        return uascii_to_str(hash)
+        return hash
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):

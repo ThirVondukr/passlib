@@ -13,8 +13,7 @@ from warnings import warn
 # pkg
 from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
 from passlib.utils.binary import h64
-from passlib.utils.compat import join_byte_values, \
-             join_byte_elems, iter_byte_values, uascii_to_str
+from passlib.utils.compat import join_byte_values, join_byte_elems, iter_byte_values
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -400,7 +399,7 @@ class cisco_type7(uh.GenericHandler):
         return uh.rng.randint(0, 15)
 
     def to_string(self):
-        return "%02d%s" % (self.salt, uascii_to_str(self.checksum))
+        return "%02d%s" % (self.salt, self.checksum)
 
     def _calc_checksum(self, secret):
         # XXX: no idea what unicode policy is, but all examples are

@@ -29,7 +29,7 @@ from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
                           rng, getrandstr, test_crypt, to_unicode, \
                           utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import uascii_to_str, str_to_uascii
+from passlib.utils.compat import str_to_uascii
 import passlib.utils.handlers as uh
 
 # local
@@ -183,14 +183,14 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
     def to_string(self):
         hash = u"%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     # NOTE: this should be kept separate from to_string()
     #       so that bcrypt_sha256() can still use it, while overriding to_string()
     def _get_config(self, ident):
         """internal helper to prepare config string for backends"""
         config = u"%s%02d$%s" % (ident, self.rounds, self.salt)
-        return uascii_to_str(config)
+        return config
 
     #===================================================================
     # migration
@@ -1155,7 +1155,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
         else:
             template = self._v2_template
         hash = template % (self.ident.strip(_UDOLLAR), self.rounds, self.salt, self.checksum)
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # init

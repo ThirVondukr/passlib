@@ -14,7 +14,6 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils.binary import h64
-from passlib.utils.compat import uascii_to_str
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -109,7 +108,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                               h64.encode_int6(self.rounds).decode("ascii"),
                               self.salt,
                               self.checksum or u'')
-        return uascii_to_str(hash)
+        return hash
 
     #===================================================================
     # backend

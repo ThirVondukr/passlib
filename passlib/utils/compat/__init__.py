@@ -42,7 +42,7 @@ __all__ = [
     'unicode_or_bytes',
 
     # unicode/bytes types & helpers
-    'uascii_to_str', 'bascii_to_str',
+    'bascii_to_str',
     'str_to_uascii', 'str_to_bascii',
     'join_unicode', 'join_bytes',
     'join_byte_values', 'join_byte_elems',
@@ -77,9 +77,6 @@ join_unicode = u''.join
 join_bytes = b''.join
 
 if True:  # legacy PY3 indent
-    def uascii_to_str(s):
-        assert isinstance(s, str)
-        return s
 
     def bascii_to_str(s):
         assert isinstance(s, bytes)
@@ -109,7 +106,6 @@ if True:  # legacy PY3 indent
         return (bytes([c]) for c in s)
 
 # TODO: move docstrings to funcs...
-add_doc(uascii_to_str, "helper to convert ascii unicode -> native str")
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_uascii, "helper to convert ascii native str -> unicode")
 add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
