@@ -31,7 +31,7 @@ from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, Used
 from passlib.utils import (to_unicode, to_bytes, consteq,
                            getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
-from passlib.utils.compat import (u, unicode, native_string_types, bascii_to_str, int_types, num_types,
+from passlib.utils.compat import (u, unicode, bascii_to_str, int_types, num_types,
                                   byte_elem_value)
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
@@ -249,7 +249,7 @@ class AppWallet(object):
         # init cost
         #
         if encrypt_cost is not None:
-            if isinstance(encrypt_cost, native_string_types):
+            if isinstance(encrypt_cost, str):
                 encrypt_cost = int(encrypt_cost)
             assert encrypt_cost >= 0
             self.encrypt_cost = encrypt_cost
@@ -291,7 +291,7 @@ class AppWallet(object):
         # to make this easy to pass in configuration from a separate file,
         # 'secrets' can be string using two formats -- json & "tag:value\n"
         check_type = True
-        if isinstance(source, native_string_types):
+        if isinstance(source, str):
             if source.lstrip().startswith(("[", "{")):
                 # json list / dict
                 source = json.loads(source)
@@ -324,7 +324,7 @@ class AppWallet(object):
                     for tag, value in source)
 
     def _parse_secret_pair(self, tag, value):
-        if isinstance(tag, native_string_types):
+        if isinstance(tag, str):
             pass
         elif isinstance(tag, int):
             tag = str(tag)

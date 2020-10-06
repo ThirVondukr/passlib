@@ -26,7 +26,7 @@ from passlib.utils.binary import (
     HEX_CHARS, UPPER_HEX_CHARS, LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,
 )
-from passlib.utils.compat import join_byte_values, native_string_types, \
+from passlib.utils.compat import join_byte_values, \
                                  uascii_to_str, join_unicode, unicode, str_to_uascii, \
                                  join_unicode, unicode_or_bytes_types, int_types
 from passlib.utils.decor import classproperty, deprecated_method
@@ -1298,7 +1298,7 @@ class HasSalt(GenericHandler):
         # replace default_rounds
         relaxed = kwds.get("relaxed")
         if default_salt_size is not None:
-            if isinstance(default_salt_size, native_string_types):
+            if isinstance(default_salt_size, str):
                 default_salt_size = int(default_salt_size)
             subcls.default_salt_size = subcls._clip_to_valid_salt_size(default_salt_size,
                                                                        param="salt_size",
@@ -1619,7 +1619,7 @@ class HasRounds(GenericHandler):
             min_desired_rounds = cls.min_desired_rounds
         else:
             explicit_min_rounds = True
-            if isinstance(min_desired_rounds, native_string_types):
+            if isinstance(min_desired_rounds, str):
                 min_desired_rounds = int(min_desired_rounds)
             subcls.min_desired_rounds = subcls._norm_rounds(min_desired_rounds,
                                                             param="min_desired_rounds",
@@ -1629,7 +1629,7 @@ class HasRounds(GenericHandler):
         if max_desired_rounds is None:
             max_desired_rounds = cls.max_desired_rounds
         else:
-            if isinstance(max_desired_rounds, native_string_types):
+            if isinstance(max_desired_rounds, str):
                 max_desired_rounds = int(max_desired_rounds)
             if min_desired_rounds and max_desired_rounds < min_desired_rounds:
                 msg = "%s: max_desired_rounds (%r) below min_desired_rounds (%r)" % \
@@ -1645,7 +1645,7 @@ class HasRounds(GenericHandler):
 
         # replace default_rounds
         if default_rounds is not None:
-            if isinstance(default_rounds, native_string_types):
+            if isinstance(default_rounds, str):
                 default_rounds = int(default_rounds)
             if min_desired_rounds and default_rounds < min_desired_rounds:
                 raise ValueError("%s: default_rounds (%r) below min_desired_rounds (%r)" %
@@ -1663,7 +1663,7 @@ class HasRounds(GenericHandler):
 
         # replace / set vary_rounds
         if vary_rounds is not None:
-            if isinstance(vary_rounds, native_string_types):
+            if isinstance(vary_rounds, str):
                 if vary_rounds.endswith("%"):
                     vary_rounds = float(vary_rounds[:-1]) * 0.01
                 elif "." in vary_rounds:
@@ -1892,7 +1892,7 @@ class ParallelismMixin(GenericHandler):
     def using(cls, parallelism=None, **kwds):
         subcls = super(ParallelismMixin, cls).using(**kwds)
         if parallelism is not None:
-            if isinstance(parallelism, native_string_types):
+            if isinstance(parallelism, str):
                 parallelism = int(parallelism)
             subcls.parallelism = subcls._norm_parallelism(parallelism, relaxed=kwds.get("relaxed"))
         return subcls

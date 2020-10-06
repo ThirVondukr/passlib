@@ -292,7 +292,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         # set checksum size
         relaxed = kwds.get("relaxed")
         if digest_size is not None:
-            if isinstance(digest_size, uh.native_string_types):
+            if isinstance(digest_size, str):
                 digest_size = int(digest_size)
             # NOTE: this isn't *really* digest size minimum, but want to enforce secure minimum.
             subcls.checksum_size = uh.norm_integer(subcls, digest_size, min=16, max=MAX_UINT32,
@@ -300,7 +300,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
         # set memory cost
         if memory_cost is not None:
-            if isinstance(memory_cost, uh.native_string_types):
+            if isinstance(memory_cost, str):
                 memory_cost = int(memory_cost)
             subcls.memory_cost = subcls._norm_memory_cost(memory_cost, relaxed=relaxed)
 
@@ -309,7 +309,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
         # set max threads
         if max_threads is not None:
-            if isinstance(max_threads, uh.native_string_types):
+            if isinstance(max_threads, str):
                 max_threads = int(max_threads)
             if max_threads < 1 and max_threads != -1:
                 raise ValueError("max_threads (%d) must be -1 (unlimited), or at least 1." %

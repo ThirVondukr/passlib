@@ -8,7 +8,7 @@ import logging; log = logging.getLogger(__name__)
 # pkg
 from passlib.utils import consteq, saslprep, to_native_str, splitcomma
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import bascii_to_str, native_string_types
+from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 # local
@@ -336,7 +336,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     @classmethod
     def _norm_algs(cls, algs):
         """normalize algs parameter"""
-        if isinstance(algs, native_string_types):
+        if isinstance(algs, str):
             algs = splitcomma(algs)
         algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
         if any(len(alg)>9 for alg in algs):

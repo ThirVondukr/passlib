@@ -14,7 +14,6 @@ from passlib.utils import (
     is_crypt_handler, has_crypt as os_crypt_present,
     unix_crypt_schemes as os_crypt_schemes,
 )
-from passlib.utils.compat import unicode_or_str
 from passlib.utils.decor import memoize_single_value
 # local
 __all__ = [
@@ -323,7 +322,7 @@ def get_crypt_handler(name, default=_UNSET):
         pass
 
     # normalize name (and if changed, check dict again)
-    assert isinstance(name, unicode_or_str), "name must be string instance"
+    assert isinstance(name, str), "name must be string instance"
     alt = name.replace("-","_").lower()
     if alt != name:
         warn("handler names should be lower-case, and use underscores instead "
@@ -434,10 +433,10 @@ def _resolve(hasher, param="value"):
     """
     if is_crypt_handler(hasher):
         return hasher
-    elif isinstance(hasher, unicode_or_str):
+    elif isinstance(hasher, str):
         return get_crypt_handler(hasher)
     else:
-        raise exc.ExpectedTypeError(hasher, unicode_or_str, param)
+        raise exc.ExpectedTypeError(hasher, str, param)
 
 
 #: backend aliases

@@ -11,7 +11,6 @@ import logging; log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.exc import ExpectedTypeError
-from passlib.utils.compat import native_string_types
 from passlib.crypto.digest import lookup_hash, pbkdf1 as _pbkdf1, pbkdf2_hmac, compile_hmac
 # local
 __all__ = [
@@ -85,7 +84,7 @@ def get_prf(name):
     global _prf_cache
     if name in _prf_cache:
         return _prf_cache[name]
-    if isinstance(name, native_string_types):
+    if isinstance(name, str):
         if not name.startswith(_HMAC_PREFIXES):
             raise ValueError("unknown prf algorithm: %r" % (name,))
         digest = lookup_hash(name[5:]).name
@@ -171,7 +170,7 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
         This has been deprecated in favor of :func:`passlib.crypto.digest.pbkdf2_hmac`,
         and will be removed in Passlib 2.0.  *Note the call signature has changed.*
     """
-    if callable(prf) or (isinstance(prf, native_string_types) and not prf.startswith(_HMAC_PREFIXES)):
+    if callable(prf) or (isinstance(prf, str) and not prf.startswith(_HMAC_PREFIXES)):
         raise NotImplementedError("non-HMAC prfs are not supported as of Passlib 1.7")
     digest = prf[5:]
     return pbkdf2_hmac(digest, secret, salt, rounds, keylen)

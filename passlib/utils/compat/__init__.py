@@ -22,15 +22,10 @@ PYPY = hasattr(sys, "pypy_version_info")
 if PYPY and sys.pypy_version_info < (2,0):
     raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
-# e.g. '2.7.7\n[Pyston 0.5.1]'
-# NOTE: deprecated support 2019-11
-PYSTON = "Pyston" in sys.version
-
 #=============================================================================
 # common imports
 #=============================================================================
 import logging; log = logging.getLogger(__name__)
-import builtins
 
 def add_doc(obj, doc):
     """add docstring to an object"""
@@ -45,7 +40,7 @@ __all__ = [
     'int_types',
     'num_types',
     'unicode_or_bytes_types',
-    'native_string_types',
+    'str',
 
     # unicode/bytes types & helpers
     'u',
@@ -82,18 +77,15 @@ if True:  # legacy PY3 indent
         return s
 
     unicode_or_bytes_types = (str, bytes)
-    native_string_types = (unicode,)
 
 
 # shorter preferred aliases
 # TODO: align compat module w/ crowbar.compat naming
 unicode_or_bytes = unicode_or_bytes_types
-unicode_or_str = native_string_types
 
 # unicode -- unicode type, regardless of python version
 # bytes -- bytes type, regardless of python version
 # unicode_or_bytes_types -- types that text can occur in, whether encoded or not
-# native_string_types -- types that native python strings (dict keys etc) can occur in.
 
 #=============================================================================
 # unicode & bytes helpers
@@ -266,7 +258,6 @@ class _LazyOverlayModule(ModuleType):
         return list(attrs)
 
 # replace this module with overlay that will lazily import attributes.
-_lazy_attrs = dict()
 _LazyOverlayModule.replace_module(__name__, _lazy_attrs)
 
 #=============================================================================

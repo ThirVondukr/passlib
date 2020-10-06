@@ -56,7 +56,7 @@ import struct
 # pkg
 from passlib.utils import getrandbytes, rng
 from passlib.utils.binary import bcrypt64
-from passlib.utils.compat import unicode, native_string_types
+from passlib.utils.compat import unicode
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
 # local
 __all__ = [
@@ -99,7 +99,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     #===================================================================
 
     # parse ident
-    assert isinstance(ident, native_string_types)
+    assert isinstance(ident, str)
     add_null_padding = True
     if ident == u'2a' or ident == u'2y' or ident == u'2b':
         pass

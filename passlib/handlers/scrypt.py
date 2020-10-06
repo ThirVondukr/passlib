@@ -155,7 +155,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     def using(cls, block_size=None, **kwds):
         subcls = super(scrypt, cls).using(**kwds)
         if block_size is not None:
-            if isinstance(block_size, uh.native_string_types):
+            if isinstance(block_size, str):
                 block_size = int(block_size)
             subcls.block_size = subcls._norm_block_size(block_size, relaxed=kwds.get("relaxed"))
 

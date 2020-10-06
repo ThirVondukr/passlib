@@ -64,7 +64,7 @@ from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems,
                                   join_unicode, unicode, byte_elem_value,
-                                  unicode_or_str, unicode_or_bytes_types,
+                                  unicode_or_bytes_types,
                                   get_method_function, PYPY)
 # local
 __all__ = [
@@ -960,9 +960,9 @@ def test_crypt(secret, hash):
     # safe_crypt() always returns unicode, which means that for py3,
     # 'hash' can't be bytes, or "== hash" will never be True.
     # under py2 unicode & str(bytes) will compare fine;
-    # so just enforcing "unicode_or_str" limitation
-    assert isinstance(hash, unicode_or_str), \
-        "hash must be unicode_or_str, got %s" % type(hash)
+    # so just enforcing "str" limitation
+    assert isinstance(hash, str), \
+        "hash must be str, got %s" % type(hash)
     assert hash, "hash must be non-empty"
     return safe_crypt(secret, hash) == hash
 
