@@ -14,28 +14,15 @@ __all__ = [
 ]
 
 #=============================================================================
-# 2/3 compatibility helpers
-#=============================================================================
-def recreate_with_metaclass(meta):
-    """class decorator that re-creates class using metaclass"""
-    def builder(cls):
-        if meta is type(cls):
-            return cls
-        return meta(cls.__name__, cls.__bases__, cls.__dict__.copy())
-    return builder
-
-#=============================================================================
 # PasswordHash interface
 #=============================================================================
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
-# TODO: make this actually use abstractproperty(),
-#       now that we dropped py25, 'abc' is always available.
+# XXX: mark some attributes with abstractproperty()?
+#      or would type hinting be enough?
 
-# XXX: rename to PasswordHasher?
-
-@recreate_with_metaclass(ABCMeta)
-class PasswordHash(object):
+# XXX: rename this to PasswordHasher?
+class PasswordHash(ABC):
     """This class describes an abstract interface which all password hashes
     in Passlib adhere to. Under Python 2.6 and up, this is an actual
     Abstract Base Class built using the :mod:`!abc` module.
