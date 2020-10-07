@@ -469,7 +469,7 @@ class HashInfo(SequenceMixin):
             helper that installs stub constructor which throws specified error <msg>.
             """
             def const(source=b""):
-                raise exc.UnknownHashError(name, message=msg)
+                raise exc.UnknownHashError(msg, name)
             if required:
                 # if caller only wants supported digests returned,
                 # just throw error immediately...

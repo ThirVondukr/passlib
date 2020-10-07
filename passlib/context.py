@@ -11,6 +11,7 @@ import time
 from warnings import warn
 # site
 # pkg
+from passlib import exc
 from passlib.exc import ExpectedStringError, ExpectedTypeError, PasslibConfigWarning
 from passlib.registry import get_crypt_handler, _validate_handler_name
 from passlib.utils import (handlers as uh, to_bytes,
@@ -1128,7 +1129,7 @@ class _CryptConfig(object):
         elif not self.schemes:
             raise KeyError("no crypt algorithms supported")
         else:
-            raise ValueError("hash could not be identified")
+            raise exc.UnknownHashError("hash could not be identified")
 
     @memoized_property
     def disabled_record(self):
