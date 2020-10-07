@@ -35,15 +35,18 @@ class MiscTest(TestCase):
     def test_classproperty(self):
         from passlib.utils.decor import classproperty
 
+        def xprop_func(cls):
+            return cls.xvar
+
         class test(object):
             xvar = 1
-            @classproperty
-            def xprop(cls):
-                return cls.xvar
+
+            xprop = classproperty(xprop_func)
 
         self.assertEqual(test.xprop, 1)
+
         prop = test.__dict__['xprop']
-        self.assertIs(prop.im_func, prop.__func__)
+        self.assertIs(prop.__func__, xprop_func)
 
     def test_deprecated_function(self):
         from passlib.utils.decor import deprecated_function

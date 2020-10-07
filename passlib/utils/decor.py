@@ -31,15 +31,12 @@ class classproperty(object):
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
 
     def __init__(self, func):
-        self.im_func = func
+        # XXX: rename to .fget to match property?
+        self.__func__ = func
 
     def __get__(self, obj, cls):
-        return self.im_func(cls)
+        return self.__func__(cls)
 
-    @property
-    def __func__(self):
-        """py3 compatible alias"""
-        return self.im_func
 
 class hybrid_method(object):
     """
@@ -48,6 +45,7 @@ class hybrid_method(object):
     """
 
     def __init__(self, func):
+        # XXX: rename to .fget to match property?
         self.func = func
         update_wrapper(self, func)
 
