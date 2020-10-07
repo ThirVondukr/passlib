@@ -66,7 +66,7 @@ class WordGeneratorTest(TestCase):
     descriptionPrefix = "passlib.pwd.genword()"
 
     def setUp(self):
-        super(WordGeneratorTest, self).setUp()
+        super().setUp()
 
         # patch some RNG references so they're reproducible.
         from passlib.pwd import SequenceGenerator

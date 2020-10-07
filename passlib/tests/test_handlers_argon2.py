@@ -199,7 +199,7 @@ class _base_argon2_test(HandlerCase):
     ]
 
     def setUpWarnings(self):
-        super(_base_argon2_test, self).setUpWarnings()
+        super().setUpWarnings()
         warnings.filterwarnings("ignore", ".*Using argon2pure backend.*")
 
     def do_stub_encrypt(self, handler=None, **settings):
@@ -212,7 +212,7 @@ class _base_argon2_test(HandlerCase):
             assert self.checksum
             return self.to_string()
         else:
-            return super(_base_argon2_test, self).do_stub_encrypt(handler, **settings)
+            return super().do_stub_encrypt(handler, **settings)
 
     def test_03_legacy_hash_workflow(self):
         # override base method

@@ -205,7 +205,7 @@ class _bsdi_crypt_test(HandlerCase):
     def test_77_fuzz_input(self, **kwds):
         # we want to generate even rounds to verify it's correct, but want to ignore warnings
         warnings.filterwarnings("ignore", "bsdi_crypt rounds should be odd.*")
-        super(_bsdi_crypt_test, self).test_77_fuzz_input(**kwds)
+        super().test_77_fuzz_input(**kwds)
 
     def test_needs_update_w_even_rounds(self):
         """needs_update() should flag even rounds"""
@@ -703,7 +703,7 @@ class _ldap_sha1_crypt_test(HandlerCase):
 
     def populate_settings(self, kwds):
         kwds.setdefault("rounds", 10)
-        super(_ldap_sha1_crypt_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     def test_77_fuzz_input(self, **ignored):
         raise self.skipTest("unneeded")
@@ -1751,7 +1751,7 @@ class unix_disabled_test(HandlerCase):
     def test_76_hash_border(self):
         # so empty strings pass
         self.accepts_all_hashes = True
-        super(unix_disabled_test, self).test_76_hash_border()
+        super().test_76_hash_border()
 
     def test_90_special(self):
         """test marker option & special behavior"""

@@ -350,7 +350,7 @@ class cisco_type7(uh.GenericHandler):
     #===================================================================
     @classmethod
     def using(cls, salt=None, **kwds):
-        subcls = super(cisco_type7, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if salt is not None:
             salt = subcls._norm_salt(salt, relaxed=kwds.get("relaxed"))
             subcls._generate_salt = staticmethod(lambda: salt)
@@ -365,7 +365,7 @@ class cisco_type7(uh.GenericHandler):
         return cls(salt=salt, checksum=hash[2:].upper())
 
     def __init__(self, salt=None, **kwds):
-        super(cisco_type7, self).__init__(**kwds)
+        super().__init__(**kwds)
         if salt is not None:
             salt = self._norm_salt(salt)
         elif self.use_defaults:

@@ -314,7 +314,7 @@ class TestCase(unittest.TestCase):
 
     def shortDescription(self):
         """wrap shortDescription() method to prepend descriptionPrefix"""
-        desc = super(TestCase, self).shortDescription()
+        desc = super().shortDescription()
         prefix = self.descriptionPrefix
         if prefix:
             desc = "%s: %s" % (prefix, desc or str(self))
@@ -347,7 +347,7 @@ class TestCase(unittest.TestCase):
     resetWarningState = True
 
     def setUp(self):
-        super(TestCase, self).setUp()
+        super().setUp()
         self.setUpWarnings()
         # have uh.debug_only_repr() return real values for duration of test
         self.patchAttr(exc, "ENABLE_DEBUG_ONLY_REPR", True)
@@ -389,7 +389,7 @@ class TestCase(unittest.TestCase):
         msg = kwds.pop("__msg__", None)
         if _callable is None:
             # FIXME: this ignores 'msg'
-            return super(TestCase, self).assertRaises(_exc_type, None,
+            return super().assertRaises(_exc_type, None,
                                                       *args, **kwds)
         try:
             result = _callable(*args, **kwds)
@@ -462,14 +462,13 @@ class TestCase(unittest.TestCase):
         def __init__(self, case, **kwds):
             self.case = case
             self.kwds = kwds
-            self.__super = super(TestCase._AssertWarningList, self)
-            self.__super.__init__(record=True)
+            super().__init__(record=True)
 
         def __enter__(self):
-            self.log = self.__super.__enter__()
+            self.log = super().__enter__()
 
         def __exit__(self, *exc_info):
-            self.__super.__exit__(*exc_info)
+            super().__exit__(*exc_info)
             if exc_info[0] is None:
                 self.case.assertWarningList(self.log, **self.kwds)
 
@@ -995,7 +994,7 @@ class HandlerCase(TestCase):
         if test_requires_backend and self._skip_backend_reason:
             raise self.skipTest(self._skip_backend_reason)
 
-        super(HandlerCase, self).setUp()
+        super().setUp()
 
         # if needed, select specific backend for duration of test
         # NOTE: skipping this if create_backend_case() signalled we're skipping backend
@@ -3134,7 +3133,7 @@ class OsCryptMixin(HandlerCase):
         if not self.handler.has_backend("os_crypt"):
             # XXX: currently, any tests that use this are skipped entirely! (see issue 120)
             self._patch_safe_crypt()
-        super(OsCryptMixin, self).setUp()
+        super().setUp()
 
     @classmethod
     def _get_safe_crypt_handler_backend(cls):
@@ -3191,7 +3190,7 @@ class OsCryptMixin(HandlerCase):
         when it's known os_crypt will be faked by _patch_safe_crypt()
         """
         assert backend == "os_crypt"
-        reason = super(OsCryptMixin, cls)._get_skip_backend_reason(backend)
+        reason = super()._get_skip_backend_reason(backend)
 
         from passlib.utils import has_crypt
         if reason == cls._BACKEND_NOT_AVAILABLE and has_crypt:
@@ -3493,13 +3492,13 @@ class reset_warnings(warnings.catch_warnings):
     """catch_warnings() wrapper which clears warning registry & filters"""
 
     def __init__(self, reset_filter="always", reset_registry=".*", **kwds):
-        super(reset_warnings, self).__init__(**kwds)
+        super().__init__(**kwds)
         self._reset_filter = reset_filter
         self._reset_registry = re.compile(reset_registry) if reset_registry else None
 
     def __enter__(self):
         # let parent class archive filter state
-        ret = super(reset_warnings, self).__enter__()
+        ret = super().__enter__()
 
         # reset the filter to list everything
         if self._reset_filter:
@@ -3538,7 +3537,7 @@ class reset_warnings(warnings.catch_warnings):
                         setattr(mod, "__warningregistry__", orig)
                     else:
                         reg.update(orig)
-        super(reset_warnings, self).__exit__(*exc_info)
+        super().__exit__(*exc_info)
 
 #=============================================================================
 # eof

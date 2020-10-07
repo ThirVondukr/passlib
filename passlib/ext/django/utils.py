@@ -165,7 +165,7 @@ class DjangoTranslator(object):
     #=============================================================================
 
     def __init__(self, context=None, **kwds):
-        super(DjangoTranslator, self).__init__(**kwds)
+        super().__init__(**kwds)
         if context is not None:
             self.context = context
 
@@ -440,7 +440,7 @@ class DjangoContextAdapter(DjangoTranslator):
         # init parent, filling in default context object
         if context is None:
             context = CryptContext()
-        super(DjangoContextAdapter, self).__init__(context=context, **kwds)
+        super().__init__(context=context, **kwds)
 
         # setup user category
         if get_user_category:
@@ -477,7 +477,7 @@ class DjangoContextAdapter(DjangoTranslator):
         reset_hashers(setting="PASSWORD_HASHERS")
 
         # reset internal caches
-        super(DjangoContextAdapter, self).reset_hashers()
+        super().reset_hashers()
 
     #=============================================================================
     # django hashers helpers -- hasher lookup

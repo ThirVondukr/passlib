@@ -153,7 +153,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
 
     @classmethod
     def using(cls, block_size=None, **kwds):
-        subcls = super(scrypt, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if block_size is not None:
             if isinstance(block_size, str):
                 block_size = int(block_size)
@@ -302,7 +302,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     # init
     #===================================================================
     def __init__(self, block_size=None, **kwds):
-        super(scrypt, self).__init__(**kwds)
+        super().__init__(**kwds)
 
         # init block size
         if block_size is None:
@@ -319,7 +319,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         return uh.norm_integer(cls, block_size, min=1, param="block_size", relaxed=relaxed)
 
     def _generate_salt(self):
-        salt = super(scrypt, self)._generate_salt()
+        salt = super()._generate_salt()
         if self.ident == IDENT_7:
             # this format doesn't support non-ascii salts.
             # as workaround, we take raw bytes, encoded to base64
@@ -371,7 +371,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         # XXX: for now, marking all hashes which don't have matching block_size setting
         if self.block_size != type(self).block_size:
             return True
-        return super(scrypt, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc

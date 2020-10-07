@@ -313,7 +313,7 @@ class _CommonScryptTest(TestCase):
     def setUp(self):
         assert self.backend
         scrypt_mod._set_backend(self.backend)
-        super(_CommonScryptTest, self).setUp()
+        super().setUp()
 
     #=============================================================================
     # reference vectors
@@ -598,7 +598,7 @@ class BuiltinScryptTest(_CommonScryptTest):
     backend = "builtin"
 
     def setUp(self):
-        super(BuiltinScryptTest, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", "(?i)using builtin scrypt backend",
                                 category=exc.PasslibSecurityWarning)
 

@@ -679,7 +679,7 @@ class HtpasswdFile(_CommonFile):
             default_scheme = htpasswd_defaults.get(default_scheme, default_scheme)
             context = context.copy(default=default_scheme)
         self.context = context
-        super(HtpasswdFile, self).__init__(path, **kwds)
+        super().__init__(path, **kwds)
 
     def _parse_record(self, record, lineno):
         # NOTE: should return (user, hash) tuple
@@ -953,7 +953,7 @@ class HtdigestFile(_CommonFile):
     #===================================================================
     def __init__(self, path=None, default_realm=None, **kwds):
         self.default_realm = default_realm
-        super(HtdigestFile, self).__init__(path, **kwds)
+        super().__init__(path, **kwds)
 
     def _parse_record(self, record, lineno):
         result = record.rstrip().split(_BCOLON)

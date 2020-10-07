@@ -297,7 +297,7 @@ class django_bcrypt_test(HandlerCase, _DjangoHelper):
     def populate_settings(self, kwds):
         # speed up test w/ lower rounds
         kwds.setdefault("rounds", 4)
-        super(django_bcrypt_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
@@ -347,7 +347,7 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
     def populate_settings(self, kwds):
         # speed up test w/ lower rounds
         kwds.setdefault("rounds", 4)
-        super(django_bcrypt_sha256_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 
@@ -381,7 +381,7 @@ class django_argon2_test(HandlerCase, _DjangoHelper):
     ]
 
     def setUpWarnings(self):
-        super(django_argon2_test, self).setUpWarnings()
+        super().setUpWarnings()
         warnings.filterwarnings("ignore", ".*Using argon2pure backend.*")
 
     def do_stub_encrypt(self, handler=None, **settings):

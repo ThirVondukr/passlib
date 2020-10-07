@@ -244,7 +244,7 @@ class scram_test(HandlerCase):
     ]
 
     def setUp(self):
-        super(scram_test, self).setUp()
+        super().setUp()
 
         # some platforms lack stringprep (e.g. Jython, IronPython)
         self.require_stringprep()

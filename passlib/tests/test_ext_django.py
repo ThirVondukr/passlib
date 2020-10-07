@@ -281,7 +281,7 @@ class _ExtensionSupport(object):
 class _ExtensionTest(TestCase, _ExtensionSupport):
 
     def setUp(self):
-        super(_ExtensionTest, self).setUp()
+        super().setUp()
 
         self.require_TEST_MODE("default")
 
@@ -627,7 +627,7 @@ class ExtensionBehaviorTest(DjangoBehaviorTest):
             )
 
     def setUp(self):
-        super(ExtensionBehaviorTest, self).setUp()
+        super().setUp()
         self.load_extension(PASSLIB_CONFIG=self.config)
 
 class DjangoExtensionTest(_ExtensionTest):

@@ -751,7 +751,7 @@ class TOTP(object):
                  new=False, digits=None, alg=None, size=None, period=None,
                  label=None, issuer=None, changed=False,
                  **kwds):
-        super(TOTP, self).__init__(**kwds)
+        super().__init__(**kwds)
         if changed:
             self.changed = changed
 

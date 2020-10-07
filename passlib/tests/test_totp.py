@@ -396,7 +396,7 @@ class TotpTest(TestCase):
     # setup
     #=============================================================================
     def setUp(self):
-        super(TotpTest, self).setUp()
+        super().setUp()
 
         # clear norm_hash_name() cache so 'unknown hash' warnings get emitted each time
         from passlib.crypto.digest import lookup_hash

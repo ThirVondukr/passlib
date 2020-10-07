@@ -118,7 +118,7 @@ class MD4_SSL_Test(_Common_MD4_Test):
     #       this is more to test our test is correct :)
 
     def setUp(self):
-        super(MD4_SSL_Test, self).setUp()
+        super().setUp()
 
         # make sure we're using right constructor.
         self.assertEqual(self.get_md4_const().__module__, "hashlib")
@@ -128,7 +128,7 @@ class MD4_Builtin_Test(_Common_MD4_Test):
     descriptionPrefix = "passlib.crypto._md4.md4()"
 
     def setUp(self):
-        super(MD4_Builtin_Test, self).setUp()
+        super().setUp()
 
         if has_native_md4():
 

@@ -100,7 +100,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     #===================================================================
     @classmethod
     def using(cls, variant=None, **kwds):
-        subcls = super(fshp, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if variant is not None:
             subcls.default_variant = cls._norm_variant(variant)
         return subcls
@@ -124,7 +124,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         else:
             raise TypeError("no variant specified")
         self.variant = variant
-        super(fshp, self).__init__(**kwds)
+        super().__init__(**kwds)
 
     @classmethod
     def _norm_variant(cls, variant):

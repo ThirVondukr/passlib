@@ -265,7 +265,7 @@ class SequenceGenerator(object):
         # hand off to parent
         if kwds and _superclasses(self, SequenceGenerator) == (object,):
             raise TypeError("Unexpected keyword(s): %s" % ", ".join(kwds.keys()))
-        super(SequenceGenerator, self).__init__(**kwds)
+        super().__init__(**kwds)
 
     #=============================================================================
     # informational helpers
@@ -390,7 +390,7 @@ class WordGenerator(SequenceGenerator):
         self.chars = chars
 
         # hand off to parent
-        super(WordGenerator, self).__init__(**kwds)
+        super().__init__(**kwds)
         # log.debug("WordGenerator(): entropy/char=%r", self.entropy_per_symbol)
 
     #=============================================================================
@@ -543,7 +543,7 @@ class WordsetDict(MutableMapping):
     def __init__(self, *args, **kwds):
         self.paths = {}
         self._loaded = {}
-        super(WordsetDict, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
 
     def __getitem__(self, key):
         try:
@@ -655,7 +655,7 @@ class PhraseGenerator(SequenceGenerator):
         self.sep = sep
 
         # hand off to parent
-        super(PhraseGenerator, self).__init__(**kwds)
+        super().__init__(**kwds)
         ##log.debug("PhraseGenerator(): entropy/word=%r entropy/char=%r min_chars=%r",
         ##          self.entropy_per_symbol, self.entropy_per_char, self.min_chars)
 

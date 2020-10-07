@@ -29,7 +29,7 @@ class Legacy_MD4_Test(_Common_MD4_Test):
     descriptionPrefix = "passlib.utils.md4.md4()"
 
     def setUp(self):
-        super(Legacy_MD4_Test, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", ".*passlib.utils.md4.*deprecated", DeprecationWarning)
 
     def get_md4_const(self):

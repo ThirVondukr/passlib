@@ -449,7 +449,7 @@ class TruncateMixin(MinimalHandler):
 
     @classmethod
     def using(cls, truncate_error=None, **kwds):
-        subcls = super(TruncateMixin, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if truncate_error is not None:
             truncate_error = as_bool(truncate_error, param="truncate_error")
             if truncate_error is not None:
@@ -615,7 +615,7 @@ class GenericHandler(MinimalHandler):
     #===================================================================
     def __init__(self, checksum=None, use_defaults=False, **kwds):
         self.use_defaults = use_defaults
-        super(GenericHandler, self).__init__(**kwds)
+        super().__init__(**kwds)
         if checksum is not None:
             # XXX: do we need to set .relaxed for checksum coercion?
             self.checksum = self._norm_checksum(checksum)
@@ -902,7 +902,7 @@ class GenericHandler(MinimalHandler):
     def bitsize(cls, **kwds):
         """[experimental method] return info about bitsizes of hash"""
         try:
-            info = super(GenericHandler, cls).bitsize(**kwds)
+            info = super().bitsize(**kwds)
         except AttributeError:
             info = {}
         cc = ALL_BYTE_VALUES if cls._checksum_is_bytes else cls.checksum_chars
@@ -973,7 +973,7 @@ class HasEncodingContext(GenericHandler):
     default_encoding = "utf-8"
 
     def __init__(self, encoding=None, **kwds):
-        super(HasEncodingContext, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.encoding = encoding or self.default_encoding
 
 class HasUserContext(GenericHandler):
@@ -981,7 +981,7 @@ class HasUserContext(GenericHandler):
     context_kwds = ("user",)
 
     def __init__(self, user=None, **kwds):
-        super(HasUserContext, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.user = user
 
     # XXX: would like to validate user input here, but calls to from_string()
@@ -990,16 +990,16 @@ class HasUserContext(GenericHandler):
     # wrap funcs to accept 'user' as positional arg for ease of use.
     @classmethod
     def hash(cls, secret, user=None, **context):
-        return super(HasUserContext, cls).hash(secret, user=user, **context)
+        return super().hash(secret, user=user, **context)
 
     @classmethod
     def verify(cls, secret, hash, user=None, **context):
-        return super(HasUserContext, cls).verify(secret, hash, user=user, **context)
+        return super().verify(secret, hash, user=user, **context)
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
     def genhash(cls, secret, config, user=None, **context):
-        return super(HasUserContext, cls).genhash(secret, config, user=user, **context)
+        return super().genhash(secret, config, user=user, **context)
 
     # XXX: how to guess the entropy of a username?
     #      most of these hashes are for a system (e.g. Oracle)
@@ -1008,7 +1008,7 @@ class HasUserContext(GenericHandler):
     #      need to find good reference about this.
     ##@classmethod
     ##def bitsize(cls, **kwds):
-    ##    info = super(HasUserContext, cls).bitsize(**kwds)
+    ##    info = super().bitsize(**kwds)
     ##    info['user'] = xxx
     ##    return info
 
@@ -1091,7 +1091,7 @@ class HasManyIdents(GenericHandler):
             default_ident = ident
 
         # create subclass
-        subcls = super(HasManyIdents, cls).using(**kwds)
+        subcls = super().using(**kwds)
 
         # add custom default ident
         # (NOTE: creates instance to run value through _norm_ident())
@@ -1103,7 +1103,7 @@ class HasManyIdents(GenericHandler):
     # init
     #===================================================================
     def __init__(self, ident=None, **kwds):
-        super(HasManyIdents, self).__init__(**kwds)
+        super().__init__(**kwds)
 
         # init ident
         if ident is not None:
@@ -1290,7 +1290,7 @@ class HasSalt(GenericHandler):
             default_salt_size = salt_size
 
         # generate new subclass
-        subcls = super(HasSalt, cls).using(**kwds)
+        subcls = super().using(**kwds)
 
         # replace default_rounds
         relaxed = kwds.get("relaxed")
@@ -1363,7 +1363,7 @@ class HasSalt(GenericHandler):
     # init
     #===================================================================
     def __init__(self, salt=None, **kwds):
-        super(HasSalt, self).__init__(**kwds)
+        super().__init__(**kwds)
         if salt is not None:
             salt = self._parse_salt(salt)
         elif self.use_defaults:
@@ -1452,7 +1452,7 @@ class HasSalt(GenericHandler):
     @classmethod
     def bitsize(cls, salt_size=None, **kwds):
         """[experimental method] return info about bitsizes of hash"""
-        info = super(HasSalt, cls).bitsize(**kwds)
+        info = super().bitsize(**kwds)
         if salt_size is None:
             salt_size = cls.default_salt_size
         # FIXME: this may overestimate size due to padding bits
@@ -1607,7 +1607,7 @@ class HasRounds(GenericHandler):
                 default_rounds = rounds
 
         # generate new subclass
-        subcls = super(HasRounds, cls).using(**kwds)
+        subcls = super().using(**kwds)
 
         # replace min_desired_rounds
         relaxed = kwds.get("relaxed")
@@ -1748,7 +1748,7 @@ class HasRounds(GenericHandler):
     # init
     #===================================================================
     def __init__(self, rounds=None, **kwds):
-        super(HasRounds, self).__init__(**kwds)
+        super().__init__(**kwds)
         if rounds is not None:
             rounds = self._parse_rounds(rounds)
         elif self.use_defaults:
@@ -1830,7 +1830,7 @@ class HasRounds(GenericHandler):
         max_desired_rounds = self.max_desired_rounds
         if max_desired_rounds and self.rounds > max_desired_rounds:
             return True
-        return super(HasRounds, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
 
     #===================================================================
     # experimental methods
@@ -1838,7 +1838,7 @@ class HasRounds(GenericHandler):
     @classmethod
     def bitsize(cls, rounds=None, vary_rounds=.1, **kwds):
         """[experimental method] return info about bitsizes of hash"""
-        info = super(HasRounds, cls).bitsize(**kwds)
+        info = super().bitsize(**kwds)
         # NOTE: this essentially estimates how many bits of "salt"
         # can be added by varying the rounds value just a little bit.
         if cls.rounds_cost != "log2":
@@ -1887,7 +1887,7 @@ class ParallelismMixin(GenericHandler):
 
     @classmethod
     def using(cls, parallelism=None, **kwds):
-        subcls = super(ParallelismMixin, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if parallelism is not None:
             if isinstance(parallelism, str):
                 parallelism = int(parallelism)
@@ -1898,7 +1898,7 @@ class ParallelismMixin(GenericHandler):
     # init
     #===================================================================
     def __init__(self, parallelism=None, **kwds):
-        super(ParallelismMixin, self).__init__(**kwds)
+        super().__init__(**kwds)
 
         # init parallelism
         if parallelism is None:
@@ -1922,7 +1922,7 @@ class ParallelismMixin(GenericHandler):
         # XXX: for now, marking all hashes which don't have matching parallelism setting
         if self.parallelism != type(self).parallelism:
             return True
-        return super(ParallelismMixin, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc
@@ -2265,7 +2265,7 @@ class SubclassBackendMixin(BackendMixin):
     @classmethod
     def _set_backend(cls, name, dryrun):
         # invoke backend loader (will throw error if fails)
-        super(SubclassBackendMixin, cls)._set_backend(name, dryrun)
+        super()._set_backend(name, dryrun)
 
         # sanity check call args (should trust .set_backend, but will really
         # foul things up if this isn't the owner)

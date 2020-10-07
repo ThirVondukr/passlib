@@ -86,14 +86,14 @@ class _scrypt_test(HandlerCase):
     ]
 
     def setUpWarnings(self):
-        super(_scrypt_test, self).setUpWarnings()
+        super().setUpWarnings()
         warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 
     def populate_settings(self, kwds):
         # builtin is still just way too slow.
         if self.backend == "builtin":
             kwds.setdefault("rounds", 6)
-        super(_scrypt_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
 

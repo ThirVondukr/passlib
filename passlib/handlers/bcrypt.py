@@ -206,7 +206,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         # TODO: try to detect incorrect 8bit/wraparound hashes using kwds.get("secret")
 
         # hand off to base implementation, so HasRounds can check rounds value.
-        return super(_BcryptCommon, cls).needs_update(hash, **kwds)
+        return super().needs_update(hash, **kwds)
 
     #===================================================================
     # specialized salt generation - fixes passlib issue 25
@@ -224,12 +224,12 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     def _generate_salt(cls):
         # generate random salt as normal,
         # but repair last char so the padding bits always decode to zero.
-        salt = super(_BcryptCommon, cls)._generate_salt()
+        salt = super()._generate_salt()
         return bcrypt64.repair_unused(salt)
 
     @classmethod
     def _norm_salt(cls, salt, **kwds):
-        salt = super(_BcryptCommon, cls)._norm_salt(salt, **kwds)
+        salt = super()._norm_salt(salt, **kwds)
         assert salt is not None, "HasSalt didn't generate new salt!"
         changed, salt = bcrypt64.check_repair_unused(salt)
         if changed:
@@ -243,7 +243,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         return salt
 
     def _norm_checksum(self, checksum, relaxed=False):
-        checksum = super(_BcryptCommon, self)._norm_checksum(checksum, relaxed=relaxed)
+        checksum = super()._norm_checksum(checksum, relaxed=relaxed)
         changed, checksum = bcrypt64.check_repair_unused(checksum)
         if changed:
             warn(
@@ -583,7 +583,7 @@ class _NoBackend(_BcryptCommon):
         self._stub_requires_backend()
         # NOTE: have to use super() here so that we don't recursively
         #       call subclass's wrapped _calc_checksum, e.g. bcrypt_sha256._calc_checksum
-        return super(bcrypt, self)._calc_checksum(secret)
+        return super()._calc_checksum(secret)
 
     #===================================================================
     # eoc
@@ -866,17 +866,17 @@ class _wrapped_bcrypt(bcrypt):
     # def hash(cls, secret, **kwds):
     #     # bypass bcrypt backend overriding this method
     #     # XXX: would wrapping bcrypt make this easier than subclassing it?
-    #     return super(_BcryptCommon, cls).hash(secret, **kwds)
+    #     return super().hash(secret, **kwds)
     #
     # @classmethod
     # def verify(cls, secret, hash):
     #     # bypass bcrypt backend overriding this method
-    #     return super(_BcryptCommon, cls).verify(secret, hash)
+    #     return super().verify(secret, hash)
     #
     # @classmethod
     # def genhash(cls, secret, hash):
     #     # bypass bcrypt backend overriding this method
-    #     return super(_BcryptCommon, cls).genhash(secret, hash)
+    #     return super().genhash(secret, hash)
 
     @classmethod
     def _check_truncate_policy(cls, secret):
@@ -950,7 +950,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     @classmethod
     def using(cls, version=None, **kwds):
-        subcls = super(bcrypt_sha256, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if version is not None:
             subcls.version = subcls._norm_version(version)
         ident = subcls.default_ident
@@ -1053,7 +1053,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     def __init__(self, version=None, **kwds):
         if version is not None:
             self.version = self._norm_version(version)
-        super(bcrypt_sha256, self).__init__(**kwds)
+        super().__init__(**kwds)
 
     #===================================================================
     # version
@@ -1106,7 +1106,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
         key = b64encode(digest)
 
         # hand result off to normal bcrypt algorithm
-        return super(bcrypt_sha256, self)._calc_checksum(key)
+        return super()._calc_checksum(key)
 
     #===================================================================
     # other
@@ -1115,7 +1115,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     def _calc_needs_update(self, **kwds):
         if self.version < type(self).version:
             return True
-        return super(bcrypt_sha256, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc

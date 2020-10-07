@@ -51,7 +51,7 @@ class SkeletonTest(TestCase):
             checksum_size = 1
 
             def __init__(self, flag=False, **kwds):
-                super(d1, self).__init__(**kwds)
+                super().__init__(**kwds)
                 self.flag = flag
 
             def _calc_checksum(self, secret):

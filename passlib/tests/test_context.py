@@ -170,7 +170,7 @@ sha512_crypt__min_rounds = 45000
     # setup
     #===================================================================
     def setUp(self):
-        super(CryptContextTest, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
         warnings.filterwarnings("ignore", ".*'scheme' keyword is deprecated as of Passlib 1.7.*")
 

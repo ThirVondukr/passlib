@@ -177,7 +177,7 @@ class _bcrypt_test(HandlerCase):
                 self.addCleanup(os.environ.__delitem__, key)
             os.environ[key] = "true"
 
-        super(_bcrypt_test, self).setUp()
+        super().setUp()
 
         # silence this warning, will come up a bunch during testing of old 2a hashes.
         warnings.filterwarnings("ignore", ".*backend is vulnerable to the bsd wraparound bug.*")
@@ -186,7 +186,7 @@ class _bcrypt_test(HandlerCase):
         # builtin is still just way too slow.
         if self.backend == "builtin":
             kwds.setdefault("rounds", 4)
-        super(_bcrypt_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     #===================================================================
     # fuzz testing
@@ -523,14 +523,14 @@ class _bcrypt_sha256_test(HandlerCase):
             else:
                 self.addCleanup(os.environ.__delitem__, key)
             os.environ[key] = "enabled"
-        super(_bcrypt_sha256_test, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", ".*backend is vulnerable to the bsd wraparound bug.*")
 
     def populate_settings(self, kwds):
         # builtin is still just way too slow.
         if self.backend == "builtin":
             kwds.setdefault("rounds", 4)
-        super(_bcrypt_sha256_test, self).populate_settings(kwds)
+        super().populate_settings(kwds)
 
     #===================================================================
     # override ident tests for now

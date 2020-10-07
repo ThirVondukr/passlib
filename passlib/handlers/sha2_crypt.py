@@ -276,7 +276,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
     implicit_rounds = False
 
     def __init__(self, implicit_rounds=None, **kwds):
-        super(_SHA2_Common, self).__init__(**kwds)
+        super().__init__(**kwds)
         # if user calls hash() w/ 5000 rounds, default to compact form.
         if implicit_rounds is None:
             implicit_rounds = (self.use_defaults and self.rounds == 5000)

@@ -283,7 +283,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             digest_size = checksum_size
 
         # create variant
-        subcls = super(_Argon2Common, cls).using(**kwds)
+        subcls = super().using(**kwds)
 
         # set type
         if type is not None:
@@ -462,7 +462,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             self.checksum_size = len(checksum)
 
         # call parent
-        super(_Argon2Common, self).__init__(**kwds)
+        super().__init__(**kwds)
 
         # init type
         if type is None:
@@ -574,7 +574,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             return True
         if self.checksum_size != cls.checksum_size:
             return True
-        return super(_Argon2Common, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
     
     #===================================================================
     # backend loading
@@ -680,7 +680,7 @@ class _NoBackend(_Argon2Common):
         self._stub_requires_backend()
         # NOTE: have to use super() here so that we don't recursively
         #       call subclass's wrapped _calc_checksum
-        return super(argon2, self)._calc_checksum(secret)
+        return super()._calc_checksum(secret)
 
     #===================================================================
     # eoc

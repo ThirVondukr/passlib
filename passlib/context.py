@@ -1981,7 +1981,7 @@ class LazyCryptContext(CryptContext):
             onload = kwds.pop("onload")
             kwds = onload(**kwds)
         del self._lazy_kwds
-        super(LazyCryptContext, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.__class__ = CryptContext
 
     def __getattribute__(self, attr):

@@ -852,7 +852,7 @@ class LazyBase64Engine(Base64Engine):
 
     def _lazy_init(self):
         args, kwds = self._lazy_opts
-        super(LazyBase64Engine, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
         del self._lazy_opts
         self.__class__ = Base64Engine
 

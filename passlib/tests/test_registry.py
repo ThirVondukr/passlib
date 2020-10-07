@@ -39,7 +39,7 @@ class RegistryTest(TestCase):
     descriptionPrefix = "passlib.registry"
 
     def setUp(self):
-        super(RegistryTest, self).setUp()
+        super().setUp()
 
         # backup registry state & restore it after test.
         locations = dict(registry._locations)

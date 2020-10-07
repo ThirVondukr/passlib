@@ -65,7 +65,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
 
     @classmethod
     def using(cls, marker=None, **kwds):
-        subcls = super(unix_disabled, cls).using(**kwds)
+        subcls = super().using(**kwds)
         if marker is not None:
             if not cls.identify(marker):
                 raise ValueError("invalid marker: %r" % marker)

@@ -248,7 +248,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     #===================================================================
     def __init__(self, bare_salt=False, **kwds):
         self.bare_salt = bare_salt
-        super(sun_md5_crypt, self).__init__(**kwds)
+        super().__init__(**kwds)
 
     #===================================================================
     # internal helpers

@@ -207,7 +207,7 @@ if test_hashers_mod:
         def tearDown(self):
             # NOTE: could rely on addCleanup() instead, but need py26 compat
             self.unload_extension()
-            super(HashersTest, self).tearDown()
+            super().tearDown()
 
         #==================================================================
         # skip a few methods that can't be replicated properly

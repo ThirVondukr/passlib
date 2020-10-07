@@ -286,7 +286,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             default_algs = algs
 
         # create subclass
-        subcls = super(scram, cls).using(**kwds)
+        subcls = super().using(**kwds)
 
         # fill in algs
         if default_algs is not None:
@@ -297,7 +297,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # init
     #===================================================================
     def __init__(self, algs=None, **kwds):
-        super(scram, self).__init__(**kwds)
+        super().__init__(**kwds)
 
         # init algs
         digest_map = self.checksum
@@ -357,7 +357,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             return True
 
         # hand off to base implementation
-        return super(scram, self)._calc_needs_update(**kwds)
+        return super()._calc_needs_update(**kwds)
 
     #===================================================================
     # digest methods

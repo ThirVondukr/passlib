@@ -225,17 +225,17 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
         bhash = hash[len(cls.django_prefix):]
         if not bhash.startswith("$2"):
             raise uh.exc.MalformedHashError(cls)
-        return super(django_bcrypt_sha256, cls).from_string(bhash)
+        return super().from_string(bhash)
 
     def to_string(self):
-        bhash = super(django_bcrypt_sha256, self).to_string()
+        bhash = super().to_string()
         return self.django_prefix + bhash
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         secret = hexlify(self._digest(secret).digest())
-        return super(django_bcrypt_sha256, self)._calc_checksum(secret)
+        return super()._calc_checksum(secret)
 
 #=============================================================================
 # PBKDF2 variants

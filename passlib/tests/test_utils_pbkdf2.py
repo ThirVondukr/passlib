@@ -52,7 +52,7 @@ class Pbkdf1_Test(TestCase):
         )
 
     def setUp(self):
-        super(Pbkdf1_Test, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", ".*passlib.utils.pbkdf2.*deprecated", DeprecationWarning)
 
     def test_known(self):
@@ -207,7 +207,7 @@ class Pbkdf2_Test(TestCase):
         ]
 
     def setUp(self):
-        super(Pbkdf2_Test, self).setUp()
+        super().setUp()
         warnings.filterwarnings("ignore", ".*passlib.utils.pbkdf2.*deprecated", DeprecationWarning)
 
     def test_known(self):
