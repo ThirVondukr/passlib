@@ -10,8 +10,10 @@ Passlib 1.7
     and will require Python >= 3.5.  The 1.7 series will be the last
     to support Python 2.7.  (See :issue:`119` for rationale).
 
-**1.7.4** (NOT YET RELEASED)
-============================
+**1.7.4** (2020-10-08)
+======================
+
+Small followup to 1.7.3 release.
 
 Bugfixes
 --------
