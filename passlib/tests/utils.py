@@ -29,7 +29,7 @@ from passlib.tests.backports import TestCase as _TestCase, skip, skipIf, skipUnl
 from passlib.utils import has_rounds_info, has_salt_info, rounds_cost_values, \
                           rng as sys_rng, getrandstr, is_ascii_safe, to_native_str, \
                           repeat_string, tick, batch
-from passlib.utils.compat import iteritems, irange, u, unicode, PY2
+from passlib.utils.compat import iteritems, irange, u, unicode, PY2, nullcontext
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 # local
@@ -626,6 +626,66 @@ class TestCase(_TestCase):
             # create rng
             value = cache[name] = random.Random(seed)
             return value
+
+    #===================================================================
+    # subtests
+    #===================================================================
+
+    has_real_subtest = hasattr(_TestCase, "subTest")
+
+    @contextlib.contextmanager
+    def subTest(self, *args, **kwds):
+        """
+        wrapper/backport for .subTest() which also traps SkipTest errors.
+        (see source for details)
+        """
+        # this function works around two things:
+        # * TestCase.subTest() wasn't added until Py34; so for older python versions,
+        #   we either need unittest2 installed, or provide stub of our own.
+        #   this method provides a stub if needed (based on .has_real_subtest check)
+        #
+        # * as 2020-10-08, .subTest() doesn't play nicely w/ .skipTest();
+        #   and also makes it hard to debug which subtest had a failure.
+        #   (see https://bugs.python.org/issue25894 and https://bugs.python.org/issue35327)
+        #   this method traps skipTest exceptions, and adds some logging to help debug
+        #   which subtest caused the issue.
+
+        # setup way to log subtest info
+        # XXX: would like better way to inject messages into test output;
+        #      but this at least gets us something for debugging...
+        # NOTE: this hack will miss parent params if called from nested .subTest()
+        def _render_title(_msg=None, **params):
+            out = ("[%s] " % _msg if _msg else "")
+            if params:
+                out += "(%s)" % " ".join("%s=%r" % tuple(item) for item in params.items())
+            return out.strip() or "<subtest>"
+
+        test_log = self.getLogger()
+        title = _render_title(*args, **kwds)
+
+        # use real subtest manager if available
+        if self.has_real_subtest:
+            ctx = super(TestCase, self).subTest(*args, **kwds)
+        else:
+            ctx = nullcontext()
+
+        # run the subtest
+        with ctx:
+            test_log.info("running subtest: %s", title)
+            try:
+                yield
+            except SkipTest:
+                # silence "SkipTest" exceptions, want to keep running next subtest.
+                test_log.info("subtest skipped: %s", title)
+                pass
+            except Exception as err:
+                # log unhandled exception occurred
+                # (assuming traceback will be reported up higher, so not bothering here)
+                test_log.warning("subtest failed: %s: %s: %r", title, type(err).__name__, str(err))
+                raise
+
+        # XXX: check for "failed" state in ``self._outcome`` before writing this?
+        test_log.info("subtest passed: %s", title)
 
     #===================================================================
     # other
