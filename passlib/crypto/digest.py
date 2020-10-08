@@ -118,6 +118,11 @@ _fallback_info = {
 
 
 def _gen_fallback_info():
+    """
+    internal helper used to generate ``_fallback_info`` dict.
+    currently only run manually to update the above list;
+    not invoked at runtime.
+    """
     out = {}
     for alg in sorted(hashlib.algorithms_available | {"md4"}):
         info = lookup_hash(alg)
@@ -467,7 +472,7 @@ class HashInfo(SequenceMixin):
             helper that installs stub constructor which throws specified error <msg>.
             """
             def const(source=b""):
-                raise exc.UnknownHashError(name, message=msg)
+                raise exc.UnknownHashError(msg, name)
             if required:
                 # if caller only wants supported digests returned,
                 # just throw error immediately...

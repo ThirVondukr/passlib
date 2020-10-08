@@ -619,6 +619,57 @@ class TestCase(unittest.TestCase):
             return value
 
     #===================================================================
+    # subtests
+    #===================================================================
+
+    @contextlib.contextmanager
+    def subTest(self, *args, **kwds):
+        """
+        wrapper for .subTest() which traps SkipTest errors.
+        (see source for details)
+        """
+        # this function works around issue that as 2020-10-08, 
+        #   .subTest() doesn't play nicely w/ .skipTest();
+        #   and also makes it hard to debug which subtest had a failure.
+        #   (see https://bugs.python.org/issue25894 and https://bugs.python.org/issue35327)
+        #   this method traps skipTest exceptions, and adds some logging to help debug
+        #   which subtest caused the issue.
+
+        # setup way to log subtest info
+        # XXX: would like better way to inject messages into test output;
+        #      but this at least gets us something for debugging...
+        # NOTE: this hack will miss parent params if called from nested .subTest()
+        def _render_title(_msg=None, **params):
+            out = ("[%s] " % _msg if _msg else "")
+            if params:
+                out += "(%s)" % " ".join("%s=%r" % tuple(item) for item in params.items())
+            return out.strip() or "<subtest>"
+
+        test_log = self.getLogger()
+        title = _render_title(*args, **kwds)
+
+        # run the subtest
+        ctx = super().subTest(*args, **kwds)
+        with ctx:
+            test_log.info("running subtest: %s", title)
+            try:
+                yield
+            except SkipTest:
+                # silence "SkipTest" exceptions, want to keep running next subtest.
+                test_log.info("subtest skipped: %s", title)
+                # XXX: should revisit whether latest py3 version of UTs handle this ok,
+                #      meaning it's safe to re-raise this.
+                return
+            except Exception as err:
+                # log unhandled exception occurred
+                # (assuming traceback will be reported up higher, so not bothering here)
+                test_log.warning("subtest failed: %s: %s: %r", title, type(err).__name__, str(err))
+                raise
+
+        # XXX: check for "failed" state in ``self._outcome`` before writing this?
+        test_log.info("subtest passed: %s", title)
+
+    #===================================================================
     # other
     #===================================================================
     _mktemp_queue = None

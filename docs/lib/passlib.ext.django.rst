@@ -6,12 +6,6 @@
 :mod:`passlib.ext.django` - Django Password Hashing Plugin
 ==========================================================
 
-.. versionadded:: 1.6
-
-.. versionchanged:: 1.7
-
-    As of Passlib 1.7, this module requires Django 1.8 or newer.
-
 .. rst-class:: float-center without-title
 
 .. warning::
@@ -49,9 +43,19 @@ of uses:
     This plugin should be considered "release candidate" quality.
     It works, and has good unittest coverage, but has seen only
     limited real-world use. Please report any issues.
-    It has been tested with Django 1.8 - 1.9.
+    It has been tested with Django 1.8 - 3.1.
 
-    (Support for Django 1.0 - 1.7 was dropped after Passlib 1.6).
+.. versionadded:: 1.6
+
+.. versionchanged:: 1.7
+
+    Support for Django 1.0 - 1.7 was dropped; now requires Django 1.8 or newer.
+
+.. rst-class:: without-title
+
+.. warning::
+
+    As of Passlib 1.8, this module will require Django 2.2 or newer.
 
 Installation
 =============

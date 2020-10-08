@@ -10,6 +10,33 @@ Passlib 1.7
     and will require Python >= 3.5.  The 1.7 series will be the last
     to support Python 2.7.  (See :issue:`119` for rationale).
 
+**1.7.4** (NOT YET RELEASED)
+============================
+
+Bugfixes
+--------
+
+* Fixed some Python 2.6 errors from last release (:issue:`128`)
+
+Other Changes
+-------------
+
+* :mod:`passlib.ext.django` -- updated tests to pass for Django 1.8 - 3.1 (:issue:`98`);
+  along with some internal refactoring of the test classes.
+
+* .. py:currentmodule:: passlib.context
+
+  :class:`CryptContext` will now throw :exc:`~passlib.exc.UnknownHashError` when it can't identify
+  a hash provided to methods such as :meth:`!CryptContext.verify`.
+  Previously it would throw a generic :exc:`ValueError`.
+
+
+Deprecations
+------------
+
+* :mod:`passlib.ext.django`: This extension will require Django 2.2 or newer as of Passlib 1.8.
+
+
 **1.7.3** (2020-10-06)
 ======================
 
