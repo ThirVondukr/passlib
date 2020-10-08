@@ -120,8 +120,13 @@ _fallback_info = {
 
 
 def _gen_fallback_info():
+    """
+    internal helper used to generate ``_fallback_info`` dict.
+    currently only run manually to update the above list;
+    not invoked at runtime.
+    """
     out = {}
-    for alg in sorted(hashlib.algorithms_available | {"md4"}):
+    for alg in sorted(hashlib.algorithms_available | set(["md4"])):
         info = lookup_hash(alg)
         out[info.name] = (info.digest_size, info.block_size)
     return out
@@ -579,7 +584,7 @@ mock_fips_mode = False
 
 #: algorithms allowed under FIPS mode (subset of hashlib.algorithms_available);
 #: per https://csrc.nist.gov/Projects/Hash-Functions FIPS 202 list.
-_fips_algorithms = {
+_fips_algorithms = set([
     # FIPS 180-4  and FIPS 202
     'sha1',
     'sha224',
@@ -596,7 +601,7 @@ _fips_algorithms = {
     'sha3_512',
     'shake_128',
     'shake_256',
-}
+])
 
 
 def _set_mock_fips_mode(enable=True):

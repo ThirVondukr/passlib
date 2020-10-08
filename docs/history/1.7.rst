@@ -15,6 +15,11 @@ Passlib 1.7
 **1.7.4** (NOT YET RELEASED)
 ============================
 
+Bugfixes
+--------
+
+* Fixed some Python 2.6 errors from last release (:issue:`128`)
+
 Other Changes
 -------------
 * .. py:currentmodule:: passlib.context

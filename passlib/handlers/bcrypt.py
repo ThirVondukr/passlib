@@ -1050,7 +1050,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
     # class specific
     #--------------------
 
-    _supported_versions = {1, 2}
+    _supported_versions = set([1, 2])
 
     #===================================================================
     # instance attrs
