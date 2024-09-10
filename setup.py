@@ -6,55 +6,51 @@ SETUP_TAG_RELEASE
     if "yes" (the default), revision tag is appended to version.
     for release, this is explicitly set to "no".
 """
-#=============================================================================
+
+# =============================================================================
 # init script env -- ensure cwd = root of source dir
-#=============================================================================
+# =============================================================================
 import os
+
 root_dir = os.path.abspath(os.path.join(__file__, ".."))
 os.chdir(root_dir)
 
-#=============================================================================
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 import setuptools
 import sys
 
-#=============================================================================
+# =============================================================================
 # init setup options
-#=============================================================================
+# =============================================================================
 opts = dict(
-    #==================================================================
+    # ==================================================================
     # sources
-    #==================================================================
+    # ==================================================================
     packages=setuptools.find_packages(root_dir),
     package_data={
         "passlib.tests": ["*.cfg"],
         "passlib": ["_data/wordsets/*.txt"],
     },
     zip_safe=True,
-
-    #==================================================================
+    # ==================================================================
     # metadata
-    #==================================================================
+    # ==================================================================
     name="passlib",
     # NOTE: 'version' set below
     author="Eli Collins",
     author_email="elic@assurancetechnologies.com",
     license="BSD",
-
     url="https://passlib.readthedocs.io",
     # NOTE: 'download_url' set below
-
     extras_require={
         # extras w/ recommended library for argon2 backend
         "argon2": "argon2_cffi>=18.2.0",
-
         # extras w/ recommended library for bcrypt backend (if not present on host)
         "bcrypt": "bcrypt>=3.1.0",
-
         # extras to make (full) use of "passlib.totp" module
         "totp": "cryptography",
-
         # extras required to build passlib docs
         # TODO: automate way to sync this w/ "./docs/requirements.txt"
         "build_docs": [
@@ -63,16 +59,12 @@ opts = dict(
             "cloud_sptheme>=1.10.1",
         ],
     },
-
     # NOTE: 'python_requires' should be kept in sync w/ passlib.utils.compat's version check.
-    python_requires='>=3.5',
-
-    #==================================================================
+    python_requires=">=3.5",
+    # ==================================================================
     # details
-    #==================================================================
-    description=
-    "comprehensive password hashing framework supporting over 30 schemes",
-
+    # ==================================================================
+    description="comprehensive password hashing framework supporting over 30 schemes",
     long_description="""\
 Passlib is a password hashing library for Python 3, which provides
 cross-platform implementations of over 30 password hashing algorithms, as well
@@ -92,7 +84,6 @@ providing full-strength password hashing for multi-user applications.
 All releases are signed with the gpg key
 `4D8592DF4CE1ED31 <http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x4D8592DF4CE1ED31>`_.
 """,
-
     keywords="""\
 password secret hash security
 crypt md5-crypt
@@ -100,7 +91,6 @@ sha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt
 apache htpasswd htdigest
 totp 2fa
 """,
-
     classifiers="""\
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
@@ -118,26 +108,23 @@ Programming Language :: Python :: Implementation :: PyPy
 Topic :: Security :: Cryptography
 Topic :: Software Development :: Libraries
 """.splitlines(),
-
     # TODO: add "Programming Language :: Python :: Implementation :: IronPython"
     #       (blocked by issue 34)
-
-    #==================================================================
+    # ==================================================================
     # testing
-    #==================================================================
-    tests_require='nose >= 1.1',
-    test_suite='nose.collector',
-
-    #==================================================================
+    # ==================================================================
+    tests_require="nose >= 1.1",
+    test_suite="nose.collector",
+    # ==================================================================
     # custom setup
-    #==================================================================
+    # ==================================================================
     script_args=sys.argv[1:],
     cmdclass={},
 )
 
-#=============================================================================
+# =============================================================================
 # set version string
-#=============================================================================
+# =============================================================================
 
 # pull version string from passlib
 from passlib import __version__ as version
@@ -146,8 +133,11 @@ from passlib import __version__ as version
 stamp_build = True  # NOTE: modified by stamp_distutils_output()
 if stamp_build:
     from passlib._setup.stamp import (
-        as_bool, append_hg_revision, stamp_distutils_output,
-        install_build_py_exclude, set_command_options
+        as_bool,
+        append_hg_revision,
+        stamp_distutils_output,
+        install_build_py_exclude,
+        set_command_options,
     )
 
     # add HG revision to end of version
@@ -160,36 +150,40 @@ if stamp_build:
 
     # exclude 'passlib._setup' from builds, only needed for sdist
     install_build_py_exclude(opts)
-    set_command_options(opts, "build_py",
+    set_command_options(
+        opts,
+        "build_py",
         exclude_packages=["passlib._setup"],
     )
 
-opts['version'] = version
+opts["version"] = version
 
-#=============================================================================
+# =============================================================================
 # set release status
-#=============================================================================
+# =============================================================================
 
-if '.dev' in version:
+if ".dev" in version:
     status = "Development Status :: 3 - Alpha"
-elif '.post' in version:
+elif ".post" in version:
     status = "Development Status :: 4 - Beta"
 else:
     status = "Development Status :: 5 - Production/Stable"
 
     # only list download url for final release
     opts.update(
-        download_url=("https://pypi.python.org/packages/source/p/passlib/"
-                      "passlib-" + version + ".tar.gz")
+        download_url=(
+            "https://pypi.python.org/packages/source/p/passlib/"
+            "passlib-" + version + ".tar.gz"
+        )
     )
 
-opts['classifiers'].append(status)
+opts["classifiers"].append(status)
 
-#=============================================================================
+# =============================================================================
 # run setup
-#=============================================================================
+# =============================================================================
 setuptools.setup(**opts)
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

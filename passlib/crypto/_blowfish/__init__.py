@@ -47,42 +47,43 @@ released under the BSD license::
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from itertools import chain
 import struct
+
 # pkg
 from passlib.utils import getrandbytes, rng
 from passlib.utils.binary import bcrypt64
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
+
 # local
 __all__ = [
-    'BlowfishEngine',
-    'raw_bcrypt',
+    "BlowfishEngine",
+    "raw_bcrypt",
 ]
 
-#=============================================================================
+# =============================================================================
 # bcrypt constants
-#=============================================================================
+# =============================================================================
 
 # bcrypt constant data "OrpheanBeholderScryDoubt" as 6 integers
-BCRYPT_CDATA = [
-    0x4f727068, 0x65616e42, 0x65686f6c,
-    0x64657253, 0x63727944, 0x6f756274
-]
+BCRYPT_CDATA = [0x4F727068, 0x65616E42, 0x65686F6C, 0x64657253, 0x63727944, 0x6F756274]
 
 # struct used to encode ciphertext as digest (last output byte discarded)
 digest_struct = struct.Struct(">6I")
 
-#=============================================================================
+# =============================================================================
 # base bcrypt helper
 #
 # interface designed only for use by passlib.handlers.bcrypt:BCrypt
 # probably not suitable for other purposes
-#=============================================================================
-BNULL = b'\x00'
+# =============================================================================
+BNULL = b"\x00"
+
 
 def raw_bcrypt(password, ident, salt, log_rounds):
     """perform central password hashing step in bcrypt scheme.
@@ -93,20 +94,21 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     :param log_rounds: the log2 of the number of rounds (as int)
     :returns: bcrypt-base64 encoded checksum
     """
-    #===================================================================
+    # ===================================================================
     # parse inputs
-    #===================================================================
+    # ===================================================================
 
     # parse ident
     assert isinstance(ident, str)
     add_null_padding = True
-    if ident == u'2a' or ident == u'2y' or ident == u'2b':
+    if ident == "2a" or ident == "2y" or ident == "2b":
         pass
-    elif ident == u'2':
+    elif ident == "2":
         add_null_padding = False
-    elif ident == u'2x':
-        raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
-                         "currently supported")
+    elif ident == "2x":
+        raise ValueError(
+            "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
+        )
     else:
         raise ValueError("unknown ident: %r" % (ident,))
 
@@ -127,7 +129,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     if log_rounds < 4 or log_rounds > 31:
         raise ValueError("Bad number of rounds")
 
-    #===================================================================
+    # ===================================================================
     #
     # run EKS-Blowfish algorithm
     #
@@ -135,7 +137,7 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     # Provos and Mazieres in "A Future-Adaptable Password Scheme"
     # http://www.openbsd.org/papers/bcrypt-paper.ps
     #
-    #===================================================================
+    # ===================================================================
 
     engine = BlowfishEngine()
 
@@ -151,18 +153,19 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     engine.eks_salted_expand(pass_words, salt_words16)
 
     # apply password & salt keys to key schedule a bunch more times.
-    rounds = 1<<log_rounds
+    rounds = 1 << log_rounds
     engine.eks_repeated_expand(pass_words, salt_words, rounds)
 
     # encipher constant data, and encode to bytes as digest.
     data = list(BCRYPT_CDATA)
     i = 0
     while i < 6:
-        data[i], data[i+1] = engine.repeat_encipher(data[i], data[i+1], 64)
+        data[i], data[i + 1] = engine.repeat_encipher(data[i], data[i + 1], 64)
         i += 2
     raw = digest_struct.pack(*data)[:-1]
     return bcrypt64.encode_bytes(raw)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

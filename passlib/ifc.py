@@ -1,25 +1,31 @@
 """passlib.ifc - abstract interfaces used by Passlib"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import sys
+
 # site
 # pkg
 from passlib.utils.decor import deprecated_method
+
 # local
 __all__ = [
     "PasswordHash",
 ]
 
-#=============================================================================
+# =============================================================================
 # PasswordHash interface
-#=============================================================================
+# =============================================================================
 from abc import ABC, abstractmethod
 
 # XXX: mark some attributes with abstractproperty()?
 #      or would type hinting be enough?
+
 
 # XXX: rename this to PasswordHasher?
 class PasswordHash(ABC):
@@ -29,13 +35,14 @@ class PasswordHash(ABC):
 
     See the Passlib docs for full documentation.
     """
-    #===================================================================
-    # class attributes
-    #===================================================================
 
-    #---------------------------------------------------------------
+    # ===================================================================
+    # class attributes
+    # ===================================================================
+
+    # ---------------------------------------------------------------
     # general information
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     ##name
     ##setting_kwds
     ##context_kwds
@@ -73,35 +80,38 @@ class PasswordHash(ABC):
     #: .. versionadded:: 1.7.1
     truncate_verify_reject = True
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # salt information -- if 'salt' in setting_kwds
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     ##min_salt_size
     ##max_salt_size
     ##default_salt_size
     ##salt_chars
     ##default_salt_chars
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # rounds information -- if 'rounds' in setting_kwds
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     ##min_rounds
     ##max_rounds
     ##default_rounds
     ##rounds_cost
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # encoding info -- if 'encoding' in context_kwds
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     ##default_encoding
 
-    #===================================================================
+    # ===================================================================
     # primary methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     @abstractmethod
-    def hash(cls, secret,  # *
-             **setting_and_context_kwds):  # pragma: no cover -- abstract method
+    def hash(
+        cls,
+        secret,  # *
+        **setting_and_context_kwds,
+    ):  # pragma: no cover -- abstract method
         r"""
         Hash secret, returning result.
         Should handle generating salt, etc, and should return string
@@ -145,13 +155,15 @@ class PasswordHash(ABC):
     #      (after making both are same string type)
     @classmethod
     @abstractmethod
-    def verify(cls, secret, hash, **context_kwds): # pragma: no cover -- abstract method
+    def verify(
+        cls, secret, hash, **context_kwds
+    ):  # pragma: no cover -- abstract method
         """verify secret against hash, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
 
-    #===================================================================
+    # ===================================================================
     # configuration
-    #===================================================================
+    # ===================================================================
     @classmethod
     @abstractmethod
     def using(cls, relaxed=False, **kwds):
@@ -173,9 +185,9 @@ class PasswordHash(ABC):
         """
         raise NotImplementedError("must be implemented by subclass")
 
-    #===================================================================
+    # ===================================================================
     # migration
-    #===================================================================
+    # ===================================================================
     @classmethod
     def needs_update(cls, hash, secret=None):
         """
@@ -198,18 +210,18 @@ class PasswordHash(ABC):
         # by default, always report that we don't need update
         return False
 
-    #===================================================================
+    # ===================================================================
     # additional methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     @abstractmethod
-    def identify(cls, hash): # pragma: no cover -- abstract method
+    def identify(cls, hash):  # pragma: no cover -- abstract method
         """check if hash belongs to this scheme, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
 
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
-    def genconfig(cls, **setting_kwds): # pragma: no cover -- abstract method
+    def genconfig(cls, **setting_kwds):  # pragma: no cover -- abstract method
         """
         compile settings into a configuration string for genhash()
 
@@ -244,17 +256,17 @@ class PasswordHash(ABC):
         # XXX: if hashes reliably offered a .parse() method, could make a fallback for this.
         raise NotImplementedError("must be implemented by subclass")
 
-    #===================================================================
+    # ===================================================================
     # undocumented methods / attributes
-    #===================================================================
+    # ===================================================================
     # the following entry points are used internally by passlib,
     # and aren't documented as part of the exposed interface.
     # they are subject to change between releases,
     # but are documented here so there's a list of them *somewhere*.
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # extra metdata
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
 
     #: this attribute shouldn't be used by hashers themselves,
     #: it's reserved for the CryptContext to track which hashers are deprecated.
@@ -271,15 +283,15 @@ class PasswordHash(ABC):
     #: django's native hasher should be used in preference to this one.
     ## django_name
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # checksum information - defined for many hashes
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     ## checksum_chars
     ## checksum_size
 
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
     # experimental methods
-    #---------------------------------------------------------------
+    # ---------------------------------------------------------------
 
     ##@classmethod
     ##def normhash(cls, hash):
@@ -304,9 +316,10 @@ class PasswordHash(ABC):
     ##    components currently include checksum, salt, rounds.
     ##    """
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
+
 
 class DisabledHash(PasswordHash):
     """
@@ -335,6 +348,7 @@ class DisabledHash(PasswordHash):
         # default behavior: no way to restore original hash
         raise ValueError("cannot restore original hash")
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

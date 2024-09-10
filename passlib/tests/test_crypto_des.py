@@ -1,18 +1,21 @@
 """passlib.tests -- unittests for passlib.crypto.des"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from functools import partial
+
 # site
 # pkg
 # module
 from passlib.utils import getrandbytes
 from passlib.tests.utils import TestCase
 
-#=============================================================================
+
+# =============================================================================
 # test DES routines
-#=============================================================================
+# =============================================================================
 class DesTest(TestCase):
     descriptionPrefix = "passlib.crypto.des"
 
@@ -57,8 +60,12 @@ class DesTest(TestCase):
 
     def test_01_expand(self):
         """expand_des_key()"""
-        from passlib.crypto.des import expand_des_key, shrink_des_key, \
-                                             _KDATA_MASK, INT_56_MASK
+        from passlib.crypto.des import (
+            expand_des_key,
+            shrink_des_key,
+            _KDATA_MASK,
+            INT_56_MASK,
+        )
 
         # make sure test vectors are preserved (sans parity bits)
         # uses ints, bytes are tested under # 02
@@ -72,16 +79,17 @@ class DesTest(TestCase):
         self.assertRaises(TypeError, expand_des_key, 1.0)
 
         # too large
-        self.assertRaises(ValueError, expand_des_key, INT_56_MASK+1)
-        self.assertRaises(ValueError, expand_des_key, b"\x00"*8)
+        self.assertRaises(ValueError, expand_des_key, INT_56_MASK + 1)
+        self.assertRaises(ValueError, expand_des_key, b"\x00" * 8)
 
         # too small
         self.assertRaises(ValueError, expand_des_key, -1)
-        self.assertRaises(ValueError, expand_des_key, b"\x00"*6)
+        self.assertRaises(ValueError, expand_des_key, b"\x00" * 6)
 
     def test_02_shrink(self):
         """shrink_des_key()"""
         from passlib.crypto.des import expand_des_key, shrink_des_key, INT_64_MASK
+
         rng = self.getRandom()
 
         # make sure reverse works for some random keys
@@ -96,23 +104,28 @@ class DesTest(TestCase):
         self.assertRaises(TypeError, shrink_des_key, 1.0)
 
         # too large
-        self.assertRaises(ValueError, shrink_des_key, INT_64_MASK+1)
-        self.assertRaises(ValueError, shrink_des_key, b"\x00"*9)
+        self.assertRaises(ValueError, shrink_des_key, INT_64_MASK + 1)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00" * 9)
 
         # too small
         self.assertRaises(ValueError, shrink_des_key, -1)
-        self.assertRaises(ValueError, shrink_des_key, b"\x00"*7)
+        self.assertRaises(ValueError, shrink_des_key, b"\x00" * 7)
 
     def _random_parity(self, key):
         """randomize parity bits"""
         from passlib.crypto.des import _KDATA_MASK, _KPARITY_MASK, INT_64_MASK
+
         rng = self.getRandom()
-        return (key & _KDATA_MASK) | (rng.randint(0,INT_64_MASK) & _KPARITY_MASK)
+        return (key & _KDATA_MASK) | (rng.randint(0, INT_64_MASK) & _KPARITY_MASK)
 
     def test_03_encrypt_bytes(self):
         """des_encrypt_block()"""
-        from passlib.crypto.des import (des_encrypt_block, shrink_des_key,
-                                              _pack64, _unpack64)
+        from passlib.crypto.des import (
+            des_encrypt_block,
+            shrink_des_key,
+            _pack64,
+            _unpack64,
+        )
 
         # run through test vectors
         for key, plaintext, correct in self.des_test_vectors:
@@ -123,34 +136,39 @@ class DesTest(TestCase):
 
             # test 64-bit key
             result = des_encrypt_block(key, plaintext)
-            self.assertEqual(result, correct, "key=%r plaintext=%r:" %
-                                              (key, plaintext))
+            self.assertEqual(result, correct, "key=%r plaintext=%r:" % (key, plaintext))
 
             # test 56-bit version
             key2 = shrink_des_key(key)
             result = des_encrypt_block(key2, plaintext)
-            self.assertEqual(result, correct, "key=%r shrink(key)=%r plaintext=%r:" %
-                                              (key, key2, plaintext))
+            self.assertEqual(
+                result,
+                correct,
+                "key=%r shrink(key)=%r plaintext=%r:" % (key, key2, plaintext),
+            )
 
             # test with random parity bits
             for _ in range(20):
                 key3 = _pack64(self._random_parity(_unpack64(key)))
                 result = des_encrypt_block(key3, plaintext)
-                self.assertEqual(result, correct, "key=%r rndparity(key)=%r plaintext=%r:" %
-                                                  (key, key3, plaintext))
+                self.assertEqual(
+                    result,
+                    correct,
+                    "key=%r rndparity(key)=%r plaintext=%r:" % (key, key3, plaintext),
+                )
 
         # check invalid keys
-        stub = b'\x00' * 8
+        stub = b"\x00" * 8
         self.assertRaises(TypeError, des_encrypt_block, 0, stub)
-        self.assertRaises(ValueError, des_encrypt_block, b'\x00'*6, stub)
+        self.assertRaises(ValueError, des_encrypt_block, b"\x00" * 6, stub)
 
         # check invalid input
         self.assertRaises(TypeError, des_encrypt_block, stub, 0)
-        self.assertRaises(ValueError, des_encrypt_block, stub, b'\x00'*7)
+        self.assertRaises(ValueError, des_encrypt_block, stub, b"\x00" * 7)
 
         # check invalid salts
         self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=-1)
-        self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=1<<24)
+        self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=1 << 24)
 
         # check invalid rounds
         self.assertRaises(ValueError, des_encrypt_block, stub, stub, 0, rounds=0)
@@ -163,31 +181,34 @@ class DesTest(TestCase):
         for key, plaintext, correct in self.des_test_vectors:
             # test 64-bit key
             result = des_encrypt_int_block(key, plaintext)
-            self.assertEqual(result, correct, "key=%r plaintext=%r:" %
-                                              (key, plaintext))
+            self.assertEqual(result, correct, "key=%r plaintext=%r:" % (key, plaintext))
 
             # test with random parity bits
             for _ in range(20):
                 key3 = self._random_parity(key)
                 result = des_encrypt_int_block(key3, plaintext)
-                self.assertEqual(result, correct, "key=%r rndparity(key)=%r plaintext=%r:" %
-                                                  (key, key3, plaintext))
+                self.assertEqual(
+                    result,
+                    correct,
+                    "key=%r rndparity(key)=%r plaintext=%r:" % (key, key3, plaintext),
+                )
 
         # check invalid keys
-        self.assertRaises(TypeError, des_encrypt_int_block, b'\x00', 0)
+        self.assertRaises(TypeError, des_encrypt_int_block, b"\x00", 0)
         self.assertRaises(ValueError, des_encrypt_int_block, -1, 0)
 
         # check invalid input
-        self.assertRaises(TypeError, des_encrypt_int_block, 0, b'\x00')
+        self.assertRaises(TypeError, des_encrypt_int_block, 0, b"\x00")
         self.assertRaises(ValueError, des_encrypt_int_block, 0, -1)
 
         # check invalid salts
         self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, salt=-1)
-        self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, salt=1<<24)
+        self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, salt=1 << 24)
 
         # check invalid rounds
         self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, 0, rounds=0)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

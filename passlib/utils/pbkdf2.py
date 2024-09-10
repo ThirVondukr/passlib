@@ -3,43 +3,54 @@
 this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.exc import ExpectedTypeError
-from passlib.crypto.digest import lookup_hash, pbkdf1 as _pbkdf1, pbkdf2_hmac, compile_hmac
+from passlib.crypto.digest import (
+    lookup_hash,
+    pbkdf1 as _pbkdf1,
+    pbkdf2_hmac,
+    compile_hmac,
+)
+
 # local
 __all__ = [
     # prf utils
     "get_prf",
-
     # kdfs
     "pbkdf1",
     "pbkdf2",
 ]
 
-#=============================================================================
+# =============================================================================
 # issue deprecation warning for module
-#=============================================================================
+# =============================================================================
 from warnings import warn
 
-warn("the module 'passlib.utils.pbkdf2' is deprecated as of Passlib 1.7, "
-     "and will be removed in Passlib 2.0, please use 'passlib.crypto' instead",
-     DeprecationWarning)
+warn(
+    "the module 'passlib.utils.pbkdf2' is deprecated as of Passlib 1.7, "
+    "and will be removed in Passlib 2.0, please use 'passlib.crypto' instead",
+    DeprecationWarning,
+)
 
-#=============================================================================
+# =============================================================================
 # prf lookup
-#=============================================================================
+# =============================================================================
 
 #: cache mapping prf name/func -> (func, digest_size)
 _prf_cache = {}
 
 #: list of accepted prefixes
 _HMAC_PREFIXES = ("hmac_", "hmac-")
+
 
 def get_prf(name):
     """Lookup pseudo-random family (PRF) by name.
@@ -88,21 +99,24 @@ def get_prf(name):
         if not name.startswith(_HMAC_PREFIXES):
             raise ValueError("unknown prf algorithm: %r" % (name,))
         digest = lookup_hash(name[5:]).name
+
         def hmac(key, msg):
             return compile_hmac(digest, key)(msg)
+
         record = (hmac, hmac.digest_info.digest_size)
     elif callable(name):
         # assume it's a callable, use it directly
-        digest_size = len(name(b'x', b'y'))
+        digest_size = len(name(b"x", b"y"))
         record = (name, digest_size)
     else:
         raise ExpectedTypeError(name, "str or callable", "prf name")
     _prf_cache[name] = record
     return record
 
-#=============================================================================
+
+# =============================================================================
 # pbkdf1 support
-#=============================================================================
+# =============================================================================
 def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     """pkcs#5 password-based key derivation v1.5
 
@@ -130,9 +144,10 @@ def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     """
     return _pbkdf1(hash, secret, salt, rounds, keylen)
 
-#=============================================================================
+
+# =============================================================================
 # pbkdf2
-#=============================================================================
+# =============================================================================
 def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
 
@@ -175,6 +190,7 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     digest = prf[5:]
     return pbkdf2_hmac(digest, secret, salt, rounds, keylen)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

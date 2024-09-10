@@ -1,16 +1,19 @@
-"""passlib.handlers.digests - plain hash digests
-"""
-#=============================================================================
+"""passlib.handlers.digests - plain hash digests"""
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import hashlib
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
 import passlib.utils.handlers as uh
 from passlib.crypto.digest import lookup_hash
+
 # local
 __all__ = [
     "create_hex_hash",
@@ -21,24 +24,26 @@ __all__ = [
     "hex_sha512",
 ]
 
-#=============================================================================
+
+# =============================================================================
 # helpers for hexadecimal hashes
-#=============================================================================
+# =============================================================================
 class HexDigestHash(uh.StaticHandler):
     """this provides a template for supporting passwords stored as plain hexadecimal hashes"""
-    #===================================================================
+
+    # ===================================================================
     # class attrs
-    #===================================================================
-    _hash_func = None # hash function to use - filled in by create_hex_hash()
-    checksum_size = None # filled in by create_hex_hash()
+    # ===================================================================
+    _hash_func = None  # hash function to use - filled in by create_hex_hash()
+    checksum_size = None  # filled in by create_hex_hash()
     checksum_chars = uh.HEX_CHARS
 
     #: special for detecting if _hash_func is just a stub method.
     supported = True
 
-    #===================================================================
+    # ===================================================================
     # methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -48,9 +53,10 @@ class HexDigestHash(uh.StaticHandler):
             secret = secret.encode("utf-8")
         return self._hash_func(secret).hexdigest()
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
+
 
 def create_hex_hash(digest, module=__name__, django_name=None, required=True):
     """
@@ -66,45 +72,55 @@ def create_hex_hash(digest, module=__name__, django_name=None, required=True):
     name = "hex_" + info.name
     if not info.supported:
         info.digest_size = 0
-    hasher = type(name, (HexDigestHash,), dict(
-        name=name,
-        __module__=module, # so ABCMeta won't clobber it
-        _hash_func=staticmethod(info.const), # sometimes it's a function, sometimes not. so wrap it.
-        checksum_size=info.digest_size*2,
-        __doc__="""This class implements a plain hexadecimal %s hash, and follows the :ref:`password-hash-api`.
+    hasher = type(
+        name,
+        (HexDigestHash,),
+        dict(
+            name=name,
+            __module__=module,  # so ABCMeta won't clobber it
+            _hash_func=staticmethod(
+                info.const
+            ),  # sometimes it's a function, sometimes not. so wrap it.
+            checksum_size=info.digest_size * 2,
+            __doc__="""This class implements a plain hexadecimal %s hash, and follows the :ref:`password-hash-api`.
 
 It supports no optional or contextual keywords.
-""" % (info.name,)
-    ))
+"""
+            % (info.name,),
+        ),
+    )
     if not info.supported:
         hasher.supported = False
     if django_name:
         hasher.django_name = django_name
     return hasher
 
-#=============================================================================
+
+# =============================================================================
 # predefined handlers
-#=============================================================================
+# =============================================================================
 
 # NOTE: some digests below are marked as "required=False", because these may not be present on
 #       FIPS systems (see issue 116).  if missing, will return stub hasher that throws error
 #       if an attempt is made to actually use hash/verify with them.
 
-hex_md4     = create_hex_hash("md4", required=False)
-hex_md5     = create_hex_hash("md5", django_name="unsalted_md5", required=False)
-hex_sha1    = create_hex_hash("sha1", required=False)
-hex_sha256  = create_hex_hash("sha256")
-hex_sha512  = create_hex_hash("sha512")
+hex_md4 = create_hex_hash("md4", required=False)
+hex_md5 = create_hex_hash("md5", django_name="unsalted_md5", required=False)
+hex_sha1 = create_hex_hash("sha1", required=False)
+hex_sha256 = create_hex_hash("sha256")
+hex_sha512 = create_hex_hash("sha512")
 
-#=============================================================================
+
+# =============================================================================
 # htdigest
-#=============================================================================
+# =============================================================================
 class htdigest(uh.MinimalHandler):
     """htdigest hash function.
 
     .. todo::
         document this hash
     """
+
     name = "htdigest"
     setting_kwds = ()
     context_kwds = ("user", "realm", "encoding")
@@ -162,6 +178,7 @@ class htdigest(uh.MinimalHandler):
         cls._norm_hash(config)
         return cls.hash(secret, user, realm, encoding)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

@@ -1,26 +1,30 @@
-"""passlib.handlers.fshp
-"""
+"""passlib.handlers.fshp"""
 
-#=============================================================================
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from base64 import b64encode, b64decode
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf1
+
 # local
 __all__ = [
-    'fshp',
+    "fshp",
 ]
-#=============================================================================
+
+
+# =============================================================================
 # sha1-crypt
-#=============================================================================
+# =============================================================================
 class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
@@ -59,45 +63,45 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    #===================================================================
+    # ===================================================================
     # class attrs
-    #===================================================================
-    #--GenericHandler--
+    # ===================================================================
+    # --GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
     checksum_chars = uh.PADDED_BASE64_CHARS
-    ident = u"{FSHP"
+    ident = "{FSHP"
     # checksum_size is property() that depends on variant
 
-    #--HasRawSalt--
-    default_salt_size = 16 # current passlib default, FSHP uses 8
+    # --HasRawSalt--
+    default_salt_size = 16  # current passlib default, FSHP uses 8
     max_salt_size = None
 
-    #--HasRounds--
+    # --HasRounds--
     # FIXME: should probably use different default rounds
     # based on the variant. setting for default variant (sha256) for now.
-    default_rounds = 480000 # current passlib default, FSHP uses 4096
-    min_rounds = 1 # set by FSHP
-    max_rounds = 4294967295 # 32-bit integer limit - not set by FSHP
+    default_rounds = 480000  # current passlib default, FSHP uses 4096
+    min_rounds = 1  # set by FSHP
+    max_rounds = 4294967295  # 32-bit integer limit - not set by FSHP
     rounds_cost = "linear"
 
-    #--variants--
+    # --variants--
     default_variant = 1
     _variant_info = {
         # variant: (hash name, digest size)
-        0: ("sha1",     20),
-        1: ("sha256",   32),
-        2: ("sha384",   48),
-        3: ("sha512",   64),
-        }
+        0: ("sha1", 20),
+        1: ("sha256", 32),
+        2: ("sha384", 48),
+        3: ("sha512", 64),
+    }
     _variant_aliases = dict(
-        [(str(k),k) for k in _variant_info] +
-        [(v[0],k) for k,v in _variant_info.items()]
-        )
+        [(str(k), k) for k in _variant_info]
+        + [(v[0], k) for k, v in _variant_info.items()]
+    )
 
-    #===================================================================
+    # ===================================================================
     # configuration
-    #===================================================================
+    # ===================================================================
     @classmethod
     def using(cls, variant=None, **kwds):
         subcls = super().using(**kwds)
@@ -105,22 +109,24 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             subcls.default_variant = cls._norm_variant(variant)
         return subcls
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
+    # ===================================================================
     variant = None
 
-    #===================================================================
+    # ===================================================================
     # init
-    #===================================================================
+    # ===================================================================
     def __init__(self, variant=None, **kwds):
         # NOTE: variant must be set first, since it controls checksum size, etc.
-        self.use_defaults = kwds.get("use_defaults") # load this early
+        self.use_defaults = kwds.get("use_defaults")  # load this early
         if variant is not None:
             variant = self._norm_variant(variant)
         elif self.use_defaults:
             variant = self.default_variant
-            assert self._norm_variant(variant) == variant, "invalid default variant: %r" % (variant,)
+            assert self._norm_variant(variant) == variant, (
+                "invalid default variant: %r" % (variant,)
+            )
         else:
             raise TypeError("no variant specified")
         self.variant = variant
@@ -149,18 +155,21 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def checksum_size(self):
         return self._variant_info[self.variant][1]
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
 
-    _hash_regex = re.compile(r"""
+    _hash_regex = re.compile(
+        r"""
             ^
             \{FSHP
             (\d+)\| # variant
             (\d+)\| # salt size
             (\d+)\} # rounds
             ([a-zA-Z0-9+/]+={0,3}) # digest
-            $""", re.X)
+            $""",
+        re.X,
+    )
 
     @classmethod
     def from_string(cls, hash):
@@ -168,7 +177,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         m = cls._hash_regex.match(hash)
         if not m:
             raise uh.exc.InvalidHashError(cls)
-        variant, salt_size, rounds, data = m.group(1,2,3,4)
+        variant, salt_size, rounds, data = m.group(1, 2, 3, 4)
         variant = int(variant)
         salt_size = int(salt_size)
         rounds = int(rounds)
@@ -183,12 +192,12 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def to_string(self):
         chk = self.checksum
         salt = self.salt
-        data = bascii_to_str(b64encode(salt+chk))
+        data = bascii_to_str(b64encode(salt + chk))
         return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
 
-    #===================================================================
+    # ===================================================================
     # backend
-    #===================================================================
+    # ===================================================================
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
@@ -202,12 +211,13 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             salt=secret,
             rounds=self.rounds,
             keylen=self.checksum_size,
-            )
+        )
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

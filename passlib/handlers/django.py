@@ -1,12 +1,15 @@
 """passlib.handlers.django- Django password hash support"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from base64 import b64encode
 from binascii import hexlify
 from hashlib import md5, sha1, sha256
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.handlers.bcrypt import _wrapped_bcrypt
@@ -15,6 +18,7 @@ from passlib.utils import to_unicode, rng, getrandstr
 from passlib.utils.binary import BASE64_CHARS
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "django_salted_sha1",
@@ -27,12 +31,13 @@ __all__ = [
     "django_disabled",
 ]
 
-#=============================================================================
+# =============================================================================
 # lazy imports & constants
-#=============================================================================
+# =============================================================================
 
 # imported by django_des_crypt._calc_checksum()
 des_crypt = None
+
 
 def _import_des_crypt():
     global des_crypt
@@ -40,14 +45,17 @@ def _import_des_crypt():
         from passlib.hash import des_crypt
     return des_crypt
 
-# django 1.4's salt charset
-SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
-#=============================================================================
+# django 1.4's salt charset
+SALT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+# =============================================================================
 # salted hashes
-#=============================================================================
+# =============================================================================
 class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
+
     # name, ident, checksum_size must be set by subclass.
     # ident must include "$" suffix.
     setting_kwds = ("salt", "salt_size")
@@ -70,9 +78,11 @@ class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         return uh.render_mc2(self.ident, self.salt, self.checksum)
 
+
 # NOTE: only used by PBKDF2
 class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
     """base class providing common code for django hashes w/ variable rounds"""
+
     setting_kwds = DjangoSaltedHash.setting_kwds + ("rounds",)
 
     min_rounds = 1
@@ -84,6 +94,7 @@ class DjangoVariableHash(uh.HasRounds, DjangoSaltedHash):
 
     def to_string(self):
         return uh.render_mc3(self.ident, self.rounds, self.salt, self.checksum)
+
 
 class django_salted_sha1(DjangoSaltedHash):
     """This class implements Django's Salted SHA1 hash, and follows the :ref:`password-hash-api`.
@@ -112,15 +123,17 @@ class django_salted_sha1(DjangoSaltedHash):
         generates these hashes; but hashes generated in this manner will still be
         correctly interpreted by earlier versions of Django.
     """
+
     name = "django_salted_sha1"
     django_name = "sha1"
-    ident = u"sha1$"
+    ident = "sha1$"
     checksum_size = 40
 
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return sha1(self.salt.encode("ascii") + secret).hexdigest()
+
 
 class django_salted_md5(DjangoSaltedHash):
     """This class implements Django's Salted MD5 hash, and follows the :ref:`password-hash-api`.
@@ -150,9 +163,10 @@ class django_salted_md5(DjangoSaltedHash):
         generates these hashes; but hashes generated in this manner will still be
         correctly interpreted by earlier versions of Django.
     """
+
     name = "django_salted_md5"
     django_name = "md5"
-    ident = u"md5$"
+    ident = "md5$"
     checksum_size = 32
 
     def _calc_checksum(self, secret):
@@ -160,12 +174,16 @@ class django_salted_md5(DjangoSaltedHash):
             secret = secret.encode("utf-8")
         return md5(self.salt.encode("ascii") + secret).hexdigest()
 
-#=============================================================================
-# BCrypt
-#=============================================================================
 
-django_bcrypt = uh.PrefixWrapper("django_bcrypt", bcrypt,
-    prefix=u'bcrypt$', ident=u"bcrypt$",
+# =============================================================================
+# BCrypt
+# =============================================================================
+
+django_bcrypt = uh.PrefixWrapper(
+    "django_bcrypt",
+    bcrypt,
+    prefix="bcrypt$",
+    ident="bcrypt$",
     # NOTE: this docstring is duplicated in the docs, since sphinx
     # seems to be having trouble reading it via autodata::
     doc="""This class implements Django 1.4's BCrypt wrapper, and follows the :ref:`password-hash-api`.
@@ -180,13 +198,15 @@ django_bcrypt = uh.PrefixWrapper("django_bcrypt", bcrypt,
     Django 1.4's :class:`!BCryptPasswordHasher` class.
 
     .. versionadded:: 1.6
-    """)
+    """,
+)
 django_bcrypt.django_name = "bcrypt"
 django_bcrypt._using_clone_attrs += ("django_name",)
 
-#=============================================================================
+# =============================================================================
 # BCRYPT + SHA256
-#=============================================================================
+# =============================================================================
+
 
 class django_bcrypt_sha256(_wrapped_bcrypt):
     """This class implements Django 1.6's Bcrypt+SHA256 hash, and follows the :ref:`password-hash-api`.
@@ -199,6 +219,7 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
 
     .. versionadded:: 1.6.2
     """
+
     name = "django_bcrypt_sha256"
     django_name = "bcrypt_sha256"
     _digest = sha256
@@ -208,7 +229,7 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
 
     # XXX: we can't use .ident attr due to bcrypt code using it.
     #      working around that via django_prefix
-    django_prefix = u'bcrypt_sha256$'
+    django_prefix = "bcrypt_sha256$"
 
     @classmethod
     def identify(cls, hash):
@@ -222,7 +243,7 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
         hash = to_unicode(hash, "ascii", "hash")
         if not hash.startswith(cls.django_prefix):
             raise uh.exc.InvalidHashError(cls)
-        bhash = hash[len(cls.django_prefix):]
+        bhash = hash[len(cls.django_prefix) :]
         if not bhash.startswith("$2"):
             raise uh.exc.MalformedHashError(cls)
         return super().from_string(bhash)
@@ -237,9 +258,11 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
         secret = hexlify(self._digest(secret).digest())
         return super()._calc_checksum(secret)
 
-#=============================================================================
+
+# =============================================================================
 # PBKDF2 variants
-#=============================================================================
+# =============================================================================
+
 
 class django_pbkdf2_sha256(DjangoVariableHash):
     """This class implements Django's PBKDF2-HMAC-SHA256 hash, and follows the :ref:`password-hash-api`.
@@ -277,20 +300,22 @@ class django_pbkdf2_sha256(DjangoVariableHash):
 
     .. versionadded:: 1.6
     """
+
     name = "django_pbkdf2_sha256"
     django_name = "pbkdf2_sha256"
-    ident = u'pbkdf2_sha256$'
+    ident = "pbkdf2_sha256$"
     min_salt_size = 1
-    max_rounds = 0xffffffff # setting at 32-bit limit for now
+    max_rounds = 0xFFFFFFFF  # setting at 32-bit limit for now
     checksum_chars = uh.PADDED_BASE64_CHARS
-    checksum_size = 44 # 32 bytes -> base64
-    default_rounds = pbkdf2_sha256.default_rounds # NOTE: django 1.6 uses 12000
+    checksum_size = 44  # 32 bytes -> base64
+    default_rounds = pbkdf2_sha256.default_rounds  # NOTE: django 1.6 uses 12000
     _digest = "sha256"
 
     def _calc_checksum(self, secret):
         # NOTE: secret & salt will be encoded using UTF-8 by pbkdf2_hmac()
         hash = pbkdf2_hmac(self._digest, secret, self.salt, self.rounds)
         return b64encode(hash).rstrip().decode("ascii")
+
 
 class django_pbkdf2_sha1(django_pbkdf2_sha256):
     """This class implements Django's PBKDF2-HMAC-SHA1 hash, and follows the :ref:`password-hash-api`.
@@ -328,16 +353,18 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 
     .. versionadded:: 1.6
     """
+
     name = "django_pbkdf2_sha1"
     django_name = "pbkdf2_sha1"
-    ident = u'pbkdf2_sha1$'
-    checksum_size = 28 # 20 bytes -> base64
-    default_rounds = pbkdf2_sha1.default_rounds # NOTE: django 1.6 uses 12000
+    ident = "pbkdf2_sha1$"
+    checksum_size = 28  # 20 bytes -> base64
+    default_rounds = pbkdf2_sha1.default_rounds  # NOTE: django 1.6 uses 12000
     _digest = "sha1"
 
-#=============================================================================
+
+# =============================================================================
 # Argon2
-#=============================================================================
+# =============================================================================
 
 # NOTE: as of 2019-11-11, Django's Argon2PasswordHasher only supports Type I;
 #       so limiting this to ensure that as well.
@@ -345,8 +372,8 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 django_argon2 = uh.PrefixWrapper(
     name="django_argon2",
     wrapped=argon2.using(type="I"),
-    prefix=u'argon2',
-    ident=u'argon2$argon2i$',
+    prefix="argon2",
+    ident="argon2$argon2i$",
     # NOTE: this docstring is duplicated in the docs, since sphinx
     # seems to be having trouble reading it via autodata::
     doc="""This class implements Django 1.10's Argon2 wrapper, and follows the :ref:`password-hash-api`.
@@ -361,13 +388,15 @@ django_argon2 = uh.PrefixWrapper(
     Django 1.10's :class:`!Argon2PasswordHasher` class.
 
     .. versionadded:: 1.7
-    """)
+    """,
+)
 django_argon2.django_name = "argon2"
 django_argon2._using_clone_attrs += ("django_name",)
 
-#=============================================================================
+
+# =============================================================================
 # DES
-#=============================================================================
+# =============================================================================
 class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     """This class implements Django's :class:`des_crypt` wrapper, and follows the :ref:`password-hash-api`.
 
@@ -398,10 +427,11 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         This class will now accept hashes with empty salt strings,
         since Django 1.4 generates them this way.
     """
+
     name = "django_des_crypt"
     django_name = "crypt"
     setting_kwds = ("salt", "salt_size", "truncate_error")
-    ident = u"crypt$"
+    ident = "crypt$"
     checksum_chars = salt_chars = uh.HASH64_CHARS
     checksum_size = 11
     min_salt_size = default_salt_size = 2
@@ -435,8 +465,9 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
                 # django 1.0 stored 5 chars in salt field, and duplicated
                 # the first two chars in <chk>. we keep the full salt,
                 # but make sure the first two chars match as sanity check.
-                raise uh.exc.MalformedHashError(cls,
-                    "first two digits of salt and checksum must match")
+                raise uh.exc.MalformedHashError(
+                    cls, "first two digits of salt and checksum must match"
+                )
             # in all cases, strip salt chars from <chk>
             chk = chk[2:]
         return cls(salt=salt, checksum=chk)
@@ -462,6 +493,7 @@ class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
             self._check_truncate_policy(secret)
         return des_crypt(salt=self.salt[:2])._calc_checksum(secret)
 
+
 class django_disabled(uh.ifc.DisabledHash, uh.StaticHandler):
     """This class provides disabled password behavior for Django, and follows the :ref:`password-hash-api`.
 
@@ -485,8 +517,9 @@ class django_disabled(uh.ifc.DisabledHash, uh.StaticHandler):
 
     .. versionchanged:: 1.7 started appending an alphanumeric string.
     """
+
     name = "django_disabled"
-    _hash_prefix = u"!"
+    _hash_prefix = "!"
     suffix_length = 40
 
     # XXX: move this to StaticHandler, or wherever _hash_prefix is being used?
@@ -506,6 +539,7 @@ class django_disabled(uh.ifc.DisabledHash, uh.StaticHandler):
             raise uh.exc.InvalidHashError(cls)
         return False
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

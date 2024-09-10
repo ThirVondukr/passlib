@@ -1,13 +1,17 @@
 """passlib.tests -- tests for passlib.pwd"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import itertools
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.tests.utils import TestCase
+
 # local
 __all__ = [
     "UtilsTest",
@@ -15,11 +19,13 @@ __all__ = [
     "StrengthTest",
 ]
 
-#=============================================================================
+
+# =============================================================================
 #
-#=============================================================================
+# =============================================================================
 class UtilsTest(TestCase):
     """test internal utilities"""
+
     descriptionPrefix = "passlib.pwd"
 
     def test_self_info_rate(self):
@@ -52,17 +58,21 @@ class UtilsTest(TestCase):
     #     self.assertEqual(_total_self_info("abcd" * 8), 64)
     #     self.assertAlmostEqual(_total_self_info("abcdaaaa"), 12.3904, places=4)
 
-#=============================================================================
+
+# =============================================================================
 # word generation
-#=============================================================================
+# =============================================================================
 
 # import subject
 from passlib.pwd import genword, default_charsets
-ascii_62 = default_charsets['ascii_62']
-hex = default_charsets['hex']
+
+ascii_62 = default_charsets["ascii_62"]
+hex = default_charsets["hex"]
+
 
 class WordGeneratorTest(TestCase):
     """test generation routines"""
+
     descriptionPrefix = "passlib.pwd.genword()"
 
     def setUp(self):
@@ -70,8 +80,8 @@ class WordGeneratorTest(TestCase):
 
         # patch some RNG references so they're reproducible.
         from passlib.pwd import SequenceGenerator
-        self.patchAttr(SequenceGenerator, "rng",
-                       self.getRandom("pwd generator"))
+
+        self.patchAttr(SequenceGenerator, "rng", self.getRandom("pwd generator"))
 
     def assertResultContents(self, results, count, chars, unique=True):
         """check result list matches expected count & charset"""
@@ -90,7 +100,9 @@ class WordGeneratorTest(TestCase):
         self.assertEqual(len(result), 9)
 
         # malformed keyword should have useful error.
-        self.assertRaisesRegex(TypeError, "(?i)unexpected keyword.*badkwd", genword, badkwd=True)
+        self.assertRaisesRegex(
+            TypeError, "(?i)unexpected keyword.*badkwd", genword, badkwd=True
+        )
 
     def test_returns(self):
         """'returns' keyword"""
@@ -104,7 +116,7 @@ class WordGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, ascii_62)
 
         # invalid returns option
-        self.assertRaises(TypeError, genword, returns='invalid-type')
+        self.assertRaises(TypeError, genword, returns="invalid-type")
 
     def test_charset(self):
         """'charset' & 'chars' options"""
@@ -118,20 +130,24 @@ class WordGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, "abc", unique=27)
 
         # chars + charset
-        self.assertRaises(TypeError, genword, chars='abc', charset='hex')
+        self.assertRaises(TypeError, genword, chars="abc", charset="hex")
 
     # TODO: test rng option
 
-#=============================================================================
+
+# =============================================================================
 # phrase generation
-#=============================================================================
+# =============================================================================
 
 # import subject
 from passlib.pwd import genphrase
+
 simple_words = ["alpha", "beta", "gamma"]
+
 
 class PhraseGeneratorTest(TestCase):
     """test generation routines"""
+
     descriptionPrefix = "passlib.pwd.genphrase()"
 
     def assertResultContents(self, results, count, words, unique=True, sep=" "):
@@ -152,7 +168,9 @@ class PhraseGeneratorTest(TestCase):
         self.assertEqual(len(result.split(" ")), 4)  # 48 / log(7776, 2) ~= 3.7 -> 4
 
         # malformed keyword should have useful error.
-        self.assertRaisesRegex(TypeError, "(?i)unexpected keyword.*badkwd", genphrase, badkwd=True)
+        self.assertRaisesRegex(
+            TypeError, "(?i)unexpected keyword.*badkwd", genphrase, badkwd=True
+        )
 
     def test_entropy(self):
         """'length' & 'entropy' keywords"""
@@ -185,7 +203,7 @@ class PhraseGeneratorTest(TestCase):
         self.assertResultContents(results, 1000, simple_words)
 
         # invalid returns option
-        self.assertRaises(TypeError, genphrase, returns='invalid-type')
+        self.assertRaises(TypeError, genphrase, returns="invalid-type")
 
     def test_wordset(self):
         """'wordset' & 'words' options"""
@@ -198,8 +216,9 @@ class PhraseGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, simple_words, unique=3**3)
 
         # words + wordset
-        self.assertRaises(TypeError, genphrase, words=simple_words, wordset='bip39')
+        self.assertRaises(TypeError, genphrase, words=simple_words, wordset="bip39")
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

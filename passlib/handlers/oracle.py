@@ -1,27 +1,29 @@
 """passlib.handlers.oracle - Oracle DB Password Hashes"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import to_unicode, xor_bytes
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
-# local
-__all__ = [
-    "oracle10g",
-    "oracle11g"
-]
 
-#=============================================================================
+# local
+__all__ = ["oracle10g", "oracle11g"]
+
+
+# =============================================================================
 # oracle10
-#=============================================================================
-def des_cbc_encrypt(key, value, iv=b'\x00' * 8, pad=b'\x00'):
+# =============================================================================
+def des_cbc_encrypt(key, value, iv=b"\x00" * 8, pad=b"\x00"):
     """performs des-cbc encryption, returns only last block.
 
     this performs a specific DES-CBC encryption implementation
@@ -37,15 +39,17 @@ def des_cbc_encrypt(key, value, iv=b'\x00' * 8, pad=b'\x00'):
 
     :returns: last block of DES-CBC encryption of all ``value``'s byte blocks.
     """
-    value += pad * (-len(value) % 8) # null pad to multiple of 8
-    hash = iv # start things off
+    value += pad * (-len(value) % 8)  # null pad to multiple of 8
+    hash = iv  # start things off
     for offset in range(0, len(value), 8):
-        chunk = xor_bytes(hash, value[offset:offset+8])
+        chunk = xor_bytes(hash, value[offset : offset + 8])
         hash = des_encrypt_block(key, chunk)
     return hash
 
+
 # magic string used as initial des key by oracle10
-ORACLE10_MAGIC = b"\x01\x23\x45\x67\x89\xAB\xCD\xEF"
+ORACLE10_MAGIC = b"\x01\x23\x45\x67\x89\xab\xcd\xef"
+
 
 class oracle10(uh.HasUserContext, uh.StaticHandler):
     """This class implements the password hash used by Oracle up to version 10g, and follows the :ref:`password-hash-api`.
@@ -58,16 +62,17 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
     :type user: str
     :param user: name of oracle user account this password is associated with.
     """
-    #===================================================================
+
+    # ===================================================================
     # algorithm information
-    #===================================================================
+    # ===================================================================
     name = "oracle10"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 16
 
-    #===================================================================
+    # ===================================================================
     # methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.upper()
@@ -87,18 +92,19 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
         if isinstance(secret, bytes):
             secret = secret.decode("utf-8")
         user = to_unicode(self.user, "utf-8", param="user")
-        input = (user+secret).upper().encode("utf-16-be")
+        input = (user + secret).upper().encode("utf-16-be")
         hash = des_cbc_encrypt(ORACLE10_MAGIC, input)
         hash = des_cbc_encrypt(hash, input)
         return hexlify(hash).decode("ascii").upper()
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # oracle11
-#=============================================================================
+# =============================================================================
 class oracle11(uh.HasSalt, uh.GenericHandler):
     """This class implements the Oracle11g password hash, and follows the :ref:`password-hash-api`.
 
@@ -122,24 +128,24 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
-    #===================================================================
+
+    # ===================================================================
     # class attrs
-    #===================================================================
-    #--GenericHandler--
+    # ===================================================================
+    # --GenericHandler--
     name = "oracle11"
     setting_kwds = ("salt",)
     checksum_size = 40
     checksum_chars = uh.UPPER_HEX_CHARS
 
-    #--HasSalt--
+    # --HasSalt--
     min_salt_size = max_salt_size = 20
     salt_chars = uh.UPPER_HEX_CHARS
 
-
-    #===================================================================
+    # ===================================================================
     # methods
-    #===================================================================
-    _hash_regex = re.compile(u"^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
+    # ===================================================================
+    _hash_regex = re.compile("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
 
     @classmethod
     def from_string(cls, hash):
@@ -152,7 +158,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
     def to_string(self):
         chk = self.checksum
-        hash = u"S:%s%s" % (chk.upper(), self.salt.upper())
+        hash = "S:%s%s" % (chk.upper(), self.salt.upper())
         return hash
 
     def _calc_checksum(self, secret):
@@ -161,10 +167,11 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
         chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()
         return chk.upper()
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

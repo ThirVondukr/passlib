@@ -1,17 +1,22 @@
 """passlib.ext.django.utils - helper functions used by this plugin"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from collections import OrderedDict
 from functools import update_wrapper, wraps
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import sys
 import weakref
 from warnings import warn
+
 # site
 try:
     from django import VERSION as DJANGO_VERSION
+
     log.debug("found django %r installation", DJANGO_VERSION)
 except ImportError:
     log.debug("django installation not found")
@@ -22,6 +27,7 @@ from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
 from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
+
 # local
 __all__ = [
     "DJANGO_VERSION",
@@ -33,12 +39,12 @@ __all__ = [
 #: minimum version supported by passlib.ext.django
 MIN_DJANGO_VERSION = (1, 8)
 
-#=============================================================================
+# =============================================================================
 # quirk detection
-#=============================================================================
+# =============================================================================
+
 
 class quirks:
-
     #: django check_password() started throwing error on encoded=None
     #: (really identify_hasher did)
     none_causes_check_password_error = DJANGO_VERSION >= (2, 1)
@@ -49,9 +55,10 @@ class quirks:
     #: django is_usable_password() started returning True for non-hash strings in 2.1
     invalid_is_usable_password = DJANGO_VERSION >= (2, 1)
 
-#=============================================================================
+
+# =============================================================================
 # default policies
-#=============================================================================
+# =============================================================================
 
 # map preset names -> passlib.app attrs
 _preset_map = {
@@ -60,6 +67,7 @@ _preset_map = {
     "django-1.6": "django16_context",
     "django-latest": "django_context",
 }
+
 
 def get_preset_config(name):
     """Returns configuration string for one of the preset strings
@@ -77,8 +85,9 @@ def get_preset_config(name):
     #       after having imported any custom hashers. e.g. "django-current"
     if name == "django-default":
         if not DJANGO_VERSION:
-            raise ValueError("can't resolve django-default preset, "
-                             "django not installed")
+            raise ValueError(
+                "can't resolve django-default preset, " "django not installed"
+            )
         name = "django-1.6"
     if name == "passlib-default":
         return PASSLIB_DEFAULT
@@ -87,7 +96,9 @@ def get_preset_config(name):
     except KeyError:
         raise ValueError("unknown preset config name: %r" % name)
     import passlib.apps
+
     return getattr(passlib.apps, attr).to_string()
+
 
 # default context used by passlib 1.6
 PASSLIB_DEFAULT = """
@@ -124,9 +135,9 @@ superuser__sha512_crypt__default_rounds = 120000
 superuser__django_pbkdf2_sha256__default_rounds = 15000
 """
 
-#=============================================================================
+# =============================================================================
 # helpers
-#=============================================================================
+# =============================================================================
 
 #: prefix used to shoehorn passlib's handler names into django hasher namespace
 PASSLIB_WRAPPER_PREFIX = "passlib_"
@@ -138,16 +149,20 @@ DJANGO_COMPAT_PREFIX = "django_"
 #: set of hashes w/o "django_" prefix, but which also expose ``.django_name``.
 _other_django_hashes = set(["hex_md5"])
 
+
 def _wrap_method(method):
     """wrap method object in bare function"""
+
     @wraps(method)
     def wrapper(*args, **kwds):
         return method(*args, **kwds)
+
     return wrapper
 
-#=============================================================================
+
+# =============================================================================
 # translator
-#=============================================================================
+# =============================================================================
 class DjangoTranslator(object):
     """
     Object which helps translate passlib hasher objects / names
@@ -157,9 +172,10 @@ class DjangoTranslator(object):
     but with the ability to have independant caches, since django hasher
     names may / may not correspond to the same instance (or even class).
     """
-    #=============================================================================
+
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
     #: CryptContext instance
     #: (if any -- generally only set by DjangoContextAdapter subclass)
@@ -176,9 +192,9 @@ class DjangoTranslator(object):
     #: value stores weakrefs to passlib hasher.
     _passlib_hasher_cache = None
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
 
     def __init__(self, context=None, **kwds):
         super().__init__(**kwds)
@@ -203,9 +219,9 @@ class DjangoTranslator(object):
         else:
             return context.handler(passlib_name)
 
-    #=============================================================================
+    # =============================================================================
     # resolve passlib hasher -> django hasher
-    #=============================================================================
+    # =============================================================================
 
     def passlib_to_django_name(self, passlib_name):
         """
@@ -237,8 +253,9 @@ class DjangoTranslator(object):
                 return cache[passlib_hasher]
             except KeyError:
                 pass
-            result = cache[passlib_hasher] = \
-                self.passlib_to_django(passlib_hasher, cached=False)
+            result = cache[passlib_hasher] = self.passlib_to_django(
+                passlib_hasher, cached=False
+            )
             return result
 
         # find native equivalent, and return wrapper if there isn't one
@@ -268,6 +285,7 @@ class DjangoTranslator(object):
         module = sys.modules.get("passlib.ext.django.models")
         if module is None or not module.adapter.patched:
             from django.contrib.auth.hashers import get_hasher
+
             try:
                 return get_hasher(django_name)
             except ValueError as err:
@@ -277,7 +295,9 @@ class DjangoTranslator(object):
             # We've patched django's get_hashers(), so calling django's get_hasher()
             # or get_hashers_by_algorithm() would only land us back here.
             # As non-ideal workaround, have to use original get_hashers(),
-            get_hashers = module.adapter._manager.getorig("django.contrib.auth.hashers:get_hashers").__wrapped__
+            get_hashers = module.adapter._manager.getorig(
+                "django.contrib.auth.hashers:get_hashers"
+            ).__wrapped__
             for hasher in get_hashers():
                 if hasher.algorithm == django_name:
                     return hasher
@@ -289,13 +309,14 @@ class DjangoTranslator(object):
             if "." not in path:
                 path = "django.contrib.auth.hashers." + path
             from django.utils.module_loading import import_string
+
             return import_string(path)()
 
         raise ValueError("unknown hasher: %r" % django_name)
 
-    #=============================================================================
+    # =============================================================================
     # reverse django -> passlib
-    #=============================================================================
+    # =============================================================================
 
     def django_to_passlib_name(self, django_name):
         """
@@ -320,7 +341,6 @@ class DjangoTranslator(object):
         """
         # check for django hasher
         if hasattr(django_name, "algorithm"):
-
             # check for passlib adapter
             if isinstance(django_name, _PasslibHasherWrapper):
                 return django_name.passlib_handler
@@ -335,13 +355,14 @@ class DjangoTranslator(object):
                 return cache[django_name]
             except KeyError:
                 pass
-            result = cache[django_name] = \
-                self.django_to_passlib(django_name, cached=False)
+            result = cache[django_name] = self.django_to_passlib(
+                django_name, cached=False
+            )
             return result
 
         # check if it's an obviously-wrapped name
         if django_name.startswith(PASSLIB_WRAPPER_PREFIX):
-            passlib_name = django_name[len(PASSLIB_WRAPPER_PREFIX):]
+            passlib_name = django_name[len(PASSLIB_WRAPPER_PREFIX) :]
             return self._get_passlib_hasher(passlib_name)
 
         # resolve default
@@ -367,8 +388,8 @@ class DjangoTranslator(object):
             candidates = (
                 registry.get_crypt_handler(passlib_name)
                 for passlib_name in registry.list_crypt_handlers()
-                if passlib_name.startswith(DJANGO_COMPAT_PREFIX) or
-                   passlib_name in _other_django_hashes
+                if passlib_name.startswith(DJANGO_COMPAT_PREFIX)
+                or passlib_name in _other_django_hashes
             )
         else:
             # check context
@@ -381,12 +402,13 @@ class DjangoTranslator(object):
         # NOTE: this should only happen for custom django hashers that we don't
         #       know the equivalents for. _HasherHandler (below) is work in
         #       progress that would allow us to at least return a wrapper.
-        raise ValueError("can't translate django name to passlib name: %r" %
-                         (django_name,))
+        raise ValueError(
+            "can't translate django name to passlib name: %r" % (django_name,)
+        )
 
-    #=============================================================================
+    # =============================================================================
     # django hasher lookup
-    #=============================================================================
+    # =============================================================================
 
     def resolve_django_hasher(self, django_name, cached=True):
         """
@@ -407,24 +429,30 @@ class DjangoTranslator(object):
         #      and have it cache separate hasher there.
         #      but that creates a LOT of complication in it's cache structure,
         #      for what is just one special case.
-        if django_name == "unsalted_sha1" and passlib_hasher.name == "django_salted_sha1":
+        if (
+            django_name == "unsalted_sha1"
+            and passlib_hasher.name == "django_salted_sha1"
+        ):
             if not cached:
                 return self._create_django_hasher(django_name)
             result = self._django_unsalted_sha1
             if result is None:
-                result = self._django_unsalted_sha1 = self._create_django_hasher(django_name)
+                result = self._django_unsalted_sha1 = self._create_django_hasher(
+                    django_name
+                )
             return result
 
         # lookup corresponding django hasher
         return self.passlib_to_django(passlib_hasher, cached=cached)
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # adapter
-#=============================================================================
+# =============================================================================
 class DjangoContextAdapter(DjangoTranslator):
     """
     Object which tries to adapt a Passlib CryptContext object,
@@ -434,9 +462,10 @@ class DjangoContextAdapter(DjangoTranslator):
     an instance of this class, and then monkeypatch the appropriate
     methods into :mod:`!django.contrib.auth` and other appropriate places.
     """
-    #=============================================================================
+
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
     #: CryptContext instance we're wrapping
     context = None
@@ -457,11 +486,10 @@ class DjangoContextAdapter(DjangoTranslator):
     #: patch status
     patched = False
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
     def __init__(self, context=None, get_user_category=None, **kwds):
-
         # init log
         self.log = logging.getLogger(__name__ + ".DjangoContextAdapter")
 
@@ -479,17 +507,21 @@ class DjangoContextAdapter(DjangoTranslator):
         try:
             from functools import lru_cache  # new py32
         except ImportError:
-            from django.utils.lru_cache import lru_cache  # py2 compat, removed in django 3 (or earlier?)
+            from django.utils.lru_cache import (
+                lru_cache,
+            )  # py2 compat, removed in django 3 (or earlier?)
         self.get_hashers = lru_cache()(self.get_hashers)
 
         # get copy of original make_password
         from django.contrib.auth.hashers import make_password
+
         if make_password.__module__.startswith("passlib."):
             make_password = _PatchManager.peek_unpatched_func(make_password)
         self._orig_make_password = make_password
 
         # get other django helpers
         from django.contrib.auth.hashers import is_password_usable
+
         self.is_password_usable = is_password_usable
 
         # init manager
@@ -502,14 +534,15 @@ class DjangoContextAdapter(DjangoTranslator):
         """
         # resets cache for .get_hashers() & .get_hashers_by_algorithm()
         from django.contrib.auth.hashers import reset_hashers
+
         reset_hashers(setting="PASSWORD_HASHERS")
 
         # reset internal caches
         super().reset_hashers()
 
-    #=============================================================================
+    # =============================================================================
     # django hashers helpers -- hasher lookup
-    #=============================================================================
+    # =============================================================================
 
     # lru_cache()'ed by init
     def get_hashers(self):
@@ -518,8 +551,9 @@ class DjangoContextAdapter(DjangoTranslator):
         Return list of available django hasher classes
         """
         passlib_to_django = self.passlib_to_django
-        return [passlib_to_django(hasher)
-                for hasher in self.context.schemes(resolve=True)]
+        return [
+            passlib_to_django(hasher) for hasher in self.context.schemes(resolve=True)
+        ]
 
     def get_hasher(self, algorithm="default"):
         """
@@ -541,9 +575,9 @@ class DjangoContextAdapter(DjangoTranslator):
             return self.get_hasher("unsalted_sha1")
         return self.passlib_to_django(handler)
 
-    #=============================================================================
+    # =============================================================================
     # django.contrib.auth.hashers helpers -- password helpers
-    #=============================================================================
+    # =============================================================================
 
     def make_password(self, password, salt=None, hasher="default"):
         """
@@ -603,8 +637,9 @@ class DjangoContextAdapter(DjangoTranslator):
             # TODO: Solve redundancy that verify() call
             #       above is already identifying hash.
             hasher = self.django_to_passlib(preferred)
-            if (hasher.identify(encoded) and
-                    not hasher.needs_update(encoded, secret=password)):
+            if hasher.identify(encoded) and not hasher.needs_update(
+                encoded, secret=password
+            ):
                 # alg is 'preferred' and hash itself doesn't need updating,
                 # so nothing to do.
                 return correct
@@ -614,9 +649,9 @@ class DjangoContextAdapter(DjangoTranslator):
         setter(password)
         return correct
 
-    #=============================================================================
+    # =============================================================================
     # django users helpers
-    #=============================================================================
+    # =============================================================================
 
     def user_check_password(self, user, password):
         """
@@ -664,9 +699,9 @@ class DjangoContextAdapter(DjangoTranslator):
         else:
             return None
 
-    #=============================================================================
+    # =============================================================================
     # patch control
-    #=============================================================================
+    # =============================================================================
 
     HASHERS_PATH = "django.contrib.auth.hashers"
     MODELS_PATH = "django.contrib.auth.models"
@@ -682,7 +717,6 @@ class DjangoContextAdapter(DjangoTranslator):
         #
         (USER_CLASS_PATH + ".check_password", "user_check_password", dict(method=True)),
         (USER_CLASS_PATH + ".set_password", "user_set_password", dict(method=True)),
-
         #
         # Hashers module
         #
@@ -691,7 +725,6 @@ class DjangoContextAdapter(DjangoTranslator):
         (HASHERS_PATH + ":", "get_hashers"),
         (HASHERS_PATH + ":", "get_hasher"),
         (HASHERS_PATH + ":", "identify_hasher"),
-
         #
         # Patch known imports from hashers module
         #
@@ -699,7 +732,6 @@ class DjangoContextAdapter(DjangoTranslator):
         (MODELS_PATH + ":", "make_password"),
         (FORMS_PATH + ":", "get_hasher"),
         (FORMS_PATH + ":", "identify_hasher"),
-
     ]
 
     def install_patch(self):
@@ -714,8 +746,9 @@ class DjangoContextAdapter(DjangoTranslator):
 
         # version check
         if DJANGO_VERSION < MIN_DJANGO_VERSION:
-            raise RuntimeError("passlib.ext.django requires django >= %s" %
-                               (MIN_DJANGO_VERSION,))
+            raise RuntimeError(
+                "passlib.ext.django requires django >= %s" % (MIN_DJANGO_VERSION,)
+            )
 
         # log start
         log.debug("preparing to monkeypatch django ...")
@@ -779,9 +812,9 @@ class DjangoContextAdapter(DjangoTranslator):
         log.debug("django not monkeypatched")
         return False
 
-    #=============================================================================
+    # =============================================================================
     # loading config
-    #=============================================================================
+    # =============================================================================
 
     def load_model(self):
         """
@@ -828,7 +861,9 @@ class DjangoContextAdapter(DjangoTranslator):
         # load custom category func (if any)
         get_category = getattr(settings, "PASSLIB_GET_CATEGORY", None)
         if get_category and not callable(get_category):
-            raise exc.ExpectedTypeError(get_category, "callable", "PASSLIB_GET_CATEGORY")
+            raise exc.ExpectedTypeError(
+                get_category, "callable", "PASSLIB_GET_CATEGORY"
+            )
 
         # check if we've been disabled
         if config == "disabled":
@@ -838,7 +873,7 @@ class DjangoContextAdapter(DjangoTranslator):
             self.__dict__.pop("enabled", None)
 
         # resolve any preset aliases
-        if isinstance(config, str) and '\n' not in config:
+        if isinstance(config, str) and "\n" not in config:
             config = get_preset_config(config)
 
         # setup category func
@@ -851,14 +886,16 @@ class DjangoContextAdapter(DjangoTranslator):
         self.context.load(config)
         self.reset_hashers()
 
-    #=============================================================================
+    # =============================================================================
     # eof
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # wrapping passlib handlers as django hashers
-#=============================================================================
+# =============================================================================
 _GEN_SALT_SIGNAL = "--!!!generate-new-salt!!!--"
+
 
 class ProxyProperty(object):
     """helper that proxies another attribute"""
@@ -886,9 +923,10 @@ class _PasslibHasherWrapper(object):
     :param passlib_handler:
         passlib hash handler (e.g. :cls:`passlib.hash.sha256_crypt`.
     """
-    #=====================================================================
+
+    # =====================================================================
     # instance attrs
-    #=====================================================================
+    # =====================================================================
 
     #: passlib handler that we're adapting.
     passlib_handler = None
@@ -898,19 +936,21 @@ class _PasslibHasherWrapper(object):
     # rounds = None
     # iterations = None
 
-    #=====================================================================
+    # =====================================================================
     # init
-    #=====================================================================
+    # =====================================================================
     def __init__(self, passlib_handler):
         # init handler
         if getattr(passlib_handler, "django_name", None):
-            raise ValueError("handlers that reflect an official django "
-                             "hasher shouldn't be wrapped: %r" %
-                             (passlib_handler.name,))
+            raise ValueError(
+                "handlers that reflect an official django "
+                "hasher shouldn't be wrapped: %r" % (passlib_handler.name,)
+            )
         if passlib_handler.is_disabled:
             # XXX: could this be implemented?
-            raise ValueError("can't wrap disabled-hash handlers: %r" %
-                             (passlib_handler.name))
+            raise ValueError(
+                "can't wrap disabled-hash handlers: %r" % (passlib_handler.name)
+            )
         self.passlib_handler = passlib_handler
 
         # init rounds support
@@ -918,15 +958,15 @@ class _PasslibHasherWrapper(object):
             self.rounds = passlib_handler.default_rounds
             self.iterations = ProxyProperty("rounds")
 
-    #=====================================================================
+    # =====================================================================
     # internal methods
-    #=====================================================================
+    # =====================================================================
     def __repr__(self):
         return "<PasslibHasherWrapper handler=%r>" % self.passlib_handler
 
-    #=====================================================================
+    # =====================================================================
     # internal properties
-    #=====================================================================
+    # =====================================================================
 
     @memoized_property
     def __name__(self):
@@ -944,20 +984,20 @@ class _PasslibHasherWrapper(object):
         """
         out = dict(checksum="hash")
         if self._has_rounds and "pbkdf2" in self.passlib_handler.name:
-            out['rounds'] = 'iterations'
+            out["rounds"] = "iterations"
         return out
 
-    #=====================================================================
+    # =====================================================================
     # hasher properties
-    #=====================================================================
+    # =====================================================================
 
     @memoized_property
     def algorithm(self):
         return PASSLIB_WRAPPER_PREFIX + self.passlib_handler.name
 
-    #=====================================================================
+    # =====================================================================
     # hasher api
-    #=====================================================================
+    # =====================================================================
     def salt(self):
         # NOTE: passlib's handler.hash() should generate new salt each time,
         #       so this just returns a special constant which tells
@@ -970,14 +1010,14 @@ class _PasslibHasherWrapper(object):
     def encode(self, password, salt=None, rounds=None, iterations=None):
         kwds = {}
         if salt is not None and salt != _GEN_SALT_SIGNAL:
-            kwds['salt'] = salt
+            kwds["salt"] = salt
         if self._has_rounds:
             if rounds is not None:
-                kwds['rounds'] = rounds
+                kwds["rounds"] = rounds
             elif iterations is not None:
-                kwds['rounds'] = iterations
+                kwds["rounds"] = iterations
             else:
-                kwds['rounds'] = self.rounds
+                kwds["rounds"] = self.rounds
         elif rounds is not None or iterations is not None:
             warn("%s.hash(): 'rounds' and 'iterations' are ignored" % self.__name__)
         handler = self.passlib_handler
@@ -988,11 +1028,12 @@ class _PasslibHasherWrapper(object):
     def safe_summary(self, encoded):
         from django.contrib.auth.hashers import mask_hash
         from django.utils.translation import ugettext_noop as _
+
         handler = self.passlib_handler
         items = [
             # since this is user-facing, we're reporting passlib's name,
             # without the distracting PASSLIB_HASHER_PREFIX prepended.
-            (_('algorithm'), handler.name),
+            (_("algorithm"), handler.name),
         ]
         if hasattr(handler, "parsehash"):
             kwds = handler.parsehash(encoded, sanitize=mask_hash)
@@ -1008,18 +1049,21 @@ class _PasslibHasherWrapper(object):
         if self._has_rounds:
             # XXX: could cache this subclass somehow (would have to intercept writes to self.rounds)
             # TODO: always call subcls/handler.needs_update() in case there's other things to check
-            subcls = self.passlib_handler.using(min_rounds=self.rounds, max_rounds=self.rounds)
+            subcls = self.passlib_handler.using(
+                min_rounds=self.rounds, max_rounds=self.rounds
+            )
             if subcls.needs_update(encoded):
                 return True
         return False
 
-    #=====================================================================
+    # =====================================================================
     # eoc
-    #=====================================================================
+    # =====================================================================
 
-#=============================================================================
+
+# =============================================================================
 # adapting django hashers -> passlib handlers
-#=============================================================================
+# =============================================================================
 # TODO: this code probably halfway works, mainly just needs
 #       a routine to read HASHERS and PREFERRED_HASHER.
 
@@ -1097,11 +1141,12 @@ class _PasslibHasherWrapper(object):
 ##    register_crypt_handler(handler)
 ##    return handler
 
-#=============================================================================
+# =============================================================================
 # monkeypatch helpers
-#=============================================================================
+# =============================================================================
 # private singleton indicating lack-of-value
 _UNSET = object()
+
 
 class _PatchManager(object):
     """helper to manage monkeypatches and run sanity checks"""
@@ -1110,9 +1155,9 @@ class _PatchManager(object):
     #       but keeping it distinct to make clear that it's not a dict,
     #       since it has important side-effects.
 
-    #===================================================================
+    # ===================================================================
     # init and support
-    #===================================================================
+    # ===================================================================
     def __init__(self, log=None):
         # map of key -> (original value, patched value)
         # original value may be _UNSET
@@ -1130,9 +1175,9 @@ class _PatchManager(object):
         """retrieve obj and final attribute name from resource path"""
         name, attr = path.split(":")
         obj = __import__(name, fromlist=[attr], level=0)
-        while '.' in attr:
-           head, attr = attr.split(".", 1)
-           obj = getattr(obj, head)
+        while "." in attr:
+            head, attr = attr.split(".", 1)
+            obj = getattr(obj, head)
         return obj, attr
 
     @staticmethod
@@ -1140,9 +1185,9 @@ class _PatchManager(object):
         """check if two values are the same (stripping method wrappers, etc)"""
         return get_method_function(left) == get_method_function(right)
 
-    #===================================================================
+    # ===================================================================
     # reading
-    #===================================================================
+    # ===================================================================
     def _get_path(self, key, default=_UNSET):
         obj, attr = self._import_path(key)
         return getattr(obj, attr, default)
@@ -1154,7 +1199,7 @@ class _PatchManager(object):
     def getorig(self, path, default=None):
         """return original (unpatched) value for path"""
         try:
-            value, _= self._state[path]
+            value, _ = self._state[path]
         except KeyError:
             value = self._get_path(path)
         return default if value is _UNSET else value
@@ -1171,9 +1216,9 @@ class _PatchManager(object):
             else:
                 warn(msg, PasslibRuntimeWarning)
 
-    #===================================================================
+    # ===================================================================
     # patching
-    #===================================================================
+    # ===================================================================
     def _set_path(self, path, value):
         obj, attr = self._import_path(path)
         if value is _UNSET:
@@ -1194,14 +1239,18 @@ class _PatchManager(object):
         else:
             self.log.debug("modifying resource: %r", path)
             if not self._is_same_value(current, expected):
-                warn("overridding resource another library has patched: %r"
-                     % path, PasslibRuntimeWarning)
+                warn(
+                    "overridding resource another library has patched: %r" % path,
+                    PasslibRuntimeWarning,
+                )
         if wrap:
             assert callable(value)
             wrapped = orig
             wrapped_by = value
+
             def wrapper(*args, **kwds):
                 return wrapped_by(wrapped, *args, **kwds)
+
             update_wrapper(wrapper, value)
             value = wrapper
         if callable(value):
@@ -1221,12 +1270,14 @@ class _PatchManager(object):
 
     def monkeypatch(self, parent, name=None, enable=True, wrap=False):
         """function decorator which patches function of same name in <parent>"""
+
         def builder(func):
             if enable:
                 sep = "." if ":" in parent else ":"
                 path = parent + sep + (name or func.__name__)
                 self.patch(path, func, wrap=wrap)
             return func
+
         if callable(name):
             # called in non-decorator mode
             func = name
@@ -1235,9 +1286,9 @@ class _PatchManager(object):
             return None
         return builder
 
-    #===================================================================
+    # ===================================================================
     # unpatching
-    #===================================================================
+    # ===================================================================
     def unpatch(self, path, unpatch_conflicts=True):
         try:
             orig, expected = self._state[path]
@@ -1247,11 +1298,15 @@ class _PatchManager(object):
         self.log.debug("unpatching resource: %r", path)
         if not self._is_same_value(current, expected):
             if unpatch_conflicts:
-                warn("reverting resource another library has patched: %r"
-                     % path, PasslibRuntimeWarning)
+                warn(
+                    "reverting resource another library has patched: %r" % path,
+                    PasslibRuntimeWarning,
+                )
             else:
-                warn("not reverting resource another library has patched: %r"
-                     % path, PasslibRuntimeWarning)
+                warn(
+                    "not reverting resource another library has patched: %r" % path,
+                    PasslibRuntimeWarning,
+                )
                 del self._state[path]
                 return
         self._set_path(path, orig)
@@ -1261,10 +1316,11 @@ class _PatchManager(object):
         for key in list(self._state):
             self.unpatch(key, **kwds)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

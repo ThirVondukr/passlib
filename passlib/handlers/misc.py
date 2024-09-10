@@ -1,29 +1,34 @@
-"""passlib.handlers.misc - misc generic handlers
-"""
-#=============================================================================
+"""passlib.handlers.misc - misc generic handlers"""
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import sys
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 from warnings import warn
+
 # site
 # pkg
 from passlib.utils import to_native_str, str_consteq
 from passlib.utils.compat import unicode_or_bytes
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "unix_disabled",
     "plaintext",
 ]
 
-#=============================================================================
+# =============================================================================
 # handler
-#=============================================================================
+# =============================================================================
 
-_MARKER_CHARS = u"*!"
+_MARKER_CHARS = "*!"
 _MARKER_BYTES = b"*!"
+
 
 class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     """This class provides disabled password behavior for unix shadow files,
@@ -48,6 +53,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
         This class was added as a replacement for the now-removed
         :class:`!unix_fallback` class.
     """
+
     name = "unix_disabled"
     setting_kwds = ("marker",)
     context_kwds = ()
@@ -55,13 +61,13 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     _disable_prefixes = tuple(str(_MARKER_CHARS))
 
     # TODO: rename attr to 'marker'...
-    if 'bsd' in sys.platform: # pragma: no cover -- runtime detection
-        default_marker = u"*"
+    if "bsd" in sys.platform:  # pragma: no cover -- runtime detection
+        default_marker = "*"
     else:
         # use the linux default for other systems
         # (glibc also supports adding old hash after the marker
         # so it can be restored later).
-        default_marker = u"!"
+        default_marker = "!"
 
     @classmethod
     def using(cls, marker=None, **kwds):
@@ -99,7 +105,7 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
     @classmethod
     def verify(cls, secret, hash):
         uh.validate_secret(secret)
-        if not cls.identify(hash): # handles typecheck
+        if not cls.identify(hash):  # handles typecheck
             raise uh.exc.InvalidHashError(cls)
         return False
 
@@ -144,12 +150,13 @@ class unix_disabled(uh.ifc.DisabledHash, uh.MinimalHandler):
         hash = to_native_str(hash, param="hash")
         for prefix in cls._disable_prefixes:
             if hash.startswith(prefix):
-                orig = hash[len(prefix):]
+                orig = hash[len(prefix) :]
                 if orig:
                     return orig
                 else:
                     raise ValueError("cannot restore original hash")
         raise uh.exc.InvalidHashError(cls)
+
 
 class plaintext(uh.MinimalHandler):
     """This class stores passwords in plaintext, and follows the :ref:`password-hash-api`.
@@ -167,6 +174,7 @@ class plaintext(uh.MinimalHandler):
     .. versionchanged:: 1.6
         The ``encoding`` keyword was added.
     """
+
     # NOTE: this is subclassed by ldap_plaintext
 
     name = "plaintext"
@@ -210,6 +218,7 @@ class plaintext(uh.MinimalHandler):
             raise uh.exc.InvalidHashError(cls)
         return cls.hash(secret, encoding=encoding)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

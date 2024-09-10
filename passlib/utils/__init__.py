@@ -1,11 +1,14 @@
 """passlib.utils -- helpers for writing password hashes"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 from passlib.utils.compat import JYTHON
+
 # core
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
 from base64 import b64encode, b64decode
+
 try:
     from collections.abc import Sequence
     from collections.abc import Iterable
@@ -17,13 +20,16 @@ from codecs import lookup as _lookup_codec
 from functools import update_wrapper
 import itertools
 import inspect
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import math
 import os
 import sys
 import random
 import re
-if JYTHON: # pragma: no cover -- runtime detection
+
+if JYTHON:  # pragma: no cover -- runtime detection
     # Jython 2.5.2 lacks stringprep module -
     # see http://bugs.jython.org/issue1758320
     try:
@@ -34,6 +40,7 @@ if JYTHON: # pragma: no cover -- runtime detection
 else:
     import stringprep
 import time
+
 if stringprep:
     import unicodedata
 try:
@@ -44,13 +51,24 @@ except ImportError:
 import timeit
 import types
 from warnings import warn
+
 # site
 # pkg
 from passlib.utils.binary import (
     # [remove these aliases in 2.0]
-    BASE64_CHARS, AB64_CHARS, HASH64_CHARS, BCRYPT_CHARS,
-    Base64Engine, LazyBase64Engine, h64, h64big, bcrypt64,
-    ab64_encode, ab64_decode, b64s_encode, b64s_decode
+    BASE64_CHARS,
+    AB64_CHARS,
+    HASH64_CHARS,
+    BCRYPT_CHARS,
+    Base64Engine,
+    LazyBase64Engine,
+    h64,
+    h64big,
+    bcrypt64,
+    ab64_encode,
+    ab64_decode,
+    b64s_encode,
+    b64s_decode,
 )
 from passlib.utils.decor import (
     # [remove these aliases in 2.0]
@@ -61,55 +79,54 @@ from passlib.utils.decor import (
     hybrid_method,
 )
 from passlib.exc import ExpectedStringError, ExpectedTypeError
-from passlib.utils.compat import (add_doc, join_bytes,
-                                  join_unicode,
-                                  unicode_or_bytes,
-                                  get_method_function, PYPY)
+from passlib.utils.compat import (
+    add_doc,
+    join_bytes,
+    join_unicode,
+    unicode_or_bytes,
+    get_method_function,
+    PYPY,
+)
+
 # local
 __all__ = [
     # constants
-    'JYTHON',
-    'sys_bits',
-    'unix_crypt_schemes',
-    'rounds_cost_values',
-
+    "JYTHON",
+    "sys_bits",
+    "unix_crypt_schemes",
+    "rounds_cost_values",
     # unicode helpers
-    'consteq',
-    'saslprep',
-
+    "consteq",
+    "saslprep",
     # bytes helpers
     "xor_bytes",
     "render_bytes",
-
     # encoding helpers
-    'is_same_codec',
-    'is_ascii_safe',
-    'to_bytes',
-    'to_unicode',
-    'to_native_str',
-
+    "is_same_codec",
+    "is_ascii_safe",
+    "to_bytes",
+    "to_unicode",
+    "to_native_str",
     # host OS
-    'has_crypt',
-    'test_crypt',
-    'safe_crypt',
-    'tick',
-
+    "has_crypt",
+    "test_crypt",
+    "safe_crypt",
+    "tick",
     # randomness
-    'rng',
-    'getrandbytes',
-    'getrandstr',
-    'generate_password',
-
+    "rng",
+    "getrandbytes",
+    "getrandstr",
+    "generate_password",
     # object type / interface tests
-    'is_crypt_handler',
-    'is_crypt_context',
-    'has_rounds_info',
-    'has_salt_info',
+    "is_crypt_handler",
+    "is_crypt_context",
+    "has_rounds_info",
+    "has_salt_info",
 ]
 
-#=============================================================================
+# =============================================================================
 # constants
-#=============================================================================
+# =============================================================================
 
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
@@ -117,33 +134,38 @@ sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
 # list of hashes algs supported by crypt() on at least one OS.
 # XXX: move to .registry for passlib 2.0?
 unix_crypt_schemes = [
-    "sha512_crypt", "sha256_crypt",
-    "sha1_crypt", "bcrypt",
+    "sha512_crypt",
+    "sha256_crypt",
+    "sha1_crypt",
+    "bcrypt",
     "md5_crypt",
     # "bsd_nthash",
-    "bsdi_crypt", "des_crypt",
-    ]
+    "bsdi_crypt",
+    "des_crypt",
+]
 
 # list of rounds_cost constants
-rounds_cost_values = [ "linear", "log2" ]
+rounds_cost_values = ["linear", "log2"]
 
 # internal helpers
-_BEMPTY = b''
-_UEMPTY = u""
-_USPACE = u" "
+_BEMPTY = b""
+_UEMPTY = ""
+_USPACE = " "
 
 # maximum password size which passlib will allow; see exc.PasswordSizeError
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
 
-#=============================================================================
+# =============================================================================
 # type helpers
-#=============================================================================
+# =============================================================================
+
 
 class SequenceMixin(object):
     """
     helper which lets result object act like a fixed-length sequence.
     subclass just needs to provide :meth:`_as_tuple()`.
     """
+
     def _as_tuple(self):
         raise NotImplementedError("implement in subclass")
 
@@ -165,11 +187,13 @@ class SequenceMixin(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
 # getargspec() is deprecated, use this under py3.
 # even though it's a lot more awkward to get basic info :|
 
 _VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
 _VAR_ANY_SET = {_VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL}
+
 
 def accepts_keyword(func, key):
     """test if function accepts specified keyword"""
@@ -183,8 +207,9 @@ def accepts_keyword(func, key):
     return params[list(params)[-1]].kind == _VAR_KEYWORD
 
 
-def update_mixin_classes(target, add=None, remove=None, append=False,
-                         before=None, after=None, dryrun=False):
+def update_mixin_classes(
+    target, add=None, remove=None, append=False, before=None, after=None, dryrun=False
+):
     """
     helper to update mixin classes installed in target class.
 
@@ -252,7 +277,7 @@ def update_mixin_classes(target, add=None, remove=None, append=False,
                     if issubclass(base, after):
                         # don't insert mixin before any <after> classes.
                         idx = len(bases) - end_idx
-                        assert bases[idx-1] == base
+                        assert bases[idx - 1] == base
                         break
                 else:
                     idx = 0
@@ -267,9 +292,10 @@ def update_mixin_classes(target, add=None, remove=None, append=False,
     if not dryrun:
         target.__bases__ = tuple(bases)
 
-#=============================================================================
+
+# =============================================================================
 # collection helpers
-#=============================================================================
+# =============================================================================
 def batch(source, size):
     """
     split iterable into chunks of <size> elements.
@@ -295,11 +321,13 @@ def batch(source, size):
     else:
         raise TypeError("source must be iterable")
 
-#=============================================================================
+
+# =============================================================================
 # unicode helpers
-#=============================================================================
+# =============================================================================
 
 # XXX: should this be moved to passlib.crypto, or compat backports?
+
 
 def consteq(left, right):
     """Check two strings/bytes for equality.
@@ -337,7 +365,7 @@ def consteq(left, right):
     # NOTE: the double-if construction below is done deliberately, to ensure
     # the same number of operations (including branches) is performed regardless
     # of whether left & right are the same size.
-    same_size = (len(left) == len(right))
+    same_size = len(left) == len(right)
     if same_size:
         # if sizes are the same, setup loop to perform actual check of contents.
         tmp = left
@@ -351,12 +379,13 @@ def consteq(left, right):
 
     # run constant-time string comparision
     if is_bytes:
-        for l,r in zip(tmp, right):
+        for l, r in zip(tmp, right):
             result |= l ^ r
     else:
-        for l,r in zip(tmp, right):
+        for l, r in zip(tmp, right):
             result |= ord(l) ^ ord(r)
     return result == 0
+
 
 # keep copy of this around since stdlib's version throws error on non-ascii chars in unicode strings.
 # our version does, but suffers from some underlying VM issues.  but something is better than
@@ -375,6 +404,7 @@ except ImportError:
     #       or separate consteq() into a unicode & a bytes variant.
     # from cryptography.hazmat.primitives.constant_time import bytes_eq as consteq
 
+
 def splitcomma(source, sep=","):
     """split comma-separated string into list of elements,
     stripping whitespace.
@@ -384,7 +414,8 @@ def splitcomma(source, sep=","):
         source = source[:-1]
     if not source:
         return []
-    return [ elem.strip() for elem in source.split(sep) ]
+    return [elem.strip() for elem in source.split(sep)]
+
 
 def saslprep(source, param="value"):
     """Normalizes unicode strings using SASLPrep stringprep profile.
@@ -431,8 +462,7 @@ def saslprep(source, param="value"):
     # XXX: support bytes (e.g. run through want_unicode)?
     #      might be easier to just integrate this into cryptcontext.
     if not isinstance(source, str):
-        raise TypeError("input must be string, not %s" %
-                        (type(source),))
+        raise TypeError("input must be string, not %s" % (type(source),))
 
     # mapping stage
     #   - map non-ascii spaces to U+0020 (stringprep C.1.2)
@@ -440,13 +470,11 @@ def saslprep(source, param="value"):
     in_table_c12 = stringprep.in_table_c12
     in_table_b1 = stringprep.in_table_b1
     data = join_unicode(
-        _USPACE if in_table_c12(c) else c
-        for c in source
-        if not in_table_b1(c)
-        )
+        _USPACE if in_table_c12(c) else c for c in source if not in_table_b1(c)
+    )
 
     # normalize to KC form
-    data = unicodedata.normalize('NFKC', data)
+    data = unicodedata.normalize("NFKC", data)
     if not data:
         return _UEMPTY
 
@@ -502,8 +530,9 @@ def saslprep(source, param="value"):
             # if so, should change this to an assert
             raise ValueError("non-canonical chars forbidden in " + param)
         if in_table_c8(c):
-            raise ValueError("display-modifying / deprecated chars "
-                             "forbidden in" + param)
+            raise ValueError(
+                "display-modifying / deprecated chars " "forbidden in" + param
+            )
         if in_table_c9(c):
             raise ValueError("tagged characters forbidden in " + param)
 
@@ -513,16 +542,21 @@ def saslprep(source, param="value"):
 
     return data
 
+
 # replace saslprep() with stub when stringprep is missing
-if stringprep is None: # pragma: no cover -- runtime detection
+if stringprep is None:  # pragma: no cover -- runtime detection
+
     def saslprep(source, param="value"):
         """stub for saslprep()"""
-        raise NotImplementedError("saslprep() support requires the 'stringprep' "
-                            "module, which is " + _stringprep_missing_reason)
+        raise NotImplementedError(
+            "saslprep() support requires the 'stringprep' "
+            "module, which is " + _stringprep_missing_reason
+        )
 
-#=============================================================================
+
+# =============================================================================
 # bytes helpers
-#=============================================================================
+# =============================================================================
 def render_bytes(source, *args):
     """Peform ``%`` formating using bytes in a uniform manner across Python 2/3.
 
@@ -541,22 +575,28 @@ def render_bytes(source, *args):
     """
     if isinstance(source, bytes):
         source = source.decode("latin-1")
-    result = source % tuple(arg.decode("latin-1") if isinstance(arg, bytes)
-                            else arg for arg in args)
+    result = source % tuple(
+        arg.decode("latin-1") if isinstance(arg, bytes) else arg for arg in args
+    )
     return result.encode("latin-1")
 
+
 def bytes_to_int(value):
-    return int.from_bytes(value, 'big')
+    return int.from_bytes(value, "big")
+
 
 def int_to_bytes(value, count):
-    return value.to_bytes(count, 'big')
+    return value.to_bytes(count, "big")
+
 
 add_doc(bytes_to_int, "decode byte string as single big-endian integer")
 add_doc(int_to_bytes, "encode integer as single big-endian byte string")
 
+
 def xor_bytes(left, right):
     """Perform bitwise-xor of two byte strings (must be same size)"""
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
+
 
 def repeat_string(source, size):
     """
@@ -575,7 +615,8 @@ def utf8_repeat_string(source, size):
 
 
 _BNULL = b"\x00"
-_UNULL = u"\x00"
+_UNULL = "\x00"
+
 
 def right_pad_string(source, size, pad=None):
     """right-pad or truncate <source> string, so it has length <size>"""
@@ -583,7 +624,7 @@ def right_pad_string(source, size, pad=None):
     if size > cur:
         if pad is None:
             pad = _UNULL if isinstance(source, str) else _BNULL
-        return source+pad*(size-cur)
+        return source + pad * (size - cur)
     else:
         return source[:size]
 
@@ -655,15 +696,18 @@ def utf8_truncate(source, index):
 
     return result
 
-#=============================================================================
+
+# =============================================================================
 # encoding helpers
-#=============================================================================
+# =============================================================================
 _ASCII_TEST_BYTES = b"\x00\n aA:#!\x7f"
 _ASCII_TEST_UNICODE = _ASCII_TEST_BYTES.decode("ascii")
+
 
 def is_ascii_codec(codec):
     """Test if codec is compatible with 7-bit ascii (e.g. latin-1, utf-8; but not utf-16)"""
     return _ASCII_TEST_UNICODE.encode(codec) == _ASCII_TEST_BYTES
+
 
 def is_same_codec(left, right):
     """Check if two codec names are aliases for same codec"""
@@ -673,12 +717,16 @@ def is_same_codec(left, right):
         return False
     return _lookup_codec(left).name == _lookup_codec(right).name
 
-_B80 = b'\x80'[0]
-_U80 = u'\x80'
+
+_B80 = b"\x80"[0]
+_U80 = "\x80"
+
+
 def is_ascii_safe(source):
     """Check if string (bytes or unicode) contains only 7-bit ascii"""
     r = _B80 if isinstance(source, bytes) else _U80
     return all(c < r for c in source)
+
 
 def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
     """Helper to normalize input to bytes.
@@ -717,6 +765,7 @@ def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
     else:
         raise ExpectedStringError(source, param)
 
+
 def to_unicode(source, encoding="utf-8", param="value"):
     """Helper to normalize input to unicode.
 
@@ -753,7 +802,8 @@ def to_native_str(source, encoding="utf-8", param="value"):
         raise ExpectedStringError(source, param)
 
 
-add_doc(to_native_str,
+add_doc(
+    to_native_str,
     """Take in str or bytes, returns str.
 
     leaves str alone, decodes bytes using specified encoding.
@@ -771,16 +821,20 @@ add_doc(to_native_str,
         optional name of variable/noun to reference when raising errors.
 
     :returns: :class:`str` instance
-    """)
+    """,
+)
+
 
 @deprecated_function(deprecated="1.6", removed="1.7")
-def to_hash_str(source, encoding="ascii"): # pragma: no cover -- deprecated & unused
+def to_hash_str(source, encoding="ascii"):  # pragma: no cover -- deprecated & unused
     """deprecated, use to_native_str() instead"""
     return to_native_str(source, encoding, param="hash")
+
 
 _true_set = set("true t yes y on 1 enable enabled".split())
 _false_set = set("false f no n off 0 disable disabled".split())
 _none_set = set(["", "none"])
+
 
 def as_bool(value, none=None, param="boolean"):
     """
@@ -804,9 +858,11 @@ def as_bool(value, none=None, param="boolean"):
     else:
         return bool(value)
 
-#=============================================================================
+
+# =============================================================================
 # host OS helpers
-#=============================================================================
+# =============================================================================
+
 
 def is_safe_crypt_input(value):
     """
@@ -822,19 +878,21 @@ def is_safe_crypt_input(value):
     except UnicodeDecodeError:
         return False
 
+
 try:
     from crypt import crypt as _crypt
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     _crypt = None
     has_crypt = False
     crypt_accepts_bytes = False
     crypt_needs_lock = False
     _safe_crypt_lock = None
+
     def safe_crypt(secret, hash):
         return None
 else:
     has_crypt = True
-    _NULL = '\x00'
+    _NULL = "\x00"
 
     # XXX: replace this with lazy-evaluated bug detection?
     if threading and PYPY and (7, 2, 0) <= sys.pypy_version_info <= (7, 3, 3):
@@ -847,6 +905,7 @@ else:
 
     else:
         from passlib.utils.compat import nullcontext
+
         _safe_crypt_lock = nullcontext()
         crypt_needs_lock = False
 
@@ -855,16 +914,15 @@ else:
     # returning NULL / None. examples include ":", ":0", "*0", etc.
     # safe_crypt() returns None for any string starting with one of the
     # chars in this string...
-    _invalid_prefixes = u"*:!"
+    _invalid_prefixes = "*:!"
 
     if True:  # legacy block from PY3 compat
-
         # * pypy3 (as of v7.3.1) has a crypt which accepts bytes, or ASCII-only unicode.
         # * whereas CPython3 (as of v3.9) has a crypt which doesn't take bytes,
         #   but accepts ANY unicode (which it always encodes to UTF8).
         crypt_accepts_bytes = True
         try:
-            _crypt(b"\xEE", "xx")
+            _crypt(b"\xee", "xx")
         except TypeError:
             # CPython will throw TypeError
             crypt_accepts_bytes = False
@@ -895,8 +953,9 @@ else:
                         return None
                     # sanity check it encodes back to original byte string,
                     # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
-                    assert secret.encode("utf-8") == orig, \
-                                "utf-8 spec says this can't happen!"
+                    assert (
+                        secret.encode("utf-8") == orig
+                    ), "utf-8 spec says this can't happen!"
                 if _NULL in secret:
                     raise ValueError("null character in secret")
                 if isinstance(hash, bytes):
@@ -919,7 +978,9 @@ else:
             return result
 
 
-add_doc(safe_crypt, """Wrapper around stdlib's crypt.
+add_doc(
+    safe_crypt,
+    """Wrapper around stdlib's crypt.
 
     This is a wrapper around stdlib's :func:`!crypt.crypt`, which attempts
     to provide uniform behavior across Python 2 and 3.
@@ -947,7 +1008,9 @@ add_doc(safe_crypt, """Wrapper around stdlib's crypt.
         * Some OSes will return an error string if the input config
           is recognized but malformed; current code converts these to ``None``
           as well.
-    """)
+    """,
+)
+
 
 def test_crypt(secret, hash):
     """check if :func:`crypt.crypt` supports specific hash
@@ -959,14 +1022,15 @@ def test_crypt(secret, hash):
     # 'hash' can't be bytes, or "== hash" will never be True.
     # under py2 unicode & str(bytes) will compare fine;
     # so just enforcing "str" limitation
-    assert isinstance(hash, str), \
-        "hash must be str, got %s" % type(hash)
+    assert isinstance(hash, str), "hash must be str, got %s" % type(hash)
     assert hash, "hash must be non-empty"
     return safe_crypt(secret, hash) == hash
+
 
 timer = timeit.default_timer
 # legacy alias, will be removed in passlib 2.0
 tick = timer
+
 
 def parse_version(source):
     """helper to parse version string"""
@@ -975,13 +1039,14 @@ def parse_version(source):
         return tuple(int(elem) for elem in m.group(1).split("."))
     return None
 
-#=============================================================================
-# randomness
-#=============================================================================
 
-#------------------------------------------------------------------------
+# =============================================================================
+# randomness
+# =============================================================================
+
+# ------------------------------------------------------------------------
 # setup rng for generating salts
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 # NOTE:
 # generating salts (e.g. h64_gensalt, below) doesn't require cryptographically
@@ -993,12 +1058,14 @@ def parse_version(source):
 try:
     os.urandom(1)
     has_urandom = True
-except NotImplementedError: # pragma: no cover
+except NotImplementedError:  # pragma: no cover
     has_urandom = False
+
 
 def genseed(value=None):
     """generate prng seed value from system resources"""
     from hashlib import sha512
+
     if hasattr(value, "getstate") and hasattr(value, "getrandbits"):
         # caller passed in RNG as seed value
         try:
@@ -1007,38 +1074,36 @@ def genseed(value=None):
             # this method throws error for e.g. SystemRandom instances,
             # so fall back to extracting 4k of state
             value = value.getrandbits(1 << 15)
-    text = u"%s %s %s %.15f %.15f %s" % (
+    text = "%s %s %s %.15f %.15f %s" % (
         # if caller specified a seed value, mix it in
         value,
-
         # add current process id
         # NOTE: not available in some environments, e.g. GAE
         os.getpid() if hasattr(os, "getpid") else None,
-
         # id of a freshly created object.
         # (at least 1 byte of which should be hard to predict)
         id(object()),
-
         # the current time, to whatever precision os uses
         time.time(),
         tick(),
-
         # if urandom available, might as well mix some bytes in.
         os.urandom(32).decode("latin-1") if has_urandom else 0,
-        )
+    )
     # hash it all up and return it as int/long
     return int(sha512(text.encode("utf-8")).hexdigest(), 16)
 
+
 if has_urandom:
     rng = random.SystemRandom()
-else: # pragma: no cover -- runtime detection
+else:  # pragma: no cover -- runtime detection
     # NOTE: to reseed use ``rng.seed(genseed(rng))``
     # XXX: could reseed on every call
     rng = random.Random(genseed())
 
-#------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
 # some rng helpers
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def getrandbytes(rng, count):
     """return byte-string containing *count* number of randomly generated bytes, using specified rng"""
     # NOTE: would be nice if this was present in stdlib Random class
@@ -1050,14 +1115,16 @@ def getrandbytes(rng, count):
 
     if not count:
         return _BEMPTY
+
     def helper():
         # XXX: break into chunks for large number of bits?
-        value = rng.getrandbits(count<<3)
+        value = rng.getrandbits(count << 3)
         i = 0
         while i < count:
-            yield value & 0xff
+            yield value & 0xFF
             value >>= 3
             i += 1
+
     return bytes(helper())
 
 
@@ -1090,10 +1157,15 @@ def getrandstr(rng, charset, count):
     else:
         return bytes(helper())
 
-_52charset = '2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz'
 
-@deprecated_function(deprecated="1.7", removed="2.0",
-                     replacement="passlib.pwd.genword() / passlib.pwd.genphrase()")
+_52charset = "2346789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrstuvwxyz"
+
+
+@deprecated_function(
+    deprecated="1.7",
+    removed="2.0",
+    replacement="passlib.pwd.genword() / passlib.pwd.genphrase()",
+)
 def generate_password(size=10, charset=_52charset):
     """generate random password using given length & charset
 
@@ -1116,45 +1188,63 @@ def generate_password(size=10, charset=_52charset):
     """
     return getrandstr(rng, charset, size)
 
-#=============================================================================
+
+# =============================================================================
 # object type / interface tests
-#=============================================================================
+# =============================================================================
 _handler_attrs = (
-        "name",
-        "setting_kwds", "context_kwds",
-        "verify", "hash", "identify",
-        )
+    "name",
+    "setting_kwds",
+    "context_kwds",
+    "verify",
+    "hash",
+    "identify",
+)
+
 
 def is_crypt_handler(obj):
     """check if object follows the :ref:`password-hash-api`"""
     # XXX: change to use isinstance(obj, PasswordHash) under py26+?
     return all(hasattr(obj, name) for name in _handler_attrs)
 
+
 _context_attrs = (
-        "needs_update",
-        "genconfig", "genhash",
-        "verify", "encrypt", "identify",
-        )
+    "needs_update",
+    "genconfig",
+    "genhash",
+    "verify",
+    "encrypt",
+    "identify",
+)
+
 
 def is_crypt_context(obj):
     """check if object appears to be a :class:`~passlib.context.CryptContext` instance"""
     # XXX: change to use isinstance(obj, CryptContext)?
     return all(hasattr(obj, name) for name in _context_attrs)
 
+
 ##def has_many_backends(handler):
 ##    "check if handler provides multiple baceknds"
 ##    # NOTE: should also provide get_backend(), .has_backend(), and .backends attr
 ##    return hasattr(handler, "set_backend")
 
+
 def has_rounds_info(handler):
     """check if handler provides the optional :ref:`rounds information <rounds-attributes>` attributes"""
-    return ('rounds' in handler.setting_kwds and
-            getattr(handler, "min_rounds", None) is not None)
+    return (
+        "rounds" in handler.setting_kwds
+        and getattr(handler, "min_rounds", None) is not None
+    )
+
 
 def has_salt_info(handler):
     """check if handler provides the optional :ref:`salt information <salt-attributes>` attributes"""
-    return ('salt' in handler.setting_kwds and
-            getattr(handler, "min_salt_size", None) is not None)
+    return (
+        "salt" in handler.setting_kwds
+        and getattr(handler, "min_salt_size", None) is not None
+    )
+
 
 ##def has_raw_salt(handler):
 ##    "check if handler takes in encoded salt as unicode (False), or decoded salt as bytes (True)"
@@ -1168,6 +1258,6 @@ def has_salt_info(handler):
 ##    else:
 ##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

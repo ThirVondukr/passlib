@@ -1,7 +1,9 @@
 """passlib.exc -- exceptions & warnings raised by passlib"""
-#=============================================================================
+
+
+# =============================================================================
 # exceptions
-#=============================================================================
+# =============================================================================
 class UnknownBackendError(ValueError):
     """
     Error raised if multi-backend handler doesn't recognize backend name.
@@ -9,6 +11,7 @@ class UnknownBackendError(ValueError):
 
     .. versionadded:: 1.7
     """
+
     def __init__(self, hasher, backend):
         self.hasher = hasher
         self.backend = backend
@@ -52,6 +55,7 @@ class PasswordValueError(ValueError):
 
     .. versionadded:: 1.7.3
     """
+
     pass
 
 
@@ -94,6 +98,7 @@ class PasswordSizeError(PasswordValueError):
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
 
+
 class PasswordTruncateError(PasswordSizeError):
     """
     Error raised if password would be truncated by hash.
@@ -111,8 +116,10 @@ class PasswordTruncateError(PasswordSizeError):
 
     def __init__(self, cls, msg=None):
         if msg is None:
-            msg = ("Password too long (%s truncates to %d characters)" %
-                   (cls.name, cls.truncate_size))
+            msg = "Password too long (%s truncates to %d characters)" % (
+                cls.name,
+                cls.truncate_size,
+            )
         PasswordSizeError.__init__(self, cls.truncate_size, msg)
 
 
@@ -141,7 +148,7 @@ class TokenError(ValueError):
     """
 
     #: default message to use if none provided -- subclasses may fill this in
-    _default_message = 'Token not acceptable'
+    _default_message = "Token not acceptable"
 
     def __init__(self, msg=None, *args, **kwds):
         if msg is None:
@@ -154,6 +161,7 @@ class MalformedTokenError(TokenError):
     Error raised by :mod:`passlib.totp` when a token isn't formatted correctly
     (contains invalid characters, wrong number of digits, etc)
     """
+
     _default_message = "Unrecognized token"
 
 
@@ -162,6 +170,7 @@ class InvalidTokenError(TokenError):
     Error raised by :mod:`passlib.totp` when a token is formatted correctly,
     but doesn't match any tokens within valid range.
     """
+
     _default_message = "Token did not match"
 
 
@@ -174,6 +183,7 @@ class UsedTokenError(TokenError):
 
     .. versionadded:: 1.7
     """
+
     _default_message = "Token has already been used, please wait for another."
 
     #: optional value indicating when current counter period will end,
@@ -204,6 +214,7 @@ class UnknownHashError(ValueError):
     .. versionchanged:: 1.7.4
         altered call signature.
     """
+
     def __init__(self, message=None, value=None):
         self.value = value
         if message is None:
@@ -215,15 +226,16 @@ class UnknownHashError(ValueError):
         return self.message
 
 
-#=============================================================================
+# =============================================================================
 # warnings
-#=============================================================================
+# =============================================================================
 class PasslibWarning(UserWarning):
     """base class for Passlib's user warnings,
     derives from the builtin :exc:`UserWarning`.
 
     .. versionadded:: 1.6
     """
+
 
 # XXX: there's only one reference to this class, and it will go away in 2.0;
 #      so can probably remove this along with this / roll this into PasslibHashWarning.
@@ -244,6 +256,7 @@ class PasslibConfigWarning(PasslibWarning):
     .. versionadded:: 1.6
     """
 
+
 class PasslibHashWarning(PasslibWarning):
     """Warning issued when non-fatal issue is found with parameters
     or hash string passed to a passlib hash class.
@@ -260,6 +273,7 @@ class PasslibHashWarning(PasslibWarning):
     .. versionadded:: 1.6
     """
 
+
 class PasslibRuntimeWarning(PasslibWarning):
     """Warning issued when something unexpected happens during runtime.
 
@@ -270,6 +284,7 @@ class PasslibRuntimeWarning(PasslibWarning):
     .. versionadded:: 1.6
     """
 
+
 class PasslibSecurityWarning(PasslibWarning):
     """Special warning issued when Passlib encounters something
     that might affect security.
@@ -277,7 +292,8 @@ class PasslibSecurityWarning(PasslibWarning):
     .. versionadded:: 1.6
     """
 
-#=============================================================================
+
+# =============================================================================
 # error constructors
 #
 # note: these functions are used by the hashes in Passlib to raise common
@@ -285,23 +301,26 @@ class PasslibSecurityWarning(PasslibWarning):
 # rather than subclasses of ValueError, since the specificity isn't needed
 # yet; and who wants to import a bunch of error classes when catching
 # ValueError will do?
-#=============================================================================
+# =============================================================================
+
 
 def _get_name(handler):
     return handler.name if handler else "<unnamed>"
 
-#------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
 # generic helpers
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def type_name(value):
     """return pretty-printed string containing name of value's type"""
     cls = value.__class__
     if cls.__module__ and cls.__module__ not in ["__builtin__", "builtins"]:
         return "%s.%s" % (cls.__module__, cls.__name__)
     elif value is None:
-        return 'None'
+        return "None"
     else:
         return cls.__name__
+
 
 def ExpectedTypeError(value, expected, param):
     """error message when param was supposed to be one type, but found another"""
@@ -309,30 +328,34 @@ def ExpectedTypeError(value, expected, param):
     name = type_name(value)
     return TypeError("%s must be %s, not %s" % (param, expected, name))
 
+
 def ExpectedStringError(value, param):
     """error message when param was supposed to be str or bytes"""
     return ExpectedTypeError(value, "str or bytes", param)
 
-#------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
 # hash/verify parameter errors
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def MissingDigestError(handler=None):
     """raised when verify() method gets passed config string instead of hash"""
     name = _get_name(handler)
-    return ValueError("expected %s hash, got %s config string instead" %
-                     (name, name))
+    return ValueError("expected %s hash, got %s config string instead" % (name, name))
+
 
 def NullPasswordError(handler=None):
     """raised by OS crypt() supporting hashes, which forbid NULLs in password"""
     name = _get_name(handler)
     return PasswordValueError("%s does not allow NULL bytes in password" % name)
 
-#------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
 # errors when parsing hashes
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def InvalidHashError(handler=None):
     """error raised if unrecognized hash provided to handler"""
     return ValueError("not a valid %s hash" % _get_name(handler))
+
 
 def MalformedHashError(handler=None, reason=None):
     """error raised if recognized-but-malformed hash provided to handler"""
@@ -341,13 +364,15 @@ def MalformedHashError(handler=None, reason=None):
         text = "%s (%s)" % (text, reason)
     return ValueError(text)
 
+
 def ZeroPaddedRoundsError(handler=None):
     """error raised if hash was recognized but contained zero-padded rounds field"""
     return MalformedHashError(handler, "zero-padded rounds")
 
-#------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
 # settings / hash component errors
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def ChecksumSizeError(handler, raw=False):
     """error raised if hash was recognized, but checksum was wrong size"""
     # TODO: if handler.use_defaults is set, this came from app-provided value,
@@ -357,9 +382,10 @@ def ChecksumSizeError(handler, raw=False):
     reason = "checksum must be exactly %d %s" % (checksum_size, unit)
     return MalformedHashError(handler, reason)
 
-#=============================================================================
+
+# =============================================================================
 # sensitive info helpers
-#=============================================================================
+# =============================================================================
 
 #: global flag, set temporarily by UTs to allow debug_only_repr() to display sensitive values.
 ENABLE_DEBUG_ONLY_REPR = False
@@ -381,17 +407,26 @@ def debug_only_repr(value, param="hash"):
     return "<%s %s value omitted>" % (param, type(value))
 
 
-def CryptBackendError(handler, config, hash,  # *
-                      source="crypt.crypt()"):
+def CryptBackendError(
+    handler,
+    config,
+    hash,  # *
+    source="crypt.crypt()",
+):
     """
     helper to generate standard message when ``crypt.crypt()`` returns invalid result.
     takes care of automatically masking contents of config & hash outside of UTs.
     """
     name = _get_name(handler)
-    msg = "%s returned invalid %s hash: config=%s hash=%s" % \
-          (source, name, debug_only_repr(config), debug_only_repr(hash))
+    msg = "%s returned invalid %s hash: config=%s hash=%s" % (
+        source,
+        name,
+        debug_only_repr(config),
+        debug_only_repr(hash),
+    )
     raise InternalBackendError(msg)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

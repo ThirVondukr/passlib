@@ -12,15 +12,18 @@ References
     - pypi: https://pypi.python.org/pypi/argon2pure
     - home: https://github.com/bwesterb/argon2pure
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import logging
+
 log = logging.getLogger(__name__)
 import re
 import types
 from warnings import warn
+
 # site
 _argon2_cffi = None  # loaded below
 _argon2pure = None  # dynamically imported by _load_backend_argon2pure()
@@ -31,14 +34,15 @@ from passlib.utils import classproperty, to_bytes, render_bytes
 from passlib.utils.binary import b64s_encode, b64s_decode
 from passlib.utils.compat import bascii_to_str
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "argon2",
 ]
 
-#=============================================================================
+# =============================================================================
 # helpers
-#=============================================================================
+# =============================================================================
 
 # NOTE: when adding a new argon2 hash type, need to do the following:
 # * add TYPE_XXX constant, and add to ALL_TYPES
@@ -48,17 +52,17 @@ __all__ = [
 
 #: argon2 type constants -- subclasses handle mapping these to backend-specific type constants.
 #: (should be lowercase, to match representation in hash string)
-TYPE_I = u"i"
-TYPE_D = u"d"
-TYPE_ID = u"id"  # new 2016-10-29; passlib 1.7.2 requires backends new enough for support
+TYPE_I = "i"
+TYPE_D = "d"
+TYPE_ID = "id"  # new 2016-10-29; passlib 1.7.2 requires backends new enough for support
 
 #: list of all known types; first (supported) type will be used as default.
 ALL_TYPES = (TYPE_ID, TYPE_I, TYPE_D)
 ALL_TYPES_SET = set(ALL_TYPES)
 
-#=============================================================================
+# =============================================================================
 # import argon2 package (https://pypi.python.org/pypi/argon2_cffi)
-#=============================================================================
+# =============================================================================
 
 # import cffi package
 # NOTE: we try to do this even if caller is going to use argon2pure,
@@ -78,7 +82,9 @@ else:
         _argon2_cffi = None
     elif not hasattr(_argon2_cffi, "low_level"):
         # they have pre-v16 argon2_cffi package
-        _argon2_cffi_error = "'argon2-cffi' is too old, please update to argon2_cffi >= 18.2.0"
+        _argon2_cffi_error = (
+            "'argon2-cffi' is too old, please update to argon2_cffi >= 18.2.0"
+        )
         _argon2_cffi = None
 
 # init default settings for our hasher class --
@@ -97,6 +103,7 @@ else:
 
         .. note:: values last synced w/ argon2 19.2 as of 2019-11-09
         """
+
         time_cost = 2
         memory_cost = 512
         parallelism = 2
@@ -108,12 +115,18 @@ else:
     _default_settings = _DummyCffiHasher()
     _default_version = 0x13  # v1.9
 
-#=============================================================================
+
+# =============================================================================
 # handler
-#=============================================================================
-class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
-                    uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum,
-                    uh.GenericHandler):
+# =============================================================================
+class _Argon2Common(
+    uh.SubclassBackendMixin,
+    uh.ParallelismMixin,
+    uh.HasRounds,
+    uh.HasRawSalt,
+    uh.HasRawChecksum,
+    uh.GenericHandler,
+):
     """
     Base class which implements brunt of Argon2 code.
     This is then subclassed by the various backends,
@@ -122,35 +135,37 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     When a backend is loaded, the bases of the 'argon2' class proper
     are modified to prepend the correct backend-specific subclass.
     """
-    #===================================================================
-    # class attrs
-    #===================================================================
 
-    #------------------------
+    # ===================================================================
+    # class attrs
+    # ===================================================================
+
+    # ------------------------
     # PasswordHash
-    #------------------------
+    # ------------------------
 
     name = "argon2"
-    setting_kwds = ("salt",
-                    "salt_size",
-                    "salt_len",  # 'salt_size' alias for compat w/ argon2 package
-                    "rounds",
-                    "time_cost",  # 'rounds' alias for compat w/ argon2 package
-                    "memory_cost",
-                    "parallelism",
-                    "digest_size",
-                    "hash_len",  # 'digest_size' alias for compat w/ argon2 package
-                    "type",  # the type of argon2 hash used
-                    )
+    setting_kwds = (
+        "salt",
+        "salt_size",
+        "salt_len",  # 'salt_size' alias for compat w/ argon2 package
+        "rounds",
+        "time_cost",  # 'rounds' alias for compat w/ argon2 package
+        "memory_cost",
+        "parallelism",
+        "digest_size",
+        "hash_len",  # 'digest_size' alias for compat w/ argon2 package
+        "type",  # the type of argon2 hash used
+    )
 
     # TODO: could support the optional 'data' parameter,
     #       but need to research the uses, what a more descriptive name would be,
     #       and deal w/ fact that argon2_cffi 16.1 doesn't currently support it.
     #       (argon2_pure does though)
 
-    #------------------------
+    # ------------------------
     # GenericHandler
-    #------------------------
+    # ------------------------
 
     # NOTE: ident -- all argon2 hashes start with "$argon2<type>$"
     # XXX: could programmaticaly generate "ident_values" string from ALL_TYPES above
@@ -158,38 +173,41 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     checksum_size = _default_settings.hash_len
 
     #: force parsing these kwds
-    _always_parse_settings = uh.GenericHandler._always_parse_settings + \
-                             ("type",)
+    _always_parse_settings = uh.GenericHandler._always_parse_settings + ("type",)
 
     #: exclude these kwds from parsehash() result (most are aliases for other keys)
-    _unparsed_settings = uh.GenericHandler._unparsed_settings + \
-                         ("salt_len", "time_cost", "hash_len", "digest_size")
+    _unparsed_settings = uh.GenericHandler._unparsed_settings + (
+        "salt_len",
+        "time_cost",
+        "hash_len",
+        "digest_size",
+    )
 
-    #------------------------
+    # ------------------------
     # HasSalt
-    #------------------------
+    # ------------------------
     default_salt_size = _default_settings.salt_len
     min_salt_size = 8
     max_salt_size = MAX_UINT32
 
-    #------------------------
+    # ------------------------
     # HasRounds
     # TODO: once rounds limit logic is factored out,
     #       make 'rounds' and 'cost' an alias for 'time_cost'
-    #------------------------
+    # ------------------------
     default_rounds = _default_settings.time_cost
     min_rounds = 1
     max_rounds = MAX_UINT32
     rounds_cost = "linear"
 
-    #------------------------
+    # ------------------------
     # ParalleismMixin
-    #------------------------
+    # ------------------------
     max_parallelism = (1 << 24) - 1  # from argon2.h / ARGON2_MAX_LANES
 
-    #------------------------
+    # ------------------------
     # custom
-    #------------------------
+    # ------------------------
 
     #: max version support
     #: NOTE: this is dependant on the backend, and initialized/modified by set_backend()
@@ -218,15 +236,15 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     def type_values(cls):
         """
         return tuple of types supported by this backend
-        
+
         .. versionadded:: 1.7.2
         """
         cls.get_backend()  # make sure backend is loaded
         return tuple(cls._backend_type_map)
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
+    # ===================================================================
 
     #: argon2 hash type, one of ALL_TYPES -- class value controls the default
     #: .. versionadded:: 1.7.2
@@ -254,23 +272,33 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #: optional secret data
     data = None
 
-    #===================================================================
+    # ===================================================================
     # variant constructor
-    #===================================================================
+    # ===================================================================
 
     @classmethod
-    def using(cls, type=None, memory_cost=None, salt_len=None, time_cost=None, digest_size=None,
-              checksum_size=None, hash_len=None, max_threads=None, **kwds):
+    def using(
+        cls,
+        type=None,
+        memory_cost=None,
+        salt_len=None,
+        time_cost=None,
+        digest_size=None,
+        checksum_size=None,
+        hash_len=None,
+        max_threads=None,
+        **kwds,
+    ):
         # support aliases which match argon2 naming convention
         if time_cost is not None:
             if "rounds" in kwds:
                 raise TypeError("'time_cost' and 'rounds' are mutually exclusive")
-            kwds['rounds'] = time_cost
+            kwds["rounds"] = time_cost
 
         if salt_len is not None:
             if "salt_size" in kwds:
                 raise TypeError("'salt_len' and 'salt_size' are mutually exclusive")
-            kwds['salt_size'] = salt_len
+            kwds["salt_size"] = salt_len
 
         if hash_len is not None:
             if digest_size is not None:
@@ -279,7 +307,9 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
         if checksum_size is not None:
             if digest_size is not None:
-                raise TypeError("'checksum_size' and 'digest_size' are mutually exclusive")
+                raise TypeError(
+                    "'checksum_size' and 'digest_size' are mutually exclusive"
+                )
             digest_size = checksum_size
 
         # create variant
@@ -295,8 +325,14 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             if isinstance(digest_size, str):
                 digest_size = int(digest_size)
             # NOTE: this isn't *really* digest size minimum, but want to enforce secure minimum.
-            subcls.checksum_size = uh.norm_integer(subcls, digest_size, min=16, max=MAX_UINT32,
-                                                   param="digest_size", relaxed=relaxed)
+            subcls.checksum_size = uh.norm_integer(
+                subcls,
+                digest_size,
+                min=16,
+                max=MAX_UINT32,
+                param="digest_size",
+                relaxed=relaxed,
+            )
 
         # set memory cost
         if memory_cost is not None:
@@ -312,8 +348,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             if isinstance(max_threads, str):
                 max_threads = int(max_threads)
             if max_threads < 1 and max_threads != -1:
-                raise ValueError("max_threads (%d) must be -1 (unlimited), or at least 1." %
-                                 (max_threads,))
+                raise ValueError(
+                    "max_threads (%d) must be -1 (unlimited), or at least 1."
+                    % (max_threads,)
+                )
             subcls.max_threads = max_threads
 
         return subcls
@@ -324,14 +362,15 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         #       could switch and make this a hybrid method.
         min_memory_cost = 8 * parallelism
         if memory_cost < min_memory_cost:
-            raise ValueError("%s: memory_cost (%d) is too low, must be at least "
-                             "8 * parallelism (8 * %d = %d)" %
-                             (cls.name, memory_cost,
-                              parallelism, min_memory_cost))
+            raise ValueError(
+                "%s: memory_cost (%d) is too low, must be at least "
+                "8 * parallelism (8 * %d = %d)"
+                % (cls.name, memory_cost, parallelism, min_memory_cost)
+            )
 
-    #===================================================================
+    # ===================================================================
     # public api
-    #===================================================================
+    # ===================================================================
 
     #: shorter version of _hash_regex, used to quickly identify hashes
     _ident_regex = re.compile(r"^\$argon2[a-z]+\$")
@@ -343,9 +382,9 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
     # hash(), verify(), genhash() -- implemented by backend subclass
 
-    #===================================================================
+    # ===================================================================
     # hash parsing / rendering
-    #===================================================================
+    # ===================================================================
 
     # info taken from source of decode_string() function in
     # <https://github.com/P-H-C/phc-winner-argon2/blob/master/src/encoding.c>
@@ -362,7 +401,8 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #    v1.3: '$argon2i$v=19$m=512,t=2,p=2$5VtWOO3cGWYQHEMaYGbsfQ$AcmqasQgW/wI6wAHAMk4aQ'
 
     #: regex to parse argon hash
-    _hash_regex = re.compile(br"""
+    _hash_regex = re.compile(
+        rb"""
         ^
         \$argon2(?P<type>[a-z]+)\$
         (?:
@@ -389,7 +429,9 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             )?
         )?
         $
-    """, re.X)
+    """,
+        re.X,
+    )
 
     @classmethod
     def from_string(cls, hash):
@@ -402,9 +444,27 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         m = cls._hash_regex.match(hash)
         if not m:
             raise exc.MalformedHashError(cls)
-        type, version, memory_cost, time_cost, parallelism, keyid, data, salt, digest = \
-            m.group("type", "version", "memory_cost", "time_cost", "parallelism",
-                    "keyid", "data", "salt", "digest")
+        (
+            type,
+            version,
+            memory_cost,
+            time_cost,
+            parallelism,
+            keyid,
+            data,
+            salt,
+            digest,
+        ) = m.group(
+            "type",
+            "version",
+            "memory_cost",
+            "time_cost",
+            "parallelism",
+            "keyid",
+            "data",
+            "salt",
+            "digest",
+        )
         if keyid:
             raise NotImplementedError("argon2 'keyid' parameter not supported")
         return cls(
@@ -434,24 +494,27 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         # NOTE: 'keyid' param currently not supported
         return "$argon2%s$%sm=%d,t=%d,p=%d%s$%s$%s" % (
             self.type,
-            vstr, 
+            vstr,
             self.memory_cost,
-            self.rounds, 
+            self.rounds,
             self.parallelism,
             kdstr,
             bascii_to_str(b64s_encode(self.salt)),
             bascii_to_str(b64s_encode(self.checksum)),
         )
 
-    #===================================================================
+    # ===================================================================
     # init
-    #===================================================================
-    def __init__(self, type=None, type_d=False, version=None, memory_cost=None, data=None, **kwds):
-
+    # ===================================================================
+    def __init__(
+        self, type=None, type_d=False, version=None, memory_cost=None, data=None, **kwds
+    ):
         # handle deprecated kwds
         if type_d:
-            warn('argon2 `type_d=True` keyword is deprecated, and will be removed in passlib 2.0; '
-                 'please use ``type="d"`` instead')
+            warn(
+                "argon2 `type_d=True` keyword is deprecated, and will be removed in passlib 2.0; "
+                'please use ``type="d"`` instead'
+            )
             assert type is None
             type = TYPE_D
 
@@ -466,21 +529,25 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
         # init type
         if type is None:
-            assert uh.validate_default_value(self, self.type, self._norm_type, param="type")
+            assert uh.validate_default_value(
+                self, self.type, self._norm_type, param="type"
+            )
         else:
             self.type = self._norm_type(type)
 
         # init version
         if version is None:
-            assert uh.validate_default_value(self, self.version, self._norm_version,
-                                             param="version")
+            assert uh.validate_default_value(
+                self, self.version, self._norm_version, param="version"
+            )
         else:
             self.version = self._norm_version(version)
 
         # init memory cost
         if memory_cost is None:
-            assert uh.validate_default_value(self, self.memory_cost, self._norm_memory_cost,
-                                             param="memory_cost")
+            assert uh.validate_default_value(
+                self, self.memory_cost, self._norm_memory_cost, param="memory_cost"
+            )
         else:
             self.memory_cost = self._norm_memory_cost(memory_cost)
 
@@ -492,9 +559,9 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
                 raise uh.exc.ExpectedTypeError(data, "bytes", "data")
             self.data = data
 
-    #-------------------------------------------------------------------
+    # -------------------------------------------------------------------
     # parameter guards
-    #-------------------------------------------------------------------
+    # -------------------------------------------------------------------
 
     @classmethod
     def _norm_type(cls, value):
@@ -526,19 +593,26 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         # check this isn't past backend's max version
         backend = cls.get_backend()
         if version > cls.max_version:
-            raise ValueError("%s: hash version 0x%X not supported by %r backend "
-                             "(max version is 0x%X); try updating or switching backends" %
-                             (cls.name, version, backend, cls.max_version))
+            raise ValueError(
+                "%s: hash version 0x%X not supported by %r backend "
+                "(max version is 0x%X); try updating or switching backends"
+                % (cls.name, version, backend, cls.max_version)
+            )
         return version
 
     @classmethod
     def _norm_memory_cost(cls, memory_cost, relaxed=False):
-        return uh.norm_integer(cls, memory_cost, min=cls.min_memory_cost,
-                               param="memory_cost", relaxed=relaxed)
+        return uh.norm_integer(
+            cls,
+            memory_cost,
+            min=cls.min_memory_cost,
+            param="memory_cost",
+            relaxed=relaxed,
+        )
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
 
     # NOTE: _calc_checksum implemented by backend subclass
 
@@ -552,13 +626,15 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         except KeyError:
             pass
         # XXX: pick better error class?
-        msg = "unsupported argon2 hash (type %r not supported by %s backend)" % \
-              (value, cls.get_backend())
+        msg = "unsupported argon2 hash (type %r not supported by %s backend)" % (
+            value,
+            cls.get_backend(),
+        )
         raise ValueError(msg)
 
-    #===================================================================
+    # ===================================================================
     # hash migration
-    #===================================================================
+    # ===================================================================
 
     def _calc_needs_update(self, **kwds):
         cls = type(self)
@@ -575,12 +651,14 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         if self.checksum_size != cls.checksum_size:
             return True
         return super()._calc_needs_update(**kwds)
-    
-    #===================================================================
-    # backend loading
-    #===================================================================
 
-    _no_backend_suggestion = " -- recommend you install one (e.g. 'pip install argon2_cffi')"
+    # ===================================================================
+    # backend loading
+    # ===================================================================
+
+    _no_backend_suggestion = (
+        " -- recommend you install one (e.g. 'pip install argon2_cffi')"
+    )
 
     @classmethod
     def _finalize_backend_mixin(mixin_cls, name, dryrun):
@@ -593,8 +671,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         max_version = mixin_cls.max_version
         assert isinstance(max_version, int) and max_version >= 0x10
         if max_version < 0x13:
-            warn("%r doesn't support argon2 v1.3, and should be upgraded" % name,
-                 uh.exc.PasslibSecurityWarning)
+            warn(
+                "%r doesn't support argon2 v1.3, and should be upgraded" % name,
+                uh.exc.PasslibSecurityWarning,
+            )
 
         # prefer best available type
         for type in ALL_TYPES:
@@ -602,7 +682,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
                 mixin_cls.type = type
                 break
         else:
-            warn("%r lacks support for all known hash types" % name, uh.exc.PasslibRuntimeWarning)
+            warn(
+                "%r lacks support for all known hash types" % name,
+                uh.exc.PasslibRuntimeWarning,
+            )
             # NOTE: class will just throw "unsupported argon2 hash" error if they try to use it...
             mixin_cls.type = TYPE_ID
 
@@ -628,33 +711,37 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
             # as of cffi 16.1, lacks support in hash_secret(), so genhash() will get here.
             # as of cffi 16.2, support removed from verify_secret() as well.
             if backend == "argon2_cffi" and self.data is not None:
-                raise NotImplementedError("argon2_cffi backend doesn't support the 'data' parameter")
+                raise NotImplementedError(
+                    "argon2_cffi backend doesn't support the 'data' parameter"
+                )
 
         # fallback to reporting a malformed hash
         text = str(err)
         if text not in [
             "Decoding failed"  # argon2_cffi's default message
-            ]:
+        ]:
             reason = "%s reported: %s: hash=%r" % (backend, text, hash)
         else:
             reason = repr(hash)
         raise exc.MalformedHashError(cls, reason=reason)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # stub backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _NoBackend(_Argon2Common):
     """
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
-    #===================================================================
+
+    # ===================================================================
     # primary methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     def hash(cls, secret):
         cls._stub_requires_backend()
@@ -671,9 +758,9 @@ class _NoBackend(_Argon2Common):
         cls._stub_requires_backend()
         return cls.genhash(secret, config)
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret):
         # NOTE: since argon2_cffi takes care of rendering hash,
         #       _calc_checksum() is only used by the argon2pure backend.
@@ -682,20 +769,22 @@ class _NoBackend(_Argon2Common):
         #       call subclass's wrapped _calc_checksum
         return super()._calc_checksum(secret)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # argon2_cffi backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _CffiBackend(_Argon2Common):
     """
     argon2_cffi backend
     """
-    #===================================================================
+
+    # ===================================================================
     # backend loading
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
@@ -708,8 +797,11 @@ class _CffiBackend(_Argon2Common):
                 raise exc.PasslibSecurityError(_argon2_cffi_error)
             return False
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
-        log.debug("detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
-                  _argon2_cffi.__version__, max_version)
+        log.debug(
+            "detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
+            _argon2_cffi.__version__,
+            max_version,
+        )
 
         # build type map
         TypeEnum = _argon2_cffi.Type
@@ -719,16 +811,18 @@ class _CffiBackend(_Argon2Common):
                 type_map[type] = getattr(TypeEnum, type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v18.2
-                assert type not in (TYPE_I, TYPE_D), "unexpected missing type: %r" % type
+                assert type not in (TYPE_I, TYPE_D), (
+                    "unexpected missing type: %r" % type
+                )
         mixin_cls._backend_type_map = type_map
 
         # set version info, and run common setup
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
-    #===================================================================
+    # ===================================================================
     # primary methods
-    #===================================================================
+    # ===================================================================
     @classmethod
     def hash(cls, secret):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
@@ -736,21 +830,24 @@ class _CffiBackend(_Argon2Common):
         secret = to_bytes(secret, "utf-8")
         # XXX: doesn't seem to be a way to make this honor max_threads
         try:
-            return bascii_to_str(_argon2_cffi.low_level.hash_secret(
-                type=cls._get_backend_type(cls.type),
-                memory_cost=cls.memory_cost,
-                time_cost=cls.default_rounds,
-                parallelism=cls.parallelism,
-                salt=to_bytes(cls._generate_salt()),
-                hash_len=cls.checksum_size,
-                secret=secret,
-            ))
+            return bascii_to_str(
+                _argon2_cffi.low_level.hash_secret(
+                    type=cls._get_backend_type(cls.type),
+                    memory_cost=cls.memory_cost,
+                    time_cost=cls.default_rounds,
+                    parallelism=cls.parallelism,
+                    salt=to_bytes(cls._generate_salt()),
+                    hash_len=cls.checksum_size,
+                    secret=secret,
+                )
+            )
         except _argon2_cffi.exceptions.HashingError as err:
             raise cls._adapt_backend_error(err)
 
     #: helper for verify() method below -- maps prefixes to type constants
-    _byte_ident_map = dict((render_bytes(b"$argon2%s$", type.encode("ascii")), type)
-                           for type in ALL_TYPES)
+    _byte_ident_map = dict(
+        (render_bytes(b"$argon2%s$", type.encode("ascii")), type) for type in ALL_TYPES
+    )
 
     @classmethod
     def verify(cls, secret, hash):
@@ -761,7 +858,7 @@ class _CffiBackend(_Argon2Common):
 
         # read type from start of hash
         # NOTE: don't care about malformed strings, lowlevel will throw error for us
-        type = cls._byte_ident_map.get(hash[:1+hash.find(b"$", 1)], TYPE_I)
+        type = cls._byte_ident_map.get(hash[: 1 + hash.find(b"$", 1)], TYPE_I)
         type_code = cls._get_backend_type(type)
 
         # XXX: doesn't seem to be a way to make this honor max_threads
@@ -783,16 +880,18 @@ class _CffiBackend(_Argon2Common):
         self = cls.from_string(config)
         # XXX: doesn't seem to be a way to make this honor max_threads
         try:
-            result = bascii_to_str(_argon2_cffi.low_level.hash_secret(
-                type=cls._get_backend_type(self.type),
-                memory_cost=self.memory_cost,
-                time_cost=self.rounds,
-                parallelism=self.parallelism,
-                salt=to_bytes(self.salt),
-                hash_len=self.checksum_size,
-                secret=secret,
-                version=self.version,
-            ))
+            result = bascii_to_str(
+                _argon2_cffi.low_level.hash_secret(
+                    type=cls._get_backend_type(self.type),
+                    memory_cost=self.memory_cost,
+                    time_cost=self.rounds,
+                    parallelism=self.parallelism,
+                    salt=to_bytes(self.salt),
+                    hash_len=self.checksum_size,
+                    secret=secret,
+                    version=self.version,
+                )
+            )
         except _argon2_cffi.exceptions.HashingError as err:
             raise cls._adapt_backend_error(err, hash=config)
         if self.version == 0x10:
@@ -800,26 +899,28 @@ class _CffiBackend(_Argon2Common):
             result = result.replace("$v=16$", "$")
         return result
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret):
         raise AssertionError("shouldn't be called under argon2_cffi backend")
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # argon2pure backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _PureBackend(_Argon2Common):
     """
     argon2pure backend
     """
-    #===================================================================
+
+    # ===================================================================
     # backend loading
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
@@ -837,17 +938,24 @@ class _PureBackend(_Argon2Common):
         try:
             from argon2pure import ARGON2_DEFAULT_VERSION as max_version
         except ImportError:
-            log.warning("detected 'argon2pure' backend, but package is too old "
-                        "(passlib requires argon2pure >= 1.2.3)")
+            log.warning(
+                "detected 'argon2pure' backend, but package is too old "
+                "(passlib requires argon2pure >= 1.2.3)"
+            )
             return False
 
-        log.debug("detected 'argon2pure' backend, with support for 0x%x argon2 hashes",
-                  max_version)
+        log.debug(
+            "detected 'argon2pure' backend, with support for 0x%x argon2 hashes",
+            max_version,
+        )
 
         if not dryrun:
-            warn("Using argon2pure backend, which is 100x+ slower than is required "
-                 "for adequate security. Installing argon2_cffi (via 'pip install argon2_cffi') "
-                 "is strongly recommended", exc.PasslibSecurityWarning)
+            warn(
+                "Using argon2pure backend, which is 100x+ slower than is required "
+                "for adequate security. Installing argon2_cffi (via 'pip install argon2_cffi') "
+                "is strongly recommended",
+                exc.PasslibSecurityWarning,
+            )
 
         # build type map
         type_map = {}
@@ -856,21 +964,23 @@ class _PureBackend(_Argon2Common):
                 type_map[type] = getattr(_argon2pure, "ARGON2" + type.upper())
             except AttributeError:
                 # TYPE_ID support not added until v1.3
-                assert type not in (TYPE_I, TYPE_D), "unexpected missing type: %r" % type
+                assert type not in (TYPE_I, TYPE_D), (
+                    "unexpected missing type: %r" % type
+                )
         mixin_cls._backend_type_map = type_map
 
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
-    #===================================================================
+    # ===================================================================
     # primary methods
-    #===================================================================
+    # ===================================================================
 
     # NOTE: this backend uses default .hash() & .verify() implementations.
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
         uh.validate_secret(secret)
@@ -886,11 +996,11 @@ class _PureBackend(_Argon2Common):
             version=self.version,
         )
         if self.max_threads > 0:
-            kwds['threads'] = self.max_threads
+            kwds["threads"] = self.max_threads
         if self.pure_use_threads:
-            kwds['use_threads'] = True
+            kwds["use_threads"] = True
         if self.data:
-            kwds['associated_data'] = self.data
+            kwds["associated_data"] = self.data
         # NOTE: should return raw bytes
         # NOTE: this may raise _argon2pure.Argon2ParameterError,
         #       but it if does that, there's a bug in our own parameter checking code.
@@ -899,9 +1009,10 @@ class _PureBackend(_Argon2Common):
         except _argon2pure.Argon2Error as err:
             raise self._adapt_backend_error(err, self=self)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
+
 
 class argon2(_NoBackend, _Argon2Common):
     """
@@ -974,9 +1085,10 @@ class argon2(_NoBackend, _Argon2Common):
 
         * Support configurable threading limits.
     """
-    #=============================================================================
+
+    # =============================================================================
     # backend
-    #=============================================================================
+    # =============================================================================
 
     # NOTE: the brunt of the argon2 class is implemented in _Argon2Common.
     #       there are then subclass for each backend (e.g. _PureBackend),
@@ -996,10 +1108,11 @@ class argon2(_NoBackend, _Argon2Common):
         "argon2pure": _PureBackend,
     }
 
-    #=============================================================================
+    # =============================================================================
     #
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

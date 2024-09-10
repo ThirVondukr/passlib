@@ -12,9 +12,10 @@ This honors the following sphinx tags (passed via -t or $SPHINX_BUILD_TAGS):
     * for-pypi -- generate special version to upload to pypi
 
 """
-#=============================================================================
+
+# =============================================================================
 # environment setup
-#=============================================================================
+# =============================================================================
 import sys, os
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -27,12 +28,12 @@ sys.path.insert(0, os.path.abspath(os.pardir))
 
 # ignore warnings when documenting deprecated passlib methods
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning,
-                        module="passlib[.].*")
 
-#=============================================================================
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib[.].*")
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 
 import datetime
 
@@ -46,67 +47,64 @@ for _tag in os.environ.get("SPHINX_BUILD_TAGS", "").split():
 # (https://foss.heptapod.net/doc-utils/cloud_sptheme)
 import cloud_sptheme as csp
 
-#=============================================================================
+# =============================================================================
 # General configuration
-#=============================================================================
+# =============================================================================
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.6'
+needs_sphinx = "1.6"
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     # standard sphinx extensions
-    'sphinx.ext.autodoc',
-    'sphinx.ext.todo',
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
+    "sphinx.ext.intersphinx",
     # 'sphinx.ext.viewcode',
-
     # 3rd part extensions
-    'sphinxcontrib.fulltoc',
-
+    "sphinxcontrib.fulltoc",
     # adds extra ids & classes to genindex html, for additional styling
-    'cloud_sptheme.ext.index_styling',
-
+    "cloud_sptheme.ext.index_styling",
     # inserts toc into right hand nav bar (ala old style python docs)
-    'cloud_sptheme.ext.relbar_links',
-
+    "cloud_sptheme.ext.relbar_links",
     # add "issue" role
-    'cloud_sptheme.ext.issue_tracker',
-
+    "cloud_sptheme.ext.issue_tracker",
     # allow table column alignment styling
-    'cloud_sptheme.ext.table_styling',
-
+    "cloud_sptheme.ext.table_styling",
     # monkeypatch sphinx to support a few extra things we can't do with extensions.
-    'cloud_sptheme.ext.autodoc_sections',
-    'cloud_sptheme.ext.autoattribute_search_bases',
-    'cloud_sptheme.ext.docfield_markup',
-    'cloud_sptheme.ext.escaped_samp_literals',
-
+    "cloud_sptheme.ext.autodoc_sections",
+    "cloud_sptheme.ext.autoattribute_search_bases",
+    "cloud_sptheme.ext.docfield_markup",
+    "cloud_sptheme.ext.escaped_samp_literals",
     # silence "footnote not referenced" warning -- should maybe redo these in docs :)
-    'cloud_sptheme.ext.allow_unreferenced_footnotes',
-    ]
+    "cloud_sptheme.ext.allow_unreferenced_footnotes",
+]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
-source_encoding = 'utf-8'
+source_encoding = "utf-8"
 
 # The master toctree document.
-master_doc = 'contents'
+master_doc = "contents"
 
 # The frontpage document.
-index_doc = 'index'
+index_doc = "index"
 
 # General information about the project.
-project = 'Passlib'
+project = "Passlib"
 author = "Assurance Technologies, LLC"
 updated = datetime.date.today().isoformat()
-copyright = "2008-%d, %s. Last Updated %s" % (datetime.date.today().year, author, updated)
+copyright = "2008-%d, %s. Last Updated %s" % (
+    datetime.date.today().year,
+    author,
+    updated,
+)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -115,6 +113,7 @@ copyright = "2008-%d, %s. Last Updated %s" % (datetime.date.today().year, author
 # release: The full version, including alpha/beta/rc tags.
 # version: The short X.Y version.
 from passlib import __version__ as release
+
 version = csp.get_version(release)
 if ".dev" in release:
     tags.add("devcopy")
@@ -134,7 +133,6 @@ if ".dev" in release:
 exclude_patterns = [
     # disabling documentation of this until module is more mature.
     "lib/passlib.utils.compat.rst",
-
     # may remove this in future release
     "lib/passlib.utils.md4.rst",
 ]
@@ -154,7 +152,7 @@ add_function_parentheses = True
 ##show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ["passlib."]
@@ -164,53 +162,54 @@ rst_epilog = "\n.. |updated| replace:: %s\n" % updated
 
 # Intersphinx
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
+    "python": ("https://docs.python.org/3", None),
 }
 
-#=============================================================================
+# =============================================================================
 # Options for all output
-#=============================================================================
+# =============================================================================
 todo_include_todos = True
 keep_warnings = True
 issue_tracker_url = "https://foss.heptapod.net/python-libs/passlib/issues/{issue}"
 
-#=============================================================================
+# =============================================================================
 # Options for HTML output
-#=============================================================================
+# =============================================================================
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = os.environ.get("SPHINX_THEME") or 'redcloud'
+html_theme = os.environ.get("SPHINX_THEME") or "redcloud"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {}
 if csp.is_cloud_theme(html_theme):
-    html_theme_options.update(roottarget=index_doc,
-                              issueicon=None,
-                              # lighter_decor=True,
-                              borderless_decor=True,
-                                  sidebarbgcolor='transparent',
-                                  small_sidebar_bg_color='#EBEBEB',
-                                  bodytrimcolor='transparent',
-                              max_width="12.5in",
-                              sidebarwidth="3in",
-                              large_sidebar_width="3.5in",
-                              hyphenation_language="en",
-                              # headfont='"Bitstream Vera Sans", sans-serif',
-                              colored_object_prefixes="all",
-                              # bodyfont='arial, helvetica, sans-serif',
-                              relbarbgcolor='#C74A29',
-                              footerbgcolor='#733610',
-                              sectionbgcolor='#FB8A45',
-                              rubricbgcolor='#FFB657',
-                              sidebarlinkcolor='#6A3051',
-                              link_hover_text_color='#ff0000',
-                              link_hover_trim_color='#ddb1b8',
-                              toc_local_bg_color='#FFE8C4',
-                              toc_local_trim_color='#FFC68A',
-                              )
+    html_theme_options.update(
+        roottarget=index_doc,
+        issueicon=None,
+        # lighter_decor=True,
+        borderless_decor=True,
+        sidebarbgcolor="transparent",
+        small_sidebar_bg_color="#EBEBEB",
+        bodytrimcolor="transparent",
+        max_width="12.5in",
+        sidebarwidth="3in",
+        large_sidebar_width="3.5in",
+        hyphenation_language="en",
+        # headfont='"Bitstream Vera Sans", sans-serif',
+        colored_object_prefixes="all",
+        # bodyfont='arial, helvetica, sans-serif',
+        relbarbgcolor="#C74A29",
+        footerbgcolor="#733610",
+        sectionbgcolor="#FB8A45",
+        rubricbgcolor="#FFB657",
+        sidebarlinkcolor="#6A3051",
+        link_hover_text_color="#ff0000",
+        link_hover_trim_color="#ddb1b8",
+        toc_local_bg_color="#FFE8C4",
+        toc_local_trim_color="#FFC68A",
+    )
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -234,7 +233,7 @@ html_favicon = os.path.join("_static", "logo.ico")
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -245,7 +244,7 @@ html_static_path = ['_static']
 html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {'**': ['searchbox.html', 'globaltoc.html']}
+html_sidebars = {"**": ["searchbox.html", "globaltoc.html"]}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -278,27 +277,25 @@ html_sidebars = {'**': ['searchbox.html', 'globaltoc.html']}
 ##html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = project + 'Doc'
+htmlhelp_basename = project + "Doc"
 
-#=============================================================================
+# =============================================================================
 # site-specific html output
-#=============================================================================
+# =============================================================================
 if tags.has("for-pypi"):
-
-    extensions.append('cloud_sptheme.ext.auto_redirect')
+    extensions.append("cloud_sptheme.ext.auto_redirect")
     auto_redirect_domain_url = "https://passlib.readthedocs.io"
     auto_redirect_domain_root = "/en/stable"
 
     if csp.is_cloud_theme(html_theme):
-
         html_theme_options.update(
-            googleanalytics_id = 'UA-22302196-2',
-            googleanalytics_path = '/passlib/',
+            googleanalytics_id="UA-22302196-2",
+            googleanalytics_path="/passlib/",
         )
 
-#=============================================================================
+# =============================================================================
 # Options for LaTeX output
-#=============================================================================
+# =============================================================================
 
 # The paper size ('letter' or 'a4').
 ##latex_paper_size = 'letter'
@@ -309,8 +306,7 @@ if tags.has("for-pypi"):
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  (master_doc, project + '.tex', project + ' Documentation',
-   author, 'manual'),
+    (master_doc, project + ".tex", project + " Documentation", author, "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -336,17 +332,14 @@ latex_documents = [
 # If false, no module index is generated.
 ##latex_domain_indices = True
 
-#=============================================================================
+# =============================================================================
 # Options for manual page output
-#=============================================================================
+# =============================================================================
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, project, project + ' Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, project, project + " Documentation", [author], 1)]
 
-#=============================================================================
+# =============================================================================
 # EOF
-#=============================================================================
+# =============================================================================

@@ -1,76 +1,79 @@
 """passlib.utils.compat - python 2/3 compatibility helpers"""
-#=============================================================================
+# =============================================================================
 # figure out what we're running
-#=============================================================================
+# =============================================================================
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # python version
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 import sys
 
 # make sure it's not an unsupported version, even if we somehow got this far
 if sys.version_info < (3, 5):
     raise RuntimeError("Passlib requires Python >= 3.5 (as of passlib 1.8)")
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # python implementation
-#------------------------------------------------------------------------
-JYTHON = sys.platform.startswith('java')
+# ------------------------------------------------------------------------
+JYTHON = sys.platform.startswith("java")
 
 PYPY = hasattr(sys, "pypy_version_info")
 
-if PYPY and sys.pypy_version_info < (2,0):
+if PYPY and sys.pypy_version_info < (2, 0):
     raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
-#=============================================================================
+# =============================================================================
 # common imports
-#=============================================================================
-import logging; log = logging.getLogger(__name__)
+# =============================================================================
+import logging
+
+log = logging.getLogger(__name__)
+
 
 def add_doc(obj, doc):
     """add docstring to an object"""
     obj.__doc__ = doc
 
-#=============================================================================
+
+# =============================================================================
 # the default exported vars
-#=============================================================================
+# =============================================================================
 __all__ = [
     # type detection
-##    'is_mapping',
-    'num_types',
-    'unicode_or_bytes',
-
+    ##    'is_mapping',
+    "num_types",
+    "unicode_or_bytes",
     # unicode/bytes types & helpers
-    'bascii_to_str',
-    'str_to_bascii',
-    'join_unicode', 'join_bytes',
-
+    "bascii_to_str",
+    "str_to_bascii",
+    "join_unicode",
+    "join_bytes",
     # context helpers
-    'nullcontext',
-
+    "nullcontext",
     # introspection
-    'get_method_function', 'add_doc',
+    "get_method_function",
+    "add_doc",
 ]
 
 # begin accumulating mapping of lazy-loaded attrs,
 # 'merged' into module at bottom
 _lazy_attrs = dict()
 
-#=============================================================================
+# =============================================================================
 # unicode & bytes types
-#=============================================================================
+# =============================================================================
 
 #: alias for isinstance() tests to detect any string type
 unicode_or_bytes = (str, bytes)
 
-#=============================================================================
+# =============================================================================
 # unicode & bytes helpers
-#=============================================================================
+# =============================================================================
 # function to join list of unicode strings
-join_unicode = u''.join
+join_unicode = "".join
 
 # function to join list of byte strings
-join_bytes = b''.join
+join_bytes = b"".join
 
 if True:  # legacy PY3 indent
 
@@ -87,6 +90,7 @@ if True:  # legacy PY3 indent
         # FIXME: there has to be a better way to do this
         return (bytes([c]) for c in s)
 
+
 # TODO: move docstrings to funcs...
 add_doc(bascii_to_str, "helper to convert ascii bytes -> native str")
 add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
@@ -95,30 +99,32 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings")
 
-#=============================================================================
+# =============================================================================
 # numeric
-#=============================================================================
+# =============================================================================
 
 num_types = (int, float)
 
-#=============================================================================
+# =============================================================================
 # typing
-#=============================================================================
+# =============================================================================
 ##def is_mapping(obj):
 ##    # non-exhaustive check, enough to distinguish from lists, etc
 ##    return hasattr(obj, "items")
 
-#=============================================================================
+# =============================================================================
 # introspection
-#=============================================================================
+# =============================================================================
+
 
 def get_method_function(func):
     """given (potential) method, return underlying function"""
     return getattr(func, "__func__", func)
 
-#=============================================================================
+
+# =============================================================================
 # context managers
-#=============================================================================
+# =============================================================================
 
 try:
     # new in py37
@@ -129,6 +135,7 @@ except ImportError:
         """
         Context manager that does no additional processing.
         """
+
         def __init__(self, enter_result=None):
             self.enter_result = enter_result
 
@@ -138,16 +145,19 @@ except ImportError:
         def __exit__(self, *exc_info):
             pass
 
-#=============================================================================
+
+# =============================================================================
 # lazy overlay module
-#=============================================================================
+# =============================================================================
 from types import ModuleType
+
 
 def _import_object(source):
     """helper to import object from module; accept format `path.to.object`"""
-    modname, modattr = source.rsplit(".",1)
+    modname, modattr = source.rsplit(".", 1)
     mod = __import__(modname, fromlist=[modattr], level=0)
     return getattr(mod, modattr)
+
 
 class _LazyOverlayModule(ModuleType):
     """proxy module which overlays original module,
@@ -206,9 +216,10 @@ class _LazyOverlayModule(ModuleType):
             attrs.update(dir(proxy))
         return list(attrs)
 
+
 # replace this module with overlay that will lazily import attributes.
 _LazyOverlayModule.replace_module(__name__, _lazy_attrs)
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

@@ -3,25 +3,30 @@ passlib.utils.scrypt -- scrypt hash frontend and help utilities
 
 XXX: add this module to public docs?
 """
-#==========================================================================
+
+# ==========================================================================
 # imports
-#==========================================================================
+# ==========================================================================
 # core
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 from warnings import warn
+
 # pkg
 from passlib import exc
 from passlib.utils import to_bytes
 from passlib.utils.compat import PYPY
+
 # local
-__all__ =[
+__all__ = [
     "validate",
     "scrypt",
 ]
 
-#==========================================================================
+# ==========================================================================
 # config validation
-#==========================================================================
+# ==========================================================================
 
 #: internal global constant for setting stdlib scrypt's maxmem (int bytes).
 #: set to -1 to auto-calculate (see _load_stdlib_backend() below)
@@ -35,6 +40,7 @@ MAX_KEYLEN = ((1 << 32) - 1) * 32
 
 #: max ``r * p`` limit
 MAX_RP = (1 << 30) - 1
+
 
 # TODO: unittests for this function
 def validate(n, r, p):
@@ -57,7 +63,7 @@ def validate(n, r, p):
         # pbkdf2-hmac-sha256 limitation - it will be requested to generate ``p*(2*r)*64`` bytes,
         # but pbkdf2 can do max of (2**31-1) blocks, and sha-256 has 32 byte block size...
         # so ``(2**31-1)*32 >= p*r*128`` -> ``r*p < 2**30``
-        raise ValueError("r * p must be < 2**30: r=%r, p=%r" % (r,p))
+        raise ValueError("r * p must be < 2**30: r=%r, p=%r" % (r, p))
 
     if n < 2 or n & (n - 1):
         raise ValueError("n must be > 1, and a power of 2: n=%r" % n)
@@ -93,15 +99,16 @@ def estimate_maxmem(n, r, p, fudge=1.05):
 
 # TODO: configuration picker (may need psutil for full effect)
 
-#==========================================================================
+# ==========================================================================
 # hash frontend
-#==========================================================================
+# ==========================================================================
 
 #: backend function used by scrypt(), filled in by _set_backend()
 _scrypt = None
 
 #: name of backend currently in use, exposed for informational purposes.
 backend = None
+
 
 def scrypt(secret, salt, n, r, p=1, keylen=32):
     """run SCrypt key derivation function using specified parameters.
@@ -159,10 +166,14 @@ def _load_builtin_backend():
     Load pure-python scrypt implementation built into passlib.
     """
     slowdown = 10 if PYPY else 100
-    warn("Using builtin scrypt backend, which is %dx slower than is required "
-         "for adequate security. Installing scrypt support (via 'pip install scrypt') "
-         "is strongly recommended" % slowdown, exc.PasslibSecurityWarning)
+    warn(
+        "Using builtin scrypt backend, which is %dx slower than is required "
+        "for adequate security. Installing scrypt support (via 'pip install scrypt') "
+        "is strongly recommended" % slowdown,
+        exc.PasslibSecurityWarning,
+    )
     from ._builtin import ScryptEngine
+
     return ScryptEngine.execute
 
 
@@ -173,6 +184,7 @@ def _load_cffi_backend():
     """
     try:
         from scrypt import hash
+
         return hash
     except ImportError:
         pass
@@ -183,11 +195,15 @@ def _load_cffi_backend():
         if "scrypt" not in str(err):
             # e.g. if cffi isn't set up right
             # user should try importing scrypt explicitly to diagnose problem.
-            warn("'scrypt' package failed to import correctly (possible installation issue?)",
-                 exc.PasslibWarning)
+            warn(
+                "'scrypt' package failed to import correctly (possible installation issue?)",
+                exc.PasslibWarning,
+            )
         # else: package just isn't installed
     else:
-        warn("'scrypt' package is too old (lacks ``hash()`` method)", exc.PasslibWarning)
+        warn(
+            "'scrypt' package is too old (lacks ``hash()`` method)", exc.PasslibWarning
+        )
     return None
 
 
@@ -217,8 +233,9 @@ def _load_stdlib_backend():
         maxmem = SCRYPT_MAXMEM
         if maxmem < 0:
             maxmem = estimate_maxmem(n, r, p)
-        return stdlib_scrypt(password=secret, salt=salt, n=n, r=r, p=p, dklen=keylen,
-                             maxmem=maxmem)
+        return stdlib_scrypt(
+            password=secret, salt=salt, n=n, r=r, p=p, dklen=keylen, maxmem=maxmem
+        )
 
     return stdlib_scrypt_wrapper
 
@@ -264,6 +281,7 @@ def _set_backend(name, dryrun=False):
         backend = name
         _scrypt = hash
 
+
 # initialize backend
 _set_backend("default")
 
@@ -275,6 +293,7 @@ def _has_backend(name):
     except exc.MissingBackendError:
         return False
 
-#==========================================================================
+
+# ==========================================================================
 # eof
-#==========================================================================
+# ==========================================================================

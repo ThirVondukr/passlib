@@ -1,19 +1,23 @@
-"""passlib.handlers.digests - plain hash digests
-"""
-#=============================================================================
+"""passlib.handlers.digests - plain hash digests"""
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from base64 import b64encode, b64decode
 from hashlib import md5, sha1, sha256, sha512
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import re
+
 # site
 # pkg
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, to_unicode
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "ldap_plaintext",
@@ -23,7 +27,6 @@ __all__ = [
     "ldap_salted_sha1",
     "ldap_salted_sha256",
     "ldap_salted_sha512",
-
     ##"get_active_ldap_crypt_schemes",
     "ldap_des_crypt",
     "ldap_bsdi_crypt",
@@ -34,16 +37,18 @@ __all__ = [
     "ldap_sha512_crypt",
 ]
 
-#=============================================================================
+
+# =============================================================================
 # ldap helpers
-#=============================================================================
+# =============================================================================
 class _Base64DigestHelper(uh.StaticHandler):
     """helper for ldap_md5 / ldap_sha1"""
+
     # XXX: could combine this with hex digests in digests.py
 
-    ident = None # required - prefix identifier
-    _hash_func = None # required - hash function
-    _hash_regex = None # required - regexp to recognize hash
+    ident = None  # required - prefix identifier
+    _hash_func = None  # required - hash function
+    _hash_regex = None  # required - regexp to recognize hash
     checksum_chars = uh.PADDED_BASE64_CHARS
 
     @classproperty
@@ -57,14 +62,16 @@ class _Base64DigestHelper(uh.StaticHandler):
         chk = self._hash_func(secret).digest()
         return b64encode(chk).decode("ascii")
 
+
 class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """helper for ldap_salted_md5 / ldap_salted_sha1"""
+
     setting_kwds = ("salt", "salt_size")
     checksum_chars = uh.PADDED_BASE64_CHARS
 
-    ident = None # required - prefix identifier
-    _hash_func = None # required - hash function
-    _hash_regex = None # required - regexp to recognize hash
+    ident = None  # required - prefix identifier
+    _hash_func = None  # required - hash function
+    _hash_regex = None  # required - regexp to recognize hash
     min_salt_size = max_salt_size = 4
 
     # NOTE: openldap implementation uses 4 byte salt,
@@ -98,28 +105,33 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
             secret = secret.encode("utf-8")
         return self._hash_func(secret + self.salt).digest()
 
-#=============================================================================
+
+# =============================================================================
 # implementations
-#=============================================================================
+# =============================================================================
 class ldap_md5(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain MD5 format, and follows the :ref:`password-hash-api`.
 
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
+
     name = "ldap_md5"
-    ident = u"{MD5}"
+    ident = "{MD5}"
     _hash_func = md5
     _hash_regex = re.compile(r"^\{MD5\}(?P<chk>[+/a-zA-Z0-9]{22}==)$")
+
 
 class ldap_sha1(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain SHA1 format, and follows the :ref:`password-hash-api`.
 
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods have no optional keywords.
     """
+
     name = "ldap_sha1"
-    ident = u"{SHA}"
+    ident = "{SHA}"
     _hash_func = sha1
     _hash_regex = re.compile(r"^\{SHA\}(?P<chk>[+/a-zA-Z0-9]{27}=)$")
+
 
 class ldap_salted_md5(_SaltedBase64DigestHelper):
     """This class stores passwords using LDAP's salted MD5 format, and follows the :ref:`password-hash-api`.
@@ -154,11 +166,13 @@ class ldap_salted_md5(_SaltedBase64DigestHelper):
     .. versionchanged:: 1.6
         This format now supports variable length salts, instead of a fix 4 bytes.
     """
+
     name = "ldap_salted_md5"
-    ident = u"{SMD5}"
+    ident = "{SMD5}"
     checksum_size = 16
     _hash_func = md5
     _hash_regex = re.compile(r"^\{SMD5\}(?P<tmp>[+/a-zA-Z0-9]{27,}={0,2})$")
+
 
 class ldap_salted_sha1(_SaltedBase64DigestHelper):
     """
@@ -195,13 +209,13 @@ class ldap_salted_sha1(_SaltedBase64DigestHelper):
     .. versionchanged:: 1.6
         This format now supports variable length salts, instead of a fix 4 bytes.
     """
+
     name = "ldap_salted_sha1"
-    ident = u"{SSHA}"
+    ident = "{SSHA}"
     checksum_size = 20
     _hash_func = sha1
     # NOTE: 32 = ceil((20 + 4) * 4/3)
     _hash_regex = re.compile(r"^\{SSHA\}(?P<tmp>[+/a-zA-Z0-9]{32,}={0,2})$")
-
 
 
 class ldap_salted_sha256(_SaltedBase64DigestHelper):
@@ -235,8 +249,9 @@ class ldap_salted_sha256(_SaltedBase64DigestHelper):
 
     .. versionadded:: 1.7.3
     """
+
     name = "ldap_salted_sha256"
-    ident = u"{SSHA256}"
+    ident = "{SSHA256}"
     checksum_size = 32
     default_salt_size = 8
     _hash_func = sha256
@@ -275,8 +290,9 @@ class ldap_salted_sha512(_SaltedBase64DigestHelper):
 
     .. versionadded:: 1.7.3
     """
+
     name = "ldap_salted_sha512"
-    ident = u"{SSHA512}"
+    ident = "{SSHA512}"
     checksum_size = 64
     default_salt_size = 8
     _hash_func = sha512
@@ -304,6 +320,7 @@ class ldap_plaintext(plaintext):
     .. versionchanged:: 1.6
         The ``encoding`` keyword was added.
     """
+
     # NOTE: this subclasses plaintext, since all it does differently
     # is override identify()
 
@@ -323,21 +340,25 @@ class ldap_plaintext(plaintext):
         hash = uh.to_unicode_for_identify(hash)
         return bool(hash) and cls._2307_pat.match(hash) is None
 
-#=============================================================================
+
+# =============================================================================
 # {CRYPT} wrappers
 # the following are wrappers around the base crypt algorithms,
 # which add the ldap required {CRYPT} prefix
-#=============================================================================
-ldap_crypt_schemes = [ 'ldap_' + name for name in unix_crypt_schemes ]
+# =============================================================================
+ldap_crypt_schemes = ["ldap_" + name for name in unix_crypt_schemes]
+
 
 def _init_ldap_crypt_handlers():
     # NOTE: I don't like to implicitly modify globals() like this,
     #       but don't want to write out all these handlers out either :)
     g = globals()
     for wname in unix_crypt_schemes:
-        name = 'ldap_' + wname
-        g[name] = uh.PrefixWrapper(name, wname, prefix=u"{CRYPT}", lazy=True)
+        name = "ldap_" + wname
+        g[name] = uh.PrefixWrapper(name, wname, prefix="{CRYPT}", lazy=True)
     del g
+
+
 _init_ldap_crypt_handlers()
 
 ##_lcn_host = None
@@ -353,6 +374,6 @@ _init_ldap_crypt_handlers()
 ##        ]
 ##    return _lcn_host
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

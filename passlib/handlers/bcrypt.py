@@ -7,25 +7,39 @@ TODO:
 
 * deal with lack of PY3-compatibile c-ext implementation
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from base64 import b64encode
 from hashlib import sha256
 import os
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 from warnings import warn
+
 # site
-_bcrypt = None # dynamically imported by _load_backend_bcrypt()
+_bcrypt = None  # dynamically imported by _load_backend_bcrypt()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
-from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
-                          rng, getrandstr, test_crypt, to_unicode, \
-                          utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
+from passlib.utils import (
+    safe_crypt,
+    repeat_string,
+    to_bytes,
+    parse_version,
+    rng,
+    getrandstr,
+    test_crypt,
+    to_unicode,
+    utf8_truncate,
+    utf8_repeat_string,
+    crypt_accepts_bytes,
+)
 from passlib.utils.binary import bcrypt64
 import passlib.utils.handlers as uh
 
@@ -34,18 +48,19 @@ __all__ = [
     "bcrypt",
 ]
 
-#=============================================================================
+# =============================================================================
 # support funcs & constants
-#=============================================================================
-IDENT_2 = u"$2$"
-IDENT_2A = u"$2a$"
-IDENT_2X = u"$2x$"
-IDENT_2Y = u"$2y$"
-IDENT_2B = u"$2b$"
-_BNULL = b'\x00'
+# =============================================================================
+IDENT_2 = "$2$"
+IDENT_2A = "$2a$"
+IDENT_2X = "$2x$"
+IDENT_2Y = "$2y$"
+IDENT_2B = "$2b$"
+_BNULL = b"\x00"
 
 # reference hash of "test", used in various self-checks
 TEST_HASH_2A = "$2a$04$5BJqKfqMQvV7nS.yUguNcueVirQqDBGaLXSqj.rs.pZPlNR0UX/HK"
+
 
 def _detect_pybcrypt():
     """
@@ -83,11 +98,18 @@ def _detect_pybcrypt():
         return False
     return True
 
-#=============================================================================
+
+# =============================================================================
 # backend mixins
-#=============================================================================
-class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
-                    uh.HasRounds, uh.HasSalt, uh.GenericHandler):
+# =============================================================================
+class _BcryptCommon(
+    uh.SubclassBackendMixin,
+    uh.TruncateMixin,
+    uh.HasManyIdents,
+    uh.HasRounds,
+    uh.HasSalt,
+    uh.GenericHandler,
+):
     """
     Base class which implements brunt of BCrypt code.
     This is then subclassed by the various backends,
@@ -96,55 +118,55 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     When a backend is loaded, the bases of the 'bcrypt' class proper
     are modified to prepend the correct backend-specific subclass.
     """
-    #===================================================================
-    # class attrs
-    #===================================================================
 
-    #--------------------
+    # ===================================================================
+    # class attrs
+    # ===================================================================
+
+    # --------------------
     # PasswordHash
-    #--------------------
+    # --------------------
     name = "bcrypt"
     setting_kwds = ("salt", "rounds", "ident", "truncate_error")
 
-    #--------------------
+    # --------------------
     # GenericHandler
-    #--------------------
+    # --------------------
     checksum_size = 31
     checksum_chars = bcrypt64.charmap
 
-    #--------------------
+    # --------------------
     # HasManyIdents
-    #--------------------
+    # --------------------
     default_ident = IDENT_2B
     ident_values = (IDENT_2, IDENT_2A, IDENT_2X, IDENT_2Y, IDENT_2B)
-    ident_aliases = {u"2": IDENT_2, u"2a": IDENT_2A,  u"2y": IDENT_2Y,
-                     u"2b": IDENT_2B}
+    ident_aliases = {"2": IDENT_2, "2a": IDENT_2A, "2y": IDENT_2Y, "2b": IDENT_2B}
 
-    #--------------------
+    # --------------------
     # HasSalt
-    #--------------------
+    # --------------------
     min_salt_size = max_salt_size = 22
     salt_chars = bcrypt64.charmap
 
     # NOTE: 22nd salt char must be in restricted set of ``final_salt_chars``, not full set above.
     final_salt_chars = ".Oeu"  # bcrypt64._padinfo2[1]
 
-    #--------------------
+    # --------------------
     # HasRounds
-    #--------------------
-    default_rounds = 12 # current passlib default
-    min_rounds = 4 # minimum from bcrypt specification
-    max_rounds = 31 # 32-bit integer limit (since real_rounds=1<<rounds)
+    # --------------------
+    default_rounds = 12  # current passlib default
+    min_rounds = 4  # minimum from bcrypt specification
+    max_rounds = 31  # 32-bit integer limit (since real_rounds=1<<rounds)
     rounds_cost = "log2"
 
-    #--------------------
+    # --------------------
     # TruncateMixin
-    #--------------------
+    # --------------------
     truncate_size = 72
 
-    #--------------------
+    # --------------------
     # custom
-    #--------------------
+    # --------------------
 
     # backend workaround detection flags
     # NOTE: these are only set on the backend mixin classes
@@ -156,19 +178,20 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     _fallback_ident = IDENT_2A
     _require_valid_utf8_bytes = False
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
         ident, tail = cls._parse_ident(hash)
         if ident == IDENT_2X:
-            raise ValueError("crypt_blowfish's buggy '2x' hashes are not "
-                             "currently supported")
-        rounds_str, data = tail.split(u"$")
+            raise ValueError(
+                "crypt_blowfish's buggy '2x' hashes are not " "currently supported"
+            )
+        rounds_str, data = tail.split("$")
         rounds = int(rounds_str)
-        if rounds_str != u'%02d' % (rounds,):
+        if rounds_str != "%02d" % (rounds,):
             raise uh.exc.MalformedHashError(cls, "malformed cost field")
         salt, chk = data[:22], data[22:]
         return cls(
@@ -179,19 +202,19 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         )
 
     def to_string(self):
-        hash = u"%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
+        hash = "%s%02d$%s%s" % (self.ident, self.rounds, self.salt, self.checksum)
         return hash
 
     # NOTE: this should be kept separate from to_string()
     #       so that bcrypt_sha256() can still use it, while overriding to_string()
     def _get_config(self, ident):
         """internal helper to prepare config string for backends"""
-        config = u"%s%02d$%s" % (ident, self.rounds, self.salt)
+        config = "%s%02d$%s" % (ident, self.rounds, self.salt)
         return config
 
-    #===================================================================
+    # ===================================================================
     # migration
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def needs_update(cls, hash, **kwds):
@@ -208,9 +231,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         # hand off to base implementation, so HasRounds can check rounds value.
         return super().needs_update(hash, **kwds)
 
-    #===================================================================
+    # ===================================================================
     # specialized salt generation - fixes passlib issue 25
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def normhash(cls, hash):
@@ -239,7 +262,8 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 "encountered a bcrypt salt with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
                 "to fix this; this will be an error under Passlib 2.0",
-                PasslibHashWarning)
+                PasslibHashWarning,
+            )
         return salt
 
     def _norm_checksum(self, checksum, relaxed=False):
@@ -250,17 +274,18 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 "encountered a bcrypt hash with incorrectly set padding bits; "
                 "you may want to use bcrypt.normhash() "
                 "to fix this; this will be an error under Passlib 2.0",
-                PasslibHashWarning)
+                PasslibHashWarning,
+            )
         return checksum
 
-    #===================================================================
+    # ===================================================================
     # backend configuration
     # NOTE: backends are defined in terms of mixin classes,
     #       which are dynamically inserted into the bases of the 'bcrypt' class
     #       via the machinery in 'SubclassBackendMixin'.
     #       this lets us load in a backend-specific implementation
     #       of _calc_checksum() and similar methods.
-    #===================================================================
+    # ===================================================================
 
     # NOTE: backend config is located down in <bcrypt> class
 
@@ -277,11 +302,12 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         invoked after backend imports have been loaded, and performs
         feature detection & testing common to all backends.
         """
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # setup helpers
-        #----------------------------------------------------------------
-        assert mixin_cls is bcrypt._backend_mixin_map[backend], \
-            "_configure_workarounds() invoked from wrong class"
+        # ----------------------------------------------------------------
+        assert (
+            mixin_cls is bcrypt._backend_mixin_map[backend]
+        ), "_configure_workarounds() invoked from wrong class"
 
         if mixin_cls._workrounds_initialized:
             return True
@@ -307,8 +333,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 # _calc_checksum() code may also throw CryptBackendError
                 # if correct hash isn't returned (e.g. 2y hash converted to 2b,
                 # such as happens with bcrypt 3.0.0)
-                log.debug("trapped unexpected response from %r backend: verify(%r, %r):",
-                          backend, secret, hash, exc_info=True)
+                log.debug(
+                    "trapped unexpected response from %r backend: verify(%r, %r):",
+                    backend,
+                    secret,
+                    hash,
+                    exc_info=True,
+                )
                 return NotImplemented
 
         def assert_lacks_8bit_bug(ident):
@@ -336,8 +367,14 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
             # UTF-8 test vector
             secret = b"\xd1\x91"  # aka "\u0451"
-            bug_hash = ident.encode("ascii") + b"05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS"
-            correct_hash = ident.encode("ascii") + b"05$6bNw2HLQYeqHYyBfLMsv/OUcZd0LKP39b87nBw3.S2tVZSqiQX6eu"
+            bug_hash = (
+                ident.encode("ascii")
+                + b"05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS"
+            )
+            correct_hash = (
+                ident.encode("ascii")
+                + b"05$6bNw2HLQYeqHYyBfLMsv/OUcZd0LKP39b87nBw3.S2tVZSqiQX6eu"
+            )
 
             if verify(secret, bug_hash):
                 # NOTE: this only EVER be observed in (broken) 2a and (backward-compat) 2x hashes
@@ -346,12 +383,16 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 raise PasslibSecurityError(
                     "passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
                     "the crypt_blowfish 8-bit bug (CVE-2011-2483) under %r hashes, "
-                    "and should be upgraded or replaced with another backend" % (backend, ident))
+                    "and should be upgraded or replaced with another backend"
+                    % (backend, ident)
+                )
 
             # it doesn't have wraparound bug, but make sure it *does* verify against the correct
             # hash, or we're in some weird third case!
             if not verify(secret, correct_hash):
-                raise RuntimeError("%s backend failed to verify %s 8bit hash" % (backend, ident))
+                raise RuntimeError(
+                    "%s backend failed to verify %s 8bit hash" % (backend, ident)
+                )
 
         def detect_wrap_bug(ident):
             """
@@ -367,16 +408,24 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                   can use something like 'hashpw(repeat_string(secret[:((1+secret) % 256) or 1]), 72)'
             """
             # check if it exhibits wraparound bug
-            secret = (b"0123456789"*26)[:255]
-            bug_hash = ident.encode("ascii") + b"04$R1lJ2gkNaoPGdafE.H.16.nVyh2niHsGJhayOHLMiXlI45o8/DU.6"
+            secret = (b"0123456789" * 26)[:255]
+            bug_hash = (
+                ident.encode("ascii")
+                + b"04$R1lJ2gkNaoPGdafE.H.16.nVyh2niHsGJhayOHLMiXlI45o8/DU.6"
+            )
             if verify(secret, bug_hash):
                 return True
 
             # if it doesn't have wraparound bug, make sure it *does* handle things
             # correctly -- or we're in some weird third case.
-            correct_hash = ident.encode("ascii") + b"04$R1lJ2gkNaoPGdafE.H.16.1MKHPvmKwryeulRe225LKProWYwt9Oi"
+            correct_hash = (
+                ident.encode("ascii")
+                + b"04$R1lJ2gkNaoPGdafE.H.16.1MKHPvmKwryeulRe225LKProWYwt9Oi"
+            )
             if not verify(secret, correct_hash):
-                raise RuntimeError("%s backend failed to verify %s wraparound hash" % (backend, ident))
+                raise RuntimeError(
+                    "%s backend failed to verify %s wraparound hash" % (backend, ident)
+                )
 
             return False
 
@@ -386,11 +435,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             # should only see in 2a, later idents should NEVER exhibit this bug:
             # * 2y implementations should have been free of it
             # * 2b was what (supposedly) fixed it
-            raise RuntimeError("%s backend unexpectedly has wraparound bug for %s" % (backend, ident))
+            raise RuntimeError(
+                "%s backend unexpectedly has wraparound bug for %s" % (backend, ident)
+            )
 
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # check for old 20 support
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         test_hash_20 = b"$2$04$5BJqKfqMQvV7nS.yUguNcuRfMMOXK0xPWavM7pOzjEi5ze5T1k8/S"
         result = safe_verify("test", test_hash_20)
         if result is NotImplemented:
@@ -399,9 +450,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         elif not result:
             raise RuntimeError("%s incorrectly rejected $2$ hash" % backend)
 
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # check for 2a support
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         result = safe_verify("test", TEST_HASH_2A)
         if result is NotImplemented:
             # 2a support is required, and should always be present
@@ -415,20 +466,25 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                     # don't make this a warning for os crypt (e.g. openbsd);
                     # they'll have proper 2b implementation which will be used for new hashes.
                     # so even if we didn't have a workaround, this bug wouldn't be a concern.
-                    log.debug("%r backend has $2a$ bsd wraparound bug, enabling workaround", backend)
+                    log.debug(
+                        "%r backend has $2a$ bsd wraparound bug, enabling workaround",
+                        backend,
+                    )
                 else:
                     # installed library has the bug -- want to let users know,
                     # so they can upgrade it to something better (e.g. bcrypt cffi library)
-                    warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
-                         "the bsd wraparound bug, "
-                         "and should be upgraded or replaced with another backend "
-                         "(enabling workaround for now)." % backend,
-                         uh.exc.PasslibSecurityWarning)
+                    warn(
+                        "passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
+                        "the bsd wraparound bug, "
+                        "and should be upgraded or replaced with another backend "
+                        "(enabling workaround for now)." % backend,
+                        uh.exc.PasslibSecurityWarning,
+                    )
                 mixin_cls._has_2a_wraparound_bug = True
 
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # check for 2y support
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         test_hash_2y = TEST_HASH_2A.replace("2a", "2y")
         result = safe_verify("test", test_hash_2y)
         if result is NotImplemented:
@@ -442,13 +498,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             assert_lacks_8bit_bug(IDENT_2Y)
             assert_lacks_wrap_bug(IDENT_2Y)
 
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # TODO: check for 2x support
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
 
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         # check for 2b support
-        #----------------------------------------------------------------
+        # ----------------------------------------------------------------
         test_hash_2b = TEST_HASH_2A.replace("2a", "2b")
         result = safe_verify("test", test_hash_2b)
         if result is NotImplemented:
@@ -465,9 +521,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         mixin_cls._workrounds_initialized = True
         return True
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
 
     # _calc_checksum() defined by backends
 
@@ -558,7 +614,6 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 ident = cls._fallback_ident
 
         elif ident == IDENT_2X:
-
             # NOTE: shouldn't get here.
             # XXX: could check if backend does actually offer 'support'
             raise RuntimeError("$2x$ hashes not currently supported by passlib")
@@ -568,30 +623,33 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
         return secret, ident
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # stub backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _NoBackend(_BcryptCommon):
     """
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
-    #===================================================================
+
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret):
         self._stub_requires_backend()
         # NOTE: have to use super() here so that we don't recursively
         #       call subclass's wrapped _calc_checksum, e.g. bcrypt_sha256._calc_checksum
         return super()._calc_checksum(secret)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # bcrypt backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _BcryptBackend(_BcryptCommon):
     """
     backend which uses 'bcrypt' package
@@ -606,13 +664,13 @@ class _BcryptBackend(_BcryptCommon):
             return False
         try:
             import bcrypt as _bcrypt
-        except ImportError: # pragma: no cover
+        except ImportError:  # pragma: no cover
             return False
         try:
             version = _bcrypt.__about__.__version__
         except:
             log.warning("(trapped) error reading bcrypt version", exc_info=True)
-            version = '<unknown>'
+            version = "<unknown>"
 
         log.debug("detected 'bcrypt' backend, version %r", version)
         return mixin_cls._finalize_backend_mixin(name, dryrun)
@@ -646,14 +704,16 @@ class _BcryptBackend(_BcryptCommon):
             config = config.encode("ascii")
         hash = _bcrypt.hashpw(secret, config)
         assert isinstance(hash, bytes)
-        if not hash.startswith(config) or len(hash) != len(config)+31:
-            raise uh.exc.CryptBackendError(self, config, hash, source="`bcrypt` package")
+        if not hash.startswith(config) or len(hash) != len(config) + 31:
+            raise uh.exc.CryptBackendError(
+                self, config, hash, source="`bcrypt` package"
+            )
         return hash[-31:].decode("ascii")
 
 
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # os crypt backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _OsCryptBackend(_BcryptCommon):
     """
     backend which uses :func:`crypt.crypt`
@@ -702,7 +762,7 @@ class _OsCryptBackend(_BcryptCommon):
                 raise uh.exc.PasswordValueError(
                     "python3 crypt.crypt() ony supports bytes passwords using UTF8; "
                     "passlib recommends running `pip install bcrypt` for general bcrypt support.",
-                    ) from None
+                ) from None
 
         #
         # else crypt() call failed for unknown reason.
@@ -723,35 +783,44 @@ class _OsCryptBackend(_BcryptCommon):
             "crypt.crypt() failed for unknown reason; "
             "passlib recommends running `pip install bcrypt` for general bcrypt support."
             # for debugging UTs --
-            "(config=%s, secret=%s)" % (debug_only_repr(config), debug_only_repr(secret)),
-            )
+            "(config=%s, secret=%s)"
+            % (debug_only_repr(config), debug_only_repr(secret)),
+        )
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # builtin backend
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class _BuiltinBackend(_BcryptCommon):
     """
     backend which uses passlib's pure-python implementation
     """
+
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
         from passlib.utils import as_bool
+
         if not as_bool(os.environ.get("PASSLIB_BUILTIN_BCRYPT")):
-            log.debug("bcrypt 'builtin' backend not enabled via $PASSLIB_BUILTIN_BCRYPT")
+            log.debug(
+                "bcrypt 'builtin' backend not enabled via $PASSLIB_BUILTIN_BCRYPT"
+            )
             return False
         global _builtin_bcrypt
         from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
+
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
         secret, ident = self._prepare_digest_args(secret)
-        chk = _builtin_bcrypt(secret, ident[1:-1],
-                              self.salt.encode("ascii"), self.rounds)
+        chk = _builtin_bcrypt(
+            secret, ident[1:-1], self.salt.encode("ascii"), self.rounds
+        )
         return chk.decode("ascii")
 
-#=============================================================================
+
+# =============================================================================
 # handler
-#=============================================================================
+# =============================================================================
 class bcrypt(_NoBackend, _BcryptCommon):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -818,9 +887,10 @@ class bcrypt(_NoBackend, _BcryptCommon):
 
         Now defaults to ``"2b"`` variant.
     """
-    #=============================================================================
+
+    # =============================================================================
     # backend
-    #=============================================================================
+    # =============================================================================
 
     # NOTE: the brunt of the bcrypt class is implemented in _BcryptCommon.
     #       there are then subclass for each backend (e.g. _PyBcryptBackend),
@@ -841,14 +911,16 @@ class bcrypt(_NoBackend, _BcryptCommon):
         "builtin": _BuiltinBackend,
     }
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # variants
-#=============================================================================
-_UDOLLAR = u"$"
+# =============================================================================
+_UDOLLAR = "$"
+
 
 # XXX: it might be better to have all the bcrypt variants share a common base class,
 #      and have the (django_)bcrypt_sha256 wrappers just proxy bcrypt instead of subclassing it.
@@ -858,7 +930,10 @@ class _wrapped_bcrypt(bcrypt):
     - bypass backend-loading wrappers for hash() etc
     - disable truncation support, sha256 wrappers don't need it.
     """
-    setting_kwds = tuple(elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"])
+
+    setting_kwds = tuple(
+        elem for elem in bcrypt.setting_kwds if elem not in ["truncate_error"]
+    )
     truncate_size = None
 
     # XXX: these will be needed if any bcrypt backends directly implement this...
@@ -883,9 +958,11 @@ class _wrapped_bcrypt(bcrypt):
         # disable check performed by bcrypt(), since this doesn't truncate passwords.
         pass
 
-#=============================================================================
+
+# =============================================================================
 # bcrypt sha256 wrapper
-#=============================================================================
+# =============================================================================
+
 
 class bcrypt_sha256(_wrapped_bcrypt):
     """
@@ -909,44 +986,48 @@ class bcrypt_sha256(_wrapped_bcrypt):
         For increased security, updated to use HMAC-SHA256 instead of plain SHA256.
         Now only supports the ``"2b"`` bcrypt variant.  Hash format updated to "v=2".
     """
-    #===================================================================
-    # class attrs
-    #===================================================================
 
-    #--------------------
+    # ===================================================================
+    # class attrs
+    # ===================================================================
+
+    # --------------------
     # PasswordHash
-    #--------------------
+    # --------------------
     name = "bcrypt_sha256"
 
-    #--------------------
+    # --------------------
     # GenericHandler
-    #--------------------
+    # --------------------
     # this is locked at 2b for now (with 2a allowed only for legacy v1 format)
     ident_values = (IDENT_2A, IDENT_2B)
 
     # clone bcrypt's ident aliases so they can be used here as well...
-    ident_aliases = (lambda ident_values: dict(item for item in bcrypt.ident_aliases.items()
-                                               if item[1] in ident_values))(ident_values)
+    ident_aliases = (
+        lambda ident_values: dict(
+            item for item in bcrypt.ident_aliases.items() if item[1] in ident_values
+        )
+    )(ident_values)
     default_ident = IDENT_2B
 
-    #--------------------
+    # --------------------
     # class specific
-    #--------------------
+    # --------------------
 
     _supported_versions = {1, 2}
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
+    # ===================================================================
 
     #: wrapper version.
     #: v1 -- used prior to passlib 1.7.3; performs ``bcrypt(sha256(secret), salt, cost)``
     #: v2 -- new in passlib 1.7.3; performs `bcrypt(sha256_hmac(salt, secret), salt, cost)``
     version = 2
 
-    #===================================================================
+    # ===================================================================
     # configuration
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def using(cls, version=None, **kwds):
@@ -955,13 +1036,14 @@ class bcrypt_sha256(_wrapped_bcrypt):
             subcls.version = subcls._norm_version(version)
         ident = subcls.default_ident
         if subcls.version > 1 and ident != IDENT_2B:
-            raise ValueError("bcrypt %r hashes not allowed for version %r" %
-                             (ident, subcls.version))
+            raise ValueError(
+                "bcrypt %r hashes not allowed for version %r" % (ident, subcls.version)
+            )
         return subcls
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
 
     # sample hash:
     # $bcrypt-sha256$2a,6$/3OeRpbOf8/l6nPPRdZPp.$nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
@@ -976,7 +1058,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     # XXX: we can't use .ident attr due to bcrypt code using it.
     #      working around that via prefix.
-    prefix = u'$bcrypt-sha256$'
+    prefix = "$bcrypt-sha256$"
 
     #: current version 2 hash format
     _v2_hash_re = re.compile(r"""(?x)
@@ -1035,39 +1117,46 @@ class bcrypt_sha256(_wrapped_bcrypt):
             checksum=m.group("digest"),
         )
 
-    _v2_template = u"$bcrypt-sha256$v=2,t=%s,r=%d$%s$%s"
-    _v1_template = u"$bcrypt-sha256$%s,%d$%s$%s"
+    _v2_template = "$bcrypt-sha256$v=2,t=%s,r=%d$%s$%s"
+    _v1_template = "$bcrypt-sha256$%s,%d$%s$%s"
 
     def to_string(self):
         if self.version == 1:
             template = self._v1_template
         else:
             template = self._v2_template
-        hash = template % (self.ident.strip(_UDOLLAR), self.rounds, self.salt, self.checksum)
+        hash = template % (
+            self.ident.strip(_UDOLLAR),
+            self.rounds,
+            self.salt,
+            self.checksum,
+        )
         return hash
 
-    #===================================================================
+    # ===================================================================
     # init
-    #===================================================================
+    # ===================================================================
 
     def __init__(self, version=None, **kwds):
         if version is not None:
             self.version = self._norm_version(version)
         super().__init__(**kwds)
 
-    #===================================================================
+    # ===================================================================
     # version
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def _norm_version(cls, version):
         if version not in cls._supported_versions:
-            raise ValueError("%s: unknown or unsupported version: %r" % (cls.name, version))
+            raise ValueError(
+                "%s: unknown or unsupported version: %r" % (cls.name, version)
+            )
         return version
 
-    #===================================================================
+    # ===================================================================
     # checksum
-    #===================================================================
+    # ===================================================================
 
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
@@ -1108,19 +1197,20 @@ class bcrypt_sha256(_wrapped_bcrypt):
         # hand result off to normal bcrypt algorithm
         return super()._calc_checksum(key)
 
-    #===================================================================
+    # ===================================================================
     # other
-    #===================================================================
+    # ===================================================================
 
     def _calc_needs_update(self, **kwds):
         if self.version < type(self).version:
             return True
         return super()._calc_needs_update(**kwds)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

@@ -2,15 +2,19 @@
 
 .. versionadded:: 1.7
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import hashlib
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 try:
     # new in py3.4
     from hashlib import pbkdf2_hmac as _stdlib_pbkdf2_hmac
+
     if _stdlib_pbkdf2_hmac.__module__ == "hashlib":
         # builtin pure-python backends are slightly faster than stdlib's pure python fallback,
         # so only using stdlib's version if it's backed by openssl's pbkdf2_hmac()
@@ -22,6 +26,7 @@ import re
 import os
 from struct import Struct
 from warnings import warn
+
 # site
 try:
     # https://pypi.python.org/pypi/fastpbkdf2/
@@ -33,24 +38,23 @@ from passlib import exc
 from passlib.utils import join_bytes, to_native_str, to_bytes, SequenceMixin, as_bool
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import memoized_property
+
 # local
 __all__ = [
     # hash utils
     "lookup_hash",
     "HashInfo",
     "norm_hash_name",
-
     # hmac utils
     "compile_hmac",
-
     # kdfs
     "pbkdf1",
     "pbkdf2_hmac",
 ]
 
-#=============================================================================
+# =============================================================================
 # generic constants
-#=============================================================================
+# =============================================================================
 
 #: max 32-bit value
 MAX_UINT32 = (1 << 32) - 1
@@ -58,18 +62,17 @@ MAX_UINT32 = (1 << 32) - 1
 #: max 64-bit value
 MAX_UINT64 = (1 << 64) - 1
 
-#=============================================================================
+# =============================================================================
 # hash utils
-#=============================================================================
+# =============================================================================
 
 #: list of known hash names, used by lookup_hash()'s _norm_hash_name() helper
 _known_hash_names = [
     # format: (hashlib/ssl name, iana name or standin, other known aliases ...)
-
-    #----------------------------------------------------
+    # ----------------------------------------------------
     # hashes with official IANA-assigned names
     # (as of 2012-03 - http://www.iana.org/assignments/hash-function-text-names)
-    #----------------------------------------------------
+    # ----------------------------------------------------
     ("md2", "md2"),  # NOTE: openssl dropped md2 support in v1.0.0
     ("md5", "md5"),
     ("sha1", "sha-1"),
@@ -77,14 +80,11 @@ _known_hash_names = [
     ("sha256", "sha-256", "sha2-256"),
     ("sha384", "sha-384", "sha2-384"),
     ("sha512", "sha-512", "sha2-512"),
-
     # TODO: add sha3 to this table.
-
-    #----------------------------------------------------
+    # ----------------------------------------------------
     # hashlib/ssl-supported hashes without official IANA names,
     # (hopefully-) compatible stand-ins have been chosen.
-    #----------------------------------------------------
-
+    # ----------------------------------------------------
     ("blake2b", "blake-2b"),
     ("blake2s", "blake-2s"),
     ("md4", "md4"),
@@ -99,21 +99,21 @@ _known_hash_names = [
 #: so this is available even when hashes aren't present.
 _fallback_info = {
     # name: (digest_size, block_size)
-    'blake2b': (64, 128),
-    'blake2s': (32, 64),
-    'md4': (16, 64),
-    'md5': (16, 64),
-    'sha1': (20, 64),
-    'sha224': (28, 64),
-    'sha256': (32, 64),
-    'sha384': (48, 128),
-    'sha3_224': (28, 144),
-    'sha3_256': (32, 136),
-    'sha3_384': (48, 104),
-    'sha3_512': (64, 72),
-    'sha512': (64, 128),
-    'shake128': (16, 168),
-    'shake256': (32, 136),
+    "blake2b": (64, 128),
+    "blake2s": (32, 64),
+    "md4": (16, 64),
+    "md5": (16, 64),
+    "sha1": (20, 64),
+    "sha224": (28, 64),
+    "sha256": (32, 64),
+    "sha384": (48, 128),
+    "sha3_224": (28, 144),
+    "sha3_256": (32, 136),
+    "sha3_384": (48, 104),
+    "sha3_512": (64, 72),
+    "sha512": (64, 128),
+    "shake128": (16, 168),
+    "shake256": (32, 136),
 }
 
 
@@ -133,6 +133,7 @@ def _gen_fallback_info():
 #: cache of hash info instances used by lookup_hash()
 _hash_info_cache = {}
 
+
 def _get_hash_aliases(name):
     """
     internal helper used by :func:`lookup_hash` --
@@ -149,9 +150,11 @@ def _get_hash_aliases(name):
     # normalize input
     orig = name
     if not isinstance(name, str):
-        name = to_native_str(name, 'utf-8', 'hash name')
+        name = to_native_str(name, "utf-8", "hash name")
     name = re.sub("[_ /]", "-", name.strip().lower())
-    if name.startswith("scram-"): # helper for SCRAM protocol (see passlib.handlers.scram)
+    if name.startswith(
+        "scram-"
+    ):  # helper for SCRAM protocol (see passlib.handlers.scram)
         name = name[6:]
         if name.endswith("-plus"):
             name = name[:-5]
@@ -161,6 +164,7 @@ def _get_hash_aliases(name):
         for row in _known_hash_names:
             if name in row:
                 return row
+
     result = check_table(name)
     if result:
         return result
@@ -184,15 +188,23 @@ def _get_hash_aliases(name):
             return result
 
         # not found in table, but roughly recognize format. use names we built up as fallback.
-        log.info("normalizing unrecognized hash name %r => %r / %r",
-                 orig, hashlib_name, iana_name)
+        log.info(
+            "normalizing unrecognized hash name %r => %r / %r",
+            orig,
+            hashlib_name,
+            iana_name,
+        )
 
     else:
         # just can't make sense of it. return something
         iana_name = name
         hashlib_name = name.replace("-", "_")
-        log.warning("normalizing unrecognized hash name and format %r => %r / %r",
-                    orig, hashlib_name, iana_name)
+        log.warning(
+            "normalizing unrecognized hash name and format %r => %r / %r",
+            orig,
+            hashlib_name,
+            iana_name,
+        )
 
     return hashlib_name, iana_name
 
@@ -228,15 +240,19 @@ def _get_hash_const(name):
         # XXX: is there a faster way to wrap this?
         def const(msg=b""):
             return new_ssl_hash(name, msg)
+
         const.__name__ = name
         const.__module__ = "hashlib"
-        const.__doc__ = ("wrapper for hashlib.new(%r),\n"
-                         "generated by passlib.crypto.digest.lookup_hash()") % name
+        const.__doc__ = (
+            "wrapper for hashlib.new(%r),\n"
+            "generated by passlib.crypto.digest.lookup_hash()"
+        ) % name
         return const
 
     # use builtin md4 as fallback when not supported by hashlib
     if name == "md4":
         from passlib.crypto._md4 import md4
+
         return md4
 
     # XXX: any other modules / registries we should check?
@@ -245,8 +261,11 @@ def _get_hash_const(name):
     return None
 
 
-def lookup_hash(digest,  # *,
-                return_unknown=False, required=True):
+def lookup_hash(
+    digest,  # *,
+    return_unknown=False,
+    required=True,
+):
     """
     Returns a :class:`HashInfo` record containing information about a given hash function.
     Can be used to look up a hash constructor by name, normalize hash name representation, etc.
@@ -316,8 +335,11 @@ def lookup_hash(digest,  # *,
         # if mock fips mode is enabled, replace with dummy constructor
         # (to replicate how it would behave on a real fips system).
         if const and mock_fips_mode and name not in _fips_algorithms:
+
             def const(source=b""):
-                raise ValueError("%r disabled for fips by passlib set_mock_fips_mode()" % name)
+                raise ValueError(
+                    "%r disabled for fips by passlib set_mock_fips_mode()" % name
+                )
 
     elif isinstance(digest, HashInfo):
         # handle border case where HashInfo is passed in.
@@ -361,6 +383,7 @@ def lookup_hash(digest,  # *,
                 assert cache.get(name) in [None, info], "%r already in cache" % name
                 cache[name] = info
     return info
+
 
 #: UT helper for clearing internal cache
 lookup_hash.clear_cache = _hash_info_cache.clear
@@ -418,9 +441,10 @@ class HashInfo(SequenceMixin):
     This object can also be treated a 3-element sequence
     containing ``(const, digest_size, block_size)``.
     """
-    #=========================================================================
+
+    # =========================================================================
     # instance attrs
-    #=========================================================================
+    # =========================================================================
 
     #: Canonical / hashlib-compatible name (e.g. ``"sha256"``).
     name = None
@@ -448,12 +472,16 @@ class HashInfo(SequenceMixin):
     #: (not just unavailable on current system)
     unknown = False
 
-    #=========================================================================
+    # =========================================================================
     # init
-    #=========================================================================
+    # =========================================================================
 
-    def __init__(self,  # *,
-                 const, names, required=True):
+    def __init__(
+        self,  # *,
+        const,
+        names,
+        required=True,
+    ):
         """
         initialize new instance.
         :arg const:
@@ -471,8 +499,10 @@ class HashInfo(SequenceMixin):
             """
             helper that installs stub constructor which throws specified error <msg>.
             """
+
             def const(source=b""):
                 raise exc.UnknownHashError(msg, name)
+
             if required:
                 # if caller only wants supported digests returned,
                 # just throw error immediately...
@@ -507,7 +537,11 @@ class HashInfo(SequenceMixin):
             if "disabled for fips" in str(err).lower():
                 msg = "%r hash disabled for fips" % name
             else:
-                msg = "internal error in %r constructor\n(%s: %s)" % (name, type(err).__name__, err)
+                msg = "internal error in %r constructor\n(%s: %s)" % (
+                    name,
+                    type(err).__name__,
+                    err,
+                )
             use_stub_const(msg)
             return
 
@@ -522,15 +556,21 @@ class HashInfo(SequenceMixin):
 
         # do sanity check on name.
         if hash.name != self.name:
-            warn("inconsistent digest name: %r resolved to %r, which reports name as %r" %
-                 (self.name, const, hash.name), exc.PasslibRuntimeWarning)
+            warn(
+                "inconsistent digest name: %r resolved to %r, which reports name as %r"
+                % (self.name, const, hash.name),
+                exc.PasslibRuntimeWarning,
+            )
 
-    #=========================================================================
+    # =========================================================================
     # methods
-    #=========================================================================
+    # =========================================================================
     def __repr__(self):
-        return "<lookup_hash(%r): digest_size=%r block_size=%r)" % \
-               (self.name, self.digest_size, self.block_size)
+        return "<lookup_hash(%r): digest_size=%r block_size=%r)" % (
+            self.name,
+            self.digest_size,
+            self.block_size,
+        )
 
     def _as_tuple(self):
         return self.const, self.digest_size, self.block_size
@@ -567,14 +607,14 @@ class HashInfo(SequenceMixin):
             # "unsupported hash type"
             return False
 
-    #=========================================================================
+    # =========================================================================
     # eoc
-    #=========================================================================
+    # =========================================================================
 
 
-#---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # mock fips mode monkeypatch
-#---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 
 #: flag for detecting if mock fips mode is enabled.
 mock_fips_mode = False
@@ -584,21 +624,20 @@ mock_fips_mode = False
 #: per https://csrc.nist.gov/Projects/Hash-Functions FIPS 202 list.
 _fips_algorithms = {
     # FIPS 180-4  and FIPS 202
-    'sha1',
-    'sha224',
-    'sha256',
-    'sha384',
-    'sha512',
+    "sha1",
+    "sha224",
+    "sha256",
+    "sha384",
+    "sha512",
     # 'sha512/224',
     # 'sha512/256',
-
     # FIPS 202 only
-    'sha3_224',
-    'sha3_256',
-    'sha3_384',
-    'sha3_512',
-    'shake_128',
-    'shake_256',
+    "sha3_224",
+    "sha3_256",
+    "sha3_384",
+    "sha3_512",
+    "shake_128",
+    "shake_256",
 }
 
 
@@ -615,13 +654,14 @@ def _set_mock_fips_mode(enable=True):
 if as_bool(os.environ.get("PASSLIB_MOCK_FIPS_MODE")):
     _set_mock_fips_mode()
 
-#=============================================================================
+# =============================================================================
 # hmac utils
-#=============================================================================
+# =============================================================================
 
 #: translation tables used by compile_hmac()
 _TRANS_5C = bytes((x ^ 0x5C) for x in range(256))
 _TRANS_36 = bytes((x ^ 0x36) for x in range(256))
+
 
 def compile_hmac(digest, key, multipart=False):
     """
@@ -667,7 +707,7 @@ def compile_hmac(digest, key, multipart=False):
         key = const(key).digest()
         klen = digest_size
     if klen < block_size:
-        key += b'\x00' * (block_size - klen)
+        key += b"\x00" * (block_size - klen)
 
     # create pre-initialized hash constructors
     _inner_copy = const(key.translate(_TRANS_36)).copy
@@ -680,13 +720,14 @@ def compile_hmac(digest, key, multipart=False):
         def hmac():
             """generated by compile_hmac(multipart=True)"""
             inner = _inner_copy()
+
             def finalize():
                 outer = _outer_copy()
                 outer.update(inner.digest())
                 return outer.digest()
+
             return inner.update, finalize
     else:
-
         # single-shot function
         def hmac(msg):
             """generated by compile_hmac()"""
@@ -700,19 +741,20 @@ def compile_hmac(digest, key, multipart=False):
     hmac.digest_info = digest_info
     return hmac
 
-#=============================================================================
-# pbkdf1 
-#=============================================================================
+
+# =============================================================================
+# pbkdf1
+# =============================================================================
 def pbkdf1(digest, secret, salt, rounds, keylen=None):
     """pkcs#5 password-based key derivation v1.5
 
     :arg digest:
         digest name or constructor.
-        
+
     :arg secret:
         secret to use when generating the key.
         may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
-        
+
     :arg salt:
         salt string to use when generating key.
         may be :class:`!bytes` or :class:`str` (encoded using UTF-8).
@@ -734,7 +776,7 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
     """
     # resolve digest
     const, digest_size, block_size = lookup_hash(digest)
-    
+
     # validate secret & salt
     secret = to_bytes(secret, param="secret")
     salt = to_bytes(salt, param="salt")
@@ -753,8 +795,9 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
     elif keylen < 0:
         raise ValueError("keylen must be at least 0")
     elif keylen > digest_size:
-        raise ValueError("keylength too large for digest: %r > %r" %
-                         (keylen, digest_size))
+        raise ValueError(
+            "keylength too large for digest: %r > %r" % (keylen, digest_size)
+        )
 
     # main pbkdf1 loop
     block = secret + salt
@@ -762,11 +805,13 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
         block = const(block).digest()
     return block[:keylen]
 
-#=============================================================================
+
+# =============================================================================
 # pbkdf2
-#=============================================================================
+# =============================================================================
 
 _pack_uint32 = Struct(">L").pack
+
 
 def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
     """pkcs#5 password-based key derivation v2.0 using HMAC + arbitrary digest.
@@ -867,10 +912,11 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
         for i in range(1, block_count + 1)
     )[:keylen]
 
-#-------------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------------
 # pick best choice for pure-python helper
 # TODO: consider some alternatives, such as C-accelerated xor_bytes helper if available
-#-------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------
 # NOTE: this env var is only present to support the admin/benchmark_pbkdf2 script
 _force_backend = os.environ.get("PASSLIB_PBKDF2_BACKEND") or "any"
 
@@ -896,7 +942,6 @@ if _force_backend in ["any", "from-bytes"]:
     _builtin_backend = "from-bytes"
 
 elif _force_backend in ["unpack"]:
-
     # XXX: should run bench_pbkdf2() to verify;
     #      but think this can be removed now that we're always on python 3
     #      (the from_bytes method should always be faster)
@@ -904,7 +949,7 @@ elif _force_backend in ["unpack"]:
     from struct import Struct
     from passlib.utils import sys_bits
 
-    _have_64_bit = (sys_bits >= 64)
+    _have_64_bit = sys_bits >= 64
 
     #: cache used by _get_pbkdf2_looper
     _looper_cache = {}
@@ -949,17 +994,17 @@ elif _force_backend in ["unpack"]:
         #
         if _have_64_bit and not digest_size & 0x7:
             # digest size multiple of 8, on a 64 bit system -- use array of UINT64
-            count = (digest_size >> 3)
+            count = digest_size >> 3
             fmt = "=%dQ" % count
         elif not digest_size & 0x3:
             if _have_64_bit:
                 # digest size multiple of 4, on a 64 bit system -- use array of UINT64 + 1 UINT32
-                count = (digest_size >> 3)
+                count = digest_size >> 3
                 fmt = "=%dQI" % count
                 count += 1
             else:
                 # digest size multiple of 4, on a 32 bit system -- use array of UINT32
-                count = (digest_size >> 2)
+                count = digest_size >> 2
                 fmt = "=%dI" % count
         else:
             # stopping here, cause no known hashes have digest size that isn't multiple of 4 bytes.
@@ -978,30 +1023,32 @@ elif _force_backend in ["unpack"]:
 
         # head of function
         source = (
-                        "def helper(keyed_hmac, digest, rounds):\n"
-                        "    '''pbkdf2 loop helper for digest_size={digest_size}'''\n"
-                        "    unpack_digest = struct.unpack\n"
-                        "    {accum_vars} = unpack_digest(digest)\n"
-                        "    for _ in range(1, rounds):\n"
-                        "        digest = keyed_hmac(digest)\n"
-                        "        {digest_vars} = unpack_digest(digest)\n"
+            "def helper(keyed_hmac, digest, rounds):\n"
+            "    '''pbkdf2 loop helper for digest_size={digest_size}'''\n"
+            "    unpack_digest = struct.unpack\n"
+            "    {accum_vars} = unpack_digest(digest)\n"
+            "    for _ in range(1, rounds):\n"
+            "        digest = keyed_hmac(digest)\n"
+            "        {digest_vars} = unpack_digest(digest)\n"
         ).format(**tdict)
 
         # xor digest
         for i in range(count):
-            source +=   "        acc_%d ^= dig_%d\n" % (i, i)
+            source += "        acc_%d ^= dig_%d\n" % (i, i)
 
         # return result
-        source +=       "    return struct.pack({accum_vars})\n".format(**tdict)
+        source += "    return struct.pack({accum_vars})\n".format(**tdict)
 
         #
         # compile helper
         #
-        code = compile(source, "<generated by passlib.crypto.digest._get_pbkdf2_looper()>", "exec")
+        code = compile(
+            source, "<generated by passlib.crypto.digest._get_pbkdf2_looper()>", "exec"
+        )
         gdict = dict(struct=struct)
         ldict = dict()
         eval(code, gdict, ldict)
-        helper = ldict['helper']
+        helper = ldict["helper"]
         if __debug__:
             helper.__source__ = source
 
@@ -1040,11 +1087,15 @@ if _force_backend == _builtin_backend:
     _fast_pbkdf2_hmac = _stdlib_pbkdf2_hmac = None
 
 # expose info about what backends are active
-PBKDF2_BACKENDS = [b for b in [
-    "fastpbkdf2" if _fast_pbkdf2_hmac else None,
-    "hashlib-ssl" if _stdlib_pbkdf2_hmac else None,
-    "builtin-" + _builtin_backend
-] if b]
+PBKDF2_BACKENDS = [
+    b
+    for b in [
+        "fastpbkdf2" if _fast_pbkdf2_hmac else None,
+        "hashlib-ssl" if _stdlib_pbkdf2_hmac else None,
+        "builtin-" + _builtin_backend,
+    ]
+    if b
+]
 
 # *very* rough estimate of relative speed (compared to sha256 using 'unpack' backend on 64bit arch)
 if "fastpbkdf2" in PBKDF2_BACKENDS:
@@ -1055,6 +1106,6 @@ else:
     # remaining backends have *some* difference in performance, but not enough to matter
     PBKDF2_SPEED_FACTOR = 1
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

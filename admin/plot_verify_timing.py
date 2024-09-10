@@ -2,29 +2,32 @@
 """
 small helper script used to compare timing of verify() & dummy_verify()
 """
+
 # core
 from argparse import ArgumentParser
 import sys
 from timeit import default_timer as tick
+
 # site
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
 # pkg
 from passlib.context import CryptContext
+
 # local
-__all__ = [
-    "main"
-]
+__all__ = ["main"]
+
 
 def main(*args):
     #
     # parse args
     #
     parser = ArgumentParser("""plot hash timing""")
-    parser.add_argument("-n", "--number", help="number of iterations",
-                        type=int, default=300)
-    parser.add_argument("-o", "--output", help="pdf file",
-                        default="plot_hash.pdf")
+    parser.add_argument(
+        "-n", "--number", help="number of iterations", type=int, default=300
+    )
+    parser.add_argument("-o", "--output", help="pdf file", default="plot_hash.pdf")
 
     opts = parser.parse_args(args)
 
@@ -88,9 +91,9 @@ def main(*args):
     # generate graph
     #
     with PdfPages(opts.output) as pdf:
-        plt.plot(range(loops), correct, 'go', label="verify success")
-        plt.plot(range(loops), wrong, 'yo', label="verify failed")
-        plt.plot(range(loops), missing, 'ro', label="dummy_verify()")
+        plt.plot(range(loops), correct, "go", label="verify success")
+        plt.plot(range(loops), wrong, "yo", label="verify failed")
+        plt.plot(range(loops), missing, "ro", label="dummy_verify()")
 
         plt.axis([0, loops, ymin, ymax])
 
@@ -99,14 +102,14 @@ def main(*args):
         plt.axhline(y=lb, xmax=count, color="orange")
         plt.axhline(y=ub, xmax=count, color="orange")
 
-        plt.ylabel('elapsed time')
-        plt.xlabel('loop count')
+        plt.ylabel("elapsed time")
+        plt.xlabel("loop count")
         plt.legend(shadow=True, title="Legend", fancybox=True)
 
-        plt.title('%s verify timing' % ctx.handler().name)
+        plt.title("%s verify timing" % ctx.handler().name)
         pdf.savefig()
         plt.close()
 
+
 if __name__ == "__main__":
     sys.exit(main(*sys.argv[1:]))
-

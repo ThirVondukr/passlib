@@ -1,9 +1,12 @@
 """passlib.handlers.scram - hash for SCRAM credential storage"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.utils import consteq, saslprep, to_native_str, splitcomma
@@ -11,14 +14,16 @@ from passlib.utils.binary import ab64_decode, ab64_encode
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "scram",
 ]
 
-#=============================================================================
+
+# =============================================================================
 # scram credentials hash
-#=============================================================================
+# =============================================================================
 class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class provides a format for storing SCRAM passwords, and follows
     the :ref:`password-hash-api`.
@@ -73,9 +78,10 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     .. automethod:: extract_digest_algs
     .. automethod:: derive_digest
     """
-    #===================================================================
+
+    # ===================================================================
     # class attrs
-    #===================================================================
+    # ===================================================================
 
     # NOTE: unlike most GenericHandler classes, the 'checksum' attr of
     # ScramHandler is actually a map from digest_name -> digest, so
@@ -84,22 +90,22 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # NOTE: max_salt_size and max_rounds are arbitrarily chosen to provide
     # a sanity check; the underlying pbkdf2 specifies no bounds for either.
 
-    #--GenericHandler--
+    # --GenericHandler--
     name = "scram"
     setting_kwds = ("salt", "salt_size", "rounds", "algs")
-    ident = u"$scram$"
+    ident = "$scram$"
 
-    #--HasSalt--
+    # --HasSalt--
     default_salt_size = 12
     max_salt_size = 1024
 
-    #--HasRounds--
+    # --HasRounds--
     default_rounds = 100000
     min_rounds = 1
-    max_rounds = 2**32-1
+    max_rounds = 2**32 - 1
     rounds_cost = "linear"
 
-    #--custom--
+    # --custom--
 
     # default algorithms when creating new hashes.
     default_algs = ["sha-1", "sha-256", "sha-512"]
@@ -107,9 +113,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # list of algs verify prefers to use, in order.
     _verify_algs = ["sha-256", "sha-512", "sha-224", "sha-384", "sha-1"]
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
+    # ===================================================================
 
     # 'checksum' is different from most GenericHandler subclasses,
     # in that it contains a dict mapping from alg -> digest,
@@ -118,9 +124,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # list of algorithms to create/compare digests for.
     algs = None
 
-    #===================================================================
+    # ===================================================================
     # scram frontend helpers
-    #===================================================================
+    # ===================================================================
     @classmethod
     def extract_digest_info(cls, hash, alg):
         """return (salt, rounds, digest) for specific hash algorithm.
@@ -152,7 +158,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # XXX: this could be sped up by writing custom parsing routine
         # that just picks out relevant digest, and doesn't bother
         # with full structure validation each time it's called.
-        alg = norm_hash_name(alg, 'iana')
+        alg = norm_hash_name(alg, "iana")
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:
@@ -214,9 +220,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         #       and handle normalizing alg name.
         return pbkdf2_hmac(alg, saslprep(password), salt, rounds)
 
-    #===================================================================
+    # ===================================================================
     # serialization
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -230,7 +236,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         # decode rounds
         rounds = int(rounds_str)
-        if rounds_str != str(rounds): # forbid zero padding, etc.
+        if rounds_str != str(rounds):  # forbid zero padding, etc.
             raise uh.exc.MalformedHashError(cls)
 
         # decode salt
@@ -273,11 +279,11 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             "%s=%s" % (alg, bascii_to_str(ab64_encode(chkmap[alg])))
             for alg in self.algs
         )
-        return '$scram$%d$%s$%s' % (self.rounds, salt, chk_str)
+        return "$scram$%d$%s$%s" % (self.rounds, salt, chk_str)
 
-    #===================================================================
+    # ===================================================================
     # variant constructor
-    #===================================================================
+    # ===================================================================
     @classmethod
     def using(cls, default_algs=None, algs=None, **kwds):
         # parse aliases
@@ -293,9 +299,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             subcls.default_algs = cls._norm_algs(default_algs)
         return subcls
 
-    #===================================================================
+    # ===================================================================
     # init
-    #===================================================================
+    # ===================================================================
     def __init__(self, algs=None, **kwds):
         super().__init__(**kwds)
 
@@ -319,16 +325,16 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if not isinstance(checksum, dict):
             raise uh.exc.ExpectedTypeError(checksum, "dict", "checksum")
         for alg, digest in checksum.items():
-            if alg != norm_hash_name(alg, 'iana'):
-                raise ValueError("malformed algorithm name in scram hash: %r" %
-                                 (alg,))
+            if alg != norm_hash_name(alg, "iana"):
+                raise ValueError("malformed algorithm name in scram hash: %r" % (alg,))
             if len(alg) > 9:
-                raise ValueError("SCRAM limits algorithm names to "
-                                 "9 characters: %r" % (alg,))
+                raise ValueError(
+                    "SCRAM limits algorithm names to " "9 characters: %r" % (alg,)
+                )
             if not isinstance(digest, bytes):
                 raise uh.exc.ExpectedTypeError(digest, "raw bytes", "digests")
             # TODO: verify digest size (if digest is known)
-        if 'sha-1' not in checksum:
+        if "sha-1" not in checksum:
             # NOTE: required because of SCRAM spec.
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return checksum
@@ -338,17 +344,17 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         """normalize algs parameter"""
         if isinstance(algs, str):
             algs = splitcomma(algs)
-        algs = sorted(norm_hash_name(alg, 'iana') for alg in algs)
-        if any(len(alg)>9 for alg in algs):
+        algs = sorted(norm_hash_name(alg, "iana") for alg in algs)
+        if any(len(alg) > 9 for alg in algs):
             raise ValueError("SCRAM limits alg names to max of 9 characters")
-        if 'sha-1' not in algs:
+        if "sha-1" not in algs:
             # NOTE: required because of SCRAM spec (rfc 5802)
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return algs
 
-    #===================================================================
+    # ===================================================================
     # migration
-    #===================================================================
+    # ===================================================================
     def _calc_needs_update(self, **kwds):
         # marks hashes as deprecated if they don't include at least all default_algs.
         # XXX: should we deprecate if they aren't exactly the same,
@@ -359,9 +365,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
 
-    #===================================================================
+    # ===================================================================
     # digest methods
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt
@@ -371,10 +377,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             return hash(secret, salt, rounds, alg)
         else:
             # by default, return dict containing digests for all algs
-            return dict(
-                (alg, hash(secret, salt, rounds, alg))
-                for alg in self.algs
-            )
+            return dict((alg, hash(secret, salt, rounds, alg)) for alg in self.algs)
 
     @classmethod
     def verify(cls, secret, hash, full=False):
@@ -382,8 +385,9 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         self = cls.from_string(hash)
         chkmap = self.checksum
         if not chkmap:
-            raise ValueError("expected %s hash, got %s config string instead" %
-                             (cls.name, cls.name))
+            raise ValueError(
+                "expected %s hash, got %s config string instead" % (cls.name, cls.name)
+            )
 
         # NOTE: to make the verify method efficient, we just calculate hash
         # of shortest digest by default. apps can pass in "full=True" to
@@ -397,15 +401,18 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
                 # to parse hashes containing algs not supported by platform.
                 # it's fine if we fail here though.
                 if len(digest) != len(other):
-                    raise ValueError("mis-sized %s digest in scram hash: %r != %r"
-                                     % (alg, len(digest), len(other)))
+                    raise ValueError(
+                        "mis-sized %s digest in scram hash: %r != %r"
+                        % (alg, len(digest), len(other))
+                    )
                 if consteq(other, digest):
                     correct = True
                 else:
                     failed = True
             if correct and failed:
-                raise ValueError("scram hash verified inconsistently, "
-                                 "may be corrupted")
+                raise ValueError(
+                    "scram hash verified inconsistently, " "may be corrupted"
+                )
             else:
                 return correct
         else:
@@ -419,13 +426,14 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # or something went wrong inside _norm_algs()
             raise AssertionError("sha-1 digest not found!")
 
-    #===================================================================
+    # ===================================================================
     #
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # code used for testing scram against protocol examples during development.
-#=============================================================================
+# =============================================================================
 ##def _test_reference_scram():
 ##    "quick hack testing scram reference vectors"
 ##    # NOTE: "n,," is GS2 header - see https://tools.ietf.org/html/rfc5801
@@ -576,6 +584,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 ##    # eoc
 ##    #=========================================================
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

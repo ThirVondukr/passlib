@@ -1,19 +1,22 @@
 """
 helper script to benchmark pbkdf2 implementations/backends
 """
-#=============================================================================
+
+# =============================================================================
 # init script env
-#=============================================================================
+# =============================================================================
 # make sure passlib source dir is first in import path
 import os, sys
-os.chdir(os.path.abspath(os.path.join(__file__, *[".."]*2)))
+
+os.chdir(os.path.abspath(os.path.join(__file__, *[".."] * 2)))
 sys.path.insert(0, "")
 
-#=============================================================================
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from timeit import Timer
+
 try:
     from importlib import reload  # py34+
 except ImportError:
@@ -25,14 +28,14 @@ except ImportError:
 # pkg
 # local
 
-#=============================================================================
-# main
-#=============================================================================
-def main():
 
-    #--------------------------------------------------------------
+# =============================================================================
+# main
+# =============================================================================
+def main():
+    # --------------------------------------------------------------
     # config
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     bestof = 3
     number = 60 // bestof
 
@@ -41,21 +44,21 @@ def main():
     secret = b"password"
     salt = b"salt"
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # formatting
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     header = "{0:14s} {1:1s}"
     cell = "{0:>10s} "
     num_cell = "{0:>10d} "
-    div = "-" * (len(cell.format(""))-1) + " "
+    div = "-" * (len(cell.format("")) - 1) + " "
 
     units_per_sec = 1000
     print(header.format("(rounds/ms)", "") + "".join(cell.format(alg) for alg in algs))
     print(header.format("", "") + div * len(algs))
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # harness
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     def timeit(stmt, setup):
         return min(Timer(stmt, setup).repeat(bestof, number)) / number
 
@@ -81,26 +84,29 @@ def main():
     def na(name):
         print(header.format(name, "|") + cell.format("-") * len(algs))
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # test fastpbkdf2
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     try:
         from fastpbkdf2 import algorithm
     except ImportError:
         algorithm = None
     if algorithm:
-        benchmark("fastpbkdf2",
-                  "from fastpbkdf2 import pbkdf2_hmac",
-                  "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})",
-                  supported=list(algorithm))
+        benchmark(
+            "fastpbkdf2",
+            "from fastpbkdf2 import pbkdf2_hmac",
+            "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})",
+            supported=list(algorithm),
+        )
     else:
         na("fastpbkdf2")
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # test hashlib
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     try:
         from hashlib import pbkdf2_hmac
+
         if pbkdf2_hmac.__module__ == "_hashlib":
             backend = "ssl"
         else:
@@ -110,37 +116,42 @@ def main():
         backend = None
 
     if backend:
-        benchmark("hashlib/%s" % backend,
-                  "from hashlib import pbkdf2_hmac",
-                  "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})")
+        benchmark(
+            "hashlib/%s" % backend,
+            "from hashlib import pbkdf2_hmac",
+            "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})",
+        )
     else:
         na("hashlib")
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # test passlib backends
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
 
     import passlib.crypto.digest as digest_mod
+
     for backend in ["from-bytes", "unpack", "hexlify"]:
         name = "p/%s" % backend
-        os.environ['PASSLIB_PBKDF2_BACKEND'] = backend
+        os.environ["PASSLIB_PBKDF2_BACKEND"] = backend
         reload(digest_mod)
-        benchmark(name,
-                  "from passlib.crypto.digest import pbkdf2_hmac",
-                  "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})")
+        benchmark(
+            name,
+            "from passlib.crypto.digest import pbkdf2_hmac",
+            "pbkdf2_hmac({alg!r}, {secret!r}, {salt!r}, {rounds})",
+        )
 
     os.environ["PASSLIB_PBKDF2_BACKEND"] = ""
     reload(digest_mod)
     print("\nactive backends: ", digest_mod.PBKDF2_BACKENDS.replace(",", ", "))
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # done
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
+
 
 if __name__ == "__main__":
     sys.exit(main(*sys.argv[1:]))
 
-#=============================================================================
+# =============================================================================
 # eoc
-#=============================================================================
-
+# =============================================================================

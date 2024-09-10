@@ -1,60 +1,65 @@
 """passlib.pwd -- password generation helpers"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import codecs
 from collections import defaultdict
+
 try:
     from collections.abc import MutableMapping
 except ImportError:
     # py2 compat
     from collections import MutableMapping
 from math import ceil, log as logf
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import pkg_resources
 import os
+
 # site
 # pkg
 from passlib import exc
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
+
 # local
 __all__ = [
-    "genword", "default_charsets",
-    "genphrase", "default_wordsets",
+    "genword",
+    "default_charsets",
+    "genphrase",
+    "default_wordsets",
 ]
 
-#=============================================================================
+# =============================================================================
 # constants
-#=============================================================================
+# =============================================================================
 
 # XXX: rename / publically document this map?
 entropy_aliases = dict(
     # barest protection from throttled online attack
     unsafe=12,
-
     # some protection from unthrottled online attack
     weak=24,
-
     # some protection from offline attacks
     fair=36,
-
     # reasonable protection from offline attacks
     strong=48,
-
     # very good protection from offline attacks
     secure=60,
 )
 
-#=============================================================================
+# =============================================================================
 # internal helpers
-#=============================================================================
+# =============================================================================
+
 
 def _superclasses(obj, cls):
     """return remaining classes in object's MRO after cls"""
     mro = type(obj).__mro__
-    return mro[mro.index(cls)+1:]
+    return mro[mro.index(cls) + 1 :]
 
 
 def _self_info_rate(source):
@@ -118,8 +123,10 @@ def _open_asset_path(path, encoding=None):
         return open(path, "rb")
     package, sep, subpath = path.partition(":")
     if not sep:
-        raise ValueError("asset path must be absolute file path "
-                         "or use 'pkg.name:sub/path' format: %r" % (path,))
+        raise ValueError(
+            "asset path must be absolute file path "
+            "or use 'pkg.name:sub/path' format: %r" % (path,)
+        )
     return pkg_resources.resource_stream(package, subpath)
 
 
@@ -171,12 +178,12 @@ def _ensure_unique(source, param="source"):
         dup_repr += ", ... plus %d others" % (len(dups) - trunc)
 
     # throw error
-    raise ValueError("`%s` cannot contain duplicate elements: %s" %
-                     (param, dup_repr))
+    raise ValueError("`%s` cannot contain duplicate elements: %s" % (param, dup_repr))
 
-#=============================================================================
+
+# =============================================================================
 # base generator class
-#=============================================================================
+# =============================================================================
 class SequenceGenerator(object):
     """
     Base class used by word & phrase generators.
@@ -217,9 +224,10 @@ class SequenceGenerator(object):
     Subclasses must implement the ``.__next__()`` method,
     and set ``.symbol_count`` before calling base ``__init__`` method.
     """
-    #=============================================================================
+
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
     #: requested size of final password
     length = None
@@ -233,11 +241,10 @@ class SequenceGenerator(object):
     #: number of potential symbols (must be filled in by subclass)
     symbol_count = None
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
     def __init__(self, entropy=None, length=None, rng=None, **kwds):
-
         # make sure subclass set things up correctly
         assert self.symbol_count is not None, "subclass must set .symbol_count"
 
@@ -267,9 +274,9 @@ class SequenceGenerator(object):
             raise TypeError("Unexpected keyword(s): %s" % ", ".join(kwds.keys()))
         super().__init__(**kwds)
 
-    #=============================================================================
+    # =============================================================================
     # informational helpers
-    #=============================================================================
+    # =============================================================================
 
     @memoized_property
     def entropy_per_symbol(self):
@@ -289,9 +296,9 @@ class SequenceGenerator(object):
         """
         return self.length * self.entropy_per_symbol
 
-    #=============================================================================
+    # =============================================================================
     # generation
-    #=============================================================================
+    # =============================================================================
     def __next__(self):
         """main generation function, should create one password/phrase"""
         raise NotImplementedError("implement in subclass")
@@ -312,32 +319,31 @@ class SequenceGenerator(object):
     def __iter__(self):
         return self
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # default charsets
-#=============================================================================
+# =============================================================================
 
 #: global dict of predefined characters sets
 default_charsets = dict(
     # ascii letters, digits, and some punctuation
-    ascii_72='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*?/',
-
+    ascii_72="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*?/",
     # ascii letters and digits
-    ascii_62='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-
+    ascii_62="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
     # ascii_50, without visually similar '1IiLl', '0Oo', '5S', '8B'
-    ascii_50='234679abcdefghjkmnpqrstuvwxyzACDEFGHJKMNPQRTUVWXYZ',
-
+    ascii_50="234679abcdefghjkmnpqrstuvwxyzACDEFGHJKMNPQRTUVWXYZ",
     # lower case hexadecimal
-    hex='0123456789abcdef',
+    hex="0123456789abcdef",
 )
 
-#=============================================================================
+# =============================================================================
 # password generator
-#=============================================================================
+# =============================================================================
+
 
 class WordGenerator(SequenceGenerator):
     """
@@ -360,9 +366,10 @@ class WordGenerator(SequenceGenerator):
     .. autoattribute:: charset
     .. autoattribute:: default_charsets
     """
-    #=============================================================================
+
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
     #: Predefined character set in use (set to None for instances using custom 'chars')
     charset = "ascii_62"
@@ -370,11 +377,10 @@ class WordGenerator(SequenceGenerator):
     #: string of chars to draw from -- usually filled in from charset
     chars = None
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
     def __init__(self, chars=None, charset=None, **kwds):
-
         # init chars and charset
         if chars:
             if charset:
@@ -393,26 +399,26 @@ class WordGenerator(SequenceGenerator):
         super().__init__(**kwds)
         # log.debug("WordGenerator(): entropy/char=%r", self.entropy_per_symbol)
 
-    #=============================================================================
+    # =============================================================================
     # informational helpers
-    #=============================================================================
+    # =============================================================================
 
     @memoized_property
     def symbol_count(self):
         return len(self.chars)
 
-    #=============================================================================
+    # =============================================================================
     # generation
-    #=============================================================================
+    # =============================================================================
 
     def __next__(self):
         # XXX: could do things like optionally ensure certain character groups
         #      (e.g. letters & punctuation) are included
         return getrandstr(self.rng, self.chars, self.length)
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
 
 def genword(entropy=None, length=None, returns=None, **kwds):
@@ -488,9 +494,11 @@ def genword(entropy=None, length=None, returns=None, **kwds):
     gen = WordGenerator(length=length, entropy=entropy, **kwds)
     return gen(returns)
 
-#=============================================================================
+
+# =============================================================================
 # default wordsets
-#=============================================================================
+# =============================================================================
+
 
 def _load_wordset(asset_path):
     """
@@ -595,9 +603,10 @@ default_wordsets = WordsetDict()
 for name in "eff_long eff_short eff_prefixed bip39".split():
     default_wordsets.set_path(name, "passlib:_data/wordsets/%s.txt" % name)
 
-#=============================================================================
+
+# =============================================================================
 # passphrase generator
-#=============================================================================
+# =============================================================================
 class PhraseGenerator(SequenceGenerator):
     """class which generates passphrases by randomly choosing
     from a list of unique words.
@@ -613,9 +622,10 @@ class PhraseGenerator(SequenceGenerator):
 
     .. autoattribute:: wordset
     """
-    #=============================================================================
+
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
     #: predefined wordset to use
     wordset = "eff_long"
@@ -626,11 +636,10 @@ class PhraseGenerator(SequenceGenerator):
     #: separator to use when joining words
     sep = " "
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
     def __init__(self, wordset=None, words=None, sep=None, **kwds):
-
         # load wordset
         if words is not None:
             if wordset is not None:
@@ -659,25 +668,25 @@ class PhraseGenerator(SequenceGenerator):
         ##log.debug("PhraseGenerator(): entropy/word=%r entropy/char=%r min_chars=%r",
         ##          self.entropy_per_symbol, self.entropy_per_char, self.min_chars)
 
-    #=============================================================================
+    # =============================================================================
     # informational helpers
-    #=============================================================================
+    # =============================================================================
 
     @memoized_property
     def symbol_count(self):
         return len(self.words)
 
-    #=============================================================================
+    # =============================================================================
     # generation
-    #=============================================================================
+    # =============================================================================
 
     def __next__(self):
         words = (self.rng.choice(self.words) for _ in range(self.length))
         return self.sep.join(words)
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
 
 def genphrase(entropy=None, length=None, returns=None, **kwds):
@@ -780,7 +789,8 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
     gen = PhraseGenerator(entropy=entropy, length=length, **kwds)
     return gen(returns)
 
-#=============================================================================
+
+# =============================================================================
 # strength measurement
 #
 # NOTE:
@@ -796,8 +806,8 @@ def genphrase(entropy=None, length=None, returns=None, **kwds):
 #      but may have licensing issues, plus porting to python looks like very big job :(
 #    * give a look at running things through zlib - might be able to cheaply
 #      catch extra redundancies.
-#=============================================================================
+# =============================================================================
 
-#=============================================================================
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

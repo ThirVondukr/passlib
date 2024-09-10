@@ -1,9 +1,12 @@
 """passlib.handlers.scrypt -- scrypt password hash"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 # site
 # pkg
 from passlib.crypto import scrypt as _scrypt
@@ -12,25 +15,33 @@ from passlib.utils.binary import h64, b64s_decode, b64s_encode
 from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "scrypt",
 ]
 
-#=============================================================================
+# =============================================================================
 # scrypt format identifiers
-#=============================================================================
+# =============================================================================
 
-IDENT_SCRYPT = u"$scrypt$"  # identifier used by passlib
-IDENT_7 = u"$7$"  # used by official scrypt spec
+IDENT_SCRYPT = "$scrypt$"  # identifier used by passlib
+IDENT_7 = "$7$"  # used by official scrypt spec
 
-_UDOLLAR = u"$"
+_UDOLLAR = "$"
 
-#=============================================================================
+
+# =============================================================================
 # handler
-#=============================================================================
-class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.HasManyIdents,
-             uh.GenericHandler):
+# =============================================================================
+class scrypt(
+    uh.ParallelismMixin,
+    uh.HasRounds,
+    uh.HasRawSalt,
+    uh.HasRawChecksum,
+    uh.HasManyIdents,
+    uh.GenericHandler,
+):
     """This class implements an SCrypt-based password [#scrypt-home]_ hash, and follows the :ref:`password-hash-api`.
 
     It supports a variable-length salt, a variable number of rounds,
@@ -95,40 +106,40 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         configuration.
     """
 
-    #===================================================================
+    # ===================================================================
     # class attrs
-    #===================================================================
+    # ===================================================================
 
-    #------------------------
+    # ------------------------
     # PasswordHash
-    #------------------------
+    # ------------------------
     name = "scrypt"
     setting_kwds = ("ident", "salt", "salt_size", "rounds", "block_size", "parallelism")
 
-    #------------------------
+    # ------------------------
     # GenericHandler
-    #------------------------
+    # ------------------------
     # NOTE: scrypt supports arbitrary output sizes. since it's output runs through
     #       pbkdf2-hmac-sha256 before returning, and this could be raised eventually...
     #       but a 256-bit digest is more than sufficient for password hashing.
     # XXX: make checksum size configurable? could merge w/ argon2 code that does this.
     checksum_size = 32
 
-    #------------------------
+    # ------------------------
     # HasManyIdents
-    #------------------------
+    # ------------------------
     default_ident = IDENT_SCRYPT
     ident_values = (IDENT_SCRYPT, IDENT_7)
 
-    #------------------------
+    # ------------------------
     # HasRawSalt
-    #------------------------
+    # ------------------------
     default_salt_size = 16
     max_salt_size = 1024
 
-    #------------------------
+    # ------------------------
     # HasRounds
-    #------------------------
+    # ------------------------
     # TODO: would like to dynamically pick this based on system
     default_rounds = 16
     min_rounds = 1
@@ -137,9 +148,9 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
 
     # TODO: make default block size configurable via using(), and deprecatable via .needs_update()
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
+    # ===================================================================
 
     #: default parallelism setting (min=1 currently hardcoded in mixin)
     parallelism = 1
@@ -147,9 +158,9 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     #: default block size setting
     block_size = 8
 
-    #===================================================================
+    # ===================================================================
     # variant constructor
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def using(cls, block_size=None, **kwds):
@@ -157,19 +168,23 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         if block_size is not None:
             if isinstance(block_size, str):
                 block_size = int(block_size)
-            subcls.block_size = subcls._norm_block_size(block_size, relaxed=kwds.get("relaxed"))
+            subcls.block_size = subcls._norm_block_size(
+                block_size, relaxed=kwds.get("relaxed")
+            )
 
         # make sure param combination is valid for scrypt()
         try:
             _scrypt.validate(1 << cls.default_rounds, cls.block_size, cls.parallelism)
         except ValueError as err:
-            raise ValueError("scrypt: invalid settings combination: " + str(err)) from None
+            raise ValueError(
+                "scrypt: invalid settings combination: " + str(err)
+            ) from None
 
         return subcls
 
-    #===================================================================
+    # ===================================================================
     # parsing
-    #===================================================================
+    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -224,7 +239,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             parallelism=int(pstr[2:]),
             salt=b64s_decode(salt.encode("ascii")),
             checksum=b64s_decode(digest.encode("ascii")) if digest else None,
-            )
+        )
 
     #
     # official format specification defined at
@@ -251,7 +266,7 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
         if len(parts) == 2:
             params, digest = parts
         elif len(parts) == 1:
-            params, = parts
+            (params,) = parts
             digest = None
         else:
             raise uh.exc.MalformedHashError()
@@ -268,9 +283,9 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             checksum=h64.decode_bytes(digest) if digest else None,
         )
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
     def to_string(self):
         ident = self.ident
         if ident == IDENT_SCRYPT:
@@ -287,27 +302,34 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             try:
                 salt.decode("ascii")
             except UnicodeDecodeError:
-                raise NotImplementedError("scrypt $7$ hashes dont support non-ascii salts") from None
-            return bascii_to_str(b"".join([
-                b"$7$",
-                h64.encode_int6(self.rounds),
-                h64.encode_int30(self.block_size),
-                h64.encode_int30(self.parallelism),
-                self.salt,
-                b"$",
-                h64.encode_bytes(self.checksum)
-            ]))
+                raise NotImplementedError(
+                    "scrypt $7$ hashes dont support non-ascii salts"
+                ) from None
+            return bascii_to_str(
+                b"".join(
+                    [
+                        b"$7$",
+                        h64.encode_int6(self.rounds),
+                        h64.encode_int30(self.block_size),
+                        h64.encode_int30(self.parallelism),
+                        self.salt,
+                        b"$",
+                        h64.encode_bytes(self.checksum),
+                    ]
+                )
+            )
 
-    #===================================================================
+    # ===================================================================
     # init
-    #===================================================================
+    # ===================================================================
     def __init__(self, block_size=None, **kwds):
         super().__init__(**kwds)
 
         # init block size
         if block_size is None:
-            assert uh.validate_default_value(self, self.block_size, self._norm_block_size,
-                                             param="block_size")
+            assert uh.validate_default_value(
+                self, self.block_size, self._norm_block_size, param="block_size"
+            )
         else:
             self.block_size = self._norm_block_size(block_size)
 
@@ -316,7 +338,9 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
 
     @classmethod
     def _norm_block_size(cls, block_size, relaxed=False):
-        return uh.norm_integer(cls, block_size, min=1, param="block_size", relaxed=relaxed)
+        return uh.norm_integer(
+            cls, block_size, min=1, param="block_size", relaxed=relaxed
+        )
 
     def _generate_salt(self):
         salt = super()._generate_salt()
@@ -326,11 +350,11 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             salt = b64s_encode(salt)
         return salt
 
-    #===================================================================
+    # ===================================================================
     # backend configuration
     # NOTE: this following HasManyBackends' API, but provides it's own implementation,
     #       which actually switches the backend that 'passlib.crypto.scrypt.scrypt()' uses.
-    #===================================================================
+    # ===================================================================
 
     @classproperty
     def backends(cls):
@@ -352,17 +376,23 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
     def set_backend(cls, name="any", dryrun=False):
         _scrypt._set_backend(name, dryrun=dryrun)
 
-    #===================================================================
+    # ===================================================================
     # digest calculation
-    #===================================================================
+    # ===================================================================
     def _calc_checksum(self, secret):
         secret = to_bytes(secret, param="secret")
-        return _scrypt.scrypt(secret, self.salt, n=(1 << self.rounds), r=self.block_size,
-                              p=self.parallelism, keylen=self.checksum_size)
+        return _scrypt.scrypt(
+            secret,
+            self.salt,
+            n=(1 << self.rounds),
+            r=self.block_size,
+            p=self.parallelism,
+            keylen=self.checksum_size,
+        )
 
-    #===================================================================
+    # ===================================================================
     # hash migration
-    #===================================================================
+    # ===================================================================
 
     def _calc_needs_update(self, **kwds):
         """
@@ -373,10 +403,11 @@ class scrypt(uh.ParallelismMixin, uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum
             return True
         return super()._calc_needs_update(**kwds)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

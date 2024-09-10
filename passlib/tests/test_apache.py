@@ -1,12 +1,14 @@
 """tests for passlib.apache -- (c) Assurance Technologies 2008-2011"""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from logging import getLogger
 import unittest
 import os
 import subprocess
+
 # site
 # pkg
 from passlib import apache, registry
@@ -14,24 +16,27 @@ from passlib.exc import MissingBackendError
 from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
+
 # module
 log = getLogger(__name__)
 
-#=============================================================================
+# =============================================================================
 # helpers
-#=============================================================================
+# =============================================================================
+
 
 def backdate_file_mtime(path, offset=10):
     """backdate file's mtime by specified amount"""
     # NOTE: this is used so we can test code which detects mtime changes,
     #       without having to actually *pause* for that long.
     atime = os.path.getatime(path)
-    mtime = os.path.getmtime(path)-offset
+    mtime = os.path.getmtime(path) - offset
     os.utime(path, (atime, mtime))
 
-#=============================================================================
+
+# =============================================================================
 # detect external HTPASSWD tool
-#=============================================================================
+# =============================================================================
 
 
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
@@ -43,8 +48,12 @@ def _call_htpasswd(args, stdin=None):
     """
     if stdin is not None:
         stdin = stdin.encode("utf-8")
-    proc = subprocess.Popen([htpasswd_path] + args, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, stdin=subprocess.PIPE if stdin else None)
+    proc = subprocess.Popen(
+        [htpasswd_path] + args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE if stdin else None,
+    )
     out, err = proc.communicate(stdin)
     rc = proc.wait()
     out = to_unicode_for_identify(out or "")
@@ -78,46 +87,55 @@ def _detect_htpasswd():
 
 HAVE_HTPASSWD, HAVE_HTPASSWD_BCRYPT = _detect_htpasswd()
 
-requires_htpasswd_cmd = unittest.skipUnless(HAVE_HTPASSWD, "requires `htpasswd` cmdline tool")
+requires_htpasswd_cmd = unittest.skipUnless(
+    HAVE_HTPASSWD, "requires `htpasswd` cmdline tool"
+)
 
 
-#=============================================================================
+# =============================================================================
 # htpasswd
-#=============================================================================
+# =============================================================================
 class HtpasswdFileTest(TestCase):
     """test HtpasswdFile class"""
+
     descriptionPrefix = "HtpasswdFile"
 
     # sample with 4 users
-    sample_01 = (b'user2:2CHkkwa2AtqGs\n'
-                 b'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n'
-                 b'user4:pass4\n'
-                 b'user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n')
+    sample_01 = (
+        b"user2:2CHkkwa2AtqGs\n"
+        b"user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n"
+        b"user4:pass4\n"
+        b"user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n"
+    )
 
     # sample 1 with user 1, 2 deleted; 4 changed
-    sample_02 = b'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n'
+    sample_02 = b"user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\nuser4:pass4\n"
 
     # sample 1 with user2 updated, user 1 first entry removed, and user 5 added
-    sample_03 = (b'user2:pass2x\n'
-                 b'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n'
-                 b'user4:pass4\n'
-                 b'user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n'
-                 b'user5:pass5\n')
+    sample_03 = (
+        b"user2:pass2x\n"
+        b"user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n"
+        b"user4:pass4\n"
+        b"user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n"
+        b"user5:pass5\n"
+    )
 
     # standalone sample with 8-bit username
-    sample_04_utf8 = b'user\xc3\xa6:2CHkkwa2AtqGs\n'
-    sample_04_latin1 = b'user\xe6:2CHkkwa2AtqGs\n'
+    sample_04_utf8 = b"user\xc3\xa6:2CHkkwa2AtqGs\n"
+    sample_04_latin1 = b"user\xe6:2CHkkwa2AtqGs\n"
 
-    sample_dup = b'user1:pass1\nuser1:pass2\n'
+    sample_dup = b"user1:pass1\nuser1:pass2\n"
 
     # sample with bcrypt & sha256_crypt hashes
-    sample_05 = (b'user2:2CHkkwa2AtqGs\n'
-                 b'user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n'
-                 b'user4:pass4\n'
-                 b'user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n'
-                 b'user5:$2a$12$yktDxraxijBZ360orOyCOePFGhuis/umyPNJoL5EbsLk.s6SWdrRO\n'
-                 b'user6:$5$rounds=110000$cCRp/xUUGVgwR4aP$'
-                     b'p0.QKFS5qLNRqw1/47lXYiAcgIjJK.WjCO8nrEKuUK.\n')
+    sample_05 = (
+        b"user2:2CHkkwa2AtqGs\n"
+        b"user3:{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo=\n"
+        b"user4:pass4\n"
+        b"user1:$apr1$t4tc7jTh$GPIWVUo8sQKJlUdV8V5vu0\n"
+        b"user5:$2a$12$yktDxraxijBZ360orOyCOePFGhuis/umyPNJoL5EbsLk.s6SWdrRO\n"
+        b"user6:$5$rounds=110000$cCRp/xUUGVgwR4aP$"
+        b"p0.QKFS5qLNRqw1/47lXYiAcgIjJK.WjCO8nrEKuUK.\n"
+    )
 
     def test_00_constructor_new(self):
         """constructor -- 'new' keyword"""
@@ -157,9 +175,9 @@ class HtpasswdFileTest(TestCase):
     def test_01_delete(self):
         """test delete()"""
         ht = apache.HtpasswdFile.from_string(self.sample_01)
-        self.assertTrue(ht.delete("user1")) # should delete both entries
+        self.assertTrue(ht.delete("user1"))  # should delete both entries
         self.assertTrue(ht.delete("user2"))
-        self.assertFalse(ht.delete("user5")) # user not present
+        self.assertFalse(ht.delete("user5"))  # user not present
         self.assertEqual(ht.to_string(), self.sample_02)
 
         # invalid user
@@ -167,7 +185,7 @@ class HtpasswdFileTest(TestCase):
 
     def test_01_delete_autosave(self):
         path = self.mktemp()
-        sample = b'user1:pass1\nuser2:pass2\n'
+        sample = b"user1:pass1\nuser2:pass2\n"
         set_file(path, sample)
 
         ht = apache.HtpasswdFile(path)
@@ -180,8 +198,7 @@ class HtpasswdFileTest(TestCase):
 
     def test_02_set_password(self):
         """test set_password()"""
-        ht = apache.HtpasswdFile.from_string(
-            self.sample_01, default_scheme="plaintext")
+        ht = apache.HtpasswdFile.from_string(self.sample_01, default_scheme="plaintext")
         self.assertTrue(ht.set_password("user2", "pass2x"))
         self.assertFalse(ht.set_password("user5", "pass5"))
         self.assertEqual(ht.to_string(), self.sample_03)
@@ -191,7 +208,7 @@ class HtpasswdFileTest(TestCase):
 
     def test_02_set_password_autosave(self):
         path = self.mktemp()
-        sample = b'user1:pass1\n'
+        sample = b"user1:pass1\n"
         set_file(path, sample)
 
         ht = apache.HtpasswdFile(path)
@@ -219,8 +236,12 @@ class HtpasswdFileTest(TestCase):
 
         # alias resolution
         self.assertEqual(check("portable"), apache.htpasswd_defaults["portable"])
-        self.assertEqual(check("portable_apache_22"), apache.htpasswd_defaults["portable_apache_22"])
-        self.assertEqual(check("host_apache_22"), apache.htpasswd_defaults["host_apache_22"])
+        self.assertEqual(
+            check("portable_apache_22"), apache.htpasswd_defaults["portable_apache_22"]
+        )
+        self.assertEqual(
+            check("host_apache_22"), apache.htpasswd_defaults["host_apache_22"]
+        )
 
         # default
         self.assertEqual(check(None), apache.htpasswd_defaults["portable_apache_22"])
@@ -231,21 +252,23 @@ class HtpasswdFileTest(TestCase):
         ht.set_password("user5", "pass5")
         ht.delete("user3")
         ht.set_password("user3", "pass3")
-        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user3", "user4", "user5"])
+        self.assertEqual(
+            sorted(ht.users()), ["user1", "user2", "user3", "user4", "user5"]
+        )
 
     def test_04_check_password(self):
         """test check_password()"""
         ht = apache.HtpasswdFile.from_string(self.sample_05)
-        self.assertRaises(TypeError, ht.check_password, 1, 'pass9')
-        self.assertTrue(ht.check_password("user9","pass9") is None)
+        self.assertRaises(TypeError, ht.check_password, 1, "pass9")
+        self.assertTrue(ht.check_password("user9", "pass9") is None)
 
         # users 1..6 of sample_01 run through all the main hash formats,
         # to make sure they're recognized.
         for i in range(1, 7):
             i = str(i)
             try:
-                self.assertTrue(ht.check_password("user"+i, "pass"+i))
-                self.assertTrue(ht.check_password("user"+i, "pass9") is False)
+                self.assertTrue(ht.check_password("user" + i, "pass" + i))
+                self.assertTrue(ht.check_password("user" + i, "pass9") is False)
             except MissingBackendError:
                 if i == "5":
                     # user5 uses bcrypt, which is apparently not available right now
@@ -287,7 +310,7 @@ class HtpasswdFileTest(TestCase):
         set_file(path, self.sample_dup)
         hc = apache.HtpasswdFile()
         hc.load(path)
-        self.assertTrue(hc.check_password('user1','pass1'))
+        self.assertTrue(hc.check_password("user1", "pass1"))
 
     # NOTE: load_string() tested via from_string(), which is used all over this file
 
@@ -319,18 +342,24 @@ class HtpasswdFileTest(TestCase):
         self.assertRaises(ValueError, apache.HtpasswdFile, encoding="utf-16")
 
         # check sample utf-8
-        ht = apache.HtpasswdFile.from_string(self.sample_04_utf8, encoding="utf-8",
-                                             return_unicode=True)
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        ht = apache.HtpasswdFile.from_string(
+            self.sample_04_utf8, encoding="utf-8", return_unicode=True
+        )
+        self.assertEqual(ht.users(), ["user\u00e6"])
 
         # encoding=None should throw error
-        self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
-                          self.sample_04_utf8, encoding=None)
+        self.assertRaises(
+            TypeError,
+            apache.HtpasswdFile.from_string,
+            self.sample_04_utf8,
+            encoding=None,
+        )
 
         # check sample latin-1
-        ht = apache.HtpasswdFile.from_string(self.sample_04_latin1,
-                                              encoding="latin-1", return_unicode=True)
-        self.assertEqual(ht.users(), [ u"user\u00e6" ])
+        ht = apache.HtpasswdFile.from_string(
+            self.sample_04_latin1, encoding="latin-1", return_unicode=True
+        )
+        self.assertEqual(ht.users(), ["user\u00e6"])
 
     def test_08_get_hash(self):
         """test get_hash()"""
@@ -351,19 +380,20 @@ class HtpasswdFileTest(TestCase):
         self.assertEqual(ht.to_string(), b"")
 
     def test_10_repr(self):
-        ht = apache.HtpasswdFile("fakepath", autosave=True, new=True, encoding="latin-1")
+        ht = apache.HtpasswdFile(
+            "fakepath", autosave=True, new=True, encoding="latin-1"
+        )
         repr(ht)
 
     def test_11_malformed(self):
-        self.assertRaises(ValueError, apache.HtpasswdFile.from_string,
-            b'realm:user1:pass1\n')
-        self.assertRaises(ValueError, apache.HtpasswdFile.from_string,
-            b'pass1\n')
+        self.assertRaises(
+            ValueError, apache.HtpasswdFile.from_string, b"realm:user1:pass1\n"
+        )
+        self.assertRaises(ValueError, apache.HtpasswdFile.from_string, b"pass1\n")
 
     def test_12_from_string(self):
         # forbid path kwd
-        self.assertRaises(TypeError, apache.HtpasswdFile.from_string,
-                          b'', path=None)
+        self.assertRaises(TypeError, apache.HtpasswdFile.from_string, b"", path=None)
 
     def test_13_whitespace(self):
         """whitespace & comment handling"""
@@ -371,44 +401,52 @@ class HtpasswdFileTest(TestCase):
         # per htpasswd source (https://github.com/apache/httpd/blob/trunk/support/htpasswd.c),
         # lines that match "^\s*(#.*)?$" should be ignored
         source = to_bytes(
-            '\n'
-            'user2:pass2\n'
-            'user4:pass4\n'
-            'user7:pass7\r\n'
-            ' \t \n'
-            'user1:pass1\n'
-            ' # legacy users\n'
-            '#user6:pass6\n'
-            'user5:pass5\n\n'
+            "\n"
+            "user2:pass2\n"
+            "user4:pass4\n"
+            "user7:pass7\r\n"
+            " \t \n"
+            "user1:pass1\n"
+            " # legacy users\n"
+            "#user6:pass6\n"
+            "user5:pass5\n\n"
         )
 
         # loading should see all users (except user6, who was commented out)
         ht = apache.HtpasswdFile.from_string(source)
-        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"])
+        self.assertEqual(
+            sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"]
+        )
 
         # update existing user
         ht.set_hash("user4", "althash4")
-        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"])
+        self.assertEqual(
+            sorted(ht.users()), ["user1", "user2", "user4", "user5", "user7"]
+        )
 
         # add a new user
         ht.set_hash("user6", "althash6")
-        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6", "user7"])
+        self.assertEqual(
+            sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6", "user7"]
+        )
 
         # delete existing user
         ht.delete("user7")
-        self.assertEqual(sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6"])
+        self.assertEqual(
+            sorted(ht.users()), ["user1", "user2", "user4", "user5", "user6"]
+        )
 
         # re-serialization should preserve whitespace
         target = to_bytes(
-            '\n'
-            'user2:pass2\n'
-            'user4:althash4\n'
-            ' \t \n'
-            'user1:pass1\n'
-            ' # legacy users\n'
-            '#user6:pass6\n'
-            'user5:pass5\n'
-            'user6:althash6\n'
+            "\n"
+            "user2:pass2\n"
+            "user4:althash4\n"
+            " \t \n"
+            "user1:pass1\n"
+            " # legacy users\n"
+            "#user6:pass6\n"
+            "user5:pass5\n"
+            "user6:althash6\n"
         )
         self.assertEqual(ht.to_string(), target)
 
@@ -424,7 +462,7 @@ class HtpasswdFileTest(TestCase):
             return ht.context.handler(scheme).hash(pwd)
 
         # base scheme
-        ht.set_hash("user1", hash_scheme("password","apr_md5_crypt"))
+        ht.set_hash("user1", hash_scheme("password", "apr_md5_crypt"))
 
         # 2.2-compat scheme
         host_no_bcrypt = apache.htpasswd_defaults["host_apache_22"]
@@ -460,8 +498,10 @@ class HtpasswdFileTest(TestCase):
         """
         path = self.mktemp()
         ht = apache.HtpasswdFile(path=path, new=True)
+
         def hash_scheme(pwd, scheme):
             return ht.context.handler(scheme).hash(pwd)
+
         ht.set_hash("user1", hash_scheme("password", "bcrypt"))
         ht.save()
         self.assertFalse(_call_htpasswd_verify(path, "user1", "wrong"))
@@ -471,37 +511,45 @@ class HtpasswdFileTest(TestCase):
             # apache2.2 should fail, acting like it's an unknown hash format
             self.assertFalse(_call_htpasswd_verify(path, "user1", "password"))
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # htdigest
-#=============================================================================
+# =============================================================================
 class HtdigestFileTest(TestCase):
     """test HtdigestFile class"""
+
     descriptionPrefix = "HtdigestFile"
 
     # sample with 4 users
-    sample_01 = (b'user2:realm:549d2a5f4659ab39a80dac99e159ab19\n'
-                 b'user3:realm:a500bb8c02f6a9170ae46af10c898744\n'
-                 b'user4:realm:ab7b5d5f28ccc7666315f508c7358519\n'
-                 b'user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n')
+    sample_01 = (
+        b"user2:realm:549d2a5f4659ab39a80dac99e159ab19\n"
+        b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+        b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+        b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
+    )
 
     # sample 1 with user 1, 2 deleted; 4 changed
-    sample_02 = (b'user3:realm:a500bb8c02f6a9170ae46af10c898744\n'
-                 b'user4:realm:ab7b5d5f28ccc7666315f508c7358519\n')
+    sample_02 = (
+        b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+        b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+    )
 
     # sample 1 with user2 updated, user 1 first entry removed, and user 5 added
-    sample_03 = (b'user2:realm:5ba6d8328943c23c64b50f8b29566059\n'
-                 b'user3:realm:a500bb8c02f6a9170ae46af10c898744\n'
-                 b'user4:realm:ab7b5d5f28ccc7666315f508c7358519\n'
-                 b'user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n'
-                 b'user5:realm:03c55fdc6bf71552356ad401bdb9af19\n')
+    sample_03 = (
+        b"user2:realm:5ba6d8328943c23c64b50f8b29566059\n"
+        b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+        b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+        b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
+        b"user5:realm:03c55fdc6bf71552356ad401bdb9af19\n"
+    )
 
     # standalone sample with 8-bit username & realm
-    sample_04_utf8 = b'user\xc3\xa6:realm\xc3\xa6:549d2a5f4659ab39a80dac99e159ab19\n'
-    sample_04_latin1 = b'user\xe6:realm\xe6:549d2a5f4659ab39a80dac99e159ab19\n'
+    sample_04_utf8 = b"user\xc3\xa6:realm\xc3\xa6:549d2a5f4659ab39a80dac99e159ab19\n"
+    sample_04_latin1 = b"user\xe6:realm\xe6:549d2a5f4659ab39a80dac99e159ab19\n"
 
     def test_00_constructor_autoload(self):
         """test constructor autoload"""
@@ -565,11 +613,11 @@ class HtdigestFileTest(TestCase):
 
         # invalid user
         self.assertRaises(ValueError, ht.set_password, "user:", "realm", "pass")
-        self.assertRaises(ValueError, ht.set_password, "u"*256, "realm", "pass")
+        self.assertRaises(ValueError, ht.set_password, "u" * 256, "realm", "pass")
 
         # invalid realm
         self.assertRaises(ValueError, ht.set_password, "user", "realm:", "pass")
-        self.assertRaises(ValueError, ht.set_password, "user", "r"*256, "pass")
+        self.assertRaises(ValueError, ht.set_password, "user", "r" * 256, "pass")
 
     # TODO: test set_password autosave
 
@@ -579,20 +627,22 @@ class HtdigestFileTest(TestCase):
         ht.set_password("user5", "realm", "pass5")
         ht.delete("user3", "realm")
         ht.set_password("user3", "realm", "pass3")
-        self.assertEqual(sorted(ht.users("realm")), ["user1", "user2", "user3", "user4", "user5"])
+        self.assertEqual(
+            sorted(ht.users("realm")), ["user1", "user2", "user3", "user4", "user5"]
+        )
 
         self.assertRaises(TypeError, ht.users, 1)
 
     def test_04_check_password(self):
         """test check_password()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertRaises(TypeError, ht.check_password, 1, 'realm', 'pass5')
-        self.assertRaises(TypeError, ht.check_password, 'user', 1, 'pass5')
-        self.assertIs(ht.check_password("user5", "realm","pass5"), None)
+        self.assertRaises(TypeError, ht.check_password, 1, "realm", "pass5")
+        self.assertRaises(TypeError, ht.check_password, "user", 1, "pass5")
+        self.assertIs(ht.check_password("user5", "realm", "pass5"), None)
         for i in range(1, 5):
             i = str(i)
-            self.assertTrue(ht.check_password("user"+i, "realm", "pass"+i))
-            self.assertIs(ht.check_password("user"+i, "realm", "pass5"), False)
+            self.assertTrue(ht.check_password("user" + i, "realm", "pass" + i))
+            self.assertIs(ht.check_password("user" + i, "realm", "pass5"), False)
 
         # default realm
         self.assertRaises(TypeError, ht.check_password, "user5", "pass5")
@@ -615,7 +665,9 @@ class HtdigestFileTest(TestCase):
         # make changes, check load_if_changed() does nothing
         ha.set_password("user1", "realm", "pass1")
         ha.load_if_changed()
-        self.assertEqual(ha.to_string(), b'user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n')
+        self.assertEqual(
+            ha.to_string(), b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
+        )
 
         # change file
         set_file(path, self.sample_01)
@@ -664,7 +716,7 @@ class HtdigestFileTest(TestCase):
         ht = apache.HtdigestFile.from_string(self.sample_01)
 
         self.assertEqual(ht.delete_realm("x"), 0)
-        self.assertEqual(ht.realms(), ['realm'])
+        self.assertEqual(ht.realms(), ["realm"])
 
         self.assertEqual(ht.delete_realm("realm"), 4)
         self.assertEqual(ht.realms(), [])
@@ -673,8 +725,12 @@ class HtdigestFileTest(TestCase):
     def test_08_get_hash(self):
         """test get_hash()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertEqual(ht.get_hash("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744")
-        self.assertEqual(ht.get_hash("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519")
+        self.assertEqual(
+            ht.get_hash("user3", "realm"), "a500bb8c02f6a9170ae46af10c898744"
+        )
+        self.assertEqual(
+            ht.get_hash("user4", "realm"), "ab7b5d5f28ccc7666315f508c7358519"
+        )
         self.assertEqual(ht.get_hash("user5", "realm"), None)
 
     def test_09_encodings(self):
@@ -683,14 +739,18 @@ class HtdigestFileTest(TestCase):
         self.assertRaises(ValueError, apache.HtdigestFile, encoding="utf-16")
 
         # check sample utf-8
-        ht = apache.HtdigestFile.from_string(self.sample_04_utf8, encoding="utf-8", return_unicode=True)
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        ht = apache.HtdigestFile.from_string(
+            self.sample_04_utf8, encoding="utf-8", return_unicode=True
+        )
+        self.assertEqual(ht.realms(), ["realm\u00e6"])
+        self.assertEqual(ht.users("realm\u00e6"), ["user\u00e6"])
 
         # check sample latin-1
-        ht = apache.HtdigestFile.from_string(self.sample_04_latin1, encoding="latin-1", return_unicode=True)
-        self.assertEqual(ht.realms(), [ u"realm\u00e6" ])
-        self.assertEqual(ht.users(u"realm\u00e6"), [ u"user\u00e6" ])
+        ht = apache.HtdigestFile.from_string(
+            self.sample_04_latin1, encoding="latin-1", return_unicode=True
+        )
+        self.assertEqual(ht.realms(), ["realm\u00e6"])
+        self.assertEqual(ht.users("realm\u00e6"), ["user\u00e6"])
 
     def test_10_to_string(self):
         """test to_string()"""
@@ -704,15 +764,16 @@ class HtdigestFileTest(TestCase):
         self.assertEqual(ht.to_string(), b"")
 
     def test_11_malformed(self):
-        self.assertRaises(ValueError, apache.HtdigestFile.from_string,
-            b'realm:user1:pass1:other\n')
-        self.assertRaises(ValueError, apache.HtdigestFile.from_string,
-            b'user1:pass1\n')
+        self.assertRaises(
+            ValueError, apache.HtdigestFile.from_string, b"realm:user1:pass1:other\n"
+        )
+        self.assertRaises(ValueError, apache.HtdigestFile.from_string, b"user1:pass1\n")
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

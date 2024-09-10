@@ -1,12 +1,15 @@
 """passlib.totp -- TOTP / RFC6238 / Google Authenticator utilities."""
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import base64
 import calendar
 import json
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 import math
 import struct
 import sys
@@ -14,6 +17,7 @@ import time as _time
 import re
 from urllib.parse import urlparse, parse_qsl, quote, unquote
 from warnings import warn
+
 # site
 try:
     # TOTP encrypted keys only supported if cryptography (https://cryptography.io) is installed
@@ -21,49 +25,63 @@ try:
     import cryptography.hazmat.primitives.ciphers.algorithms
     import cryptography.hazmat.primitives.ciphers.modes
     from cryptography.hazmat.primitives import ciphers as _cg_ciphers
+
     del cryptography
 except ImportError:
     log.debug("can't import 'cryptography' package, totp encryption disabled")
     _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
-from passlib.exc import TokenError, MalformedTokenError, InvalidTokenError, UsedTokenError
-from passlib.utils import (to_unicode, to_bytes, consteq,
-                           getrandbytes, rng, SequenceMixin, xor_bytes, getrandstr)
+from passlib.exc import (
+    TokenError,
+    MalformedTokenError,
+    InvalidTokenError,
+    UsedTokenError,
+)
+from passlib.utils import (
+    to_unicode,
+    to_bytes,
+    consteq,
+    getrandbytes,
+    rng,
+    SequenceMixin,
+    xor_bytes,
+    getrandstr,
+)
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
 from passlib.utils.compat import bascii_to_str, num_types
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 from passlib.hash import pbkdf2_sha256
+
 # local
 __all__ = [
     # frontend classes
     "AppWallet",
     "TOTP",
-
     # errors (defined in passlib.exc, but exposed here for convenience)
     "TokenError",
-        "MalformedTokenError",
-        "InvalidTokenError",
-        "UsedTokenError",
-
+    "MalformedTokenError",
+    "InvalidTokenError",
+    "UsedTokenError",
     # internal helper classes
     "TotpToken",
     "TotpMatch",
 ]
 
-#=============================================================================
+# =============================================================================
 # internal helpers
-#=============================================================================
+# =============================================================================
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # token parsing / rendering helpers
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 #: regex used to clean whitespace from tokens & keys
 _clean_re = re.compile(r"\s|[-=]", re.U)
 
-_chunk_sizes = [4,6,5]
+_chunk_sizes = [4, 6, 5]
+
 
 def _get_group_size(klen):
     """
@@ -84,6 +102,7 @@ def _get_group_size(klen):
             rem = klen % size
     return best
 
+
 def group_string(value, sep="-"):
     """
     reformat string into (roughly) evenly-sized groups, separated by **sep**.
@@ -91,11 +110,13 @@ def group_string(value, sep="-"):
     """
     klen = len(value)
     size = _get_group_size(klen)
-    return sep.join(value[o:o+size] for o in range(0, klen, size))
+    return sep.join(value[o : o + size] for o in range(0, klen, size))
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # encoding helpers
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
 
 def _decode_bytes(key, format):
     """
@@ -109,7 +130,7 @@ def _decode_bytes(key, format):
     # for encoded data, key must be either unicode or ascii-encoded bytes,
     # and must contain a hex or base32 string.
     key = to_unicode(key, param="key")
-    key = _clean_re.sub("", key).encode("utf-8") # strip whitespace & hypens
+    key = _clean_re.sub("", key).encode("utf-8")  # strip whitespace & hypens
     if format == "hex" or format == "base16":
         return base64.b16decode(key.upper())
     elif format == "base32":
@@ -118,15 +139,17 @@ def _decode_bytes(key, format):
     else:
         raise ValueError("unknown byte-encoding format: %r" % (format,))
 
-#=============================================================================
+
+# =============================================================================
 # OTP management
-#=============================================================================
+# =============================================================================
 
 #: flag for detecting if encrypted totp support is present
 AES_SUPPORT = bool(_cg_ciphers)
 
 #: regex for validating secret tags
 _tag_re = re.compile("(?i)^[a-z0-9][a-z0-9_.-]*$")
+
 
 class AppWallet(object):
     """
@@ -154,7 +177,7 @@ class AppWallet(object):
         and the remaining characters must be in ``[a-z0-9_.-]``.
 
         It is recommended to use something like a incremental counter
-        ("1", "2", ...), an ISO date ("2016-01-01", "2016-05-16", ...), 
+        ("1", "2", ...), an ISO date ("2016-01-01", "2016-05-16", ...),
         or a timestamp ("19803495", "19813495", ...) when assigning tags.
 
         This mapping be provided in three formats:
@@ -217,9 +240,10 @@ class AppWallet(object):
     .. automethod:: encrypt_key
     .. automethod:: decrypt_key
     """
-    #========================================================================
+
+    # ========================================================================
     # instance attrs
-    #========================================================================
+    # ========================================================================
 
     #: default salt size for encrypt_key() output
     salt_size = 12
@@ -235,12 +259,12 @@ class AppWallet(object):
     #: tag for default secret
     default_tag = None
 
-    #========================================================================
+    # ========================================================================
     # init
-    #========================================================================
-    def __init__(self, secrets=None, default_tag=None, encrypt_cost=None,
-                 secrets_path=None):
-
+    # ========================================================================
+    def __init__(
+        self, secrets=None, default_tag=None, encrypt_cost=None, secrets_path=None
+    ):
         # TODO: allow a lot more things to be customized from here,
         #       e.g. setting default TOTP constructor options.
 
@@ -303,6 +327,7 @@ class AppWallet(object):
                         if line and not line.startswith("#"):
                             tag, secret = line.split(":", 1)
                             yield tag.strip(), secret.strip()
+
                 source = iter_pairs(source)
                 check_type = False
             else:
@@ -319,8 +344,7 @@ class AppWallet(object):
             raise TypeError("'secrets' must be mapping, or list of items")
 
         # parse into final dict, normalizing contents
-        return dict(self._parse_secret_pair(tag, value)
-                    for tag, value in source)
+        return dict(self._parse_secret_pair(tag, value) for tag, value in source)
 
     def _parse_secret_pair(self, tag, value):
         if isinstance(tag, str):
@@ -337,9 +361,9 @@ class AppWallet(object):
             raise ValueError("tag contains empty secret: %r" % (tag,))
         return tag, value
 
-    #========================================================================
+    # ========================================================================
     # accessing secrets
-    #========================================================================
+    # ========================================================================
 
     @property
     def has_secrets(self):
@@ -359,9 +383,9 @@ class AppWallet(object):
         except KeyError:
             raise KeyError("unknown secret tag: %r" % (tag,)) from None
 
-    #========================================================================
+    # ========================================================================
     # encrypted key helpers -- used internally by TOTP
-    #========================================================================
+    # ========================================================================
 
     @staticmethod
     def _cipher_aes_key(value, secret, salt, cost, decrypt=False):
@@ -387,17 +411,21 @@ class AppWallet(object):
         """
         # make sure backend AES support is available
         if _cg_ciphers is None:
-            raise RuntimeError("TOTP encryption requires 'cryptography' package "
-                               "(https://cryptography.io)")
+            raise RuntimeError(
+                "TOTP encryption requires 'cryptography' package "
+                "(https://cryptography.io)"
+            )
 
         # use pbkdf2 to derive both key (32 bytes) & iv (16 bytes)
         # NOTE: this requires 2 sha256 blocks to be calculated.
         keyiv = pbkdf2_hmac("sha256", secret, salt=salt, rounds=(1 << cost), keylen=48)
 
         # use AES-256-CTR to encrypt/decrypt input value
-        cipher = _cg_ciphers.Cipher(_cg_ciphers.algorithms.AES(keyiv[:32]),
-                                    _cg_ciphers.modes.CTR(keyiv[32:]),
-                                    _cg_default_backend())
+        cipher = _cg_ciphers.Cipher(
+            _cg_ciphers.algorithms.AES(keyiv[:32]),
+            _cg_ciphers.modes.CTR(keyiv[32:]),
+            _cg_default_backend(),
+        )
         ctx = cipher.decryptor() if decrypt else cipher.encryptor()
         return ctx.update(value) + ctx.finalize()
 
@@ -464,25 +492,26 @@ class AppWallet(object):
             _cipher_key = self._cipher_aes_key
         else:
             raise ValueError("missing / unrecognized 'enckey' version: %r" % (version,))
-        tag = enckey['t']
-        cost = enckey['c']
+        tag = enckey["t"]
+        cost = enckey["c"]
         key = _cipher_key(
-            value=b32decode(enckey['k']),
+            value=b32decode(enckey["k"]),
             secret=self.get_secret(tag),
-            salt=b32decode(enckey['s']),
+            salt=b32decode(enckey["s"]),
             cost=cost,
         )
         if cost != self.encrypt_cost or tag != self.default_tag:
             needs_recrypt = True
         return key, needs_recrypt
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # TOTP class
-#=============================================================================
+# =============================================================================
 
 #: helper to convert HOTP counter to bytes
 _pack_uint64 = struct.Struct(">Q").pack
@@ -492,6 +521,7 @@ _unpack_uint32 = struct.Struct(">I").unpack
 
 #: dummy bytes used as temp key for .using() method
 _DUMMY_KEY = b"\x00" * 16
+
 
 class TOTP(object):
     """
@@ -565,9 +595,10 @@ class TOTP(object):
     ..
         See the passlib documentation for a full list of attributes & methods.
     """
-    #=============================================================================
+
+    # =============================================================================
     # class attrs
-    #=============================================================================
+    # =============================================================================
 
     #: minimum number of bytes to allow in key, enforced by passlib.
     # XXX: see if spec says anything relevant to this.
@@ -584,13 +615,13 @@ class TOTP(object):
     #: defaults to :func:`time.time`, but can be overridden on a per-instance basis.
     now = _time.time
 
-    #=============================================================================
+    # =============================================================================
     # instance attrs
-    #=============================================================================
+    # =============================================================================
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # configuration attrs
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 
     #: [private] secret key as raw :class:`!bytes`
     #: see .key property for public access.
@@ -622,21 +653,29 @@ class TOTP(object):
     #: increments by 1 every* :attr:`!period` *seconds)*.
     period = 30
 
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # state attrs
-    #---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
 
     #: Flag set by deserialization methods to indicate the object needs to be re-serialized.
     #: This can be for a number of reasons -- encoded using deprecated format,
     #: or encrypted using a deprecated key or too few rounds.
     changed = False
 
-    #=============================================================================
+    # =============================================================================
     # prototype construction
-    #=============================================================================
+    # =============================================================================
     @classmethod
-    def using(cls, digits=None, alg=None, period=None,
-              issuer=None, wallet=None, now=None, **kwds):
+    def using(
+        cls,
+        digits=None,
+        alg=None,
+        period=None,
+        issuer=None,
+        wallet=None,
+        now=None,
+        **kwds,
+    ):
         """
         Dynamically create subtype of :class:`!TOTP` class
         which has the specified defaults set.
@@ -722,22 +761,25 @@ class TOTP(object):
         if kwds:
             subcls.wallet = AppWallet(**kwds)
             if wallet:
-                raise TypeError("'wallet' and 'secrets' keywords are mutually exclusive")
+                raise TypeError(
+                    "'wallet' and 'secrets' keywords are mutually exclusive"
+                )
         elif wallet is not None:
             if not isinstance(wallet, AppWallet):
                 raise exc.ExpectedTypeError(wallet, AppWallet, "wallet")
             subcls.wallet = wallet
 
         if now is not None:
-            assert isinstance(now(), num_types) and now() >= 0, \
-                "now() function must return non-negative int/float"
+            assert (
+                isinstance(now(), num_types) and now() >= 0
+            ), "now() function must return non-negative int/float"
             subcls.now = staticmethod(now)
 
         return subcls
 
-    #=============================================================================
+    # =============================================================================
     # init
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def new(cls, **kwds):
@@ -746,11 +788,21 @@ class TOTP(object):
         """
         return cls(new=True, **kwds)
 
-    def __init__(self, key=None, format="base32",
-                 # keyword only...
-                 new=False, digits=None, alg=None, size=None, period=None,
-                 label=None, issuer=None, changed=False,
-                 **kwds):
+    def __init__(
+        self,
+        key=None,
+        format="base32",
+        # keyword only...
+        new=False,
+        digits=None,
+        alg=None,
+        size=None,
+        period=None,
+        label=None,
+        issuer=None,
+        changed=False,
+        **kwds,
+    ):
         super().__init__(**kwds)
         if changed:
             self.changed = changed
@@ -773,8 +825,9 @@ class TOTP(object):
             elif size > digest_size:
                 # not forbidden by spec, but would just be wasted bytes.
                 # maybe just warn about this?
-                raise ValueError("'size' should be less than digest size "
-                                 "(%d)" % digest_size)
+                raise ValueError(
+                    "'size' should be less than digest size " "(%d)" % digest_size
+                )
             self.key = getrandbytes(rng, size)
         elif not key:
             raise TypeError("must specify either an existing 'key', or 'new=True'")
@@ -789,7 +842,10 @@ class TOTP(object):
         if len(self.key) < self._min_key_size:
             # only making this fatal for new=True,
             # so that existing (but ridiculously small) keys can still be used.
-            msg = "for security purposes, secret key must be >= %d bytes" % self._min_key_size
+            msg = (
+                "for security purposes, secret key must be >= %d bytes"
+                % self._min_key_size
+            )
             if new:
                 raise ValueError(msg)
             else:
@@ -819,9 +875,9 @@ class TOTP(object):
             self._check_serial(period, "period", minval=1)
             self.period = period
 
-    #=============================================================================
+    # =============================================================================
     # helpers to verify value types & ranges
-    #=============================================================================
+    # =============================================================================
 
     @staticmethod
     def _check_serial(value, param, minval=0):
@@ -849,13 +905,13 @@ class TOTP(object):
         if issuer and ":" in issuer:
             raise ValueError("issuer may not contain ':'")
 
-    #=============================================================================
+    # =============================================================================
     # key attributes
-    #=============================================================================
+    # =============================================================================
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # raw key
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     @property
     def key(self):
         """
@@ -873,9 +929,9 @@ class TOTP(object):
         # clear cached properties derived from key
         self._encrypted_key = self._keyed_hmac = None
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # encrypted key
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     @property
     def encrypted_key(self):
         """
@@ -887,7 +943,9 @@ class TOTP(object):
         if enckey is None:
             wallet = self.wallet
             if not wallet:
-                raise TypeError("no application secrets present, can't encrypt TOTP key")
+                raise TypeError(
+                    "no application secrets present, can't encrypt TOTP key"
+                )
             enckey = self._encrypted_key = wallet.encrypt_key(self.key)
         return enckey
 
@@ -904,9 +962,9 @@ class TOTP(object):
             # cache encrypted key for re-use
             self._encrypted_key = value
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # pretty-printed / encoded key helpers
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     @property
     def hex_key(self):
@@ -956,9 +1014,9 @@ class TOTP(object):
             key = group_string(key, sep)
         return key
 
-    #=============================================================================
+    # =============================================================================
     # time & token parsing
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def normalize_time(cls, time):
@@ -1023,28 +1081,28 @@ class TOTP(object):
         """
         digits = self_or_cls.digits
         if isinstance(token, int):
-            token = u"%0*d" % (digits, token)
+            token = "%0*d" % (digits, token)
         else:
             token = to_unicode(token, param="token")
-            token = _clean_re.sub(u"", token)
+            token = _clean_re.sub("", token)
             if not token.isdigit():
                 raise MalformedTokenError("Token must contain only the digits 0-9")
         if len(token) != digits:
             raise MalformedTokenError("Token must have exactly %d digits" % digits)
         return token
 
-    #=============================================================================
+    # =============================================================================
     # token generation
-    #=============================================================================
+    # =============================================================================
 
-# # debug helper
-#    def generate_range(self, size, time=None):
-#        counter = self._time_to_counter(time) - (size + 1) // 2
-#        end = counter + size
-#        while counter <= end:
-#            token = self._generate(counter)
-#            yield TotpToken(self, token, counter)
-#            counter += 1
+    # # debug helper
+    #    def generate_range(self, size, time=None):
+    #        counter = self._time_to_counter(time) - (size + 1) // 2
+    #        end = counter + size
+    #        while counter <= end:
+    #            token = self._generate(counter)
+    #            yield TotpToken(self, token, counter)
+    #            counter += 1
 
     def generate(self, time=None):
         """
@@ -1100,9 +1158,13 @@ class TOTP(object):
 
         # derive 31-bit token value
         # assert isinstance(digest, bytes)
-        assert digest_size >= 20, "digest_size: sanity check 2 failed" # otherwise 0xF+4 will run off end of hash.
+        assert (
+            digest_size >= 20
+        ), (
+            "digest_size: sanity check 2 failed"
+        )  # otherwise 0xF+4 will run off end of hash.
         offset = digest[-1] & 0xF
-        value = _unpack_uint32(digest[offset:offset+4])[0] & 0x7fffffff
+        value = _unpack_uint32(digest[offset : offset + 4])[0] & 0x7FFFFFFF
 
         # render to decimal string, return last <digits> chars
         # NOTE: the 10'th digit is not as secure, as it can only take on values 0-2, not 0-9,
@@ -1110,11 +1172,11 @@ class TOTP(object):
         #       if 31-bit mask removed (which breaks spec), would only get values 0-4.
         digits = self.digits
         assert 0 < digits < 11, "digits: sanity check failed"
-        return (u"%0*d" % (digits, value))[-digits:]
+        return ("%0*d" % (digits, value))[-digits:]
 
-    #=============================================================================
+    # =============================================================================
     # token verification
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def verify(cls, token, source, **kwds):
@@ -1268,7 +1330,9 @@ class TOTP(object):
         if end <= start:
             raise InvalidTokenError()
         generate = self._generate
-        if not (expected is None or expected < start) and consteq(token, generate(expected)):
+        if not (expected is None or expected < start) and consteq(
+            token, generate(expected)
+        ):
             return expected
         # XXX: if (end - start) is very large (e.g. for resync purposes),
         #      could start with expected value, and work outward from there,
@@ -1282,17 +1346,17 @@ class TOTP(object):
             counter += 1
         raise InvalidTokenError()
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # TODO: resync(self, tokens, time=None, min_tokens=10, window=100)
     #       helper to re-synchronize using series of sequential tokens,
     #       all of which must validate; per RFC recommendation.
     # NOTE: need to make sure this function is constant time
     #       (i.e. scans ALL tokens, and doesn't short-circuit after first mismatch)
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
-    #=============================================================================
+    # =============================================================================
     # generic parsing
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def from_source(cls, source):
@@ -1331,9 +1395,9 @@ class TOTP(object):
         else:
             return cls.from_json(source)
 
-    #=============================================================================
+    # =============================================================================
     # uri parsing
-    #=============================================================================
+    # =============================================================================
     @classmethod
     def from_uri(cls, uri):
         """
@@ -1411,17 +1475,24 @@ class TOTP(object):
         # synchronize issuer prefix w/ issuer param
         if issuer:
             if "issuer" not in params:
-                params['issuer'] = issuer
-            elif params['issuer'] != issuer:
+                params["issuer"] = issuer
+            elif params["issuer"] != issuer:
                 raise cls._uri_parse_error("conflicting issuer identifiers")
 
         # convert query params to constructor kwds, and call constructor
         return cls(**cls._adapt_uri_params(**params))
 
     @classmethod
-    def _adapt_uri_params(cls, label=None, secret=None, issuer=None,
-                          digits=None, algorithm=None, period=None,
-                          **extra):
+    def _adapt_uri_params(
+        cls,
+        label=None,
+        secret=None,
+        issuer=None,
+        digits=None,
+        algorithm=None,
+        period=None,
+        **extra,
+    ):
         """
         from_uri() helper --
         converts uri params into constructor args.
@@ -1431,16 +1502,18 @@ class TOTP(object):
             raise cls._uri_parse_error("missing 'secret' parameter")
         kwds = dict(label=label, issuer=issuer, key=secret, format="base32")
         if digits:
-            kwds['digits'] = cls._uri_parse_int(digits, "digits")
+            kwds["digits"] = cls._uri_parse_int(digits, "digits")
         if algorithm:
-            kwds['alg'] = algorithm
+            kwds["alg"] = algorithm
         if period:
-            kwds['period'] = cls._uri_parse_int(period, "period")
+            kwds["period"] = cls._uri_parse_int(period, "period")
         if extra:
             # malicious uri, deviation from spec, or newer revision of spec?
             # in either case, we issue warning and ignore extra params.
-            warn("%s: unexpected parameters encountered in otp uri: %r" %
-                 (cls, extra), exc.PasslibRuntimeWarning)
+            warn(
+                "%s: unexpected parameters encountered in otp uri: %r" % (cls, extra),
+                exc.PasslibRuntimeWarning,
+            )
         return kwds
 
     @staticmethod
@@ -1456,9 +1529,9 @@ class TOTP(object):
         except ValueError:
             raise cls._uri_parse_error("Malformed %r parameter" % param)
 
-    #=============================================================================
+    # =============================================================================
     # uri rendering
-    #=============================================================================
+    # =============================================================================
     def to_uri(self, label=None, issuer=None):
         """
         Serialize key and configuration into a URI, per
@@ -1508,12 +1581,14 @@ class TOTP(object):
         if label is None:
             label = self.label
         if not label:
-            raise ValueError("a label must be specified as argument, or in the constructor")
+            raise ValueError(
+                "a label must be specified as argument, or in the constructor"
+            )
         self._check_label(label)
         # NOTE: reference examples in spec seem to indicate the '@' in a label
         #       shouldn't be escaped, though spec doesn't explicitly address this.
         # XXX: is '/' ok to leave unencoded?
-        label = quote(label, '@')
+        label = quote(label, "@")
 
         # encode query parameters
         params = self._to_uri_params()
@@ -1525,16 +1600,16 @@ class TOTP(object):
             #       in favor of adding it to query params.  however, some QRCode clients
             #       don't recognize the 'issuer' query parameter, so spec recommends (as of 2018-7)
             #       to include both.
-            label = "%s:%s" % (quote(issuer, '@'), label)
+            label = "%s:%s" % (quote(issuer, "@"), label)
             params.append(("issuer", issuer))
         # NOTE: not using urllib.urlencode() because it encodes ' ' as '+';
         #       but spec says to use '%20', and not sure how fragile
         #       the various totp clients' parsers are.
-        param_str = u"&".join(u"%s=%s" % (key, quote(value, '')) for key, value in params)
+        param_str = "&".join("%s=%s" % (key, quote(value, "")) for key, value in params)
         assert param_str, "param_str should never be empty"
 
         # render uri
-        return u"otpauth://totp/%s?%s" % (label, param_str)
+        return "otpauth://totp/%s?%s" % (label, param_str)
 
     def _to_uri_params(self):
         """return list of (key, param) entries for URI"""
@@ -1547,9 +1622,9 @@ class TOTP(object):
             args.append(("period", str(self.period)))
         return args
 
-    #=============================================================================
+    # =============================================================================
     # json rendering / parsing
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def from_json(cls, source):
@@ -1586,9 +1661,9 @@ class TOTP(object):
         state = self.to_dict(encrypt=encrypt)
         return json.dumps(state, sort_keys=True, separators=(",", ":"))
 
-    #=============================================================================
+    # =============================================================================
     # dict rendering / parsing
-    #=============================================================================
+    # =============================================================================
 
     @classmethod
     def from_dict(cls, source):
@@ -1629,20 +1704,20 @@ class TOTP(object):
             raise cls._dict_parse_error("missing/unsupported version (%r)" % (ver,))
         elif ver != cls.json_version:
             # mark older version as needing re-serializing
-            kwds['changed'] = True
-        if 'enckey' in kwds:
+            kwds["changed"] = True
+        if "enckey" in kwds:
             # handing encrypted key off to constructor, which handles the
             # decryption. this lets it get ahold of (and store) the original
             # encrypted key, so if to_json() is called again, the encrypted
             # key can be re-used.
             # XXX: wallet is known at this point, could decrypt key here.
-            assert 'key' not in kwds  # shouldn't be present w/ enckey
+            assert "key" not in kwds  # shouldn't be present w/ enckey
             kwds.update(key=kwds.pop("enckey"), format="encrypted")
-        elif 'key' not in kwds:
+        elif "key" not in kwds:
             raise cls._dict_parse_error("missing 'enckey' / 'key'")
         # XXX: could should set changed=True if active wallet is available,
         #      and source wasn't encrypted.
-        kwds.pop("last_counter", None) # extract legacy counter parameter
+        kwds.pop("last_counter", None)  # extract legacy counter parameter
         return kwds
 
     @staticmethod
@@ -1671,38 +1746,39 @@ class TOTP(object):
         #       detect that this *is* a TOTP json string / dict.
         state = dict(v=self.json_version, type="totp")
         if self.alg != "sha1":
-            state['alg'] = self.alg
+            state["alg"] = self.alg
         if self.digits != 6:
-            state['digits'] = self.digits
+            state["digits"] = self.digits
         if self.period != 30:
-            state['period'] = self.period
+            state["period"] = self.period
         # XXX: should we include label as part of json format?
         if self.label:
-            state['label'] = self.label
+            state["label"] = self.label
         issuer = self.issuer
         if issuer and issuer != type(self).issuer:
             # (omit issuer if it matches class default)
-            state['issuer'] = issuer
+            state["issuer"] = issuer
         if encrypt is None:
             wallet = self.wallet
             encrypt = wallet and wallet.has_secrets
         if encrypt:
-            state['enckey'] = self.encrypted_key
+            state["enckey"] = self.encrypted_key
         else:
-            state['key'] = self.base32_key
+            state["key"] = self.base32_key
         # NOTE: in the future, may add a "history" parameter
         #       containing a list of (time, skipped) pairs, encoding
         #       the last X successful verifications, to allow persisting
         #       & estimating client clock skew over time.
         return state
 
-    #=============================================================================
+    # =============================================================================
     # eoc
-    #=============================================================================
+    # =============================================================================
 
-#=============================================================================
+
+# =============================================================================
 # TOTP helpers
-#=============================================================================
+# =============================================================================
 class TotpToken(SequenceMixin):
     """
     Object returned by :meth:`TOTP.generate`.
@@ -1715,6 +1791,7 @@ class TotpToken(SequenceMixin):
     .. autoattribute:: remaining
     .. autoattribute:: valid
     """
+
     #: TOTP object that generated this token
     totp = None
 
@@ -1758,8 +1835,11 @@ class TotpToken(SequenceMixin):
 
     def __repr__(self):
         expired = "" if self.remaining else " expired"
-        return "<TotpToken token='%s' expire_time=%d%s>" % \
-               (self.token, self.expire_time, expired)
+        return "<TotpToken token='%s' expire_time=%d%s>" % (
+            self.token,
+            self.expire_time,
+            expired,
+        )
 
 
 class TotpMatch(SequenceMixin):
@@ -1866,9 +1946,11 @@ class TotpMatch(SequenceMixin):
         args = (self.counter, self.time, self.cache_seconds)
         return "<TotpMatch counter=%d time=%d cache_seconds=%d>" % args
 
-#=============================================================================
+
+# =============================================================================
 # convenience helpers
-#=============================================================================
+# =============================================================================
+
 
 def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     """
@@ -1883,6 +1965,7 @@ def generate_secret(entropy=256, charset=BASE64_CHARS[:-2]):
     count = int(math.ceil(entropy * math.log(2, len(charset))))
     return getrandstr(rng, charset, count)
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

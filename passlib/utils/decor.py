@@ -1,32 +1,34 @@
 """
 passlib.utils.decor -- helper decorators & properties
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 import logging
+
 log = logging.getLogger(__name__)
 from functools import wraps, update_wrapper
 import types
 from warnings import warn
+
 # site
 # pkg
 # local
 __all__ = [
     "classproperty",
     "hybrid_method",
-
     "memoize_single_value",
     "memoized_property",
-
     "deprecated_function",
     "deprecated_method",
 ]
 
-#=============================================================================
+
+# =============================================================================
 # class-level decorators
-#=============================================================================
+# =============================================================================
 class classproperty(object):
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
 
@@ -54,9 +56,11 @@ class hybrid_method(object):
             obj = cls
         return types.MethodType(self.func, obj)
 
-#=============================================================================
+
+# =============================================================================
 # memoization
-#=============================================================================
+# =============================================================================
+
 
 def memoize_single_value(func):
     """
@@ -77,14 +81,17 @@ def memoize_single_value(func):
 
     def clear_cache():
         cache.pop(True, None)
+
     wrapper.clear_cache = clear_cache
 
     return wrapper
+
 
 class memoized_property(object):
     """
     decorator which invokes method once, then replaces attr with result
     """
+
     def __init__(self, func):
         self.__func__ = func
         self.__name__ = func.__name__
@@ -113,6 +120,7 @@ class memoized_property(object):
         """
         return obj.__dict__.get(self.__name__, default)
 
+
 # works but not used
 ##class memoized_class_property(object):
 ##    """function decorator which calls function as classmethod,
@@ -131,12 +139,19 @@ class memoized_property(object):
 ##    def __func__(self):
 ##        "py3 compatible alias"
 
-#=============================================================================
+
+# =============================================================================
 # deprecation
-#=============================================================================
-def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
-                        replacement=None, _is_method=False,
-                        func_module=None):
+# =============================================================================
+def deprecated_function(
+    msg=None,
+    deprecated=None,
+    removed=None,
+    updoc=True,
+    replacement=None,
+    _is_method=False,
+    func_module=None,
+):
     """decorator to deprecate a function.
 
     :arg msg: optional msg, default chosen if omitted
@@ -157,6 +172,7 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
         if replacement:
             msg += ", use %s instead" % replacement
         msg += "."
+
     def build(func):
         is_classmethod = _is_method and isinstance(func, classmethod)
         if is_classmethod:
@@ -166,8 +182,9 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
             name=func.__name__,
             deprecated=deprecated,
             removed=removed,
-            )
+        )
         if _is_method:
+
             def wrapper(*args, **kwds):
                 tmp = opts.copy()
                 klass = args[0] if is_classmethod else args[0].__class__
@@ -176,13 +193,19 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
                 return func(*args, **kwds)
         else:
             text = msg % opts
+
             def wrapper(*args, **kwds):
                 warn(text, DeprecationWarning, stacklevel=2)
                 return func(*args, **kwds)
+
         update_wrapper(wrapper, func)
-        if updoc and (deprecated or removed) and \
-                   wrapper.__doc__ and ".. deprecated::" not in wrapper.__doc__:
-            txt = deprecated or ''
+        if (
+            updoc
+            and (deprecated or removed)
+            and wrapper.__doc__
+            and ".. deprecated::" not in wrapper.__doc__
+        ):
+            txt = deprecated or ""
             if removed or replacement:
                 txt += "\n    "
                 if removed:
@@ -198,10 +221,13 @@ def deprecated_function(msg=None, deprecated=None, removed=None, updoc=True,
         if is_classmethod:
             wrapper = classmethod(wrapper)
         return wrapper
+
     return build
 
-def deprecated_method(msg=None, deprecated=None, removed=None, updoc=True,
-                      replacement=None):
+
+def deprecated_method(
+    msg=None, deprecated=None, removed=None, updoc=True, replacement=None
+):
     """decorator to deprecate a method.
 
     :arg msg: optional msg, default chosen if omitted
@@ -210,9 +236,11 @@ def deprecated_method(msg=None, deprecated=None, removed=None, updoc=True,
     :kwd replacement: alternate name / instructions for replacing this method.
     :kwd updoc: add notice to docstring (default ``True``)
     """
-    return deprecated_function(msg, deprecated, removed, updoc, replacement,
-                               _is_method=True)
+    return deprecated_function(
+        msg, deprecated, removed, updoc, replacement, _is_method=True
+    )
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

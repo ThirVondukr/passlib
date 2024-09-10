@@ -31,37 +31,45 @@ http://us.generation-nt.com/securing-passwords-hash-help-35429432.html
 http://forum.md5decrypter.co.uk/topic230-mysql-and-mssql-get-password-hashes.aspx
 http://www.theregister.co.uk/2002/07/08/cracking_ms_sql_server_passwords/
 """
-#=============================================================================
+
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 from warnings import warn
+
 # site
 # pkg
 from passlib.utils import consteq
 from passlib.utils.compat import bascii_to_str
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "mssql2000",
     "mssql2005",
 ]
 
-#=============================================================================
+
+# =============================================================================
 # mssql 2000
-#=============================================================================
+# =============================================================================
 def _raw_mssql(secret, salt):
     assert isinstance(secret, str)
     assert isinstance(salt, bytes)
     return sha1(secret.encode("utf-16-le") + salt).digest()
 
+
 BIDENT = b"0x0100"
 ##BIDENT2 = b("\x01\x00")
-UIDENT = u"0x0100"
+UIDENT = "0x0100"
+
 
 def _ident_mssql(hash, csize, bsize):
     """common identify for mssql 2000/2005"""
@@ -77,13 +85,14 @@ def _ident_mssql(hash, csize, bsize):
         raise uh.exc.ExpectedStringError(hash, "hash")
     return False
 
+
 def _parse_mssql(hash, csize, bsize, handler):
     """common parser for mssql 2000/2005; returns 4 byte salt + checksum"""
     if isinstance(hash, str):
         if len(hash) == csize and hash.startswith(UIDENT):
             try:
                 return unhexlify(hash[6:].encode("utf-8"))
-            except TypeError: # throw when bad char found
+            except TypeError:  # throw when bad char found
                 pass
     elif isinstance(hash, bytes):
         # assumes ascii-compat encoding
@@ -91,13 +100,14 @@ def _parse_mssql(hash, csize, bsize, handler):
         if len(hash) == csize and hash.startswith(BIDENT):
             try:
                 return unhexlify(hash[6:])
-            except TypeError: # throw when bad char found
+            except TypeError:  # throw when bad char found
                 pass
         ##elif len(hash) == bsize and hash.startswith(BIDENT2): # raw bytes
         ##    return hash[2:]
     else:
         raise uh.exc.ExpectedStringError(hash, "hash")
     raise uh.exc.InvalidHashError(handler)
+
 
 class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the password hash used by MS-SQL 2000, and follows the :ref:`password-hash-api`.
@@ -120,17 +130,18 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-    #===================================================================
+
+    # ===================================================================
     # algorithm information
-    #===================================================================
+    # ===================================================================
     name = "mssql2000"
     setting_kwds = ("salt",)
     checksum_size = 40
     min_salt_size = max_salt_size = 4
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
 
     # 0100 - 2 byte identifier
     # 4 byte salt
@@ -173,9 +184,10 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         result = _raw_mssql(secret.upper(), self.salt)
         return consteq(result, chk[20:])
 
-#=============================================================================
+
+# =============================================================================
 # handler
-#=============================================================================
+# =============================================================================
 class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the password hash used by MS-SQL 2005, and follows the :ref:`password-hash-api`.
 
@@ -197,18 +209,19 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-    #===================================================================
+
+    # ===================================================================
     # algorithm information
-    #===================================================================
+    # ===================================================================
     name = "mssql2005"
     setting_kwds = ("salt",)
 
     checksum_size = 20
     min_salt_size = max_salt_size = 4
 
-    #===================================================================
+    # ===================================================================
     # formatting
-    #===================================================================
+    # ===================================================================
 
     # 0x0100 - 2 byte identifier
     # 4 byte salt
@@ -235,10 +248,11 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             secret = secret.decode("utf-8")
         return _raw_mssql(secret, self.salt)
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================

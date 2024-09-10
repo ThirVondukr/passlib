@@ -1,21 +1,25 @@
 """passlib.utils.scrypt._builtin -- scrypt() kdf in pure-python"""
-#==========================================================================
+
+# ==========================================================================
 # imports
-#==========================================================================
+# ==========================================================================
 # core
 import operator
 import struct
+
 # pkg
 from passlib.crypto.digest import pbkdf2_hmac
 from passlib.crypto.scrypt._salsa import salsa20
+
 # local
-__all__ =[
+__all__ = [
     "ScryptEngine",
 ]
 
-#==========================================================================
+
+# ==========================================================================
 # scrypt engine
-#==========================================================================
+# ==========================================================================
 class ScryptEngine(object):
     """
     helper class used to run scrypt kdf, see scrypt() for frontend
@@ -26,9 +30,10 @@ class ScryptEngine(object):
         it's not intended to be used directly,
         but only as a backend for :func:`passlib.utils.scrypt.scrypt()`.
     """
-    #=================================================================
+
+    # =================================================================
     # instance attrs
-    #=================================================================
+    # =================================================================
 
     # primary scrypt config parameters
     n = 0
@@ -43,17 +48,17 @@ class ScryptEngine(object):
     bmix_struct = None
     integerify = None
 
-    #=================================================================
+    # =================================================================
     # frontend
-    #=================================================================
+    # =================================================================
     @classmethod
     def execute(cls, secret, salt, n, r, p, keylen):
         """create engine & run scrypt() hash calculation"""
         return cls(n, r, p).run(secret, salt, keylen)
 
-    #=================================================================
+    # =================================================================
     # init
-    #=================================================================
+    # =================================================================
     def __init__(self, n, r, p):
         # store config
         self.n = n
@@ -75,19 +80,21 @@ class ScryptEngine(object):
         # since it's immediately converted % n, we only have to extract
         # the first 32 bytes if n < 2**32 - which due to the current
         # internal representation, is already unpacked as a 32-bit int.
-        if n <= 0xFFFFffff:
+        if n <= 0xFFFFFFFF:
             integerify = operator.itemgetter(-16)
         else:
-            assert n <= 0xFFFFffffFFFFffff
+            assert n <= 0xFFFFFFFFFFFFFFFF
             ig1 = operator.itemgetter(-16)
             ig2 = operator.itemgetter(-17)
+
             def integerify(X):
-                return ig1(X) | (ig2(X)<<32)
+                return ig1(X) | (ig2(X) << 32)
+
         self.integerify = integerify
 
-    #=================================================================
+    # =================================================================
     # frontend
-    #=================================================================
+    # =================================================================
     def run(self, secret, salt, keylen):
         """
         run scrypt kdf for specified secret, salt, and keylen
@@ -110,17 +117,17 @@ class ScryptEngine(object):
             # XXX: *could* use threading here, if really high p values encountered,
             #      but would tradeoff for more memory usage.
             smix_bytes = self.smix_bytes
-            output = b''.join(
-                smix(input[offset:offset+smix_bytes])
+            output = b"".join(
+                smix(input[offset : offset + smix_bytes])
                 for offset in range(0, iv_bytes, smix_bytes)
             )
 
         # stretch final byte array into output via pbkdf2
         return pbkdf2_hmac("sha256", secret, output, rounds=1, keylen=keylen)
 
-    #=================================================================
+    # =================================================================
     # smix() helper
-    #=================================================================
+    # =================================================================
     def smix(self, input):
         """run SCrypt smix function on a single input block
 
@@ -158,6 +165,7 @@ class ScryptEngine(object):
                 yield last
                 bmix(last, buffer)
                 i += 1
+
         V = list(vgen())
 
         # generate result from X & V.
@@ -185,9 +193,9 @@ class ScryptEngine(object):
         # repack tmp
         return bmix_struct.pack(*buffer)
 
-    #=================================================================
+    # =================================================================
     # bmix() helper
-    #=================================================================
+    # =================================================================
     def bmix(self, source, target):
         """
         block mixing function used by smix()
@@ -218,14 +226,16 @@ class ScryptEngine(object):
         ## assert source is not target
         # Y[-1] = B[2r-1], Y[i] = hash( Y[i-1] xor B[i])
         # B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-        half = self.bmix_half_len # 16*r out of 32*r - start of Y_1
-        tmp = source[-16:] # 'X' in scrypt source
+        half = self.bmix_half_len  # 16*r out of 32*r - start of Y_1
+        tmp = source[-16:]  # 'X' in scrypt source
         siter = iter(source)
         j = 0
         while j < half:
-            jn = j+16
+            jn = j + 16
             target[j:jn] = tmp = salsa20(a ^ b for a, b in zip(tmp, siter))
-            target[half+j:half+jn] = tmp = salsa20(a ^ b for a, b in zip(tmp, siter))
+            target[half + j : half + jn] = tmp = salsa20(
+                a ^ b for a, b in zip(tmp, siter)
+            )
             j = jn
 
     def _bmix_1(self, source, target):
@@ -234,10 +244,11 @@ class ScryptEngine(object):
         target[:16] = tmp = salsa20(a ^ b for a, b in zip(B, iter(source)))
         target[16:] = salsa20(a ^ b for a, b in zip(tmp, B))
 
-    #=================================================================
+    # =================================================================
     # eoc
-    #=================================================================
+    # =================================================================
 
-#==========================================================================
+
+# ==========================================================================
 # eof
-#==========================================================================
+# ==========================================================================

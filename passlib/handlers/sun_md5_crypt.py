@@ -7,28 +7,32 @@
     See documentation for details.
 """
 
-#=============================================================================
+# =============================================================================
 # imports
-#=============================================================================
+# =============================================================================
 # core
 from hashlib import md5
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+
+log = logging.getLogger(__name__)
 from warnings import warn
+
 # site
 # pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
 from passlib.utils.compat import str_to_bascii
 import passlib.utils.handlers as uh
+
 # local
 __all__ = [
     "sun_md5_crypt",
 ]
 
-#=============================================================================
+# =============================================================================
 # backend
-#=============================================================================
+# =============================================================================
 # constant data used by alg - Hamlet act 3 scene 1 + null char
 # exact bytes as in http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt
 # from Project Gutenberg.
@@ -68,18 +72,19 @@ MAGIC_HAMLET = (
     b"With this regard, their currents turn awry,\n"
     b"And lose the name of action.--Soft you now!\n"
     b"The fair Ophelia!--Nymph, in thy orisons\n"
-    b"Be all my sins remember'd.\n\x00" #<- apparently null at end of C string is included (test vector won't pass otherwise)
+    b"Be all my sins remember'd.\n\x00"  # <- apparently null at end of C string is included (test vector won't pass otherwise)
 )
 
 # NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below
 xr = range(7)
 _XY_ROUNDS = [
-    tuple((i,i,i+3) for i in xr), # xrounds 0
-    tuple((i,i+1,i+4) for i in xr), # xrounds 1
-    tuple((i,i+8,(i+11)&15) for i in xr), # yrounds 0
-    tuple((i,(i+9)&15, (i+12)&15) for i in xr), # yrounds 1
+    tuple((i, i, i + 3) for i in xr),  # xrounds 0
+    tuple((i, i + 1, i + 4) for i in xr),  # xrounds 1
+    tuple((i, i + 8, (i + 11) & 15) for i in xr),  # yrounds 0
+    tuple((i, (i + 9) & 15, (i + 12) & 15) for i in xr),  # yrounds 1
 ]
 del xr
+
 
 def raw_sun_md5_crypt(secret, rounds, salt):
     """given secret & salt, return encoded sun-md5-crypt checksum"""
@@ -127,24 +132,30 @@ def raw_sun_md5_crypt(secret, rounds, salt):
 
         # build up X bit by bit
         x = 0
-        xrounds = X_ROUNDS_1 if (rval((round>>3) & 15)>>(round & 7)) & 1 else X_ROUNDS_0
+        xrounds = (
+            X_ROUNDS_1 if (rval((round >> 3) & 15) >> (round & 7)) & 1 else X_ROUNDS_0
+        )
         for i, ia, ib in xrounds:
             a = rval(ia)
             b = rval(ib)
-            v = rval((a >> (b % 5)) & 15) >> ((b>>(a&7)) & 1)
-            x |= ((rval((v>>3)&15)>>(v&7))&1) << i
+            v = rval((a >> (b % 5)) & 15) >> ((b >> (a & 7)) & 1)
+            x |= ((rval((v >> 3) & 15) >> (v & 7)) & 1) << i
 
         # build up Y bit by bit
         y = 0
-        yrounds = Y_ROUNDS_1 if (rval(((round+64)>>3) & 15)>>(round & 7)) & 1 else Y_ROUNDS_0
+        yrounds = (
+            Y_ROUNDS_1
+            if (rval(((round + 64) >> 3) & 15) >> (round & 7)) & 1
+            else Y_ROUNDS_0
+        )
         for i, ia, ib in yrounds:
             a = rval(ia)
             b = rval(ib)
-            v = rval((a >> (b % 5)) & 15) >> ((b>>(a&7)) & 1)
-            y |= ((rval((v>>3)&15)>>(v&7))&1) << i
+            v = rval((a >> (b % 5)) & 15) >> ((b >> (a & 7)) & 1)
+            y |= ((rval((v >> 3) & 15) >> (v & 7)) & 1) << i
 
         # extract x'th and y'th bit, xoring them together to yeild "coin flip"
-        coin = ((rval(x>>3) >> (x&7)) ^ (rval(y>>3) >> (y&7))) & 1
+        coin = ((rval(x >> 3) >> (x & 7)) ^ (rval(y >> 3) >> (y & 7))) & 1
 
         # construct hash for this round
         h = md5(result)
@@ -158,19 +169,31 @@ def raw_sun_md5_crypt(secret, rounds, salt):
     # encode output
     return h64.encode_transposed_bytes(result, _chk_offsets)
 
+
 # NOTE: same offsets as md5_crypt
 _chk_offsets = (
-    12,6,0,
-    13,7,1,
-    14,8,2,
-    15,9,3,
-    5,10,4,
+    12,
+    6,
+    0,
+    13,
+    7,
+    1,
+    14,
+    8,
+    2,
+    15,
+    9,
+    3,
+    5,
+    10,
+    4,
     11,
 )
 
-#=============================================================================
+
+# =============================================================================
 # handler
-#=============================================================================
+# =============================================================================
 class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the Sun-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -213,9 +236,10 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
-    #===================================================================
+
+    # ===================================================================
     # class attrs
-    #===================================================================
+    # ===================================================================
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
     checksum_chars = uh.HASH64_CHARS
@@ -230,29 +254,29 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     max_salt_size = None
     salt_chars = uh.HASH64_CHARS
 
-    default_rounds = 34000 # current passlib default
+    default_rounds = 34000  # current passlib default
     min_rounds = 0
-    max_rounds = 4294963199 ##2**32-1-4096
-        # XXX: ^ not sure what it does if past this bound... does 32 int roll over?
+    max_rounds = 4294963199  ##2**32-1-4096
+    # XXX: ^ not sure what it does if past this bound... does 32 int roll over?
     rounds_cost = "linear"
 
-    ident_values = (u"$md5$", u"$md5,")
+    ident_values = ("$md5$", "$md5,")
 
-    #===================================================================
+    # ===================================================================
     # instance attrs
-    #===================================================================
-    bare_salt = False # flag to indicate legacy hashes that lack "$$" suffix
+    # ===================================================================
+    bare_salt = False  # flag to indicate legacy hashes that lack "$$" suffix
 
-    #===================================================================
+    # ===================================================================
     # constructor
-    #===================================================================
+    # ===================================================================
     def __init__(self, bare_salt=False, **kwds):
         self.bare_salt = bare_salt
         super().__init__(**kwds)
 
-    #===================================================================
+    # ===================================================================
     # internal helpers
-    #===================================================================
+    # ===================================================================
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
@@ -267,11 +291,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # if so, parse and validate it.
         # by end, set 'rounds' to int value, and 'tail' containing salt+chk
         #
-        if hash.startswith(u"$md5$"):
+        if hash.startswith("$md5$"):
             rounds = 0
             salt_idx = 5
-        elif hash.startswith(u"$md5,rounds="):
-            idx = hash.find(u"$", 12)
+        elif hash.startswith("$md5,rounds="):
+            idx = hash.find("$", 12)
             if idx == -1:
                 raise uh.exc.MalformedHashError(cls, "unexpected end of rounds")
             rstr = hash[12:idx]
@@ -286,7 +310,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
                 #      but allowing it would complicate things,
                 #      and it should never occur anyways.
                 raise uh.exc.MalformedHashError(cls, "explicit zero rounds")
-            salt_idx = idx+1
+            salt_idx = idx + 1
         else:
             raise uh.exc.InvalidHashError(cls)
 
@@ -295,28 +319,28 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         # to deal cleanly with some backward-compatible workarounds
         # implemented by original implementation.
         #
-        chk_idx = hash.rfind(u"$", salt_idx)
+        chk_idx = hash.rfind("$", salt_idx)
         if chk_idx == -1:
             # ''-config for $-hash
             salt = hash[salt_idx:]
             chk = None
             bare_salt = True
-        elif chk_idx == len(hash)-1:
-            if chk_idx > salt_idx and hash[-2] == u"$":
+        elif chk_idx == len(hash) - 1:
+            if chk_idx > salt_idx and hash[-2] == "$":
                 raise uh.exc.MalformedHashError(cls, "too many '$' separators")
             # $-config for $$-hash
             salt = hash[salt_idx:-1]
             chk = None
             bare_salt = False
-        elif chk_idx > 0 and hash[chk_idx-1] == u"$":
+        elif chk_idx > 0 and hash[chk_idx - 1] == "$":
             # $$-hash
-            salt = hash[salt_idx:chk_idx-1]
-            chk = hash[chk_idx+1:]
+            salt = hash[salt_idx : chk_idx - 1]
+            chk = hash[chk_idx + 1 :]
             bare_salt = False
         else:
             # $-hash
             salt = hash[salt_idx:chk_idx]
-            chk = hash[chk_idx+1:]
+            chk = hash[chk_idx + 1 :]
             bare_salt = True
 
         return cls(
@@ -327,20 +351,20 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
 
     def to_string(self, _withchk=True):
-        ss = u'' if self.bare_salt else u'$'
+        ss = "" if self.bare_salt else "$"
         rounds = self.rounds
         if rounds > 0:
-            hash = u"$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
+            hash = "$md5,rounds=%d$%s%s" % (rounds, self.salt, ss)
         else:
-            hash = u"$md5$%s%s" % (self.salt, ss)
+            hash = "$md5$%s%s" % (self.salt, ss)
         if _withchk:
             chk = self.checksum
-            hash = u"%s$%s" % (hash, chk)
+            hash = "%s$%s" % (hash, chk)
         return hash
 
-    #===================================================================
+    # ===================================================================
     # primary interface
-    #===================================================================
+    # ===================================================================
     # TODO: if we're on solaris, check for native crypt() support.
     #       this will require extra testing, to make sure native crypt
     #       actually behaves correctly. of particular importance:
@@ -353,10 +377,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         config = str_to_bascii(self.to_string(_withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
 
-    #===================================================================
+    # ===================================================================
     # eoc
-    #===================================================================
+    # ===================================================================
 
-#=============================================================================
+
+# =============================================================================
 # eof
-#=============================================================================
+# =============================================================================
