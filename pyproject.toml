@@ -45,7 +45,7 @@ totp = [
 ]
 build_docs = [
     "cloud-sptheme>=1.10.1",
-    "sphinx>=1.6",k
+    "sphinx>=1.6",
     "sphinxcontrib-fulltoc>=1.2.0",
 ]
 [build-system]
