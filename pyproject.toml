@@ -1,0 +1,57 @@
+[project]
+name = "passlib"
+version = "1.8.0.dev20240910183143"
+description = "comprehensive password hashing framework supporting over 30 schemes"
+authors = [
+    { name = "Doctor", email = "thirvondukr@gmail.com" },
+    { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
+]
+dependencies = []
+requires-python = ">=3.8"
+readme = "README.md"
+license = { text = "BSD" }
+keywords = ["password secret hash security\ncrypt md5-crypt\nsha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt\napache htpasswd htdigest\ntotp 2fa"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: Jython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://passlib.readthedocs.io"
+
+[project.optional-dependencies]
+argon2 = [
+    "argon2-cffi>=18.2.0",
+]
+bcrypt = [
+    "bcrypt>=3.1.0",
+]
+totp = [
+    "cryptography>=43.0.1",
+]
+build_docs = [
+    "cloud-sptheme>=1.10.1",
+    "sphinx>=1.6",k
+    "sphinxcontrib-fulltoc>=1.2.0",
+]
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
