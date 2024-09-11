@@ -1,7 +1,7 @@
 [project]
 name = "libpass"
 version = "1.7.4"
-description = "comprehensive password hashing framework supporting over 30 schemes"
+description = "Fork of passlib, a comprehensive password hashing framework supporting over 30 schemes"
 authors = [
     { name = "Doctor", email = "thirvondukr@gmail.com" },
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
