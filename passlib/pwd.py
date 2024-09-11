@@ -6,6 +6,7 @@
 # core
 import codecs
 from collections import defaultdict
+from importlib import resources
 
 try:
     from collections.abc import MutableMapping
@@ -16,7 +17,6 @@ from math import ceil, log as logf
 import logging
 
 log = logging.getLogger(__name__)
-import pkg_resources
 import os
 
 # site
@@ -127,7 +127,7 @@ def _open_asset_path(path, encoding=None):
             "asset path must be absolute file path "
             "or use 'pkg.name:sub/path' format: %r" % (path,)
         )
-    return pkg_resources.resource_stream(package, subpath)
+    return resources.files(package).joinpath(subpath).open("rb")
 
 
 #: type aliases

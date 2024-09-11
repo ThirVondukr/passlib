@@ -60,7 +60,9 @@ def _get_max_time_t():
     while True:
         next_value = value << 1
         try:
-            next_year = datetime.datetime.fromtimestamp(next_value - 1, tz=timezone.utc).year
+            next_year = datetime.datetime.fromtimestamp(
+                next_value - 1, tz=timezone.utc
+            ).year
         except (ValueError, OSError, OverflowError):
             # utcfromtimestamp() may throw any of the following:
             #
