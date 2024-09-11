@@ -3,7 +3,7 @@ import warnings
 
 from passlib import hash
 from tests.utils import TestCase, HandlerCase
-from passlib.tests.test_handlers import UPASS_WAV
+from tests.test_handlers import UPASS_WAV
 
 
 class ldap_pbkdf2_test(TestCase):

@@ -98,7 +98,7 @@ def guess_app_stacklevel(start=1):
     try:
         while frame:
             name = frame.f_globals.get("__name__", "")
-            if name.startswith("passlib.tests.") or not name.startswith("passlib."):
+            if name.startswith("tests.") or not name.startswith("passlib."):
                 return max(1, count)
             count += 1
             frame = frame.f_back

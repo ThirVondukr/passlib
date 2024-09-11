@@ -1,13 +1,3 @@
-"""passlib.tests -- unittests for passlib.crypto.des"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-
-# site
-# pkg
-# module
 from passlib.utils import getrandbytes
 from tests.utils import TestCase
 

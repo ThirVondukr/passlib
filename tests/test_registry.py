@@ -147,14 +147,16 @@ class RegistryTest(TestCase):
         unload_handler_name("alt_dummy_0")
 
         # TODO: check lazy load which calls register_crypt_handler (warning should be issued)
-        sys.modules.pop("passlib.tests._test_bad_register", None)
-        register_crypt_handler_path("dummy_bad", "passlib.tests._test_bad_register")
+
+        sys.modules.pop("tests._test_bad_register", None)
+
+        register_crypt_handler_path("dummy_bad", "tests._test_bad_register")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "xxxxxxxxxx", DeprecationWarning)
             h = get_crypt_handler("dummy_bad")
-        from passlib.tests import _test_bad_register as tbr
+        from tests import _test_bad_register as tbr
 
-        self.assertIs(h, tbr.alt_dummy_bad)
+        assert h is tbr.alt_dummy_bad
 
     def test_register_crypt_handler(self):
         """test register_crypt_handler()"""
@@ -256,7 +258,7 @@ class RegistryTest(TestCase):
     def test_handlers(self):
         """verify we have tests for all builtin handlers"""
         from passlib.registry import list_crypt_handlers
-        from passlib.tests.test_handlers import (
+        from tests.test_handlers import (
             get_handler_case,
             conditionally_available_hashes,
         )

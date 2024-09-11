@@ -58,7 +58,7 @@ class MiscTest(TestCase):
         with self.assertWarningList(
             dict(
                 category=DeprecationWarning,
-                message="the function passlib.tests.test_utils.test_func() "
+                message="the function tests.test_utils.test_func() "
                 "is deprecated as of Passlib 1.6, and will be "
                 "removed in Passlib 1.8.",
             )

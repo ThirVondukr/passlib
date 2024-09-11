@@ -951,7 +951,7 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(other, dump.replace("[passlib]", "[password-security]"))
 
         # test unmanaged handler warning
-        from passlib.tests.test_utils_handlers import UnsaltedHash
+        from tests.test_utils_handlers import UnsaltedHash
 
         ctx3 = CryptContext([UnsaltedHash, "md5_crypt"])
         dump = ctx3.to_string()
@@ -1924,7 +1924,7 @@ class LazyCryptContextTest(TestCase):
     def test_kwd_constructor(self):
         """test plain kwds"""
         self.assertFalse(has_crypt_handler("dummy_2"))
-        register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
+        register_crypt_handler_path("dummy_2", "tests.test_context")
 
         cc = LazyCryptContext(iter(["dummy_2", "des_crypt"]), deprecated=["des_crypt"])
 
@@ -1937,7 +1937,7 @@ class LazyCryptContextTest(TestCase):
 
     def test_callable_constructor(self):
         self.assertFalse(has_crypt_handler("dummy_2"))
-        register_crypt_handler_path("dummy_2", "passlib.tests.test_context")
+        register_crypt_handler_path("dummy_2", "tests.test_context")
 
         def onload(flag=False):
             self.assertTrue(flag)

@@ -1,9 +1,3 @@
-"""passlib.tests -- unittests for passlib.crypto._md4"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify
 import hashlib
 from unittest import skipUnless

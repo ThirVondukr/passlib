@@ -1,9 +1,3 @@
-"""passlib.tests.test_handlers - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
 log = logging.getLogger(__name__)
@@ -78,7 +72,7 @@ def get_handler_case(scheme):
     else:
         name = "%s_test" % scheme
     for module in _handler_test_modules:
-        modname = "passlib.tests." + module
+        modname = "tests." + module
         __import__(modname)
         mod = sys.modules[modname]
         try:

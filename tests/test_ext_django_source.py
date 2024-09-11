@@ -114,7 +114,7 @@ if test_hashers_mod:
         # helpers
         # ==================================================================
 
-        # port patchAttr() helper method from passlib.tests.utils.TestCase
+        # port patchAttr() helper method from tests.utils.TestCase
         patchAttr = TestCase.patchAttr
 
         # ==================================================================

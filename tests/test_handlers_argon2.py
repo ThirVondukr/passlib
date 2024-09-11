@@ -1,9 +1,3 @@
-"""passlib.tests.test_handlers_argon2 - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
 log = logging.getLogger(__name__)
@@ -14,7 +8,7 @@ import warnings
 # pkg
 from passlib import hash
 from tests.utils import HandlerCase, TEST_MODE
-from passlib.tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
+from tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
 # module
 
 

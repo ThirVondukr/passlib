@@ -1,16 +1,7 @@
-"""
-passlib.tests.test_handlers_cisco - tests for Cisco-specific algorithms
-"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
 log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib import hash, exc
 from .utils import UserHandlerMixin, HandlerCase, repeat_string
 from .test_handlers import UPASS_TABLE

@@ -2,7 +2,7 @@ import warnings
 
 from passlib import hash
 from tests.utils import HandlerCase, TEST_MODE
-from passlib.tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
+from tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
 
 
 warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
