@@ -90,3 +90,5 @@ skip_empty = true
 precision = 2
 fail_under = 0
 
+[tool.deptry]
+known_first_party = ["passlib"]

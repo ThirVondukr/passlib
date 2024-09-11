@@ -8,7 +8,7 @@ jobs:
         python-version:
           - 3.11.9
         job:
-          - deptry src
+          - deptry .
           - mypy .
           - ruff format --check .
           - ruff check .
