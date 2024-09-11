@@ -9,8 +9,8 @@ import contextlib
 from functools import wraps, partial
 import hashlib
 import logging
+from unittest import SkipTest
 
-log = logging.getLogger(__name__)
 import random
 import re
 import os
@@ -20,15 +20,12 @@ import threading
 import time
 import unittest
 from passlib.exc import PasslibHashWarning, PasslibConfigWarning
-from passlib.utils.compat import JYTHON
 import warnings
 from warnings import warn
 
-# site
-# pkg
 from passlib import exc
 from passlib.exc import MissingBackendError
-import passlib.registry as registry
+
 from passlib.utils import (
     has_rounds_info,
     has_salt_info,
@@ -44,6 +41,7 @@ from passlib.utils import (
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
 
+log = logging.getLogger(__name__)
 # local
 __all__ = [
     # util funcs
@@ -54,19 +52,6 @@ __all__ = [
     "TestCase",
     "HandlerCase",
 ]
-
-# =============================================================================
-# environment detection
-# =============================================================================
-# figure out if we're running under GAE;
-# some tests (e.g. FS writing) should be skipped.
-# XXX: is there better way to do this?
-try:
-    import google.appengine
-except ImportError:
-    GAE = False
-else:
-    GAE = True
 
 
 def ensure_mtime_changed(path):
@@ -597,11 +582,6 @@ class TestCase(unittest.TestCase):
         if not TEST_MODE(level):
             raise self.skipTest("requires >= %r test mode" % level)
 
-    def require_writeable_filesystem(self):
-        """skip test if writeable FS not available"""
-        if GAE:
-            return self.skipTest("GAE doesn't offer read/write filesystem access")
-
     # ===================================================================
     # reproducible random helpers
     # ===================================================================
@@ -746,7 +726,6 @@ class TestCase(unittest.TestCase):
 
     def mktemp(self, *args, **kwds):
         """create temp file that's cleaned up at end of test"""
-        self.require_writeable_filesystem()
         fd, path = tempfile.mkstemp(*args, **kwds)
         os.close(fd)
         queue = self._mktemp_queue
@@ -1846,7 +1825,6 @@ class HandlerCase(TestCase):
         handler, subcls, small, medium, large, adj = self._create_using_rounds_helper()
         orig_min_rounds = handler.min_rounds
         orig_max_rounds = handler.max_rounds
-        orig_default_rounds = handler.default_rounds
 
         # .using() should clip values below valid minimum, w/ warning
         if orig_min_rounds > 0:
@@ -2019,7 +1997,6 @@ class HandlerCase(TestCase):
         """
         # setup helpers
         handler, subcls, small, medium, large, adj = self._create_using_rounds_helper()
-        orig_max_rounds = handler.max_rounds
 
         # 'rounds' should be treated as fallback for min, max, and default
         temp = subcls.using(rounds=medium + adj)

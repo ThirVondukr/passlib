@@ -9,10 +9,9 @@ import calendar
 import json
 import logging
 
-log = logging.getLogger(__name__)
+
 import math
 import struct
-import sys
 import time as _time
 import re
 from urllib.parse import urlparse, parse_qsl, quote, unquote
@@ -28,7 +27,7 @@ try:
 
     del cryptography
 except ImportError:
-    log.debug("can't import 'cryptography' package, totp encryption disabled")
+    logging.debug("can't import 'cryptography' package, totp encryption disabled")
     _cg_ciphers = _cg_default_backend = None
 # pkg
 from passlib import exc
@@ -45,14 +44,12 @@ from passlib.utils import (
     getrandbytes,
     rng,
     SequenceMixin,
-    xor_bytes,
     getrandstr,
 )
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
 from passlib.utils.compat import bascii_to_str, num_types
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
-from passlib.hash import pbkdf2_sha256
 
 # local
 __all__ = [

@@ -1,23 +1,8 @@
-"""test passlib.hosts"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib import hosts, hash as hashmod
 from passlib.utils import unix_crypt_schemes
 from passlib.tests.utils import TestCase
-# module
 
 
-# =============================================================================
-# test predefined app contexts
-# =============================================================================
 class HostsTest(TestCase):
     """perform general tests to make sure contexts work"""
 

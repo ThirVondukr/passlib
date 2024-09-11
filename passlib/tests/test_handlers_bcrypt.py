@@ -5,6 +5,7 @@
 # =============================================================================
 # core
 import logging
+from base64 import b64encode
 
 log = logging.getLogger(__name__)
 import os
@@ -644,7 +645,6 @@ class _bcrypt_sha256_test(HandlerCase):
         """
         from passlib.hash import bcrypt
         from passlib.crypto.digest import compile_hmac
-        from passlib.utils.binary import b64encode
 
         # manually calc intermediary digest
         salt = "nyKYxTAvjmy6lMDYMl11Uu"

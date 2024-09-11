@@ -4,15 +4,6 @@ this module is getting increasingly poorly named.
 maybe rename to "kdf" since it's getting more key derivation functions added.
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.exc import ExpectedTypeError
 from passlib.crypto.digest import (
     lookup_hash,
@@ -20,8 +11,9 @@ from passlib.crypto.digest import (
     pbkdf2_hmac,
     compile_hmac,
 )
+from warnings import warn
 
-# local
+
 __all__ = [
     # prf utils
     "get_prf",
@@ -33,7 +25,7 @@ __all__ = [
 # =============================================================================
 # issue deprecation warning for module
 # =============================================================================
-from warnings import warn
+
 
 warn(
     "the module 'passlib.utils.pbkdf2' is deprecated as of Passlib 1.7, "

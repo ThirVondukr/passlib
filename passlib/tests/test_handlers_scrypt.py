@@ -1,26 +1,13 @@
-"""passlib.tests.test_handlers - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
 import warnings
 
-warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
-# site
-# pkg
 from passlib import hash
 from passlib.tests.utils import HandlerCase, TEST_MODE
 from passlib.tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
-# module
 
 
-# =============================================================================
-# scrypt hash
-# =============================================================================
+warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
+
+
 class _scrypt_test(HandlerCase):
     handler = hash.scrypt
 

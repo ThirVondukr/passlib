@@ -1027,7 +1027,7 @@ class _PasslibHasherWrapper(object):
 
     def safe_summary(self, encoded):
         from django.contrib.auth.hashers import mask_hash
-        from django.utils.translation import ugettext_noop as _
+        from django.utils.translation import gettext_noop as _
 
         handler = self.passlib_handler
         items = [

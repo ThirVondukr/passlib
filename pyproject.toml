@@ -49,26 +49,9 @@ build_docs = [
     "sphinxcontrib-fulltoc>=1.2.0",
 ]
 
-[tool.pdm.dev-dependencies]
-linters = [
-    "deptry>=0.20.0",
-    "mypy>=1.11.2",
-    "ruff>=0.6.4",
-]
-testing = [
-    "coverage>=7.6.1",
-    "pytest>=8.3.3",
-    "typeguard>=4.3.0",
-]
-
-
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
-
-[tool.pdm]
-distribution = true
-
 
 [tool.coverage.run]
 source = ["passlib"]
@@ -92,3 +75,26 @@ fail_under = 0
 
 [tool.deptry]
 known_first_party = ["passlib"]
+
+
+[tool.ruff.lint]
+unfixable = ["F401"]
+
+[tool.pdm]
+distribution = true
+[tool.pdm.dev-dependencies]
+linters = [
+    "deptry>=0.20.0",
+    "mypy>=1.11.2",
+    "ruff>=0.6.4",
+]
+testing = [
+    "coverage>=7.6.1",
+    "pytest>=8.3.3",
+    "typeguard>=4.3.0",
+]
+django = [
+    "django>=4.2.16",
+]
+
+

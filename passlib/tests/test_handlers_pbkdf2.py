@@ -1,26 +1,9 @@
-"""passlib.tests.test_handlers - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
 import warnings
 
-# site
-# pkg
+
 from passlib import hash
 from passlib.tests.utils import TestCase, HandlerCase
 from passlib.tests.test_handlers import UPASS_WAV
-# module
-
-# =============================================================================
-# ldap_pbkdf2_{digest}
-# =============================================================================
-# NOTE: since these are all wrappers for the pbkdf2_{digest} hasehs,
-#       they don't extensive separate testing.
 
 
 class ldap_pbkdf2_test(TestCase):

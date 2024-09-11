@@ -1,18 +1,10 @@
-"""passlib.tests.test_handlers_django - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
-log = logging.getLogger(__name__)
-import re
+
 from unittest import skipUnless, SkipTest
 import warnings
+from passlib.tests.test_handlers_argon2 import _base_argon2_test
 
-# site
-# pkg
 from passlib import hash
 from passlib.utils import repeat_string
 from passlib.tests.utils import TestCase, HandlerCase
@@ -99,14 +91,14 @@ class _DjangoHelper(TestCase):
         from django.contrib.auth.hashers import check_password
 
         assert self.known_correct_hashes
-        for secret, hash in self.iter_known_hashes():
+        for secret, hash_ in self.iter_known_hashes():
             self.assertTrue(
-                check_password(secret, hash),
-                "secret=%r hash=%r failed to verify" % (secret, hash),
+                check_password(secret, hash_),
+                "secret=%r hash=%r failed to verify" % (secret, hash_),
             )
             self.assertFalse(
-                check_password("x" + secret, hash),
-                "mangled secret=%r hash=%r incorrect verified" % (secret, hash),
+                check_password("x" + secret, hash_),
+                "mangled secret=%r hash=%r incorrect verified" % (secret, hash_),
             )
 
     def test_91_django_generation(self):
@@ -400,9 +392,6 @@ class django_bcrypt_sha256_test(HandlerCase, _DjangoHelper):
             # omit multi-ident tests, only $2a$ counts for this class
             # XXX: enable this to check 2a / 2b?
             return None
-
-
-from passlib.tests.test_handlers_argon2 import _base_argon2_test
 
 
 @skipUnless(hash.argon2.has_backend(), "no argon2 backends available")

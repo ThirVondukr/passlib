@@ -5,17 +5,13 @@
 # =============================================================================
 # core
 import inspect
-import logging
-
-log = logging.getLogger(__name__)
 import math
 import threading
 from warnings import warn
 
-# site
-# pkg
-import passlib.exc as exc, passlib.ifc as ifc
-from passlib.exc import MissingBackendError, PasslibConfigWarning, PasslibHashWarning
+from passlib import exc
+from passlib import ifc
+from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import (
@@ -23,13 +19,12 @@ from passlib.utils import (
     getrandstr,
     getrandbytes,
     rng,
-    to_native_str,
-    is_crypt_handler,
     to_unicode,
     MAX_PASSWORD_SIZE,
     accepts_keyword,
     as_bool,
     update_mixin_classes,
+    join_unicode,
 )
 from passlib.utils.binary import (
     BASE64_CHARS,
@@ -40,7 +35,7 @@ from passlib.utils.binary import (
     LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,
 )
-from passlib.utils.compat import join_unicode, unicode_or_bytes
+from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import classproperty, deprecated_method
 
 # local
@@ -62,6 +57,8 @@ __all__ = [
     "HasManyBackends",
     # other helpers
     "PrefixWrapper",
+    "HEX_CHARS",
+    "ifc",
     # TODO: a bunch of other things are commonly assumed in this namespace
     #       (e.g. HEX_CHARS etc); need to audit uses and update this list.
 ]
@@ -311,7 +308,7 @@ def render_mc2(ident, salt, checksum, sep="$"):
         parts = [ident, salt, sep, checksum]
     else:
         parts = [ident, salt]
-    return join_unicode(parts)
+    return "".join(parts)
 
 
 def render_mc3(ident, rounds, salt, checksum, sep="$", rounds_base=10):
@@ -666,6 +663,7 @@ class GenericHandler(MinimalHandler):
     # instance attrs
     # ===================================================================
     checksum = None  # stores checksum
+
     #    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
     #    relaxed = False # when _norm_xxx() funcs should be strict about inputs
 
@@ -814,7 +812,7 @@ class GenericHandler(MinimalHandler):
         )
 
     # ===================================================================
-    #'application' interface (default implementation)
+    # 'application' interface (default implementation)
     # ===================================================================
 
     @classmethod

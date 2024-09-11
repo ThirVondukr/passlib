@@ -2,22 +2,11 @@
 passlib.utils.binary - binary data encoding/decoding/manipulation
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from base64 import (
-    b64encode,
-    b64decode,
     b32decode as _b32decode,
     b32encode as _b32encode,
 )
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,

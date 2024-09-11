@@ -1,36 +1,19 @@
-"""passlib.tests -- test passlib.totp"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import Error as DecodeError
 import datetime
 from datetime import timezone
 from functools import partial
 import logging
 
-log = logging.getLogger(__name__)
 import sys
 import time as _time
 
-# site
-# pkg
 from passlib import exc
 from passlib.tests.utils import TestCase, time_call
 
-# subject
+
 from passlib import totp as totp_module
 from passlib.totp import TOTP, AppWallet, AES_SUPPORT
 
-# local
-__all__ = [
-    "EngineTest",
-]
-
-# =============================================================================
-# helpers
-# =============================================================================
 
 PASS1 = "abcdef"
 PASS2 = b"\x00\xff"
@@ -587,7 +570,7 @@ class TotpTest(TestCase):
                     expires = None
                 # NOTE: not re-using otp between calls so that stateful methods
                 #       (like .match) don't have problems.
-                log.debug(
+                logging.debug(
                     "test vector: %r time=%r token=%r expires=%r",
                     kwds,
                     time,
@@ -989,9 +972,6 @@ class TotpTest(TestCase):
         self.assertTotpMatch(result, time=time, skipped=0)
 
     def test_totp_match_w_older_token(self):
-        """match() -- valid TotpMatch object with future token"""
-        from passlib.totp import TotpMatch
-
         time = 141230981
         token = "781501"
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)

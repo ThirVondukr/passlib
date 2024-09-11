@@ -1,20 +1,16 @@
 """passlib.utils.compat - python 2/3 compatibility helpers"""
-# =============================================================================
-# figure out what we're running
-# =============================================================================
 
-# ------------------------------------------------------------------------
-# python version
-# ------------------------------------------------------------------------
 import sys
+
+from types import ModuleType
+import logging
+
 
 # make sure it's not an unsupported version, even if we somehow got this far
 if sys.version_info < (3, 5):
     raise RuntimeError("Passlib requires Python >= 3.5 (as of passlib 1.8)")
 
-# ------------------------------------------------------------------------
-# python implementation
-# ------------------------------------------------------------------------
+
 JYTHON = sys.platform.startswith("java")
 
 PYPY = hasattr(sys, "pypy_version_info")
@@ -22,22 +18,12 @@ PYPY = hasattr(sys, "pypy_version_info")
 if PYPY and sys.pypy_version_info < (2, 0):
     raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
 
-# =============================================================================
-# common imports
-# =============================================================================
-import logging
-
-log = logging.getLogger(__name__)
-
 
 def add_doc(obj, doc):
     """add docstring to an object"""
     obj.__doc__ = doc
 
 
-# =============================================================================
-# the default exported vars
-# =============================================================================
 __all__ = [
     # type detection
     ##    'is_mapping',
@@ -66,13 +52,8 @@ _lazy_attrs = dict()
 #: alias for isinstance() tests to detect any string type
 unicode_or_bytes = (str, bytes)
 
-# =============================================================================
-# unicode & bytes helpers
-# =============================================================================
-# function to join list of unicode strings
-join_unicode = "".join
 
-# function to join list of byte strings
+join_unicode = "".join
 join_bytes = b"".join
 
 if True:  # legacy PY3 indent
@@ -144,12 +125,6 @@ except ImportError:
 
         def __exit__(self, *exc_info):
             pass
-
-
-# =============================================================================
-# lazy overlay module
-# =============================================================================
-from types import ModuleType
 
 
 def _import_object(source):

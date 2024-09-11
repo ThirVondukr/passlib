@@ -1,18 +1,13 @@
 """tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import re
 import hashlib
 from logging import getLogger
 import warnings
 
-# site
-# pkg
+
 from passlib.hash import ldap_md5, sha256_crypt
-from passlib.exc import MissingBackendError, PasslibHashWarning
+from passlib.exc import MissingBackendError
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase
 
@@ -645,7 +640,7 @@ class PrefixWrapperTest(TestCase):
         self.assertIs(d1._wrapped_handler, ldap_md5)
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
-        with dummy_handler_in_registry("ldap_md5") as dummy:
+        with dummy_handler_in_registry("ldap_md5"):
             self.assertIs(d1.wrapped, ldap_md5)
 
     def test_01_active_loading(self):
@@ -658,7 +653,7 @@ class PrefixWrapperTest(TestCase):
         self.assertIs(d1.wrapped, ldap_md5)
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
-        with dummy_handler_in_registry("ldap_md5") as dummy:
+        with dummy_handler_in_registry("ldap_md5"):
             self.assertIs(d1.wrapped, ldap_md5)
 
     def test_02_explicit(self):
@@ -672,7 +667,7 @@ class PrefixWrapperTest(TestCase):
         self.assertIs(d1.wrapped, ldap_md5)
 
         # replace w/ wrong handler, make sure doesn't reload w/ dummy
-        with dummy_handler_in_registry("ldap_md5") as dummy:
+        with dummy_handler_in_registry("ldap_md5"):
             self.assertIs(d1.wrapped, ldap_md5)
 
     def test_10_wrapped_attributes(self):

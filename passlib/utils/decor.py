@@ -2,20 +2,11 @@
 passlib.utils.decor -- helper decorators & properties
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
 from functools import wraps, update_wrapper
 import types
 from warnings import warn
 
-# site
-# pkg
-# local
+
 __all__ = [
     "classproperty",
     "hybrid_method",
@@ -26,10 +17,7 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# class-level decorators
-# =============================================================================
-class classproperty(object):
+class classproperty:
     """Function decorator which acts like a combination of classmethod+property (limited to read-only properties)"""
 
     def __init__(self, func):

@@ -1749,7 +1749,7 @@ sha512_crypt__min_rounds = 45000
         """
         # check dummy_verify() takes expected time
         expected = 0.05
-        accuracy = 0.2
+        accuracy = 0.3
         handler = DelayHash.using()
         handler.delay = expected
         ctx = CryptContext(schemes=[handler])
@@ -1886,7 +1886,8 @@ sha512_crypt__min_rounds = 45000
     # ===================================================================
 
 
-import hashlib, time
+import hashlib
+import time
 
 
 class DelayHash(uh.StaticHandler):

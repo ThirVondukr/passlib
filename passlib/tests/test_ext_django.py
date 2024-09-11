@@ -1,17 +1,8 @@
-"""test passlib.ext.django"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
-log = logging.getLogger(__name__)
 import sys
 import re
 
-# site
-# pkg
 from passlib import apps as _apps, exc, registry
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
@@ -36,9 +27,6 @@ __all__ = [
     "_ExtensionSupport",
     "_ExtensionTest",
 ]
-# =============================================================================
-# configure django settings for testcases
-# =============================================================================
 
 # whether we have supported django version
 has_min_django = DJANGO_VERSION >= MIN_DJANGO_VERSION
@@ -76,7 +64,7 @@ if has_min_django:
 # log a warning if tested w/ newer version.
 # NOTE: this is mainly here as place to mark what version it was run against before release.
 if DJANGO_VERSION >= (3, 2):
-    log.info("this release hasn't been tested against Django %r", DJANGO_VERSION)
+    logging.info("this release hasn't been tested against Django %r", DJANGO_VERSION)
 
 # =============================================================================
 # support funcs
@@ -839,7 +827,7 @@ class DjangoBehaviorTest(_ExtensionTest):
             self.assertTrue(ctx.handler().verify(secret, user.password))
             self.assert_valid_password(user, saved=user.password)
         else:
-            self.assert_valid_password(user, hash)
+            self.assert_valid_password(user, hash=hash)
 
         # don't need to check rest for most deployments
         if TEST_MODE(max="default"):
@@ -975,7 +963,7 @@ class DjangoExtensionTest(_ExtensionTest):
         # mess with User.set_password, make sure it's detected
         orig = models.User.set_password
         models.User.set_password = dummy
-        with self.assertWarningList("another library has patched.*User\.set_password"):
+        with self.assertWarningList("another library has patched.*User.set_password"):
             adapter._manager.check_all()
         models.User.set_password = orig
 

@@ -7,23 +7,18 @@ SETUP_TAG_RELEASE
     for release, this is explicitly set to "no".
 """
 
-# =============================================================================
-# init script env -- ensure cwd = root of source dir
-# =============================================================================
 import os
+
+
+import setuptools
+import sys
+from passlib import __version__ as version
+
 
 root_dir = os.path.abspath(os.path.join(__file__, ".."))
 os.chdir(root_dir)
 
-# =============================================================================
-# imports
-# =============================================================================
-import setuptools
-import sys
 
-# =============================================================================
-# init setup options
-# =============================================================================
 opts = dict(
     # ==================================================================
     # sources
@@ -122,12 +117,6 @@ Topic :: Software Development :: Libraries
     cmdclass={},
 )
 
-# =============================================================================
-# set version string
-# =============================================================================
-
-# pull version string from passlib
-from passlib import __version__ as version
 
 # append hg revision to builds
 stamp_build = True  # NOTE: modified by stamp_distutils_output()

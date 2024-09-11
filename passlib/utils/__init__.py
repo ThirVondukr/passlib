@@ -1,59 +1,28 @@
 """passlib.utils -- helpers for writing password hashes"""
 
-# =============================================================================
-# imports
-# =============================================================================
-from passlib.utils.compat import JYTHON
+from passlib.utils.compat import JYTHON, join_bytes, join_unicode
 
-# core
-from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
-from base64 import b64encode, b64decode
+from collections.abc import Sequence
+from collections.abc import Iterable
 
-try:
-    from collections.abc import Sequence
-    from collections.abc import Iterable
-except ImportError:
-    # py2 compat
-    from collections import Sequence
-    from collections import Iterable
 from codecs import lookup as _lookup_codec
-from functools import update_wrapper
 import itertools
 import inspect
-import logging
 
-log = logging.getLogger(__name__)
+
 import math
 import os
 import sys
 import random
 import re
 
-if JYTHON:  # pragma: no cover -- runtime detection
-    # Jython 2.5.2 lacks stringprep module -
-    # see http://bugs.jython.org/issue1758320
-    try:
-        import stringprep
-    except ImportError:
-        stringprep = None
-        _stringprep_missing_reason = "not present under Jython"
-else:
-    import stringprep
+import stringprep
 import time
 
-if stringprep:
-    import unicodedata
-try:
-    import threading
-except ImportError:
-    # module optional before py37
-    threading = None
+import unicodedata
+import threading
 import timeit
-import types
-from warnings import warn
 
-# site
-# pkg
 from passlib.utils.binary import (
     # [remove these aliases in 2.0]
     BASE64_CHARS,
@@ -81,52 +50,59 @@ from passlib.utils.decor import (
 from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (
     add_doc,
-    join_bytes,
-    join_unicode,
     unicode_or_bytes,
     get_method_function,
     PYPY,
 )
 
-# local
+
 __all__ = [
-    # constants
+    "AB64_CHARS",
+    "BASE64_CHARS",
+    "BCRYPT_CHARS",
+    "Base64Engine",
+    "HASH64_CHARS",
     "JYTHON",
-    "sys_bits",
-    "unix_crypt_schemes",
-    "rounds_cost_values",
-    # unicode helpers
+    "LazyBase64Engine",
+    "ab64_decode",
+    "ab64_encode",
+    "b64s_decode",
+    "b64s_encode",
+    "bcrypt64",
+    "classproperty",
     "consteq",
-    "saslprep",
-    # bytes helpers
-    "xor_bytes",
-    "render_bytes",
-    # encoding helpers
-    "is_same_codec",
-    "is_ascii_safe",
-    "to_bytes",
-    "to_unicode",
-    "to_native_str",
-    # host OS
-    "has_crypt",
-    "test_crypt",
-    "safe_crypt",
-    "tick",
-    # randomness
-    "rng",
+    "deprecated_method",
+    "generate_password",
     "getrandbytes",
     "getrandstr",
-    "generate_password",
-    # object type / interface tests
-    "is_crypt_handler",
-    "is_crypt_context",
+    "h64",
+    "h64big",
+    "has_crypt",
     "has_rounds_info",
     "has_salt_info",
+    "hybrid_method",
+    "is_ascii_safe",
+    "is_crypt_context",
+    "is_crypt_handler",
+    "is_same_codec",
+    "join_bytes",
+    "join_unicode",
+    "memoized_property",
+    "render_bytes",
+    "rng",
+    "rounds_cost_values",
+    "safe_crypt",
+    "saslprep",
+    "sys_bits",
+    "test_crypt",
+    "tick",
+    "to_bytes",
+    "to_native_str",
+    "to_unicode",
+    "unix_crypt_schemes",
+    "xor_bytes",
 ]
 
-# =============================================================================
-# constants
-# =============================================================================
 
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
@@ -144,20 +120,16 @@ unix_crypt_schemes = [
     "des_crypt",
 ]
 
-# list of rounds_cost constants
+
 rounds_cost_values = ["linear", "log2"]
 
-# internal helpers
+
 _BEMPTY = b""
 _UEMPTY = ""
 _USPACE = " "
 
 # maximum password size which passlib will allow; see exc.PasswordSizeError
 MAX_PASSWORD_SIZE = int(os.environ.get("PASSLIB_MAX_PASSWORD_SIZE") or 4096)
-
-# =============================================================================
-# type helpers
-# =============================================================================
 
 
 class SequenceMixin(object):
@@ -379,11 +351,11 @@ def consteq(left, right):
 
     # run constant-time string comparision
     if is_bytes:
-        for l, r in zip(tmp, right):
-            result |= l ^ r
+        for left_char, right_char in zip(tmp, right):
+            result |= left_char ^ right_char
     else:
-        for l, r in zip(tmp, right):
-            result |= ord(l) ^ ord(r)
+        for left_char, right_char in zip(tmp, right):
+            result |= ord(left_char) ^ ord(right_char)
     return result == 0
 
 
@@ -469,7 +441,7 @@ def saslprep(source, param="value"):
     #   - strip 'commonly mapped to nothing' chars (stringprep B.1)
     in_table_c12 = stringprep.in_table_c12
     in_table_b1 = stringprep.in_table_b1
-    data = join_unicode(
+    data = "".join(
         _USPACE if in_table_c12(c) else c for c in source if not in_table_b1(c)
     )
 
@@ -543,20 +515,6 @@ def saslprep(source, param="value"):
     return data
 
 
-# replace saslprep() with stub when stringprep is missing
-if stringprep is None:  # pragma: no cover -- runtime detection
-
-    def saslprep(source, param="value"):
-        """stub for saslprep()"""
-        raise NotImplementedError(
-            "saslprep() support requires the 'stringprep' "
-            "module, which is " + _stringprep_missing_reason
-        )
-
-
-# =============================================================================
-# bytes helpers
-# =============================================================================
 def render_bytes(source, *args):
     """Peform ``%`` formating using bytes in a uniform manner across Python 2/3.
 
@@ -926,7 +884,7 @@ else:
         except TypeError:
             # CPython will throw TypeError
             crypt_accepts_bytes = False
-        except:  # no pragma
+        except Exception:  # no pragma
             # don't care about other errors this might throw,
             # just want to see if we get past initial type-coercion step.
             pass
@@ -1153,7 +1111,7 @@ def getrandstr(rng, charset, count):
             i += 1
 
     if isinstance(charset, str):
-        return join_unicode(helper())
+        return "".join(helper())
     else:
         return bytes(helper())
 

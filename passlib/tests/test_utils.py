@@ -1,23 +1,16 @@
 """tests for passlib.util"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from functools import partial
 import warnings
 
-# site
-# pkg
-# module
+
 from passlib.utils import is_ascii_safe, to_bytes
-from passlib.utils.compat import join_bytes, PYPY
+from passlib.utils.compat import join_bytes
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
+from passlib.utils.binary import h64, h64big
 
-# =============================================================================
-# byte funcs
-# =============================================================================
+
 class MiscTest(TestCase):
     """tests various parts of utils module"""
 
@@ -306,7 +299,7 @@ class MiscTest(TestCase):
             self.assertTrue(consteq(value, value), "value %r:" % (value,))
 
         # check non-equal inputs compare correctly
-        for l, r in [
+        for left, right in [
             # check same-size comparisons with differing contents fail.
             ("a", "c"),
             ("abcabc", "zbaabc"),
@@ -319,19 +312,19 @@ class MiscTest(TestCase):
             ("abc", "defabc"),
             ("qwertyuiopasdfghjklzxcvbnm", "abc"),
         ]:
-            if consteq_supports_string(l) and consteq_supports_string(r):
-                self.assertFalse(consteq(l, r), "values %r %r:" % (l, r))
-                self.assertFalse(consteq(r, l), "values %r %r:" % (r, l))
+            if consteq_supports_string(left) and consteq_supports_string(right):
+                self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
+                self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
             else:
-                self.assertRaises(TypeError, consteq, l, r)
-                self.assertRaises(TypeError, consteq, r, l)
-            self.assertFalse(str_consteq(l, r), "values %r %r:" % (l, r))
-            self.assertFalse(str_consteq(r, l), "values %r %r:" % (r, l))
+                self.assertRaises(TypeError, consteq, left, right)
+                self.assertRaises(TypeError, consteq, right, left)
+            self.assertFalse(str_consteq(left, right), "values %r %r:" % (left, right))
+            self.assertFalse(str_consteq(right, left), "values %r %r:" % (right, left))
 
-            l = l.encode("latin-1")
-            r = r.encode("latin-1")
-            self.assertFalse(consteq(l, r), "values %r %r:" % (l, r))
-            self.assertFalse(consteq(r, l), "values %r %r:" % (r, l))
+            left = left.encode("latin-1")
+            right = right.encode("latin-1")
+            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
+            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
 
         # TODO: add some tests to ensure we take THETA(strlen) time.
         # this might be hard to do reproducably.
@@ -869,7 +862,7 @@ class _Base64Test(TestCase):
 
     def test_decode_bytes_padding(self):
         """test decode_bytes() ignores padding bits"""
-        bchr = lambda v: bytes([v])
+        bchr = lambda v: bytes([v])  # noqa: E731
         engine = self.engine
         m = self.m
         decode = engine.decode_bytes
@@ -1088,7 +1081,6 @@ class _Base64Test(TestCase):
                 self.assertEqual(result, encoded)
 
     def test_int6(self):
-        engine = self.engine
         m = self.m
         self.check_int_pair(6, [(0, m(0)), (63, m(63))])
 
@@ -1150,15 +1142,6 @@ class _Base64Test(TestCase):
             decode = getattr(engine, "decode_int%d" % bits)
             self.assertEqual(encode(value), data)
             self.assertEqual(decode(data), value)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# NOTE: testing H64 & H64Big should be sufficient to verify
-# that Base64Engine() works in general.
-from passlib.utils.binary import h64, h64big
 
 
 class H64_Test(_Base64Test):

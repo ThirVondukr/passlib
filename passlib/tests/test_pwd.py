@@ -1,28 +1,16 @@
-"""passlib.tests -- tests for passlib.pwd"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import itertools
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.tests.utils import TestCase
 
-# local
+from passlib.pwd import genphrase
+from passlib.pwd import genword, default_charsets
+
 __all__ = [
     "UtilsTest",
-    "GenerateTest",
-    "StrengthTest",
 ]
 
 
-# =============================================================================
-#
-# =============================================================================
 class UtilsTest(TestCase):
     """test internal utilities"""
 
@@ -58,13 +46,6 @@ class UtilsTest(TestCase):
     #     self.assertEqual(_total_self_info("abcd" * 8), 64)
     #     self.assertAlmostEqual(_total_self_info("abcdaaaa"), 12.3904, places=4)
 
-
-# =============================================================================
-# word generation
-# =============================================================================
-
-# import subject
-from passlib.pwd import genword, default_charsets
 
 ascii_62 = default_charsets["ascii_62"]
 hex = default_charsets["hex"]
@@ -134,13 +115,6 @@ class WordGeneratorTest(TestCase):
 
     # TODO: test rng option
 
-
-# =============================================================================
-# phrase generation
-# =============================================================================
-
-# import subject
-from passlib.pwd import genphrase
 
 simple_words = ["alpha", "beta", "gamma"]
 
