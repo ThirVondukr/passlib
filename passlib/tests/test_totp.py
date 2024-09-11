@@ -6,6 +6,7 @@
 # core
 from binascii import Error as DecodeError
 import datetime
+from datetime import timezone
 from functools import partial
 import logging
 
@@ -59,7 +60,7 @@ def _get_max_time_t():
     while True:
         next_value = value << 1
         try:
-            next_year = datetime.datetime.utcfromtimestamp(next_value - 1).year
+            next_year = datetime.datetime.fromtimestamp(next_value - 1, tz=timezone.utc).year
         except (ValueError, OSError, OverflowError):
             # utcfromtimestamp() may throw any of the following:
             #
