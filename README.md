@@ -1,5 +1,8 @@
 # Passlib
 
+[![image](https://img.shields.io/pypi/v/libpass.svg)](https://pypi.org/pypi/libpass)
+[![image](https://img.shields.io/pypi/pyversions/libpass.svg)](https://pypi.org/project/libpass)
+
 This is a fork of https://foss.heptapod.net/python-libs/passlib
 
 Passlib is a password hashing library for Python 3, which provides
