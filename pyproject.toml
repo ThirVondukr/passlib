@@ -28,7 +28,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://passlib.readthedocs.io"
+Repository = "https://github.com/ThirVondukr/passlib"
+Docs = "https://passlib.readthedocs.io"
 
 [project.optional-dependencies]
 argon2 = [
@@ -49,6 +50,25 @@ build_docs = [
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+
+[tool.pdm.dev-dependencies]
+linters = [
+    "deptry>=0.20.0",
+    "mypy>=1.11.2",
+    "ruff>=0.6.4",
+]
+testing = [
+    "coverage>=7.6.1",
+    "pytest>=8.3.3",
+    "typeguard>=4.3.0",
+]
+django = [
+    "django>=4.2.16",
+]
 
 [tool.coverage.run]
 source = ["passlib"]
@@ -79,25 +99,6 @@ target-version = "py39"
 
 [tool.ruff.lint]
 unfixable = ["F401"]
-
-[tool.pdm]
-distribution = true
-
-[tool.pdm.dev-dependencies]
-linters = [
-    "deptry>=0.20.0",
-    "mypy>=1.11.2",
-    "ruff>=0.6.4",
-]
-testing = [
-    "coverage>=7.6.1",
-    "pytest>=8.3.3",
-    "typeguard>=4.3.0",
-]
-django = [
-    "django>=4.2.16",
-]
-
 
 [tool.commitizen]
 name = "cz_conventional_commits"
