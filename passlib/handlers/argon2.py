@@ -18,6 +18,7 @@ References
 # =============================================================================
 # core
 import logging
+from importlib import metadata
 
 log = logging.getLogger(__name__)
 import re
@@ -799,7 +800,7 @@ class _CffiBackend(_Argon2Common):
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
         log.debug(
             "detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
-            _argon2_cffi.__version__,
+            metadata.version("argon2_cffi"),
             max_version,
         )
 
