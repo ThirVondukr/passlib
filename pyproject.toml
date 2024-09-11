@@ -48,13 +48,6 @@ build_docs = [
     "sphinx>=1.6",
     "sphinxcontrib-fulltoc>=1.2.0",
 ]
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
-
-
-[tool.pdm]
-distribution = true
 
 [tool.pdm.dev-dependencies]
 linters = [
@@ -67,3 +60,33 @@ testing = [
     "pytest>=8.3.3",
     "typeguard>=4.3.0",
 ]
+
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+
+[tool.coverage.run]
+source = ["passlib"]
+omit = [""]
+command_line = "-m pytest -v"
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "class .*\\(.*\\bProtocol\\b.*\\):",
+    "@(?:typing\\.)?overload",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+show_missing = true
+skip_covered = true
+skip_empty = true
+precision = 2
+fail_under = 0
+
