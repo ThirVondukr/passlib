@@ -1,0 +1,37 @@
+name: Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache PIP
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            .venv
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('pdm.lock') }}
+      - name: Install PDM
+        run: |
+          pip install pdm
+          pdm sync --clean
+
+      - run: |
+          pdm run coverage run
+          pdm run coverage report -m
+          pdm run coverage xml
+        env:
+          DATABASE_TEST_URL: "postgresql+asyncpg://postgres:password@localhost/postgres"
+          DATABASE_NAME: " "
+          DATABASE_HOST: " "
+          DATABASE_USERNAME: " "
+          DATABASE_PASSWORD: " "
