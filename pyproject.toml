@@ -7,7 +7,7 @@ authors = [
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
 ]
 dependencies = []
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 readme = "README.md"
 license = { text = "BSD" }
 keywords = ["password secret hash security\ncrypt md5-crypt\nsha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt\napache htpasswd htdigest\ntotp 2fa"]
@@ -77,11 +77,15 @@ fail_under = 0
 known_first_party = ["passlib"]
 
 
+[tool.ruff]
+target-version = "py39"
+
 [tool.ruff.lint]
 unfixable = ["F401"]
 
 [tool.pdm]
 distribution = true
+
 [tool.pdm.dev-dependencies]
 linters = [
     "deptry>=0.20.0",
