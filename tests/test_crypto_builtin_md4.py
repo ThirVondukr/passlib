@@ -13,7 +13,7 @@ from unittest import skipUnless
 # module
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import lookup_hash
-from passlib.tests.utils import TestCase
+from tests.utils import TestCase
 
 # local
 __all__ = [

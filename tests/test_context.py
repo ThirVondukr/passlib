@@ -20,7 +20,7 @@ from passlib.context import CryptContext, LazyCryptContext
 from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.utils import tick, to_unicode
 import passlib.utils.handlers as uh
-from passlib.tests.utils import (
+from tests.utils import (
     TestCase,
     set_file,
     TICK_RESOLUTION,

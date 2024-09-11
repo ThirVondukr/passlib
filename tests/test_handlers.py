@@ -13,7 +13,7 @@ import warnings
 # site
 # pkg
 from passlib import exc, hash
-from passlib.tests.utils import (
+from tests.utils import (
     TestCase,
     HandlerCase,
     TEST_MODE,

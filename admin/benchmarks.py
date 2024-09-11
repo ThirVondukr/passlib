@@ -29,7 +29,7 @@ try:
 except ImportError:
     PasslibConfigWarning = None
 import passlib.utils.handlers as uh
-from passlib.tests.utils import time_call
+from tests.utils import time_call
 # local
 
 

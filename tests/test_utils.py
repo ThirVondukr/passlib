@@ -6,7 +6,7 @@ import warnings
 
 from passlib.utils import is_ascii_safe, to_bytes
 from passlib.utils.compat import join_bytes
-from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
+from tests.utils import TestCase, hb, run_with_fixed_seeds
 
 from passlib.utils.binary import h64, h64big
 

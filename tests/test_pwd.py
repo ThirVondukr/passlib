@@ -1,7 +1,7 @@
 import itertools
 
 
-from passlib.tests.utils import TestCase
+from tests.utils import TestCase
 
 from passlib.pwd import genphrase
 from passlib.pwd import genword, default_charsets

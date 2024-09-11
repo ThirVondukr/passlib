@@ -14,7 +14,7 @@ import warnings
 # module
 from passlib.exc import UnknownHashError
 from passlib.utils.compat import JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, hb
+from tests.utils import TestCase, TEST_MODE, hb
 
 
 # =============================================================================

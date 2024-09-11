@@ -8,7 +8,7 @@ import sys
 import time as _time
 
 from passlib import exc
-from passlib.tests.utils import TestCase, time_call
+from tests.utils import TestCase, time_call
 
 
 from passlib import totp as totp_module

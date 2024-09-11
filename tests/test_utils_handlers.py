@@ -9,7 +9,7 @@ import warnings
 from passlib.hash import ldap_md5, sha256_crypt
 from passlib.exc import MissingBackendError
 import passlib.utils.handlers as uh
-from passlib.tests.utils import HandlerCase, TestCase
+from tests.utils import HandlerCase, TestCase
 
 # module
 log = getLogger(__name__)

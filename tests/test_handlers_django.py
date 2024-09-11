@@ -7,7 +7,7 @@ from passlib.tests.test_handlers_argon2 import _base_argon2_test
 
 from passlib import hash
 from passlib.utils import repeat_string
-from passlib.tests.utils import TestCase, HandlerCase
+from tests.utils import TestCase, HandlerCase
 from passlib.tests.test_handlers import UPASS_USD, UPASS_TABLE
 from passlib.tests.test_ext_django import (
     DJANGO_VERSION,

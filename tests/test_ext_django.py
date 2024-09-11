@@ -16,7 +16,7 @@ from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 
 # tests
-from passlib.tests.utils import TestCase, TEST_MODE, handler_derived_from
+from tests.utils import TestCase, TEST_MODE, handler_derived_from
 from passlib.tests.test_handlers import get_handler_case
 
 # local

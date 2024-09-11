@@ -20,7 +20,7 @@ from passlib import exc
 from passlib.utils import getrandbytes
 from passlib.utils.compat import PYPY, bascii_to_str
 from passlib.utils.decor import classproperty
-from passlib.tests.utils import TestCase, TEST_MODE, hb
+from tests.utils import TestCase, TEST_MODE, hb
 
 # subject
 from passlib.crypto import scrypt as scrypt_mod

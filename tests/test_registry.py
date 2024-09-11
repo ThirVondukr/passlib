@@ -19,7 +19,7 @@ from passlib.registry import (
     _unload_handler_name as unload_handler_name,
 )
 import passlib.utils.handlers as uh
-from passlib.tests.utils import TestCase
+from tests.utils import TestCase
 
 # module
 log = getLogger(__name__)

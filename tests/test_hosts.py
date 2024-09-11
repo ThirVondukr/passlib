@@ -1,6 +1,6 @@
 from passlib import hosts, hash as hashmod
 from passlib.utils import unix_crypt_schemes
-from passlib.tests.utils import TestCase
+from tests.utils import TestCase
 
 
 class HostsTest(TestCase):

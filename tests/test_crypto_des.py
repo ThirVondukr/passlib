@@ -4,13 +4,12 @@
 # imports
 # =============================================================================
 # core
-from functools import partial
 
 # site
 # pkg
 # module
 from passlib.utils import getrandbytes
-from passlib.tests.utils import TestCase
+from tests.utils import TestCase
 
 
 # =============================================================================

@@ -2,7 +2,7 @@ import warnings
 
 
 from passlib import hash
-from passlib.tests.utils import TestCase, HandlerCase
+from tests.utils import TestCase, HandlerCase
 from passlib.tests.test_handlers import UPASS_WAV
 
 

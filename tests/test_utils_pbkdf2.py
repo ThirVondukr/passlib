@@ -21,7 +21,7 @@ import warnings
 # pkg
 # module
 from passlib.utils.compat import JYTHON
-from passlib.tests.utils import TestCase, hb
+from tests.utils import TestCase, hb
 
 
 # =============================================================================
