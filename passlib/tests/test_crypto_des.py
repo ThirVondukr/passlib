@@ -4,7 +4,6 @@
 # imports
 # =============================================================================
 # core
-from functools import partial
 
 # site
 # pkg

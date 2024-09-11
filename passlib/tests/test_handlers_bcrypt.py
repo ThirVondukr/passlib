@@ -212,7 +212,7 @@ class _bcrypt_test(HandlerCase):
     # ===================================================================
     def crypt_supports_variant(self, hash):
         """check if OS crypt is expected to support given ident"""
-        from passlib.handlers.bcrypt import bcrypt, IDENT_2X, IDENT_2Y
+        from passlib.handlers.bcrypt import bcrypt
         from passlib.utils import safe_crypt
 
         ident = bcrypt.from_string(hash)
@@ -228,11 +228,10 @@ class _bcrypt_test(HandlerCase):
             IDENT_2,
             IDENT_2A,
             IDENT_2B,
-            IDENT_2X,
             IDENT_2Y,
             _detect_pybcrypt,
         )
-        from passlib.utils import to_native_str, to_bytes
+        from passlib.utils import to_bytes
 
         try:
             import bcrypt

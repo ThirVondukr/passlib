@@ -13,7 +13,7 @@ import subprocess
 # pkg
 from passlib import apache, registry
 from passlib.exc import MissingBackendError
-from passlib.tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
+from passlib.tests.utils import TestCase, get_file, set_file
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
 

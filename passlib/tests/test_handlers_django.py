@@ -7,7 +7,6 @@
 import logging
 
 log = logging.getLogger(__name__)
-import re
 from unittest import skipUnless, SkipTest
 import warnings
 

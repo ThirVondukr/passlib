@@ -15,7 +15,7 @@ from warnings import warn
 
 # site
 # pkg
-from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
+from passlib.utils import right_pad_string, to_unicode, repeat_string
 from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
 

@@ -3,7 +3,8 @@
 # =============================================================================
 # init script env
 # =============================================================================
-import os, sys
+import os
+import sys
 
 root_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 sys.path.insert(0, root_dir)

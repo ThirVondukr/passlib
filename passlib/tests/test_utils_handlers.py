@@ -12,7 +12,7 @@ import warnings
 # site
 # pkg
 from passlib.hash import ldap_md5, sha256_crypt
-from passlib.exc import MissingBackendError, PasslibHashWarning
+from passlib.exc import MissingBackendError
 import passlib.utils.handlers as uh
 from passlib.tests.utils import HandlerCase, TestCase
 

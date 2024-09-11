@@ -6,7 +6,6 @@
 # core
 from configparser import NoSectionError
 import datetime
-from functools import partial
 import logging
 
 log = logging.getLogger(__name__)
@@ -17,14 +16,11 @@ import warnings
 # pkg
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
-from passlib.exc import PasslibConfigWarning, PasslibHashWarning
-from passlib.utils import tick, to_unicode
+from passlib.exc import PasslibHashWarning
 import passlib.utils.handlers as uh
 from passlib.tests.utils import (
     TestCase,
     set_file,
-    TICK_RESOLUTION,
-    quicksleep,
     time_call,
     handler_derived_from,
 )
@@ -1886,7 +1882,8 @@ sha512_crypt__min_rounds = 45000
     # ===================================================================
 
 
-import hashlib, time
+import hashlib
+import time
 
 
 class DelayHash(uh.StaticHandler):

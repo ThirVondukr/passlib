@@ -12,7 +12,7 @@ import re
 
 # site
 # pkg
-from passlib import apps as _apps, exc, registry
+from passlib import apps as _apps, exc
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 from passlib.ext.django.utils import (
@@ -353,7 +353,6 @@ class _ExtensionSupport(object):
         for key in self._config_keys:
             kwds.setdefault(key, UNSET)
         update_settings(**kwds)
-        import passlib.ext.django.models
 
         if check:
             self.assert_patched(context=config)
@@ -560,9 +559,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
-            identify_hasher,
         )
 
         # User.set_password() should use default alg
@@ -634,8 +630,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 
@@ -672,8 +666,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 
@@ -716,8 +708,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 

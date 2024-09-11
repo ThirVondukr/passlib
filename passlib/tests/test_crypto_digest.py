@@ -6,7 +6,6 @@
 # core
 from binascii import hexlify
 import hashlib
-from unittest import skipUnless
 import warnings
 
 # site
@@ -14,7 +13,7 @@ import warnings
 # module
 from passlib.exc import UnknownHashError
 from passlib.utils.compat import JYTHON
-from passlib.tests.utils import TestCase, TEST_MODE, hb
+from passlib.tests.utils import TestCase, hb
 
 
 # =============================================================================

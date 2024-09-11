@@ -11,7 +11,7 @@ import warnings
 # pkg
 # module
 from passlib.utils import is_ascii_safe, to_bytes
-from passlib.utils.compat import join_bytes, PYPY
+from passlib.utils.compat import join_bytes
 from passlib.tests.utils import TestCase, hb, run_with_fixed_seeds
 
 

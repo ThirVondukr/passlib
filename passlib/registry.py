@@ -13,7 +13,6 @@ from warnings import warn
 # pkg
 from passlib import exc
 from passlib.exc import ExpectedTypeError, PasslibWarning
-from passlib.ifc import PasswordHash
 from passlib.utils import (
     is_crypt_handler,
     has_crypt as os_crypt_present,

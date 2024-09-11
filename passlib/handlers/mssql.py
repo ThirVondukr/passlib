@@ -38,11 +38,9 @@ http://www.theregister.co.uk/2002/07/08/cracking_ms_sql_server_passwords/
 # core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
-import re
 import logging
 
 log = logging.getLogger(__name__)
-from warnings import warn
 
 # site
 # pkg

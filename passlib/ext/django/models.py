@@ -6,7 +6,6 @@
 # core
 # site
 # pkg
-from passlib.context import CryptContext
 from passlib.ext.django.utils import DjangoContextAdapter
 
 # local

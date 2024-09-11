@@ -12,11 +12,9 @@
 # =============================================================================
 # core
 from hashlib import md5
-import re
 import logging
 
 log = logging.getLogger(__name__)
-from warnings import warn
 
 # site
 # pkg

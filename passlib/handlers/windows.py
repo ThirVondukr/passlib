@@ -8,7 +8,6 @@ from binascii import hexlify
 import logging
 
 log = logging.getLogger(__name__)
-from warnings import warn
 
 # site
 # pkg

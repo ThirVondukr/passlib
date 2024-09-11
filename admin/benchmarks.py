@@ -8,7 +8,8 @@ parsing was being sped up. it could definitely be improved.
 # init script env
 # =============================================================================
 import re
-import os, sys
+import os
+import sys
 
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 sys.path.insert(0, os.curdir)

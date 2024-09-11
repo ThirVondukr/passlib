@@ -7,8 +7,6 @@ passlib.utils.binary - binary data encoding/decoding/manipulation
 # =============================================================================
 # core
 from base64 import (
-    b64encode,
-    b64decode,
     b32decode as _b32decode,
     b32encode as _b32encode,
 )

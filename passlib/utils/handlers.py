@@ -14,8 +14,8 @@ from warnings import warn
 
 # site
 # pkg
-import passlib.exc as exc, passlib.ifc as ifc
-from passlib.exc import MissingBackendError, PasslibConfigWarning, PasslibHashWarning
+import passlib.exc as exc
+from passlib.exc import PasslibConfigWarning, PasslibHashWarning
 from passlib.ifc import PasswordHash
 from passlib.registry import get_crypt_handler
 from passlib.utils import (
@@ -23,8 +23,6 @@ from passlib.utils import (
     getrandstr,
     getrandbytes,
     rng,
-    to_native_str,
-    is_crypt_handler,
     to_unicode,
     MAX_PASSWORD_SIZE,
     accepts_keyword,
@@ -35,7 +33,6 @@ from passlib.utils.binary import (
     BASE64_CHARS,
     HASH64_CHARS,
     PADDED_BASE64_CHARS,
-    HEX_CHARS,
     UPPER_HEX_CHARS,
     LOWER_HEX_CHARS,
     ALL_BYTE_VALUES,

@@ -20,7 +20,6 @@ import threading
 import time
 import unittest
 from passlib.exc import PasslibHashWarning, PasslibConfigWarning
-from passlib.utils.compat import JYTHON
 import warnings
 from warnings import warn
 
@@ -28,7 +27,6 @@ from warnings import warn
 # pkg
 from passlib import exc
 from passlib.exc import MissingBackendError
-import passlib.registry as registry
 from passlib.utils import (
     has_rounds_info,
     has_salt_info,

@@ -25,15 +25,12 @@ MySQL 4.1.1 / NEW PASSWORD
 # =============================================================================
 # core
 from hashlib import sha1
-import re
 import logging
 
 log = logging.getLogger(__name__)
-from warnings import warn
 
 # site
 # pkg
-from passlib.utils import to_native_str
 import passlib.utils.handlers as uh
 
 # local

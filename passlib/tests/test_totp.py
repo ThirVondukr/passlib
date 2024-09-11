@@ -990,7 +990,6 @@ class TotpTest(TestCase):
 
     def test_totp_match_w_older_token(self):
         """match() -- valid TotpMatch object with future token"""
-        from passlib.totp import TotpMatch
 
         time = 141230981
         token = "781501"

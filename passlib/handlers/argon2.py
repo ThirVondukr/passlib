@@ -22,7 +22,6 @@ from importlib import metadata
 
 log = logging.getLogger(__name__)
 import re
-import types
 from warnings import warn
 
 # site

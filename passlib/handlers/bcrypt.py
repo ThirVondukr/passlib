@@ -27,14 +27,10 @@ _bcrypt = None  # dynamically imported by _load_backend_bcrypt()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
 from passlib.crypto.digest import compile_hmac
-from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
+from passlib.exc import PasslibHashWarning, PasslibSecurityError
 from passlib.utils import (
     safe_crypt,
     repeat_string,
-    to_bytes,
-    parse_version,
-    rng,
-    getrandstr,
     test_crypt,
     to_unicode,
     utf8_truncate,
