@@ -17,6 +17,7 @@ from hashlib import sha256
 import os
 import re
 import logging
+from importlib import metadata
 
 log = logging.getLogger(__name__)
 from warnings import warn
@@ -667,7 +668,7 @@ class _BcryptBackend(_BcryptCommon):
         except ImportError:  # pragma: no cover
             return False
         try:
-            version = _bcrypt.__about__.__version__
+            version = metadata.version("bcrypt")
         except:
             log.warning("(trapped) error reading bcrypt version", exc_info=True)
             version = "<unknown>"
