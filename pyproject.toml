@@ -1,6 +1,6 @@
 [project]
 name = "libpass"
-version = "1.7.4"
+version = "1.7.5"
 description = "Fork of passlib, a comprehensive password hashing framework supporting over 30 schemes"
 authors = [
     { name = "Doctor", email = "thirvondukr@gmail.com" },
@@ -102,7 +102,7 @@ unfixable = ["F401"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.7.4"
+version = "1.7.5"
 tag_format = "$version"
 update_changelog_on_bump = true
 version_files = [
