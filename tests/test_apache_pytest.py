@@ -1,10 +1,61 @@
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from passlib import apache
+from passlib.utils import to_bytes
+from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime
+
+
+htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
+
+
+def _call_htpasswd(args, stdin=None):
+    """
+    helper to run htpasswd cmd
+    """
+    if stdin is not None:
+        stdin = stdin.encode("utf-8")
+    proc = subprocess.Popen(
+        [htpasswd_path] + args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE if stdin else None,
+    )
+    out, err = proc.communicate(stdin)
+    rc = proc.wait()
+    out = to_unicode_for_identify(out or "")
+    return out, rc
+
+
+def _call_htpasswd_verify(path, user, password):
+    """
+    wrapper for htpasswd verify
+    """
+    out, rc = _call_htpasswd(["-vi", path, user], password)
+    return not rc
+
+
+def _detect_htpasswd():
+    """
+    helper to check if htpasswd is present
+    """
+    try:
+        out, rc = _call_htpasswd([])
+    except FileNotFoundError:
+        return False, False
+    have_bcrypt = " -B " in out
+    return True, have_bcrypt
+
+
+HAS_HTPASSWD, HAS_HTPASSWD_BCRYPT = _detect_htpasswd()
+
+requires_htpasswd = pytest.mark.skipif(
+    not HAS_HTPASSWD, reason="requires `htpasswd` cmdline tool"
+)
 
 # sample with 4 users
 SAMPLE_01 = (
@@ -43,12 +94,10 @@ SAMPLE_05 = (
     b"p0.QKFS5qLNRqw1/47lXYiAcgIjJK.WjCO8nrEKuUK.\n"
 )
 
-htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
-
 
 @pytest.fixture
 def password_file_path(tmp_path: Path) -> Path:
-    return tmp_path.joinpath(htpasswd_path)
+    return tmp_path.joinpath("file")
 
 
 @pytest.fixture
@@ -232,3 +281,179 @@ def test_load_from_exclicit_path(password_file_path: Path):
     ht = apache.HtpasswdFile()
     ht.load(password_file_path)
     assert ht.check_password("user1", "pass1")
+
+
+def test_save(sample_file: Path) -> None:
+    ht = apache.HtpasswdFile(sample_file)
+
+    ht.delete("user1")
+    ht.delete("user2")
+    ht.save()
+    assert sample_file.read_bytes() == SAMPLE_02
+
+
+def test_save_without_path(password_file_path: Path) -> None:
+    ht = apache.HtpasswdFile(default_scheme="plaintext")
+    ht.set_password("user1", "pass1")
+    with pytest.raises(RuntimeError) as exc_info:
+        ht.save()
+    assert str(exc_info.value) == "HtpasswdFile().path is not set, cannot autosave"
+
+    ht.save(password_file_path)
+    assert password_file_path.read_bytes() == b"user1:pass1\n"
+
+
+def test_encoding_err_incompatible() -> None:
+    with pytest.raises(ValueError):
+        apache.HtpasswdFile(encoding="utf-16")
+
+
+def test_encoding_err_none() -> None:
+    with pytest.raises(TypeError):
+        apache.HtpasswdFile.from_string(
+            SAMPLE_04_utf8,
+            encoding=None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("encoding", "sample"), [("utf-8", SAMPLE_04_utf8), ("latin1", SAMPLE_04_latin1)]
+)
+def test_encoding_ok(encoding: str, sample: bytes):
+    ht = apache.HtpasswdFile.from_string(sample, encoding=encoding, return_unicode=True)
+    assert ht.users() == ["user\u00e6"]
+
+
+def test_get_hash() -> None:
+    ht = apache.HtpasswdFile.from_string(SAMPLE_01)
+    assert ht.get_hash("user3") == b"{SHA}3ipNV1GrBtxPmHFC21fCbVCSXIo="
+    assert ht.get_hash("user4") == b"pass4"
+    assert ht.get_hash("user5") is None
+
+
+def test_to_string() -> None:
+    # check with known sample
+    ht = apache.HtpasswdFile.from_string(SAMPLE_01)
+    assert ht.to_string() == SAMPLE_01
+
+    # test blank
+    ht = apache.HtpasswdFile()
+    assert ht.to_string() == b""
+
+
+def test_repr() -> None:
+    ht = apache.HtpasswdFile("fakepath", autosave=True, new=True, encoding="latin-1")
+    repr(ht)
+
+
+@pytest.mark.parametrize("sample", [b"realm:user1:pass1\n", b"pass1\n"])
+def test_from_string_err_malformed(sample: str):
+    with pytest.raises(ValueError):
+        apache.HtpasswdFile.from_string(sample)
+
+
+def test_from_string_err_path_keyword():
+    with pytest.raises(TypeError):
+        apache.HtpasswdFile.from_string(b"", path=None)
+
+
+def test_whitespace_handling():
+    """whitespace & comment handling"""
+
+    # per htpasswd source (https://github.com/apache/httpd/blob/trunk/support/htpasswd.c),
+    # lines that match "^\s*(#.*)?$" should be ignored
+    source = to_bytes(
+        "\n"
+        "user2:pass2\n"
+        "user4:pass4\n"
+        "user7:pass7\r\n"
+        " \t \n"
+        "user1:pass1\n"
+        " # legacy users\n"
+        "#user6:pass6\n"
+        "user5:pass5\n\n"
+    )
+
+    # loading should see all users (except user6, who was commented out)
+    ht = apache.HtpasswdFile.from_string(source)
+    assert sorted(ht.users()) == ["user1", "user2", "user4", "user5", "user7"]
+
+    # update existing user
+    ht.set_hash("user4", "althash4")
+    assert sorted(ht.users()) == ["user1", "user2", "user4", "user5", "user7"]
+
+    # add a new user
+    ht.set_hash("user6", "althash6")
+    assert sorted(ht.users()) == ["user1", "user2", "user4", "user5", "user6", "user7"]
+
+    # delete existing user
+    ht.delete("user7")
+    assert sorted(ht.users()) == ["user1", "user2", "user4", "user5", "user6"]
+
+    # re-serialization should preserve whitespace
+    target = to_bytes(
+        "\n"
+        "user2:pass2\n"
+        "user4:althash4\n"
+        " \t \n"
+        "user1:pass1\n"
+        " # legacy users\n"
+        "#user6:pass6\n"
+        "user5:pass5\n"
+        "user6:althash6\n"
+    )
+    assert ht.to_string() == target
+
+
+@requires_htpasswd
+def test_htpasswd_cmd_verify(password_file_path: Path):
+    ht = apache.HtpasswdFile(path=password_file_path, new=True)
+
+    def hash_scheme(pwd, scheme):
+        return ht.context.handler(scheme).hash(pwd)
+
+    ht.set_hash("user1", hash_scheme("password", "apr_md5_crypt"))
+
+    # 2.2-compat scheme
+    host_no_bcrypt = apache.htpasswd_defaults["host_apache_22"]
+    ht.set_hash("user2", hash_scheme("password", host_no_bcrypt))
+
+    # 2.4-compat scheme
+    host_best = apache.htpasswd_defaults["host"]
+    ht.set_hash("user3", hash_scheme("password", host_best))
+
+    # unsupported scheme -- should always fail to verify
+    ht.set_hash("user4", "$xxx$foo$bar$baz")
+
+    # make sure htpasswd properly recognizes hashes
+    ht.save()
+
+    assert not _call_htpasswd_verify(password_file_path, "user1", "wrong")
+    assert not _call_htpasswd_verify(password_file_path, "user2", "wrong")
+    assert not _call_htpasswd_verify(password_file_path, "user3", "wrong")
+    assert not _call_htpasswd_verify(password_file_path, "user4", "wrong")
+
+    assert _call_htpasswd_verify(password_file_path, "user1", "password")
+    assert _call_htpasswd_verify(password_file_path, "user2", "password")
+    assert _call_htpasswd_verify(password_file_path, "user3", "password")
+
+
+@requires_htpasswd
+def test_htpasswd_cmd_verify_bcrypt(self):
+    """
+    verify "htpasswd" command can read bcrypt format
+
+    this tests for regression of issue 95, where we output "$2b$" instead of "$2y$";
+    fixed in v1.7.2.
+    """
+    path = self.mktemp()
+    ht = apache.HtpasswdFile(path=path, new=True)
+
+    def hash_scheme(pwd, scheme):
+        return ht.context.handler(scheme).hash(pwd)
+
+    ht.set_hash("user1", hash_scheme("password", "bcrypt"))
+    ht.save()
+    assert not _call_htpasswd_verify(path, "user1", "wrong")
+
+    assert _call_htpasswd_verify(path, "user1", "password") is HAS_HTPASSWD_BCRYPT
