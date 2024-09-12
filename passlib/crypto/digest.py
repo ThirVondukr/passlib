@@ -6,31 +6,14 @@
 import hashlib
 import logging
 
-try:
-    # new in py3.4
-    from hashlib import pbkdf2_hmac as _stdlib_pbkdf2_hmac
 
-    if _stdlib_pbkdf2_hmac.__module__ == "hashlib":
-        # builtin pure-python backends are slightly faster than stdlib's pure python fallback,
-        # so only using stdlib's version if it's backed by openssl's pbkdf2_hmac()
-        logging.debug("ignoring pure-python hashlib.pbkdf2_hmac()")
-        _stdlib_pbkdf2_hmac = None
-except ImportError:
-    _stdlib_pbkdf2_hmac = None
 import re
 import os
-from struct import Struct
 from warnings import warn
 
 
-try:
-    # https://pypi.python.org/pypi/fastpbkdf2/
-    from fastpbkdf2 import pbkdf2_hmac as _fast_pbkdf2_hmac
-except ImportError:
-    _fast_pbkdf2_hmac = None
-
 from passlib import exc
-from passlib.utils import join_bytes, to_native_str, to_bytes, SequenceMixin, as_bool
+from passlib.utils import to_native_str, to_bytes, SequenceMixin, as_bool
 from passlib.utils.compat import unicode_or_bytes
 from passlib.utils.decor import memoized_property
 
@@ -578,38 +561,6 @@ class HashInfo(SequenceMixin):
         """
         return self.error_text is None
 
-    @memoized_property
-    def supported_by_fastpbkdf2(self):
-        """helper to detect if hash is supported by fastpbkdf2()"""
-        if not _fast_pbkdf2_hmac:
-            return None
-        try:
-            _fast_pbkdf2_hmac(self.name, b"p", b"s", 1)
-            return True
-        except ValueError:
-            # "unsupported hash type"
-            return False
-
-    @memoized_property
-    def supported_by_hashlib_pbkdf2(self):
-        """helper to detect if hash is supported by hashlib.pbkdf2_hmac()"""
-        if not _stdlib_pbkdf2_hmac:
-            return None
-        try:
-            _stdlib_pbkdf2_hmac(self.name, b"p", b"s", 1)
-            return True
-        except ValueError:
-            # "unsupported hash type"
-            return False
-
-    # =========================================================================
-    # eoc
-    # =========================================================================
-
-
-# ---------------------------------------------------------------------
-# mock fips mode monkeypatch
-# ---------------------------------------------------------------------
 
 #: flag for detecting if mock fips mode is enabled.
 mock_fips_mode = False
@@ -801,14 +752,7 @@ def pbkdf1(digest, secret, salt, rounds, keylen=None):
     return block[:keylen]
 
 
-# =============================================================================
-# pbkdf2
-# =============================================================================
-
-_pack_uint32 = Struct(">L").pack
-
-
-def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
+def pbkdf2_hmac(digest: bytes, secret: bytes, salt: bytes, rounds: int, keylen=None):
     """pkcs#5 password-based key derivation v2.0 using HMAC + arbitrary digest.
 
     :arg digest:
@@ -836,271 +780,20 @@ def pbkdf2_hmac(digest, secret, salt, rounds, keylen=None):
 
         This function will use the first available of the following backends:
 
-        * `fastpbk2 <https://pypi.python.org/pypi/fastpbkdf2>`_
         * :func:`hashlib.pbkdf2_hmac` (only available in py2 >= 2.7.8, and py3 >= 3.4)
-        * builtin pure-python backend
 
         See :data:`passlib.crypto.digest.PBKDF2_BACKENDS` to determine
         which backend(s) are in use.
     """
-    # validate secret & salt
     secret = to_bytes(secret, param="secret")
     salt = to_bytes(salt, param="salt")
 
     # resolve digest
     digest_info = lookup_hash(digest)
-    digest_size = digest_info.digest_size
 
-    # validate rounds
-    if not isinstance(rounds, int):
-        raise exc.ExpectedTypeError(rounds, "int", "rounds")
-    if rounds < 1:
-        raise ValueError("rounds must be at least 1")
-
-    # validate keylen
-    if keylen is None:
-        keylen = digest_size
-    elif not isinstance(keylen, int):
-        raise exc.ExpectedTypeError(keylen, "int or None", "keylen")
-    elif keylen < 1:
-        # XXX: could allow keylen=0, but want to be compat w/ stdlib
-        raise ValueError("keylen must be at least 1")
-
-    # find smallest block count s.t. keylen <= block_count * digest_size;
-    # make sure block count won't overflow (per pbkdf2 spec)
-    # this corresponds to throwing error if keylen > digest_size * MAX_UINT32
-    # NOTE: stdlib will throw error at lower bound (keylen > MAX_SINT32)
-    # NOTE: have do this before other backends checked, since fastpbkdf2 raises wrong error
-    #       (InvocationError, not OverflowError)
-    block_count = (keylen + digest_size - 1) // digest_size
-    if block_count > MAX_UINT32:
-        raise OverflowError("keylen too long for digest")
-
-    #
-    # check for various high-speed backends
-    #
-
-    # ~3x faster than pure-python backend
-    # NOTE: have to do this after above guards since fastpbkdf2 lacks bounds checks.
-    if digest_info.supported_by_fastpbkdf2:
-        return _fast_pbkdf2_hmac(digest_info.name, secret, salt, rounds, keylen)
-
-    # ~1.4x faster than pure-python backend
-    # NOTE: have to do this after fastpbkdf2 since hashlib-ssl is slower,
-    #       will support larger number of hashes.
-    if digest_info.supported_by_hashlib_pbkdf2:
-        return _stdlib_pbkdf2_hmac(digest_info.name, secret, salt, rounds, keylen)
-
-    #
-    # otherwise use our own implementation
-    #
-
-    # generated keyed hmac
-    keyed_hmac = compile_hmac(digest, secret)
-
-    # get helper to calculate pbkdf2 inner loop efficiently
-    calc_block = _get_pbkdf2_looper(digest_size)
-
-    # assemble & return result
-    return join_bytes(
-        calc_block(keyed_hmac, keyed_hmac(salt + _pack_uint32(i)), rounds)
-        for i in range(1, block_count + 1)
-    )[:keylen]
+    return hashlib.pbkdf2_hmac(digest_info.name, secret, salt, rounds, keylen)
 
 
-# -------------------------------------------------------------------------------------
-# pick best choice for pure-python helper
-# TODO: consider some alternatives, such as C-accelerated xor_bytes helper if available
-# -------------------------------------------------------------------------------------
-# NOTE: this env var is only present to support the admin/benchmark_pbkdf2 script
-_force_backend = os.environ.get("PASSLIB_PBKDF2_BACKEND") or "any"
-
-if _force_backend in ["any", "from-bytes"]:
-    from functools import partial
-
-    def _get_pbkdf2_looper(digest_size):
-        return partial(_pbkdf2_looper, digest_size)
-
-    def _pbkdf2_looper(digest_size, keyed_hmac, digest, rounds):
-        """
-        py3-only implementation of pbkdf2 inner loop;
-        uses 'int.from_bytes' + integer XOR
-        """
-        from_bytes = int.from_bytes
-        BIG = "big"  # endianess doesn't matter, just has to be consistent
-        accum = from_bytes(digest, BIG)
-        for _ in range(rounds - 1):
-            digest = keyed_hmac(digest)
-            accum ^= from_bytes(digest, BIG)
-        return accum.to_bytes(digest_size, BIG)
-
-    _builtin_backend = "from-bytes"
-
-elif _force_backend in ["unpack"]:
-    # XXX: should run bench_pbkdf2() to verify;
-    #      but think this can be removed now that we're always on python 3
-    #      (the from_bytes method should always be faster)
-
-    from struct import Struct
-    from passlib.utils import sys_bits
-
-    _have_64_bit = sys_bits >= 64
-
-    #: cache used by _get_pbkdf2_looper
-    _looper_cache = {}
-
-    def _get_pbkdf2_looper(digest_size):
-        """
-        We want a helper function which performs equivalent of the following::
-
-          def helper(keyed_hmac, digest, rounds):
-              accum = digest
-              for _ in range(rounds - 1):
-                  digest = keyed_hmac(digest)
-                  accum ^= digest
-              return accum
-
-        However, no efficient way to implement "bytes ^ bytes" in python.
-        Instead, using approach where we dynamically compile a helper function based
-        on digest size.  Instead of a single `accum` var, this helper breaks the digest
-        into a series of integers.
-
-        It stores these in a series of`accum_<i>` vars, and performs `accum ^= digest`
-        by unpacking digest and perform xor for each "accum_<i> ^= digest_<i>".
-        this keeps everything in locals, avoiding excessive list creation, encoding or decoding,
-        etc.
-
-        :param digest_size:
-            digest size to compile for, in bytes. (must be multiple of 4).
-
-        :return:
-            helper function with call signature outlined above.
-        """
-        #
-        # cache helpers
-        #
-        try:
-            return _looper_cache[digest_size]
-        except KeyError:
-            pass
-
-        #
-        # figure out most efficient struct format to unpack digest into list of native ints
-        #
-        if _have_64_bit and not digest_size & 0x7:
-            # digest size multiple of 8, on a 64 bit system -- use array of UINT64
-            count = digest_size >> 3
-            fmt = "=%dQ" % count
-        elif not digest_size & 0x3:
-            if _have_64_bit:
-                # digest size multiple of 4, on a 64 bit system -- use array of UINT64 + 1 UINT32
-                count = digest_size >> 3
-                fmt = "=%dQI" % count
-                count += 1
-            else:
-                # digest size multiple of 4, on a 32 bit system -- use array of UINT32
-                count = digest_size >> 2
-                fmt = "=%dI" % count
-        else:
-            # stopping here, cause no known hashes have digest size that isn't multiple of 4 bytes.
-            # if needed, could go crazy w/ "H" & "B"
-            raise NotImplementedError("unsupported digest size: %d" % digest_size)
-        struct = Struct(fmt)
-
-        #
-        # build helper source
-        #
-        tdict = dict(
-            digest_size=digest_size,
-            accum_vars=", ".join("acc_%d" % i for i in range(count)),
-            digest_vars=", ".join("dig_%d" % i for i in range(count)),
-        )
-
-        # head of function
-        source = (
-            "def helper(keyed_hmac, digest, rounds):\n"
-            "    '''pbkdf2 loop helper for digest_size={digest_size}'''\n"
-            "    unpack_digest = struct.unpack\n"
-            "    {accum_vars} = unpack_digest(digest)\n"
-            "    for _ in range(1, rounds):\n"
-            "        digest = keyed_hmac(digest)\n"
-            "        {digest_vars} = unpack_digest(digest)\n"
-        ).format(**tdict)
-
-        # xor digest
-        for i in range(count):
-            source += "        acc_%d ^= dig_%d\n" % (i, i)
-
-        # return result
-        source += "    return struct.pack({accum_vars})\n".format(**tdict)
-
-        #
-        # compile helper
-        #
-        code = compile(
-            source, "<generated by passlib.crypto.digest._get_pbkdf2_looper()>", "exec"
-        )
-        gdict = dict(struct=struct)
-        ldict = dict()
-        eval(code, gdict, ldict)
-        helper = ldict["helper"]
-        if __debug__:
-            helper.__source__ = source
-
-        #
-        # store in cache
-        #
-        _looper_cache[digest_size] = helper
-        return helper
-
-    _builtin_backend = "unpack"
-
-else:
-    assert _force_backend in ["hexlify"]
-
-    # XXX: older & slower approach that used int(hexlify()),
-    #      keeping it around for a little while just for benchmarking.
-
-    from binascii import hexlify as _hexlify
-    from passlib.utils import int_to_bytes
-
-    def _get_pbkdf2_looper(digest_size):
-        return _pbkdf2_looper
-
-    def _pbkdf2_looper(keyed_hmac, digest, rounds):
-        hexlify = _hexlify
-        accum = int(hexlify(digest), 16)
-        for _ in range(rounds - 1):
-            digest = keyed_hmac(digest)
-            accum ^= int(hexlify(digest), 16)
-        return int_to_bytes(accum, len(digest))
-
-    _builtin_backend = "hexlify"
-
-# helper for benchmark script -- disable hashlib, fastpbkdf2 support if builtin requested
-if _force_backend == _builtin_backend:
-    _fast_pbkdf2_hmac = _stdlib_pbkdf2_hmac = None
-
-# expose info about what backends are active
 PBKDF2_BACKENDS = [
-    b
-    for b in [
-        "fastpbkdf2" if _fast_pbkdf2_hmac else None,
-        "hashlib-ssl" if _stdlib_pbkdf2_hmac else None,
-        "builtin-" + _builtin_backend,
-    ]
-    if b
+    "hashlib-ssl",
 ]
-
-# *very* rough estimate of relative speed (compared to sha256 using 'unpack' backend on 64bit arch)
-if "fastpbkdf2" in PBKDF2_BACKENDS:
-    PBKDF2_SPEED_FACTOR = 3
-elif "hashlib-ssl" in PBKDF2_BACKENDS:
-    PBKDF2_SPEED_FACTOR = 1.4
-else:
-    # remaining backends have *some* difference in performance, but not enough to matter
-    PBKDF2_SPEED_FACTOR = 1
-
-# =============================================================================
-# eof
-# =============================================================================

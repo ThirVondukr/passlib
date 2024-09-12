@@ -262,7 +262,7 @@ class MiscTest(TestCase):
         """test consteq()"""
         # NOTE: this test is kind of over the top, but that's only because
         # this is used for the critical task of comparing hashes for equality.
-        from passlib.utils import consteq, str_consteq
+        from passlib.utils import consteq
 
         # ensure error raises for wrong types
         self.assertRaises(TypeError, consteq, "", b"")
@@ -278,22 +278,14 @@ class MiscTest(TestCase):
         self.assertRaises(TypeError, consteq, 1, "")
         self.assertRaises(TypeError, consteq, 1, b"")
 
-        def consteq_supports_string(value):
-            # compare_digest() only supports ascii unicode strings.
-            # confirmed for: cpython 3.4, pypy3, pyston
-            return consteq is str_consteq or is_ascii_safe(value)
-
         # check equal inputs compare correctly
         for value in [
             "a",
             "abc",
             "\xff\xa2\x12\x00" * 10,
         ]:
-            if consteq_supports_string(value):
-                self.assertTrue(consteq(value, value), "value %r:" % (value,))
-            else:
-                self.assertRaises(TypeError, consteq, value, value)
-            self.assertTrue(str_consteq(value, value), "value %r:" % (value,))
+            self.assertTrue(consteq(value, value), "value %r:" % (value,))
+            self.assertTrue(consteq(value, value), "value %r:" % (value,))
 
             value = value.encode("latin-1")
             self.assertTrue(consteq(value, value), "value %r:" % (value,))
@@ -312,14 +304,10 @@ class MiscTest(TestCase):
             ("abc", "defabc"),
             ("qwertyuiopasdfghjklzxcvbnm", "abc"),
         ]:
-            if consteq_supports_string(left) and consteq_supports_string(right):
-                self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
-                self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
-            else:
-                self.assertRaises(TypeError, consteq, left, right)
-                self.assertRaises(TypeError, consteq, right, left)
-            self.assertFalse(str_consteq(left, right), "values %r %r:" % (left, right))
-            self.assertFalse(str_consteq(right, left), "values %r %r:" % (right, left))
+            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
+            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
+            self.assertFalse(consteq(left, right), "values %r %r:" % (left, right))
+            self.assertFalse(consteq(right, left), "values %r %r:" % (right, left))
 
             left = left.encode("latin-1")
             right = right.encode("latin-1")
@@ -662,9 +650,6 @@ class CodecTest(TestCase):
         self.assertRaises(TypeError, to_native_str, None, "ascii")
 
     def test_is_ascii_safe(self):
-        """test is_ascii_safe()"""
-        from passlib.utils import is_ascii_safe
-
         self.assertTrue(is_ascii_safe(b"\x00abc\x7f"))
         self.assertTrue(is_ascii_safe("\x00abc\x7f"))
         self.assertFalse(is_ascii_safe(b"\x00abc\x80"))

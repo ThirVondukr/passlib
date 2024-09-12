@@ -1,21 +1,13 @@
-"""misc generic handlers"""
-
 import sys
 
-
-from passlib.utils import to_native_str, str_consteq
-from passlib.utils.compat import unicode_or_bytes
 import passlib.utils.handlers as uh
+from passlib.utils import to_native_str, consteq
+from passlib.utils.compat import unicode_or_bytes
 
-# local
 __all__ = [
     "unix_disabled",
     "plaintext",
 ]
-
-# =============================================================================
-# handler
-# =============================================================================
 
 _MARKER_CHARS = "*!"
 _MARKER_BYTES = b"*!"
@@ -194,7 +186,7 @@ class plaintext(uh.MinimalHandler):
         hash = to_native_str(hash, encoding, "hash")
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
-        return str_consteq(cls.hash(secret, encoding), hash)
+        return consteq(cls.hash(secret, encoding), hash)
 
     @uh.deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
@@ -208,8 +200,3 @@ class plaintext(uh.MinimalHandler):
         if not cls.identify(config):
             raise uh.exc.InvalidHashError(cls)
         return cls.hash(secret, encoding=encoding)
-
-
-# =============================================================================
-# eof
-# =============================================================================

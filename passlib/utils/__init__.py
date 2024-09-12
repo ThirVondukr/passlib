@@ -1,28 +1,25 @@
 """passlib.utils -- helpers for writing password hashes"""
 
-from passlib.utils.compat import JYTHON, join_bytes, join_unicode
-
-from collections.abc import Sequence
-from collections.abc import Iterable
-
-from codecs import lookup as _lookup_codec
-import itertools
+import hmac
 import inspect
-
-
+import itertools
 import math
 import os
-import sys
 import random
 import re
-
 import stringprep
+import sys
+import threading
 import time
+import timeit
+from codecs import lookup as _lookup_codec
+from collections.abc import Sequence, Iterable
+
+from typing import Union
 
 import unicodedata
-import threading
-import timeit
 
+from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.binary import (
     # [remove these aliases in 2.0]
     BASE64_CHARS,
@@ -39,6 +36,15 @@ from passlib.utils.binary import (
     b64s_encode,
     b64s_decode,
 )
+from passlib.utils.compat import (
+    JYTHON,
+    join_bytes,
+    join_unicode,
+    add_doc,
+    unicode_or_bytes,
+    get_method_function,
+    PYPY,
+)
 from passlib.utils.decor import (
     # [remove these aliases in 2.0]
     deprecated_function,
@@ -47,14 +53,6 @@ from passlib.utils.decor import (
     classproperty,
     hybrid_method,
 )
-from passlib.exc import ExpectedStringError, ExpectedTypeError
-from passlib.utils.compat import (
-    add_doc,
-    unicode_or_bytes,
-    get_method_function,
-    PYPY,
-)
-
 
 __all__ = [
     "AB64_CHARS",
@@ -103,7 +101,6 @@ __all__ = [
     "xor_bytes",
 ]
 
-
 # bitsize of system architecture (32 or 64)
 sys_bits = int(math.log(sys.maxsize, 2) + 1.5)
 
@@ -120,9 +117,7 @@ unix_crypt_schemes = [
     "des_crypt",
 ]
 
-
 rounds_cost_values = ["linear", "log2"]
-
 
 _BEMPTY = b""
 _UEMPTY = ""
@@ -265,9 +260,6 @@ def update_mixin_classes(
         target.__bases__ = tuple(bases)
 
 
-# =============================================================================
-# collection helpers
-# =============================================================================
 def batch(source, size):
     """
     split iterable into chunks of <size> elements.
@@ -294,87 +286,13 @@ def batch(source, size):
         raise TypeError("source must be iterable")
 
 
-# =============================================================================
-# unicode helpers
-# =============================================================================
-
-# XXX: should this be moved to passlib.crypto, or compat backports?
-
-
 def consteq(left, right):
-    """Check two strings/bytes for equality.
+    if type(left) is not type(right):
+        raise TypeError
 
-    This function uses an approach designed to prevent
-    timing analysis, making it appropriate for cryptography.
-    a and b must both be of the same type: either str (ASCII only),
-    or any type that supports the buffer protocol (e.g. bytes).
-
-    Note: If a and b are of different lengths, or if an error occurs,
-    a timing attack could theoretically reveal information about the
-    types and lengths of a and b--but not their values.
-    """
-    # NOTE:
-    # resources & discussions considered in the design of this function:
-    #   hmac timing attack --
-    #       http://rdist.root.org/2009/05/28/timing-attack-in-google-keyczar-library/
-    #   python developer discussion surrounding similar function --
-    #       http://bugs.python.org/issue15061
-    #       http://bugs.python.org/issue14955
-
-    # validate types
-    if isinstance(left, str):
-        if not isinstance(right, str):
-            raise TypeError("inputs must be both str or both bytes")
-        is_bytes = False
-    elif isinstance(left, bytes):
-        if not isinstance(right, bytes):
-            raise TypeError("inputs must be both str or both bytes")
-        is_bytes = True
-    else:
-        raise TypeError("inputs must be both str or both bytes")
-
-    # do size comparison.
-    # NOTE: the double-if construction below is done deliberately, to ensure
-    # the same number of operations (including branches) is performed regardless
-    # of whether left & right are the same size.
-    same_size = len(left) == len(right)
-    if same_size:
-        # if sizes are the same, setup loop to perform actual check of contents.
-        tmp = left
-        result = 0
-    if not same_size:
-        # if sizes aren't the same, set 'result' so equality will fail regardless
-        # of contents. then, to ensure we do exactly 'len(right)' iterations
-        # of the loop, just compare 'right' against itself.
-        tmp = right
-        result = 1
-
-    # run constant-time string comparision
-    if is_bytes:
-        for left_char, right_char in zip(tmp, right):
-            result |= left_char ^ right_char
-    else:
-        for left_char, right_char in zip(tmp, right):
-            result |= ord(left_char) ^ ord(right_char)
-    return result == 0
-
-
-# keep copy of this around since stdlib's version throws error on non-ascii chars in unicode strings.
-# our version does, but suffers from some underlying VM issues.  but something is better than
-# nothing for plaintext hashes, which need this.  everything else should use consteq(),
-# since the stdlib one is going to be as good / better in the general case.
-str_consteq = consteq
-
-try:
-    # for py3.3 and up, use the stdlib version
-    from hmac import compare_digest as consteq
-except ImportError:
-    pass
-
-    # TODO: could check for cryptography package's version,
-    #       but only operates on bytes, so would need a wrapper,
-    #       or separate consteq() into a unicode & a bytes variant.
-    # from cryptography.hazmat.primitives.constant_time import bytes_eq as consteq
+    left = left.encode() if isinstance(left, str) else left
+    right = right.encode() if isinstance(right, str) else right
+    return hmac.compare_digest(left, right)
 
 
 def splitcomma(source, sep=","):
@@ -655,9 +573,6 @@ def utf8_truncate(source, index):
     return result
 
 
-# =============================================================================
-# encoding helpers
-# =============================================================================
 _ASCII_TEST_BYTES = b"\x00\n aA:#!\x7f"
 _ASCII_TEST_UNICODE = _ASCII_TEST_BYTES.decode("ascii")
 
@@ -686,7 +601,12 @@ def is_ascii_safe(source):
     return all(c < r for c in source)
 
 
-def to_bytes(source, encoding="utf-8", param="value", source_encoding=None):
+def to_bytes(
+    source: Union[str, bytes],
+    encoding: str = "utf-8",
+    param: str = "value",
+    source_encoding: str = None,
+) -> bytes:
     """Helper to normalize input to bytes.
 
     :arg source:
@@ -815,11 +735,6 @@ def as_bool(value, none=None, param="boolean"):
         return none
     else:
         return bool(value)
-
-
-# =============================================================================
-# host OS helpers
-# =============================================================================
 
 
 def is_safe_crypt_input(value):
@@ -998,14 +913,6 @@ def parse_version(source):
     return None
 
 
-# =============================================================================
-# randomness
-# =============================================================================
-
-# ------------------------------------------------------------------------
-# setup rng for generating salts
-# ------------------------------------------------------------------------
-
 # NOTE:
 # generating salts (e.g. h64_gensalt, below) doesn't require cryptographically
 # strong randomness. it just requires enough range of possible outputs
@@ -1147,9 +1054,6 @@ def generate_password(size=10, charset=_52charset):
     return getrandstr(rng, charset, size)
 
 
-# =============================================================================
-# object type / interface tests
-# =============================================================================
 _handler_attrs = (
     "name",
     "setting_kwds",
@@ -1202,20 +1106,3 @@ def has_salt_info(handler):
         "salt" in handler.setting_kwds
         and getattr(handler, "min_salt_size", None) is not None
     )
-
-
-##def has_raw_salt(handler):
-##    "check if handler takes in encoded salt as unicode (False), or decoded salt as bytes (True)"
-##    sc = getattr(handler, "salt_chars", None)
-##    if sc is None:
-##        return None
-##    elif isinstance(sc, unicode):
-##        return False
-##    elif isinstance(sc, bytes):
-##        return True
-##    else:
-##        raise TypeError("handler.salt_chars must be None/unicode/bytes")
-
-# =============================================================================
-# eof
-# =============================================================================

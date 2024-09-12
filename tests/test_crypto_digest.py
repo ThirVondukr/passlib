@@ -618,7 +618,7 @@ class Pbkdf2Test(TestCase):
         self.assertEqual("hashlib-ssl" in PBKDF2_BACKENDS, has_hashlib_ssl)
 
         # check for appropriate builtin
-        self.assertIn("builtin-from-bytes", PBKDF2_BACKENDS)
+        assert "builtin-from-bytes" not in PBKDF2_BACKENDS
 
     def test_border(self):
         """test border cases"""

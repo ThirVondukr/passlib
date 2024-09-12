@@ -2,6 +2,8 @@ import os
 import warnings
 from base64 import b64encode
 
+import bcrypt
+
 from passlib import hash
 from passlib.handlers.bcrypt import (
     IDENT_2,
@@ -9,7 +11,6 @@ from passlib.handlers.bcrypt import (
     IDENT_2B,
     IDENT_2X,
     IDENT_2Y,
-    _detect_pybcrypt,
 )
 from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
 from tests.test_handlers import UPASS_TABLE
@@ -216,13 +217,6 @@ class _bcrypt_test(HandlerCase):
     fuzz_verifiers = HandlerCase.fuzz_verifiers + ("fuzz_verifier_bcrypt",)
 
     def fuzz_verifier_bcrypt(self):
-        try:
-            import bcrypt
-        except ImportError:
-            return
-        if _detect_pybcrypt():
-            return
-
         def check_bcrypt(secret, hash):
             """bcrypt"""
             secret = to_bytes(secret, self.FuzzHashGenerator.password_encoding)

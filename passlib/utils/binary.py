@@ -46,9 +46,6 @@ __all__ = [
     "bcrypt64",
 ]
 
-# =============================================================================
-# constant strings
-# =============================================================================
 
 # -------------------------------------------------------------
 # common salt_chars & checksum_chars values
@@ -91,9 +88,6 @@ B_EMPTY = b""
 B_NULL = b"\x00"
 B_EQUAL = b"="
 
-# =============================================================================
-# byte translation
-# =============================================================================
 
 #: base list used to compile byte translations
 _TRANSLATE_SOURCE = list(iter_byte_chars(ALL_BYTE_VALUES))
@@ -130,9 +124,6 @@ def compile_byte_translation(mapping, source=None):
     return B_EMPTY.join(target)
 
 
-# =============================================================================
-# unpadding / stripped base64 encoding
-# =============================================================================
 def b64s_encode(data):
     """
     encode using shortened base64 format which omits padding & whitespace.
@@ -169,9 +160,6 @@ def b64s_decode(data):
         raise TypeError(err) from None
 
 
-# =============================================================================
-# adapted-base64 encoding
-# =============================================================================
 _BASE64_STRIP = b"=\n"
 _BASE64_PAD1 = b"="
 _BASE64_PAD2 = b"=="
@@ -206,11 +194,6 @@ def ab64_decode(data):
                 "string argument should contain only ASCII characters"
             ) from None
     return b64s_decode(data.replace(b".", b"+"))
-
-
-# =============================================================================
-# base32 codec
-# =============================================================================
 
 
 def b32encode(source):
@@ -250,11 +233,6 @@ def b32decode(source):
     # XXX: py27 stdlib's version of this has some inefficiencies,
     #      could look into using optimized version.
     return _b32decode(source, True)
-
-
-# =============================================================================
-# base64-variant encoding
-# =============================================================================
 
 
 class Base64Engine(object):
@@ -322,9 +300,6 @@ class Base64Engine(object):
         boolean flag indicating this using big-endian encoding.
     """
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     # public config
     bytemap = None  # charmap as bytes
     big = None  # little or big endian
@@ -338,9 +313,6 @@ class Base64Engine(object):
     _encode_bytes = None  # throws IndexError if bad value (shouldn't happen)
     _decode_bytes = None  # throws KeyError if bad char.
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, charmap, big=False):
         # validate charmap, generate encode64/decode64 helper functions.
         if isinstance(charmap, str):
@@ -380,9 +352,6 @@ class Base64Engine(object):
         """charmap as unicode"""
         return self.bytemap.decode("latin-1")
 
-    # ===================================================================
-    # encoding byte strings
-    # ===================================================================
     def encode_bytes(self, source):
         """encode bytes to base64 string.
 
@@ -479,10 +448,6 @@ class Base64Engine(object):
                 yield ((v1 & 0x03) << 4) | (v2 >> 4)
                 yield ((v2 & 0x0F) << 2)
 
-    # ===================================================================
-    # decoding byte strings
-    # ===================================================================
-
     def decode_bytes(self, source):
         """decode bytes from base64 string.
 
@@ -575,10 +540,6 @@ class Base64Engine(object):
                 v3 = next_value()
                 yield ((v2 & 0xF) << 4) | (v3 >> 2)
 
-    # ===================================================================
-    # encode/decode helpers
-    # ===================================================================
-
     # padmap2/3 - dict mapping last char of string ->
     # equivalent char with no padding bits set.
 
@@ -657,9 +618,6 @@ class Base64Engine(object):
     ##                      self.charmap if unicode else self.bytemap, size)
     ##    return self.repair_unused(data)
 
-    # ===================================================================
-    # transposed encoding/decoding
-    # ===================================================================
     def encode_transposed_bytes(self, source, offsets):
         """encode byte string, first transposing source using offset list"""
         if not isinstance(source, bytes):
@@ -678,9 +636,6 @@ class Base64Engine(object):
             buf[off] = char
         return bytes(buf)
 
-    # ===================================================================
-    # integer decoding helpers - mainly used by des_crypt family
-    # ===================================================================
     def _decode_int(self, source, bits):
         """decode base64 string -> integer
 
@@ -786,9 +741,6 @@ class Base64Engine(object):
         """
         return self._decode_int(source, 64)
 
-    # ===================================================================
-    # integer encoding helpers - mainly used by des_crypt family
-    # ===================================================================
     def _encode_int(self, value, bits):
         """encode integer into base64 format
 
@@ -859,10 +811,6 @@ class Base64Engine(object):
             raise ValueError("value out of range")
         return self._encode_int(value, 64)
 
-    # ===================================================================
-    # eof
-    # ===================================================================
-
 
 class LazyBase64Engine(Base64Engine):
     """Base64Engine which delays initialization until it's accessed"""
@@ -884,14 +832,6 @@ class LazyBase64Engine(Base64Engine):
         return object.__getattribute__(self, attr)
 
 
-# -------------------------------------------------------------
-# common variants
-# -------------------------------------------------------------
-
 h64 = LazyBase64Engine(HASH64_CHARS)
 h64big = LazyBase64Engine(HASH64_CHARS, big=True)
 bcrypt64 = LazyBase64Engine(BCRYPT_CHARS, big=True)
-
-# =============================================================================
-# eof
-# =============================================================================
