@@ -763,11 +763,15 @@ _safe_crypt_lock = threading.Lock()
 
 try:
     import legacycrypt
+
+    _crypt = legacycrypt.crypt
 except ImportError:
     # ImportError: libcrypt / libxcrypt missing
+
     def safe_crypt(secret, hash):
         return None
 
+    _crypt = None
     has_crypt = False
 else:
     has_crypt = True
@@ -791,7 +795,7 @@ else:
             hash = hash.decode("ascii")
         try:
             with _safe_crypt_lock:
-                result = legacycrypt.crypt(secret, hash)
+                result = _crypt(secret, hash)
         except OSError:
             # new in py39 -- per https://bugs.python.org/issue39289,
             # crypt() now throws OSError for various things, mainly unknown hash formats
