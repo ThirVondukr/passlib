@@ -5,6 +5,7 @@ import sys
 import weakref
 from collections import OrderedDict
 from functools import update_wrapper, wraps, lru_cache
+from typing import Union
 from warnings import warn
 from passlib import exc, registry
 from passlib.context import CryptContext
@@ -12,7 +13,7 @@ from passlib.exc import PasslibRuntimeWarning
 from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 
-DJANGO_VERSION: tuple[int | str, ...]
+DJANGO_VERSION: tuple[Union[int, str], ...]
 try:
     from django import VERSION as DJANGO_VERSION
 

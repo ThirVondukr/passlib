@@ -9,6 +9,7 @@ import contextlib
 from functools import wraps, partial
 import hashlib
 import logging
+from typing import Optional, Union
 from unittest import SkipTest
 
 import random
@@ -342,7 +343,7 @@ class TestCase(unittest.TestCase):
     # ---------------------------------------------------------------
 
     # string prepended to all tests in TestCase
-    descriptionPrefix: str | None = None
+    descriptionPrefix: Optional[str] = None
 
     def shortDescription(self):
         """wrap shortDescription() method to prepend descriptionPrefix"""
@@ -827,7 +828,7 @@ class HandlerCase(TestCase):
     # ---------------------------------------------------------------
 
     # handler class to test [required]
-    handler: type[PasswordHash] | PrefixWrapper = None
+    handler: Union[type[PasswordHash], PrefixWrapper] = None
 
     # if set, run tests against specified backend
     backend = None

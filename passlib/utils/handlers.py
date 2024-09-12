@@ -7,6 +7,7 @@
 import inspect
 import math
 import threading
+from typing import Optional, Union
 from warnings import warn
 
 from passlib import exc
@@ -638,23 +639,23 @@ class GenericHandler(MinimalHandler):
     # class attr
     # ===================================================================
     # this must be provided by the actual class.
-    setting_kwds: tuple[str, ...] | None = None
+    setting_kwds: Optional[tuple[str, ...]] = None
 
     # providing default since most classes don't use this at all.
     context_kwds = ()
 
     # optional prefix that uniquely identifies hash
-    ident: str | None = None
+    ident: Optional[str] = None
 
     # optional regexp for recognizing hashes,
     # used by default identify() if .ident isn't specified.
     _hash_regex = None
 
     # if specified, _norm_checksum will require this length
-    checksum_size: int | None = None
+    checksum_size: Optional[int] = None
 
     # if specified, _norm_checksum() will validate this
-    checksum_chars: str | None = None
+    checksum_chars: Optional[str] = None
 
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
@@ -1329,8 +1330,8 @@ class HasSalt(GenericHandler):
     # ===================================================================
 
     min_salt_size = 0
-    max_salt_size: int | None = None
-    salt_chars: str | None = None
+    max_salt_size: Optional[int] = None
+    salt_chars: Optional[str] = None
 
     @classproperty
     def default_salt_size(cls):
@@ -1662,7 +1663,7 @@ class HasRounds(GenericHandler):
     # XXX: rename to min_valid_rounds / max_valid_rounds,
     #      to clarify role compared to min_desired_rounds / max_desired_rounds?
     min_rounds: int = 0
-    max_rounds: int | None = None
+    max_rounds: Optional[int] = None
     rounds_cost: str = "linear"  # default to the common case
 
     # hack to pass info to _CryptRecord (will be removed in passlib 2.0)
@@ -1680,7 +1681,7 @@ class HasRounds(GenericHandler):
     # -----------------
     min_desired_rounds = None
     max_desired_rounds = None
-    default_rounds: int | None = None
+    default_rounds: Optional[int] = None
     vary_rounds = None
 
     # ===================================================================
@@ -1697,7 +1698,7 @@ class HasRounds(GenericHandler):
         min_desired_rounds=None,
         max_desired_rounds=None,
         default_rounds=None,
-        vary_rounds: str | float | None = None,
+        vary_rounds: Union[str, float, None] = None,
         min_rounds=None,
         max_rounds=None,
         rounds=None,  # aliases used by CryptContext

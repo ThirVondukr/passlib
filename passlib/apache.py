@@ -8,7 +8,7 @@ import logging
 
 import os
 from os import PathLike
-from typing import Literal
+from typing import Literal, Optional
 from warnings import warn
 
 
@@ -182,7 +182,7 @@ class _CommonFile(object):
         self.load()
         return True
 
-    def load(self, path: PathLike | None = None) -> Literal[True]:
+    def load(self, path: Optional[PathLike] = None) -> Literal[True]:
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 
