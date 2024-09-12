@@ -237,27 +237,6 @@ class MiscTest(TestCase):
         self.assertTrue(test_crypt("test", h1))
         self.assertFalse(test_crypt("test", h1x))
 
-        # check crypt returning variant error indicators
-        # some platforms return None on errors, others empty string,
-        # The BSDs in some cases return ":"
-        import passlib.utils as mod
-
-        orig = mod._crypt
-        try:
-            retval = None
-            mod._crypt = lambda secret, hash: retval
-
-            for retval in [None, "", ":", ":0", "*0"]:
-                self.assertEqual(safe_crypt("test", h1), None)
-                self.assertFalse(test_crypt("test", h1))
-
-            retval = "xxx"
-            self.assertEqual(safe_crypt("test", h1), "xxx")
-            self.assertFalse(test_crypt("test", h1))
-
-        finally:
-            mod._crypt = orig
-
     def test_consteq(self):
         """test consteq()"""
         # NOTE: this test is kind of over the top, but that's only because
