@@ -10,7 +10,26 @@ dependencies = []
 requires-python = ">=3.9"
 readme = "README.md"
 license = { text = "BSD" }
-keywords = ["password secret hash security\ncrypt md5-crypt\nsha256-crypt sha512-crypt pbkdf2 argon2 scrypt bcrypt\napache htpasswd htdigest\ntotp 2fa"]
+keywords = [
+    "passlib",
+    "password",
+    "secret",
+    "hash",
+    "security",
+    "crypt",
+    "md5-crypt",
+    "sha256-crypt",
+    "sha512-crypt",
+    "pbkdf2",
+    "argon2",
+    "scrypt",
+    "bcrypt",
+    "apache",
+    "htpasswd",
+    "htdigest",
+    "totp",
+    "2fa",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
