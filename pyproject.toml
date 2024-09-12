@@ -41,11 +41,6 @@ bcrypt = [
 totp = [
     "cryptography>=43.0.1",
 ]
-build_docs = [
-    "cloud-sptheme>=1.10.1",
-    "sphinx>=1.6",
-    "sphinxcontrib-fulltoc>=1.2.0",
-]
 
 [build-system]
 requires = ["pdm-backend"]
@@ -71,6 +66,11 @@ django = [
 ]
 types = [
     "django-stubs>=5.0.4",
+]
+sphinx-docs = [
+    "sphinx>=7.4.7",
+    "cloud-sptheme>=1.10.1.post20200504175005",
+    "sphinxcontrib-fulltoc>=1.2.0",
 ]
 
 [tool.coverage.run]
