@@ -3520,9 +3520,7 @@ class OsCryptMixin(HandlerCase):
             assert isinstance(hash, str)
             return hash
 
-        import passlib.utils as mod
-
-        self.patchAttr(mod, "_crypt", crypt_stub)
+        # self.patchAttr(mod, "_crypt", crypt_stub)
         self.using_patched_crypt = True
 
     @classmethod
@@ -3679,7 +3677,7 @@ class OsCryptMixin(HandlerCase):
             return None
 
         # create a wrapper for fuzzy verified to use
-        from crypt import crypt
+        from legacycrypt import crypt
         from passlib.utils import _safe_crypt_lock
 
         encoding = self.FuzzHashGenerator.password_encoding

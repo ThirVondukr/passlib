@@ -6,7 +6,9 @@ authors = [
     { name = "Doctor", email = "thirvondukr@gmail.com" },
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
 ]
-dependencies = []
+dependencies = [
+    "legacycrypt>=0.3",
+]
 requires-python = ">=3.9"
 readme = "README.md"
 license = { text = "BSD" }

@@ -43,7 +43,6 @@ from passlib.utils.compat import (
     add_doc,
     unicode_or_bytes,
     get_method_function,
-    PYPY,
 )
 from passlib.utils.decor import (
     # [remove these aliases in 2.0]
@@ -752,103 +751,60 @@ def is_safe_crypt_input(value):
         return False
 
 
-try:
-    from crypt import crypt as _crypt
-except ImportError:  # pragma: no cover
-    _crypt = None
-    has_crypt = False
-    crypt_accepts_bytes = False
-    crypt_needs_lock = False
-    _safe_crypt_lock = None
+_NULL = "\x00"
+crypt_accepts_bytes = False
+# some crypt() variants will return various constant strings when
+# an invalid/unrecognized config string is passed in; instead of
+# returning NULL / None. examples include ":", ":0", "*0", etc.
+# safe_crypt() returns None for any string starting with one of the
+# chars in this string...
+_invalid_prefixes = "*:!"
+_safe_crypt_lock = threading.Lock()
 
+try:
+    import legacycrypt
+except ImportError:
+    # ImportError: libcrypt / libxcrypt missing
     def safe_crypt(secret, hash):
         return None
+
+    has_crypt = False
 else:
     has_crypt = True
-    _NULL = "\x00"
 
-    # XXX: replace this with lazy-evaluated bug detection?
-    if threading and PYPY and (7, 2, 0) <= sys.pypy_version_info <= (7, 3, 3):
-        #: internal lock used to wrap crypt() calls.
-        #: WARNING: if non-passlib code invokes crypt(), this lock won't be enough!
-        _safe_crypt_lock = threading.Lock()
-
-        #: detect if crypt.crypt() needs a thread lock around calls.
-        crypt_needs_lock = True
-
-    else:
-        from passlib.utils.compat import nullcontext
-
-        _safe_crypt_lock = nullcontext()
-        crypt_needs_lock = False
-
-    # some crypt() variants will return various constant strings when
-    # an invalid/unrecognized config string is passed in; instead of
-    # returning NULL / None. examples include ":", ":0", "*0", etc.
-    # safe_crypt() returns None for any string starting with one of the
-    # chars in this string...
-    _invalid_prefixes = "*:!"
-
-    if True:  # legacy block from PY3 compat
-        # * pypy3 (as of v7.3.1) has a crypt which accepts bytes, or ASCII-only unicode.
-        # * whereas CPython3 (as of v3.9) has a crypt which doesn't take bytes,
-        #   but accepts ANY unicode (which it always encodes to UTF8).
-        crypt_accepts_bytes = True
-        try:
-            _crypt(b"\xee", "xx")
-        except TypeError:
-            # CPython will throw TypeError
-            crypt_accepts_bytes = False
-        except Exception:  # no pragma
-            # don't care about other errors this might throw,
-            # just want to see if we get past initial type-coercion step.
-            pass
-
-        def safe_crypt(secret, hash):
-            if crypt_accepts_bytes:
-                # PyPy3 -- all bytes accepted, but unicode encoded to ASCII,
-                # so handling that ourselves.
-                if isinstance(secret, str):
-                    secret = secret.encode("utf-8")
-                if _BNULL in secret:
-                    raise ValueError("null character in secret")
-                if isinstance(hash, str):
-                    hash = hash.encode("ascii")
-            else:
-                # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
-                # encoding using utf-8 before passing to the C-level crypt().
-                # so we have to decode the secret.
-                if isinstance(secret, bytes):
-                    orig = secret
-                    try:
-                        secret = secret.decode("utf-8")
-                    except UnicodeDecodeError:
-                        return None
-                    # sanity check it encodes back to original byte string,
-                    # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
-                    assert (
-                        secret.encode("utf-8") == orig
-                    ), "utf-8 spec says this can't happen!"
-                if _NULL in secret:
-                    raise ValueError("null character in secret")
-                if isinstance(hash, bytes):
-                    hash = hash.decode("ascii")
+    def safe_crypt(secret, hash):
+        # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
+        # encoding using utf-8 before passing to the C-level crypt().
+        # so we have to decode the secret.
+        if isinstance(secret, bytes):
+            orig = secret
             try:
-                with _safe_crypt_lock:
-                    result = _crypt(secret, hash)
-            except OSError:
-                # new in py39 -- per https://bugs.python.org/issue39289,
-                # crypt() now throws OSError for various things, mainly unknown hash formats
-                # translating that to None for now (may revise safe_crypt behavior in future)
+                secret = secret.decode("utf-8")
+            except UnicodeDecodeError:
                 return None
-            # NOTE: per issue 113, crypt() may return bytes in some odd cases.
-            #       assuming it should still return an ASCII hash though,
-            #       or there's a bigger issue at hand.
-            if isinstance(result, bytes):
-                result = result.decode("ascii")
-            if not result or result[0] in _invalid_prefixes:
-                return None
-            return result
+            # sanity check it encodes back to original byte string,
+            # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
+            assert secret.encode("utf-8") == orig, "utf-8 spec says this can't happen!"
+        if _NULL in secret:
+            raise ValueError("null character in secret")
+        if isinstance(hash, bytes):
+            hash = hash.decode("ascii")
+        try:
+            with _safe_crypt_lock:
+                result = legacycrypt.crypt(secret, hash)
+        except OSError:
+            # new in py39 -- per https://bugs.python.org/issue39289,
+            # crypt() now throws OSError for various things, mainly unknown hash formats
+            # translating that to None for now (may revise safe_crypt behavior in future)
+            return None
+        # NOTE: per issue 113, crypt() may return bytes in some odd cases.
+        #       assuming it should still return an ASCII hash though,
+        #       or there's a bigger issue at hand.
+        if isinstance(result, bytes):
+            result = result.decode("ascii")
+        if not result or result[0] in _invalid_prefixes:
+            return None
+        return result
 
 
 add_doc(
