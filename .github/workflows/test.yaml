@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13-dev"]
 
     steps:
       - uses: actions/checkout@v4
@@ -29,9 +29,3 @@ jobs:
           pdm run coverage run
           pdm run coverage report -m
           pdm run coverage xml
-        env:
-          DATABASE_TEST_URL: "postgresql+asyncpg://postgres:password@localhost/postgres"
-          DATABASE_NAME: " "
-          DATABASE_HOST: " "
-          DATABASE_USERNAME: " "
-          DATABASE_PASSWORD: " "
