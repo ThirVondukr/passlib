@@ -1,14 +1,17 @@
+import dataclasses
 import os
 import subprocess
+from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Union, Sequence
 
 import pytest
 
 from passlib import apache
+from passlib.apache import HtpasswdFile, HtdigestFile
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime
-
 
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
 
@@ -100,110 +103,231 @@ def password_file_path(tmp_path: Path) -> Path:
     return tmp_path.joinpath("file")
 
 
-@pytest.fixture
-def sample_file(password_file_path) -> Path:
-    password_file_path.write_bytes(SAMPLE_01)
-    return password_file_path
+@dataclasses.dataclass
+class _TestCaseParams:
+    sample_01: bytes
+    sample_02: bytes
+    sample_03: bytes
+    cls: type[Union[HtpasswdFile, HtdigestFile]]
+
+    load_with_user: bytes
 
 
-def test_create(sample_file: Path) -> None:
-    ht = apache.HtpasswdFile(sample_file)
-    assert ht.to_string() == SAMPLE_01
-    assert ht.path == sample_file
-    assert ht.mtime
+class _BaseTest(ABC):
+    @property
+    @abstractmethod
+    def params(self) -> _TestCaseParams:
+        raise NotImplementedError
+
+    def _delete(self, file: Union[HtpasswdFile, HtdigestFile], user: str) -> bool:
+        return file.delete(user)
+
+    def _set_password(
+        self, file: Union[HtpasswdFile, HtdigestFile], user: str, password: str
+    ) -> bool:
+        return file.set_password(user, password)
+
+    def _users(self, file: Union[HtpasswdFile, HtdigestFile]) -> Sequence[str]:
+        return file.users()
+
+    @pytest.fixture
+    def sample_file(self, password_file_path) -> Path:
+        password_file_path.write_bytes(self.params.sample_01)
+        return password_file_path
+
+    def test_create(self, sample_file: Path) -> None:
+        ht = self.params.cls(sample_file)
+        assert ht.to_string() == self.params.sample_01
+        assert ht.path == sample_file
+        assert ht.mtime
+
+    def test_change_path(self, sample_file: Path) -> None:
+        ht = self.params.cls(sample_file)
+        # check changing path
+        ht.path = sample_file / "x"
+        assert ht.path == sample_file / "x"
+        assert not ht.mtime
+
+    def test_create_new(self, tmp_path: Path) -> None:
+        path = tmp_path.joinpath(htpasswd_path)
+        ht = self.params.cls(path, new=True)
+        assert ht.to_string() == b""
+        assert ht.path == path
+        assert not ht.mtime
+
+    def test_file_not_found(self, tmp_path: Path) -> None:
+        with pytest.raises(IOError):
+            self.params.cls(tmp_path.joinpath(htpasswd_path))
+
+    def test_from_file(self, sample_file: Path) -> None:
+        htpasswd = self.params.cls.from_path(sample_file)
+        assert htpasswd.to_string() == sample_file.read_bytes()
+        assert htpasswd.path is None
+        assert not htpasswd.mtime
+
+    def test_delete(self, sample_file: Path) -> None:
+        ht = self.params.cls.from_string(self.params.sample_01)
+        assert self._delete(ht, "user1")
+        assert self._delete(ht, "user2")
+        assert not self._delete(ht, "user5")
+        assert ht.to_string() == self.params.sample_02
+
+    def test_invalid_username(self) -> None:
+        err_msg = "user contains invalid characters: b'user:'"
+        ht = self.params.cls.from_string("")
+
+        with pytest.raises(ValueError) as exc_info:
+            ht.delete("user:")
+        assert str(exc_info.value) == err_msg
+
+        with pytest.raises(ValueError) as exc_info:
+            self._set_password(ht, "user:", "password")
+        assert str(exc_info.value) == err_msg
+
+        with pytest.raises(ValueError) as exc_info:
+            ht.check_password("user:", "password")
+        assert str(exc_info.value) == err_msg
+
+    def test_users(self) -> None:
+        ht = self.params.cls.from_string(self.params.sample_01)
+        assert sorted(self._users(ht)) == [f"user{i}" for i in range(1, 4 + 1)]
+
+        self._set_password(ht, "user5", "password")
+        assert sorted(self._users(ht)) == [f"user{i}" for i in range(1, 5 + 1)]
+
+    @pytest.fixture
+    def ht_from_path(
+        self, password_file_path: Path
+    ) -> Union[HtpasswdFile, HtdigestFile]:
+        password_file_path.touch()
+        backdate_file_mtime(password_file_path, 5)
+
+        if issubclass(self.params.cls, HtdigestFile):
+            return self.params.cls(password_file_path)
+        return self.params.cls(password_file_path, default_scheme="plaintext")
+
+    def test_load(
+        self, password_file_path: Path, ht_from_path: Union[HtpasswdFile, HtdigestFile]
+    ) -> None:
+        ht = ht_from_path
+        assert ht.to_string() == b""
+
+        # Make changes, check load_if_changed() does nothing
+        self._set_password(ht, "user1", "pass1")
+        ht.load_if_changed()
+        assert ht.to_string() == self.params.load_with_user
+
+        password_file_path.write_bytes(self.params.sample_01)
+        ht.load_if_changed()
+        assert ht.to_string() == self.params.sample_01
+
+        # Make changes, check load() overwrites them
+        self._set_password(ht, "user5", "pass5")
+        ht.load()
+        assert ht.to_string() == self.params.sample_01
+
+    def test_save(self, sample_file: Path) -> None:
+        ht = self.params.cls(sample_file)
+
+        self._delete(ht, "user1")
+        self._delete(ht, "user2")
+        ht.save()
+        assert sample_file.read_bytes() == self.params.sample_02
 
 
-def test_change_path(sample_file: Path) -> None:
-    ht = apache.HtpasswdFile(sample_file)
-    # check changing path
-    ht.path = sample_file / "x"
-    assert ht.path == sample_file / "x"
-    assert not ht.mtime
-
-
-def test_create_new(tmp_path: Path) -> None:
-    path = tmp_path.joinpath(htpasswd_path)
-    ht = apache.HtpasswdFile(path, new=True)
-    assert ht.to_string() == b""
-    assert ht.path == path
-    assert not ht.mtime
-
-
-def test_file_not_found(tmp_path: Path) -> None:
-    with pytest.raises(IOError):
-        apache.HtpasswdFile(tmp_path.joinpath(htpasswd_path))
-
-
-def test_from_file(sample_file: Path) -> None:
-    htpasswd = apache.HtpasswdFile.from_path(sample_file)
-    assert htpasswd.to_string() == sample_file.read_bytes()
-    assert htpasswd.path is None
-    assert not htpasswd.mtime
-
-
-def test_delete(sample_file: Path) -> None:
-    ht = apache.HtpasswdFile.from_string(SAMPLE_01)
-    assert ht.delete("user1")
-    assert ht.delete("user2")
-    assert not ht.delete("user5")
-    assert ht.to_string() == SAMPLE_02
-
-
-def test_invalid_username() -> None:
-    err_msg = "user contains invalid characters: b'user:'"
-    ht = apache.HtpasswdFile.from_string("")
-
-    with pytest.raises(ValueError) as exc_info:
-        ht.delete("user:")
-    assert str(exc_info.value) == err_msg
-
-    with pytest.raises(ValueError) as exc_info:
-        ht.set_password("user:", "password")
-    assert str(exc_info.value) == err_msg
-
-    with pytest.raises(ValueError) as exc_info:
-        ht.check_password("user:", "password")
-    assert str(exc_info.value) == err_msg
-
-
-@pytest.mark.parametrize("autosave", [True, False])
-def test_delete_autosave(password_file_path: Path, autosave: bool) -> None:
-    sample = b"user1:pass1\nuser2:pass2\n"
-    expected_file_contents = b"user2:pass2\n" if autosave else sample
-
-    password_file_path.write_bytes(b"user1:pass1\nuser2:pass2\n")
-
-    ht = apache.HtpasswdFile(password_file_path, autosave=autosave)
-    ht.delete("user1")
-    assert password_file_path.read_bytes() == expected_file_contents
-
-
-def test_set_password():
-    ht = apache.HtpasswdFile.from_string(SAMPLE_01, default_scheme="plaintext")
-    assert ht.set_password("user2", "pass2x")
-    assert not ht.set_password("user5", "pass5")
-    assert ht.to_string() == SAMPLE_03
-
-
-@pytest.mark.parametrize("autosave", [True, False])
-def test_set_password_autosave(password_file_path: Path, autosave: bool) -> None:
-    sample = b"user1:pass1\n"
-    password_file_path.write_bytes(sample)
-
-    expected_file_contents = b"user1:pass2\n" if autosave else sample
-
-    ht = apache.HtpasswdFile(
-        password_file_path, autosave=autosave, default_scheme="plaintext"
+class TestHtpasswdFile(_BaseTest):
+    params = _TestCaseParams(
+        sample_01=SAMPLE_01,
+        sample_02=SAMPLE_02,
+        sample_03=SAMPLE_03,
+        load_with_user=b"user1:pass1\n",
+        cls=HtpasswdFile,
     )
-    ht.set_password("user1", "pass2")
-    assert password_file_path.read_bytes() == expected_file_contents
+
+    def test_set_password(self):
+        ht = self.params.cls.from_string(
+            self.params.sample_01, default_scheme="plaintext"
+        )
+        assert self._set_password(ht, "user2", "pass2x")
+        assert not self._set_password(ht, "user5", "pass5")
+        assert ht.to_string() == self.params.sample_03
+
+    @pytest.mark.parametrize("autosave", [True, False])
+    def test_set_password_autosave(
+        self, password_file_path: Path, autosave: bool
+    ) -> None:
+        sample = b"user1:pass1\n"
+        password_file_path.write_bytes(sample)
+
+        expected_file_contents = b"user1:pass2\n" if autosave else sample
+
+        ht = self.params.cls(
+            password_file_path, autosave=autosave, default_scheme="plaintext"
+        )
+        self._set_password(ht, "user1", "pass2")
+        assert password_file_path.read_bytes() == expected_file_contents
+
+    @pytest.mark.parametrize("autosave", [True, False])
+    def test_delete_autosave(self, password_file_path: Path, autosave: bool) -> None:
+        sample = b"user1:pass1\nuser2:pass2\n"
+        expected_file_contents = b"user2:pass2\n" if autosave else sample
+
+        password_file_path.write_bytes(b"user1:pass1\nuser2:pass2\n")
+
+        ht = self.params.cls(password_file_path, autosave=autosave)
+        self._delete(ht, "user1")
+        assert password_file_path.read_bytes() == expected_file_contents
+
+    @pytest.mark.parametrize("scheme", ["sha256_crypt", "des_crypt"])
+    def test_set_password_default_scheme(self, scheme: str) -> None:
+        ht = self.params.cls(default_scheme=scheme)
+        self._set_password(ht, "user1", "pass1")
+        assert ht.context.identify(ht.get_hash("user1"))
+
+    def test_check_password(self) -> None:
+        ht = apache.HtpasswdFile.from_string(SAMPLE_05)
+        with pytest.raises(TypeError):
+            ht.check_password(1, "pass")
+
+        for i in range(1, 6 + 1):
+            assert ht.check_password(f"user{i}", f"pass{i}")
+            assert not ht.check_password(f"user{i}", "pass9")
 
 
-@pytest.mark.parametrize("scheme", ["sha256_crypt", "des_crypt"])
-def test_set_password_default_scheme(scheme: str) -> None:
-    ht = apache.HtpasswdFile(default_scheme=scheme)
-    ht.set_password("user1", "pass1")
-    assert ht.context.identify(ht.get_hash("user1"))
+class TestHtdigestFile(_BaseTest):
+    params = _TestCaseParams(
+        sample_01=(
+            b"user2:realm:549d2a5f4659ab39a80dac99e159ab19\n"
+            b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+            b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+            b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
+        ),
+        sample_02=(
+            b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+            b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+        ),
+        sample_03=(
+            b"user2:realm:5ba6d8328943c23c64b50f8b29566059\n"
+            b"user3:realm:a500bb8c02f6a9170ae46af10c898744\n"
+            b"user4:realm:ab7b5d5f28ccc7666315f508c7358519\n"
+            b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n"
+            b"user5:realm:03c55fdc6bf71552356ad401bdb9af19\n"
+        ),
+        load_with_user=b"user1:realm:2a6cf53e7d8f8cf39d946dc880b14128\n",
+        cls=HtdigestFile,
+    )
+    realm = "realm"
+
+    def _delete(self, file: Union[HtpasswdFile, HtdigestFile], user: str) -> bool:
+        return file.delete(user, self.realm)
+
+    def _set_password(
+        self, file: Union[HtpasswdFile, HtdigestFile], user: str, password: str
+    ) -> bool:
+        return file.set_password(user, self.realm, password)
+
+    def _users(self, file: Union[HtpasswdFile, HtdigestFile]) -> Sequence[str]:
+        return file.users(realm=self.realm)
 
 
 @pytest.mark.parametrize(
@@ -225,71 +349,6 @@ def test_set_password_default_scheme_unknown() -> None:
     with pytest.raises(KeyError) as exc_info:
         apache.HtpasswdFile(default_scheme="unknown")
     assert str(exc_info.value) == "'default scheme not found in policy'"
-
-
-def test_users() -> None:
-    ht = apache.HtpasswdFile.from_string(SAMPLE_01)
-    assert sorted(ht.users()) == [f"user{i}" for i in range(1, 4 + 1)]
-
-    ht.set_password("user5", "password")
-    assert sorted(ht.users()) == [f"user{i}" for i in range(1, 5 + 1)]
-
-
-def test_check_password() -> None:
-    ht = apache.HtpasswdFile.from_string(SAMPLE_05)
-    with pytest.raises(TypeError):
-        ht.check_password(1, "pass")
-
-    for i in range(1, 6 + 1):
-        assert ht.check_password(f"user{i}", f"pass{i}")
-        assert not ht.check_password(f"user{i}", "pass9")
-
-
-def test_load(password_file_path: Path) -> None:
-    password_file_path.touch()
-    backdate_file_mtime(password_file_path, 5)
-
-    ht = apache.HtpasswdFile(password_file_path, default_scheme="plaintext")
-    assert ht.to_string() == b""
-
-    # Make changes, check load_if_changed() does nothing
-    ht.set_password("user1", "pass1")
-    ht.load_if_changed()
-    ht.to_string(), b"user1:pass1\n"
-
-    password_file_path.write_bytes(SAMPLE_01)
-    ht.load_if_changed()
-    assert ht.to_string() == SAMPLE_01
-
-    # Make changes, check load() overwrites them
-    ht.set_password("user5", "pass5")
-    ht.load()
-    assert ht.to_string() == SAMPLE_01
-
-
-def test_load_with_no_path() -> None:
-    ht = apache.HtpasswdFile()
-    with pytest.raises(RuntimeError):
-        ht.load()
-    with pytest.raises(RuntimeError):
-        ht.load_if_changed()
-
-
-def test_load_from_exclicit_path(password_file_path: Path):
-    password_file_path.write_bytes(SAMPLE_01)
-
-    ht = apache.HtpasswdFile()
-    ht.load(password_file_path)
-    assert ht.check_password("user1", "pass1")
-
-
-def test_save(sample_file: Path) -> None:
-    ht = apache.HtpasswdFile(sample_file)
-
-    ht.delete("user1")
-    ht.delete("user2")
-    ht.save()
-    assert sample_file.read_bytes() == SAMPLE_02
 
 
 def test_save_without_path(password_file_path: Path) -> None:
