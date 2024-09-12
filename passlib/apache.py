@@ -7,6 +7,8 @@ import logging
 
 
 import os
+from os import PathLike
+from typing import Literal
 from warnings import warn
 
 
@@ -92,7 +94,7 @@ class _CommonFile(object):
         return self
 
     @classmethod
-    def from_path(cls, path, **kwds):
+    def from_path(cls, path: PathLike, **kwds):
         """create new object from file, without binding object to file.
 
         :type path: str
@@ -180,7 +182,7 @@ class _CommonFile(object):
         self.load()
         return True
 
-    def load(self, path=None):
+    def load(self, path: PathLike | None = None) -> Literal[True]:
         """Load state from local file.
         If no path is specified, attempts to load from ``self.path``.
 
