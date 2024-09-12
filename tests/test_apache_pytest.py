@@ -498,21 +498,23 @@ def test_htpasswd_cmd_verify(password_file_path: Path):
 
 
 @requires_htpasswd
-def test_htpasswd_cmd_verify_bcrypt(self):
+def test_htpasswd_cmd_verify_bcrypt(password_file_path: Path):
     """
     verify "htpasswd" command can read bcrypt format
 
     this tests for regression of issue 95, where we output "$2b$" instead of "$2y$";
     fixed in v1.7.2.
     """
-    path = self.mktemp()
-    ht = apache.HtpasswdFile(path=path, new=True)
+    ht = apache.HtpasswdFile(path=password_file_path, new=True)
 
     def hash_scheme(pwd, scheme):
         return ht.context.handler(scheme).hash(pwd)
 
     ht.set_hash("user1", hash_scheme("password", "bcrypt"))
     ht.save()
-    assert not _call_htpasswd_verify(path, "user1", "wrong")
+    assert not _call_htpasswd_verify(password_file_path, "user1", "wrong")
 
-    assert _call_htpasswd_verify(path, "user1", "password") is HAS_HTPASSWD_BCRYPT
+    assert (
+        _call_htpasswd_verify(password_file_path, "user1", "password")
+        is HAS_HTPASSWD_BCRYPT
+    )
