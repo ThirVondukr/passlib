@@ -159,7 +159,6 @@ def _modify_django_config(kwds, sha_rounds=None):
     """
     # make sure we have dict
     if hasattr(kwds, "to_dict"):
-        # type: CryptContext
         kwds = kwds.to_dict()
 
     # update defaults

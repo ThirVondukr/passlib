@@ -69,6 +69,9 @@ testing = [
 django = [
     "django>=4.2.16",
 ]
+types = [
+    "django-stubs>=5.0.4",
+]
 
 [tool.coverage.run]
 source = ["passlib"]
@@ -114,3 +117,7 @@ version_files = [
     "passlib/__init__.py",
     "pyproject.toml:version"
 ]
+
+
+[tool.mypy]
+python_version = "3.9"

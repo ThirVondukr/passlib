@@ -25,6 +25,7 @@ from warnings import warn
 
 from passlib import exc
 from passlib.exc import MissingBackendError
+from passlib.ifc import PasswordHash
 
 from passlib.utils import (
     has_rounds_info,
@@ -40,6 +41,7 @@ from passlib.utils import (
 )
 from passlib.utils.decor import classproperty
 import passlib.utils.handlers as uh
+from passlib.utils.handlers import PrefixWrapper
 
 log = logging.getLogger(__name__)
 # local
@@ -340,7 +342,7 @@ class TestCase(unittest.TestCase):
     # ---------------------------------------------------------------
 
     # string prepended to all tests in TestCase
-    descriptionPrefix = None
+    descriptionPrefix: str | None = None
 
     def shortDescription(self):
         """wrap shortDescription() method to prepend descriptionPrefix"""
@@ -825,7 +827,7 @@ class HandlerCase(TestCase):
     # ---------------------------------------------------------------
 
     # handler class to test [required]
-    handler = None
+    handler: type[PasswordHash] | PrefixWrapper = None
 
     # if set, run tests against specified backend
     backend = None
@@ -3110,7 +3112,7 @@ class HandlerCase(TestCase):
     #: list of custom fuzz-test verifiers (in addition to hasher itself,
     #: and backend-specific wrappers of hasher).  each element is
     #: name of method that will return None / a verifier callable.
-    fuzz_verifiers = ("fuzz_verifier_default",)
+    fuzz_verifiers: tuple[str, ...] = ("fuzz_verifier_default",)
 
     def get_fuzz_verifiers(self, threaded=False):
         """return list of password verifiers (including external libs)

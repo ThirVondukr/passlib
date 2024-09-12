@@ -423,7 +423,7 @@ class _CommonFile(object):
 
 #: set of default schemes that (if chosen) should be using bcrypt,
 #: but can't due to lack of bcrypt.
-_warn_no_bcrypt = set()
+_warn_no_bcrypt: set[str] = set()
 
 
 def _init_default_schemes():

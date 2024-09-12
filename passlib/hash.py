@@ -58,7 +58,9 @@ if False:
         django_pbkdf2_sha256,
         django_salted_md5,
         django_salted_sha1,
+        django_argon2,
     )
+
     from passlib.handlers.fshp import fshp
     from passlib.handlers.ldap_digests import (
         ldap_bcrypt,

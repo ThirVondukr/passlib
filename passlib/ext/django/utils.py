@@ -1,15 +1,18 @@
 """helper functions used by this plugin"""
 
-from collections import OrderedDict
-from functools import update_wrapper, wraps
 import logging
-
-
 import sys
 import weakref
+from collections import OrderedDict
+from functools import update_wrapper, wraps, lru_cache
 from warnings import warn
+from passlib import exc, registry
+from passlib.context import CryptContext
+from passlib.exc import PasslibRuntimeWarning
+from passlib.utils.compat import get_method_function
+from passlib.utils.decor import memoized_property
 
-
+DJANGO_VERSION: tuple[int | str, ...]
 try:
     from django import VERSION as DJANGO_VERSION
 
@@ -18,11 +21,6 @@ except ImportError:
     logging.debug("django installation not found")
     DJANGO_VERSION = ()
 
-from passlib import exc, registry
-from passlib.context import CryptContext
-from passlib.exc import PasslibRuntimeWarning
-from passlib.utils.compat import get_method_function
-from passlib.utils.decor import memoized_property
 
 # local
 __all__ = [
@@ -34,6 +32,7 @@ __all__ = [
 
 #: minimum version supported by passlib.ext.django
 MIN_DJANGO_VERSION = (1, 8)
+
 
 # =============================================================================
 # quirk detection
@@ -499,13 +498,6 @@ class DjangoContextAdapter(DjangoTranslator):
             assert callable(get_user_category)
             self.get_user_category = get_user_category
 
-        # install lru cache wrappers
-        try:
-            from functools import lru_cache  # new py32
-        except ImportError:
-            from django.utils.lru_cache import (
-                lru_cache,
-            )  # py2 compat, removed in django 3 (or earlier?)
         self.get_hashers = lru_cache()(self.get_hashers)
 
         # get copy of original make_password

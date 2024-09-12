@@ -638,23 +638,23 @@ class GenericHandler(MinimalHandler):
     # class attr
     # ===================================================================
     # this must be provided by the actual class.
-    setting_kwds = None
+    setting_kwds: tuple[str, ...] | None = None
 
     # providing default since most classes don't use this at all.
     context_kwds = ()
 
     # optional prefix that uniquely identifies hash
-    ident = None
+    ident: str | None = None
 
     # optional regexp for recognizing hashes,
     # used by default identify() if .ident isn't specified.
     _hash_regex = None
 
     # if specified, _norm_checksum will require this length
-    checksum_size = None
+    checksum_size: int | None = None
 
     # if specified, _norm_checksum() will validate this
-    checksum_chars = None
+    checksum_chars: str | None = None
 
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
@@ -1329,8 +1329,8 @@ class HasSalt(GenericHandler):
     # ===================================================================
 
     min_salt_size = 0
-    max_salt_size = None
-    salt_chars = None
+    max_salt_size: int | None = None
+    salt_chars: str | None = None
 
     @classproperty
     def default_salt_size(cls):
@@ -1661,9 +1661,9 @@ class HasRounds(GenericHandler):
     # -----------------
     # XXX: rename to min_valid_rounds / max_valid_rounds,
     #      to clarify role compared to min_desired_rounds / max_desired_rounds?
-    min_rounds = 0
-    max_rounds = None
-    rounds_cost = "linear"  # default to the common case
+    min_rounds: int = 0
+    max_rounds: int | None = None
+    rounds_cost: str = "linear"  # default to the common case
 
     # hack to pass info to _CryptRecord (will be removed in passlib 2.0)
     using_rounds_kwds = (
@@ -1680,7 +1680,7 @@ class HasRounds(GenericHandler):
     # -----------------
     min_desired_rounds = None
     max_desired_rounds = None
-    default_rounds = None
+    default_rounds: int | None = None
     vary_rounds = None
 
     # ===================================================================
@@ -1693,11 +1693,11 @@ class HasRounds(GenericHandler):
     # ===================================================================
     @classmethod
     def using(
-        cls,  # keyword only...
+        cls,
         min_desired_rounds=None,
         max_desired_rounds=None,
         default_rounds=None,
-        vary_rounds=None,
+        vary_rounds: str | float | None = None,
         min_rounds=None,
         max_rounds=None,
         rounds=None,  # aliases used by CryptContext
@@ -1884,9 +1884,6 @@ class HasRounds(GenericHandler):
         upper = linear_to_native(default_rounds + vary_rounds, True)
         return cls._clip_to_desired_rounds(lower), cls._clip_to_desired_rounds(upper)
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, rounds=None, **kwds):
         super().__init__(**kwds)
         if rounds is not None:

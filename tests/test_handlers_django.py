@@ -35,12 +35,6 @@ class _DjangoHelper(TestCase):
 
     #: minimum django version where hash alg is present / that we support testing against
     min_django_version = MIN_DJANGO_VERSION
-
-    #: max django version where hash alg is present
-    #: TODO: for a bunch of the tests below, this is just max version where
-    #:       settings.PASSWORD_HASHERS includes it by default -- could add helper to patch
-    #:       desired django hasher back in for duration of test.
-    #: XXX: change this to "disabled_in_django_version" instead?
     max_django_version = None
 
     def _require_django_support(self):

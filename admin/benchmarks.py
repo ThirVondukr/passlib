@@ -15,10 +15,6 @@ from binascii import hexlify
 import passlib.utils.handlers as uh
 from tests.utils import time_call
 
-try:
-    from passlib.exc import PasslibConfigWarning
-except ImportError:
-    PasslibConfigWarning = None
 
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 
