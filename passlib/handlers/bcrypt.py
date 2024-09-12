@@ -1,4 +1,4 @@
-"""passlib.bcrypt -- implementation of OpenBSD's BCrypt algorithm.
+"""implementation of OpenBSD's BCrypt algorithm.
 
 TODO:
 
@@ -8,33 +8,22 @@ TODO:
 * deal with lack of PY3-compatibile c-ext implementation
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from base64 import b64encode
-from hashlib import sha256
+import logging
 import os
 import re
-import logging
-from importlib import metadata
 
-log = logging.getLogger(__name__)
+from base64 import b64encode
+from hashlib import sha256
+from importlib import metadata
+from importlib.util import find_spec
 from warnings import warn
 
-# site
-_bcrypt = None  # dynamically imported by _load_backend_bcrypt()
-# pkg
-_builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
+import passlib.utils.handlers as uh
 from passlib.crypto.digest import compile_hmac
-from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
+from passlib.exc import PasslibHashWarning, PasslibSecurityError
 from passlib.utils import (
     safe_crypt,
     repeat_string,
-    to_bytes,
-    parse_version,
-    rng,
-    getrandstr,
     test_crypt,
     to_unicode,
     utf8_truncate,
@@ -42,9 +31,11 @@ from passlib.utils import (
     crypt_accepts_bytes,
 )
 from passlib.utils.binary import bcrypt64
-import passlib.utils.handlers as uh
 
-# local
+_bcrypt = None  # dynamically imported by _load_backend_bcrypt()
+_builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
+
+log = logging.getLogger(__name__)
 __all__ = [
     "bcrypt",
 ]
@@ -83,18 +74,14 @@ def _detect_pybcrypt():
     # NOTE: this is also used by the unittests.
 
     # check for module.
-    try:
-        import bcrypt
-    except ImportError:
-        # XXX: this is ignoring case where py-bcrypt's "bcrypt._bcrypt" C Ext fails to import;
-        #      would need to inspect actual ImportError message to catch that.
-        return None
+    if find_spec("bcrypt") is None:
+        return False
 
     # py-bcrypt has a "._bcrypt.__version__" attribute (confirmed for v0.1 - 0.4),
     # which bcrypt lacks (confirmed for v1.0 - 2.0)
     # "._bcrypt" alone isn't sufficient, since bcrypt 2.0 now has that attribute.
     try:
-        from bcrypt._bcrypt import __version__
+        from bcrypt._bcrypt import __version__  # noqa: F401
     except ImportError:
         return False
     return True
@@ -669,7 +656,7 @@ class _BcryptBackend(_BcryptCommon):
             return False
         try:
             version = metadata.version("bcrypt")
-        except:
+        except Exception:
             log.warning("(trapped) error reading bcrypt version", exc_info=True)
             version = "<unknown>"
 
@@ -807,7 +794,6 @@ class _BuiltinBackend(_BcryptCommon):
             )
             return False
         global _builtin_bcrypt
-        from passlib.crypto._blowfish import raw_bcrypt as _builtin_bcrypt
 
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 

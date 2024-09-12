@@ -1,4 +1,4 @@
-"""passlib.handlers.phpass - PHPass Portable Crypt
+"""PHPass Portable Crypt
 
 phppass located - http://www.openwall.com/phpass/
 algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
@@ -6,20 +6,12 @@ algorithm described - http://www.openwall.com/articles/PHP-Users-Passwords
 phpass context - blowfish, bsdi_crypt, phpass
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from hashlib import md5
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "phpass",
 ]

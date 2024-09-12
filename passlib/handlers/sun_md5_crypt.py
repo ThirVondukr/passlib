@@ -1,31 +1,10 @@
-"""passlib.handlers.sun_md5_crypt - Sun's Md5 Crypt, used on Solaris
-
-.. warning::
-
-    This implementation may not reproduce
-    the original Solaris behavior in some border cases.
-    See documentation for details.
-"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from hashlib import md5
-import re
-import logging
 
-log = logging.getLogger(__name__)
-from warnings import warn
-
-# site
-# pkg
+import passlib.utils.handlers as uh
 from passlib.utils import to_unicode
 from passlib.utils.binary import h64
 from passlib.utils.compat import str_to_bascii
-import passlib.utils.handlers as uh
 
-# local
 __all__ = [
     "sun_md5_crypt",
 ]
@@ -72,7 +51,8 @@ MAGIC_HAMLET = (
     b"With this regard, their currents turn awry,\n"
     b"And lose the name of action.--Soft you now!\n"
     b"The fair Ophelia!--Nymph, in thy orisons\n"
-    b"Be all my sins remember'd.\n\x00"  # <- apparently null at end of C string is included (test vector won't pass otherwise)
+    b"Be all my sins remember'd.\n\x00"
+    # <- apparently null at end of C string is included (test vector won't pass otherwise)
 )
 
 # NOTE: these sequences are pre-calculated iteration ranges used by X & Y loops w/in rounds function below

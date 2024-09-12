@@ -4,33 +4,23 @@ this is a *very* rough benchmark script hacked together when the context
 parsing was being sped up. it could definitely be improved.
 """
 
-# =============================================================================
-# init script env
-# =============================================================================
 import re
 import os
 import sys
+from passlib.context import CryptContext
 
-root = os.path.join(os.path.dirname(__file__), os.path.pardir)
-sys.path.insert(0, os.curdir)
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+import passlib.utils.handlers as uh
+from tests.utils import time_call
+
 try:
     from passlib.exc import PasslibConfigWarning
 except ImportError:
     PasslibConfigWarning = None
-import passlib.utils.handlers as uh
-from tests.utils import time_call
-# local
+
+root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 
 
 # =============================================================================
@@ -96,8 +86,6 @@ class benchmark:
 # utils
 # =============================================================================
 sample_config_1p = os.path.join(root, "passlib", "tests", "sample_config_1s.cfg")
-
-from passlib.context import CryptContext
 
 
 class BlankHandler(uh.HasRounds, uh.HasSalt, uh.GenericHandler):

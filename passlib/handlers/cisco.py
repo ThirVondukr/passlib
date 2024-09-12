@@ -1,21 +1,13 @@
-"""
-passlib.handlers.cisco -- Cisco password hashes
-"""
+"""Cisco password hashes"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify, unhexlify
 from hashlib import md5
-import logging
 
-log = logging.getLogger(__name__)
+
 from warnings import warn
 
-# site
-# pkg
-from passlib.utils import right_pad_string, to_unicode, repeat_string, to_bytes
+
+from passlib.utils import right_pad_string, to_unicode, repeat_string
 from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
 

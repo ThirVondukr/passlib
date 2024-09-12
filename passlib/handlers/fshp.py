@@ -1,22 +1,12 @@
-"""passlib.handlers.fshp"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from base64 import b64encode, b64decode
 import re
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.utils import to_unicode
 import passlib.utils.handlers as uh
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf1
 
-# local
 __all__ = [
     "fshp",
 ]

@@ -1,24 +1,14 @@
-"""tests for passlib.apache -- (c) Assurance Technologies 2008-2011"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from logging import getLogger
+import logging
 import unittest
 import os
 import subprocess
 
-# site
-# pkg
 from passlib import apache, registry
 from passlib.exc import MissingBackendError
-from tests.utils import TestCase, get_file, set_file, ensure_mtime_changed
+from tests.utils import TestCase, get_file, set_file
 from passlib.utils import to_bytes
 from passlib.utils.handlers import to_unicode_for_identify
 
-# module
-log = getLogger(__name__)
 
 # =============================================================================
 # helpers
@@ -80,7 +70,7 @@ def _detect_htpasswd():
         return False, False
     # when called w/o args, it should print usage to stderr & return rc=2
     if not rc:
-        log.warning("htpasswd test returned with rc=0")
+        logging.warning("htpasswd test returned with rc=0")
     have_bcrypt = " -B " in out
     return True, have_bcrypt
 

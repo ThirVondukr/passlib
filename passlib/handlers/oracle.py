@@ -1,23 +1,15 @@
-"""passlib.handlers.oracle - Oracle DB Password Hashes"""
+"""Oracle DB Password Hashes"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
 import re
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.utils import to_unicode, xor_bytes
 from passlib.crypto.des import des_encrypt_block
 import passlib.utils.handlers as uh
 
-# local
-__all__ = ["oracle10g", "oracle11g"]
+__all__ = ["oracle10", "oracle11"]
 
 
 # =============================================================================

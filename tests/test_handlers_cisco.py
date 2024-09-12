@@ -1,7 +1,3 @@
-import logging
-
-log = logging.getLogger(__name__)
-
 from passlib import hash, exc
 from .utils import UserHandlerMixin, HandlerCase, repeat_string
 from .test_handlers import UPASS_TABLE
@@ -431,11 +427,11 @@ class cisco_type7_test(HandlerCase):
         from passlib.utils import to_unicode, to_bytes
 
         handler = self.handler
-        for secret, hash in self.known_correct_hashes:
+        for secret, hashed in self.known_correct_hashes:
             usecret = to_unicode(secret)
             bsecret = to_bytes(secret)
-            self.assertEqual(handler.decode(hash), usecret)
-            self.assertEqual(handler.decode(hash, None), bsecret)
+            self.assertEqual(handler.decode(hashed), usecret)
+            self.assertEqual(handler.decode(hashed, None), bsecret)
 
         self.assertRaises(
             UnicodeDecodeError, handler.decode, "0958EDC8A9F495F6F8A5FD", "ascii"

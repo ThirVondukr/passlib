@@ -1,23 +1,12 @@
-"""
-test passlib.ext.django against django source tests
-"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.ext.django.utils import (
     DJANGO_VERSION,
     DjangoTranslator,
     _PasslibHasherWrapper,
 )
 
-# tests
 from tests.utils import TestCase, TEST_MODE
 from .test_ext_django import (
     has_min_django,
@@ -27,7 +16,7 @@ from .test_ext_django import (
 
 if has_min_django:
     from .test_ext_django import settings
-# local
+
 __all__ = [
     "HashersTest",
 ]
@@ -66,7 +55,7 @@ elif has_min_django:
             for name in ["django", "tests"]
         ):
             raise EnvironmentError("invalid django source path: %r" % source_path)
-        log.info("using django tests from source path: %r", source_path)
+        logging.info("using django tests from source path: %r", source_path)
         tests_path = os.path.join(source_path, "tests")
         sys.path.insert(0, tests_path)
         try:
@@ -247,7 +236,7 @@ if test_hashers_mod:
         # *want to minimize these as much as possible*
         # ==================================================================
 
-        _OMIT = lambda self: self.skipTest("omitted by passlib")
+        _OMIT = lambda self: self.skipTest("omitted by passlib")  # noqa: E731
 
         # XXX: this test registers two classes w/ same algorithm id,
         #      something we don't support -- how does django sanely handle

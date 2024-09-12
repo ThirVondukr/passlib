@@ -1,29 +1,17 @@
-"""passlib.handlers.scram - hash for SCRAM credential storage"""
+"""hash for SCRAM credential storage"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils import consteq, saslprep, to_native_str, splitcomma
 from passlib.utils.binary import ab64_decode, ab64_encode
 from passlib.utils.compat import bascii_to_str
 from passlib.crypto.digest import pbkdf2_hmac, norm_hash_name
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "scram",
 ]
 
 
-# =============================================================================
-# scram credentials hash
-# =============================================================================
 class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class provides a format for storing SCRAM passwords, and follows
     the :ref:`password-hash-api`.

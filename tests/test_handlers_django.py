@@ -1,6 +1,3 @@
-import logging
-
-
 from unittest import skipUnless, SkipTest
 import warnings
 from tests.test_handlers_argon2 import _base_argon2_test

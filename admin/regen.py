@@ -82,12 +82,6 @@ def replace_section(data, ident, content):
     )
 
 
-# =============================================================================
-# main
-# =============================================================================
-
-from passlib.hash import sha256_crypt
-
 source_dir = os.path.abspath(os.path.join(__file__, *[".."] * 2))
 
 

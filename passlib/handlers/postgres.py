@@ -1,19 +1,10 @@
-"""passlib.handlers.postgres_md5 - MD5-based algorithm used by Postgres for pg_shadow table"""
+"""MD5-based algorithm used by Postgres for pg_shadow table"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from hashlib import md5
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils import to_bytes
 import passlib.utils.handlers as uh
 
-# local
 __all__ = [
     "postgres_md5",
 ]

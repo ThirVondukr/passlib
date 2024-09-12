@@ -1,15 +1,3 @@
-"""passlib.handlers.sha1_crypt"""
-
-# =============================================================================
-# imports
-# =============================================================================
-
-# core
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils import safe_crypt, test_crypt
 from passlib.utils.binary import h64
 from passlib.crypto.digest import compile_hmac

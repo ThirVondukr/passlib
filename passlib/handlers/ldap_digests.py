@@ -1,24 +1,14 @@
-"""passlib.handlers.digests - plain hash digests"""
+"""plain hash digests"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
+import re
 from base64 import b64encode, b64decode
 from hashlib import md5, sha1, sha256, sha512
-import logging
 
-log = logging.getLogger(__name__)
-import re
-
-# site
-# pkg
+import passlib.utils.handlers as uh
 from passlib.handlers.misc import plaintext
 from passlib.utils import unix_crypt_schemes, to_unicode
 from passlib.utils.decor import classproperty
-import passlib.utils.handlers as uh
 
-# local
 __all__ = [
     "ldap_plaintext",
     "ldap_md5",
@@ -27,14 +17,6 @@ __all__ = [
     "ldap_salted_sha1",
     "ldap_salted_sha256",
     "ldap_salted_sha512",
-    ##"get_active_ldap_crypt_schemes",
-    "ldap_des_crypt",
-    "ldap_bsdi_crypt",
-    "ldap_md5_crypt",
-    "ldap_sha1_crypt",
-    "ldap_bcrypt",
-    "ldap_sha256_crypt",
-    "ldap_sha512_crypt",
 ]
 
 

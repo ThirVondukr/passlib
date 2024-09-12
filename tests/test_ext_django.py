@@ -3,7 +3,7 @@ import logging
 import sys
 import re
 
-from passlib import apps as _apps, exc, registry
+from passlib import apps as _apps, exc
 from passlib.apps import django10_context, django14_context, django16_context
 from passlib.context import CryptContext
 from passlib.ext.django.utils import (
@@ -15,11 +15,12 @@ from passlib.ext.django.utils import (
 from passlib.utils.compat import get_method_function
 from passlib.utils.decor import memoized_property
 
-# tests
+
 from tests.utils import TestCase, TEST_MODE, handler_derived_from
 from tests.test_handlers import get_handler_case
+from passlib.hash import django_pbkdf2_sha256
 
-# local
+
 __all__ = [
     "DjangoBehaviorTest",
     "ExtensionBehaviorTest",
@@ -200,10 +201,6 @@ else:
     # assert DJANGO_VERSION >= (1, 8)
     stock_config = _modify_django_config(_apps.django16_context)
 
-# ----------------------------------------------------
-# override sample hashes used in test cases
-# ----------------------------------------------------
-from passlib.hash import django_pbkdf2_sha256
 
 sample_hashes = dict(
     django_pbkdf2_sha256=(
@@ -341,7 +338,7 @@ class _ExtensionSupport(object):
         for key in self._config_keys:
             kwds.setdefault(key, UNSET)
         update_settings(**kwds)
-        import passlib.ext.django.models
+        import passlib.ext.django.models  # noqa: F401
 
         if check:
             self.assert_patched(context=config)
@@ -548,9 +545,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
-            identify_hasher,
         )
 
         # User.set_password() should use default alg
@@ -622,8 +616,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 
@@ -660,8 +652,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 
@@ -704,8 +694,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         # NOTE: import has to be done w/in method, in case monkeypatching is applied by setUp()
         from django.contrib.auth.hashers import (
             check_password,
-            make_password,
-            is_password_usable,
             identify_hasher,
         )
 
@@ -1061,7 +1049,6 @@ class DjangoExtensionTest(_ExtensionTest):
         # check implicit default
         from passlib.ext.django.utils import PASSLIB_DEFAULT
 
-        default = CryptContext.from_string(PASSLIB_DEFAULT)
         self.load_extension()
         self.assert_patched(PASSLIB_DEFAULT)
 

@@ -1,17 +1,8 @@
-"""passlib.handlers.misc - misc generic handlers"""
+"""misc generic handlers"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import sys
-import logging
 
-log = logging.getLogger(__name__)
-from warnings import warn
 
-# site
-# pkg
 from passlib.utils import to_native_str, str_consteq
 from passlib.utils.compat import unicode_or_bytes
 import passlib.utils.handlers as uh

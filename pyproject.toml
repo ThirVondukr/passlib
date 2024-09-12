@@ -100,6 +100,11 @@ target-version = "py39"
 [tool.ruff.lint]
 unfixable = ["F401"]
 
+[tool.ruff.lint.per-file-ignores]
+"passlib/hash.py" = ["F401"]
+"passlib/crypto/_blowfish/base.py" = ["E741"]
+"passlib/crypto/_blowfish/unrolled.py" = ["E741"]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 version = "1.7.5.post0"

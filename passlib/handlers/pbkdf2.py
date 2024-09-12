@@ -1,23 +1,14 @@
-"""passlib.handlers.pbkdf - PBKDF2 based hashes"""
+"""PBKDF2 based hashes"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify, unhexlify
 from base64 import b64encode, b64decode
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils import to_unicode
 from passlib.utils.binary import ab64_decode, ab64_encode
-from passlib.utils.compat import str_to_bascii
 from passlib.crypto.digest import pbkdf2_hmac
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "pbkdf2_sha1",
     "pbkdf2_sha256",

@@ -1,12 +1,5 @@
 """passlib.ext.django.models -- monkeypatch django hashing framework"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-# site
-# pkg
-from passlib.context import CryptContext
 from passlib.ext.django.utils import DjangoContextAdapter
 
 # local

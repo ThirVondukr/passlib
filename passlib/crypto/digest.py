@@ -3,14 +3,9 @@
 .. versionadded:: 1.7
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import hashlib
 import logging
 
-log = logging.getLogger(__name__)
 try:
     # new in py3.4
     from hashlib import pbkdf2_hmac as _stdlib_pbkdf2_hmac
@@ -18,7 +13,7 @@ try:
     if _stdlib_pbkdf2_hmac.__module__ == "hashlib":
         # builtin pure-python backends are slightly faster than stdlib's pure python fallback,
         # so only using stdlib's version if it's backed by openssl's pbkdf2_hmac()
-        log.debug("ignoring pure-python hashlib.pbkdf2_hmac()")
+        logging.debug("ignoring pure-python hashlib.pbkdf2_hmac()")
         _stdlib_pbkdf2_hmac = None
 except ImportError:
     _stdlib_pbkdf2_hmac = None
@@ -27,13 +22,13 @@ import os
 from struct import Struct
 from warnings import warn
 
-# site
+
 try:
     # https://pypi.python.org/pypi/fastpbkdf2/
     from fastpbkdf2 import pbkdf2_hmac as _fast_pbkdf2_hmac
 except ImportError:
     _fast_pbkdf2_hmac = None
-# pkg
+
 from passlib import exc
 from passlib.utils import join_bytes, to_native_str, to_bytes, SequenceMixin, as_bool
 from passlib.utils.compat import unicode_or_bytes
@@ -188,7 +183,7 @@ def _get_hash_aliases(name):
             return result
 
         # not found in table, but roughly recognize format. use names we built up as fallback.
-        log.info(
+        logging.info(
             "normalizing unrecognized hash name %r => %r / %r",
             orig,
             hashlib_name,
@@ -199,7 +194,7 @@ def _get_hash_aliases(name):
         # just can't make sense of it. return something
         iana_name = name
         hashlib_name = name.replace("-", "_")
-        log.warning(
+        logging.warning(
             "normalizing unrecognized hash name and format %r => %r / %r",
             orig,
             hashlib_name,

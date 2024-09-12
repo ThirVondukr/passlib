@@ -48,15 +48,9 @@ released under the BSD license::
 
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from itertools import chain
 import struct
 
-# pkg
-from passlib.utils import getrandbytes, rng
+
 from passlib.utils.binary import bcrypt64
 from passlib.crypto._blowfish.unrolled import BlowfishEngine
 

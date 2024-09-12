@@ -1,19 +1,15 @@
-"""passlib.apache - apache password support"""
+"""Apache password support"""
 
 # XXX: relocate this to passlib.ext.apache?
-# =============================================================================
-# imports
-# =============================================================================
-# core
+
 from io import BytesIO
 import logging
 
-log = logging.getLogger(__name__)
+
 import os
 from warnings import warn
 
-# site
-# pkg
+
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import ExpectedStringError
@@ -233,7 +229,9 @@ class _CommonFile(object):
             # NOTE: if multiple entries for a key, we use the first one,
             #       which seems to match htpasswd source
             if key in records:
-                log.warning("username occurs multiple times in source file: %r" % key)
+                logging.warning(
+                    "username occurs multiple times in source file: %r" % key
+                )
                 skipped += line
                 continue
 

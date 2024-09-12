@@ -1,19 +1,9 @@
-"""passlib.registry - registry for password hash handlers"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import re
 import logging
-
-log = logging.getLogger(__name__)
+import re
 from warnings import warn
 
-# pkg
 from passlib import exc
 from passlib.exc import ExpectedTypeError, PasslibWarning
-from passlib.ifc import PasswordHash
 from passlib.utils import (
     is_crypt_handler,
     has_crypt as os_crypt_present,
@@ -21,7 +11,7 @@ from passlib.utils import (
 )
 from passlib.utils.decor import memoize_single_value
 
-# local
+
 __all__ = [
     "register_crypt_handler_path",
     "register_crypt_handler",
@@ -251,7 +241,7 @@ def register_crypt_handler_path(name, path):
 
     # store location
     _locations[name] = path
-    log.debug("registered path to %r handler: %r", name, path)
+    logging.debug("registered path to %r handler: %r", name, path)
 
 
 def register_crypt_handler(handler, force=False, _attr=None):
@@ -296,10 +286,12 @@ def register_crypt_handler(handler, force=False, _attr=None):
     other = _handlers.get(name)
     if other:
         if other is handler:
-            log.debug("same %r handler already registered: %r", name, handler)
+            logging.debug("same %r handler already registered: %r", name, handler)
             return
         elif force:
-            log.warning("overriding previously registered %r handler: %r", name, other)
+            logging.warning(
+                "overriding previously registered %r handler: %r", name, other
+            )
         else:
             raise KeyError(
                 "another %r handler has already been registered: %r" % (name, other)
@@ -307,7 +299,7 @@ def register_crypt_handler(handler, force=False, _attr=None):
 
     # register handler
     _handlers[name] = handler
-    log.debug("registered %r handler: %r", name, handler)
+    logging.debug("registered %r handler: %r", name, handler)
 
 
 def get_crypt_handler(name, default=_UNSET):

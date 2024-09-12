@@ -1,27 +1,23 @@
-"""passlib.ext.django.utils - helper functions used by this plugin"""
+"""helper functions used by this plugin"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from collections import OrderedDict
 from functools import update_wrapper, wraps
 import logging
 
-log = logging.getLogger(__name__)
+
 import sys
 import weakref
 from warnings import warn
 
-# site
+
 try:
     from django import VERSION as DJANGO_VERSION
 
-    log.debug("found django %r installation", DJANGO_VERSION)
+    logging.debug("found django %r installation", DJANGO_VERSION)
 except ImportError:
-    log.debug("django installation not found")
+    logging.debug("django installation not found")
     DJANGO_VERSION = ()
-# pkg
+
 from passlib import exc, registry
 from passlib.context import CryptContext
 from passlib.exc import PasslibRuntimeWarning
@@ -830,9 +826,9 @@ class DjangoContextAdapter(DjangoTranslator):
                 raise
         else:
             if self.patched:  # pragma: no cover -- sanity check
-                log.error("didn't expect monkeypatching would be applied!")
+                logging.error("didn't expect monkeypatching would be applied!")
             self.remove_patch()
-        log.debug("passlib.ext.django loaded")
+        logging.debug("passlib.ext.django loaded")
 
     def _load_settings(self):
         """
@@ -904,8 +900,6 @@ class ProxyProperty(object):
         self.attr = attr
 
     def __get__(self, obj, cls):
-        if obj is None:
-            cls = obj
         return getattr(obj, self.attr)
 
     def __set__(self, obj, value):

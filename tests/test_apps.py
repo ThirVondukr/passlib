@@ -1,22 +1,7 @@
-"""test passlib.apps"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib import apps, hash as hashmod
 from tests.utils import TestCase
-# module
 
 
-# =============================================================================
-# test predefined app contexts
-# =============================================================================
 class AppsTest(TestCase):
     """perform general tests to make sure contexts work"""
 

@@ -1,20 +1,13 @@
-"""passlib.handlers.sha2_crypt - SHA256-Crypt / SHA512-Crypt"""
+"""SHA256-Crypt / SHA512-Crypt"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import hashlib
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.utils import safe_crypt, test_crypt, repeat_string, to_unicode
 from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "sha512_crypt",
     "sha256_crypt",

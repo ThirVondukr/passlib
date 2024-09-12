@@ -1,29 +1,21 @@
-"""passlib.tests.test_handlers - tests for passlib hash algorithms"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-from base64 import b64encode
-
-log = logging.getLogger(__name__)
 import os
 import warnings
+from base64 import b64encode
 
-# site
-# pkg
 from passlib import hash
-from passlib.handlers.bcrypt import IDENT_2, IDENT_2X
+from passlib.handlers.bcrypt import (
+    IDENT_2,
+    IDENT_2A,
+    IDENT_2B,
+    IDENT_2X,
+    IDENT_2Y,
+    _detect_pybcrypt,
+)
 from passlib.utils import repeat_string, to_bytes, is_safe_crypt_input
-from tests.utils import HandlerCase, TEST_MODE
 from tests.test_handlers import UPASS_TABLE
-# module
+from tests.utils import HandlerCase, TEST_MODE
 
 
-# =============================================================================
-# bcrypt
-# =============================================================================
 class _bcrypt_test(HandlerCase):
     """base for BCrypt test cases"""
 
@@ -213,7 +205,7 @@ class _bcrypt_test(HandlerCase):
     # ===================================================================
     def crypt_supports_variant(self, hash):
         """check if OS crypt is expected to support given ident"""
-        from passlib.handlers.bcrypt import bcrypt, IDENT_2X, IDENT_2Y
+        from passlib.handlers.bcrypt import bcrypt
         from passlib.utils import safe_crypt
 
         ident = bcrypt.from_string(hash)
@@ -224,17 +216,6 @@ class _bcrypt_test(HandlerCase):
     fuzz_verifiers = HandlerCase.fuzz_verifiers + ("fuzz_verifier_bcrypt",)
 
     def fuzz_verifier_bcrypt(self):
-        # test against bcrypt, if available
-        from passlib.handlers.bcrypt import (
-            IDENT_2,
-            IDENT_2A,
-            IDENT_2B,
-            IDENT_2X,
-            IDENT_2Y,
-            _detect_pybcrypt,
-        )
-        from passlib.utils import to_native_str, to_bytes
-
         try:
             import bcrypt
         except ImportError:

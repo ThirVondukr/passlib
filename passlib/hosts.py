@@ -1,16 +1,5 @@
-"""passlib.hosts"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from warnings import warn
-
-# pkg
 from passlib.context import LazyCryptContext
-from passlib.exc import PasslibRuntimeWarning
 from passlib import registry
-from passlib.utils import has_crypt, unix_crypt_schemes
 
 # local
 __all__ = [

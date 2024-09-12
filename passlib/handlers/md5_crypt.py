@@ -1,28 +1,19 @@
-"""passlib.handlers.md5_crypt - md5-crypt algorithm"""
+"""md5-crypt algorithm"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from hashlib import md5
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
+
 from passlib.utils import safe_crypt, test_crypt, repeat_string
 from passlib.utils.binary import h64
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "md5_crypt",
     "apr_md5_crypt",
 ]
 
-# =============================================================================
-# pure-python backend
-# =============================================================================
+
 _BNULL = b"\x00"
 _MD5_MAGIC = b"$1$"
 _APR_MAGIC = b"$apr1$"

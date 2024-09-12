@@ -1,41 +1,21 @@
 """tests for passlib.utils.scrypt"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from binascii import hexlify
 import hashlib
 import logging
-
-log = logging.getLogger(__name__)
 import struct
-from unittest import skipUnless
 import warnings
+from binascii import hexlify
 
-warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
-# site
-# pkg
 from passlib import exc
+from passlib.crypto import scrypt as scrypt_mod
 from passlib.utils import getrandbytes
-from passlib.utils.compat import PYPY, bascii_to_str
+from passlib.utils.compat import bascii_to_str
 from passlib.utils.decor import classproperty
 from tests.utils import TestCase, TEST_MODE, hb
 
-# subject
-from passlib.crypto import scrypt as scrypt_mod
-
-# local
-__all__ = [
-    "ScryptEngineTest",
-    "BuiltinScryptTest",
-    "FastScryptTest",
-]
+warnings.filterwarnings("ignore", ".*using builtin scrypt backend.*")
 
 
-# =============================================================================
-# support functions
-# =============================================================================
 def hexstr(data):
     """return bytes as hex str"""
     return bascii_to_str(hexlify(data))
@@ -63,9 +43,6 @@ def seed_bytes(seed, count):
     return buf[:count]
 
 
-# =============================================================================
-# test builtin engine's internals
-# =============================================================================
 class ScryptEngineTest(TestCase):
     descriptionPrefix = "passlib.crypto.scrypt._builtin"
 
@@ -437,7 +414,7 @@ class _CommonScryptTest(TestCase):
                 # skip largest vector for builtin, takes WAAY too long
                 # (46s under pypy, ~5m under cpython)
                 continue
-            log.debug(
+            logging.debug(
                 "scrypt reference vector: %r %r n=%r r=%r p=%r", secret, salt, n, r, p
             )
             self.assertEqual(scrypt_mod.scrypt(secret, salt, n, r, p, keylen), result)
@@ -500,9 +477,6 @@ class _CommonScryptTest(TestCase):
                         % (name, available, [secret, salt, n, r, p, ks]),
                     )
 
-    # =============================================================================
-    # test input types
-    # =============================================================================
     def test_backend(self):
         """backend management"""
         # clobber backend
@@ -634,48 +608,7 @@ class _CommonScryptTest(TestCase):
         # one more than upper bound
         self.assertRaises(ValueError, run_scrypt, ((2**32) - 1) * 32 + 1)
 
-    # =============================================================================
-    # eoc
-    # =============================================================================
 
-
-# -----------------------------------------------------------------------
-# check what backends 'should' be available
-# -----------------------------------------------------------------------
-
-
-def _can_import_cffi_scrypt():
-    try:
-        import scrypt
-    except ImportError as err:
-        if "scrypt" in str(err):
-            return False
-        raise
-    return True
-
-
-has_cffi_scrypt = _can_import_cffi_scrypt()
-
-
-def _can_import_stdlib_scrypt():
-    try:
-        from hashlib import scrypt
-
-        return True
-    except ImportError:
-        return False
-
-
-has_stdlib_scrypt = _can_import_stdlib_scrypt()
-
-# -----------------------------------------------------------------------
-# test individual backends
-# -----------------------------------------------------------------------
-
-
-# NOTE: builtin version runs VERY slow (except under PyPy, where it's only 11x slower),
-#       so skipping under quick test mode.
-@skipUnless(PYPY or TEST_MODE(min="default"), "skipped under current test mode")
 class BuiltinScryptTest(_CommonScryptTest):
     backend = "builtin"
 
@@ -689,24 +622,9 @@ class BuiltinScryptTest(_CommonScryptTest):
 
     def test_missing_backend(self):
         """backend management -- missing backend"""
-        if has_stdlib_scrypt or has_cffi_scrypt:
-            raise self.skipTest("non-builtin backend is present")
         self.assertRaises(exc.MissingBackendError, scrypt_mod._set_backend, "scrypt")
 
 
-@skipUnless(has_cffi_scrypt, "'scrypt' package not found")
-class ScryptPackageTest(_CommonScryptTest):
-    backend = "scrypt"
-
-    def test_default_backend(self):
-        """backend management -- default backend"""
-        if has_stdlib_scrypt:
-            raise self.skipTest("higher priority backend present")
-        scrypt_mod._set_backend("default")
-        self.assertEqual(scrypt_mod.backend, "scrypt")
-
-
-@skipUnless(has_stdlib_scrypt, "'hashlib.scrypt()' not found")
 class StdlibScryptTest(_CommonScryptTest):
     backend = "stdlib"
 
@@ -714,8 +632,3 @@ class StdlibScryptTest(_CommonScryptTest):
         """backend management -- default backend"""
         scrypt_mod._set_backend("default")
         self.assertEqual(scrypt_mod.backend, "stdlib")
-
-
-# =============================================================================
-# eof
-# =============================================================================

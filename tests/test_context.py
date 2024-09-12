@@ -1,38 +1,25 @@
-"""tests for passlib.context"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-from configparser import NoSectionError
 import datetime
-from functools import partial
-import logging
-
-log = logging.getLogger(__name__)
+import hashlib
 import os
+import time
 import warnings
+from configparser import NoSectionError
 
-# site
-# pkg
+import passlib.utils.handlers as uh
 from passlib import hash
 from passlib.context import CryptContext, LazyCryptContext
-from passlib.exc import PasslibConfigWarning, PasslibHashWarning
-from passlib.utils import tick, to_unicode
-import passlib.utils.handlers as uh
-from tests.utils import (
-    TestCase,
-    set_file,
-    TICK_RESOLUTION,
-    quicksleep,
-    time_call,
-    handler_derived_from,
-)
+from passlib.exc import PasslibHashWarning
 from passlib.registry import (
     register_crypt_handler_path,
     _has_crypt_handler as has_crypt_handler,
     _unload_handler_name as unload_handler_name,
     get_crypt_handler,
+)
+from tests.utils import (
+    TestCase,
+    set_file,
+    time_call,
+    handler_derived_from,
 )
 
 # local
@@ -1026,7 +1013,8 @@ sha512_crypt__min_rounds = 45000
         # override scheme & custom settings
         self.assertEqual(
             cc.genconfig(scheme="phpass", salt="." * 8, rounds=8, ident="P"),
-            "$P$6........22zGEuacuPOqEpYPDeR0R/",  # NOTE: config string generated w/ rounds=1
+            "$P$6........22zGEuacuPOqEpYPDeR0R/",
+            # NOTE: config string generated w/ rounds=1
         )
 
         # --------------------------------------------------------------
@@ -1182,8 +1170,8 @@ sha512_crypt__min_rounds = 45000
 
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
-        for hash, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.identify, hash, **kwds)
+        for hash_, kwds in self.nonstring_vectors:
+            self.assertRaises(TypeError, cc.identify, hash_, **kwds)
 
         # throws error without schemes
         cc = CryptContext()
@@ -1408,7 +1396,7 @@ sha512_crypt__min_rounds = 45000
 
         des_hash = des_crypt.hash("stub")
         pg_root_hash = postgres_md5.hash("stub", user="root")
-        pg_admin_hash = postgres_md5.hash("stub", user="admin")
+        pg_admin_hash = postgres_md5.hash("stub", user="admin")  # noqa: F841
 
         # ------------------------------------------------------------
         # case 1: contextual kwds not supported by any hash in CryptContext
@@ -1880,14 +1868,6 @@ sha512_crypt__min_rounds = 45000
             ValueError, "cannot restore original hash", ctx2.enable, h_dis
         )
         self.assertEqual(ctx2.enable(h_dis_ref), h_ref)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-import hashlib
-import time
 
 
 class DelayHash(uh.StaticHandler):

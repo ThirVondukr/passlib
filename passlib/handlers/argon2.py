@@ -13,22 +13,15 @@ References
     - home: https://github.com/bwesterb/argon2pure
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import logging
 from importlib import metadata
 
-log = logging.getLogger(__name__)
+
 import re
-import types
+
 from warnings import warn
 
-# site
-_argon2_cffi = None  # loaded below
-_argon2pure = None  # dynamically imported by _load_backend_argon2pure()
-# pkg
+
 from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
 from passlib.utils import classproperty, to_bytes, render_bytes
@@ -36,7 +29,9 @@ from passlib.utils.binary import b64s_encode, b64s_decode
 from passlib.utils.compat import bascii_to_str
 import passlib.utils.handlers as uh
 
-# local
+_argon2_cffi = None  # loaded below
+_argon2pure = None  # dynamically imported by _load_backend_argon2pure()
+
 __all__ = [
     "argon2",
 ]
@@ -798,7 +793,7 @@ class _CffiBackend(_Argon2Common):
                 raise exc.PasslibSecurityError(_argon2_cffi_error)
             return False
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
-        log.debug(
+        logging.debug(
             "detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
             metadata.version("argon2_cffi"),
             max_version,
@@ -939,13 +934,13 @@ class _PureBackend(_Argon2Common):
         try:
             from argon2pure import ARGON2_DEFAULT_VERSION as max_version
         except ImportError:
-            log.warning(
+            logging.warning(
                 "detected 'argon2pure' backend, but package is too old "
                 "(passlib requires argon2pure >= 1.2.3)"
             )
             return False
 
-        log.debug(
+        logging.debug(
             "detected 'argon2pure' backend, with support for 0x%x argon2 hashes",
             max_version,
         )

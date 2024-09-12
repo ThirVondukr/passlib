@@ -32,34 +32,20 @@ http://forum.md5decrypter.co.uk/topic230-mysql-and-mssql-get-password-hashes.asp
 http://www.theregister.co.uk/2002/07/08/cracking_ms_sql_server_passwords/
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify, unhexlify
 from hashlib import sha1
-import re
-import logging
 
-log = logging.getLogger(__name__)
-from warnings import warn
-
-# site
-# pkg
 from passlib.utils import consteq
 from passlib.utils.compat import bascii_to_str
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "mssql2000",
     "mssql2005",
 ]
 
 
-# =============================================================================
-# mssql 2000
-# =============================================================================
 def _raw_mssql(secret, salt):
     assert isinstance(secret, str)
     assert isinstance(salt, bytes)

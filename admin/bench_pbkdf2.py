@@ -2,21 +2,15 @@
 helper script to benchmark pbkdf2 implementations/backends
 """
 
-# =============================================================================
-# init script env
-# =============================================================================
-# make sure passlib source dir is first in import path
 import os
 import sys
+from timeit import Timer
 
-os.chdir(os.path.abspath(os.path.join(__file__, *[".."] * 2)))
-sys.path.insert(0, "")
 
 # =============================================================================
 # imports
 # =============================================================================
 # core
-from timeit import Timer
 
 try:
     from importlib import reload  # py34+
@@ -71,7 +65,7 @@ def main():
             if supported is not True and alg not in supported:
                 try:
                     timeit(alg_stmt, setup)
-                except Exception as err:
+                except Exception:
                     # expected to fail
                     print(cell.format("-"), end="")
                     continue

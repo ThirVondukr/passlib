@@ -1,24 +1,13 @@
-"""
-passlib.utils.scrypt -- scrypt hash frontend and help utilities
+"""scrypt hash frontend and help utilities"""
 
-XXX: add this module to public docs?
-"""
-
-# ==========================================================================
-# imports
-# ==========================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
 from warnings import warn
 
-# pkg
+
 from passlib import exc
 from passlib.utils import to_bytes
 from passlib.utils.compat import PYPY
 
-# local
+
 __all__ = [
     "validate",
     "scrypt",
@@ -190,7 +179,7 @@ def _load_cffi_backend():
         pass
     # not available, but check to see if package present but outdated / not installed right
     try:
-        import scrypt
+        import scrypt  # noqa: F401
     except ImportError as err:
         if "scrypt" not in str(err):
             # e.g. if cffi isn't set up right

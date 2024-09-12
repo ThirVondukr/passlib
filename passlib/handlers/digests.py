@@ -1,20 +1,12 @@
-"""passlib.handlers.digests - plain hash digests"""
+"""plain hash digests"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import hashlib
-import logging
 
-log = logging.getLogger(__name__)
-# site
-# pkg
 from passlib.utils import to_native_str, to_bytes, render_bytes, consteq
 import passlib.utils.handlers as uh
 from passlib.crypto.digest import lookup_hash
 
-# local
+
 __all__ = [
     "create_hex_hash",
     "hex_md4",

@@ -1,24 +1,13 @@
-"""passlib.handlers.nthash - Microsoft Windows -related hashes"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify
-import logging
 
-log = logging.getLogger(__name__)
-from warnings import warn
 
-# site
-# pkg
 from passlib.utils import to_unicode, right_pad_string
 from passlib.crypto.digest import lookup_hash
 
-md4 = lookup_hash("md4").const
 import passlib.utils.handlers as uh
 
-# local
+md4 = lookup_hash("md4").const
+
 __all__ = [
     "lmhash",
     "nthash",
@@ -210,6 +199,7 @@ bsd_nthash = uh.PrefixWrapper(
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """,
 )
+
 
 ##class ntlm_pair(object):
 ##    "combined lmhash & nthash"

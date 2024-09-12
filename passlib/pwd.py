@@ -1,26 +1,14 @@
-"""passlib.pwd -- password generation helpers"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import codecs
 from collections import defaultdict
 from importlib import resources
 
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    # py2 compat
-    from collections import MutableMapping
+from collections.abc import MutableMapping
+
 from math import ceil, log as logf
 import logging
 
-log = logging.getLogger(__name__)
 import os
 
-# site
-# pkg
 from passlib import exc
 from passlib.utils import rng, getrandstr, to_unicode
 from passlib.utils.decor import memoized_property
@@ -531,7 +519,7 @@ def _load_wordset(asset_path):
     # else:
     #     words = tuple(extract(word) for word in words)
 
-    log.debug("loaded %d-element wordset from %r", len(words), asset_path)
+    logging.debug("loaded %d-element wordset from %r", len(words), asset_path)
     return words
 
 

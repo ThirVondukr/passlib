@@ -20,26 +20,14 @@ MySQL 4.1.1 / NEW PASSWORD
     Description taken from http://dev.mysql.com/doc/refman/6.0/en/password-hashing.html
 """
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from hashlib import sha1
-import re
-import logging
 
-log = logging.getLogger(__name__)
-from warnings import warn
-
-# site
-# pkg
-from passlib.utils import to_native_str
 import passlib.utils.handlers as uh
 
-# local
+
 __all__ = [
     "mysql323",
-    "mysq41",
+    "mysql41",
 ]
 
 
@@ -105,17 +93,11 @@ class mysql41(uh.StaticHandler):
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "mysql41"
     _hash_prefix = "*"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 40
 
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.upper()
@@ -125,12 +107,3 @@ class mysql41(uh.StaticHandler):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return sha1(sha1(secret).digest()).hexdigest().upper()
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

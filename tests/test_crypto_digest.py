@@ -1,25 +1,16 @@
-"""tests for passlib.utils.(des|pbkdf2|md4)"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
 from binascii import hexlify
 import hashlib
-from unittest import skipUnless
+from importlib.util import find_spec
 import warnings
 
-# site
-# pkg
-# module
+
 from passlib.exc import UnknownHashError
 from passlib.utils.compat import JYTHON
-from tests.utils import TestCase, TEST_MODE, hb
+from tests.utils import TestCase, hb
+
+from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
 
 
-# =============================================================================
-# test assorted crypto helpers
-# =============================================================================
 class HashInfoTest(TestCase):
     """test various crypto functions"""
 
@@ -296,14 +287,6 @@ class Pbkdf1_Test(TestCase):
         self.assertRaises(ValueError, helper, keylen=-1)
         self.assertRaises(ValueError, helper, keylen=17, hash="md5")
         self.assertRaises(TypeError, helper, keylen="1")
-
-
-# =============================================================================
-# test PBKDF2-HMAC support
-# =============================================================================
-
-# import the test subject
-from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
 
 
 # NOTE: relying on tox to verify this works under all the various backends.
@@ -622,13 +605,7 @@ class Pbkdf2Test(TestCase):
         """verify expected backends are present"""
         from passlib.crypto.digest import PBKDF2_BACKENDS
 
-        # check for fastpbkdf2
-        try:
-            import fastpbkdf2
-
-            has_fastpbkdf2 = True
-        except ImportError:
-            has_fastpbkdf2 = False
+        has_fastpbkdf2 = find_spec("fastpbkdf2") is not None
         self.assertEqual("fastpbkdf2" in PBKDF2_BACKENDS, has_fastpbkdf2)
 
         # check for hashlib

@@ -1,15 +1,10 @@
-import logging
-
-log = logging.getLogger(__name__)
 import re
 import warnings
 
-# site
-# pkg
+
 from passlib import hash
 from tests.utils import HandlerCase, TEST_MODE
 from tests.test_handlers import UPASS_TABLE, PASS_TABLE_UTF8
-# module
 
 
 # =============================================================================

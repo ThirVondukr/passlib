@@ -1,33 +1,12 @@
-"""passlib.ifc - abstract interfaces used by Passlib"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
-import sys
-
-# site
-# pkg
 from passlib.utils.decor import deprecated_method
+from abc import ABC, abstractmethod
 
 # local
 __all__ = [
     "PasswordHash",
 ]
 
-# =============================================================================
-# PasswordHash interface
-# =============================================================================
-from abc import ABC, abstractmethod
 
-# XXX: mark some attributes with abstractproperty()?
-#      or would type hinting be enough?
-
-
-# XXX: rename this to PasswordHasher?
 class PasswordHash(ABC):
     """This class describes an abstract interface which all password hashes
     in Passlib adhere to. Under Python 2.6 and up, this is an actual

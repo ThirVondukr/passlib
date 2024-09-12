@@ -1,17 +1,9 @@
-"""passlib.handlers.des_crypt - traditional unix (DES) crypt and variants"""
+"""traditional unix (DES) crypt and variants"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import re
-import logging
-
-log = logging.getLogger(__name__)
 from warnings import warn
 
-# site
-# pkg
+
 from passlib.utils import safe_crypt, test_crypt, to_unicode
 from passlib.utils.binary import h64, h64big
 from passlib.crypto.des import des_encrypt_int_block

@@ -1,11 +1,7 @@
-import logging
-
-log = logging.getLogger(__name__)
 import sys
 import warnings
 
-# site
-# pkg
+
 from passlib import exc, hash
 from tests.utils import (
     TestCase,
@@ -14,11 +10,6 @@ from tests.utils import (
     UserHandlerMixin,
     EncodingHandlerMixin,
 )
-# module
-
-# =============================================================================
-# constants & support
-# =============================================================================
 
 # some common unicode passwords which used as test cases
 UPASS_WAV = "\u0399\u03c9\u03b1\u03bd\u03bd\u03b7\u03c2"
@@ -805,10 +796,10 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
         from passlib.utils.compat import str_to_bascii
 
         lmhash = self.handler
-        for secret, hash in self.known_correct_hashes:
+        for secret, hashed in self.known_correct_hashes:
             kwds = {}
             secret = self.populate_context(secret, kwds)
-            data = unhexlify(str_to_bascii(hash))
+            data = unhexlify(str_to_bascii(hashed))
             self.assertEqual(lmhash.raw(secret, **kwds), data)
         self.assertRaises(TypeError, lmhash.raw, 1)
 

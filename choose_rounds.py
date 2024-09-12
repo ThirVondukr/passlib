@@ -1,28 +1,19 @@
 """cli helper for selecting appropriate <rounds> value for a given hash"""
 
-# =============================================================================
-# imports
-# =============================================================================
-# core
 import math
-import logging
 
-log = logging.getLogger(__name__)
+
 import sys
 
-# site
-# pkg
 from passlib.registry import get_crypt_handler
 from passlib.utils import tick
 
-# local
+
 __all__ = [
     "main",
 ]
 
-# =============================================================================
-# main
-# =============================================================================
+
 _usage = (
     "usage: python choose_rounds.py <hash_name> [<target_milliseconds>] [<backend>]\n"
 )
@@ -169,7 +160,7 @@ def main(*args):
             print("target rounds...: %d" % upper)
         else:
             faster = target - lower_elapsed
-            prin(
+            print(
                 "target rounds...: %d (%dms -- %dms/%d%% faster than requested)"
                 % (
                     lower,

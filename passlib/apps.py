@@ -1,21 +1,11 @@
-"""passlib.apps"""
-
-# =============================================================================
-# imports
-# =============================================================================
-# core
-import logging
-
-log = logging.getLogger(__name__)
 from itertools import chain
 
-# site
-# pkg
+
 from passlib import hash
 from passlib.context import LazyCryptContext
 from passlib.utils import sys_bits
 
-# local
+
 __all__ = [
     "custom_app_context",
     "django_context",
