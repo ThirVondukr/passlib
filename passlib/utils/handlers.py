@@ -642,7 +642,7 @@ class GenericHandler(MinimalHandler):
     setting_kwds: Optional[tuple[str, ...]] = None
 
     # providing default since most classes don't use this at all.
-    context_kwds = ()
+    context_kwds: tuple[str, ...] = ()
 
     # optional prefix that uniquely identifies hash
     ident: Optional[str] = None

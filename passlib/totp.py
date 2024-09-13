@@ -47,7 +47,7 @@ from passlib.utils import (
     getrandstr,
 )
 from passlib.utils.binary import BASE64_CHARS, b32encode, b32decode
-from passlib.utils.compat import bascii_to_str, num_types
+from passlib.utils.compat import bascii_to_str, numeric_types
 from passlib.utils.decor import hybrid_method, memoized_property
 from passlib.crypto.digest import lookup_hash, compile_hmac, pbkdf2_hmac
 
@@ -768,7 +768,7 @@ class TOTP(object):
 
         if now is not None:
             assert (
-                isinstance(now(), num_types) and now() >= 0
+                isinstance(now(), numeric_types) and now() >= 0
             ), "now() function must return non-negative int/float"
             subcls.now = staticmethod(now)
 

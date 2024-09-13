@@ -15,7 +15,7 @@ import timeit
 from codecs import lookup as _lookup_codec
 from collections.abc import Sequence, Iterable
 
-from typing import Union
+from typing import Union, Optional
 
 import unicodedata
 
@@ -37,7 +37,6 @@ from passlib.utils.binary import (
     b64s_decode,
 )
 from passlib.utils.compat import (
-    JYTHON,
     join_bytes,
     join_unicode,
     add_doc,
@@ -59,7 +58,6 @@ __all__ = [
     "BCRYPT_CHARS",
     "Base64Engine",
     "HASH64_CHARS",
-    "JYTHON",
     "LazyBase64Engine",
     "ab64_decode",
     "ab64_encode",
@@ -604,7 +602,7 @@ def to_bytes(
     source: Union[str, bytes],
     encoding: str = "utf-8",
     param: str = "value",
-    source_encoding: str = None,
+    source_encoding: Optional[str] = None,
 ) -> bytes:
     """Helper to normalize input to bytes.
 
@@ -762,7 +760,7 @@ _invalid_prefixes = "*:!"
 _safe_crypt_lock = threading.Lock()
 
 try:
-    import legacycrypt
+    import legacycrypt  # type: ignore[import-untyped]
 
     _crypt = legacycrypt.crypt
 except ImportError:

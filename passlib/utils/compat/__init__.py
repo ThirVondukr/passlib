@@ -1,25 +1,13 @@
 """passlib.utils.compat - python 2/3 compatibility helpers"""
 
-import sys
-
-from types import ModuleType
 import logging
+import sys
+from contextlib import nullcontext
+from types import ModuleType
+from typing import Callable
 
 
-# make sure it's not an unsupported version, even if we somehow got this far
-if sys.version_info < (3, 5):
-    raise RuntimeError("Passlib requires Python >= 3.5 (as of passlib 1.8)")
-
-
-JYTHON = sys.platform.startswith("java")
-
-PYPY = hasattr(sys, "pypy_version_info")
-
-if PYPY and sys.pypy_version_info < (2, 0):
-    raise RuntimeError("passlib requires pypy >= 2.0 (as of passlib 1.7)")
-
-
-def add_doc(obj, doc):
+def add_doc(obj: object, doc: str) -> None:
     """add docstring to an object"""
     obj.__doc__ = doc
 
@@ -27,7 +15,7 @@ def add_doc(obj, doc):
 __all__ = [
     # type detection
     ##    'is_mapping',
-    "num_types",
+    "numeric_types",
     "unicode_or_bytes",
     # unicode/bytes types & helpers
     "bascii_to_str",
@@ -43,7 +31,7 @@ __all__ = [
 
 # begin accumulating mapping of lazy-loaded attrs,
 # 'merged' into module at bottom
-_lazy_attrs = dict()
+_lazy_attrs: dict[str, object] = dict()
 
 # =============================================================================
 # unicode & bytes types
@@ -52,24 +40,24 @@ _lazy_attrs = dict()
 #: alias for isinstance() tests to detect any string type
 unicode_or_bytes = (str, bytes)
 
-
 join_unicode = "".join
 join_bytes = b"".join
 
-if True:  # legacy PY3 indent
 
-    def bascii_to_str(s):
-        assert isinstance(s, bytes)
-        return s.decode("ascii")
+def bascii_to_str(s):
+    assert isinstance(s, bytes)
+    return s.decode("ascii")
 
-    def str_to_bascii(s):
-        assert isinstance(s, str)
-        return s.encode("ascii")
 
-    def iter_byte_chars(s):
-        assert isinstance(s, bytes)
-        # FIXME: there has to be a better way to do this
-        return (bytes([c]) for c in s)
+def str_to_bascii(s):
+    assert isinstance(s, str)
+    return s.encode("ascii")
+
+
+def iter_byte_chars(s):
+    assert isinstance(s, bytes)
+    # FIXME: there has to be a better way to do this
+    return (bytes([c]) for c in s)
 
 
 # TODO: move docstrings to funcs...
@@ -80,51 +68,12 @@ add_doc(str_to_bascii, "helper to convert ascii native str -> bytes")
 
 add_doc(iter_byte_chars, "iterate over byte string as sequence of 1-byte strings")
 
-# =============================================================================
-# numeric
-# =============================================================================
-
-num_types = (int, float)
-
-# =============================================================================
-# typing
-# =============================================================================
-##def is_mapping(obj):
-##    # non-exhaustive check, enough to distinguish from lists, etc
-##    return hasattr(obj, "items")
-
-# =============================================================================
-# introspection
-# =============================================================================
+numeric_types = (int, float)
 
 
-def get_method_function(func):
+def get_method_function(func: Callable) -> Callable:
     """given (potential) method, return underlying function"""
     return getattr(func, "__func__", func)
-
-
-# =============================================================================
-# context managers
-# =============================================================================
-
-try:
-    # new in py37
-    from contextlib import nullcontext
-except ImportError:
-
-    class nullcontext(object):
-        """
-        Context manager that does no additional processing.
-        """
-
-        def __init__(self, enter_result=None):
-            self.enter_result = enter_result
-
-        def __enter__(self):
-            return self.enter_result
-
-        def __exit__(self, *exc_info):
-            pass
 
 
 def _import_object(source):
@@ -194,7 +143,3 @@ class _LazyOverlayModule(ModuleType):
 
 # replace this module with overlay that will lazily import attributes.
 _LazyOverlayModule.replace_module(__name__, _lazy_attrs)
-
-# =============================================================================
-# eof
-# =============================================================================

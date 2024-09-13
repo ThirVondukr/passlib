@@ -1,7 +1,6 @@
 import hashlib
 import warnings
 
-from passlib.utils.compat import JYTHON
 from tests.utils import TestCase, hb
 
 
@@ -49,18 +48,15 @@ class Pbkdf1_Test(TestCase):
             "sha1",
             hb("4a8fd48e426ed081b535be5769892fa396293efb"),
         ),
+        (
+            b"password",
+            b"salt",
+            1000,
+            None,
+            "md4",
+            hb("f7f2e91100a8f96190f2dd177cb26453"),
+        ),
     ]
-    if not JYTHON:
-        pbkdf1_tests.append(
-            (
-                b"password",
-                b"salt",
-                1000,
-                None,
-                "md4",
-                hb("f7f2e91100a8f96190f2dd177cb26453"),
-            )
-        )
 
     def setUp(self):
         super().setUp()

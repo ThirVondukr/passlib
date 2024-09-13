@@ -5,7 +5,6 @@ import warnings
 
 
 from passlib.exc import UnknownHashError
-from passlib.utils.compat import JYTHON
 from tests.utils import TestCase, hb
 
 from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
@@ -242,18 +241,15 @@ class Pbkdf1_Test(TestCase):
             "sha1",
             hb("4a8fd48e426ed081b535be5769892fa396293efb"),
         ),
+        (
+            b"password",
+            b"salt",
+            1000,
+            None,
+            "md4",
+            hb("f7f2e91100a8f96190f2dd177cb26453"),
+        ),
     ]
-    if not JYTHON:  # FIXME: find out why not jython, or reenable this.
-        pbkdf1_tests.append(
-            (
-                b"password",
-                b"salt",
-                1000,
-                None,
-                "md4",
-                hb("f7f2e91100a8f96190f2dd177cb26453"),
-            )
-        )
 
     def test_known(self):
         """test reference vectors"""

@@ -12,7 +12,7 @@ from passlib.utils import (
     splitcomma,
 )
 from passlib.utils.compat import (
-    num_types,
+    numeric_types,
     unicode_or_bytes,
 )
 from passlib.utils.decor import deprecated_method, memoized_property
@@ -1309,7 +1309,7 @@ class CryptContext(object):
             value = ", ".join(value)
 
         # convert numbers to strings
-        elif isinstance(value, num_types):
+        elif isinstance(value, numeric_types):
             if isinstance(value, float) and key[2] == "vary_rounds":
                 value = ("%.2f" % value).rstrip("0") if value else "0"
             else:

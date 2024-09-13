@@ -7,6 +7,8 @@ from base64 import (
     b32encode as _b32encode,
 )
 from binascii import b2a_base64, a2b_base64, Error as _BinAsciiError
+from typing import Mapping, Union
+
 from passlib import exc
 from passlib.utils.compat import (
     bascii_to_str,
@@ -93,7 +95,9 @@ B_EQUAL = b"="
 _TRANSLATE_SOURCE = list(iter_byte_chars(ALL_BYTE_VALUES))
 
 
-def compile_byte_translation(mapping, source=None):
+def compile_byte_translation(
+    mapping: Mapping[Union[int, str, bytes], Union[int, str]], source=None
+) -> bytes:
     """
     return a 256-byte string for translating bytes using specified mapping.
     bytes not specified by mapping will be left alone.
