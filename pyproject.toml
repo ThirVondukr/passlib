@@ -3,8 +3,10 @@ name = "libpass"
 version = "1.7.5.post0"
 description = "Fork of passlib, a comprehensive password hashing framework supporting over 30 schemes"
 authors = [
-    { name = "Doctor", email = "thirvondukr@gmail.com" },
     { name = "Eli Collins", email = "elic@assurancetechnologies.com" },
+]
+maintainers = [
+    { name = "Doctor", email = "thirvondukr@gmail.com" },
 ]
 dependencies = [
     "legacycrypt>=0.3",
