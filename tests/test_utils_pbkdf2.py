@@ -4,9 +4,6 @@ import warnings
 from tests.utils import TestCase, hb
 
 
-# =============================================================================
-# test PBKDF1 support
-# =============================================================================
 class Pbkdf1_Test(TestCase):
     """test kdf helpers"""
 
@@ -98,9 +95,6 @@ class Pbkdf1_Test(TestCase):
         self.assertRaises(TypeError, helper, keylen="1")
 
 
-# =============================================================================
-# test PBKDF2 support
-# =============================================================================
 class Pbkdf2_Test(TestCase):
     """test pbkdf2() support"""
 
@@ -321,8 +315,3 @@ class Pbkdf2_Test(TestCase):
         self.assertRaises(
             NotImplementedError, pbkdf2, b"secret", b"salt", 1000, 20, prf
         )
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -1,9 +1,6 @@
 """passlib.exc -- exceptions & warnings raised by passlib"""
 
 
-# =============================================================================
-# exceptions
-# =============================================================================
 class UnknownBackendError(ValueError):
     """
     Error raised if multi-backend handler doesn't recognize backend name.
@@ -226,9 +223,6 @@ class UnknownHashError(ValueError):
         return self.message
 
 
-# =============================================================================
-# warnings
-# =============================================================================
 class PasslibWarning(UserWarning):
     """base class for Passlib's user warnings,
     derives from the builtin :exc:`UserWarning`.
@@ -383,9 +377,6 @@ def ChecksumSizeError(handler, raw=False):
     return MalformedHashError(handler, reason)
 
 
-# =============================================================================
-# sensitive info helpers
-# =============================================================================
 
 #: global flag, set temporarily by UTs to allow debug_only_repr() to display sensitive values.
 ENABLE_DEBUG_ONLY_REPR = False
@@ -425,8 +416,3 @@ def CryptBackendError(
         debug_only_repr(hash),
     )
     raise InternalBackendError(msg)
-
-
-# =============================================================================
-# eof
-# =============================================================================

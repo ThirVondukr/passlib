@@ -33,9 +33,6 @@ __all__ = [
 # 'merged' into module at bottom
 _lazy_attrs: dict[str, object] = dict()
 
-# =============================================================================
-# unicode & bytes types
-# =============================================================================
 
 #: alias for isinstance() tests to detect any string type
 unicode_or_bytes = (str, bytes)

@@ -11,9 +11,6 @@ __all__ = [
     "host_context",
 ]
 
-# =============================================================================
-# linux support
-# =============================================================================
 
 # known platform names - linux2
 
@@ -22,9 +19,6 @@ linux_context = linux2_context = LazyCryptContext(
     deprecated=["des_crypt"],
 )
 
-# =============================================================================
-# bsd support
-# =============================================================================
 
 # known platform names -
 #   freebsd2
@@ -56,9 +50,6 @@ netbsd_context = LazyCryptContext(
 # XXX: include darwin in this list? it's got a BSD crypt variant,
 # but that's not what it uses for user passwords.
 
-# =============================================================================
-# current host
-# =============================================================================
 if registry.os_crypt_present:
     # NOTE: this is basically mimicing the output of os crypt(),
     # except that it uses passlib's (usually stronger) defaults settings,
@@ -75,9 +66,6 @@ if registry.os_crypt_present:
 
     host_context = LazyCryptContext(_iter_os_crypt_schemes())
 
-# =============================================================================
-# other platforms
-# =============================================================================
 
 # known platform strings -
 # aix3
@@ -95,7 +83,3 @@ if registry.os_crypt_present:
 # riscos
 # sunos5
 # unixware7
-
-# =============================================================================
-# eof
-# =============================================================================

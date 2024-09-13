@@ -116,18 +116,10 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-
-    # ===================================================================
-    # algorithm information
-    # ===================================================================
     name = "mssql2000"
     setting_kwds = ("salt",)
     checksum_size = 40
     min_salt_size = max_salt_size = 4
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # 0100 - 2 byte identifier
     # 4 byte salt
@@ -171,9 +163,6 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         return consteq(result, chk[20:])
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the password hash used by MS-SQL 2005, and follows the :ref:`password-hash-api`.
 
@@ -195,19 +184,11 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
-
-    # ===================================================================
-    # algorithm information
-    # ===================================================================
     name = "mssql2005"
     setting_kwds = ("salt",)
 
     checksum_size = 20
     min_salt_size = max_salt_size = 4
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # 0x0100 - 2 byte identifier
     # 4 byte salt
@@ -234,11 +215,3 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             secret = secret.decode("utf-8")
         return _raw_mssql(secret, self.salt)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

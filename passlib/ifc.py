@@ -15,10 +15,6 @@ class PasswordHash(ABC):
     See the Passlib docs for full documentation.
     """
 
-    # ===================================================================
-    # class attributes
-    # ===================================================================
-
     # ---------------------------------------------------------------
     # general information
     # ---------------------------------------------------------------
@@ -80,10 +76,6 @@ class PasswordHash(ABC):
     # encoding info -- if 'encoding' in context_kwds
     # ---------------------------------------------------------------
     ##default_encoding
-
-    # ===================================================================
-    # primary methods
-    # ===================================================================
     @classmethod
     @abstractmethod
     def hash(
@@ -139,10 +131,6 @@ class PasswordHash(ABC):
     ):  # pragma: no cover -- abstract method
         """verify secret against hash, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
-
-    # ===================================================================
-    # configuration
-    # ===================================================================
     @classmethod
     @abstractmethod
     def using(cls, relaxed=False, **kwds):
@@ -163,10 +151,6 @@ class PasswordHash(ABC):
             add this method to main documentation.
         """
         raise NotImplementedError("must be implemented by subclass")
-
-    # ===================================================================
-    # migration
-    # ===================================================================
     @classmethod
     def needs_update(cls, hash, secret=None):
         """
@@ -188,10 +172,6 @@ class PasswordHash(ABC):
         """
         # by default, always report that we don't need update
         return False
-
-    # ===================================================================
-    # additional methods
-    # ===================================================================
     @classmethod
     @abstractmethod
     def identify(cls, hash):  # pragma: no cover -- abstract method
@@ -234,10 +214,6 @@ class PasswordHash(ABC):
         """
         # XXX: if hashes reliably offered a .parse() method, could make a fallback for this.
         raise NotImplementedError("must be implemented by subclass")
-
-    # ===================================================================
-    # undocumented methods / attributes
-    # ===================================================================
     # the following entry points are used internally by passlib,
     # and aren't documented as part of the exposed interface.
     # they are subject to change between releases,
@@ -295,10 +271,6 @@ class PasswordHash(ABC):
     ##    components currently include checksum, salt, rounds.
     ##    """
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class DisabledHash(PasswordHash):
     """
@@ -326,8 +298,3 @@ class DisabledHash(PasswordHash):
         """
         # default behavior: no way to restore original hash
         raise ValueError("cannot restore original hash")
-
-
-# =============================================================================
-# eof
-# =============================================================================

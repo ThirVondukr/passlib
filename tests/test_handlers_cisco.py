@@ -8,9 +8,6 @@ __all__ = [
     "cisco_asa_test",
     "cisco_type7_test",
 ]
-# =============================================================================
-# shared code for cisco PIX & ASA
-# =============================================================================
 
 
 class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
@@ -168,9 +165,6 @@ class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
         self.assertRaises(exc.PasswordSizeError, calc, alt_long_secret, for_hash=True)
 
 
-# =============================================================================
-# cisco pix
-# =============================================================================
 class cisco_pix_test(_PixAsaSharedTest):
     handler = hash.cisco_pix
 
@@ -233,9 +227,6 @@ class cisco_pix_test(_PixAsaSharedTest):
     ]
 
 
-# =============================================================================
-# cisco asa
-# =============================================================================
 class cisco_asa_test(_PixAsaSharedTest):
     handler = hash.cisco_asa
 
@@ -370,9 +361,6 @@ class cisco_asa_test(_PixAsaSharedTest):
     ]
 
 
-# =============================================================================
-# cisco type 7
-# =============================================================================
 class cisco_type7_test(HandlerCase):
     handler = hash.cisco_type7
     salt_bits = 4
@@ -452,8 +440,3 @@ class cisco_type7_test(HandlerCase):
         with self.assertWarningList("salt/offset must be.*"):
             subcls = handler.using(salt=100, relaxed=True)
         self.assertEqual(subcls(use_defaults=True).salt, 52)
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -17,9 +17,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# lanman hash
-# =============================================================================
 class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     """This class implements the Lan Manager Password hash, and follows the :ref:`password-hash-api`.
 
@@ -49,10 +46,6 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     it will accept upper-case as well.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -74,10 +67,6 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     # custom
     # --------------------
     default_encoding = "cp437"
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -132,14 +121,7 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
             secret[7:14], MAGIC
         )
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# ntlm hash
-# =============================================================================
 class nthash(uh.StaticHandler):
     """This class implements the NT Password hash, and follows the :ref:`password-hash-api`.
 
@@ -150,17 +132,9 @@ class nthash(uh.StaticHandler):
     Note that while this class outputs lower-case hexadecimal digests,
     it will accept upper-case digests as well.
     """
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "nthash"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -179,10 +153,6 @@ class nthash(uh.StaticHandler):
         secret = to_unicode(secret, "utf-8", param="secret")
         # XXX: found refs that say only first 128 chars are used.
         return md4(secret.encode("utf-16-le")).digest()
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 bsd_nthash = uh.PrefixWrapper(
@@ -231,9 +201,6 @@ bsd_nthash = uh.PrefixWrapper(
 ##        return lmhash.verify(secret, lm) or nthash.verify(secret, nt)
 
 
-# =============================================================================
-# msdcc v1
-# =============================================================================
 class msdcc(uh.HasUserContext, uh.StaticHandler):
     """This class implements Microsoft's Domain Cached Credentials password hash,
     and follows the :ref:`password-hash-api`.
@@ -281,9 +248,6 @@ class msdcc(uh.HasUserContext, uh.StaticHandler):
         return md4(md4(secret).digest() + user).digest()
 
 
-# =============================================================================
-# msdcc2 aka mscash2
-# =============================================================================
 class msdcc2(uh.HasUserContext, uh.StaticHandler):
     """This class implements version 2 of Microsoft's Domain Cached Credentials
     password hash, and follows the :ref:`password-hash-api`.
@@ -332,8 +296,3 @@ class msdcc2(uh.HasUserContext, uh.StaticHandler):
         user = to_unicode(user, "utf-8", param="user").lower().encode("utf-16-le")
         tmp = md4(md4(secret).digest() + user).digest()
         return pbkdf2_hmac("sha1", tmp, user, 10240, 16)
-
-
-# =============================================================================
-# eof
-# =============================================================================

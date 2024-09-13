@@ -18,17 +18,11 @@ __all__ = [
     "cisco_type7",
 ]
 
-# =============================================================================
-# utils
-# =============================================================================
 
 #: dummy bytes used by spoil_digest var in cisco_pix._calc_checksum()
 _DUMMY_BYTES = b"\xff" * 32
 
 
-# =============================================================================
-# cisco pix firewall hash
-# =============================================================================
 class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     """
     This class implements the password hash used by older Cisco PIX firewalls,
@@ -65,10 +59,6 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
         which caused prior releases to generate unverifiable hashes in certain cases.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -93,10 +83,6 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
 
     #: control flag signalling "cisco_asa" mode, set by cisco_asa class
     _is_asa = False
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     def _calc_checksum(self, secret):
         """
         This function implements the "encrypted" hash format used by Cisco
@@ -240,10 +226,6 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
     #         size += 4
     #     return size < 17
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class cisco_asa(cisco_pix):
     """
@@ -268,10 +250,6 @@ class cisco_asa(cisco_pix):
         which caused prior releases to generate unverifiable hashes in certain cases.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -287,14 +265,7 @@ class cisco_asa(cisco_pix):
     # --------------------
     _is_asa = True
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# type 7
-# =============================================================================
 class cisco_type7(uh.GenericHandler):
     """
     This class implements the "Type 7" password encoding used by Cisco IOS,
@@ -325,10 +296,6 @@ class cisco_type7(uh.GenericHandler):
     .. automethod:: decode
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -348,10 +315,6 @@ class cisco_type7(uh.GenericHandler):
     #       chars in size, not sure what appropriate behavior is for that edge case.
     min_salt_value = 0
     max_salt_value = 52
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def using(cls, salt=None, **kwds):
         subcls = super().using(**kwds)
@@ -435,8 +398,3 @@ class cisco_type7(uh.GenericHandler):
         return bytes(
             value ^ ord(key[(salt + idx) % key_size]) for idx, value in enumerate(data)
         )
-
-
-# =============================================================================
-# eof
-# =============================================================================

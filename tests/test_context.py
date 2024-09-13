@@ -23,9 +23,6 @@ from tests.utils import (
 )
 
 # local
-# =============================================================================
-# support
-# =============================================================================
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -38,18 +35,11 @@ def merge_dicts(first, *args, **kwds):
     return target
 
 
-# =============================================================================
-#
-# =============================================================================
 class CryptContextTest(TestCase):
     descriptionPrefix = "CryptContext"
 
     # TODO: these unittests could really use a good cleanup
     # and reorganizing, to ensure they're getting everything.
-
-    # ===================================================================
-    # sample configurations used in tests
-    # ===================================================================
 
     # ---------------------------------------------------------------
     # sample 1 - typical configuration
@@ -167,20 +157,12 @@ sha512_crypt__min_rounds = 45000
         phpass__ident="H",
         phpass__default_rounds=7,
     )
-
-    # ===================================================================
-    # setup
-    # ===================================================================
     def setUp(self):
         super().setUp()
         warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
         warnings.filterwarnings(
             "ignore", ".*'scheme' keyword is deprecated as of Passlib 1.7.*"
         )
-
-    # ===================================================================
-    # constructors
-    # ===================================================================
     def test_01_constructor(self):
         """test class constructor"""
 
@@ -312,10 +294,6 @@ sha512_crypt__min_rounds = 45000
         cc1 = CryptContext(**self.sample_1_dict)
         # NOTE: "0x-1234" format used by Pyston 0.5.1 (support deprecated 2019-11)
         self.assertRegex(repr(cc1), "^<CryptContext at 0x-?[0-9a-f]+>$")
-
-    # ===================================================================
-    # modifiers
-    # ===================================================================
     def test_10_load(self):
         """test load() / load_path() method"""
         # NOTE: load() is the workhorse that handles all policy parsing,
@@ -417,10 +395,6 @@ sha512_crypt__min_rounds = 45000
 
         # wrong arg type
         self.assertRaises(TypeError, ctx.update, None)
-
-    # ===================================================================
-    # option parsing
-    # ===================================================================
     def test_20_options(self):
         """test basic option parsing"""
 
@@ -714,10 +688,6 @@ sha512_crypt__min_rounds = 45000
         self.assertEqual(parse(1000), 1000)
         self.assertEqual(parse("1000"), 1000)
 
-    # ===================================================================
-    # inspection & serialization
-    # ===================================================================
-
     def assertHandlerDerivedFrom(self, handler, base, msg=None):
         self.assertTrue(handler_derived_from(handler, base), msg=msg)
 
@@ -947,10 +917,6 @@ sha512_crypt__min_rounds = 45000
             r"# NOTE: the 'unsalted_test_hash' handler\(s\)"
             r" are not registered with Passlib",
         )
-
-    # ===================================================================
-    # password hash api
-    # ===================================================================
     nonstring_vectors = [
         (None, {}),
         (None, {"scheme": "des_crypt"}),
@@ -1471,10 +1437,6 @@ sha512_crypt__min_rounds = 45000
             cc3.verify_and_update("stub", des_hash, user="root"), (True, pg_root_hash)
         )
 
-    # ===================================================================
-    # rounds options
-    # ===================================================================
-
     # TODO: now that rounds generation has moved out of _CryptRecord to HasRounds,
     #       this should just test that we're passing right options to handler.using(),
     #       and that resulting handler has right settings.
@@ -1727,10 +1689,6 @@ sha512_crypt__min_rounds = 45000
             seen.add(r)
         self.assertEqual(min(seen), lower, "vary_rounds had wrong lower limit:")
         self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
-
-    # ===================================================================
-    # dummy_verify()
-    # ===================================================================
     def test_dummy_verify(self):
         """
         dummy_verify() method
@@ -1747,10 +1705,6 @@ sha512_crypt__min_rounds = 45000
 
         # TODO: test dummy_verify() invoked by .verify() when hash is None,
         #       and same for .verify_and_update()
-
-    # ===================================================================
-    # feature tests
-    # ===================================================================
     def test_61_autodeprecate(self):
         """test deprecated='auto' is handled correctly"""
 
@@ -1886,9 +1840,6 @@ class DelayHash(uh.StaticHandler):
         return hashlib.sha1(b"prefix" + secret).hexdigest()
 
 
-# =============================================================================
-# LazyCryptContext
-# =============================================================================
 class dummy_2(uh.StaticHandler):
     name = "dummy_2"
 
@@ -1933,8 +1884,3 @@ class LazyCryptContextTest(TestCase):
         self.assertTrue(cc.handler("des_crypt").deprecated)
 
         self.assertTrue(has_crypt_handler("dummy_2", True))
-
-
-# =============================================================================
-# eof
-# =============================================================================

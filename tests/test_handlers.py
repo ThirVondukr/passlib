@@ -80,9 +80,6 @@ def get_handler_case(scheme):
 conditionally_available_hashes = ["argon2", "bcrypt", "bcrypt_sha256"]
 
 
-# =============================================================================
-# apr md5 crypt
-# =============================================================================
 class apr_md5_crypt_test(HandlerCase):
     handler = hash.apr_md5_crypt
 
@@ -104,9 +101,7 @@ class apr_md5_crypt_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# bigcrypt
-# =============================================================================
+
 class bigcrypt_test(HandlerCase):
     handler = hash.bigcrypt
 
@@ -143,10 +138,6 @@ class bigcrypt_test(HandlerCase):
             ValueError, hash.bigcrypt, use_defaults=True, checksum="yh4XPJGsOZ"
         )
 
-
-# =============================================================================
-# bsdi crypt
-# =============================================================================
 class _bsdi_crypt_test(HandlerCase):
     """test BSDiCrypt algorithm"""
 
@@ -225,9 +216,6 @@ bsdi_crypt_os_crypt_test = _bsdi_crypt_test.create_backend_case("os_crypt")
 bsdi_crypt_builtin_test = _bsdi_crypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# crypt16
-# =============================================================================
 class crypt16_test(HandlerCase):
     handler = hash.crypt16
 
@@ -252,9 +240,6 @@ class crypt16_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# des crypt
-# =============================================================================
 class _des_crypt_test(HandlerCase):
     """test des-crypt algorithm"""
 
@@ -304,9 +289,6 @@ des_crypt_os_crypt_test = _des_crypt_test.create_backend_case("os_crypt")
 des_crypt_builtin_test = _des_crypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# fshp
-# =============================================================================
 class fshp_test(HandlerCase):
     """test fshp algorithm"""
 
@@ -386,9 +368,6 @@ class fshp_test(HandlerCase):
         self.assertRaises(ValueError, handler, variant=9, **kwds)
 
 
-# =============================================================================
-# hex digests
-# =============================================================================
 class hex_md4_test(HandlerCase):
     handler = hash.hex_md4
     known_correct_hashes = [
@@ -479,9 +458,6 @@ class hex_sha512_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# htdigest hash
-# =============================================================================
 class htdigest_test(UserHandlerMixin, HandlerCase):
     handler = hash.htdigest
 
@@ -517,9 +493,6 @@ class htdigest_test(UserHandlerMixin, HandlerCase):
         return secret
 
 
-# =============================================================================
-# ldap hashes
-# =============================================================================
 class ldap_md5_test(HandlerCase):
     handler = hash.ldap_md5
     known_correct_hashes = [
@@ -754,9 +727,6 @@ class _ldap_sha1_crypt_test(HandlerCase):
 ldap_sha1_crypt_os_crypt_test = _ldap_sha1_crypt_test.create_backend_case("os_crypt")
 
 
-# =============================================================================
-# lanman
-# =============================================================================
 class lmhash_test(EncodingHandlerMixin, HandlerCase):
     handler = hash.lmhash
     secret_case_insensitive = True
@@ -804,9 +774,6 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
         self.assertRaises(TypeError, lmhash.raw, 1)
 
 
-# =============================================================================
-# md5 crypt
-# =============================================================================
 class _md5_crypt_test(HandlerCase):
     handler = hash.md5_crypt
 
@@ -859,9 +826,6 @@ md5_crypt_os_crypt_test = _md5_crypt_test.create_backend_case("os_crypt")
 md5_crypt_builtin_test = _md5_crypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# msdcc 1 & 2
-# =============================================================================
 class msdcc_test(UserHandlerMixin, HandlerCase):
     handler = hash.msdcc
     user_case_insensitive = True
@@ -950,9 +914,6 @@ class msdcc2_test(UserHandlerMixin, HandlerCase):
     ]
 
 
-# =============================================================================
-# mssql 2000 & 2005
-# =============================================================================
 class mssql2000_test(HandlerCase):
     handler = hash.mssql2000
     secret_case_insensitive = "verify-only"
@@ -1143,9 +1104,6 @@ class mssql2005_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# mysql 323 & 41
-# =============================================================================
 class mysql323_test(HandlerCase):
     handler = hash.mysql323
 
@@ -1205,9 +1163,6 @@ class mysql41_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# NTHASH
-# =============================================================================
 class nthash_test(HandlerCase):
     handler = hash.nthash
 
@@ -1254,9 +1209,6 @@ class bsd_nthash_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# oracle 10 & 11
-# =============================================================================
 class oracle10_test(UserHandlerMixin, HandlerCase):
     handler = hash.oracle10
     secret_case_insensitive = True
@@ -1321,9 +1273,6 @@ class oracle11_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# PHPass Portable Crypt
-# =============================================================================
 class phpass_test(HandlerCase):
     handler = hash.phpass
 
@@ -1359,9 +1308,6 @@ class phpass_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# plaintext
-# =============================================================================
 class plaintext_test(HandlerCase):
     # TODO: integrate EncodingHandlerMixin
     handler = hash.plaintext
@@ -1376,9 +1322,6 @@ class plaintext_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# postgres_md5
-# =============================================================================
 class postgres_md5_test(UserHandlerMixin, HandlerCase):
     handler = hash.postgres_md5
     known_correct_hashes = [
@@ -1401,9 +1344,6 @@ class postgres_md5_test(UserHandlerMixin, HandlerCase):
     ]
 
 
-# =============================================================================
-# (netbsd's) sha1 crypt
-# =============================================================================
 class _sha1_crypt_test(HandlerCase):
     handler = hash.sha1_crypt
 
@@ -1438,9 +1378,6 @@ class _sha1_crypt_test(HandlerCase):
 sha1_crypt_os_crypt_test = _sha1_crypt_test.create_backend_case("os_crypt")
 sha1_crypt_builtin_test = _sha1_crypt_test.create_backend_case("builtin")
 
-# =============================================================================
-# roundup
-# =============================================================================
 
 # NOTE: all roundup hashes use PrefixWrapper,
 #       so there's nothing natively to test.
@@ -1474,9 +1411,6 @@ class RoundupTest(TestCase):
         )
 
 
-# =============================================================================
-# sha256-crypt
-# =============================================================================
 class _sha256_crypt_test(HandlerCase):
     handler = hash.sha256_crypt
 
@@ -1636,9 +1570,6 @@ sha256_crypt_os_crypt_test = _sha256_crypt_test.create_backend_case("os_crypt")
 sha256_crypt_builtin_test = _sha256_crypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# test sha512-crypt
-# =============================================================================
 class _sha512_crypt_test(HandlerCase):
     handler = hash.sha512_crypt
 
@@ -1763,9 +1694,6 @@ sha512_crypt_os_crypt_test = _sha512_crypt_test.create_backend_case("os_crypt")
 sha512_crypt_builtin_test = _sha512_crypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# sun md5 crypt
-# =============================================================================
 class sun_md5_crypt_test(HandlerCase):
     handler = hash.sun_md5_crypt
 
@@ -1869,9 +1797,6 @@ class sun_md5_crypt_test(HandlerCase):
         return self.handler.verify(secret, hash)
 
 
-# =============================================================================
-# unix disabled / fallback
-# =============================================================================
 class unix_disabled_test(HandlerCase):
     handler = hash.unix_disabled
     #    accepts_all_hashes = True # TODO: turn this off.
@@ -1920,8 +1845,3 @@ class unix_disabled_test(HandlerCase):
         self.assertRaises(ValueError, handler.genhash, "stub", "", marker="abc")
         self.assertRaises(ValueError, handler.hash, "stub", marker="abc")
         self.assertRaises(ValueError, handler.using, marker="abc")
-
-
-# =============================================================================
-# eof
-# =============================================================================

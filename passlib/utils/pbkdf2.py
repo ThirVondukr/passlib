@@ -22,9 +22,6 @@ __all__ = [
     "pbkdf2",
 ]
 
-# =============================================================================
-# issue deprecation warning for module
-# =============================================================================
 
 
 warn(
@@ -33,9 +30,6 @@ warn(
     DeprecationWarning,
 )
 
-# =============================================================================
-# prf lookup
-# =============================================================================
 
 #: cache mapping prf name/func -> (func, digest_size)
 _prf_cache = {}
@@ -106,9 +100,6 @@ def get_prf(name):
     return record
 
 
-# =============================================================================
-# pbkdf1 support
-# =============================================================================
 def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     """pkcs#5 password-based key derivation v1.5
 
@@ -137,9 +128,6 @@ def pbkdf1(secret, salt, rounds, keylen=None, hash="sha1"):
     return _pbkdf1(hash, secret, salt, rounds, keylen)
 
 
-# =============================================================================
-# pbkdf2
-# =============================================================================
 def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
     """pkcs#5 password-based key derivation v2.0
 
@@ -181,8 +169,3 @@ def pbkdf2(secret, salt, rounds, keylen=None, prf="hmac-sha1"):
         raise NotImplementedError("non-HMAC prfs are not supported as of Passlib 1.7")
     digest = prf[5:]
     return pbkdf2_hmac(digest, secret, salt, rounds, keylen)
-
-
-# =============================================================================
-# eof
-# =============================================================================

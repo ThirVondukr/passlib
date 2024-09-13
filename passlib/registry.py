@@ -20,9 +20,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# proxy object used in place of 'passlib.hash' module
-# =============================================================================
 class _PasslibRegistryProxy(object):
     """proxy module passlib.hash
 
@@ -68,9 +65,6 @@ class _PasslibRegistryProxy(object):
 # create single instance - available publically as 'passlib.hash'
 _proxy = _PasslibRegistryProxy()
 
-# =============================================================================
-# internal registry state
-# =============================================================================
 
 # singleton uses to detect omitted keywords
 _UNSET = object()
@@ -172,9 +166,6 @@ _forbidden_names = frozenset(
 )
 
 
-# =============================================================================
-# registry frontend functions
-# =============================================================================
 def _validate_handler_name(name):
     """helper to validate handler name
 
@@ -438,15 +429,6 @@ def _unload_handler_name(name, locations=True):
         del _locations[name]
 
 
-# =============================================================================
-# inspection helpers
-# =============================================================================
-
-# ------------------------------------------------------------------
-# general
-# ------------------------------------------------------------------
-
-
 # TODO: needs UTs
 def _resolve(hasher, param="value"):
     """
@@ -568,8 +550,3 @@ def has_os_crypt_support(hasher):
         True if hash format is supported by OS, else False.
     """
     return os_crypt_present and has_backend(hasher, OS_CRYPT, safe=True)
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -20,9 +20,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# master containing all identifiable hashes
-# =============================================================================
 def _load_master_config():
     from passlib.registry import list_crypt_handlers
 
@@ -61,9 +58,6 @@ def _load_master_config():
 
 master_context = LazyCryptContext(onload=_load_master_config)
 
-# =============================================================================
-# for quickly bootstrapping new custom applications
-# =============================================================================
 custom_app_context = LazyCryptContext(
     # choose some reasonbly strong schemes
     schemes=["sha512_crypt", "sha256_crypt"],
@@ -77,9 +71,6 @@ custom_app_context = LazyCryptContext(
     admin__sha256_crypt__min_rounds=1024000,
 )
 
-# =============================================================================
-# django
-# =============================================================================
 
 # -----------------------------------------------------------------------
 # 1.0
@@ -154,9 +145,6 @@ django21_context = LazyCryptContext(schemes=_django21_schemes)
 # this will always point to latest version in passlib
 django_context = django21_context
 
-# =============================================================================
-# ldap
-# =============================================================================
 
 #: standard ldap schemes
 std_ldap_schemes = [
@@ -194,22 +182,13 @@ ldap_context = LazyCryptContext(_iter_ldap_schemes())
 ##    return chain(std_ldap_schemes, get_host_ldap_crypt_schemes())
 ##ldap_host_context = LazyCryptContext(_iter_host_ldap_schemes())
 
-# =============================================================================
-# mysql
-# =============================================================================
 mysql3_context = LazyCryptContext(["mysql323"])
 mysql4_context = LazyCryptContext(["mysql41", "mysql323"], deprecated="mysql323")
 mysql_context = mysql4_context  # tracks latest mysql version supported
 
-# =============================================================================
-# postgres
-# =============================================================================
 postgres_context = LazyCryptContext(["postgres_md5"])
 
 
-# =============================================================================
-# phpass & variants
-# =============================================================================
 def _create_phpass_policy(**kwds):
     """helper to choose default alg based on bcrypt availability"""
     kwds["default"] = "bcrypt" if hash.bcrypt.has_backend() else "phpass"
@@ -225,9 +204,6 @@ phpbb3_context = LazyCryptContext(["phpass"], phpass__ident="H")
 
 # TODO: support the drupal phpass variants (see phpass homepage)
 
-# =============================================================================
-# roundup
-# =============================================================================
 
 _std_roundup_schemes = [
     "ldap_hex_sha1",
@@ -244,7 +220,3 @@ roundup_context = roundup15_context = LazyCryptContext(
     default="ldap_pbkdf2_sha1",
     ldap_pbkdf2_sha1__default_rounds=10000,
 )
-
-# =============================================================================
-# eof
-# =============================================================================

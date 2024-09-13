@@ -1,8 +1,5 @@
 """update version string during build"""
 
-# =============================================================================
-# imports
-# =============================================================================
 # core
 import datetime
 from distutils.dist import Distribution
@@ -21,9 +18,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# helpers
-# =============================================================================
 def get_command_class(opts, name):
     return opts["cmdclass"].get(name) or Distribution().get_command_class(name)
 
@@ -152,8 +146,3 @@ def install_build_py_exclude(opts):
                     target.remove(package)
 
     opts["cmdclass"]["build_py"] = build_py
-
-
-# =============================================================================
-# eof
-# =============================================================================

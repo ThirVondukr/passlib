@@ -299,40 +299,21 @@ class ScryptEngineTest(TestCase):
         )
         self.assertEqual(salsa20(input), output)
 
-    # =============================================================================
-    # eof
-    # =============================================================================
 
-
-# =============================================================================
-# test scrypt
-# =============================================================================
 class _CommonScryptTest(TestCase):
     """
     base class for testing various scrypt backends against same set of reference vectors.
     """
-
-    # =============================================================================
-    # class attrs
-    # =============================================================================
 
     @classproperty
     def descriptionPrefix(cls):
         return "passlib.utils.scrypt.scrypt() <%s backend>" % cls.backend
 
     backend = None
-
-    # =============================================================================
-    # setup
-    # =============================================================================
     def setUp(self):
         assert self.backend
         scrypt_mod._set_backend(self.backend)
         super().setUp()
-
-    # =============================================================================
-    # reference vectors
-    # =============================================================================
 
     reference_vectors = [
         # entry format: (secret, salt, n, r, p, keylen, result)
@@ -418,10 +399,6 @@ class _CommonScryptTest(TestCase):
                 "scrypt reference vector: %r %r n=%r r=%r p=%r", secret, salt, n, r, p
             )
             self.assertEqual(scrypt_mod.scrypt(secret, salt, n, r, p, keylen), result)
-
-    # =============================================================================
-    # fuzz testing
-    # =============================================================================
 
     _already_tested_others = None
 

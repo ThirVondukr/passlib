@@ -29,7 +29,3 @@ des_encrypt_int_block = deprecated_function(
     removed="2.0",
     replacement="passlib.crypto.des.des_encrypt_int_block",
 )(des_encrypt_int_block)
-
-# =============================================================================
-# eof
-# =============================================================================

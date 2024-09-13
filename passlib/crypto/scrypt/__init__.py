@@ -12,9 +12,6 @@ __all__ = [
     "scrypt",
 ]
 
-# ==========================================================================
-# config validation
-# ==========================================================================
 
 #: internal global constant for setting stdlib scrypt's maxmem (int bytes).
 #: set to -1 to auto-calculate (see _load_stdlib_backend() below)
@@ -87,9 +84,6 @@ def estimate_maxmem(n, r, p, fudge=1.05):
 
 # TODO: configuration picker (may need psutil for full effect)
 
-# ==========================================================================
-# hash frontend
-# ==========================================================================
 
 #: backend function used by scrypt(), filled in by _set_backend()
 _scrypt = None
@@ -280,8 +274,3 @@ def _has_backend(name):
         return True
     except exc.MissingBackendError:
         return False
-
-
-# ==========================================================================
-# eof
-# ==========================================================================

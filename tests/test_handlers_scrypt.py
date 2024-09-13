@@ -108,7 +108,3 @@ class _scrypt_test(HandlerCase):
 scrypt_stdlib_test = _scrypt_test.create_backend_case("stdlib")
 scrypt_scrypt_test = _scrypt_test.create_backend_case("scrypt")
 scrypt_builtin_test = _scrypt_test.create_backend_case("builtin")
-
-# =============================================================================
-# eof
-# =============================================================================

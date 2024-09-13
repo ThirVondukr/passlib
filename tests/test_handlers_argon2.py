@@ -331,9 +331,6 @@ reference_data.extend(
 )
 
 
-# =============================================================================
-# argon2
-# =============================================================================
 class _base_argon2_test(HandlerCase):
     handler = hash.argon2
 
@@ -737,8 +734,3 @@ class argon2_argon2pure_test(_base_argon2_test.create_backend_case("argon2pure")
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(1, 3, 2, 1)
-
-
-# =============================================================================
-# eof
-# =============================================================================

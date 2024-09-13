@@ -23,9 +23,6 @@ __all__ = [
     "django_disabled",
 ]
 
-# =============================================================================
-# lazy imports & constants
-# =============================================================================
 
 # imported by django_des_crypt._calc_checksum()
 des_crypt = None
@@ -42,9 +39,6 @@ def _import_des_crypt():
 SALT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
-# =============================================================================
-# salted hashes
-# =============================================================================
 class DjangoSaltedHash(uh.HasSalt, uh.GenericHandler):
     """base class providing common code for django hashes"""
 
@@ -167,10 +161,6 @@ class django_salted_md5(DjangoSaltedHash):
         return md5(self.salt.encode("ascii") + secret).hexdigest()
 
 
-# =============================================================================
-# BCrypt
-# =============================================================================
-
 django_bcrypt = uh.PrefixWrapper(
     "django_bcrypt",
     bcrypt,
@@ -194,10 +184,6 @@ django_bcrypt = uh.PrefixWrapper(
 )
 django_bcrypt.django_name = "bcrypt"
 django_bcrypt._using_clone_attrs += ("django_name",)
-
-# =============================================================================
-# BCRYPT + SHA256
-# =============================================================================
 
 
 class django_bcrypt_sha256(_wrapped_bcrypt):
@@ -251,9 +237,6 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
         return super()._calc_checksum(secret)
 
 
-# =============================================================================
-# PBKDF2 variants
-# =============================================================================
 
 
 class django_pbkdf2_sha256(DjangoVariableHash):
@@ -354,9 +337,6 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     _digest = "sha1"
 
 
-# =============================================================================
-# Argon2
-# =============================================================================
 
 # NOTE: as of 2019-11-11, Django's Argon2PasswordHasher only supports Type I;
 #       so limiting this to ensure that as well.
@@ -386,9 +366,6 @@ django_argon2.django_name = "argon2"
 django_argon2._using_clone_attrs += ("django_name",)
 
 
-# =============================================================================
-# DES
-# =============================================================================
 class django_des_crypt(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     """This class implements Django's :class:`des_crypt` wrapper, and follows the :ref:`password-hash-api`.
 
@@ -530,8 +507,3 @@ class django_disabled(uh.ifc.DisabledHash, uh.StaticHandler):
         if not cls.identify(hash):
             raise uh.exc.InvalidHashError(cls)
         return False
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -13,9 +13,6 @@ from tests.test_ext_django import (
 )
 # module
 
-# =============================================================================
-# django
-# =============================================================================
 
 # standard string django uses
 UPASS_LETMEIN = "l\xe8tmein"
@@ -436,8 +433,3 @@ class django_argon2_test(HandlerCase, _DjangoHelper):
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(1, 3, 2, 1)
-
-
-# =============================================================================
-# eof
-# =============================================================================

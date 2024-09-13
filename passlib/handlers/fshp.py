@@ -12,9 +12,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# sha1-crypt
-# =============================================================================
 class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the FSHP password hash, and follows the :ref:`password-hash-api`.
 
@@ -52,10 +49,6 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
@@ -88,25 +81,13 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         [(str(k), k) for k in _variant_info]
         + [(v[0], k) for k, v in _variant_info.items()]
     )
-
-    # ===================================================================
-    # configuration
-    # ===================================================================
     @classmethod
     def using(cls, variant=None, **kwds):
         subcls = super().using(**kwds)
         if variant is not None:
             subcls.default_variant = cls._norm_variant(variant)
         return subcls
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     variant = None
-
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, variant=None, **kwds):
         # NOTE: variant must be set first, since it controls checksum size, etc.
         self.use_defaults = kwds.get("use_defaults")  # load this early
@@ -145,10 +126,6 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     def checksum_size(self):
         return self._variant_info[self.variant][1]
 
-    # ===================================================================
-    # formatting
-    # ===================================================================
-
     _hash_regex = re.compile(
         r"""
             ^
@@ -185,10 +162,6 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         data = bascii_to_str(b64encode(salt + chk))
         return "{FSHP%d|%d|%d}%s" % (self.variant, len(salt), self.rounds, data)
 
-    # ===================================================================
-    # backend
-    # ===================================================================
-
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
@@ -202,12 +175,3 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             rounds=self.rounds,
             keylen=self.checksum_size,
         )
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================
