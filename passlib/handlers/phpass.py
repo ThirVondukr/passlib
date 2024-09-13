@@ -17,9 +17,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# phpass
-# =============================================================================
 class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the PHPass Portable Hash, and follows the :ref:`password-hash-api`.
 
@@ -56,9 +53,6 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "phpass"
     setting_kwds = ("salt", "rounds", "ident")
@@ -78,10 +72,6 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     default_ident = "$P$"
     ident_values = ("$P$", "$H$")
     ident_aliases = {"P": "$P$", "H": "$H$"}
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # $P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0
     # $P$
@@ -109,9 +99,6 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         )
         return hash
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     def _calc_checksum(self, secret):
         # FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, str):
@@ -123,12 +110,3 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             result = md5(result + secret).digest()
             r += 1
         return h64.encode_bytes(result).decode("ascii")
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

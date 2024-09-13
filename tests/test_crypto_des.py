@@ -2,9 +2,6 @@ from passlib.utils import getrandbytes
 from tests.utils import TestCase
 
 
-# =============================================================================
-# test DES routines
-# =============================================================================
 class DesTest(TestCase):
     descriptionPrefix = "passlib.crypto.des"
 
@@ -196,8 +193,3 @@ class DesTest(TestCase):
 
         # check invalid rounds
         self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, 0, rounds=0)
-
-
-# =============================================================================
-# eof
-# =============================================================================

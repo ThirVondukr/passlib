@@ -174,9 +174,6 @@ class _bcrypt_test(HandlerCase):
         ("solaris", None),  # depends on system policy
     ]
 
-    # ===================================================================
-    # override some methods
-    # ===================================================================
     def setUp(self):
         # ensure builtin is enabled for duration of test.
         if TEST_MODE("full") and self.backend == "builtin":
@@ -201,9 +198,6 @@ class _bcrypt_test(HandlerCase):
             kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
 
-    # ===================================================================
-    # fuzz testing
-    # ===================================================================
     def crypt_supports_variant(self, hash):
         """check if OS crypt is expected to support given ident"""
         from passlib.handlers.bcrypt import bcrypt
@@ -271,9 +265,6 @@ class _bcrypt_test(HandlerCase):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(5, 8, 6, 1)
 
-    # ===================================================================
-    # custom tests
-    # ===================================================================
     known_incorrect_padding = [
         # password, bad hash, good hash
         # 2 bits of salt padding set
@@ -376,10 +367,6 @@ class _bcrypt_test(HandlerCase):
         self.assertTrue(bcrypt.needs_update(BAD1))
         self.assertFalse(bcrypt.needs_update(GOOD1))
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 # create test cases for specific backends
 bcrypt_bcrypt_test = _bcrypt_test.create_backend_case("bcrypt")
@@ -398,9 +385,6 @@ class bcrypt_os_crypt_test(_bcrypt_test.create_backend_case("os_crypt")):
 bcrypt_builtin_test = _bcrypt_test.create_backend_case("builtin")
 
 
-# =============================================================================
-# bcrypt
-# =============================================================================
 class _bcrypt_sha256_test(HandlerCase):
     "base for BCrypt-SHA256 test cases"
 
@@ -545,9 +529,6 @@ class _bcrypt_sha256_test(HandlerCase):
         "$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$",
     ]
 
-    # ===================================================================
-    # override some methods -- cloned from bcrypt
-    # ===================================================================
     def setUp(self):
         # ensure builtin is enabled for duration of test.
         if TEST_MODE("full") and self.backend == "builtin":
@@ -569,10 +550,6 @@ class _bcrypt_sha256_test(HandlerCase):
             kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
 
-    # ===================================================================
-    # override ident tests for now
-    # ===================================================================
-
     def require_many_idents(self):
         raise self.skipTest("multiple idents not supported")
 
@@ -582,10 +559,6 @@ class _bcrypt_sha256_test(HandlerCase):
         handler(use_defaults=True)
         self.assertRaises(ValueError, handler, ident="$2y$", use_defaults=True)
 
-    # ===================================================================
-    # fuzz testing -- cloned from bcrypt
-    # ===================================================================
-
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
@@ -593,10 +566,6 @@ class _bcrypt_sha256_test(HandlerCase):
 
         def random_ident(self):
             return "2b"
-
-    # ===================================================================
-    # custom tests
-    # ===================================================================
 
     def test_using_version(self):
         # default to v2
@@ -643,10 +612,6 @@ class _bcrypt_sha256_test(HandlerCase):
         result = self.handler(ident="2b", salt=salt, rounds=12)._calc_checksum(secret)
         self.assertEqual(result, bcrypt_digest)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 # create test cases for specific backends
 bcrypt_sha256_bcrypt_test = _bcrypt_sha256_test.create_backend_case("bcrypt")
@@ -661,7 +626,3 @@ class bcrypt_sha256_os_crypt_test(_bcrypt_sha256_test.create_backend_case("os_cr
 
 
 bcrypt_sha256_builtin_test = _bcrypt_sha256_test.create_backend_case("builtin")
-
-# =============================================================================
-# eof
-# =============================================================================

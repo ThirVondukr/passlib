@@ -25,9 +25,6 @@ __all__ = [
     "HtdigestFile",
 ]
 
-# =============================================================================
-# constants & support
-# =============================================================================
 _UNSET = object()
 
 _BCOLON = b":"
@@ -41,15 +38,8 @@ _SKIPPED = "skipped"
 _RECORD = "record"
 
 
-# =============================================================================
-# common helpers
-# =============================================================================
 class _CommonFile(object):
     """common framework for HtpasswdFile & HtdigestFile"""
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
 
     # charset encoding used by file (defaults to utf-8)
     encoding = None
@@ -73,9 +63,6 @@ class _CommonFile(object):
     #: will be sequence of (_SKIPPED, b"whitespace/comments") and (_RECORD, <record key>) tuples.
     _source = None
 
-    # ===================================================================
-    # alt constuctors
-    # ===================================================================
     @classmethod
     def from_string(cls, data, **kwds):
         """create new object from raw string.
@@ -108,9 +95,6 @@ class _CommonFile(object):
         self.load(path)
         return self
 
-    # ===================================================================
-    # init
-    # ===================================================================
     # XXX: add a new() classmethod, ala TOTP.new()?
 
     def __init__(
@@ -170,9 +154,6 @@ class _CommonFile(object):
         """modify time when last loaded (if bound to a local file)"""
         return self._mtime
 
-    # ===================================================================
-    # loading
-    # ===================================================================
     def load_if_changed(self):
         """Reload from ``self.path`` only if file has changed since last load"""
         if not self._path:
@@ -272,9 +253,6 @@ class _CommonFile(object):
             self._source.append((_RECORD, key))
         return existing
 
-    # ===================================================================
-    # saving
-    # ===================================================================
     def _autosave(self):
         """subclass helper to call save() after any changes"""
         if self.autosave and self._path:
@@ -338,9 +316,6 @@ class _CommonFile(object):
         """given key/value pair, encode as line of file"""
         raise NotImplementedError("should be implemented in subclass")
 
-    # ===================================================================
-    # field encoding
-    # ===================================================================
     def _encode_user(self, user):
         """user-specific wrapper for _encode_field()"""
         return self._encode_field(user, "user")
@@ -403,10 +378,6 @@ class _CommonFile(object):
     # and that longer ones are truncated. this may be side-effect of those
     # platforms supporting the 'plaintext' scheme. these classes don't currently
     # check for this.
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 # =============================================================================
@@ -517,10 +488,6 @@ def _init_htpasswd_context():
 
 #: CryptContext configured to match htpasswd
 htpasswd_context = _init_htpasswd_context()
-
-# =============================================================================
-# htpasswd editing
-# =============================================================================
 
 
 class HtpasswdFile(_CommonFile):
@@ -682,16 +649,8 @@ class HtpasswdFile(_CommonFile):
         or is longer than 255 characters.
     """
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     # NOTE: _records map stores <user> for the key, and <hash> for the value,
     #       both in bytes which use self.encoding
-
-    # ===================================================================
-    # init & serialization
-    # ===================================================================
     def __init__(
         self, path=None, default_scheme=None, context=htpasswd_context, **kwds
     ):
@@ -716,10 +675,6 @@ class HtpasswdFile(_CommonFile):
 
     def _render_record(self, user, hash):
         return render_bytes("%s:%s\n", user, hash)
-
-    # ===================================================================
-    # public methods
-    # ===================================================================
 
     def users(self):
         """
@@ -830,14 +785,7 @@ class HtpasswdFile(_CommonFile):
             self._autosave()
         return ok
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# htdigest editing
-# =============================================================================
 class HtdigestFile(_CommonFile):
     """class for reading & writing Htdigest files.
 
@@ -961,10 +909,6 @@ class HtdigestFile(_CommonFile):
         or is longer than 255 characters.
     """
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     # NOTE: _records map stores (<user>,<realm>) for the key,
     # and <hash> as the value, all as <self.encoding> bytes.
 
@@ -975,9 +919,6 @@ class HtdigestFile(_CommonFile):
     # is provided to a method call. otherwise realm is always required.
     default_realm = None
 
-    # ===================================================================
-    # init & serialization
-    # ===================================================================
     def __init__(self, path=None, default_realm=None, **kwds):
         self.default_realm = default_realm
         super().__init__(path, **kwds)
@@ -1009,10 +950,6 @@ class HtdigestFile(_CommonFile):
 
     def _encode_key(self, user, realm):
         return self._encode_user(user), self._encode_realm(realm)
-
-    # ===================================================================
-    # public methods
-    # ===================================================================
 
     def realms(self):
         """Return list of all realms in database"""
@@ -1174,12 +1111,3 @@ class HtdigestFile(_CommonFile):
         if hash is None:
             return None
         return htdigest.verify(password, hash, user, realm, encoding=self.encoding)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

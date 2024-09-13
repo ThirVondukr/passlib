@@ -19,17 +19,10 @@ __all__ = [
 ]
 
 
-# =============================================================================
-#
-# =============================================================================
 class Pbkdf2DigestHandler(
     uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler
 ):
     """base class for various pbkdf2_{digest} algorithms"""
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
 
     # --GenericHandler--
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -54,10 +47,6 @@ class Pbkdf2DigestHandler(
     # NOTE: defaults chosen to be at least as large as pbkdf2 rfc recommends...
     #       >8 bytes of entropy in salt, >1000 rounds
     #       increased due to time since rfc established
-
-    # ===================================================================
-    # methods
-    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -160,9 +149,6 @@ ldap_pbkdf2_sha512 = uh.PrefixWrapper(
     ident=True,
 )
 
-# =============================================================================
-# cryptacular's pbkdf2 hash
-# =============================================================================
 
 # bytes used by cta hash for base64 values 63 & 64
 CTA_ALTCHARS = b"-_"
@@ -204,9 +190,6 @@ class cta_pbkdf2_sha1(
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "cta_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -226,10 +209,6 @@ class cta_pbkdf2_sha1(
     min_rounds = 1
     max_rounds = 0xFFFFFFFF  # setting at 32-bit limit for now
     rounds_cost = "linear"
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # hash       $p5k2$1000$ZxK4ZBJCfQg=$jJZVscWtO--p1-xIZl6jhO2LKR0=
     # ident      $p5k2$
@@ -252,21 +231,11 @@ class cta_pbkdf2_sha1(
         chk = b64encode(self.checksum, CTA_ALTCHARS).decode("ascii")
         return uh.render_mc3(self.ident, self.rounds, salt, chk, rounds_base=16)
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     def _calc_checksum(self, secret):
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
         return pbkdf2_hmac("sha1", secret, self.salt, self.rounds, 20)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# dlitz's pbkdf2 hash
-# =============================================================================
 class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements Dwayne Litzenberger's PBKDF2-based crypt algorithm, and follows the :ref:`password-hash-api`.
 
@@ -301,9 +270,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -326,10 +292,6 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     min_rounds = 1
     max_rounds = 0xFFFFFFFF  # setting at 32-bit limit for now
     rounds_cost = "linear"
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # hash       $p5k2$c$u9HvcT4d$Sd1gwSVCLZYAuqZ25piRnbBEoAesaa/g
     # ident      $p5k2$
@@ -359,23 +321,13 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             rounds = None  # omit rounds measurement if == 400
         return uh.render_mc3(self.ident, rounds, self.salt, None, rounds_base=16)
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     def _calc_checksum(self, secret):
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
         salt = self._get_config()
         result = pbkdf2_hmac("sha1", secret, salt, self.rounds, 24)
         return ab64_encode(result).decode("ascii")
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# crowd
-# =============================================================================
 class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     """This class implements the PBKDF2 hash used by Atlassian.
 
@@ -431,9 +383,6 @@ class atlassian_pbkdf2_sha1(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler)
         return pbkdf2_hmac("sha1", secret, self.salt, 10000, 32)
 
 
-# =============================================================================
-# grub
-# =============================================================================
 class grub_pbkdf2_sha512(
     uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler
 ):
@@ -505,8 +454,3 @@ class grub_pbkdf2_sha512(
         # TODO: find out what grub's policy is re: unicode
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
         return pbkdf2_hmac("sha512", secret, self.salt, self.rounds, 64)
-
-
-# =============================================================================
-# eof
-# =============================================================================

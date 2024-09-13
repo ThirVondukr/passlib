@@ -8,10 +8,6 @@ from tests.utils import TestCase, get_file, set_file
 from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime
 
-# =============================================================================
-# detect external HTPASSWD tool
-# =============================================================================
-
 
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
 
@@ -66,9 +62,6 @@ requires_htpasswd_cmd = unittest.skipUnless(
 )
 
 
-# =============================================================================
-# htdigest
-# =============================================================================
 class HtdigestFileTest(TestCase):
     """test HtdigestFile class"""
 

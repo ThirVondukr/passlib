@@ -40,9 +40,6 @@ __all__ = [
     "bcrypt",
 ]
 
-# =============================================================================
-# support funcs & constants
-# =============================================================================
 IDENT_2 = "$2$"
 IDENT_2A = "$2a$"
 IDENT_2X = "$2x$"
@@ -87,9 +84,6 @@ def _detect_pybcrypt():
     return True
 
 
-# =============================================================================
-# backend mixins
-# =============================================================================
 class _BcryptCommon(
     uh.SubclassBackendMixin,
     uh.TruncateMixin,
@@ -106,10 +100,6 @@ class _BcryptCommon(
     When a backend is loaded, the bases of the 'bcrypt' class proper
     are modified to prepend the correct backend-specific subclass.
     """
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
 
     # --------------------
     # PasswordHash
@@ -166,10 +156,6 @@ class _BcryptCommon(
     _fallback_ident = IDENT_2A
     _require_valid_utf8_bytes = False
 
-    # ===================================================================
-    # formatting
-    # ===================================================================
-
     @classmethod
     def from_string(cls, hash):
         ident, tail = cls._parse_ident(hash)
@@ -200,10 +186,6 @@ class _BcryptCommon(
         config = "%s%02d$%s" % (ident, self.rounds, self.salt)
         return config
 
-    # ===================================================================
-    # migration
-    # ===================================================================
-
     @classmethod
     def needs_update(cls, hash, **kwds):
         # NOTE: can't convert this to use _calc_needs_update() helper,
@@ -218,10 +200,6 @@ class _BcryptCommon(
 
         # hand off to base implementation, so HasRounds can check rounds value.
         return super().needs_update(hash, **kwds)
-
-    # ===================================================================
-    # specialized salt generation - fixes passlib issue 25
-    # ===================================================================
 
     @classmethod
     def normhash(cls, hash):
@@ -509,10 +487,6 @@ class _BcryptCommon(
         mixin_cls._workrounds_initialized = True
         return True
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
-
     # _calc_checksum() defined by backends
 
     def _prepare_digest_args(self, secret):
@@ -612,32 +586,19 @@ class _BcryptCommon(
         return secret, ident
 
 
-# -----------------------------------------------------------------------
-# stub backend
-# -----------------------------------------------------------------------
 class _NoBackend(_BcryptCommon):
     """
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         self._stub_requires_backend()
         # NOTE: have to use super() here so that we don't recursively
         #       call subclass's wrapped _calc_checksum, e.g. bcrypt_sha256._calc_checksum
         return self._calc_checksum(secret)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# -----------------------------------------------------------------------
-# bcrypt backend
-# -----------------------------------------------------------------------
 class _BcryptBackend(_BcryptCommon):
     """
     backend which uses 'bcrypt' package
@@ -776,9 +737,6 @@ class _OsCryptBackend(_BcryptCommon):
         )
 
 
-# -----------------------------------------------------------------------
-# builtin backend
-# -----------------------------------------------------------------------
 class _BuiltinBackend(_BcryptCommon):
     """
     backend which uses passlib's pure-python implementation
@@ -805,9 +763,6 @@ class _BuiltinBackend(_BcryptCommon):
         return chk.decode("ascii")
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class bcrypt(_NoBackend, _BcryptCommon):
     """This class implements the BCrypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -875,10 +830,6 @@ class bcrypt(_NoBackend, _BcryptCommon):
         Now defaults to ``"2b"`` variant.
     """
 
-    # =============================================================================
-    # backend
-    # =============================================================================
-
     # NOTE: the brunt of the bcrypt class is implemented in _BcryptCommon.
     #       there are then subclass for each backend (e.g. _PyBcryptBackend),
     #       these are dynamically prepended to this class's bases
@@ -898,14 +849,7 @@ class bcrypt(_NoBackend, _BcryptCommon):
         "builtin": _BuiltinBackend,
     }
 
-    # =============================================================================
-    # eoc
-    # =============================================================================
 
-
-# =============================================================================
-# variants
-# =============================================================================
 _UDOLLAR = "$"
 
 
@@ -946,11 +890,6 @@ class _wrapped_bcrypt(bcrypt):
         pass
 
 
-# =============================================================================
-# bcrypt sha256 wrapper
-# =============================================================================
-
-
 class bcrypt_sha256(_wrapped_bcrypt):
     """
     This class implements a composition of BCrypt + HMAC_SHA256,
@@ -973,10 +912,6 @@ class bcrypt_sha256(_wrapped_bcrypt):
         For increased security, updated to use HMAC-SHA256 instead of plain SHA256.
         Now only supports the ``"2b"`` bcrypt variant.  Hash format updated to "v=2".
     """
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
 
     # --------------------
     # PasswordHash
@@ -1003,18 +938,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     _supported_versions = {1, 2}
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     #: wrapper version.
     #: v1 -- used prior to passlib 1.7.3; performs ``bcrypt(sha256(secret), salt, cost)``
     #: v2 -- new in passlib 1.7.3; performs `bcrypt(sha256_hmac(salt, secret), salt, cost)``
     version = 2
-
-    # ===================================================================
-    # configuration
-    # ===================================================================
 
     @classmethod
     def using(cls, version=None, **kwds):
@@ -1027,10 +954,6 @@ class bcrypt_sha256(_wrapped_bcrypt):
                 "bcrypt %r hashes not allowed for version %r" % (ident, subcls.version)
             )
         return subcls
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
 
     # sample hash:
     # $bcrypt-sha256$2a,6$/3OeRpbOf8/l6nPPRdZPp.$nRiyYqPobEZGdNRBWihQhiFDh1ws1tu
@@ -1120,18 +1043,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
         )
         return hash
 
-    # ===================================================================
-    # init
-    # ===================================================================
-
     def __init__(self, version=None, **kwds):
         if version is not None:
             self.version = self._norm_version(version)
         super().__init__(**kwds)
-
-    # ===================================================================
-    # version
-    # ===================================================================
 
     @classmethod
     def _norm_version(cls, version):
@@ -1140,10 +1055,6 @@ class bcrypt_sha256(_wrapped_bcrypt):
                 "%s: unknown or unsupported version: %r" % (cls.name, version)
             )
         return version
-
-    # ===================================================================
-    # checksum
-    # ===================================================================
 
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
@@ -1184,20 +1095,7 @@ class bcrypt_sha256(_wrapped_bcrypt):
         # hand result off to normal bcrypt algorithm
         return super()._calc_checksum(key)
 
-    # ===================================================================
-    # other
-    # ===================================================================
-
     def _calc_needs_update(self, **kwds):
         if self.version < type(self).version:
             return True
         return super()._calc_needs_update(**kwds)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

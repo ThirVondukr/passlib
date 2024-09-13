@@ -5,9 +5,6 @@ import passlib.utils.handlers as uh
 
 # local
 __all__ = []
-# =============================================================================
-# sha1-crypt
-# =============================================================================
 _BNULL = b"\x00"
 
 
@@ -45,9 +42,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -66,9 +60,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     max_rounds = 4294967295  # 32-bit integer limit
     rounds_cost = "linear"
 
-    # ===================================================================
-    # formatting
-    # ===================================================================
     @classmethod
     def from_string(cls, hash):
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
@@ -78,9 +69,6 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         chk = None if config else self.checksum
         return uh.render_mc3(self.ident, self.rounds, self.salt, chk)
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -150,12 +138,3 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         19,
         18,
     ]
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

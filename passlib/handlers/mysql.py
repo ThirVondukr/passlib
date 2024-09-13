@@ -31,9 +31,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# backend
-# =============================================================================
 class mysql323(uh.StaticHandler):
     """This class implements the MySQL 3.2.3 password hash, and follows the :ref:`password-hash-api`.
 
@@ -42,16 +39,10 @@ class mysql323(uh.StaticHandler):
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "mysql323"
     checksum_size = 16
     checksum_chars = uh.HEX_CHARS
 
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -77,14 +68,7 @@ class mysql323(uh.StaticHandler):
             add = (add + tmp) & MASK_32
         return "%08x%08x" % (nr1 & MASK_31, nr2 & MASK_31)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# handler
-# =============================================================================
 class mysql41(uh.StaticHandler):
     """This class implements the MySQL 4.1 password hash, and follows the :ref:`password-hash-api`.
 

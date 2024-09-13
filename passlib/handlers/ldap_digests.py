@@ -20,9 +20,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# ldap helpers
-# =============================================================================
 class _Base64DigestHelper(uh.StaticHandler):
     """helper for ldap_md5 / ldap_sha1"""
 
@@ -88,9 +85,6 @@ class _SaltedBase64DigestHelper(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHand
         return self._hash_func(secret + self.salt).digest()
 
 
-# =============================================================================
-# implementations
-# =============================================================================
 class ldap_md5(_Base64DigestHelper):
     """This class stores passwords using LDAP's plain MD5 format, and follows the :ref:`password-hash-api`.
 
@@ -355,7 +349,3 @@ _init_ldap_crypt_handlers()
 ##            if name in schemes
 ##        ]
 ##    return _lcn_host
-
-# =============================================================================
-# eof
-# =============================================================================

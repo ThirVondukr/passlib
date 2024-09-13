@@ -17,15 +17,9 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# helpers for hexadecimal hashes
-# =============================================================================
 class HexDigestHash(uh.StaticHandler):
     """this provides a template for supporting passwords stored as plain hexadecimal hashes"""
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     _hash_func = None  # hash function to use - filled in by create_hex_hash()
     checksum_size = None  # filled in by create_hex_hash()
     checksum_chars = uh.HEX_CHARS
@@ -33,9 +27,6 @@ class HexDigestHash(uh.StaticHandler):
     #: special for detecting if _hash_func is just a stub method.
     supported = True
 
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -44,10 +35,6 @@ class HexDigestHash(uh.StaticHandler):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return self._hash_func(secret).hexdigest()
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 def create_hex_hash(digest, module=__name__, django_name=None, required=True):
@@ -88,10 +75,6 @@ It supports no optional or contextual keywords.
     return hasher
 
 
-# =============================================================================
-# predefined handlers
-# =============================================================================
-
 # NOTE: some digests below are marked as "required=False", because these may not be present on
 #       FIPS systems (see issue 116).  if missing, will return stub hasher that throws error
 #       if an attempt is made to actually use hash/verify with them.
@@ -103,9 +86,6 @@ hex_sha256 = create_hex_hash("sha256")
 hex_sha512 = create_hex_hash("sha512")
 
 
-# =============================================================================
-# htdigest
-# =============================================================================
 class htdigest(uh.MinimalHandler):
     """htdigest hash function.
 
@@ -169,8 +149,3 @@ class htdigest(uh.MinimalHandler):
         #       just have to make sure it's valid.
         cls._norm_hash(config)
         return cls.hash(secret, user, realm, encoding)
-
-
-# =============================================================================
-# eof
-# =============================================================================

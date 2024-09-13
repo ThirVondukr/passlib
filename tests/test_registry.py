@@ -1,8 +1,5 @@
 """tests for passlib.hash -- (c) Assurance Technologies 2003-2009"""
 
-# =============================================================================
-# imports
-# =============================================================================
 # core
 from logging import getLogger
 import warnings
@@ -43,9 +40,6 @@ class alt_dummy_0(uh.StaticHandler):
 dummy_x = 1
 
 
-# =============================================================================
-# test registry
-# =============================================================================
 class RegistryTest(TestCase):
     descriptionPrefix = "passlib.registry"
 
@@ -278,8 +272,3 @@ class RegistryTest(TestCase):
                 ):  # expected to fail on some setups
                     continue
                 raise
-
-
-# =============================================================================
-# eof
-# =============================================================================

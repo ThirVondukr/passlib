@@ -191,8 +191,3 @@ class PhraseGeneratorTest(TestCase):
 
         # words + wordset
         self.assertRaises(TypeError, genphrase, words=simple_words, wordset="bip39")
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -23,9 +23,6 @@ __all__ = [
     "LazyCryptContext",
 ]
 
-# =============================================================================
-# support
-# =============================================================================
 
 # private object to detect unset params
 _UNSET = object()
@@ -76,9 +73,6 @@ def _always_needs_update(hash, secret=None):
 _global_settings = set(["truncate_error", "vary_rounds"])
 
 
-# =============================================================================
-# _CryptConfig helper class
-# =============================================================================
 class _CryptConfig(object):
     """parses, validates, and stores CryptContext config
 
@@ -89,10 +83,6 @@ class _CryptConfig(object):
 
     :arg source: config as dict mapping ``(cat,scheme,option) -> value``
     """
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
 
     # triple-nested dict which maps scheme -> category -> key -> value,
     # storing all hash-specific options
@@ -124,9 +114,6 @@ class _CryptConfig(object):
     # in order of schemes(). populated on demand by _get_record_list()
     _record_lists = None
 
-    # ===================================================================
-    # constructor
-    # ===================================================================
     def __init__(self, source):
         self._init_scheme_list(source.get((None, None, "schemes")))
         self._init_options(source)
@@ -164,13 +151,6 @@ class _CryptConfig(object):
         self.handlers = tuple(handlers)
         self.schemes = tuple(schemes)
 
-    # ===================================================================
-    # lowlevel options
-    # ===================================================================
-
-    # ---------------------------------------------------------------
-    # init lowlevel option storage
-    # ---------------------------------------------------------------
     def _init_options(self, source):
         """load config dict into internal representation,
         and init .categories attr
@@ -391,9 +371,6 @@ class _CryptConfig(object):
 
         return kwds, has_cat_options
 
-    # ===================================================================
-    # deprecated & default schemes
-    # ===================================================================
     def _init_default_schemes(self):
         """initialize maps containing default scheme for each category.
 
@@ -473,9 +450,6 @@ class _CryptConfig(object):
                 return alt, True
         return value, False
 
-    # ===================================================================
-    # CryptRecord objects
-    # ===================================================================
     def _init_records(self):
         # NOTE: this step handles final validation of settings,
         #       checking for violations against handler's internal invariants.
@@ -640,9 +614,6 @@ class _CryptConfig(object):
             "(perhaps add 'unix_disabled' to list of schemes?)"
         )
 
-    # ===================================================================
-    # serialization
-    # ===================================================================
     def iter_config(self, resolve=False):
         """regenerate original config.
 
@@ -690,14 +661,7 @@ class _CryptConfig(object):
                     for key in sorted(kwds):
                         yield (cat, scheme, key), kwds[key]
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# main CryptContext class
-# =============================================================================
 class CryptContext(object):
     """Helper for hashing & verifying passwords using multiple algorithms.
 
@@ -727,10 +691,6 @@ class CryptContext(object):
     #      which don't have any good distinguishing marks?
     #      or greedy ones (unix_disabled, plaintext) which are not listed at the end?
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     # _CryptConfig instance holding current parsed config
     _config = None
 
@@ -738,9 +698,6 @@ class CryptContext(object):
     _get_record = None
     _identify_record = None
 
-    # ===================================================================
-    # secondary constructors
-    # ===================================================================
     @classmethod
     def _norm_source(cls, source):
         """internal helper - accepts string, dict, or context"""
@@ -867,9 +824,6 @@ class CryptContext(object):
         """
         return self.copy(**kwds)
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(
         self,
         schemes=None,
@@ -894,9 +848,6 @@ class CryptContext(object):
     def __repr__(self):
         return "<CryptContext at 0x%0x>" % id(self)
 
-    # ===================================================================
-    # loading / updating configuration
-    # ===================================================================
     @staticmethod
     def _parse_ini_stream(stream, section, filename):
         """helper read INI from stream, extract passlib section as dict"""
@@ -1128,9 +1079,6 @@ class CryptContext(object):
     ##
     ##    # XXX: anything else?
 
-    # ===================================================================
-    # reading configuration
-    # ===================================================================
     def schemes(self, resolve=False, category=None, unconfigured=False):
         """return schemes loaded into this CryptContext instance.
 
@@ -1286,9 +1234,6 @@ class CryptContext(object):
         """
         return self._config.context_kwds
 
-    # ===================================================================
-    # exporting config
-    # ===================================================================
     @staticmethod
     def _render_config_key(key):
         """convert 3-part config key to single string"""
@@ -1419,10 +1364,6 @@ class CryptContext(object):
     ##    fh = file(path, "w")
     ##    parser.write(fh)
     ##    fh.close()
-
-    # ===================================================================
-    # password hash api
-    # ===================================================================
 
     # NOTE: all the following methods do is look up the appropriate
     #       custom handler for a given (scheme,category) combination,
@@ -1868,10 +1809,6 @@ class CryptContext(object):
         else:
             return True, None
 
-    # ===================================================================
-    # missing-user helper
-    # ===================================================================
-
     #: secret used for dummy_verify()
     _dummy_secret = "too many secrets"
 
@@ -1900,10 +1837,6 @@ class CryptContext(object):
         """
         self.verify(self._dummy_secret, self._dummy_hash)
         return False
-
-    # ===================================================================
-    # disabled hash support
-    # ===================================================================
 
     def is_enabled(self, hash):
         """
@@ -1962,10 +1895,6 @@ class CryptContext(object):
         else:
             # hash wasn't a disabled hash, so return unchanged
             return hash
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class LazyCryptContext(CryptContext):
@@ -2040,8 +1969,3 @@ class LazyCryptContext(CryptContext):
         ) and self._lazy_kwds is not None:
             self._lazy_init()
         return object.__getattribute__(self, attr)
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -13,9 +13,6 @@ This honors the following sphinx tags (passed via -t or $SPHINX_BUILD_TAGS):
 
 """
 
-# =============================================================================
-# environment setup
-# =============================================================================
 import sys
 import os
 from passlib import __version__ as release
@@ -35,10 +32,6 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib[.].*")
 
-# =============================================================================
-# imports
-# =============================================================================
-
 
 # read env var for tags, needed since "python setup.py build_sphinx"
 # doesn't support sphinx-build's "-t" option.
@@ -49,9 +42,6 @@ for _tag in os.environ.get("SPHINX_BUILD_TAGS", "").split():
 # which contains some sphinx extensions used by Passlib.
 # (https://foss.heptapod.net/doc-utils/cloud_sptheme)
 
-# =============================================================================
-# General configuration
-# =============================================================================
 
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = "1.6"
@@ -166,16 +156,10 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
 
-# =============================================================================
-# Options for all output
-# =============================================================================
 todo_include_todos = True
 keep_warnings = True
 issue_tracker_url = "https://foss.heptapod.net/python-libs/passlib/issues/{issue}"
 
-# =============================================================================
-# Options for HTML output
-# =============================================================================
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -280,9 +264,6 @@ html_sidebars = {"**": ["searchbox.html", "globaltoc.html"]}
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + "Doc"
 
-# =============================================================================
-# site-specific html output
-# =============================================================================
 if tags.has("for-pypi"):  # noqa: F821
     extensions.append("cloud_sptheme.ext.auto_redirect")
     auto_redirect_domain_url = "https://passlib.readthedocs.io"
@@ -294,9 +275,6 @@ if tags.has("for-pypi"):  # noqa: F821
             googleanalytics_path="/passlib/",
         )
 
-# =============================================================================
-# Options for LaTeX output
-# =============================================================================
 
 # The paper size ('letter' or 'a4').
 ##latex_paper_size = 'letter'
@@ -333,14 +311,7 @@ latex_documents = [
 # If false, no module index is generated.
 ##latex_domain_indices = True
 
-# =============================================================================
-# Options for manual page output
-# =============================================================================
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [(master_doc, project, project + " Documentation", [author], 1)]
-
-# =============================================================================
-# EOF
-# =============================================================================

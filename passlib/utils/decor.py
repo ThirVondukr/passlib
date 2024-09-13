@@ -45,11 +45,6 @@ class hybrid_method(object):
         return types.MethodType(self.func, obj)
 
 
-# =============================================================================
-# memoization
-# =============================================================================
-
-
 def memoize_single_value(func):
     """
     decorator for function which takes no args,
@@ -128,9 +123,6 @@ class memoized_property(object):
 ##        "py3 compatible alias"
 
 
-# =============================================================================
-# deprecation
-# =============================================================================
 def deprecated_function(
     msg=None,
     deprecated=None,
@@ -227,8 +219,3 @@ def deprecated_method(
     return deprecated_function(
         msg, deprecated, removed, updoc, replacement, _is_method=True
     )
-
-
-# =============================================================================
-# eof
-# =============================================================================

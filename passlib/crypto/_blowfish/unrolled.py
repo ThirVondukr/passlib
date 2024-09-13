@@ -5,9 +5,6 @@ currently this override the encipher() and expand() methods
 with optimized versions, and leaves the other base.py methods alone.
 """
 
-# =============================================================================
-# imports
-# =============================================================================
 # pkg
 from passlib.crypto._blowfish.base import BlowfishEngine as _BlowfishEngine
 
@@ -17,9 +14,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-#
-# =============================================================================
 class BlowfishEngine(_BlowfishEngine):
     def encipher(self, l, r):
         """blowfish encipher a single 64-bit block encoded as two 32-bit ints"""
@@ -193,10 +187,6 @@ class BlowfishEngine(_BlowfishEngine):
 
         P, S = self.P, self.S
         S0, S1, S2, S3 = S
-
-        # =============================================================
-        # integrate key
-        # =============================================================
         p0 = P[0] ^ key_words[0]
         p1 = P[1] ^ key_words[1]
         p2 = P[2] ^ key_words[2]
@@ -215,10 +205,6 @@ class BlowfishEngine(_BlowfishEngine):
         p15 = P[15] ^ key_words[15]
         p16 = P[16] ^ key_words[16]
         p17 = P[17] ^ key_words[17]
-
-        # =============================================================
-        # update P
-        # =============================================================
 
         # ------------------------------------------------
         # update P[0] and P[1]
@@ -1531,10 +1517,6 @@ class BlowfishEngine(_BlowfishEngine):
             p16,
             p17,
         )
-
-        # =============================================================
-        # update S
-        # =============================================================
 
         for box in S:
             j = 0

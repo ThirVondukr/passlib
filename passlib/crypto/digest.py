@@ -30,9 +30,6 @@ __all__ = [
     "pbkdf2_hmac",
 ]
 
-# =============================================================================
-# generic constants
-# =============================================================================
 
 #: max 32-bit value
 MAX_UINT32 = (1 << 32) - 1
@@ -40,9 +37,6 @@ MAX_UINT32 = (1 << 32) - 1
 #: max 64-bit value
 MAX_UINT64 = (1 << 64) - 1
 
-# =============================================================================
-# hash utils
-# =============================================================================
 
 #: list of known hash names, used by lookup_hash()'s _norm_hash_name() helper
 _known_hash_names = [
@@ -420,10 +414,6 @@ class HashInfo(SequenceMixin):
     containing ``(const, digest_size, block_size)``.
     """
 
-    # =========================================================================
-    # instance attrs
-    # =========================================================================
-
     #: Canonical / hashlib-compatible name (e.g. ``"sha256"``).
     name = None
 
@@ -449,10 +439,6 @@ class HashInfo(SequenceMixin):
     #: set when error_text is due to hash algorithm being completely unknown
     #: (not just unavailable on current system)
     unknown = False
-
-    # =========================================================================
-    # init
-    # =========================================================================
 
     def __init__(
         self,  # *,
@@ -540,9 +526,6 @@ class HashInfo(SequenceMixin):
                 exc.PasslibRuntimeWarning,
             )
 
-    # =========================================================================
-    # methods
-    # =========================================================================
     def __repr__(self):
         return "<lookup_hash(%r): digest_size=%r block_size=%r)" % (
             self.name,
@@ -600,9 +583,6 @@ def _set_mock_fips_mode(enable=True):
 if as_bool(os.environ.get("PASSLIB_MOCK_FIPS_MODE")):
     _set_mock_fips_mode()
 
-# =============================================================================
-# hmac utils
-# =============================================================================
 
 #: translation tables used by compile_hmac()
 _TRANS_5C = bytes((x ^ 0x5C) for x in range(256))
@@ -688,9 +668,6 @@ def compile_hmac(digest, key, multipart=False):
     return hmac
 
 
-# =============================================================================
-# pbkdf1
-# =============================================================================
 def pbkdf1(digest, secret, salt, rounds, keylen=None):
     """pkcs#5 password-based key derivation v1.5
 

@@ -5,9 +5,6 @@ MD4 should now be looked up through ``passlib.crypto.digest.lookup_hash("md4").c
 which provides unified handling stdlib implementation (if present).
 """
 
-# =============================================================================
-# issue deprecation warning for module
-# =============================================================================
 from warnings import warn
 from passlib.crypto.digest import lookup_hash
 
@@ -18,9 +15,6 @@ warn(
     DeprecationWarning,
 )
 
-# =============================================================================
-# backwards compat exports
-# =============================================================================
 __all__ = ["md4"]
 
 # this should use hashlib version if available,
@@ -28,7 +22,3 @@ __all__ = ["md4"]
 
 md4 = lookup_hash("md4").const
 del lookup_hash
-
-# =============================================================================
-# eof
-# =============================================================================

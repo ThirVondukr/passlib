@@ -67,9 +67,6 @@ if has_min_django:
 if DJANGO_VERSION >= (3, 2):
     logging.info("this release hasn't been tested against Django %r", DJANGO_VERSION)
 
-# =============================================================================
-# support funcs
-# =============================================================================
 
 # flag for update_settings() to remove specified key entirely
 UNSET = object()
@@ -145,11 +142,6 @@ def check_django_hasher_has_backend(name):
         raise
 
 
-# =============================================================================
-# work up stock django config
-# =============================================================================
-
-
 def _modify_django_config(kwds, sha_rounds=None):
     """
     helper to build django CryptContext config matching expected setup for stock django deploy.
@@ -210,20 +202,12 @@ sample_hashes = dict(
     )
 )
 
-# =============================================================================
-# test utils
-# =============================================================================
-
 
 class _ExtensionSupport(object):
     """
     test support funcs for loading/unloading extension.
     this class is mixed in to various TestCase subclasses.
     """
-
-    # ===================================================================
-    # support funcs
-    # ===================================================================
 
     @classmethod
     def _iter_patch_candidates(cls):
@@ -264,10 +248,6 @@ class _ExtensionSupport(object):
                 source = getattr(value, "__module__", None)
                 if source:
                     yield obj, attr, source, (attr in patched)
-
-    # ===================================================================
-    # verify current patch state
-    # ===================================================================
 
     def assert_unpatched(self):
         """
@@ -321,10 +301,6 @@ class _ExtensionSupport(object):
                 context.to_dict(resolve=True),
             )
 
-    # ===================================================================
-    # load / unload the extension (and verify it worked)
-    # ===================================================================
-
     _config_keys = ["PASSLIB_CONFIG", "PASSLIB_CONTEXT", "PASSLIB_GET_CATEGORY"]
 
     def load_extension(self, check=True, **kwds):
@@ -356,10 +332,6 @@ class _ExtensionSupport(object):
         # check everything's gone
         self.assert_unpatched()
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 # XXX: rename to ExtensionFixture?
 # NOTE: would roll this into _ExtensionSupport class;
@@ -370,10 +342,6 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
     TestCase mixin which makes sure extension is unloaded before test;
     and make sure it's unloaded after test as well.
     """
-
-    # =============================================================================
-    # setup
-    # =============================================================================
 
     def setUp(self):
         super().setUp()
@@ -391,14 +359,6 @@ class _ExtensionTest(TestCase, _ExtensionSupport):
         # and do the same when the test exits
         self.addCleanup(self.unload_extension)
 
-    # =============================================================================
-    # eoc
-    # =============================================================================
-
-
-# =============================================================================
-# extension tests
-# =============================================================================
 
 #: static passwords used by DjangoBehaviorTest methods
 PASS1 = "toomanysecrets"
@@ -415,10 +375,6 @@ class DjangoBehaviorTest(_ExtensionTest):
     matches what the tests assert.
     """
 
-    # =============================================================================
-    # class attrs
-    # =============================================================================
-
     descriptionPrefix = "verify django behavior"
 
     #: tracks whether tests should assume "passlib.ext.django" monkeypatch is applied.
@@ -433,10 +389,6 @@ class DjangoBehaviorTest(_ExtensionTest):
     #       some part of django's hashing logic, or that this is
     #       running against an untested version of django with a new
     #       hashing policy.
-
-    # =============================================================================
-    # test helpers
-    # =============================================================================
 
     @memoized_property
     def context(self):
@@ -853,15 +805,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         )
         self.assertEqual(name, scheme)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# ===================================================================
-# extension fidelity tests
-# ===================================================================
-
 
 class ExtensionBehaviorTest(DjangoBehaviorTest):
     """
@@ -883,25 +826,12 @@ class ExtensionBehaviorTest(DjangoBehaviorTest):
         self.patched = True
 
 
-# ===================================================================
-# extension internal tests
-# ===================================================================
-
-
 class DjangoExtensionTest(_ExtensionTest):
     """
     test the ``passlib.ext.django`` plugin
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     descriptionPrefix = "passlib.ext.django plugin"
-
-    # ===================================================================
-    # monkeypatch testing
-    # ===================================================================
 
     def test_00_patch_control(self):
         """test set_django_password_context patch/unpatch"""
@@ -1015,9 +945,6 @@ class DjangoExtensionTest(_ExtensionTest):
         # XXX: should this throw ValueError instead, to match django?
         self.assertRaises(KeyError, passlib_to_django, "does_not_exist")
 
-    # ===================================================================
-    # PASSLIB_CONFIG settings
-    # ===================================================================
     def test_11_config_disabled(self):
         """test PASSLIB_CONFIG='disabled'"""
         # test config=None is rejected
@@ -1068,9 +995,6 @@ class DjangoExtensionTest(_ExtensionTest):
         update_settings(PASSLIB_CONFIG="missing-preset", PASSLIB_CONTEXT=UNSET)
         self.assertRaises(ValueError, __import__, "passlib.ext.django.models")
 
-    # ===================================================================
-    # PASSLIB_GET_CATEGORY setting
-    # ===================================================================
     def test_21_category_setting(self):
         """test PASSLIB_GET_CATEGORY parameter"""
         # define config where rounds can be used to detect category
@@ -1121,12 +1045,3 @@ class DjangoExtensionTest(_ExtensionTest):
             PASSLIB_CONTEXT=config,
             PASSLIB_GET_CATEGORY="x",
         )
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

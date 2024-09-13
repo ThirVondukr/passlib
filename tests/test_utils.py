@@ -541,9 +541,6 @@ class MiscTest(TestCase):
         )  # index=end+1
 
 
-# =============================================================================
-# byte/unicode helpers
-# =============================================================================
 class CodecTest(TestCase):
     """tests bytes/unicode helpers in passlib.utils"""
 
@@ -651,9 +648,6 @@ class CodecTest(TestCase):
         self.assertFalse(is_same_codec("ascii", "utf-8"))
 
 
-# =============================================================================
-# base64engine
-# =============================================================================
 class Base64EngineTest(TestCase):
     """test standalone parts of Base64Engine"""
 
@@ -774,10 +768,6 @@ class Base64EngineTest(TestCase):
 class _Base64Test(TestCase):
     """common tests for all Base64Engine instances"""
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # Base64Engine instance to test
     engine = None
 
@@ -795,9 +785,6 @@ class _Base64Test(TestCase):
         """generate byte string from offsets"""
         return join_bytes(self.engine.bytemap[o : o + 1] for o in offsets)
 
-    # ===================================================================
-    # test encode_bytes
-    # ===================================================================
     def test_encode_bytes(self):
         """test encode_bytes() against reference inputs"""
         engine = self.engine
@@ -813,9 +800,6 @@ class _Base64Test(TestCase):
         self.assertRaises(TypeError, encode, "\x00")
         self.assertRaises(TypeError, encode, None)
 
-    # ===================================================================
-    # test decode_bytes
-    # ===================================================================
     def test_decode_bytes(self):
         """test decode_bytes() against reference inputs"""
         engine = self.engine
@@ -866,9 +850,6 @@ class _Base64Test(TestCase):
         self.assertRaises(TypeError, decode, engine.charmap[:4])
         self.assertRaises(TypeError, decode, None)
 
-    # ===================================================================
-    # encode_bytes+decode_bytes
-    # ===================================================================
     def test_codec(self):
         """test encode_bytes/decode_bytes against random data"""
         engine = self.engine
@@ -951,9 +932,6 @@ class _Base64Test(TestCase):
                 self.assertEqual(result, rdata)
             i += 1
 
-    # ===================================================================
-    # test transposed encode/decode - encoding independant
-    # ===================================================================
     # NOTE: these tests assume normal encode/decode has been tested elsewhere.
 
     transposed = [
@@ -992,9 +970,6 @@ class _Base64Test(TestCase):
             tmp = engine.encode_bytes(input)
             self.assertRaises(TypeError, engine.decode_transposed_bytes, tmp, offsets)
 
-    # ===================================================================
-    # test 6bit handling
-    # ===================================================================
     def check_int_pair(self, bits, encoded_pairs):
         """helper to check encode_intXX & decode_intXX functions"""
         rng = self.getRandom()
@@ -1158,8 +1133,3 @@ class H64Big_Test(_Base64Test):
         (b".z", 63, 12),
         (b"z.", 4032, 12),
     ]
-
-
-# =============================================================================
-# eof
-# =============================================================================

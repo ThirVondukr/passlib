@@ -17,9 +17,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# test pure-python MD4 implementation
-# =============================================================================
 class _Common_MD4_Test(TestCase):
     """common code for testing md4 backends"""
 
@@ -154,8 +151,3 @@ class MD4_Builtin_Test(_Common_MD4_Test):
 
         # make sure we're using right constructor.
         self.assertEqual(self.get_md4_const().__module__, "passlib.crypto._md4")
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -91,15 +91,8 @@ def to_b32_size(raw_size):
     return (raw_size * 8 + 4) // 5
 
 
-# =============================================================================
-# wallet
-# =============================================================================
 class AppWalletTest(TestCase):
     descriptionPrefix = "passlib.totp.AppWallet"
-
-    # =============================================================================
-    # constructor
-    # =============================================================================
 
     def test_secrets_types(self):
         """constructor -- 'secrets' param -- input types"""
@@ -217,10 +210,6 @@ class AppWalletTest(TestCase):
         self.assertRaises(KeyError, wallet.get_secret, None)
 
     # TODO: test 'cost' param
-
-    # =============================================================================
-    # encrypt_key() & decrypt_key() helpers
-    # =============================================================================
     def require_aes_support(self, canary=None):
         if AES_SUPPORT:
             canary and canary()
@@ -365,14 +354,6 @@ class AppWalletTest(TestCase):
         #       and test that it's being invoked w/ proper options.
         self.assertAlmostEqual(delta2, delta * 8, delta=(delta * 8) * 0.5)
 
-    # =============================================================================
-    # eoc
-    # =============================================================================
-
-
-# =============================================================================
-# common OTP code
-# =============================================================================
 
 #: used as base value for RFC test vector keys
 RFC_KEY_BYTES_20 = "12345678901234567890".encode("ascii")
@@ -388,15 +369,8 @@ class TotpTest(TestCase):
     common code shared by TotpTest & HotpTest
     """
 
-    # =============================================================================
-    # class attrs
-    # =============================================================================
-
     descriptionPrefix = "passlib.totp.TOTP"
 
-    # =============================================================================
-    # setup
-    # =============================================================================
     def setUp(self):
         super().setUp()
 
@@ -408,9 +382,6 @@ class TotpTest(TestCase):
         # monkeypatch module's rng to be deterministic
         self.patchAttr(totp_module, "rng", self.getRandom())
 
-    # =============================================================================
-    # general helpers
-    # =============================================================================
     def randtime(self):
         """
         helper to generate random epoch time
@@ -454,10 +425,6 @@ class TotpTest(TestCase):
             otp2 = self.randotp()
         else:
             self.fail("alg not randomized")
-
-    # =============================================================================
-    # reference vector helpers
-    # =============================================================================
 
     #: default options used by test vectors (unless otherwise stated)
     vector_defaults = dict(format="base32", alg="sha1", period=30, digits=8)
@@ -581,9 +548,6 @@ class TotpTest(TestCase):
                 prefix = "alg=%r time=%r token=%r: " % (otp.alg, time, token)
                 yield otp, time, token, expires, prefix
 
-    # =============================================================================
-    # constructor tests
-    # =============================================================================
     def test_ctor_w_new(self):
         """constructor -- 'new'  parameter"""
 
@@ -695,10 +659,6 @@ class TotpTest(TestCase):
         self.assertEqual(TOTP(KEY1, issuer="foo.com").issuer, "foo.com")
         self.assertRaises(ValueError, TOTP, KEY1, issuer="foo.com:bar")
 
-    # =============================================================================
-    # using() tests
-    # =============================================================================
-
     # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
 
     def test_using_w_period(self):
@@ -749,10 +709,6 @@ class TotpTest(TestCase):
 
         # require returns non-negative value
         self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: -1)
-
-    # =============================================================================
-    # internal method tests
-    # =============================================================================
 
     def test_normalize_token_instance(self, otp=None):
         """normalize_token() -- instance method"""
@@ -810,10 +766,6 @@ class TotpTest(TestCase):
 
         self.assertRaises(TypeError, otp.normalize_time, "1234")
 
-    # =============================================================================
-    # key attr tests
-    # =============================================================================
-
     def test_key_attrs(self):
         """pretty_key() and .key attributes"""
         rng = self.getRandom()
@@ -836,9 +788,6 @@ class TotpTest(TestCase):
         _ = otp.base32_key
         _ = otp.pretty_key()
 
-    # =============================================================================
-    # generate() tests
-    # =============================================================================
     def test_totp_token(self):
         """generate() -- TotpToken() class"""
         from passlib.totp import TOTP, TotpToken
@@ -924,10 +873,6 @@ class TotpTest(TestCase):
             if expires:
                 self.assertEqual(result.expire_time, expires)
 
-    # =============================================================================
-    # TotpMatch() tests
-    # =============================================================================
-
     def assertTotpMatch(self, match, time, skipped=0, period=30, window=30, msg=""):
         from passlib.totp import TotpMatch
 
@@ -992,10 +937,6 @@ class TotpTest(TestCase):
         token = "781501"
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
         self.assertRaises(exc.InvalidTokenError, otp.match, token, time + 60)
-
-    # =============================================================================
-    # match() tests
-    # =============================================================================
 
     def assertVerifyMatches(
         self,
@@ -1205,9 +1146,6 @@ class TotpTest(TestCase):
             # should NOT match against another time
             self.assertRaises(exc.InvalidTokenError, match, token, time + 100, window=0)
 
-    # =============================================================================
-    # verify() tests
-    # =============================================================================
     def test_verify(self):
         """verify()"""
         # NOTE: since this is thin wrapper around .from_source() and .match(),
@@ -1241,9 +1179,6 @@ class TotpTest(TestCase):
         match = TotpFactory.verify("332136", source1uri)
         self.assertTotpMatch(match, time=time)
 
-    # =============================================================================
-    # serialization frontend tests
-    # =============================================================================
     def test_from_source(self):
         """from_source()"""
         from passlib.totp import TOTP
@@ -1293,9 +1228,6 @@ class TotpTest(TestCase):
         self.assertRaises(ValueError, from_source, "foo")
         self.assertRaises(ValueError, from_source, b"foo")
 
-    # =============================================================================
-    # uri serialization tests
-    # =============================================================================
     def test_from_uri(self):
         """from_uri()"""
         from passlib.totp import TOTP
@@ -1542,9 +1474,6 @@ class TotpTest(TestCase):
             "otpauth://totp/alice@google.com?secret=JBSWY3DPEHPK3PXP&" "period=63",
         )
 
-    # =============================================================================
-    # dict serialization tests
-    # =============================================================================
     def test_from_dict(self):
         """from_dict()"""
         from passlib.totp import TOTP
@@ -1749,18 +1678,5 @@ class TotpTest(TestCase):
     #           with encrypt=True + no wallet
     #           that 'changed' is set for old versions, and old encryption tags.
 
-    # =============================================================================
-    # json serialization tests
-    # =============================================================================
-
     # TODO: from_json() / to_json().
     #       (skipped for right now cause just wrapper for from_dict/to_dict)
-
-    # =============================================================================
-    # eoc
-    # =============================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -171,9 +171,6 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     :returns:
         encoded checksum chars
     """
-    # ===================================================================
-    # init & validate inputs
-    # ===================================================================
 
     # NOTE: the setup portion of this algorithm scales ~linearly in time
     #       with the size of the password, making it vulnerable to a DOS from
@@ -219,15 +216,7 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
     else:
         hash_const = hashlib.sha256
         transpose_map = _256_transpose_map
-
-    # ===================================================================
-    # digest B - used as subinput to digest A
-    # ===================================================================
     db = hash_const(pwd + salt + pwd).digest()
-
-    # ===================================================================
-    # digest A - used to initialize first round of digest C
-    # ===================================================================
     # start out with pwd + salt
     a_ctx = hash_const(pwd + salt)
     a_ctx_update = a_ctx.update
@@ -262,10 +251,6 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
             i -= 1
         dp = repeat_string(tmp_ctx.digest(), pwd_len)
     assert len(dp) == pwd_len
-
-    # ===================================================================
-    # digest S  - used instead of salt itself when calculating digest C
-    # ===================================================================
     ds = hash_const(salt * (16 + da[0])).digest()[:salt_len]
     assert len(ds) == salt_len, "salt_len somehow > hash_len!"
 
@@ -340,16 +325,9 @@ def _raw_sha2_crypt(pwd, salt, rounds, use_512=False):
         # last round will be an even-numbered round)
         if tail & 1:
             dc = hash_const(dc + data[pairs][0]).digest()
-
-    # ===================================================================
-    # encode digest using appropriate transpose map
-    # ===================================================================
     return h64.encode_transposed_bytes(dc, transpose_map).decode("ascii")
 
 
-# =============================================================================
-# handlers
-# =============================================================================
 _UROUNDS = "rounds="
 _UDOLLAR = "$"
 _UZERO = "0"
@@ -358,9 +336,6 @@ _UZERO = "0"
 class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """class containing common code shared by sha256_crypt & sha512_crypt"""
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # name - set by subclass
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
     # ident - set by subclass
@@ -376,10 +351,6 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     _cdb_use_512 = False  # flag for _calc_digest_builtin()
     _rounds_prefix = None  # ident + _UROUNDS
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     implicit_rounds = False
 
     def __init__(self, implicit_rounds=None, **kwds):
@@ -454,9 +425,6 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
             )
         return hash
 
-    # ===================================================================
-    # backends
-    # ===================================================================
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -498,10 +466,6 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
 
     def _calc_checksum_builtin(self, secret):
         return _raw_sha2_crypt(secret, self.salt, self.rounds, self._cdb_use_512)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class sha256_crypt(_SHA2_Common):
@@ -549,31 +513,17 @@ class sha256_crypt(_SHA2_Common):
             encodings be preserved as they are, instead of normalizing them.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "sha256_crypt"
     ident = "$5$"
     checksum_size = 43
     # NOTE: using 25/75 weighting of builtin & os_crypt backends
     default_rounds = 535000
-
-    # ===================================================================
-    # backends
-    # ===================================================================
     _test_hash = (
         "test",
         "$5$rounds=1000$test$QmQADEXMG8POI5W" "Dsaeho0P36yK3Tcrgboabng6bkb/",
     )
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# sha 512 crypt
-# =============================================================================
 class sha512_crypt(_SHA2_Common):
     """This class implements the SHA512-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -619,19 +569,12 @@ class sha512_crypt(_SHA2_Common):
             encodings be preserved as they are, instead of normalizing them.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "sha512_crypt"
     ident = "$6$"
     checksum_size = 86
     _cdb_use_512 = True
     # NOTE: using 25/75 weighting of builtin & os_crypt backends
     default_rounds = 656000
-
-    # ===================================================================
-    # backend
-    # ===================================================================
     _test_hash = (
         "test",
         "$6$rounds=1000$test$2M/Lx6Mtobqj"
@@ -639,12 +582,3 @@ class sha512_crypt(_SHA2_Common):
         "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
         "I5c7TZauS0",
     )
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

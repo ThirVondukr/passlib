@@ -40,9 +40,6 @@ The netbsd des-crypt implementation has some nice notes on how this all works -
 # TODO: could use an accelerated C version of this module to speed up lmhash,
 #       des-crypt, and ext-des-crypt
 
-# =============================================================================
-# imports
-# =============================================================================
 # core
 import struct
 
@@ -55,9 +52,6 @@ __all__ = [
     "des_encrypt_block",
 ]
 
-# =============================================================================
-# constants
-# =============================================================================
 
 # masks/upper limits for various integer sizes
 INT_24_MASK = 0xFFFFFF
@@ -71,9 +65,6 @@ _KPARITY_MASK = 0x0101010101010101
 # mask used to setup key schedule
 _KS_MASK = 0xFCFCFCFCFFFFFFFF
 
-# =============================================================================
-# static DES tables
-# =============================================================================
 
 # placeholders filled in by _load_tables()
 PCXROT = IE3264 = SPE = CF6464 = None
@@ -1971,14 +1962,6 @@ def _load_tables():
             0x0000000004040404,
         ),
     )
-    # ===================================================================
-    # eof _load_tables()
-    # ===================================================================
-
-
-# =============================================================================
-# support
-# =============================================================================
 
 
 def _permute(c, p):
@@ -1993,9 +1976,6 @@ def _permute(c, p):
     return out
 
 
-# =============================================================================
-# packing & unpacking
-# =============================================================================
 # FIXME: more properly named _uint8_struct...
 _uint64_struct = struct.Struct(">Q")
 
@@ -2015,10 +1995,6 @@ def _pack56(value):
 def _unpack56(value):
     return _uint64_struct.unpack(b"\x00" + value)[0]
 
-
-# =============================================================================
-# 56->64 key manipulation
-# =============================================================================
 
 ##def expand_7bit(value):
 ##    "expand 7-bit integer => 7-bits + 1 odd-parity bit"
@@ -2072,9 +2048,6 @@ def shrink_des_key(key):
     return result
 
 
-# =============================================================================
-# des encryption
-# =============================================================================
 def des_encrypt_block(key, input, salt=0, rounds=1):
     """encrypt single block of data using DES, operates on 8-byte strings.
 
@@ -2276,8 +2249,3 @@ def des_encrypt_int_block(key, input, salt=0, rounds=1):
         | ((R << 1) & 0x00000000F0F0F0F0)
     )
     return _permute(C, CF6464)
-
-
-# =============================================================================
-# eof
-# =============================================================================

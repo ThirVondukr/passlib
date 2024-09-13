@@ -1,8 +1,5 @@
 """passlib.crypto._blowfish.base - unoptimized pure-python blowfish engine"""
 
-# =============================================================================
-# imports
-# =============================================================================
 # core
 import struct
 
@@ -14,9 +11,6 @@ __all__ = [
     "BlowfishEngine",
 ]
 
-# =============================================================================
-# blowfish constants
-# =============================================================================
 BLOWFISH_P = BLOWFISH_S = None
 
 
@@ -1089,9 +1083,6 @@ def _init_constants():
     ]
 
 
-# =============================================================================
-# engine
-# =============================================================================
 class BlowfishEngine(object):
     def __init__(self):
         if BLOWFISH_P is None:
@@ -1099,9 +1090,6 @@ class BlowfishEngine(object):
         self.P = list(BLOWFISH_P)
         self.S = [list(box) for box in BLOWFISH_S]
 
-    # ===================================================================
-    # common helpers
-    # ===================================================================
     @staticmethod
     def key_to_words(data, size=18):
         """convert data to tuple of <size> 4-byte integers, repeating or
@@ -1119,9 +1107,6 @@ class BlowfishEngine(object):
         # unpack
         return struct.unpack(">%dI" % (size,), data)
 
-    # ===================================================================
-    # blowfish routines
-    # ===================================================================
     def encipher(self, l, r):
         """loop version of blowfish encipher routine"""
         P, S = self.P, self.S
@@ -1171,9 +1156,6 @@ class BlowfishEngine(object):
                 box[i], box[i + 1] = l, r = encipher(l, r)
                 i += 2
 
-    # ===================================================================
-    # eks-blowfish routines
-    # ===================================================================
     def eks_salted_expand(self, key_words, salt_words):
         """perform EKS' salted version of Blowfish keyschedule setup"""
         # NOTE: this is the same as expand(), except for the addition
@@ -1228,12 +1210,3 @@ class BlowfishEngine(object):
             l, r = encipher(l, r)
             n += 1
         return l, r
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

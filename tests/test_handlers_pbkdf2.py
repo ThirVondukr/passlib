@@ -34,9 +34,6 @@ class ldap_pbkdf2_test(TestCase):
         )
 
 
-# =============================================================================
-# pbkdf2 hashes
-# =============================================================================
 class atlassian_pbkdf2_sha1_test(HandlerCase):
     handler = hash.atlassian_pbkdf2_sha1
 
@@ -171,9 +168,6 @@ class grub_pbkdf2_sha512_test(HandlerCase):
     ]
 
 
-# =============================================================================
-# scram hash
-# =============================================================================
 class scram_test(HandlerCase):
     handler = hash.scram
 
@@ -495,8 +489,3 @@ class scram_test(HandlerCase):
         self.assertFalse(vpart("pencil", h))
         self.assertRaises(ValueError, vfull, "pencil", h)
         self.assertRaises(ValueError, vfull, "tape", h)
-
-
-# =============================================================================
-# eof
-# =============================================================================

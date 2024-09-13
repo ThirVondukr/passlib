@@ -17,9 +17,6 @@ __all__ = [
     "crypt16",
 ]
 
-# =============================================================================
-# pure-python backend for des_crypt family
-# =============================================================================
 _BNULL = b"\x00"
 
 
@@ -106,9 +103,6 @@ def _raw_bsdi_crypt(secret, rounds, salt):
     return h64big.encode_int64(result)
 
 
-# =============================================================================
-# handlers
-# =============================================================================
 class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHandler):
     """This class implements the des-crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -140,10 +134,6 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -166,10 +156,6 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     # TruncateMixin
     # --------------------
     truncate_size = 8
-
-    # ===================================================================
-    # formatting
-    # ===================================================================
     # FORMAT: 2 chars of H64-encoded salt + 11 chars of H64-encoded checksum
 
     _hash_regex = re.compile(
@@ -191,9 +177,6 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
         hash = "%s%s" % (self.salt, self.checksum)
         return hash
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         # check for truncation (during .hash() calls only)
         if self.use_defaults:
@@ -201,9 +184,6 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
 
         return self._calc_checksum_backend(secret)
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -240,10 +220,6 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     def _calc_checksum_builtin(self, secret):
         return _raw_des_crypt(secret, self.salt.encode("ascii")).decode("ascii")
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the BSDi-Crypt password hash, and follows the :ref:`password-hash-api`.
@@ -278,9 +254,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         (see :ref:`bsdi-crypt-security-issues` regarding weak DES keys).
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
@@ -299,10 +272,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
     # NOTE: OpenBSD login.conf reports 7250 as minimum allowed rounds,
     # but that seems to be an OS policy, not a algorithm limitation.
-
-    # ===================================================================
-    # parsing
-    # ===================================================================
     _hash_regex = re.compile(
         r"""
         ^
@@ -335,10 +304,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         )
         return hash
 
-    # ===================================================================
-    # validation
-    # ===================================================================
-
     # NOTE: keeping this flag for admin/choose_rounds.py script.
     #       want to eventually expose rounds logic to that script in better way.
     _avoid_even_rounds = True
@@ -364,10 +329,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         # than the requested upper bound - but better to err on side of safety.
         return rounds | 1
 
-    # ===================================================================
-    # migration
-    # ===================================================================
-
     def _calc_needs_update(self, **kwds):
         # mark bsdi_crypt hashes as deprecated if they have even rounds.
         if not self.rounds & 1:
@@ -375,9 +336,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
 
-    # ===================================================================
-    # backends
-    # ===================================================================
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -415,10 +373,6 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             "ascii"
         )
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class bigcrypt(uh.HasSalt, uh.GenericHandler):
     """This class implements the BigCrypt password hash, and follows the :ref:`password-hash-api`.
@@ -444,9 +398,6 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "bigcrypt"
     setting_kwds = ("salt",)
@@ -456,10 +407,6 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
     # --HasSalt--
     min_salt_size = max_salt_size = 2
     salt_chars = uh.HASH64_CHARS
-
-    # ===================================================================
-    # internal helpers
-    # ===================================================================
     _hash_regex = re.compile(
         r"""
         ^
@@ -488,9 +435,6 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
             raise uh.exc.InvalidHashError(self)
         return checksum
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
@@ -502,10 +446,6 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
             chk += _raw_des_crypt(secret[idx:next], chk[-11:-9])
             idx = next
         return chk.decode("ascii")
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
@@ -539,10 +479,6 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # --------------------
     # PasswordHash
     # --------------------
@@ -565,10 +501,6 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     # TruncateMixin
     # --------------------
     truncate_size = 16
-
-    # ===================================================================
-    # internal helpers
-    # ===================================================================
     _hash_regex = re.compile(
         r"""
         ^
@@ -591,9 +523,6 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         hash = "%s%s" % (self.salt, self.checksum)
         return hash
 
-    # ===================================================================
-    # backend
-    # ===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
@@ -623,12 +552,3 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         # done
         chk = h64big.encode_int64(result1) + h64big.encode_int64(result2)
         return chk.decode("ascii")
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

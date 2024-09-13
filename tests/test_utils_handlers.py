@@ -15,9 +15,6 @@ from tests.utils import HandlerCase, TestCase
 log = getLogger(__name__)
 
 
-# =============================================================================
-# utils
-# =============================================================================
 def _makelang(alphabet, size):
     """generate all strings of given size using alphabet"""
 
@@ -33,15 +30,9 @@ def _makelang(alphabet, size):
     return set(helper(size))
 
 
-# =============================================================================
-# test GenericHandler & associates mixin classes
-# =============================================================================
 class SkeletonTest(TestCase):
     """test hash support classes"""
 
-    # ===================================================================
-    # StaticHandler
-    # ===================================================================
     def test_00_static_handler(self):
         """test StaticHandler class"""
 
@@ -88,9 +79,6 @@ class SkeletonTest(TestCase):
         self.assertEqual(d1.hash("s"), "_a")
         self.assertEqual(d1.hash("s", flag=True), "_b")
 
-    # ===================================================================
-    # GenericHandler & mixins
-    # ===================================================================
     def test_10_identify(self):
         """test GenericHandler.identify()"""
 
@@ -588,14 +576,7 @@ class SkeletonTest(TestCase):
         ##self.assertEqual(hash.fshp.bitsize(variant=1),
         ##                {'checksum': 256, 'rounds': 13, 'salt': 128})
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# PrefixWrapper
-# =============================================================================
 class dummy_handler_in_registry(object):
     """context manager that inserts dummy handler in registry"""
 
@@ -825,10 +806,6 @@ class SaltedHash(uh.HasSalt, uh.GenericHandler):
         return hashlib.sha1(data).hexdigest()
 
 
-# =============================================================================
-# test sample algorithms - really a self-test of HandlerCase
-# =============================================================================
-
 # TODO: provide data samples for algorithms
 #       (positive knowns, negative knowns, invalid identify)
 
@@ -860,8 +837,3 @@ class SaltedHashTest(HandlerCase):
         stub = SaltedHash(use_defaults=True)._stub_checksum
         self.assertRaises(TypeError, SaltedHash, checksum=stub, salt=None)
         self.assertRaises(ValueError, SaltedHash, checksum=stub, salt="xxx")
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -9,9 +9,6 @@ __all__ = [
     "sun_md5_crypt",
 ]
 
-# =============================================================================
-# backend
-# =============================================================================
 # constant data used by alg - Hamlet act 3 scene 1 + null char
 # exact bytes as in http://www.ibiblio.org/pub/docs/books/gutenberg/etext98/2ws2610.txt
 # from Project Gutenberg.
@@ -171,9 +168,6 @@ _chk_offsets = (
 )
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """This class implements the Sun-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
 
@@ -217,9 +211,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
     checksum_chars = uh.HASH64_CHARS
@@ -241,22 +232,12 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     rounds_cost = "linear"
 
     ident_values = ("$md5$", "$md5,")
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     bare_salt = False  # flag to indicate legacy hashes that lack "$$" suffix
 
-    # ===================================================================
-    # constructor
-    # ===================================================================
     def __init__(self, bare_salt=False, **kwds):
         self.bare_salt = bare_salt
         super().__init__(**kwds)
 
-    # ===================================================================
-    # internal helpers
-    # ===================================================================
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
@@ -342,9 +323,6 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             hash = "%s$%s" % (hash, chk)
         return hash
 
-    # ===================================================================
-    # primary interface
-    # ===================================================================
     # TODO: if we're on solaris, check for native crypt() support.
     #       this will require extra testing, to make sure native crypt
     #       actually behaves correctly. of particular importance:
@@ -356,12 +334,3 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             secret = secret.encode("utf-8")
         config = str_to_bascii(self.to_string(_withchk=False))
         return raw_sun_md5_crypt(secret, self.rounds, config).decode("ascii")
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

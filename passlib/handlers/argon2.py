@@ -36,9 +36,6 @@ __all__ = [
     "argon2",
 ]
 
-# =============================================================================
-# helpers
-# =============================================================================
 
 # NOTE: when adding a new argon2 hash type, need to do the following:
 # * add TYPE_XXX constant, and add to ALL_TYPES
@@ -56,9 +53,6 @@ TYPE_ID = "id"  # new 2016-10-29; passlib 1.7.2 requires backends new enough for
 ALL_TYPES = (TYPE_ID, TYPE_I, TYPE_D)
 ALL_TYPES_SET = set(ALL_TYPES)
 
-# =============================================================================
-# import argon2 package (https://pypi.python.org/pypi/argon2_cffi)
-# =============================================================================
 
 # import cffi package
 # NOTE: we try to do this even if caller is going to use argon2pure,
@@ -112,9 +106,6 @@ else:
     _default_version = 0x13  # v1.9
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class _Argon2Common(
     uh.SubclassBackendMixin,
     uh.ParallelismMixin,
@@ -131,10 +122,6 @@ class _Argon2Common(
     When a backend is loaded, the bases of the 'argon2' class proper
     are modified to prepend the correct backend-specific subclass.
     """
-
-    # ===================================================================
-    # class attrs
-    # ===================================================================
 
     # ------------------------
     # PasswordHash
@@ -238,10 +225,6 @@ class _Argon2Common(
         cls.get_backend()  # make sure backend is loaded
         return tuple(cls._backend_type_map)
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     #: argon2 hash type, one of ALL_TYPES -- class value controls the default
     #: .. versionadded:: 1.7.2
     type = TYPE_ID
@@ -267,10 +250,6 @@ class _Argon2Common(
 
     #: optional secret data
     data = None
-
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
 
     @classmethod
     def using(
@@ -364,10 +343,6 @@ class _Argon2Common(
                 % (cls.name, memory_cost, parallelism, min_memory_cost)
             )
 
-    # ===================================================================
-    # public api
-    # ===================================================================
-
     #: shorter version of _hash_regex, used to quickly identify hashes
     _ident_regex = re.compile(r"^\$argon2[a-z]+\$")
 
@@ -377,10 +352,6 @@ class _Argon2Common(
         return cls._ident_regex.match(hash) is not None
 
     # hash(), verify(), genhash() -- implemented by backend subclass
-
-    # ===================================================================
-    # hash parsing / rendering
-    # ===================================================================
 
     # info taken from source of decode_string() function in
     # <https://github.com/P-H-C/phc-winner-argon2/blob/master/src/encoding.c>
@@ -499,9 +470,6 @@ class _Argon2Common(
             bascii_to_str(b64s_encode(self.checksum)),
         )
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(
         self, type=None, type_d=False, version=None, memory_cost=None, data=None, **kwds
     ):
@@ -606,10 +574,6 @@ class _Argon2Common(
             relaxed=relaxed,
         )
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
-
     # NOTE: _calc_checksum implemented by backend subclass
 
     @classmethod
@@ -628,10 +592,6 @@ class _Argon2Common(
         )
         raise ValueError(msg)
 
-    # ===================================================================
-    # hash migration
-    # ===================================================================
-
     def _calc_needs_update(self, **kwds):
         cls = type(self)
         if self.type != cls.type:
@@ -647,10 +607,6 @@ class _Argon2Common(
         if self.checksum_size != cls.checksum_size:
             return True
         return super()._calc_needs_update(**kwds)
-
-    # ===================================================================
-    # backend loading
-    # ===================================================================
 
     _no_backend_suggestion = (
         " -- recommend you install one (e.g. 'pip install argon2_cffi')"
@@ -721,23 +677,13 @@ class _Argon2Common(
             reason = repr(hash)
         raise exc.MalformedHashError(cls, reason=reason)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# -----------------------------------------------------------------------
-# stub backend
-# -----------------------------------------------------------------------
 class _NoBackend(_Argon2Common):
     """
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
 
-    # ===================================================================
-    # primary methods
-    # ===================================================================
     @classmethod
     def hash(cls, secret):
         cls._stub_requires_backend()
@@ -754,9 +700,6 @@ class _NoBackend(_Argon2Common):
         cls._stub_requires_backend()
         return cls.genhash(secret, config)
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         # NOTE: since argon2_cffi takes care of rendering hash,
         #       _calc_checksum() is only used by the argon2pure backend.
@@ -765,22 +708,11 @@ class _NoBackend(_Argon2Common):
         #       call subclass's wrapped _calc_checksum
         return super()._calc_checksum(secret)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# -----------------------------------------------------------------------
-# argon2_cffi backend
-# -----------------------------------------------------------------------
 class _CffiBackend(_Argon2Common):
     """
     argon2_cffi backend
     """
-
-    # ===================================================================
-    # backend loading
-    # ===================================================================
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
@@ -816,9 +748,6 @@ class _CffiBackend(_Argon2Common):
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
-    # ===================================================================
-    # primary methods
-    # ===================================================================
     @classmethod
     def hash(cls, secret):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
@@ -895,28 +824,14 @@ class _CffiBackend(_Argon2Common):
             result = result.replace("$v=16$", "$")
         return result
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         raise AssertionError("shouldn't be called under argon2_cffi backend")
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# -----------------------------------------------------------------------
-# argon2pure backend
-# -----------------------------------------------------------------------
 class _PureBackend(_Argon2Common):
     """
     argon2pure backend
     """
-
-    # ===================================================================
-    # backend loading
-    # ===================================================================
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
@@ -968,15 +883,7 @@ class _PureBackend(_Argon2Common):
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
-    # ===================================================================
-    # primary methods
-    # ===================================================================
-
     # NOTE: this backend uses default .hash() & .verify() implementations.
-
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
         uh.validate_secret(secret)
@@ -1004,10 +911,6 @@ class _PureBackend(_Argon2Common):
             return _argon2pure.argon2(**kwds)
         except _argon2pure.Argon2Error as err:
             raise self._adapt_backend_error(err, self=self)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class argon2(_NoBackend, _Argon2Common):
@@ -1082,10 +985,6 @@ class argon2(_NoBackend, _Argon2Common):
         * Support configurable threading limits.
     """
 
-    # =============================================================================
-    # backend
-    # =============================================================================
-
     # NOTE: the brunt of the argon2 class is implemented in _Argon2Common.
     #       there are then subclass for each backend (e.g. _PureBackend),
     #       these are dynamically prepended to this class's bases
@@ -1103,12 +1002,3 @@ class argon2(_NoBackend, _Argon2Common):
         "argon2_cffi": _CffiBackend,
         "argon2pure": _PureBackend,
     }
-
-    # =============================================================================
-    #
-    # =============================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

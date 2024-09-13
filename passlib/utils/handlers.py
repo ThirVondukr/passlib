@@ -1,8 +1,5 @@
 """passlib.handler - code for implementing handlers, and global registry for handlers"""
 
-# =============================================================================
-# imports
-# =============================================================================
 # core
 import inspect
 import math
@@ -64,9 +61,6 @@ __all__ = [
     #       (e.g. HEX_CHARS etc); need to audit uses and update this list.
 ]
 
-# =============================================================================
-# constants
-# =============================================================================
 
 # deprecated aliases - will be removed after passlib 1.8
 H64_CHARS = HASH64_CHARS
@@ -76,9 +70,6 @@ UC_HEX_CHARS = UPPER_HEX_CHARS
 LC_HEX_CHARS = LOWER_HEX_CHARS
 
 
-# =============================================================================
-# support functions
-# =============================================================================
 def _bitsize(count, chars):
     """helper for bitsize() methods"""
     if chars and count:
@@ -127,9 +118,6 @@ def extract_settings_kwds(handler, kwds):
     return dict((key, kwds.pop(key)) for key in list(kwds) if key not in context_keys)
 
 
-# =============================================================================
-# parsing helpers
-# =============================================================================
 _UDOLLAR = "$"
 _UZERO = "0"
 
@@ -288,9 +276,6 @@ def parse_int(source, base=10, default=None, param="value", handler=None):
         return default
 
 
-# =============================================================================
-# formatting helpers
-# =============================================================================
 def render_mc2(ident, salt, checksum, sep="$"):
     """format hash using 2-part modular crypt format; inverse of parse_mc2()
 
@@ -374,11 +359,6 @@ def mask_value(value, show=4, pct=0.125, char="*"):
     return value[:show] + char * (size - show)
 
 
-# =============================================================================
-# parameter helpers
-# =============================================================================
-
-
 def validate_default_value(handler, default, norm, param="value"):
     """
     assert helper that quickly validates default value.
@@ -446,25 +426,14 @@ def norm_integer(
     return value
 
 
-# =============================================================================
-# MinimalHandler
-# =============================================================================
 class MinimalHandler(PasswordHash):
     """
     helper class for implementing hash handlers.
     provides nothing besides a base implementation of the .using() subclass constructor.
     """
 
-    # ===================================================================
-    # class attr
-    # ===================================================================
-
     #: private flag used by using() constructor to detect if this is already a subclass.
     _configured = False
-
-    # ===================================================================
-    # configuration interface
-    # ===================================================================
 
     @classmethod
     def using(cls, relaxed=False):
@@ -478,10 +447,6 @@ class MinimalHandler(PasswordHash):
             # TODO: straighten out class naming, repr, and .name attr
             name = "<customized %s hasher>" % name
         return type(name, (cls,), dict(__module__=cls.__module__, _configured=True))
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class TruncateMixin(MinimalHandler):
@@ -524,9 +489,6 @@ class TruncateMixin(MinimalHandler):
             raise exc.PasswordTruncateError(cls)
 
 
-# =============================================================================
-# GenericHandler
-# =============================================================================
 class GenericHandler(MinimalHandler):
     """helper class for implementing hash handlers.
 
@@ -635,9 +597,6 @@ class GenericHandler(MinimalHandler):
     .. automethod:: verify
     """
 
-    # ===================================================================
-    # class attr
-    # ===================================================================
     # this must be provided by the actual class.
     setting_kwds: Optional[tuple[str, ...]] = None
 
@@ -659,18 +618,10 @@ class GenericHandler(MinimalHandler):
 
     # private flag used by HasRawChecksum
     _checksum_is_bytes = False
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     checksum = None  # stores checksum
 
     #    use_defaults = False # whether _norm_xxx() funcs should fill in defaults.
     #    relaxed = False # when _norm_xxx() funcs should be strict about inputs
-
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, checksum=None, use_defaults=False, **kwds):
         self.use_defaults = use_defaults
         super().__init__(**kwds)
@@ -716,9 +667,6 @@ class GenericHandler(MinimalHandler):
 
         return checksum
 
-    # ===================================================================
-    # password hash api - formatting interface
-    # ===================================================================
     @classmethod
     def identify(cls, hash):
         # NOTE: subclasses may wish to use faster / simpler identify,
@@ -772,10 +720,6 @@ class GenericHandler(MinimalHandler):
         """
         raise NotImplementedError("%s must implement from_string()" % (self.__class__,))
 
-    # ===================================================================
-    # checksum generation
-    # ===================================================================
-
     # NOTE: this is only used by genconfig(), and will be removed in passlib 2.0
     @property
     def _stub_checksum(self):
@@ -812,10 +756,6 @@ class GenericHandler(MinimalHandler):
             "%s must implement _calc_checksum()" % (self.__class__,)
         )
 
-    # ===================================================================
-    # 'application' interface (default implementation)
-    # ===================================================================
-
     @classmethod
     def hash(cls, secret, **kwds):
         if kwds:
@@ -846,10 +786,6 @@ class GenericHandler(MinimalHandler):
             raise exc.MissingDigestError(cls)
         return consteq(self._calc_checksum(secret), chk)
 
-    # ===================================================================
-    # legacy crypt interface
-    # ===================================================================
-
     @deprecated_method(deprecated="1.7", removed="2.0")
     @classmethod
     def genconfig(cls, **kwds):
@@ -872,10 +808,6 @@ class GenericHandler(MinimalHandler):
         self = cls.from_string(config, **context)
         self.checksum = self._calc_checksum(secret)
         return self.to_string()
-
-    # ===================================================================
-    # migration interface (basde implementation)
-    # ===================================================================
 
     @classmethod
     def needs_update(cls, hash, secret=None, **kwds):
@@ -976,10 +908,6 @@ class GenericHandler(MinimalHandler):
             info["checksum"] = _bitsize(cls.checksum_size, cc)
         return info
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class StaticHandler(GenericHandler):
     """GenericHandler mixin for classes which have no settings.
@@ -1031,9 +959,6 @@ class StaticHandler(GenericHandler):
         return self._hash_prefix + self.checksum
 
 
-# =============================================================================
-# GenericHandler mixin classes
-# =============================================================================
 class HasEncodingContext(GenericHandler):
     """helper for classes which require knowledge of the encoding used"""
 
@@ -1083,9 +1008,6 @@ class HasUserContext(GenericHandler):
     ##    return info
 
 
-# ------------------------------------------------------------------------
-# checksum mixins
-# ------------------------------------------------------------------------
 class HasRawChecksum(GenericHandler):
     """mixin for classes which work with decoded checksum bytes
 
@@ -1102,9 +1024,6 @@ class HasRawChecksum(GenericHandler):
     _checksum_is_bytes = True
 
 
-# ------------------------------------------------------------------------
-# ident mixins
-# ------------------------------------------------------------------------
 class HasManyIdents(GenericHandler):
     """mixin for hashes which use multiple prefix identifiers
 
@@ -1124,9 +1043,6 @@ class HasManyIdents(GenericHandler):
     .. todo:: document using() and needs_update() options
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     default_ident = None  # should be str
     ident_values = None  # should be list of unicode strings
     ident_aliases = None  # should be dict of unicode -> unicode
@@ -1136,15 +1052,8 @@ class HasManyIdents(GenericHandler):
 
     # NOTE: relying on test_06_HasManyIdents() to verify
     #       these are configured correctly.
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     ident = None
 
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
     @classmethod
     def using(
         cls,  # keyword only...
@@ -1176,9 +1085,6 @@ class HasManyIdents(GenericHandler):
             subcls.default_ident = cls(ident=default_ident, use_defaults=True).ident
         return subcls
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, ident=None, **kwds):
         super().__init__(**kwds)
 
@@ -1224,9 +1130,6 @@ class HasManyIdents(GenericHandler):
         # XXX: give this it's own error type?
         raise ValueError("invalid ident: %r" % (ident,))
 
-    # ===================================================================
-    # password hash api
-    # ===================================================================
     @classmethod
     def identify(cls, hash):
         hash = to_unicode_for_identify(hash)
@@ -1243,14 +1146,7 @@ class HasManyIdents(GenericHandler):
 
     # XXX: implement a needs_update() helper that marks everything but default_ident as deprecated?
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# ------------------------------------------------------------------------
-# salt mixins
-# ------------------------------------------------------------------------
 class HasSalt(GenericHandler):
     """mixin for validating salts.
 
@@ -1325,10 +1221,6 @@ class HasSalt(GenericHandler):
     # TODO: document _truncate_salt()
     # XXX: allow providing raw salt to this class, and encoding it?
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     min_salt_size = 0
     max_salt_size: Optional[int] = None
     salt_chars: Optional[str] = None
@@ -1348,15 +1240,8 @@ class HasSalt(GenericHandler):
     _salt_unit = "chars"
 
     # TODO: could support using(min/max_desired_salt_size) via using() and needs_update()
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     salt = None
 
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
     @classmethod
     def using(
         cls,  # keyword only...
@@ -1458,9 +1343,6 @@ class HasSalt(GenericHandler):
 
         return salt_size
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, salt=None, **kwds):
         super().__init__(**kwds)
         if salt is not None:
@@ -1567,10 +1449,6 @@ class HasSalt(GenericHandler):
         info["salt"] = _bitsize(salt_size, cls.default_salt_chars)
         return info
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class HasRawSalt(HasSalt):
     """mixin for classes which use decoded salt parameter
@@ -1595,9 +1473,6 @@ class HasRawSalt(HasSalt):
         return getrandbytes(rng, cls.default_salt_size)
 
 
-# ------------------------------------------------------------------------
-# rounds mixin
-# ------------------------------------------------------------------------
 class HasRounds(GenericHandler):
     """mixin for validating rounds parameter
 
@@ -1653,10 +1528,6 @@ class HasRounds(GenericHandler):
     .. automethod:: _norm_rounds
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # -----------------
     # algorithm options -- not application configurable
     # -----------------
@@ -1683,15 +1554,8 @@ class HasRounds(GenericHandler):
     max_desired_rounds = None
     default_rounds: Optional[int] = None
     vary_rounds = None
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
     rounds = None
 
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
     @classmethod
     def using(
         cls,
@@ -1960,9 +1824,6 @@ class HasRounds(GenericHandler):
 
         return rounds
 
-    # ===================================================================
-    # migration interface
-    # ===================================================================
     def _calc_needs_update(self, **kwds):
         """
         mark hash as needing update if rounds is outside desired bounds.
@@ -1975,9 +1836,6 @@ class HasRounds(GenericHandler):
             return True
         return super()._calc_needs_update(**kwds)
 
-    # ===================================================================
-    # experimental methods
-    # ===================================================================
     @classmethod
     def bitsize(cls, rounds=None, vary_rounds=0.1, **kwds):
         """[experimental method] return info about bitsizes of hash"""
@@ -2001,35 +1859,16 @@ class HasRounds(GenericHandler):
         # the time-cost, and can't be randomized.
         return info
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# ------------------------------------------------------------------------
-# other common parameters
-# ------------------------------------------------------------------------
 class ParallelismMixin(GenericHandler):
     """
     mixin which provides common behavior for 'parallelism' setting
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # NOTE: subclasses should add "parallelism" to their settings_kwds
-
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
 
     #: parallelism setting (class-level value used as default)
     parallelism = 1
-
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
 
     @classmethod
     def using(cls, parallelism=None, **kwds):
@@ -2042,9 +1881,6 @@ class ParallelismMixin(GenericHandler):
             )
         return subcls
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, parallelism=None, **kwds):
         super().__init__(**kwds)
 
@@ -2062,10 +1898,6 @@ class ParallelismMixin(GenericHandler):
             cls, parallelism, min=1, param="parallelism", relaxed=relaxed
         )
 
-    # ===================================================================
-    # hash migration
-    # ===================================================================
-
     def _calc_needs_update(self, **kwds):
         """
         mark hash as needing update if rounds is outside desired bounds.
@@ -2075,14 +1907,6 @@ class ParallelismMixin(GenericHandler):
             return True
         return super()._calc_needs_update(**kwds)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# ------------------------------------------------------------------------
-# backend mixin & helpers
-# ------------------------------------------------------------------------
 
 #: global lock that must be held when changing backends.
 #: not bothering to make this more granular, as backend switching
@@ -2157,10 +1981,6 @@ class BackendMixin(PasswordHash):
     .. versionadded:: 1.7
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     #: list of backend names, provided by subclass.
     backends = None
 
@@ -2178,10 +1998,6 @@ class BackendMixin(PasswordHash):
     #: shared attr used by set_backend() to indicate if it's in "dry run" mode;
     #: meaningless while not in set_backend().
     _pending_dry_run = False
-
-    # ===================================================================
-    # public api
-    # ===================================================================
 
     @classmethod
     def get_backend(cls):
@@ -2303,10 +2119,6 @@ class BackendMixin(PasswordHash):
                 cls.__backend = name
             return name
 
-    # ===================================================================
-    # subclass hooks
-    # ===================================================================
-
     @classmethod
     def _get_backend_owner(cls):
         """
@@ -2372,10 +2184,6 @@ class BackendMixin(PasswordHash):
                 "%s: set_backend() failed to load a default backend" % (cls.name)
             )
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class SubclassBackendMixin(BackendMixin):
     """
@@ -2392,10 +2200,6 @@ class SubclassBackendMixin(BackendMixin):
     .. versionadded:: 1.7
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # 'backends' required by BackendMixin
 
     #: NON-INHERITED flag that this class's bases should be modified by SubclassBackendMixin.
@@ -2404,10 +2208,6 @@ class SubclassBackendMixin(BackendMixin):
 
     #: map of backend name -> mixin class
     _backend_mixin_map = None
-
-    # ===================================================================
-    # backend loading
-    # ===================================================================
 
     @classmethod
     def _get_backend_owner(cls):
@@ -2454,10 +2254,6 @@ class SubclassBackendMixin(BackendMixin):
     def _get_backend_loader(cls, name):
         assert cls._backend_mixin_map, "_backend_mixin_map not specified"
         return cls._backend_mixin_map[name]._load_backend_mixin
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 # XXX: rename to ChecksumBackendMixin?
@@ -2506,10 +2302,6 @@ class HasManyBackends(BackendMixin, GenericHandler):
         by the subclass for each backend listed in :attr:`backends`.
     """
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
-
     def _calc_checksum(self, secret):
         "wrapper for backend, for common code" ""
         # NOTE: not overwriting _calc_checksum() directly, so that classes can provide
@@ -2526,9 +2318,6 @@ class HasManyBackends(BackendMixin, GenericHandler):
         self._stub_requires_backend()
         return self._calc_checksum_backend(secret)
 
-    # ===================================================================
-    # BackendMixin hooks
-    # ===================================================================
     @classmethod
     def _get_backend_loader(cls, name):
         """
@@ -2581,14 +2370,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
         if not cls._pending_dry_run:
             cls._calc_checksum_backend = func
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# wrappers
-# =============================================================================
 # XXX: should this inherit from PasswordHash?
 class PrefixWrapper(object):
     """wraps another handler, adding a constant prefix.
@@ -2848,8 +2630,3 @@ class PrefixWrapper(object):
         hash = to_unicode(hash, "ascii", "hash")
         hash = self._unwrap_hash(hash)
         return self.wrapped.verify(secret, hash, **kwds)
-
-
-# =============================================================================
-# eof
-# =============================================================================

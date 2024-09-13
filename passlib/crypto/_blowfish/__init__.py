@@ -60,9 +60,6 @@ __all__ = [
     "raw_bcrypt",
 ]
 
-# =============================================================================
-# bcrypt constants
-# =============================================================================
 
 # bcrypt constant data "OrpheanBeholderScryDoubt" as 6 integers
 BCRYPT_CDATA = [0x4F727068, 0x65616E42, 0x65686F6C, 0x64657253, 0x63727944, 0x6F756274]
@@ -88,9 +85,6 @@ def raw_bcrypt(password, ident, salt, log_rounds):
     :param log_rounds: the log2 of the number of rounds (as int)
     :returns: bcrypt-base64 encoded checksum
     """
-    # ===================================================================
-    # parse inputs
-    # ===================================================================
 
     # parse ident
     assert isinstance(ident, str)
@@ -158,8 +152,3 @@ def raw_bcrypt(password, ident, salt, log_rounds):
         i += 2
     raw = digest_struct.pack(*data)[:-1]
     return bcrypt64.encode_bytes(raw)
-
-
-# =============================================================================
-# eof
-# =============================================================================

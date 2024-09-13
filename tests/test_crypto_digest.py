@@ -197,9 +197,6 @@ class HashInfoTest(TestCase):
     # TODO: write full test of compile_hmac() -- currently relying on pbkdf2_hmac() tests
 
 
-# =============================================================================
-# test PBKDF1 support
-# =============================================================================
 class Pbkdf1_Test(TestCase):
     """test kdf helpers"""
 
@@ -658,8 +655,3 @@ class Pbkdf2Test(TestCase):
 
         self.assertEqual(len(helper(digest="sha1")), 20)
         self.assertEqual(len(helper(digest="sha256")), 32)
-
-
-# =============================================================================
-# eof
-# =============================================================================

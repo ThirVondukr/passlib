@@ -10,9 +10,6 @@ __all__ = [
 ]
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     """This class implements the Postgres MD5 Password hash, and follows the :ref:`password-hash-api`.
 
@@ -25,28 +22,13 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     :param user: name of postgres user account this password is associated with.
     """
 
-    # ===================================================================
-    # algorithm information
-    # ===================================================================
     name = "postgres_md5"
     _hash_prefix = "md5"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
 
-    # ===================================================================
-    # primary interface
-    # ===================================================================
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         user = to_bytes(self.user, "utf-8", param="user")
         return md5(secret + user).hexdigest()
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

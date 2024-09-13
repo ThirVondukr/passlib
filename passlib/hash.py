@@ -15,9 +15,6 @@ The actual implementation of the various hashes is store elsewhere,
 mainly in the submodules of the ``passlib.handlers`` subpackage.
 """
 
-# =============================================================================
-# import proxy object and replace this module
-# =============================================================================
 
 # XXX: if any platform has problem w/ lazy modules, could support 'non-lazy'
 #      version which just imports all schemes known to list_crypt_handlers()
@@ -107,7 +104,3 @@ if False:
 # ----------------------------------------------------
 # end autocomplete hack
 # ----------------------------------------------------
-
-# =============================================================================
-# eoc
-# =============================================================================

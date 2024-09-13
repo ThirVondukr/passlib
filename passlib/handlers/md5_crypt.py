@@ -74,10 +74,6 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     # would love to find webpage explaining why just using a portable
     # implementation of $1$ wasn't sufficient. *nothing else* was changed.
 
-    # ===================================================================
-    # init & validate inputs
-    # ===================================================================
-
     # validate secret
     # XXX: not sure what official unicode policy is, using this as default
     if isinstance(pwd, str):
@@ -100,15 +96,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
         magic = _APR_MAGIC
     else:
         magic = _MD5_MAGIC
-
-    # ===================================================================
-    # digest B - used as subinput to digest A
-    # ===================================================================
     db = md5(pwd + salt + pwd).digest()
-
-    # ===================================================================
-    # digest A - used to initialize first round of digest C
-    # ===================================================================
     # start out with pwd + magic + salt
     a_ctx = md5(pwd + magic + salt)
     a_ctx_update = a_ctx.update
@@ -193,22 +181,12 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
     # perform 17 more pairs of rounds (34 more rounds, for a total of 1000)
     for even, odd in data[:17]:
         dc = md5(odd + md5(dc + even).digest()).digest()
-
-    # ===================================================================
-    # encode digest using appropriate transpose map
-    # ===================================================================
     return h64.encode_transposed_bytes(dc, _transpose_map).decode("ascii")
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class _MD5_Common(uh.HasSalt, uh.GenericHandler):
     """common code for md5_crypt and apr_md5_crypt"""
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # name - set in subclass
     setting_kwds = ("salt", "salt_size")
     # ident - set in subclass
@@ -217,10 +195,6 @@ class _MD5_Common(uh.HasSalt, uh.GenericHandler):
 
     max_salt_size = 8
     salt_chars = uh.HASH64_CHARS
-
-    # ===================================================================
-    # methods
-    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -231,10 +205,6 @@ class _MD5_Common(uh.HasSalt, uh.GenericHandler):
         return uh.render_mc2(self.ident, self.salt, self.checksum)
 
     # _calc_checksum() - provided by subclass
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
 
 class md5_crypt(uh.HasManyBackends, _MD5_Common):
@@ -268,15 +238,8 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "md5_crypt"
     ident = "$1$"
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     # FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
     #        all backends currently coerce -> utf-8
 
@@ -315,10 +278,6 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
     def _calc_checksum_builtin(self, secret):
         return _raw_md5_crypt(secret, self.salt)
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
 
 class apr_md5_crypt(_MD5_Common):
     """This class implements the Apr-MD5-Crypt password hash, and follows the :ref:`password-hash-api`.
@@ -344,23 +303,8 @@ class apr_md5_crypt(_MD5_Common):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     name = "apr_md5_crypt"
     ident = "$apr1$"
 
-    # ===================================================================
-    # methods
-    # ===================================================================
     def _calc_checksum(self, secret):
         return _raw_md5_crypt(secret, self.salt, use_apr=True)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -12,9 +12,6 @@ __all__ = [
     "scrypt",
 ]
 
-# =============================================================================
-# scrypt format identifiers
-# =============================================================================
 
 IDENT_SCRYPT = "$scrypt$"  # identifier used by passlib
 IDENT_7 = "$7$"  # used by official scrypt spec
@@ -22,9 +19,6 @@ IDENT_7 = "$7$"  # used by official scrypt spec
 _UDOLLAR = "$"
 
 
-# =============================================================================
-# handler
-# =============================================================================
 class scrypt(
     uh.ParallelismMixin,
     uh.HasRounds,
@@ -97,10 +91,6 @@ class scrypt(
         configuration.
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # ------------------------
     # PasswordHash
     # ------------------------
@@ -139,19 +129,11 @@ class scrypt(
 
     # TODO: make default block size configurable via using(), and deprecatable via .needs_update()
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     #: default parallelism setting (min=1 currently hardcoded in mixin)
     parallelism = 1
 
     #: default block size setting
     block_size = 8
-
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
 
     @classmethod
     def using(cls, block_size=None, **kwds):
@@ -172,10 +154,6 @@ class scrypt(
             ) from None
 
         return subcls
-
-    # ===================================================================
-    # parsing
-    # ===================================================================
 
     @classmethod
     def from_string(cls, hash):
@@ -274,9 +252,6 @@ class scrypt(
             checksum=h64.decode_bytes(digest) if digest else None,
         )
 
-    # ===================================================================
-    # formatting
-    # ===================================================================
     def to_string(self):
         ident = self.ident
         if ident == IDENT_SCRYPT:
@@ -310,9 +285,6 @@ class scrypt(
                 )
             )
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, block_size=None, **kwds):
         super().__init__(**kwds)
 
@@ -367,9 +339,6 @@ class scrypt(
     def set_backend(cls, name="any", dryrun=False):
         _scrypt._set_backend(name, dryrun=dryrun)
 
-    # ===================================================================
-    # digest calculation
-    # ===================================================================
     def _calc_checksum(self, secret):
         secret = to_bytes(secret, param="secret")
         return _scrypt.scrypt(
@@ -381,10 +350,6 @@ class scrypt(
             keylen=self.checksum_size,
         )
 
-    # ===================================================================
-    # hash migration
-    # ===================================================================
-
     def _calc_needs_update(self, **kwds):
         """
         mark hash as needing update if rounds is outside desired bounds.
@@ -393,12 +358,3 @@ class scrypt(
         if self.block_size != type(self).block_size:
             return True
         return super()._calc_needs_update(**kwds)
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================

@@ -67,10 +67,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     .. automethod:: derive_digest
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
-
     # NOTE: unlike most GenericHandler classes, the 'checksum' attr of
     # ScramHandler is actually a map from digest_name -> digest, so
     # many of the standard methods have been overridden.
@@ -101,10 +97,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # list of algs verify prefers to use, in order.
     _verify_algs = ["sha-256", "sha-512", "sha-224", "sha-384", "sha-1"]
 
-    # ===================================================================
-    # instance attrs
-    # ===================================================================
-
     # 'checksum' is different from most GenericHandler subclasses,
     # in that it contains a dict mapping from alg -> digest,
     # or None if no checksum present.
@@ -112,9 +104,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
     # list of algorithms to create/compare digests for.
     algs = None
 
-    # ===================================================================
-    # scram frontend helpers
-    # ===================================================================
     @classmethod
     def extract_digest_info(cls, hash, alg):
         """return (salt, rounds, digest) for specific hash algorithm.
@@ -208,10 +197,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         #       and handle normalizing alg name.
         return pbkdf2_hmac(alg, saslprep(password), salt, rounds)
 
-    # ===================================================================
-    # serialization
-    # ===================================================================
-
     @classmethod
     def from_string(cls, hash):
         hash = to_native_str(hash, "ascii", "hash")
@@ -269,9 +254,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         )
         return "$scram$%d$%s$%s" % (self.rounds, salt, chk_str)
 
-    # ===================================================================
-    # variant constructor
-    # ===================================================================
     @classmethod
     def using(cls, default_algs=None, algs=None, **kwds):
         # parse aliases
@@ -287,9 +269,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             subcls.default_algs = cls._norm_algs(default_algs)
         return subcls
 
-    # ===================================================================
-    # init
-    # ===================================================================
     def __init__(self, algs=None, **kwds):
         super().__init__(**kwds)
 
@@ -340,9 +319,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return algs
 
-    # ===================================================================
-    # migration
-    # ===================================================================
     def _calc_needs_update(self, **kwds):
         # marks hashes as deprecated if they don't include at least all default_algs.
         # XXX: should we deprecate if they aren't exactly the same,
@@ -353,9 +329,6 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
 
-    # ===================================================================
-    # digest methods
-    # ===================================================================
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt
@@ -414,12 +387,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # or something went wrong inside _norm_algs()
             raise AssertionError("sha-1 digest not found!")
 
-    # ===================================================================
-    #
-    # ===================================================================
 
-
-# =============================================================================
 # code used for testing scram against protocol examples during development.
 # =============================================================================
 ##def _test_reference_scram():
@@ -571,7 +539,3 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 ##    #=========================================================
 ##    # eoc
 ##    #=========================================================
-
-# =============================================================================
-# eof
-# =============================================================================

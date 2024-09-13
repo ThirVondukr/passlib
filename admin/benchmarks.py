@@ -19,9 +19,6 @@ from tests.utils import time_call
 root = os.path.join(os.path.dirname(__file__), os.path.pardir)
 
 
-# =============================================================================
-# benchmarking support
-# =============================================================================
 class benchmark:
     """class to hold various benchmarking helpers"""
 
@@ -78,9 +75,6 @@ class benchmark:
         return "%.*g sec" % (precision, sec)
 
 
-# =============================================================================
-# utils
-# =============================================================================
 sample_config_1p = os.path.join(root, "passlib", "tests", "sample_config_1s.cfg")
 
 
@@ -118,9 +112,6 @@ SECRET = "toomanysecrets"
 OTHER = "setecastronomy"
 
 
-# =============================================================================
-# CryptContext benchmarks
-# =============================================================================
 @benchmark.constructor()
 def test_context_from_path():
     """test speed of CryptContext.from_path()"""
@@ -191,9 +182,6 @@ def test_context_calls():
     return helper
 
 
-# =============================================================================
-# handler benchmarks
-# =============================================================================
 @benchmark.constructor()
 def test_bcrypt_builtin():
     "test bcrypt 'builtin' backend"
@@ -285,9 +273,6 @@ def test_sha1_crypt():
     return helper
 
 
-# =============================================================================
-# crypto utils
-# =============================================================================
 @benchmark.constructor()
 def test_pbkdf2_sha1():
     from passlib.crypto.digest import pbkdf2_hmac
@@ -312,9 +297,6 @@ def test_pbkdf2_sha256():
     return helper
 
 
-# =============================================================================
-# entropy estimates
-# =============================================================================
 @benchmark.constructor()
 def test_average_entropy():
     from passlib.pwd import _self_info_rate
@@ -330,9 +312,6 @@ def test_average_entropy():
     return helper
 
 
-# =============================================================================
-# main
-# =============================================================================
 def main(*args):
     source = globals()
     if args:
@@ -349,7 +328,3 @@ if __name__ == "__main__":
     import sys
 
     main(*sys.argv[1:])
-
-# =============================================================================
-# eof
-# =============================================================================

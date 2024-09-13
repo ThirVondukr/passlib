@@ -1,8 +1,5 @@
 """passlib.utils.scrypt._builtin -- scrypt() kdf in pure-python"""
 
-# ==========================================================================
-# imports
-# ==========================================================================
 # core
 import operator
 import struct
@@ -17,9 +14,6 @@ __all__ = [
 ]
 
 
-# ==========================================================================
-# scrypt engine
-# ==========================================================================
 class ScryptEngine(object):
     """
     helper class used to run scrypt kdf, see scrypt() for frontend
@@ -30,10 +24,6 @@ class ScryptEngine(object):
         it's not intended to be used directly,
         but only as a backend for :func:`passlib.utils.scrypt.scrypt()`.
     """
-
-    # =================================================================
-    # instance attrs
-    # =================================================================
 
     # primary scrypt config parameters
     n = 0
@@ -48,17 +38,11 @@ class ScryptEngine(object):
     bmix_struct = None
     integerify = None
 
-    # =================================================================
-    # frontend
-    # =================================================================
     @classmethod
     def execute(cls, secret, salt, n, r, p, keylen):
         """create engine & run scrypt() hash calculation"""
         return cls(n, r, p).run(secret, salt, keylen)
 
-    # =================================================================
-    # init
-    # =================================================================
     def __init__(self, n, r, p):
         # store config
         self.n = n
@@ -92,9 +76,6 @@ class ScryptEngine(object):
 
         self.integerify = integerify
 
-    # =================================================================
-    # frontend
-    # =================================================================
     def run(self, secret, salt, keylen):
         """
         run scrypt kdf for specified secret, salt, and keylen
@@ -125,9 +106,6 @@ class ScryptEngine(object):
         # stretch final byte array into output via pbkdf2
         return pbkdf2_hmac("sha256", secret, output, rounds=1, keylen=keylen)
 
-    # =================================================================
-    # smix() helper
-    # =================================================================
     def smix(self, input):
         """run SCrypt smix function on a single input block
 
@@ -193,9 +171,6 @@ class ScryptEngine(object):
         # repack tmp
         return bmix_struct.pack(*buffer)
 
-    # =================================================================
-    # bmix() helper
-    # =================================================================
     def bmix(self, source, target):
         """
         block mixing function used by smix()
@@ -243,12 +218,3 @@ class ScryptEngine(object):
         B = source[16:]
         target[:16] = tmp = salsa20(a ^ b for a, b in zip(B, iter(source)))
         target[16:] = salsa20(a ^ b for a, b in zip(tmp, B))
-
-    # =================================================================
-    # eoc
-    # =================================================================
-
-
-# ==========================================================================
-# eof
-# ==========================================================================

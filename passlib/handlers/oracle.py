@@ -12,9 +12,6 @@ import passlib.utils.handlers as uh
 __all__ = ["oracle10", "oracle11"]
 
 
-# =============================================================================
-# oracle10
-# =============================================================================
 def des_cbc_encrypt(key, value, iv=b"\x00" * 8, pad=b"\x00"):
     """performs des-cbc encryption, returns only last block.
 
@@ -55,16 +52,10 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
     :param user: name of oracle user account this password is associated with.
     """
 
-    # ===================================================================
-    # algorithm information
-    # ===================================================================
     name = "oracle10"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 16
 
-    # ===================================================================
-    # methods
-    # ===================================================================
     @classmethod
     def _norm_hash(cls, hash):
         return hash.upper()
@@ -89,14 +80,7 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
         hash = des_cbc_encrypt(hash, input)
         return hexlify(hash).decode("ascii").upper()
 
-    # ===================================================================
-    # eoc
-    # ===================================================================
 
-
-# =============================================================================
-# oracle11
-# =============================================================================
 class oracle11(uh.HasSalt, uh.GenericHandler):
     """This class implements the Oracle11g password hash, and follows the :ref:`password-hash-api`.
 
@@ -121,9 +105,6 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
         .. versionadded:: 1.6
     """
 
-    # ===================================================================
-    # class attrs
-    # ===================================================================
     # --GenericHandler--
     name = "oracle11"
     setting_kwds = ("salt",)
@@ -133,10 +114,6 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
     # --HasSalt--
     min_salt_size = max_salt_size = 20
     salt_chars = uh.UPPER_HEX_CHARS
-
-    # ===================================================================
-    # methods
-    # ===================================================================
     _hash_regex = re.compile("^S:(?P<chk>[0-9a-f]{40})(?P<salt>[0-9a-f]{20})$", re.I)
 
     @classmethod
@@ -158,12 +135,3 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
             secret = secret.encode("utf-8")
         chk = sha1(secret + unhexlify(self.salt.encode("ascii"))).hexdigest()
         return chk.upper()
-
-    # ===================================================================
-    # eoc
-    # ===================================================================
-
-
-# =============================================================================
-# eof
-# =============================================================================
