@@ -41,6 +41,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "sha1_crypt"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -58,6 +59,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     min_rounds = 1  # really, this should be higher.
     max_rounds = 4294967295  # 32-bit integer limit
     rounds_cost = "linear"
+
     @classmethod
     def from_string(cls, hash):
         rounds, salt, chk = uh.parse_mc3(hash, cls.ident, handler=cls)
@@ -66,6 +68,7 @@ class sha1_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
     def to_string(self, config=False):
         chk = None if config else self.checksum
         return uh.render_mc3(self.ident, self.rounds, self.salt, chk)
+
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------

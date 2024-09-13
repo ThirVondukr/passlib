@@ -113,6 +113,7 @@ class _CryptConfig(object):
     # dict mapping category -> list of custom handler instances for that category,
     # in order of schemes(). populated on demand by _get_record_list()
     _record_lists = None
+
     def __init__(self, source):
         self._init_scheme_list(source.get((None, None, "schemes")))
         self._init_options(source)
@@ -369,6 +370,7 @@ class _CryptConfig(object):
                 has_cat_options = True
 
         return kwds, has_cat_options
+
     def _init_default_schemes(self):
         """initialize maps containing default scheme for each category.
 
@@ -447,6 +449,7 @@ class _CryptConfig(object):
             if alt is not None and value != alt:
                 return alt, True
         return value, False
+
     def _init_records(self):
         # NOTE: this step handles final validation of settings,
         #       checking for violations against handler's internal invariants.
@@ -610,6 +613,7 @@ class _CryptConfig(object):
             "no disabled hasher present "
             "(perhaps add 'unix_disabled' to list of schemes?)"
         )
+
     def iter_config(self, resolve=False):
         """regenerate original config.
 
@@ -657,6 +661,7 @@ class _CryptConfig(object):
                     for key in sorted(kwds):
                         yield (cat, scheme, key), kwds[key]
 
+
 class CryptContext(object):
     """Helper for hashing & verifying passwords using multiple algorithms.
 
@@ -692,6 +697,7 @@ class CryptContext(object):
     # copy of _config methods, stored in CryptContext instance for speed.
     _get_record = None
     _identify_record = None
+
     @classmethod
     def _norm_source(cls, source):
         """internal helper - accepts string, dict, or context"""

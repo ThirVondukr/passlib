@@ -237,8 +237,6 @@ class django_bcrypt_sha256(_wrapped_bcrypt):
         return super()._calc_checksum(secret)
 
 
-
-
 class django_pbkdf2_sha256(DjangoVariableHash):
     """This class implements Django's PBKDF2-HMAC-SHA256 hash, and follows the :ref:`password-hash-api`.
 
@@ -335,7 +333,6 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
     checksum_size = 28  # 20 bytes -> base64
     default_rounds = pbkdf2_sha1.default_rounds  # NOTE: django 1.6 uses 12000
     _digest = "sha1"
-
 
 
 # NOTE: as of 2019-11-11, Django's Argon2PasswordHasher only supports Type I;

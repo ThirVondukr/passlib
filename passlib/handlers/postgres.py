@@ -21,10 +21,12 @@ class postgres_md5(uh.HasUserContext, uh.StaticHandler):
     :type user: str
     :param user: name of postgres user account this password is associated with.
     """
+
     name = "postgres_md5"
     _hash_prefix = "md5"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
+
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")

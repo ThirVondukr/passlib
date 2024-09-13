@@ -180,8 +180,6 @@ def write_expand_function(write, indent=0):
     )
 
 
-
-
 def main():
     target = os.path.join(os.path.dirname(__file__), "unrolled.py")
     with open(target, "w") as fh:
@@ -241,4 +239,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

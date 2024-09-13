@@ -51,9 +51,11 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
     :type user: str
     :param user: name of oracle user account this password is associated with.
     """
+
     name = "oracle10"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 16
+
     @classmethod
     def _norm_hash(cls, hash):
         return hash.upper()
@@ -78,6 +80,7 @@ class oracle10(uh.HasUserContext, uh.StaticHandler):
         hash = des_cbc_encrypt(hash, input)
         return hexlify(hash).decode("ascii").upper()
 
+
 class oracle11(uh.HasSalt, uh.GenericHandler):
     """This class implements the Oracle11g password hash, and follows the :ref:`password-hash-api`.
 
@@ -101,6 +104,7 @@ class oracle11(uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "oracle11"
     setting_kwds = ("salt",)

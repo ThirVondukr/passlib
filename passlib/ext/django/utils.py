@@ -406,6 +406,7 @@ class DjangoTranslator(object):
         # lookup corresponding django hasher
         return self.passlib_to_django(passlib_hasher, cached=cached)
 
+
 class DjangoContextAdapter(DjangoTranslator):
     """
     Object which tries to adapt a Passlib CryptContext object,
@@ -434,6 +435,7 @@ class DjangoContextAdapter(DjangoTranslator):
 
     #: patch status
     patched = False
+
     def __init__(self, context=None, get_user_category=None, **kwds):
         # init log
         self.log = logging.getLogger(__name__ + ".DjangoContextAdapter")
@@ -804,6 +806,7 @@ class DjangoContextAdapter(DjangoTranslator):
         self.context.load(config)
         self.reset_hashers()
 
+
 _GEN_SALT_SIGNAL = "--!!!generate-new-salt!!!--"
 
 
@@ -857,6 +860,7 @@ class _PasslibHasherWrapper(object):
         if self._has_rounds:
             self.rounds = passlib_handler.default_rounds
             self.iterations = ProxyProperty("rounds")
+
     def __repr__(self):
         return "<PasslibHasherWrapper handler=%r>" % self.passlib_handler
 
@@ -882,6 +886,7 @@ class _PasslibHasherWrapper(object):
     @memoized_property
     def algorithm(self):
         return PASSLIB_WRAPPER_PREFIX + self.passlib_handler.name
+
     def salt(self):
         # NOTE: passlib's handler.hash() should generate new salt each time,
         #       so this just returns a special constant which tells
@@ -1054,6 +1059,7 @@ class _PatchManager(object):
     def _is_same_value(left, right):
         """check if two values are the same (stripping method wrappers, etc)"""
         return get_method_function(left) == get_method_function(right)
+
     def _get_path(self, key, default=_UNSET):
         obj, attr = self._import_path(key)
         return getattr(obj, attr, default)
@@ -1081,6 +1087,7 @@ class _PatchManager(object):
                 raise RuntimeError(msg)
             else:
                 warn(msg, PasslibRuntimeWarning)
+
     def _set_path(self, path, value):
         obj, attr = self._import_path(path)
         if value is _UNSET:

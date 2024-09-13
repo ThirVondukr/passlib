@@ -377,7 +377,6 @@ def ChecksumSizeError(handler, raw=False):
     return MalformedHashError(handler, reason)
 
 
-
 #: global flag, set temporarily by UTs to allow debug_only_repr() to display sensitive values.
 ENABLE_DEBUG_ONLY_REPR = False
 

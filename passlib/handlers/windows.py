@@ -67,6 +67,7 @@ class lmhash(uh.TruncateMixin, uh.HasEncodingContext, uh.StaticHandler):
     # custom
     # --------------------
     default_encoding = "cp437"
+
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -132,9 +133,11 @@ class nthash(uh.StaticHandler):
     Note that while this class outputs lower-case hexadecimal digests,
     it will accept upper-case digests as well.
     """
+
     name = "nthash"
     checksum_chars = uh.HEX_CHARS
     checksum_size = 32
+
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()

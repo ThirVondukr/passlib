@@ -591,6 +591,7 @@ class _NoBackend(_BcryptCommon):
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
+
     def _calc_checksum(self, secret):
         self._stub_requires_backend()
         # NOTE: have to use super() here so that we don't recursively
@@ -847,7 +848,6 @@ class bcrypt(_NoBackend, _BcryptCommon):
         "os_crypt": _OsCryptBackend,
         "builtin": _BuiltinBackend,
     }
-
 
 
 _UDOLLAR = "$"

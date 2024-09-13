@@ -37,7 +37,6 @@ entropy_aliases = dict(
 )
 
 
-
 def _superclasses(obj, cls):
     """return remaining classes in object's MRO after cls"""
     mro = type(obj).__mro__
@@ -215,6 +214,7 @@ class SequenceGenerator(object):
 
     #: number of potential symbols (must be filled in by subclass)
     symbol_count = None
+
     def __init__(self, entropy=None, length=None, rng=None, **kwds):
         # make sure subclass set things up correctly
         assert self.symbol_count is not None, "subclass must set .symbol_count"
@@ -262,6 +262,7 @@ class SequenceGenerator(object):
         so that this value is the smallest multiple >= :attr:`requested_entropy`.
         """
         return self.length * self.entropy_per_symbol
+
     def __next__(self):
         """main generation function, should create one password/phrase"""
         raise NotImplementedError("implement in subclass")
@@ -281,8 +282,6 @@ class SequenceGenerator(object):
 
     def __iter__(self):
         return self
-
-
 
 
 #: global dict of predefined characters sets
@@ -325,6 +324,7 @@ class WordGenerator(SequenceGenerator):
 
     #: string of chars to draw from -- usually filled in from charset
     chars = None
+
     def __init__(self, chars=None, charset=None, **kwds):
         # init chars and charset
         if chars:
@@ -556,6 +556,7 @@ class PhraseGenerator(SequenceGenerator):
 
     #: separator to use when joining words
     sep = " "
+
     def __init__(self, wordset=None, words=None, sep=None, **kwds):
         # load wordset
         if words is not None:

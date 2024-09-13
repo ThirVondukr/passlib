@@ -189,6 +189,7 @@ class cta_pbkdf2_sha1(
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "cta_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -229,6 +230,7 @@ class cta_pbkdf2_sha1(
         salt = b64encode(self.salt, CTA_ALTCHARS).decode("ascii")
         chk = b64encode(self.checksum, CTA_ALTCHARS).decode("ascii")
         return uh.render_mc3(self.ident, self.rounds, salt, chk, rounds_base=16)
+
     def _calc_checksum(self, secret):
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
         return pbkdf2_hmac("sha1", secret, self.salt, self.rounds, 20)
@@ -267,6 +269,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "dlitz_pbkdf2_sha1"
     setting_kwds = ("salt", "salt_size", "rounds")
@@ -317,6 +320,7 @@ class dlitz_pbkdf2_sha1(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
         if rounds == 400:
             rounds = None  # omit rounds measurement if == 400
         return uh.render_mc3(self.ident, rounds, self.salt, None, rounds_base=16)
+
     def _calc_checksum(self, secret):
         # NOTE: pbkdf2_hmac() will encode secret & salt using utf-8
         salt = self._get_config()

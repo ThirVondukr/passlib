@@ -469,6 +469,7 @@ class _Argon2Common(
             bascii_to_str(b64s_encode(self.salt)),
             bascii_to_str(b64s_encode(self.checksum)),
         )
+
     def __init__(
         self, type=None, type_d=False, version=None, memory_cost=None, data=None, **kwds
     ):
@@ -682,6 +683,7 @@ class _NoBackend(_Argon2Common):
     mixin used before any backend has been loaded.
     contains stubs that force loading of one of the available backends.
     """
+
     @classmethod
     def hash(cls, secret):
         cls._stub_requires_backend()
@@ -697,6 +699,7 @@ class _NoBackend(_Argon2Common):
     def genhash(cls, secret, config):
         cls._stub_requires_backend()
         return cls.genhash(secret, config)
+
     def _calc_checksum(self, secret):
         # NOTE: since argon2_cffi takes care of rendering hash,
         #       _calc_checksum() is only used by the argon2pure backend.

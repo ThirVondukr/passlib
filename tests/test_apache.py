@@ -9,7 +9,6 @@ from passlib.utils.handlers import to_unicode_for_identify
 from tests.utils_ import backdate_file_mtime
 
 
-
 htpasswd_path = os.environ.get("PASSLIB_TEST_HTPASSWD_PATH") or "htpasswd"
 
 

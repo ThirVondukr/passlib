@@ -101,7 +101,6 @@ class apr_md5_crypt_test(HandlerCase):
     ]
 
 
-
 class bigcrypt_test(HandlerCase):
     handler = hash.bigcrypt
 
@@ -137,6 +136,7 @@ class bigcrypt_test(HandlerCase):
         self.assertRaises(
             ValueError, hash.bigcrypt, use_defaults=True, checksum="yh4XPJGsOZ"
         )
+
 
 class _bsdi_crypt_test(HandlerCase):
     """test BSDiCrypt algorithm"""

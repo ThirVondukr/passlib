@@ -370,6 +370,7 @@ class TotpTest(TestCase):
     """
 
     descriptionPrefix = "passlib.totp.TOTP"
+
     def setUp(self):
         super().setUp()
 
@@ -380,6 +381,7 @@ class TotpTest(TestCase):
 
         # monkeypatch module's rng to be deterministic
         self.patchAttr(totp_module, "rng", self.getRandom())
+
     def randtime(self):
         """
         helper to generate random epoch time
@@ -785,6 +787,7 @@ class TotpTest(TestCase):
         _ = otp.hex_key
         _ = otp.base32_key
         _ = otp.pretty_key()
+
     def test_totp_token(self):
         """generate() -- TotpToken() class"""
         from passlib.totp import TOTP, TotpToken

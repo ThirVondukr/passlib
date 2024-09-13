@@ -186,6 +186,7 @@ def _raw_md5_crypt(pwd, salt, use_apr=False):
 
 class _MD5_Common(uh.HasSalt, uh.GenericHandler):
     """common code for md5_crypt and apr_md5_crypt"""
+
     # name - set in subclass
     setting_kwds = ("salt", "salt_size")
     # ident - set in subclass
@@ -236,6 +237,7 @@ class md5_crypt(uh.HasManyBackends, _MD5_Common):
 
         .. versionadded:: 1.6
     """
+
     name = "md5_crypt"
     ident = "$1$"
     # FIXME: can't find definitive policy on how md5-crypt handles non-ascii.
@@ -300,7 +302,9 @@ class apr_md5_crypt(_MD5_Common):
 
         .. versionadded:: 1.6
     """
+
     name = "apr_md5_crypt"
     ident = "$apr1$"
+
     def _calc_checksum(self, secret):
         return _raw_md5_crypt(secret, self.salt, use_apr=True)

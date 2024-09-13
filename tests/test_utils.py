@@ -784,6 +784,7 @@ class _Base64Test(TestCase):
     def m(self, *offsets):
         """generate byte string from offsets"""
         return join_bytes(self.engine.bytemap[o : o + 1] for o in offsets)
+
     def test_encode_bytes(self):
         """test encode_bytes() against reference inputs"""
         engine = self.engine
@@ -798,6 +799,7 @@ class _Base64Test(TestCase):
         encode = engine.encode_bytes
         self.assertRaises(TypeError, encode, "\x00")
         self.assertRaises(TypeError, encode, None)
+
     def test_decode_bytes(self):
         """test decode_bytes() against reference inputs"""
         engine = self.engine
@@ -929,6 +931,7 @@ class _Base64Test(TestCase):
                 self.assertTrue(ok)
                 self.assertEqual(result, rdata)
             i += 1
+
     # NOTE: these tests assume normal encode/decode has been tested elsewhere.
 
     transposed = [

@@ -53,7 +53,6 @@ __all__ = [
 ]
 
 
-
 # masks/upper limits for various integer sizes
 INT_24_MASK = 0xFFFFFF
 INT_56_MASK = 0xFFFFFFFFFFFFFF
@@ -65,7 +64,6 @@ _KPARITY_MASK = 0x0101010101010101
 
 # mask used to setup key schedule
 _KS_MASK = 0xFCFCFCFCFFFFFFFF
-
 
 
 # placeholders filled in by _load_tables()
@@ -1996,7 +1994,6 @@ def _pack56(value):
 
 def _unpack56(value):
     return _uint64_struct.unpack(b"\x00" + value)[0]
-
 
 
 ##def expand_7bit(value):

@@ -157,12 +157,14 @@ sha512_crypt__min_rounds = 45000
         phpass__ident="H",
         phpass__default_rounds=7,
     )
+
     def setUp(self):
         super().setUp()
         warnings.filterwarnings("ignore", "The 'all' scheme is deprecated.*")
         warnings.filterwarnings(
             "ignore", ".*'scheme' keyword is deprecated as of Passlib 1.7.*"
         )
+
     def test_01_constructor(self):
         """test class constructor"""
 
@@ -294,6 +296,7 @@ sha512_crypt__min_rounds = 45000
         cc1 = CryptContext(**self.sample_1_dict)
         # NOTE: "0x-1234" format used by Pyston 0.5.1 (support deprecated 2019-11)
         self.assertRegex(repr(cc1), "^<CryptContext at 0x-?[0-9a-f]+>$")
+
     def test_10_load(self):
         """test load() / load_path() method"""
         # NOTE: load() is the workhorse that handles all policy parsing,
@@ -395,6 +398,7 @@ sha512_crypt__min_rounds = 45000
 
         # wrong arg type
         self.assertRaises(TypeError, ctx.update, None)
+
     def test_20_options(self):
         """test basic option parsing"""
 
@@ -917,6 +921,7 @@ sha512_crypt__min_rounds = 45000
             r"# NOTE: the 'unsalted_test_hash' handler\(s\)"
             r" are not registered with Passlib",
         )
+
     nonstring_vectors = [
         (None, {}),
         (None, {"scheme": "des_crypt"}),
@@ -1689,6 +1694,7 @@ sha512_crypt__min_rounds = 45000
             seen.add(r)
         self.assertEqual(min(seen), lower, "vary_rounds had wrong lower limit:")
         self.assertEqual(max(seen), upper, "vary_rounds had wrong upper limit:")
+
     def test_dummy_verify(self):
         """
         dummy_verify() method
@@ -1705,6 +1711,7 @@ sha512_crypt__min_rounds = 45000
 
         # TODO: test dummy_verify() invoked by .verify() when hash is None,
         #       and same for .verify_and_update()
+
     def test_61_autodeprecate(self):
         """test deprecated='auto' is handled correctly"""
 

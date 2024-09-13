@@ -33,7 +33,6 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib[.].*")
 
 
-
 # read env var for tags, needed since "python setup.py build_sphinx"
 # doesn't support sphinx-build's "-t" option.
 for _tag in os.environ.get("SPHINX_BUILD_TAGS", "").split():

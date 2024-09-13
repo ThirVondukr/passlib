@@ -23,7 +23,6 @@ __all__ = [
 ]
 
 
-
 warn(
     "the module 'passlib.utils.pbkdf2' is deprecated as of Passlib 1.7, "
     "and will be removed in Passlib 2.0, please use 'passlib.crypto' instead",

@@ -335,6 +335,7 @@ _UZERO = "0"
 
 class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
     """class containing common code shared by sha256_crypt & sha512_crypt"""
+
     # name - set by subclass
     setting_kwds = ("salt", "rounds", "implicit_rounds", "salt_size")
     # ident - set by subclass
@@ -423,6 +424,7 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandl
                 self.checksum or "",
             )
         return hash
+
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -510,6 +512,7 @@ class sha256_crypt(_SHA2_Common):
             and the flag is ignored otherwise. the spec requires the two different
             encodings be preserved as they are, instead of normalizing them.
     """
+
     name = "sha256_crypt"
     ident = "$5$"
     checksum_size = 43
@@ -565,6 +568,7 @@ class sha512_crypt(_SHA2_Common):
             and the flag is ignored otherwise. the spec requires the two different
             encodings be preserved as they are, instead of normalizing them.
     """
+
     name = "sha512_crypt"
     ident = "$6$"
     checksum_size = 86
@@ -578,4 +582,3 @@ class sha512_crypt(_SHA2_Common):
         "yWeBdRDx4DU.1H3eGmse6pgsOgDisWBG"
         "I5c7TZauS0",
     )
-

@@ -116,6 +116,7 @@ class mssql2000(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
+
     name = "mssql2000"
     setting_kwds = ("salt",)
     checksum_size = 40
@@ -184,6 +185,7 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         will be issued instead. Correctable errors include
         ``salt`` strings that are too long.
     """
+
     name = "mssql2005"
     setting_kwds = ("salt",)
 
@@ -214,4 +216,3 @@ class mssql2005(uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if isinstance(secret, bytes):
             secret = secret.decode("utf-8")
         return _raw_mssql(secret, self.salt)
-

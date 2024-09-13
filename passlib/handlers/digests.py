@@ -19,12 +19,14 @@ __all__ = [
 
 class HexDigestHash(uh.StaticHandler):
     """this provides a template for supporting passwords stored as plain hexadecimal hashes"""
+
     _hash_func = None  # hash function to use - filled in by create_hex_hash()
     checksum_size = None  # filled in by create_hex_hash()
     checksum_chars = uh.HEX_CHARS
 
     #: special for detecting if _hash_func is just a stub method.
     supported = True
+
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()
@@ -71,7 +73,6 @@ It supports no optional or contextual keywords.
     if django_name:
         hasher.django_name = django_name
     return hasher
-
 
 
 # NOTE: some digests below are marked as "required=False", because these may not be present on

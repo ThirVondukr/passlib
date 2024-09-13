@@ -176,12 +176,14 @@ class des_crypt(uh.TruncateMixin, uh.HasManyBackends, uh.HasSalt, uh.GenericHand
     def to_string(self):
         hash = "%s%s" % (self.salt, self.checksum)
         return hash
+
     def _calc_checksum(self, secret):
         # check for truncation (during .hash() calls only)
         if self.use_defaults:
             self._check_truncate_policy(secret)
 
         return self._calc_checksum_backend(secret)
+
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -251,6 +253,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
         :meth:`hash` will now issue a warning if an even number of rounds is used
         (see :ref:`bsdi-crypt-security-issues` regarding weak DES keys).
     """
+
     # --GenericHandler--
     name = "bsdi_crypt"
     setting_kwds = ("salt", "rounds")
@@ -332,6 +335,7 @@ class bsdi_crypt(uh.HasManyBackends, uh.HasRounds, uh.HasSalt, uh.GenericHandler
             return True
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
+
     backends = ("os_crypt", "builtin")
 
     # ---------------------------------------------------------------
@@ -393,6 +397,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "bigcrypt"
     setting_kwds = ("salt",)
@@ -429,6 +434,7 @@ class bigcrypt(uh.HasSalt, uh.GenericHandler):
         if len(checksum) % 11:
             raise uh.exc.InvalidHashError(self)
         return checksum
+
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
@@ -516,6 +522,7 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
     def to_string(self):
         hash = "%s%s" % (self.salt, self.checksum)
         return hash
+
     def _calc_checksum(self, secret):
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
@@ -545,4 +552,3 @@ class crypt16(uh.TruncateMixin, uh.HasSalt, uh.GenericHandler):
         # done
         chk = h64big.encode_int64(result1) + h64big.encode_int64(result2)
         return chk.decode("ascii")
-

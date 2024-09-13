@@ -596,6 +596,7 @@ class GenericHandler(MinimalHandler):
     .. automethod:: hash
     .. automethod:: verify
     """
+
     # this must be provided by the actual class.
     setting_kwds: Optional[tuple[str, ...]] = None
 
@@ -665,6 +666,7 @@ class GenericHandler(MinimalHandler):
                 raise ValueError("invalid characters in %s checksum" % (self.name,))
 
         return checksum
+
     @classmethod
     def identify(cls, hash):
         # NOTE: subclasses may wish to use faster / simpler identify,
@@ -1040,6 +1042,7 @@ class HasManyIdents(GenericHandler):
     =============
     .. todo:: document using() and needs_update() options
     """
+
     default_ident = None  # should be str
     ident_values = None  # should be list of unicode strings
     ident_aliases = None  # should be dict of unicode -> unicode
@@ -1050,6 +1053,7 @@ class HasManyIdents(GenericHandler):
     # NOTE: relying on test_06_HasManyIdents() to verify
     #       these are configured correctly.
     ident = None
+
     @classmethod
     def using(
         cls,  # keyword only...
@@ -1080,6 +1084,7 @@ class HasManyIdents(GenericHandler):
         if default_ident is not None:
             subcls.default_ident = cls(ident=default_ident, use_defaults=True).ident
         return subcls
+
     def __init__(self, ident=None, **kwds):
         super().__init__(**kwds)
 
@@ -1124,6 +1129,7 @@ class HasManyIdents(GenericHandler):
         # failure!
         # XXX: give this it's own error type?
         raise ValueError("invalid ident: %r" % (ident,))
+
     @classmethod
     def identify(cls, hash):
         hash = to_unicode_for_identify(hash)
@@ -1235,6 +1241,7 @@ class HasSalt(GenericHandler):
 
     # TODO: could support using(min/max_desired_salt_size) via using() and needs_update()
     salt = None
+
     @classmethod
     def using(
         cls,  # keyword only...
@@ -1335,6 +1342,7 @@ class HasSalt(GenericHandler):
                 raise ValueError(msg)
 
         return salt_size
+
     def __init__(self, salt=None, **kwds):
         super().__init__(**kwds)
         if salt is not None:
@@ -1547,6 +1555,7 @@ class HasRounds(GenericHandler):
     default_rounds: Optional[int] = None
     vary_rounds = None
     rounds = None
+
     @classmethod
     def using(
         cls,
@@ -1814,6 +1823,7 @@ class HasRounds(GenericHandler):
                 rounds = rng.randint(lower, upper)
 
         return rounds
+
     def _calc_needs_update(self, **kwds):
         """
         mark hash as needing update if rounds is outside desired bounds.
@@ -1825,6 +1835,7 @@ class HasRounds(GenericHandler):
         if max_desired_rounds and self.rounds > max_desired_rounds:
             return True
         return super()._calc_needs_update(**kwds)
+
     @classmethod
     def bitsize(cls, rounds=None, vary_rounds=0.1, **kwds):
         """[experimental method] return info about bitsizes of hash"""
@@ -1869,6 +1880,7 @@ class ParallelismMixin(GenericHandler):
                 parallelism, relaxed=kwds.get("relaxed")
             )
         return subcls
+
     def __init__(self, parallelism=None, **kwds):
         super().__init__(**kwds)
 
@@ -2305,6 +2317,7 @@ class HasManyBackends(BackendMixin, GenericHandler):
         """
         self._stub_requires_backend()
         return self._calc_checksum_backend(secret)
+
     @classmethod
     def _get_backend_loader(cls, name):
         """

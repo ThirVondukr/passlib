@@ -210,6 +210,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     name = "sun_md5_crypt"
     setting_kwds = ("salt", "rounds", "bare_salt", "salt_size")
     checksum_chars = uh.HASH64_CHARS
@@ -232,9 +233,11 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
     ident_values = ("$md5$", "$md5,")
     bare_salt = False  # flag to indicate legacy hashes that lack "$$" suffix
+
     def __init__(self, bare_salt=False, **kwds):
         self.bare_salt = bare_salt
         super().__init__(**kwds)
+
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
@@ -319,6 +322,7 @@ class sun_md5_crypt(uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             chk = self.checksum
             hash = "%s$%s" % (hash, chk)
         return hash
+
     # TODO: if we're on solaris, check for native crypt() support.
     #       this will require extra testing, to make sure native crypt
     #       actually behaves correctly. of particular importance:

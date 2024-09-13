@@ -525,6 +525,7 @@ class HashInfo(SequenceMixin):
                 % (self.name, const, hash.name),
                 exc.PasslibRuntimeWarning,
             )
+
     def __repr__(self):
         return "<lookup_hash(%r): digest_size=%r block_size=%r)" % (
             self.name,

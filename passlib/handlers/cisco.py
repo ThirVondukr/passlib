@@ -83,6 +83,7 @@ class cisco_pix(uh.HasUserContext, uh.StaticHandler):
 
     #: control flag signalling "cisco_asa" mode, set by cisco_asa class
     _is_asa = False
+
     def _calc_checksum(self, secret):
         """
         This function implements the "encrypted" hash format used by Cisco
@@ -315,6 +316,7 @@ class cisco_type7(uh.GenericHandler):
     #       chars in size, not sure what appropriate behavior is for that edge case.
     min_salt_value = 0
     max_salt_value = 52
+
     @classmethod
     def using(cls, salt=None, **kwds):
         subcls = super().using(**kwds)

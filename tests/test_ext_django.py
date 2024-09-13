@@ -806,9 +806,6 @@ class DjangoBehaviorTest(_ExtensionTest):
         self.assertEqual(name, scheme)
 
 
-
-
-
 class ExtensionBehaviorTest(DjangoBehaviorTest):
     """
     test that "passlib.ext.django" conforms to behavioral assertions in DjangoBehaviorTest
@@ -997,6 +994,7 @@ class DjangoExtensionTest(_ExtensionTest):
         self.unload_extension()
         update_settings(PASSLIB_CONFIG="missing-preset", PASSLIB_CONTEXT=UNSET)
         self.assertRaises(ValueError, __import__, "passlib.ext.django.models")
+
     def test_21_category_setting(self):
         """test PASSLIB_GET_CATEGORY parameter"""
         # define config where rounds can be used to detect category
@@ -1047,4 +1045,3 @@ class DjangoExtensionTest(_ExtensionTest):
             PASSLIB_CONTEXT=config,
             PASSLIB_GET_CATEGORY="x",
         )
-

@@ -103,6 +103,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
     # list of algorithms to create/compare digests for.
     algs = None
+
     @classmethod
     def extract_digest_info(cls, hash, alg):
         """return (salt, rounds, digest) for specific hash algorithm.
@@ -252,6 +253,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             for alg in self.algs
         )
         return "$scram$%d$%s$%s" % (self.rounds, salt, chk_str)
+
     @classmethod
     def using(cls, default_algs=None, algs=None, **kwds):
         # parse aliases
@@ -266,6 +268,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         if default_algs is not None:
             subcls.default_algs = cls._norm_algs(default_algs)
         return subcls
+
     def __init__(self, algs=None, **kwds):
         super().__init__(**kwds)
 
@@ -315,6 +318,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # NOTE: required because of SCRAM spec (rfc 5802)
             raise ValueError("sha-1 must be in algorithm list of scram hash")
         return algs
+
     def _calc_needs_update(self, **kwds):
         # marks hashes as deprecated if they don't include at least all default_algs.
         # XXX: should we deprecate if they aren't exactly the same,
@@ -324,6 +328,7 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         # hand off to base implementation
         return super()._calc_needs_update(**kwds)
+
     def _calc_checksum(self, secret, alg=None):
         rounds = self.rounds
         salt = self.salt
@@ -381,6 +386,8 @@ class scram(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
             # there should always be sha-1 at the very least,
             # or something went wrong inside _norm_algs()
             raise AssertionError("sha-1 digest not found!")
+
+
 # code used for testing scram against protocol examples during development.
 # =============================================================================
 ##def _test_reference_scram():

@@ -251,6 +251,7 @@ class scrypt(
             salt=params[11:],
             checksum=h64.decode_bytes(digest) if digest else None,
         )
+
     def to_string(self):
         ident = self.ident
         if ident == IDENT_SCRYPT:
@@ -283,6 +284,7 @@ class scrypt(
                     ]
                 )
             )
+
     def __init__(self, block_size=None, **kwds):
         super().__init__(**kwds)
 
@@ -336,6 +338,7 @@ class scrypt(
     @classmethod
     def set_backend(cls, name="any", dryrun=False):
         _scrypt._set_backend(name, dryrun=dryrun)
+
     def _calc_checksum(self, secret):
         secret = to_bytes(secret, param="secret")
         return _scrypt.scrypt(
@@ -355,4 +358,3 @@ class scrypt(
         if self.block_size != type(self).block_size:
             return True
         return super()._calc_needs_update(**kwds)
-

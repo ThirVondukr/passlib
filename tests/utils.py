@@ -418,6 +418,7 @@ class TestCase(unittest.TestCase):
         raise AssertionError("this alias is deprecated by stdlib unittest")
 
     assertNotEquals = assertRegexMatches = assertEquals
+
     def assertWarning(
         self,
         warning,
@@ -540,6 +541,7 @@ class TestCase(unittest.TestCase):
 
     def _formatWarningList(self, wlist):
         return "[%s]" % ", ".join(self._formatWarning(entry) for entry in wlist)
+
     def require_stringprep(self):
         """helper to skip test if stringprep is missing"""
         from passlib.utils import stringprep
@@ -684,6 +686,7 @@ class TestCase(unittest.TestCase):
 
         # XXX: check for "failed" state in ``self._outcome`` before writing this?
         test_log.info("subtest passed: %s", title)
+
     _mktemp_queue = None
 
     def mktemp(self, *args, **kwds):
@@ -846,6 +849,7 @@ class HandlerCase(TestCase):
         if "os_crypt" in getattr(cls.handler, "backends", ()):
             return b"\x00"
         return None
+
     __unittest_skip = True
 
     @property
@@ -1044,6 +1048,7 @@ class HandlerCase(TestCase):
         """
         meth = getattr(self, self._testMethodName, None)
         return not getattr(meth, "_doesnt_require_backend", False)
+
     def setUp(self):
         # check if test is disabled due to missing backend;
         # and that it wasn't exempted via @doesnt_require_backend() decorator
@@ -1073,6 +1078,7 @@ class HandlerCase(TestCase):
         from passlib.utils import handlers
 
         self.patchAttr(handlers, "rng", self.getRandom("salt generator"))
+
     def test_01_required_attributes(self):
         """validate required attributes"""
         handler = self.handler
@@ -1306,6 +1312,7 @@ class HandlerCase(TestCase):
                 raise TypeError(
                     "has_backend(%r) returned invalid " "value: %r" % (backend, ret)
                 )
+
     def require_salt(self):
         if "salt" not in self.handler.setting_kwds:
             raise self.skipTest("handler doesn't have salt")
@@ -1596,6 +1603,7 @@ class HandlerCase(TestCase):
         # honor 'salt_size' alias
         temp = handler.using(salt_size=ref)
         self.assertEqual(temp.default_salt_size, ref)
+
     def require_rounds_info(self):
         if not has_rounds_info(self.handler):
             raise self.skipTest("handler lacks rounds attributes")
@@ -3122,6 +3130,7 @@ class HandlerCase(TestCase):
                 settings=gendict(self.settings_map),
                 context=gendict(self.context_map),
             )
+
         def randintgauss(self, lower, upper, mu, sigma):
             """generate random int w/ gauss distirbution"""
             value = self.rng.normalvariate(mu, sigma)
@@ -3327,6 +3336,7 @@ class OsCryptMixin(HandlerCase):
 
     # flag read by HandlerCase to detect if fake os crypt is enabled.
     using_patched_crypt = False
+
     def setUp(self):
         assert self.backend == "os_crypt"
         if not self.handler.has_backend("os_crypt"):

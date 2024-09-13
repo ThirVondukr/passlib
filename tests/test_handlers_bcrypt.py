@@ -173,6 +173,7 @@ class _bcrypt_test(HandlerCase):
         ("linux", None),  # may be present via addon, e.g. debian's libpam-unix2
         ("solaris", None),  # depends on system policy
     ]
+
     def setUp(self):
         # ensure builtin is enabled for duration of test.
         if TEST_MODE("full") and self.backend == "builtin":
@@ -196,6 +197,7 @@ class _bcrypt_test(HandlerCase):
         if self.backend == "builtin":
             kwds.setdefault("rounds", 4)
         super().populate_settings(kwds)
+
     def crypt_supports_variant(self, hash):
         """check if OS crypt is expected to support given ident"""
         from passlib.handlers.bcrypt import bcrypt
@@ -262,6 +264,7 @@ class _bcrypt_test(HandlerCase):
         def random_rounds(self):
             # decrease default rounds for fuzz testing to speed up volume.
             return self.randintgauss(5, 8, 6, 1)
+
     known_incorrect_padding = [
         # password, bad hash, good hash
         # 2 bits of salt padding set
@@ -525,6 +528,7 @@ class _bcrypt_sha256_test(HandlerCase):
         # config string w/ $ added
         "$bcrypt-sha256$v=2,t=2b,r=5$5Hg1DKFqPE8C2aflZ5vVoe$",
     ]
+
     def setUp(self):
         # ensure builtin is enabled for duration of test.
         if TEST_MODE("full") and self.backend == "builtin":

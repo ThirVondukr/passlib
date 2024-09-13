@@ -131,7 +131,6 @@ def _decode_bytes(key, format):
         raise ValueError("unknown byte-encoding format: %r" % (format,))
 
 
-
 #: flag for detecting if encrypted totp support is present
 AES_SUPPORT = bool(_cg_ciphers)
 
@@ -242,6 +241,7 @@ class AppWallet(object):
 
     #: tag for default secret
     default_tag = None
+
     def __init__(
         self, secrets=None, default_tag=None, encrypt_cost=None, secrets_path=None
     ):
@@ -617,6 +617,7 @@ class TOTP(object):
     #: This can be for a number of reasons -- encoded using deprecated format,
     #: or encrypted using a deprecated key or too few rounds.
     changed = False
+
     @classmethod
     def using(
         cls,
@@ -1315,6 +1316,7 @@ class TOTP(object):
             return cls.from_uri(source)
         else:
             return cls.from_json(source)
+
     @classmethod
     def from_uri(cls, uri):
         """
@@ -1445,6 +1447,7 @@ class TOTP(object):
             return int(source)
         except ValueError:
             raise cls._uri_parse_error("Malformed %r parameter" % param)
+
     def to_uri(self, label=None, issuer=None):
         """
         Serialize key and configuration into a URI, per

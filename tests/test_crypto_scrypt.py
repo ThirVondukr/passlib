@@ -310,6 +310,7 @@ class _CommonScryptTest(TestCase):
         return "passlib.utils.scrypt.scrypt() <%s backend>" % cls.backend
 
     backend = None
+
     def setUp(self):
         assert self.backend
         scrypt_mod._set_backend(self.backend)

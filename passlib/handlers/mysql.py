@@ -38,9 +38,11 @@ class mysql323(uh.StaticHandler):
 
     The :meth:`~passlib.ifc.PasswordHash.hash` and :meth:`~passlib.ifc.PasswordHash.genconfig` methods accept no optional keywords.
     """
+
     name = "mysql323"
     checksum_size = 16
     checksum_chars = uh.HEX_CHARS
+
     @classmethod
     def _norm_hash(cls, hash):
         return hash.lower()

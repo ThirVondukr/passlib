@@ -32,6 +32,7 @@ def _makelang(alphabet, size):
 
 class SkeletonTest(TestCase):
     """test hash support classes"""
+
     def test_00_static_handler(self):
         """test StaticHandler class"""
 
@@ -77,6 +78,7 @@ class SkeletonTest(TestCase):
         # check default hash method
         self.assertEqual(d1.hash("s"), "_a")
         self.assertEqual(d1.hash("s", flag=True), "_b")
+
     def test_10_identify(self):
         """test GenericHandler.identify()"""
 
@@ -573,6 +575,7 @@ class SkeletonTest(TestCase):
         # TODO: handle fshp correctly, and other glitches noted in code.
         ##self.assertEqual(hash.fshp.bitsize(variant=1),
         ##                {'checksum': 256, 'rounds': 13, 'salt': 128})
+
 
 class dummy_handler_in_registry(object):
     """context manager that inserts dummy handler in registry"""

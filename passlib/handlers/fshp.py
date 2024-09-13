@@ -49,6 +49,7 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "fshp"
     setting_kwds = ("salt", "salt_size", "rounds", "variant")
@@ -81,13 +82,16 @@ class fshp(uh.HasRounds, uh.HasRawSalt, uh.HasRawChecksum, uh.GenericHandler):
         [(str(k), k) for k in _variant_info]
         + [(v[0], k) for k, v in _variant_info.items()]
     )
+
     @classmethod
     def using(cls, variant=None, **kwds):
         subcls = super().using(**kwds)
         if variant is not None:
             subcls.default_variant = cls._norm_variant(variant)
         return subcls
+
     variant = None
+
     def __init__(self, variant=None, **kwds):
         # NOTE: variant must be set first, since it controls checksum size, etc.
         self.use_defaults = kwds.get("use_defaults")  # load this early

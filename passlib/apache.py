@@ -62,6 +62,7 @@ class _CommonFile(object):
     #: list of tokens for recreating original file contents when saving. if present,
     #: will be sequence of (_SKIPPED, b"whitespace/comments") and (_RECORD, <record key>) tuples.
     _source = None
+
     @classmethod
     def from_string(cls, data, **kwds):
         """create new object from raw string.
@@ -93,6 +94,7 @@ class _CommonFile(object):
         self = cls(**kwds)
         self.load(path)
         return self
+
     # XXX: add a new() classmethod, ala TOTP.new()?
 
     def __init__(
@@ -151,6 +153,7 @@ class _CommonFile(object):
     def mtime(self):
         """modify time when last loaded (if bound to a local file)"""
         return self._mtime
+
     def load_if_changed(self):
         """Reload from ``self.path`` only if file has changed since last load"""
         if not self._path:
@@ -249,6 +252,7 @@ class _CommonFile(object):
         if not existing:
             self._source.append((_RECORD, key))
         return existing
+
     def _autosave(self):
         """subclass helper to call save() after any changes"""
         if self.autosave and self._path:
@@ -311,6 +315,7 @@ class _CommonFile(object):
     def _render_record(self, key, value):  # pragma: no cover - abstract method
         """given key/value pair, encode as line of file"""
         raise NotImplementedError("should be implemented in subclass")
+
     def _encode_user(self, user):
         """user-specific wrapper for _encode_field()"""
         return self._encode_field(user, "user")
@@ -913,6 +918,7 @@ class HtdigestFile(_CommonFile):
     # optionally specify default realm that will be used if none
     # is provided to a method call. otherwise realm is always required.
     default_realm = None
+
     def __init__(self, path=None, default_realm=None, **kwds):
         self.default_realm = default_realm
         super().__init__(path, **kwds)

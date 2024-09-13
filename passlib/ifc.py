@@ -131,6 +131,7 @@ class PasswordHash(ABC):
     ):  # pragma: no cover -- abstract method
         """verify secret against hash, returns True/False"""
         raise NotImplementedError("must be implemented by subclass")
+
     @classmethod
     @abstractmethod
     def using(cls, relaxed=False, **kwds):
@@ -151,6 +152,7 @@ class PasswordHash(ABC):
             add this method to main documentation.
         """
         raise NotImplementedError("must be implemented by subclass")
+
     @classmethod
     def needs_update(cls, hash, secret=None):
         """
@@ -172,6 +174,7 @@ class PasswordHash(ABC):
         """
         # by default, always report that we don't need update
         return False
+
     @classmethod
     @abstractmethod
     def identify(cls, hash):  # pragma: no cover -- abstract method
@@ -214,6 +217,7 @@ class PasswordHash(ABC):
         """
         # XXX: if hashes reliably offered a .parse() method, could make a fallback for this.
         raise NotImplementedError("must be implemented by subclass")
+
     # the following entry points are used internally by passlib,
     # and aren't documented as part of the exposed interface.
     # they are subject to change between releases,

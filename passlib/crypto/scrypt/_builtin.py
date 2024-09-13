@@ -37,10 +37,12 @@ class ScryptEngine(object):
     bmix_half_len = 0
     bmix_struct = None
     integerify = None
+
     @classmethod
     def execute(cls, secret, salt, n, r, p, keylen):
         """create engine & run scrypt() hash calculation"""
         return cls(n, r, p).run(secret, salt, keylen)
+
     def __init__(self, n, r, p):
         # store config
         self.n = n
@@ -73,6 +75,7 @@ class ScryptEngine(object):
                 return ig1(X) | (ig2(X) << 32)
 
         self.integerify = integerify
+
     def run(self, secret, salt, keylen):
         """
         run scrypt kdf for specified secret, salt, and keylen
@@ -102,6 +105,7 @@ class ScryptEngine(object):
 
         # stretch final byte array into output via pbkdf2
         return pbkdf2_hmac("sha256", secret, output, rounds=1, keylen=keylen)
+
     def smix(self, input):
         """run SCrypt smix function on a single input block
 
@@ -166,6 +170,7 @@ class ScryptEngine(object):
 
         # repack tmp
         return bmix_struct.pack(*buffer)
+
     def bmix(self, source, target):
         """
         block mixing function used by smix()

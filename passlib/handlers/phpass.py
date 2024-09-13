@@ -52,6 +52,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
 
         .. versionadded:: 1.6
     """
+
     # --GenericHandler--
     name = "phpass"
     setting_kwds = ("salt", "rounds", "ident")
@@ -97,6 +98,7 @@ class phpass(uh.HasManyIdents, uh.HasRounds, uh.HasSalt, uh.GenericHandler):
             self.checksum or "",
         )
         return hash
+
     def _calc_checksum(self, secret):
         # FIXME: can't find definitive policy on how phpass handles non-ascii.
         if isinstance(secret, str):
