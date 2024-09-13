@@ -3,7 +3,7 @@ import os
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Sequence
+from typing import Union, Sequence, Generic, TypeVar
 
 import pytest
 
@@ -103,31 +103,32 @@ def password_file_path(tmp_path: Path) -> Path:
     return tmp_path.joinpath("file")
 
 
+TApacheFile = TypeVar("TApacheFile", HtpasswdFile, HtdigestFile)
+
+
 @dataclasses.dataclass
-class _TestCaseParams:
+class _TestCaseParams(Generic[TApacheFile]):
     sample_01: bytes
     sample_02: bytes
     sample_03: bytes
-    cls: type[Union[HtpasswdFile, HtdigestFile]]
+    cls: type[TApacheFile]
 
     load_with_user: bytes
 
 
-class _BaseTest(ABC):
+class _BaseTest(ABC, Generic[TApacheFile]):
     @property
     @abstractmethod
-    def params(self) -> _TestCaseParams:
+    def params(self) -> _TestCaseParams[TApacheFile]:
         raise NotImplementedError
 
-    def _delete(self, file: Union[HtpasswdFile, HtdigestFile], user: str) -> bool:
+    def _delete(self, file: TApacheFile, user: str) -> bool:
         return file.delete(user)
 
-    def _set_password(
-        self, file: Union[HtpasswdFile, HtdigestFile], user: str, password: str
-    ) -> bool:
+    def _set_password(self, file: TApacheFile, user: str, password: str) -> bool:
         return file.set_password(user, password)
 
-    def _users(self, file: Union[HtpasswdFile, HtdigestFile]) -> Sequence[str]:
+    def _users(self, file: TApacheFile) -> Sequence[str]:
         return file.users()
 
     @pytest.fixture
@@ -206,9 +207,7 @@ class _BaseTest(ABC):
             return self.params.cls(password_file_path)
         return self.params.cls(password_file_path, default_scheme="plaintext")
 
-    def test_load(
-        self, password_file_path: Path, ht_from_path: Union[HtpasswdFile, HtdigestFile]
-    ) -> None:
+    def test_load(self, password_file_path: Path, ht_from_path: TApacheFile) -> None:
         ht = ht_from_path
         assert ht.to_string() == b""
 
@@ -235,7 +234,7 @@ class _BaseTest(ABC):
         assert sample_file.read_bytes() == self.params.sample_02
 
 
-class TestHtpasswdFile(_BaseTest):
+class TestHtpasswdFile(_BaseTest[HtpasswdFile]):
     params = _TestCaseParams(
         sample_01=SAMPLE_01,
         sample_02=SAMPLE_02,
@@ -294,7 +293,7 @@ class TestHtpasswdFile(_BaseTest):
             assert not ht.check_password(f"user{i}", "pass9")
 
 
-class TestHtdigestFile(_BaseTest):
+class TestHtdigestFile(_BaseTest[HtdigestFile]):
     params = _TestCaseParams(
         sample_01=(
             b"user2:realm:549d2a5f4659ab39a80dac99e159ab19\n"
@@ -318,15 +317,13 @@ class TestHtdigestFile(_BaseTest):
     )
     realm = "realm"
 
-    def _delete(self, file: Union[HtpasswdFile, HtdigestFile], user: str) -> bool:
-        return file.delete(user, self.realm)
+    def _delete(self, file: HtdigestFile, user: str) -> bool:
+        return file.delete(user, realm=self.realm)
 
-    def _set_password(
-        self, file: Union[HtpasswdFile, HtdigestFile], user: str, password: str
-    ) -> bool:
-        return file.set_password(user, self.realm, password)
+    def _set_password(self, file: HtdigestFile, user: str, password: str) -> bool:
+        return file.set_password(user, realm=self.realm, password=password)
 
-    def _users(self, file: Union[HtpasswdFile, HtdigestFile]) -> Sequence[str]:
+    def _users(self, file: HtdigestFile) -> Sequence[str]:
         return file.users(realm=self.realm)
 
 

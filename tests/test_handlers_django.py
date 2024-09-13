@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest import skipUnless, SkipTest
 import warnings
 from tests.test_handlers_argon2 import _base_argon2_test
@@ -32,7 +33,7 @@ class _DjangoHelper(TestCase):
 
     #: minimum django version where hash alg is present / that we support testing against
     min_django_version = MIN_DJANGO_VERSION
-    max_django_version = None
+    max_django_version: Optional[tuple[int, int]] = None
 
     def _require_django_support(self):
         # make sure min django version

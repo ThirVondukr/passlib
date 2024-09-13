@@ -96,7 +96,8 @@ _TRANSLATE_SOURCE = list(iter_byte_chars(ALL_BYTE_VALUES))
 
 
 def compile_byte_translation(
-    mapping: Mapping[Union[int, str, bytes], Union[int, str]], source=None
+    mapping: Mapping[Union[int, str, bytes], Union[int, str, bytes]],
+    source=None,
 ) -> bytes:
     """
     return a 256-byte string for translating bytes using specified mapping.
