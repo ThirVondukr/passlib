@@ -6,7 +6,6 @@ import itertools
 import math
 import os
 import random
-import re
 import stringprep
 import sys
 import threading
@@ -354,10 +353,10 @@ def saslprep(source, param="value"):
     # mapping stage
     #   - map non-ascii spaces to U+0020 (stringprep C.1.2)
     #   - strip 'commonly mapped to nothing' chars (stringprep B.1)
-    in_table_c12 = stringprep.in_table_c12
-    in_table_b1 = stringprep.in_table_b1
     data = "".join(
-        _USPACE if in_table_c12(c) else c for c in source if not in_table_b1(c)
+        _USPACE if stringprep.in_table_c12(c) else c
+        for c in source
+        if not stringprep.in_table_b1(c)
     )
 
     # normalize to KC form
@@ -385,47 +384,34 @@ def saslprep(source, param="value"):
         is_forbidden_bidi_char = is_ral_char
 
     # check for prohibited output - stringprep tables A.1, B.1, C.1.2, C.2 - C.9
-    in_table_a1 = stringprep.in_table_a1
-    in_table_c21_c22 = stringprep.in_table_c21_c22
-    in_table_c3 = stringprep.in_table_c3
-    in_table_c4 = stringprep.in_table_c4
-    in_table_c5 = stringprep.in_table_c5
-    in_table_c6 = stringprep.in_table_c6
-    in_table_c7 = stringprep.in_table_c7
-    in_table_c8 = stringprep.in_table_c8
-    in_table_c9 = stringprep.in_table_c9
+    forbidden_ = [
+        (stringprep.in_table_a1, "unassigned code points forbidden in "),
+        (stringprep.in_table_c21_c22, "control characters forbidden in "),
+        (stringprep.in_table_c3, "private use characters forbidden in "),
+        (stringprep.in_table_c4, "non-char code points forbidden in "),
+        (stringprep.in_table_c4, "non-char code points forbidden in "),
+        (stringprep.in_table_c4, "non-char code points forbidden in "),
+        (stringprep.in_table_c5, "surrogate codes forbidden in "),
+        (stringprep.in_table_c6, "non-plaintext chars forbidden in "),
+        (stringprep.in_table_c7, "non-canonical chars forbidden in "),
+        (
+            stringprep.in_table_c8,
+            "display-modifying / deprecated chars " "forbidden in",
+        ),
+        (stringprep.in_table_c9, "tagged characters forbidden in "),
+        # do bidi constraint check chosen by bidi init, above
+        (is_forbidden_bidi_char, "forbidden bidi character in "),
+    ]
     for c in data:
         # check for chars mapping stage should have removed
-        assert not in_table_b1(c), "failed to strip B.1 in mapping stage"
-        assert not in_table_c12(c), "failed to replace C.1.2 in mapping stage"
+        assert not stringprep.in_table_b1(c), "failed to strip B.1 in mapping stage"
+        assert not stringprep.in_table_c12(
+            c
+        ), "failed to replace C.1.2 in mapping stage"
 
-        # check for forbidden chars
-        if in_table_a1(c):
-            raise ValueError("unassigned code points forbidden in " + param)
-        if in_table_c21_c22(c):
-            raise ValueError("control characters forbidden in " + param)
-        if in_table_c3(c):
-            raise ValueError("private use characters forbidden in " + param)
-        if in_table_c4(c):
-            raise ValueError("non-char code points forbidden in " + param)
-        if in_table_c5(c):
-            raise ValueError("surrogate codes forbidden in " + param)
-        if in_table_c6(c):
-            raise ValueError("non-plaintext chars forbidden in " + param)
-        if in_table_c7(c):
-            # XXX: should these have been caught by normalize?
-            # if so, should change this to an assert
-            raise ValueError("non-canonical chars forbidden in " + param)
-        if in_table_c8(c):
-            raise ValueError(
-                "display-modifying / deprecated chars " "forbidden in" + param
-            )
-        if in_table_c9(c):
-            raise ValueError("tagged characters forbidden in " + param)
-
-        # do bidi constraint check chosen by bidi init, above
-        if is_forbidden_bidi_char(c):
-            raise ValueError("forbidden bidi character in " + param)
+        for func, err_msg in forbidden_:
+            if func(c):
+                raise ValueError(f"{err_msg} {param}")
 
     return data
 
@@ -861,14 +847,6 @@ def test_crypt(secret, hash):
 timer = timeit.default_timer
 # legacy alias, will be removed in passlib 2.0
 tick = timer
-
-
-def parse_version(source):
-    """helper to parse version string"""
-    m = re.search(r"(\d+(?:\.\d+)+)", source)
-    if m:
-        return tuple(int(elem) for elem in m.group(1).split("."))
-    return None
 
 
 # NOTE:
