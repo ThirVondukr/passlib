@@ -14,10 +14,10 @@ providing full-strength password hashing for multi-user application.
 - See the [documentation](<https://passlib.readthedocs.io>) 
   for details, installation instructions, and examples.
 
-- See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_
-  for a description of what's new in Passlib.
+[//]: # (- See the `changelog <https://passlib.readthedocs.io/en/stable/history>`_)
+[//]: # (  for a description of what's new in Passlib.)
 
-- Visit [PyPI](https://passlib.readthedocs.io/en/stable/history) for the latest stable release.
+- Visit [PyPI](https://pypi.org/project/libpass) for the latest stable release.
 
 
 
