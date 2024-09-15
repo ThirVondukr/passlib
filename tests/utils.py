@@ -1,33 +1,36 @@
 """helpers for passlib unittests"""
 
-# core
-from binascii import unhexlify
 import contextlib
-from functools import wraps, partial
 import hashlib
 import logging
-from typing import Optional, Union
-from unittest import SkipTest
-
+import os
 import random
 import re
-import os
 import sys
 import tempfile
 import threading
 import time
 import unittest
+import warnings
+
+# core
+from binascii import unhexlify
+from functools import wraps, partial
+from typing import Optional, Union
+from unittest import SkipTest
+from warnings import warn
 
 import pytest
 
-from passlib.exc import PasslibHashWarning, PasslibConfigWarning
-import warnings
-from warnings import warn
-
+import passlib.utils.handlers as uh
 from passlib import exc
-from passlib.exc import MissingBackendError
+from passlib.exc import (
+    PasslibHashWarning,
+    PasslibConfigWarning,
+    MissingBackendError,
+    InternalBackendError,
+)
 from passlib.ifc import PasswordHash
-
 from passlib.utils import (
     has_rounds_info,
     has_salt_info,
@@ -41,7 +44,6 @@ from passlib.utils import (
     batch,
 )
 from passlib.utils.decor import classproperty
-import passlib.utils.handlers as uh
 from passlib.utils.handlers import PrefixWrapper
 from tests.utils_ import no_warnings
 
@@ -514,6 +516,7 @@ class TestCase(unittest.TestCase):
         wrapper for .subTest() which traps SkipTest errors.
         (see source for details)
         """
+
         # this function works around issue that as 2020-10-08,
         #   .subTest() doesn't play nicely w/ .skipTest();
         #   and also makes it hard to debug which subtest had a failure.
@@ -2234,10 +2237,13 @@ class HandlerCase(TestCase):
 
         secret = "." * (1 + MAX_PASSWORD_SIZE)
         hash = self.get_sample_hash()[1]
-        err = self.assertRaises(PasswordSizeError, self.do_genhash, secret, hash)
-        assert err.max_size == MAX_PASSWORD_SIZE
-        self.assertRaises(PasswordSizeError, self.do_encrypt, secret)
-        self.assertRaises(PasswordSizeError, self.do_verify, secret, hash)
+        with pytest.raises(PasswordSizeError) as exc_info:
+            self.do_genhash(secret, hash)
+        assert exc_info.value.max_size == MAX_PASSWORD_SIZE
+        with pytest.raises(PasswordSizeError):
+            self.do_encrypt(secret)
+        with pytest.raises(PasswordSizeError):
+            self.do_verify(secret, hash)
 
     def test_64_forbidden_chars(self):
         """test forbidden characters not allowed in password"""
@@ -2251,7 +2257,8 @@ class HandlerCase(TestCase):
             chars = iter_byte_chars(chars)
             base = base.encode("ascii")
         for c in chars:
-            self.assertRaises(ValueError, self.do_encrypt, base + c + base)
+            with pytest.raises(ValueError):
+                self.do_encrypt(base + c + base)
 
     def is_secret_8bit(self, secret):
         secret = self.populate_context(secret, {})
@@ -2373,13 +2380,8 @@ class HandlerCase(TestCase):
             )
 
             # verify() should throw error for config strings.
-            self.assertRaises(
-                ValueError,
-                self.do_verify,
-                secret,
-                config,
-                __msg__="verify() failed to reject config string: %r" % (config,),
-            )
+            with pytest.raises(ValueError):
+                self.do_verify(secret, config)
 
             # genhash() should reproduce hash from config.
             result = self.do_genhash(secret, config)
@@ -2403,25 +2405,10 @@ class HandlerCase(TestCase):
                 "hash: %r" % (hash,)
             )
 
-            # verify() should throw error
-            self.assertRaises(
-                ValueError,
-                self.do_verify,
-                "stub",
-                hash,
-                __msg__="verify() failed to throw error for unidentifiable "
-                "hash: %r" % (hash,),
-            )
-
-            # genhash() should throw error
-            self.assertRaises(
-                ValueError,
-                self.do_genhash,
-                "stub",
-                hash,
-                __msg__="genhash() failed to throw error for unidentifiable "
-                "hash: %r" % (hash,),
-            )
+            with pytest.raises(ValueError):
+                self.do_verify("stub", hash)
+            with pytest.raises(ValueError):
+                self.do_genhash("stub", hash)
 
     def test_74_malformed(self):
         """test known identifiable-but-malformed strings"""
@@ -2433,25 +2420,11 @@ class HandlerCase(TestCase):
                 "identify() failed to identify known malformed " "hash: %r" % (hash,)
             )
 
-            # verify() should throw error
-            self.assertRaises(
-                ValueError,
-                self.do_verify,
-                "stub",
-                hash,
-                __msg__="verify() failed to throw error for malformed "
-                "hash: %r" % (hash,),
-            )
+            with pytest.raises(ValueError):
+                self.do_verify("stub", hash)
 
-            # genhash() should throw error
-            self.assertRaises(
-                ValueError,
-                self.do_genhash,
-                "stub",
-                hash,
-                __msg__="genhash() failed to throw error for malformed "
-                "hash: %r" % (hash,),
-            )
+            with pytest.raises(ValueError):
+                self.do_genhash("stub", hash)
 
     def test_75_foreign(self):
         """test known foreign hashes"""
@@ -2485,46 +2458,32 @@ class HandlerCase(TestCase):
                 )
 
                 # verify should throw error
-                self.assertRaises(
-                    ValueError,
-                    self.do_verify,
-                    "stub",
-                    hash,
-                    __msg__="verify() failed to throw error for hash "
-                    "belonging to %s: %r"
-                    % (
-                        name,
-                        hash,
-                    ),
-                )
+                with pytest.raises(ValueError):
+                    self.do_verify("stub", hash)
 
                 # genhash() should throw error
-                self.assertRaises(
-                    ValueError,
-                    self.do_genhash,
-                    "stub",
-                    hash,
-                    __msg__="genhash() failed to throw error for hash "
-                    "belonging to %s: %r" % (name, hash),
-                )
+                with pytest.raises(ValueError):
+                    self.do_genhash("stub", hash)
 
     def test_76_hash_border(self):
         """test non-string hashes are rejected"""
-        #
         # test hash=None is handled correctly
-        #
-        self.assertRaises(TypeError, self.do_identify, None)
-        self.assertRaises(TypeError, self.do_verify, "stub", None)
+        with pytest.raises(TypeError):
+            self.do_identify(None)
+        with pytest.raises(TypeError):
+            self.do_verify("stub", None)
 
         # NOTE: changed in 1.7 -- previously 'None' would be accepted when config strings not supported.
-        self.assertRaises(TypeError, self.do_genhash, "stub", None)
+        with pytest.raises(TypeError):
+            self.do_genhash("stub", None)
 
-        #
         # test hash=int is rejected (picked as example of entirely wrong type)
-        #
-        self.assertRaises(TypeError, self.do_identify, 1)
-        self.assertRaises(TypeError, self.do_verify, "stub", 1)
-        self.assertRaises(TypeError, self.do_genhash, "stub", 1)
+        with pytest.raises(TypeError):
+            self.do_identify(1)
+        with pytest.raises(TypeError):
+            self.do_verify("stub", 1)
+        with pytest.raises(TypeError):
+            self.do_genhash("stub", 1)
 
         #
         # test hash='' is rejected for all but the plaintext hashes
@@ -2541,20 +2500,10 @@ class HandlerCase(TestCase):
                 assert not self.do_identify(
                     hash
                 ), "identify() incorrectly identified empty hash"
-                self.assertRaises(
-                    ValueError,
-                    self.do_verify,
-                    "stub",
-                    hash,
-                    __msg__="verify() failed to reject empty hash",
-                )
-                self.assertRaises(
-                    ValueError,
-                    self.do_genhash,
-                    "stub",
-                    hash,
-                    __msg__="genhash() failed to reject empty hash",
-                )
+                with pytest.raises(ValueError):
+                    self.do_verify("stub", hash)
+                with pytest.raises(ValueError):
+                    self.do_genhash("stub", hash)
 
         #
         # test identify doesn't throw decoding errors on 8-bit input
@@ -3071,9 +3020,8 @@ class HandlerCase(TestCase):
         #
 
         # w/o original hash
-        self.assertRaisesRegex(
-            ValueError, "cannot restore original hash", handler.enable, disabled_default
-        )
+        with pytest.raises(ValueError, match="cannot restore original hash"):
+            handler.enable(disabled_default)
 
         # w/ original hash
         try:
@@ -3249,20 +3197,16 @@ class OsCryptMixin(HandlerCase):
     def test_80_faulty_crypt(self):
         """test with faulty crypt()"""
         hash = self.get_sample_hash()[1]
-        exc_types = (exc.InternalBackendError,)
         mock_crypt = self._use_mock_crypt()
 
-        def test(value):
-            # set safe_crypt() to return specified value, and
-            # make sure assertion error is raised by handler.
+        for value in ["$x" + hash[2:], hash[:-1], hash + "x"]:
             mock_crypt.return_value = value
-            self.assertRaises(exc_types, self.do_genhash, "stub", hash)
-            self.assertRaises(exc_types, self.do_encrypt, "stub")
-            self.assertRaises(exc_types, self.do_verify, "stub", hash)
-
-        test("$x" + hash[2:])  # detect wrong prefix
-        test(hash[:-1])  # detect too short
-        test(hash + "x")  # detect too long
+            with pytest.raises(InternalBackendError):
+                self.do_genhash("stub", hash)
+            with pytest.raises(InternalBackendError):
+                self.do_encrypt("stub")
+            with pytest.raises(InternalBackendError):
+                self.do_verify("stub", hash)
 
     def test_81_crypt_fallback(self):
         """test per-call crypt() fallback"""
@@ -3279,12 +3223,15 @@ class OsCryptMixin(HandlerCase):
             assert self.do_verify("stub", h1)
         else:
             # handler should give up
-            from passlib.exc import InternalBackendError as err_type
+            from passlib.exc import InternalBackendError
 
             hash = self.get_sample_hash()[1]
-            self.assertRaises(err_type, self.do_encrypt, "stub")
-            self.assertRaises(err_type, self.do_genhash, "stub", hash)
-            self.assertRaises(err_type, self.do_verify, "stub", hash)
+            with pytest.raises(InternalBackendError):
+                self.do_encrypt("stub")
+            with pytest.raises(InternalBackendError):
+                self.do_genhash("stub", hash)
+            with pytest.raises(InternalBackendError):
+                self.do_verify("stub", hash)
 
     @doesnt_require_backend
     def test_82_crypt_support(self):
@@ -3394,9 +3341,12 @@ class UserHandlerMixin(HandlerCase):
         hash = handler.hash(password, user=self.default_user)
 
         if self.requires_user:
-            self.assertRaises(TypeError, handler.hash, password)
-            self.assertRaises(TypeError, handler.genhash, password, hash)
-            self.assertRaises(TypeError, handler.verify, password, hash)
+            with pytest.raises(TypeError):
+                handler.hash(password)
+            with pytest.raises(TypeError):
+                handler.genhash(password, hash)
+            with pytest.raises(TypeError):
+                handler.verify(password, hash)
         else:
             # e.g. cisco_pix works with or without one.
             handler.hash(password)

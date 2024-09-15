@@ -8,6 +8,7 @@ from passlib.exc import UnknownHashError
 from tests.utils import TestCase, hb
 
 from passlib.crypto.digest import pbkdf2_hmac, PBKDF2_BACKENDS
+import re
 
 
 class HashInfoTest(TestCase):
