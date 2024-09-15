@@ -123,10 +123,12 @@ class HtdigestFileTest(TestCase):
         assert ht.to_string() == self.sample_02
 
         # invalid user
-        self.assertRaises(ValueError, ht.delete, "user:", "realm")
+        with pytest.raises(ValueError):
+            ht.delete("user:", "realm")
 
         # invalid realm
-        self.assertRaises(ValueError, ht.delete, "user", "realm:")
+        with pytest.raises(ValueError):
+            ht.delete("user", "realm:")
 
     def test_01_delete_autosave(self):
         path = self.mktemp()
@@ -150,18 +152,23 @@ class HtdigestFileTest(TestCase):
         assert ht.to_string() == self.sample_03
 
         # default realm
-        self.assertRaises(TypeError, ht.set_password, "user2", "pass3")
+        with pytest.raises(TypeError):
+            ht.set_password("user2", "pass3")
         ht.default_realm = "realm2"
         ht.set_password("user2", "pass3")
         ht.check_password("user2", "realm2", "pass3")
 
         # invalid user
-        self.assertRaises(ValueError, ht.set_password, "user:", "realm", "pass")
-        self.assertRaises(ValueError, ht.set_password, "u" * 256, "realm", "pass")
+        with pytest.raises(ValueError):
+            ht.set_password("user:", "realm", "pass")
+        with pytest.raises(ValueError):
+            ht.set_password("u" * 256, "realm", "pass")
 
         # invalid realm
-        self.assertRaises(ValueError, ht.set_password, "user", "realm:", "pass")
-        self.assertRaises(ValueError, ht.set_password, "user", "r" * 256, "pass")
+        with pytest.raises(ValueError):
+            ht.set_password("user", "realm:", "pass")
+        with pytest.raises(ValueError):
+            ht.set_password("user", "r" * 256, "pass")
 
     # TODO: test set_password autosave
 
@@ -179,13 +186,16 @@ class HtdigestFileTest(TestCase):
             "user5",
         ]
 
-        self.assertRaises(TypeError, ht.users, 1)
+        with pytest.raises(TypeError):
+            ht.users(1)
 
     def test_04_check_password(self):
         """test check_password()"""
         ht = apache.HtdigestFile.from_string(self.sample_01)
-        self.assertRaises(TypeError, ht.check_password, 1, "realm", "pass5")
-        self.assertRaises(TypeError, ht.check_password, "user", 1, "pass5")
+        with pytest.raises(TypeError):
+            ht.check_password(1, "realm", "pass5")
+        with pytest.raises(TypeError):
+            ht.check_password("user", 1, "pass5")
         assert ht.check_password("user5", "realm", "pass5") is None
         for i in range(1, 5):
             i = str(i)
@@ -193,13 +203,15 @@ class HtdigestFileTest(TestCase):
             assert ht.check_password("user" + i, "realm", "pass5") is False
 
         # default realm
-        self.assertRaises(TypeError, ht.check_password, "user5", "pass5")
+        with pytest.raises(TypeError):
+            ht.check_password("user5", "pass5")
         ht.default_realm = "realm"
         assert ht.check_password("user1", "pass1")
         assert ht.check_password("user5", "pass5") is None
 
         # invalid user
-        self.assertRaises(ValueError, ht.check_password, "user:", "realm", "pass")
+        with pytest.raises(ValueError):
+            ht.check_password("user:", "realm", "pass")
 
     def test_05_load(self):
         """test load()"""
@@ -227,8 +239,10 @@ class HtdigestFileTest(TestCase):
 
         # test load w/ no path
         hb = apache.HtdigestFile()
-        self.assertRaises(RuntimeError, hb.load)
-        self.assertRaises(RuntimeError, hb.load_if_changed)
+        with pytest.raises(RuntimeError):
+            hb.load()
+        with pytest.raises(RuntimeError):
+            hb.load_if_changed()
 
         # test load w/ explicit path
         hc = apache.HtdigestFile()
@@ -251,7 +265,8 @@ class HtdigestFileTest(TestCase):
         # test save w/ no path
         hb = apache.HtdigestFile()
         hb.set_password("user1", "realm", "pass1")
-        self.assertRaises(RuntimeError, hb.save)
+        with pytest.raises(RuntimeError):
+            hb.save()
 
         # test save w/ explicit path
         hb.save(path)
@@ -278,7 +293,8 @@ class HtdigestFileTest(TestCase):
     def test_09_encodings(self):
         """test encoding parameter"""
         # test bad encodings cause failure in constructor
-        self.assertRaises(ValueError, apache.HtdigestFile, encoding="utf-16")
+        with pytest.raises(ValueError):
+            apache.HtdigestFile(encoding="utf-16")
 
         # check sample utf-8
         ht = apache.HtdigestFile.from_string(
@@ -306,7 +322,7 @@ class HtdigestFileTest(TestCase):
         assert ht.to_string() == b""
 
     def test_11_malformed(self):
-        self.assertRaises(
-            ValueError, apache.HtdigestFile.from_string, b"realm:user1:pass1:other\n"
-        )
-        self.assertRaises(ValueError, apache.HtdigestFile.from_string, b"user1:pass1\n")
+        with pytest.raises(ValueError):
+            apache.HtdigestFile.from_string(b"realm:user1:pass1:other\n")
+        with pytest.raises(ValueError):
+            apache.HtdigestFile.from_string(b"user1:pass1\n")

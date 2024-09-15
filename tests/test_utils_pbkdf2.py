@@ -1,6 +1,8 @@
 import hashlib
 import warnings
 
+import pytest
+
 from tests.utils import TestCase, hb
 
 
@@ -79,20 +81,28 @@ class Pbkdf1_Test(TestCase):
         helper()
 
         # salt/secret wrong type
-        self.assertRaises(TypeError, helper, secret=1)
-        self.assertRaises(TypeError, helper, salt=1)
+        with pytest.raises(TypeError):
+            helper(secret=1)
+        with pytest.raises(TypeError):
+            helper(salt=1)
 
         # non-existent hashes
-        self.assertRaises(ValueError, helper, hash="missing")
+        with pytest.raises(ValueError):
+            helper(hash="missing")
 
         # rounds < 1 and wrong type
-        self.assertRaises(ValueError, helper, rounds=0)
-        self.assertRaises(TypeError, helper, rounds="1")
+        with pytest.raises(ValueError):
+            helper(rounds=0)
+        with pytest.raises(TypeError):
+            helper(rounds="1")
 
         # keylen < 0, keylen > block_size, and wrong type
-        self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=17, hash="md5")
-        self.assertRaises(TypeError, helper, keylen="1")
+        with pytest.raises(ValueError):
+            helper(keylen=-1)
+        with pytest.raises(ValueError):
+            helper(keylen=17, hash="md5")
+        with pytest.raises(TypeError):
+            helper(keylen="1")
 
 
 class Pbkdf2_Test(TestCase):
@@ -273,25 +283,37 @@ class Pbkdf2_Test(TestCase):
         helper()
 
         # invalid rounds
-        self.assertRaises(ValueError, helper, rounds=-1)
-        self.assertRaises(ValueError, helper, rounds=0)
-        self.assertRaises(TypeError, helper, rounds="x")
+        with pytest.raises(ValueError):
+            helper(rounds=-1)
+        with pytest.raises(ValueError):
+            helper(rounds=0)
+        with pytest.raises(TypeError):
+            helper(rounds="x")
 
         # invalid keylen
-        self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=0)
+        with pytest.raises(ValueError):
+            helper(keylen=-1)
+        with pytest.raises(ValueError):
+            helper(keylen=0)
         helper(keylen=1)
-        self.assertRaises(OverflowError, helper, keylen=20 * (2**32 - 1) + 1)
-        self.assertRaises(TypeError, helper, keylen="x")
+        with pytest.raises(OverflowError):
+            helper(keylen=20 * (2**32 - 1) + 1)
+        with pytest.raises(TypeError):
+            helper(keylen="x")
 
         # invalid secret/salt type
-        self.assertRaises(TypeError, helper, salt=5)
-        self.assertRaises(TypeError, helper, secret=5)
+        with pytest.raises(TypeError):
+            helper(salt=5)
+        with pytest.raises(TypeError):
+            helper(secret=5)
 
         # invalid hash
-        self.assertRaises(ValueError, helper, prf="hmac-foo")
-        self.assertRaises(NotImplementedError, helper, prf="foo")
-        self.assertRaises(TypeError, helper, prf=5)
+        with pytest.raises(ValueError):
+            helper(prf="hmac-foo")
+        with pytest.raises(NotImplementedError):
+            helper(prf="foo")
+        with pytest.raises(TypeError):
+            helper(prf=5)
 
     def test_default_keylen(self):
         """test keylen==None"""
@@ -312,6 +334,5 @@ class Pbkdf2_Test(TestCase):
         def prf(key, msg):
             return hashlib.md5(key + msg + b"fooey").digest()
 
-        self.assertRaises(
-            NotImplementedError, pbkdf2, b"secret", b"salt", 1000, 20, prf
-        )
+        with pytest.raises(NotImplementedError):
+            pbkdf2(b"secret", b"salt", 1000, 20, prf)

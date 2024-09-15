@@ -277,7 +277,8 @@ class _ExtensionSupport(object):
         """
         # make sure we're currently patched
         mod = sys.modules.get("passlib.ext.django.models")
-        assert mod and mod.adapter.patched, "patch should have been enabled"
+        assert mod
+        assert mod.adapter.patched, "patch should have been enabled"
 
         # make sure only the expected objects have been patched
         for obj, attr, source, patched in self._iter_patch_candidates():
@@ -551,7 +552,8 @@ class DjangoBehaviorTest(_ExtensionTest):
 
         # identify_hasher() and is_password_usable() should reject it
         assert not is_password_usable(user.password)
-        self.assertRaises(ValueError, identify_hasher, user.password)
+        with pytest.raises(ValueError):
+            identify_hasher(user.password)
 
     def test_none_hash_value(self):
         """
@@ -572,7 +574,8 @@ class DjangoBehaviorTest(_ExtensionTest):
         user.password = None
         if quirks.none_causes_check_password_error and not patched:
             # django 2.1+
-            self.assertRaises(TypeError, user.check_password, PASS1)
+            with pytest.raises(TypeError):
+                user.check_password(PASS1)
         else:
             assert not user.check_password(PASS1)
 
@@ -584,12 +587,14 @@ class DjangoBehaviorTest(_ExtensionTest):
 
         # check_password() - error
         if quirks.none_causes_check_password_error and not patched:
-            self.assertRaises(TypeError, check_password, PASS1, None)
+            with pytest.raises(TypeError):
+                check_password(PASS1, None)
         else:
             assert not check_password(PASS1, None)
 
         # identify_hasher() - error
-        self.assertRaises(TypeError, identify_hasher, None)
+        with pytest.raises(TypeError):
+            identify_hasher(None)
 
     def test_empty_hash_value(self):
         """
@@ -624,7 +629,8 @@ class DjangoBehaviorTest(_ExtensionTest):
         assert not check_password(PASS1, "")
 
         # identify_hasher() - throws error
-        self.assertRaises(ValueError, identify_hasher, "")
+        with pytest.raises(ValueError):
+            identify_hasher("")
 
     def test_invalid_hash_values(self):
         """
@@ -666,7 +672,8 @@ class DjangoBehaviorTest(_ExtensionTest):
         assert not check_password(PASS1, hash)
 
         # identify_hasher() - throws error
-        self.assertRaises(ValueError, identify_hasher, hash)
+        with pytest.raises(ValueError):
+            identify_hasher(hash)
 
     def test_available_schemes(self):
         """
@@ -836,9 +843,8 @@ class DjangoExtensionTest(_ExtensionTest):
         self.assert_unpatched()
 
         # check onfig=None is rejected
-        self.assertRaises(
-            TypeError, self.load_extension, PASSLIB_CONFIG=None, check=False
-        )
+        with pytest.raises(TypeError):
+            self.load_extension(PASSLIB_CONFIG=None, check=False)
         self.assert_unpatched()
 
         # try stock django 1.0 context
@@ -894,7 +900,8 @@ class DjangoExtensionTest(_ExtensionTest):
 
         # should return native django hasher if available
         if DJANGO_VERSION > (1, 10):
-            self.assertRaises(ValueError, passlib_to_django, "hex_md5")
+            with pytest.raises(ValueError):
+                passlib_to_django("hex_md5")
         else:
             hasher = passlib_to_django("hex_md5")
             assert isinstance(hasher, hashers.UnsaltedMD5PasswordHasher)
@@ -932,14 +939,14 @@ class DjangoExtensionTest(_ExtensionTest):
 
         # made up name should throw error
         # XXX: should this throw ValueError instead, to match django?
-        self.assertRaises(KeyError, passlib_to_django, "does_not_exist")
+        with pytest.raises(KeyError):
+            passlib_to_django("does_not_exist")
 
     def test_11_config_disabled(self):
         """test PASSLIB_CONFIG='disabled'"""
         # test config=None is rejected
-        self.assertRaises(
-            TypeError, self.load_extension, PASSLIB_CONFIG=None, check=False
-        )
+        with pytest.raises(TypeError):
+            self.load_extension(PASSLIB_CONFIG=None, check=False)
         self.assert_unpatched()
 
         # test disabled config
@@ -978,11 +985,13 @@ class DjangoExtensionTest(_ExtensionTest):
     def test_14_config_invalid(self):
         """test PASSLIB_CONFIG type checks"""
         update_settings(PASSLIB_CONTEXT=123, PASSLIB_CONFIG=UNSET)
-        self.assertRaises(TypeError, __import__, "passlib.ext.django.models")
+        with pytest.raises(TypeError):
+            __import__("passlib.ext.django.models")
 
         self.unload_extension()
         update_settings(PASSLIB_CONFIG="missing-preset", PASSLIB_CONTEXT=UNSET)
-        self.assertRaises(ValueError, __import__, "passlib.ext.django.models")
+        with pytest.raises(ValueError):
+            __import__("passlib.ext.django.models")
 
     def test_21_category_setting(self):
         """test PASSLIB_GET_CATEGORY parameter"""
@@ -1028,9 +1037,8 @@ class DjangoExtensionTest(_ExtensionTest):
         assert run(first_name="superuser", is_superuser=True) == 1000
 
         # test bad value
-        self.assertRaises(
-            TypeError,
-            self.load_extension,
-            PASSLIB_CONTEXT=config,
-            PASSLIB_GET_CATEGORY="x",
-        )
+        with pytest.raises(TypeError):
+            self.load_extension(
+                PASSLIB_CONTEXT=config,
+                PASSLIB_GET_CATEGORY="x",
+            )

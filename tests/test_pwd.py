@@ -1,10 +1,9 @@
 import itertools
 
+import pytest
 
+from passlib.pwd import genphrase, genword, default_charsets
 from tests.utils import TestCase
-
-from passlib.pwd import genphrase
-from passlib.pwd import genword, default_charsets
 
 __all__ = [
     "UtilsTest",
@@ -29,22 +28,22 @@ class UtilsTest(TestCase):
 
         assert _self_info_rate("abcd") == 2
         assert _self_info_rate("abcd" * 8) == 2
-        self.assertAlmostEqual(_self_info_rate("abcdaaaa"), 1.5488, places=4)
+        assert _self_info_rate("abcdaaaa") == pytest.approx(1.5488, abs=1e-4)
 
-    # def test_total_self_info(self):
-    #     """_total_self_info()"""
-    #     from passlib.pwd import _total_self_info
-    #
-    #     self.assertEqual(_total_self_info(""), 0)
-    #
-    #     self.assertEqual(_total_self_info("a" * 8), 0)
-    #
-    #     self.assertEqual(_total_self_info("ab"), 2)
-    #     self.assertEqual(_total_self_info("ab" * 8), 16)
-    #
-    #     self.assertEqual(_total_self_info("abcd"), 8)
-    #     self.assertEqual(_total_self_info("abcd" * 8), 64)
-    #     self.assertAlmostEqual(_total_self_info("abcdaaaa"), 12.3904, places=4)
+        # def test_total_self_info(self):
+        #     """_total_self_info()"""
+        #     from passlib.pwd import _total_self_info
+        #
+        #     self.assertEqual(_total_self_info(""), 0)
+        #
+        #     self.assertEqual(_total_self_info("a" * 8), 0)
+        #
+        #     self.assertEqual(_total_self_info("ab"), 2)
+        #     self.assertEqual(_total_self_info("ab" * 8), 16)
+        #
+        #     self.assertEqual(_total_self_info("abcd"), 8)
+        #     self.assertEqual(_total_self_info("abcd" * 8), 64)
+        #     self.assertAlmostEqual(_total_self_info("abcdaaaa"), 12.3904, places=4)
 
 
 ascii_62 = default_charsets["ascii_62"]
@@ -81,9 +80,8 @@ class WordGeneratorTest(TestCase):
         assert len(result) == 9
 
         # malformed keyword should have useful error.
-        self.assertRaisesRegex(
-            TypeError, "(?i)unexpected keyword.*badkwd", genword, badkwd=True
-        )
+        with pytest.raises(TypeError, match="(?i)unexpected keyword.*badkwd"):
+            genword(badkwd=True)
 
     def test_returns(self):
         """'returns' keyword"""
@@ -94,10 +92,12 @@ class WordGeneratorTest(TestCase):
         # returns=iter option
         gen = genword(returns=iter)
         results = [next(gen) for _ in range(5000)]
+
         self.assertResultContents(results, 5000, ascii_62)
 
         # invalid returns option
-        self.assertRaises(TypeError, genword, returns="invalid-type")
+        with pytest.raises(TypeError):
+            genword(returns="invalid-type")
 
     def test_charset(self):
         """'charset' & 'chars' options"""
@@ -111,7 +111,8 @@ class WordGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, "abc", unique=27)
 
         # chars + charset
-        self.assertRaises(TypeError, genword, chars="abc", charset="hex")
+        with pytest.raises(TypeError):
+            genword(chars="abc", charset="hex")
 
     # TODO: test rng option
 
@@ -142,9 +143,8 @@ class PhraseGeneratorTest(TestCase):
         assert len(result.split(" ")) == 4  # 48 / log(7776, 2) ~= 3.7 -> 4
 
         # malformed keyword should have useful error.
-        self.assertRaisesRegex(
-            TypeError, "(?i)unexpected keyword.*badkwd", genphrase, badkwd=True
-        )
+        with pytest.raises(TypeError, match="(?i)unexpected keyword.*badkwd"):
+            genphrase(badkwd=True)
 
     def test_entropy(self):
         """'length' & 'entropy' keywords"""
@@ -177,7 +177,8 @@ class PhraseGeneratorTest(TestCase):
         self.assertResultContents(results, 1000, simple_words)
 
         # invalid returns option
-        self.assertRaises(TypeError, genphrase, returns="invalid-type")
+        with pytest.raises(TypeError):
+            genphrase(returns="invalid-type")
 
     def test_wordset(self):
         """'wordset' & 'words' options"""
@@ -190,4 +191,5 @@ class PhraseGeneratorTest(TestCase):
         self.assertResultContents(results, 5000, simple_words, unique=3**3)
 
         # words + wordset
-        self.assertRaises(TypeError, genphrase, words=simple_words, wordset="bip39")
+        with pytest.raises(TypeError):
+            genphrase(words=simple_words, wordset="bip39")

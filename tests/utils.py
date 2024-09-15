@@ -400,22 +400,6 @@ class TestCase(unittest.TestCase):
             return f"{msg.rstrip()} {std}"
         return msg or std
 
-    # ---------------------------------------------------------------
-    # override assertRaises() to support '__msg__' keyword,
-    # and to return the caught exception for further examination
-    # ---------------------------------------------------------------
-    def assertRaises(self, _exc_type, _callable=None, *args, **kwds):
-        msg = kwds.pop("__msg__", None)
-        if _callable is None:
-            # FIXME: this ignores 'msg'
-            return super().assertRaises(_exc_type, None, *args, **kwds)
-        try:
-            result = _callable(*args, **kwds)
-        except _exc_type as err:
-            return err
-        std = "function returned %r, expected it to raise %r" % (result, _exc_type)
-        raise self.failureException(self._formatMessage(msg, std))
-
     def require_stringprep(self):
         """helper to skip test if stringprep is missing"""
         from passlib.utils import stringprep
@@ -1165,7 +1149,8 @@ class HandlerCase(TestCase):
 
             elif ret is False:
                 # verify backend CAN'T be loaded
-                self.assertRaises(MissingBackendError, handler.set_backend, backend)
+                with pytest.raises(MissingBackendError):
+                    handler.set_backend(backend)
 
             else:
                 # didn't return boolean object. commonly fails due to
@@ -1288,9 +1273,11 @@ class HandlerCase(TestCase):
         # check min-1 is rejected
         #
         if min_size > 0:
-            self.assertRaises(ValueError, self.do_genconfig, salt=s1[:-1])
+            with pytest.raises(ValueError):
+                self.do_genconfig(salt=s1[:-1])
 
-        self.assertRaises(ValueError, self.do_encrypt, "stub", salt_size=min_size - 1)
+        with pytest.raises(ValueError):
+            self.do_encrypt("stub", salt_size=min_size - 1)
 
     def test_13_max_salt_size(self):
         """test hash() / genconfig() honors max_salt_size"""
@@ -1326,9 +1313,11 @@ class HandlerCase(TestCase):
             # check max size + 1 is rejected
             #
             s2 = s1 + salt_char
-            self.assertRaises(ValueError, self.do_stub_encrypt, salt=s2)
+            with pytest.raises(ValueError):
+                self.do_stub_encrypt(salt=s2)
 
-            self.assertRaises(ValueError, self.do_stub_encrypt, salt_size=max_size + 1)
+            with pytest.raises(ValueError):
+                self.do_stub_encrypt(salt_size=max_size + 1)
 
             #
             # should accept too-large salt in relaxed mode
@@ -1382,12 +1371,10 @@ class HandlerCase(TestCase):
         chunk = max(mn, 1)
         for c in source:
             if c not in cs:
-                self.assertRaises(
-                    ValueError,
-                    self.do_stub_encrypt,
-                    salt=c * chunk,
-                    __msg__="invalid salt char %r:" % (c,),
-                )
+                with pytest.raises(ValueError):
+                    self.do_stub_encrypt(
+                        salt=c * chunk,
+                    )
 
     @property
     def salt_type(self):
@@ -1408,15 +1395,18 @@ class HandlerCase(TestCase):
         class fake(object):
             pass
 
-        self.assertRaises(TypeError, self.do_encrypt, "stub", salt=fake())
+        with pytest.raises(TypeError):
+            self.do_encrypt("stub", salt=fake())
 
         # unicode should be accepted only if salt_type is unicode.
         if salt_type is not str:
-            self.assertRaises(TypeError, self.do_encrypt, "stub", salt="x" * salt_size)
+            with pytest.raises(TypeError):
+                self.do_encrypt("stub", salt="x" * salt_size)
 
         # bytes should be accepted only if salt_type is bytes
         if salt_type is not bytes:
-            self.assertRaises(TypeError, self.do_encrypt, "stub", salt=b"x" * salt_size)
+            with pytest.raises(TypeError):
+                self.do_encrypt("stub", salt=b"x" * salt_size)
 
     def test_using_salt_size(self):
         """Handler.using() -- default_salt_size"""
@@ -1428,14 +1418,16 @@ class HandlerCase(TestCase):
         df = handler.default_salt_size
 
         # should prevent setting below handler limit
-        self.assertRaises(ValueError, handler.using, default_salt_size=-1)
+        with pytest.raises(ValueError):
+            handler.using(default_salt_size=-1)
         with pytest.warns(PasslibHashWarning):
             temp = handler.using(default_salt_size=-1, relaxed=True)
         assert temp.default_salt_size == mn
 
         # should prevent setting above handler limit
         if mx:
-            self.assertRaises(ValueError, handler.using, default_salt_size=mx + 1)
+            with pytest.raises(ValueError):
+                handler.using(default_salt_size=mx + 1)
             with pytest.warns(PasslibHashWarning):
                 temp = handler.using(default_salt_size=mx + 1, relaxed=True)
             assert temp.default_salt_size == mx
@@ -1459,7 +1451,8 @@ class HandlerCase(TestCase):
         assert temp.default_salt_size == ref
 
         # reject invalid strings
-        self.assertRaises(ValueError, handler.using, default_salt_size=str(ref) + "xxx")
+        with pytest.raises(ValueError):
+            handler.using(default_salt_size=str(ref) + "xxx")
 
         # honor 'salt_size' alias
         temp = handler.using(salt_size=ref)
@@ -1512,8 +1505,10 @@ class HandlerCase(TestCase):
         self.do_encrypt("stub", rounds=min_rounds)
 
         # check min-1 is rejected
-        self.assertRaises(ValueError, self.do_genconfig, rounds=min_rounds - 1)
-        self.assertRaises(ValueError, self.do_encrypt, "stub", rounds=min_rounds - 1)
+        with pytest.raises(ValueError):
+            self.do_genconfig(rounds=min_rounds - 1)
+        with pytest.raises(ValueError):
+            self.do_encrypt("stub", rounds=min_rounds - 1)
 
         # TODO: check relaxed mode clips min-1
 
@@ -1525,10 +1520,10 @@ class HandlerCase(TestCase):
 
         if max_rounds is not None:
             # check max+1 is rejected
-            self.assertRaises(ValueError, self.do_genconfig, rounds=max_rounds + 1)
-            self.assertRaises(
-                ValueError, self.do_encrypt, "stub", rounds=max_rounds + 1
-            )
+            with pytest.raises(ValueError):
+                self.do_genconfig(rounds=max_rounds + 1)
+            with pytest.raises(ValueError):
+                self.do_encrypt("stub", rounds=max_rounds + 1)
 
         # handle max rounds
         if max_rounds is None:
@@ -1623,9 +1618,8 @@ class HandlerCase(TestCase):
 
         # .using() should clip values below valid minimum, w/ warning
         if orig_min_rounds > 0:
-            self.assertRaises(
-                ValueError, handler.using, min_desired_rounds=orig_min_rounds - adj
-            )
+            with pytest.raises(ValueError):
+                handler.using(min_desired_rounds=orig_min_rounds - adj)
             with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     min_desired_rounds=orig_min_rounds - adj, relaxed=True
@@ -1634,9 +1628,8 @@ class HandlerCase(TestCase):
 
         # .using() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
-            self.assertRaises(
-                ValueError, handler.using, min_desired_rounds=orig_max_rounds + adj
-            )
+            with pytest.raises(ValueError):
+                handler.using(min_desired_rounds=orig_max_rounds + adj)
             with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     min_desired_rounds=orig_max_rounds + adj, relaxed=True
@@ -1673,7 +1666,8 @@ class HandlerCase(TestCase):
         assert temp.min_desired_rounds == small
 
         # invalid strings should cause error
-        self.assertRaises(ValueError, handler.using, min_rounds=str(small) + "xxx")
+        with pytest.raises(ValueError):
+            handler.using(min_rounds=str(small) + "xxx")
 
     def test_has_rounds_replace_w_max_rounds(self):
         """
@@ -1686,9 +1680,8 @@ class HandlerCase(TestCase):
 
         # .using() should clip values below valid minimum w/ warning
         if orig_min_rounds > 0:
-            self.assertRaises(
-                ValueError, handler.using, max_desired_rounds=orig_min_rounds - adj
-            )
+            with pytest.raises(ValueError):
+                handler.using(max_desired_rounds=orig_min_rounds - adj)
             with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     max_desired_rounds=orig_min_rounds - adj, relaxed=True
@@ -1697,9 +1690,8 @@ class HandlerCase(TestCase):
 
         # .using() should clip values above valid maximum, w/ warning
         if orig_max_rounds:
-            self.assertRaises(
-                ValueError, handler.using, max_desired_rounds=orig_max_rounds + adj
-            )
+            with pytest.raises(ValueError):
+                handler.using(max_desired_rounds=orig_max_rounds + adj)
             with pytest.warns(PasslibHashWarning):
                 temp = handler.using(
                     max_desired_rounds=orig_max_rounds + adj, relaxed=True
@@ -1712,12 +1704,11 @@ class HandlerCase(TestCase):
         assert temp.max_desired_rounds == small
 
         # .using() should reject explicit min > max
-        self.assertRaises(
-            ValueError,
-            subcls.using,
-            min_desired_rounds=medium + adj,
-            max_desired_rounds=medium - adj,
-        )
+        with pytest.raises(ValueError):
+            subcls.using(
+                min_desired_rounds=medium + adj,
+                max_desired_rounds=medium - adj,
+            )
 
         # .using() should allow values w/in previous range
         temp = subcls.using(min_desired_rounds=large - 2 * adj)
@@ -1744,9 +1735,8 @@ class HandlerCase(TestCase):
         assert temp.max_desired_rounds == large
 
         # invalid strings should cause error
-        self.assertRaises(
-            ValueError, handler.using, max_desired_rounds=str(large) + "xxx"
-        )
+        with pytest.raises(ValueError):
+            handler.using(max_desired_rounds=str(large) + "xxx")
 
     def test_has_rounds_using_w_default_rounds(self):
         """
@@ -1768,12 +1758,14 @@ class HandlerCase(TestCase):
 
         # explicit default rounds below desired minimum
         # XXX: make this a warning if min is implicit?
-        self.assertRaises(ValueError, subcls.using, default_rounds=small - adj)
+        with pytest.raises(ValueError):
+            subcls.using(default_rounds=small - adj)
 
         # explicit default rounds above desired maximum
         # XXX: make this a warning if max is implicit?
         if orig_max_rounds:
-            self.assertRaises(ValueError, subcls.using, default_rounds=large + adj)
+            with pytest.raises(ValueError):
+                subcls.using(default_rounds=large + adj)
 
         # hash() etc should implicit default rounds, but get overridden
         assert get_effective_rounds(subcls) == medium
@@ -1784,7 +1776,8 @@ class HandlerCase(TestCase):
         assert temp.default_rounds == medium
 
         # invalid strings should cause error
-        self.assertRaises(ValueError, handler.using, default_rounds=str(medium) + "xxx")
+        with pytest.raises(ValueError):
+            handler.using(default_rounds=str(medium) + "xxx")
 
     def test_has_rounds_using_w_rounds(self):
         """
@@ -1832,8 +1825,10 @@ class HandlerCase(TestCase):
         assert parse("1000") == 1000
 
         # float bounds should be enforced
-        self.assertRaises(ValueError, parse, -0.1)
-        self.assertRaises(ValueError, parse, 1.1)
+        with pytest.raises(ValueError):
+            parse(-0.1)
+        with pytest.raises(ValueError):
+            parse(1.1)
 
     def test_has_rounds_using_w_vary_rounds_generation(self):
         """
@@ -1945,13 +1940,15 @@ class HandlerCase(TestCase):
         handler(ident=cls.default_ident, **kwds)
 
         # ... requires ident w/o defaults
-        self.assertRaises(TypeError, handler, **kwds)
+        with pytest.raises(TypeError):
+            handler(**kwds)
 
         # ... supplies default ident
         handler(use_defaults=True, **kwds)
 
         # ... rejects bad ident
-        self.assertRaises(ValueError, handler, ident="xXx", **kwds)
+        with pytest.raises(ValueError):
+            handler(ident="xXx", **kwds)
 
     # TODO: check various supported idents
 
@@ -1990,7 +1987,8 @@ class HandlerCase(TestCase):
         assert effective_ident(handler) == orig_ident
 
         # rejects bad ident
-        self.assertRaises(ValueError, handler.using, default_ident="xXx")
+        with pytest.raises(ValueError):
+            handler.using(default_ident="xXx")
 
         # honor 'ident' alias
         subcls = handler.using(ident=alt_ident)
@@ -1998,9 +1996,8 @@ class HandlerCase(TestCase):
         assert handler.default_ident == orig_ident
 
         # forbid both at same time
-        self.assertRaises(
-            TypeError, handler.using, default_ident=alt_ident, ident=alt_ident
-        )
+        with pytest.raises(TypeError):
+            handler.using(default_ident=alt_ident, ident=alt_ident)
 
         # check ident aliases are being honored
         if handler.ident_aliases:
@@ -2040,7 +2037,8 @@ class HandlerCase(TestCase):
         assert parse_value("true") is True
         assert parse_value(False) is False
         assert parse_value("false") is False
-        self.assertRaises(ValueError, parse_value, "xxx")
+        with pytest.raises(ValueError):
+            parse_value("xxx")
 
     def test_secret_wo_truncate_size(self):
         """
@@ -2177,10 +2175,9 @@ class HandlerCase(TestCase):
         # --------------------------------------------------
         if with_error:
             # with errors enabled, should forbid truncation.
-            err = self.assertRaises(
-                size_error_type, self.do_encrypt, long_secret, handler=with_error
-            )
-            assert err.max_size == truncate_size
+            with pytest.raises(size_error_type) as exc_info:
+                self.do_encrypt(long_secret, handler=with_error)
+            assert exc_info.value.max_size == truncate_size
 
     def test_61_secret_case_sensitive(self):
         """test password case sensitivity"""
@@ -2220,14 +2217,20 @@ class HandlerCase(TestCase):
         hash = self.get_sample_hash()[1]
 
         # secret=None
-        self.assertRaises(TypeError, self.do_encrypt, None)
-        self.assertRaises(TypeError, self.do_genhash, None, hash)
-        self.assertRaises(TypeError, self.do_verify, None, hash)
+        with pytest.raises(TypeError):
+            self.do_encrypt(None)
+        with pytest.raises(TypeError):
+            self.do_genhash(None, hash)
+        with pytest.raises(TypeError):
+            self.do_verify(None, hash)
 
         # secret=int (picked as example of entirely wrong class)
-        self.assertRaises(TypeError, self.do_encrypt, 1)
-        self.assertRaises(TypeError, self.do_genhash, 1, hash)
-        self.assertRaises(TypeError, self.do_verify, 1, hash)
+        with pytest.raises(TypeError):
+            self.do_encrypt(1)
+        with pytest.raises(TypeError):
+            self.do_genhash(1, hash)
+        with pytest.raises(TypeError):
+            self.do_verify(1, hash)
 
     # xxx: move to password size limits section, above?
     def test_63_large_secret(self):

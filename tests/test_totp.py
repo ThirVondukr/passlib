@@ -10,6 +10,7 @@ import time as _time
 import pytest
 
 from passlib import exc
+from passlib.exc import InvalidTokenError, UsedTokenError
 from tests.utils import TestCase, time_call
 
 
@@ -135,16 +136,19 @@ class AppWalletTest(TestCase):
         # self.assertEqual(wallet._secrets, ref)
 
         # invalid type
-        self.assertRaises(TypeError, AppWallet, 123)
+        with pytest.raises(TypeError):
+            AppWallet(123)
 
         # invalid json obj
-        self.assertRaises(TypeError, AppWallet, "[123]")
+        with pytest.raises(TypeError):
+            AppWallet("[123]")
 
         # # invalid list items
         # self.assertRaises(ValueError, AppWallet, ["1", b"aaa"])
 
         # forbid empty secret
-        self.assertRaises(ValueError, AppWallet, {"1": "aaa", "2": ""})
+        with pytest.raises(ValueError):
+            AppWallet({"1": "aaa", "2": ""})
 
     def test_secrets_tags(self):
         """constructor -- 'secrets' param -- tag/value normalization"""
@@ -163,23 +167,29 @@ class AppWalletTest(TestCase):
         assert wallet._secrets == ref
 
         # forbid non-str/int tags
-        self.assertRaises(TypeError, AppWallet, {(1,): "aaa"})
+        with pytest.raises(TypeError):
+            AppWallet({(1,): "aaa"})
 
         # accept valid tags
         wallet = AppWallet({"1-2_3.4": b"aaa"})
 
         # forbid invalid tags
-        self.assertRaises(ValueError, AppWallet, {"-abc": "aaa"})
-        self.assertRaises(ValueError, AppWallet, {"ab*$": "aaa"})
+        with pytest.raises(ValueError):
+            AppWallet({"-abc": "aaa"})
+        with pytest.raises(ValueError):
+            AppWallet({"ab*$": "aaa"})
 
         # coerce value to bytes
         wallet = AppWallet({"1": "aaa", "02": "bbb", "C": b"ccc"})
         assert wallet._secrets == ref
 
         # forbid invalid value types
-        self.assertRaises(TypeError, AppWallet, {"1": 123})
-        self.assertRaises(TypeError, AppWallet, {"1": None})
-        self.assertRaises(TypeError, AppWallet, {"1": []})
+        with pytest.raises(TypeError):
+            AppWallet({"1": 123})
+        with pytest.raises(TypeError):
+            AppWallet({"1": None})
+        with pytest.raises(TypeError):
+            AppWallet({"1": []})
 
     # TODO: test secrets_path
 
@@ -202,21 +212,23 @@ class AppWalletTest(TestCase):
         assert wallet.get_secret(wallet.default_tag) == b"one"
 
         # throw error on unknown value
-        self.assertRaises(
-            KeyError, AppWallet, {"1": "one", "02": "two", "A": "aaa"}, default_tag="B"
-        )
+        with pytest.raises(KeyError):
+            AppWallet({"1": "one", "02": "two", "A": "aaa"}, default_tag="B")
 
         # should be empty
         wallet = AppWallet()
         assert wallet.default_tag is None
-        self.assertRaises(KeyError, wallet.get_secret, None)
+        with pytest.raises(KeyError):
+            wallet.get_secret(None)
 
     # TODO: test 'cost' param
     def require_aes_support(self, canary=None):
         if AES_SUPPORT:
             canary and canary()
         else:
-            canary and self.assertRaises(RuntimeError, canary)
+            assert canary
+            with pytest.raises(RuntimeError):
+                canary()
             raise self.skipTest("'cryptography' package not installed")
 
     def test_decrypt_key(self):
@@ -253,12 +265,14 @@ class AppWalletTest(TestCase):
         # missing tag should throw error
         temp = CIPHER1.copy()
         temp.update(t="3")
-        self.assertRaises(KeyError, wallet.decrypt_key, temp)
+        with pytest.raises(KeyError):
+            wallet.decrypt_key(temp)
 
         # unknown version should throw error
         temp = CIPHER1.copy()
         temp.update(v=999)
-        self.assertRaises(ValueError, wallet.decrypt_key, temp)
+        with pytest.raises(ValueError):
+            wallet.decrypt_key(temp)
 
     def test_decrypt_key_needs_recrypt(self):
         """.decrypt_key() -- needs_recrypt flag"""
@@ -337,7 +351,8 @@ class AppWalletTest(TestCase):
 
         # border case: empty key
         # XXX: might want to allow this, but documenting behavior for now
-        self.assertRaises(ValueError, wallet.encrypt_key, b"")
+        with pytest.raises(ValueError):
+            wallet.encrypt_key(b"")
 
     def test_encrypt_cost_timing(self):
         """verify cost parameter via timing"""
@@ -354,7 +369,7 @@ class AppWalletTest(TestCase):
 
         # TODO: rework timing test here to inject mock pbkdf2_hmac() function instead;
         #       and test that it's being invoked w/ proper options.
-        self.assertAlmostEqual(delta2, delta * 8, delta=(delta * 8) * 0.5)
+        assert delta2 == pytest.approx(delta * 8, abs=(delta * 8) * 0.5)
 
 
 #: used as base value for RFC test vector keys
@@ -554,8 +569,10 @@ class TotpTest(TestCase):
         """constructor -- 'new'  parameter"""
 
         # exactly one of 'key' or 'new' is required
-        self.assertRaises(TypeError, TOTP)
-        self.assertRaises(TypeError, TOTP, key="4aoggdbbqsyhntuz", new=True)
+        with pytest.raises(TypeError):
+            TOTP()
+        with pytest.raises(TypeError):
+            TOTP(key="4aoggdbbqsyhntuz", new=True)
 
         # generates new key
         otp = TOTP(new=True)
@@ -575,10 +592,12 @@ class TotpTest(TestCase):
         assert len(TOTP(new=True, size=16).key) == 16
 
         # for new=True, maximum size enforced (based on alg)
-        self.assertRaises(ValueError, TOTP, new=True, size=21, alg="sha1")
+        with pytest.raises(ValueError):
+            TOTP(new=True, size=21, alg="sha1")
 
         # for new=True, minimum size enforced
-        self.assertRaises(ValueError, TOTP, new=True, size=9)
+        with pytest.raises(ValueError):
+            TOTP(new=True, size=9)
 
         # for existing key, minimum size is only warned about
         with pytest.warns(
@@ -600,13 +619,15 @@ class TotpTest(TestCase):
         assert TOTP(" 4aog gdbb qsyh ntuz ").key == KEY1_RAW
 
         # .. w/ invalid char
-        self.assertRaises(DecodeError, TOTP, "ao!ggdbbqsyhntuz")
+        with pytest.raises(DecodeError):
+            TOTP("ao!ggdbbqsyhntuz")
 
         # handle hex encoding
         assert TOTP("e01c630c2184b076ce99", "hex").key == KEY1_RAW
 
         # .. w/ invalid char
-        self.assertRaises(DecodeError, TOTP, "X01c630c2184b076ce99", "hex")
+        with pytest.raises(DecodeError):
+            TOTP("X01c630c2184b076ce99", "hex")
 
         # handle raw bytes
         assert TOTP(KEY1_RAW, "raw").key == KEY1_RAW
@@ -619,14 +640,17 @@ class TotpTest(TestCase):
         assert TOTP(KEY1, alg="SHA256").alg == "sha256"
 
         # invalid alg
-        self.assertRaises(ValueError, TOTP, KEY1, alg="SHA-333")
+        with pytest.raises(ValueError):
+            TOTP(KEY1, alg="SHA-333")
 
     def test_ctor_w_digits(self):
         """constructor -- 'digits' parameter"""
-        self.assertRaises(ValueError, TOTP, KEY1, digits=5)
+        with pytest.raises(ValueError):
+            TOTP(KEY1, digits=5)
         assert TOTP(KEY1, digits=6).digits == 6  # min value
         assert TOTP(KEY1, digits=10).digits == 10  # max value
-        self.assertRaises(ValueError, TOTP, KEY1, digits=11)
+        with pytest.raises(ValueError):
+            TOTP(KEY1, digits=11)
 
     def test_ctor_w_period(self):
         """constructor -- 'period' parameter"""
@@ -638,24 +662,30 @@ class TotpTest(TestCase):
         assert TOTP(KEY1, period=63).period == 63
 
         # reject wrong type
-        self.assertRaises(TypeError, TOTP, KEY1, period=1.5)
-        self.assertRaises(TypeError, TOTP, KEY1, period="abc")
+        with pytest.raises(TypeError):
+            TOTP(KEY1, period=1.5)
+        with pytest.raises(TypeError):
+            TOTP(KEY1, period="abc")
 
         # reject non-positive values
-        self.assertRaises(ValueError, TOTP, KEY1, period=0)
-        self.assertRaises(ValueError, TOTP, KEY1, period=-1)
+        with pytest.raises(ValueError):
+            TOTP(KEY1, period=0)
+        with pytest.raises(ValueError):
+            TOTP(KEY1, period=-1)
 
     def test_ctor_w_label(self):
         """constructor -- 'label' parameter"""
         assert TOTP(KEY1).label is None
         assert TOTP(KEY1, label="foo@bar").label == "foo@bar"
-        self.assertRaises(ValueError, TOTP, KEY1, label="foo:bar")
+        with pytest.raises(ValueError):
+            TOTP(KEY1, label="foo:bar")
 
     def test_ctor_w_issuer(self):
         """constructor -- 'issuer' parameter"""
         assert TOTP(KEY1).issuer is None
         assert TOTP(KEY1, issuer="foo.com").issuer == "foo.com"
-        self.assertRaises(ValueError, TOTP, KEY1, issuer="foo.com:bar")
+        with pytest.raises(ValueError):
+            TOTP(KEY1, issuer="foo.com:bar")
 
     # TODO: test using() w/ 'digits', 'alg', 'issue', 'wallet', **wallet_kwds
 
@@ -669,12 +699,16 @@ class TotpTest(TestCase):
         assert TOTP.using(period=63)(KEY1).period == 63
 
         # reject wrong type
-        self.assertRaises(TypeError, TOTP.using, period=1.5)
-        self.assertRaises(TypeError, TOTP.using, period="abc")
+        with pytest.raises(TypeError):
+            TOTP.using(period=1.5)
+        with pytest.raises(TypeError):
+            TOTP.using(period="abc")
 
         # reject non-positive values
-        self.assertRaises(ValueError, TOTP.using, period=0)
-        self.assertRaises(ValueError, TOTP.using, period=-1)
+        with pytest.raises(ValueError):
+            TOTP.using(period=0)
+        with pytest.raises(ValueError):
+            TOTP.using(period=-1)
 
     def test_using_w_now(self):
         """using -- 'now' parameter"""
@@ -684,7 +718,7 @@ class TotpTest(TestCase):
         # default -- time.time
         otp = self.randotp()
         assert otp.now is _time.time
-        self.assertAlmostEqual(otp.normalize_time(None), int(_time.time()))
+        assert otp.normalize_time(None) == pytest.approx(int(_time.time()))
 
         # custom function
         counter = [123.12]
@@ -699,14 +733,18 @@ class TotpTest(TestCase):
         assert otp.normalize_time(None) == 127
 
         # require callable
-        self.assertRaises(TypeError, TOTP.using, now=123)
+        with pytest.raises(TypeError):
+            TOTP.using(now=123)
 
         # require returns int/float
         msg_re = r"now\(\) function must return non-negative"
-        self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: "abc")
+        with pytest.raises(AssertionError, match=msg_re):
+            TOTP.using(now=lambda: "abc")
 
         # require returns non-negative value
-        self.assertRaisesRegex(AssertionError, msg_re, TOTP.using, now=lambda: -1)
+
+        with pytest.raises(AssertionError, match=msg_re):
+            TOTP.using(now=lambda: -1)
 
     def test_normalize_token_instance(self, otp=None):
         """normalize_token() -- instance method"""
@@ -724,15 +762,20 @@ class TotpTest(TestCase):
         assert otp.normalize_token(234567) == "0234567"
 
         # reject wrong types (float, None)
-        self.assertRaises(TypeError, otp.normalize_token, 1234567.0)
-        self.assertRaises(TypeError, otp.normalize_token, None)
+        with pytest.raises(TypeError):
+            otp.normalize_token(1234567.0)
+        with pytest.raises(TypeError):
+            otp.normalize_token(None)
 
         # too few digits
-        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, "123456")
+        with pytest.raises(exc.MalformedTokenError):
+            otp.normalize_token("123456")
 
         # too many digits
-        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, "01234567")
-        self.assertRaises(exc.MalformedTokenError, otp.normalize_token, 12345678)
+        with pytest.raises(exc.MalformedTokenError):
+            otp.normalize_token("01234567")
+        with pytest.raises(exc.MalformedTokenError):
+            otp.normalize_token(12345678)
 
     def test_normalize_token_class(self):
         """normalize_token() -- class method"""
@@ -762,7 +805,8 @@ class TotpTest(TestCase):
             finally:
                 TotpFactory.now = orig
 
-        self.assertRaises(TypeError, otp.normalize_time, "1234")
+        with pytest.raises(TypeError):
+            otp.normalize_time("1234")
 
     def test_key_attrs(self):
         """pretty_key() and .key attributes"""
@@ -802,8 +846,10 @@ class TotpTest(TestCase):
         assert len(result) == 2
         assert result[0] == "897212"
         assert result[1] == 1419622740
-        self.assertRaises(IndexError, result.__getitem__, -3)
-        self.assertRaises(IndexError, result.__getitem__, 2)
+        with pytest.raises(IndexError):
+            result.__getitem__(-3)
+        with pytest.raises(IndexError):
+            result.__getitem__(2)
         assert result
 
         # time dependant bits...
@@ -859,7 +905,8 @@ class TotpTest(TestCase):
         assert otp2.generate().token == token
 
         # reject invalid time
-        self.assertRaises(ValueError, otp.generate, -1)
+        with pytest.raises(ValueError):
+            otp.generate(-1)
 
     def test_generate_w_reference_vectors(self):
         """generate() -- reference vectors"""
@@ -896,10 +943,12 @@ class TotpTest(TestCase):
         # test tuple
         assert len(match) == 2
         assert match == (counter, time)
-        self.assertRaises(IndexError, match.__getitem__, -3)
+        with pytest.raises(IndexError):
+            match.__getitem__(-3)
         assert match[0] == counter
         assert match[1] == time
-        self.assertRaises(IndexError, match.__getitem__, 2)
+        with pytest.raises(IndexError):
+            match.__getitem__(2)
 
         # test bool
         assert match
@@ -932,7 +981,8 @@ class TotpTest(TestCase):
         time = 141230981
         token = "781501"
         otp = TOTP.using(now=lambda: time + 24 * 3600)(KEY3)
-        self.assertRaises(exc.InvalidTokenError, otp.match, token, time + 60)
+        with pytest.raises(exc.InvalidTokenError):
+            otp.match(token, time + 60)
 
     def assertVerifyMatches(
         self,
@@ -963,27 +1013,6 @@ class TotpTest(TestCase):
             msg=msg,
         )
 
-    def assertVerifyRaises(
-        self,
-        exc_class,
-        token,
-        time,  # *
-        otp,
-        gen_time=None,
-        **kwds,
-    ):
-        """helper to test otp.match() throws correct error"""
-        # NOTE: TotpMatch return type tested more throughly above ^^^
-        msg = "key=%r alg=%r period=%r token=%r gen_time=%r time=%r:" % (
-            otp.base32_key,
-            otp.alg,
-            otp.period,
-            token,
-            gen_time,
-            time,
-        )
-        return self.assertRaises(exc_class, otp.match, token, time, __msg__=msg, **kwds)
-
     def test_match_w_window(self):
         """match() -- 'time' and 'window' parameters"""
 
@@ -994,14 +1023,14 @@ class TotpTest(TestCase):
         token = otp.generate(time).token
         common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
-        assertRaises = partial(self.assertVerifyRaises, **common)
 
         # -------------------------------
         # basic validation, and 'window' parameter
         # -------------------------------
 
         # validate against previous counter (passes if window >= period)
-        assertRaises(exc.InvalidTokenError, token, time - period, window=0)
+        with pytest.raises(InvalidTokenError):
+            otp.match(token, time - period, window=0)
         assertMatches(+1, token, time - period, window=period)
         assertMatches(+1, token, time - period, window=2 * period)
 
@@ -1009,13 +1038,17 @@ class TotpTest(TestCase):
         assertMatches(0, token, time, window=0)
 
         # validate against next counter (passes if window >= period)
-        assertRaises(exc.InvalidTokenError, token, time + period, window=0)
+
+        with pytest.raises(InvalidTokenError):
+            otp.match(token, time + period, window=0)
         assertMatches(-1, token, time + period, window=period)
         assertMatches(-1, token, time + period, window=2 * period)
 
         # validate against two time steps later (should never pass)
-        assertRaises(exc.InvalidTokenError, token, time + 2 * period, window=0)
-        assertRaises(exc.InvalidTokenError, token, time + 2 * period, window=period)
+        with pytest.raises(InvalidTokenError):
+            otp.match(token, time + 2 * period, window=0)
+        with pytest.raises(InvalidTokenError):
+            otp.match(token, time + 2 * period, window=period)
         assertMatches(-2, token, time + 2 * period, window=2 * period)
 
         # TODO: test window values that aren't multiples of period
@@ -1030,7 +1063,9 @@ class TotpTest(TestCase):
         assertMatches(0, token, dt, window=0)
 
         # reject invalid time
-        assertRaises(ValueError, token, -1)
+
+        with pytest.raises(ValueError):
+            otp.match(token, -1)
 
     def test_match_w_skew(self):
         """match() -- 'skew' parameters"""
@@ -1040,17 +1075,18 @@ class TotpTest(TestCase):
         time = self.randtime()
         common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
-        assertRaises = partial(self.assertVerifyRaises, **common)
 
         # assume client is running far behind server / has excessive transmission delay
         skew = 3 * period
         behind_token = otp.generate(time - skew).token
-        assertRaises(exc.InvalidTokenError, behind_token, time, window=0)
+        with pytest.raises(InvalidTokenError):
+            otp.match(behind_token, time, window=0)
         assertMatches(-3, behind_token, time, window=0, skew=-skew)
 
         # assume client is running far ahead of server
         ahead_token = otp.generate(time + skew).token
-        assertRaises(exc.InvalidTokenError, ahead_token, time, window=0)
+        with pytest.raises(InvalidTokenError):
+            otp.match(ahead_token, time, window=0)
         assertMatches(+3, ahead_token, time, window=0, skew=skew)
 
         # TODO: test skew + larger window
@@ -1068,7 +1104,6 @@ class TotpTest(TestCase):
         expire_time = tdata.expire_time
         common = dict(otp=otp, gen_time=time)
         assertMatches = partial(self.assertVerifyMatches, **common)
-        assertRaises = partial(self.assertVerifyRaises, **common)
 
         # last counter unset --
         # previous period's token should count as valid
@@ -1080,31 +1115,30 @@ class TotpTest(TestCase):
 
         # last counter set 2 periods ago --
         # 2 periods ago's token should NOT count as valid
-        assertRaises(
-            exc.InvalidTokenError,
-            token,
-            time + 2 * period,
-            last_counter=counter,
-            window=period,
-        )
+        with pytest.raises(InvalidTokenError):
+            otp.match(
+                token,
+                time + 2 * period,
+                last_counter=counter,
+                window=period,
+            )
 
         # last counter set 1 period ago --
         # previous period's token should now be rejected as 'used'
-        err = assertRaises(
-            exc.UsedTokenError,
-            token,
-            time + period,
-            last_counter=counter,
-            window=period,
-        )
-        assert err.expire_time == expire_time
+        with pytest.raises(UsedTokenError) as exc_info:
+            otp.match(
+                token,
+                time + period,
+                last_counter=counter,
+                window=period,
+            )
+        assert exc_info.value.expire_time == expire_time
 
         # last counter set to current period --
         # current period's token should be rejected
-        err = assertRaises(
-            exc.UsedTokenError, token, time, last_counter=counter, window=0
-        )
-        assert err.expire_time == expire_time
+        with pytest.raises(UsedTokenError) as exc_info:
+            otp.match(token, time, last_counter=counter, window=0)
+        assert exc_info.value.expire_time == expire_time
 
     def test_match_w_token_normalization(self):
         """match() -- token normalization"""
@@ -1120,13 +1154,16 @@ class TotpTest(TestCase):
         assert match(b"332136", time)
 
         # too few digits
-        self.assertRaises(exc.MalformedTokenError, match, "12345", time)
+        with pytest.raises(exc.MalformedTokenError):
+            match("12345", time)
 
         # invalid char
-        self.assertRaises(exc.MalformedTokenError, match, "12345X", time)
+        with pytest.raises(exc.MalformedTokenError):
+            match("12345X", time)
 
         # leading zeros count towards size
-        self.assertRaises(exc.MalformedTokenError, match, "0123456", time)
+        with pytest.raises(exc.MalformedTokenError):
+            match("0123456", time)
 
     def test_match_w_reference_vectors(self):
         """match() -- reference vectors"""
@@ -1140,7 +1177,8 @@ class TotpTest(TestCase):
             assert result.counter == time // otp.period, msg
 
             # should NOT match against another time
-            self.assertRaises(exc.InvalidTokenError, match, token, time + 100, window=0)
+            with pytest.raises(exc.InvalidTokenError):
+                match(token, time + 100, window=0)
 
     def test_verify(self):
         """verify()"""
@@ -1159,11 +1197,13 @@ class TotpTest(TestCase):
 
         # failed match
         source1 = dict(v=1, type="totp", key="otxl2f5cctbprpzx")
-        self.assertRaises(exc.InvalidTokenError, TotpFactory.verify, "332155", source1)
+        with pytest.raises(exc.InvalidTokenError):
+            TotpFactory.verify("332155", source1)
 
         # bad source
         source1 = dict(v=1, type="totp")
-        self.assertRaises(ValueError, TotpFactory.verify, "332155", source1)
+        with pytest.raises(ValueError):
+            TotpFactory.verify("332155", source1)
 
         # successful match -- json source
         source1json = '{"v": 1, "type": "totp", "key": "otxl2f5cctbprpzx"}'
@@ -1221,8 +1261,10 @@ class TotpTest(TestCase):
         assert otp2 is otp1
 
         # random string
-        self.assertRaises(ValueError, from_source, "foo")
-        self.assertRaises(ValueError, from_source, b"foo")
+        with pytest.raises(ValueError):
+            from_source("foo")
+        with pytest.raises(ValueError):
+            from_source(b"foo")
 
     def test_from_uri(self):
         """from_uri()"""
@@ -1259,16 +1301,15 @@ class TotpTest(TestCase):
         assert otp.key == KEY4_RAW
 
         # missing secret
-        self.assertRaises(
-            ValueError, from_uri, "otpauth://totp/Example:alice@google.com?digits=6"
-        )
+        with pytest.raises(ValueError):
+            from_uri("otpauth://totp/Example:alice@google.com?digits=6")
 
         # undecodable secret
-        self.assertRaises(
-            DecodeError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?" "secret=JBSWY3DPEHP@3PXP",
-        )
+
+        with pytest.raises(DecodeError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?" "secret=JBSWY3DPEHP@3PXP",
+            )
 
         # --------------------------------------------------------------------------------
         # label param
@@ -1303,11 +1344,11 @@ class TotpTest(TestCase):
         assert otp.issuer == "Big Corporation"
 
         # new-vs-old issuer mismatch
-        self.assertRaises(
-            ValueError,
-            TOTP.from_uri,
-            "otpauth://totp/Provider1:alice?secret=JBSWY3DPEHPK3PXP&issuer=Provider2",
-        )
+
+        with pytest.raises(ValueError):
+            TOTP.from_uri(
+                "otpauth://totp/Provider1:alice?secret=JBSWY3DPEHPK3PXP&issuer=Provider2",
+            )
 
         # --------------------------------------------------------------------------------
         # algorithm param
@@ -1320,12 +1361,12 @@ class TotpTest(TestCase):
         assert otp.alg == "sha256"
 
         # unknown alg
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?"
-            "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333",
-        )
+
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?"
+                "secret=JBSWY3DPEHPK3PXP&algorithm=SHA333",
+            )
 
         # --------------------------------------------------------------------------------
         # digit param
@@ -1338,21 +1379,19 @@ class TotpTest(TestCase):
         assert otp.digits == 8
 
         # digits out of range / invalid
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=A",
-        )
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=%20",
-        )
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=15",
-        )
+
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=A",
+            )
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=%20",
+            )
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&digits=15",
+            )
 
         # --------------------------------------------------------------------------------
         # period param
@@ -1365,19 +1404,17 @@ class TotpTest(TestCase):
         assert otp.period == 63
 
         # reject period < 1
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?"
-            "secret=JBSWY3DPEHPK3PXP&period=0",
-        )
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?"
+                "secret=JBSWY3DPEHPK3PXP&period=0",
+            )
 
-        self.assertRaises(
-            ValueError,
-            from_uri,
-            "otpauth://totp/Example:alice@google.com?"
-            "secret=JBSWY3DPEHPK3PXP&period=-1",
-        )
+        with pytest.raises(ValueError):
+            from_uri(
+                "otpauth://totp/Example:alice@google.com?"
+                "secret=JBSWY3DPEHPK3PXP&period=-1",
+            )
 
         # --------------------------------------------------------------------------------
         # unrecognized param
@@ -1410,7 +1447,8 @@ class TotpTest(TestCase):
         )
 
         # label is required
-        self.assertRaises(ValueError, otp.to_uri, None, "Example Org")
+        with pytest.raises(ValueError):
+            otp.to_uri(None, "Example Org")
 
         # with label only
         assert (
@@ -1431,12 +1469,12 @@ class TotpTest(TestCase):
         )
 
         # reject invalid label
-        self.assertRaises(ValueError, otp.to_uri, "label:with:semicolons")
+        with pytest.raises(ValueError):
+            otp.to_uri("label:with:semicolons")
 
         # reject invalid issuer
-        self.assertRaises(
-            ValueError, otp.to_uri, "alice@google.com", "issuer:with:semicolons"
-        )
+        with pytest.raises(ValueError):
+            otp.to_uri("alice@google.com", "issuer:with:semicolons")
 
         # -------------------------------------------------------------------------
         # algorithm parameter
@@ -1490,14 +1528,18 @@ class TotpTest(TestCase):
         # --------------------------------------------------------------------------------
 
         # missing version
-        self.assertRaises(ValueError, from_dict, dict(type="totp", key=KEY4))
+        with pytest.raises(ValueError):
+            from_dict(dict(type="totp", key=KEY4))
 
         # invalid version
-        self.assertRaises(ValueError, from_dict, dict(v=0, type="totp", key=KEY4))
-        self.assertRaises(ValueError, from_dict, dict(v=999, type="totp", key=KEY4))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=0, type="totp", key=KEY4))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=999, type="totp", key=KEY4))
 
         # missing type
-        self.assertRaises(ValueError, from_dict, dict(v=1, key=KEY4))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, key=KEY4))
 
         # --------------------------------------------------------------------------------
         # secret param
@@ -1516,12 +1558,12 @@ class TotpTest(TestCase):
         assert otp.key == KEY4_RAW
 
         # missing secret
-        self.assertRaises(ValueError, from_dict, dict(v=1, type="totp"))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, type="totp"))
 
         # undecodable secret
-        self.assertRaises(
-            DecodeError, from_dict, dict(v=1, type="totp", key="JBSWY3DPEHP@3PXP")
-        )
+        with pytest.raises(DecodeError):
+            from_dict(dict(v=1, type="totp", key="JBSWY3DPEHP@3PXP"))
 
         # --------------------------------------------------------------------------------
         # label & issuer params
@@ -1542,9 +1584,8 @@ class TotpTest(TestCase):
         assert otp.alg == "sha256"
 
         # unknown alg
-        self.assertRaises(
-            ValueError, from_dict, dict(v=1, type="totp", key=KEY4, alg="sha333")
-        )
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, type="totp", key=KEY4, alg="sha333"))
 
         # --------------------------------------------------------------------------------
         # digit param
@@ -1555,12 +1596,10 @@ class TotpTest(TestCase):
         assert otp.digits == 8
 
         # digits out of range / invalid
-        self.assertRaises(
-            TypeError, from_dict, dict(v=1, type="totp", key=KEY4, digits="A")
-        )
-        self.assertRaises(
-            ValueError, from_dict, dict(v=1, type="totp", key=KEY4, digits=15)
-        )
+        with pytest.raises(TypeError):
+            from_dict(dict(v=1, type="totp", key=KEY4, digits="A"))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, type="totp", key=KEY4, digits=15))
 
         # --------------------------------------------------------------------------------
         # period param
@@ -1571,19 +1610,16 @@ class TotpTest(TestCase):
         assert otp.period == 63
 
         # reject period < 1
-        self.assertRaises(
-            ValueError, from_dict, dict(v=1, type="totp", key=KEY4, period=0)
-        )
-        self.assertRaises(
-            ValueError, from_dict, dict(v=1, type="totp", key=KEY4, period=-1)
-        )
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, type="totp", key=KEY4, period=0))
+        with pytest.raises(ValueError):
+            from_dict(dict(v=1, type="totp", key=KEY4, period=-1))
 
         # --------------------------------------------------------------------------------
         # unrecognized param
         # --------------------------------------------------------------------------------
-        self.assertRaises(
-            TypeError, from_dict, dict(v=1, type="totp", key=KEY4, INVALID=123)
-        )
+        with pytest.raises(TypeError):
+            from_dict(dict(v=1, type="totp", key=KEY4, INVALID=123))
 
     def test_to_dict(self):
         """to_dict()"""

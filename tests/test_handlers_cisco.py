@@ -163,8 +163,10 @@ class _PixAsaSharedTest(UserHandlerMixin, HandlerCase):
 
         # for hash(), should throw error if password too large
         calc(short_secret, for_hash=True)
-        self.assertRaises(exc.PasswordSizeError, calc, long_secret, for_hash=True)
-        self.assertRaises(exc.PasswordSizeError, calc, alt_long_secret, for_hash=True)
+        with pytest.raises(exc.PasswordSizeError):
+            calc(long_secret, for_hash=True)
+        with pytest.raises(exc.PasswordSizeError):
+            calc(alt_long_secret, for_hash=True)
 
 
 class cisco_pix_test(_PixAsaSharedTest):
@@ -423,22 +425,28 @@ class cisco_type7_test(HandlerCase):
             assert handler.decode(hashed) == usecret
             assert handler.decode(hashed, None) == bsecret
 
-        self.assertRaises(
-            UnicodeDecodeError, handler.decode, "0958EDC8A9F495F6F8A5FD", "ascii"
-        )
+        with pytest.raises(UnicodeDecodeError):
+            handler.decode("0958EDC8A9F495F6F8A5FD", "ascii")
 
     def test_91_salt(self):
         """test salt value border cases"""
         handler = self.handler
-        self.assertRaises(TypeError, handler, salt=None)
+        with pytest.raises(TypeError):
+            handler(salt=None)
         handler(salt=None, use_defaults=True)
-        self.assertRaises(TypeError, handler, salt="abc")
-        self.assertRaises(ValueError, handler, salt=-10)
-        self.assertRaises(ValueError, handler, salt=100)
+        with pytest.raises(TypeError):
+            handler(salt="abc")
+        with pytest.raises(ValueError):
+            handler(salt=-10)
+        with pytest.raises(ValueError):
+            handler(salt=100)
 
-        self.assertRaises(TypeError, handler.using, salt="abc")
-        self.assertRaises(ValueError, handler.using, salt=-10)
-        self.assertRaises(ValueError, handler.using, salt=100)
+        with pytest.raises(TypeError):
+            handler.using(salt="abc")
+        with pytest.raises(ValueError):
+            handler.using(salt=-10)
+        with pytest.raises(ValueError):
+            handler.using(salt=100)
         with pytest.warns(match="salt/offset must be.*"):
             subcls = handler.using(salt=100, relaxed=True)
         assert subcls(use_defaults=True).salt == 52

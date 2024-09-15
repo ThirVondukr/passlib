@@ -220,15 +220,15 @@ sha512_crypt__min_rounds = 45000
         assert ctx.to_dict() == self.sample_1_dict
 
         # test wrong type
-        self.assertRaises(TypeError, CryptContext.from_string, None)
+        with pytest.raises(TypeError):
+            CryptContext.from_string(None)
 
         # test missing section
-        self.assertRaises(
-            NoSectionError,
-            CryptContext.from_string,
-            self.sample_1_unicode,
-            section="fakesection",
-        )
+        with pytest.raises(NoSectionError):
+            CryptContext.from_string(
+                self.sample_1_unicode,
+                section="fakesection",
+            )
 
     def test_03_from_path(self):
         """test from_path() constructor"""
@@ -251,19 +251,17 @@ sha512_crypt__min_rounds = 45000
         assert ctx.to_dict() == self.sample_1_dict
 
         # test missing file
-        self.assertRaises(
-            EnvironmentError,
-            CryptContext.from_path,
-            os.path.join(here, "sample1xxx.cfg"),
-        )
+        with pytest.raises(EnvironmentError):
+            CryptContext.from_path(
+                os.path.join(here, "sample1xxx.cfg"),
+            )
 
         # test missing section
-        self.assertRaises(
-            NoSectionError,
-            CryptContext.from_path,
-            self.sample_1_path,
-            section="fakesection",
-        )
+        with pytest.raises(NoSectionError):
+            CryptContext.from_path(
+                self.sample_1_path,
+                section="fakesection",
+            )
 
     def test_04_copy(self):
         """test copy() method"""
@@ -323,7 +321,8 @@ sha512_crypt__min_rounds = 45000
         assert ctx.to_dict() == self.sample_1_dict
 
         # anything else - TypeError
-        self.assertRaises(TypeError, ctx.load, None)
+        with pytest.raises(TypeError):
+            ctx.load(None)
 
         # NOTE: load_path() tested by from_path()
         # NOTE: additional string tests done by from_string()
@@ -355,17 +354,20 @@ sha512_crypt__min_rounds = 45000
 
         # do an update operation that should fail during parsing
         # XXX: not sure what the right error type is here.
-        self.assertRaises(TypeError, cc.update, too__many__key__parts=True)
+        with pytest.raises(TypeError):
+            cc.update(too__many__key__parts=True)
         assert cc.to_string() == result
 
         # do an update operation that should fail during extraction
         # FIXME: this isn't failing even in broken case, need to figure out
         # way to ensure some keys come after this one.
-        self.assertRaises(KeyError, cc.update, fake_context_option=True)
+        with pytest.raises(KeyError):
+            cc.update(fake_context_option=True)
         assert cc.to_string() == result
 
         # do an update operation that should fail during compilation
-        self.assertRaises(ValueError, cc.update, sha256_crypt__min_rounds=10000)
+        with pytest.raises(ValueError):
+            cc.update(sha256_crypt__min_rounds=10000)
         assert cc.to_string() == result
 
     def test_12_update(self):
@@ -396,11 +398,14 @@ sha512_crypt__min_rounds = 45000
         assert ctx.to_dict() == self.sample_12_dict
 
         # too many args
-        self.assertRaises(TypeError, ctx.update, {}, {})
-        self.assertRaises(TypeError, ctx.update, {}, schemes=["des_crypt"])
+        with pytest.raises(TypeError):
+            ctx.update({}, {})
+        with pytest.raises(TypeError):
+            ctx.update({}, schemes=["des_crypt"])
 
         # wrong arg type
-        self.assertRaises(TypeError, ctx.update, None)
+        with pytest.raises(TypeError):
+            ctx.update(None)
 
     def test_20_options(self):
         """test basic option parsing"""
@@ -414,24 +419,29 @@ sha512_crypt__min_rounds = 45000
 
         # test keys with blank fields are rejected
         # blank option
-        self.assertRaises(TypeError, CryptContext, __=0.1)
-        self.assertRaises(TypeError, CryptContext, default__scheme__="x")
+        with pytest.raises(TypeError):
+            CryptContext(__=0.1)
+        with pytest.raises(TypeError):
+            CryptContext(default__scheme__="x")
 
         # blank scheme
-        self.assertRaises(TypeError, CryptContext, __option="x")
-        self.assertRaises(TypeError, CryptContext, default____option="x")
+        with pytest.raises(TypeError):
+            CryptContext(__option="x")
+        with pytest.raises(TypeError):
+            CryptContext(default____option="x")
 
         # blank category
-        self.assertRaises(TypeError, CryptContext, __scheme__option="x")
+        with pytest.raises(TypeError):
+            CryptContext(__scheme__option="x")
 
         # test keys with too many field are rejected
-        self.assertRaises(
-            TypeError, CryptContext, category__scheme__option__invalid=30000
-        )
+        with pytest.raises(TypeError):
+            CryptContext(category__scheme__option__invalid=30000)
 
         # keys with mixed separators should be handled correctly.
         # (testing actual data, not to_dict(), since re-render hid original bug)
-        self.assertRaises(KeyError, parse, **{"admin.context__schemes": "md5_crypt"})
+        with pytest.raises(KeyError):
+            parse(**{"admin.context__schemes": "md5_crypt"})
         ctx = CryptContext(
             **{"schemes": "md5_crypt,des_crypt", "admin.context__default": "des_crypt"}
         )
@@ -472,13 +482,14 @@ sha512_crypt__min_rounds = 45000
 
         # settings not allowed if not in hash.setting_kwds
         ctx = CryptContext(["phpass", "md5_crypt"], phpass__ident="P")
-        self.assertRaises(KeyError, ctx.copy, md5_crypt__ident="P")
+        with pytest.raises(KeyError):
+            ctx.copy(md5_crypt__ident="P")
 
         # hash options 'salt' and 'rounds' not allowed
-        self.assertRaises(
-            KeyError, CryptContext, schemes=["des_crypt"], des_crypt__salt="xx"
-        )
-        self.assertRaises(KeyError, CryptContext, schemes=["des_crypt"], all__salt="xx")
+        with pytest.raises(KeyError):
+            CryptContext(schemes=["des_crypt"], des_crypt__salt="xx")
+        with pytest.raises(KeyError):
+            CryptContext(schemes=["des_crypt"], all__salt="xx")
 
     def test_21_schemes(self):
         """test 'schemes' context option parsing"""
@@ -500,22 +511,26 @@ sha512_crypt__min_rounds = 45000
         assert cc.schemes() == ("des_crypt", "md5_crypt")
 
         # scheme must be name or handler
-        self.assertRaises(TypeError, CryptContext, schemes=[uh.StaticHandler])
+        with pytest.raises(TypeError):
+            CryptContext(schemes=[uh.StaticHandler])
 
         # handlers must have a name
         class nameless(uh.StaticHandler):
             name = None
 
-        self.assertRaises(ValueError, CryptContext, schemes=[nameless])
+        with pytest.raises(ValueError):
+            CryptContext(schemes=[nameless])
 
         # names must be unique
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
 
-        self.assertRaises(KeyError, CryptContext, schemes=[dummy_1, dummy_1])
+        with pytest.raises(KeyError):
+            CryptContext(schemes=[dummy_1, dummy_1])
 
         # schemes not allowed per-category
-        self.assertRaises(KeyError, CryptContext, admin__context__schemes=["md5_crypt"])
+        with pytest.raises(KeyError):
+            CryptContext(admin__context__schemes=["md5_crypt"])
 
     def test_22_deprecated(self):
         """test 'deprecated' context option parsing"""
@@ -536,12 +551,11 @@ sha512_crypt__min_rounds = 45000
 
         # can be handler
         # XXX: allow handlers in deprecated list? not for now.
-        self.assertRaises(
-            TypeError,
-            CryptContext,
-            deprecated=[hash.md5_crypt],
-            schemes=["md5_crypt", "des_crypt"],
-        )
+        with pytest.raises(TypeError):
+            CryptContext(
+                deprecated=[hash.md5_crypt],
+                schemes=["md5_crypt", "des_crypt"],
+            )
         ##        cc = CryptContext(deprecated=[hash.md5_crypt], schemes=["md5_crypt", "des_crypt"])
         ##        self.assertEqual(getdep(cc), ["md5_crypt"])
 
@@ -553,58 +567,51 @@ sha512_crypt__min_rounds = 45000
         assert getdep(cc) == ["md5_crypt", "des_crypt"]
 
         # values outside of schemes not allowed
-        self.assertRaises(
-            KeyError, CryptContext, schemes=["des_crypt"], deprecated=["md5_crypt"]
-        )
+        with pytest.raises(KeyError):
+            CryptContext(schemes=["des_crypt"], deprecated=["md5_crypt"])
 
         # deprecating ALL schemes should cause ValueError
-        self.assertRaises(
-            ValueError, CryptContext, schemes=["des_crypt"], deprecated=["des_crypt"]
-        )
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            schemes=["des_crypt", "md5_crypt"],
-            admin__context__deprecated=["des_crypt", "md5_crypt"],
-        )
+        with pytest.raises(ValueError):
+            CryptContext(schemes=["des_crypt"], deprecated=["des_crypt"])
+        with pytest.raises(ValueError):
+            CryptContext(
+                schemes=["des_crypt", "md5_crypt"],
+                admin__context__deprecated=["des_crypt", "md5_crypt"],
+            )
 
         # deprecating explicit default scheme should cause ValueError
 
         # ... default listed as deprecated
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            schemes=["des_crypt", "md5_crypt"],
-            default="md5_crypt",
-            deprecated="md5_crypt",
-        )
+        with pytest.raises(ValueError):
+            CryptContext(
+                schemes=["des_crypt", "md5_crypt"],
+                default="md5_crypt",
+                deprecated="md5_crypt",
+            )
 
         # ... global default deprecated per-category
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            schemes=["des_crypt", "md5_crypt"],
-            default="md5_crypt",
-            admin__context__deprecated="md5_crypt",
-        )
+        with pytest.raises(ValueError):
+            CryptContext(
+                schemes=["des_crypt", "md5_crypt"],
+                default="md5_crypt",
+                admin__context__deprecated="md5_crypt",
+            )
 
         # ... category default deprecated globally
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            schemes=["des_crypt", "md5_crypt"],
-            admin__context__default="md5_crypt",
-            deprecated="md5_crypt",
-        )
+        with pytest.raises(ValueError):
+            CryptContext(
+                schemes=["des_crypt", "md5_crypt"],
+                admin__context__default="md5_crypt",
+                deprecated="md5_crypt",
+            )
 
         # ... category default deprecated in category
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            schemes=["des_crypt", "md5_crypt"],
-            admin__context__default="md5_crypt",
-            admin__context__deprecated="md5_crypt",
-        )
+        with pytest.raises(ValueError):
+            CryptContext(
+                schemes=["des_crypt", "md5_crypt"],
+                admin__context__default="md5_crypt",
+                admin__context__deprecated="md5_crypt",
+            )
 
         # category deplist should shadow default deplist
         CryptContext(
@@ -615,7 +622,8 @@ sha512_crypt__min_rounds = 45000
         )
 
         # wrong type
-        self.assertRaises(TypeError, CryptContext, deprecated=123)
+        with pytest.raises(TypeError):
+            CryptContext(deprecated=123)
 
         # deprecated per-category
         cc = CryptContext(
@@ -659,12 +667,12 @@ sha512_crypt__min_rounds = 45000
         assert ctx.default_scheme() == "md5_crypt"
 
         # error if not in scheme list
-        self.assertRaises(
-            KeyError, CryptContext, schemes=["des_crypt"], default="md5_crypt"
-        )
+        with pytest.raises(KeyError):
+            CryptContext(schemes=["des_crypt"], default="md5_crypt")
 
         # wrong type
-        self.assertRaises(TypeError, CryptContext, default=1)
+        with pytest.raises(TypeError):
+            CryptContext(default=1)
 
         # per-category
         ctx = CryptContext(
@@ -724,7 +732,8 @@ sha512_crypt__min_rounds = 45000
 
         # test empty
         ctx = CryptContext()
-        self.assertRaises(KeyError, ctx.default_scheme)
+        with pytest.raises(KeyError):
+            ctx.default_scheme()
 
         # test sample 1
         ctx = CryptContext(**self.sample_1_dict)
@@ -734,7 +743,8 @@ sha512_crypt__min_rounds = 45000
 
         # test sample 2
         ctx = CryptContext(**self.sample_2_dict)
-        self.assertRaises(KeyError, ctx.default_scheme)
+        with pytest.raises(KeyError):
+            ctx.default_scheme()
 
         # test defaults to first in scheme
         ctx = CryptContext(schemes=self.sample_1_schemes)
@@ -747,8 +757,10 @@ sha512_crypt__min_rounds = 45000
 
         # default for empty
         ctx = CryptContext()
-        self.assertRaises(KeyError, ctx.handler)
-        self.assertRaises(KeyError, ctx.handler, "md5_crypt")
+        with pytest.raises(KeyError):
+            ctx.handler()
+        with pytest.raises(KeyError):
+            ctx.handler("md5_crypt")
 
         # default for sample 1
         ctx = CryptContext(**self.sample_1_dict)
@@ -760,7 +772,8 @@ sha512_crypt__min_rounds = 45000
         self.assertHandlerDerivedFrom(ctx.handler("des_crypt"), hash.des_crypt)
 
         # name not in schemes
-        self.assertRaises(KeyError, ctx.handler, "mysql323")
+        with pytest.raises(KeyError):
+            ctx.handler("mysql323")
 
         # check handler() honors category default
         ctx = CryptContext(
@@ -801,31 +814,22 @@ sha512_crypt__min_rounds = 45000
         # sha512_crypt
         # NOTE: 'truncate_error' shouldn't be passed along...
         #
-        self.assertEqual(
-            options(cc4, "sha512_crypt"),
-            dict(
-                deprecated=True,
-                vary_rounds=0.1,  # inherited from all__
-                max_rounds=20000,
-            ),
+        assert options(cc4, "sha512_crypt") == dict(
+            deprecated=True,
+            vary_rounds=0.1,  # inherited from all__
+            max_rounds=20000,
         )
 
-        self.assertEqual(
-            options(cc4, "sha512_crypt", "user"),
-            dict(
-                deprecated=True,  # unconfigured category inherits from default
-                vary_rounds=0.1,
-                max_rounds=20000,
-            ),
+        assert options(cc4, "sha512_crypt", "user") == dict(
+            deprecated=True,  # unconfigured category inherits from default
+            vary_rounds=0.1,
+            max_rounds=20000,
         )
 
-        self.assertEqual(
-            options(cc4, "sha512_crypt", "admin"),
-            dict(
-                # NOT deprecated - context option overridden per-category
-                vary_rounds=0.05,  # global overridden per-cateogry
-                max_rounds=40000,  # overridden per-category
-            ),
+        assert options(cc4, "sha512_crypt", "admin") == dict(
+            # NOT deprecated - context option overridden per-category
+            vary_rounds=0.05,  # global overridden per-cateogry
+            max_rounds=40000,  # overridden per-category
         )
 
         #
@@ -834,45 +838,30 @@ sha512_crypt__min_rounds = 45000
         #
         assert options(cc4, "des_crypt") == dict(deprecated=True, truncate_error=True)
 
-        self.assertEqual(
-            options(cc4, "des_crypt", "user"),
-            dict(
-                deprecated=True,  # unconfigured category inherits from default
-                truncate_error=True,
-            ),
+        assert options(cc4, "des_crypt", "user") == dict(
+            deprecated=True,  # unconfigured category inherits from default
+            truncate_error=True,
         )
 
-        self.assertEqual(
-            options(cc4, "des_crypt", "admin"),
-            dict(
-                deprecated=True,  # unchanged though overidden
-                truncate_error=True,
-            ),
+        assert options(cc4, "des_crypt", "admin") == dict(
+            deprecated=True,  # unchanged though overidden
+            truncate_error=True,
         )
 
         #
         # bsdi_crypt
         #
-        self.assertEqual(
-            options(cc4, "bsdi_crypt"),
-            dict(
-                vary_rounds=0.2,  # overridden from all__vary_rounds
-            ),
+        assert options(cc4, "bsdi_crypt") == dict(
+            vary_rounds=0.2,  # overridden from all__vary_rounds
         )
 
-        self.assertEqual(
-            options(cc4, "bsdi_crypt", "user"),
-            dict(
-                vary_rounds=0.2,  # unconfigured category inherits from default
-            ),
+        assert options(cc4, "bsdi_crypt", "user") == dict(
+            vary_rounds=0.2,  # unconfigured category inherits from default
         )
 
-        self.assertEqual(
-            options(cc4, "bsdi_crypt", "admin"),
-            dict(
-                vary_rounds=0.3,
-                deprecated=True,  # deprecation set per-category
-            ),
+        assert options(cc4, "bsdi_crypt", "admin") == dict(
+            vary_rounds=0.3,
+            deprecated=True,  # deprecation set per-category
         )
 
     def test_34_to_dict(self):
@@ -943,9 +932,8 @@ sha512_crypt__min_rounds = 45000
         h = cc.genhash("secret", cc.genconfig(), scheme="md5_crypt")
         assert cc.identify(h) == "md5_crypt"
 
-        self.assertRaises(
-            ValueError, cc.genhash, "secret", cc.genconfig(), scheme="des_crypt"
-        )
+        with pytest.raises(ValueError):
+            cc.genhash("secret", cc.genconfig(), scheme="des_crypt")
 
     def test_41_genconfig(self):
         """test genconfig() method"""
@@ -967,29 +955,33 @@ sha512_crypt__min_rounds = 45000
         assert cc.genconfig(scheme="phpass", category="staff").startswith("$H$5")
 
         # override scheme & custom settings
-        self.assertEqual(
-            cc.genconfig(scheme="phpass", salt="." * 8, rounds=8, ident="P"),
-            "$P$6........22zGEuacuPOqEpYPDeR0R/",
-            # NOTE: config string generated w/ rounds=1
+        assert (
+            cc.genconfig(scheme="phpass", salt="." * 8, rounds=8, ident="P")
+            == "$P$6........22zGEuacuPOqEpYPDeR0R/"
         )
+        # NOTE: config string generated w/ rounds=1
 
         # --------------------------------------------------------------
         # border cases
         # --------------------------------------------------------------
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().genconfig)
-        self.assertRaises(KeyError, CryptContext().genconfig, scheme="md5_crypt")
+        with pytest.raises(KeyError):
+            CryptContext().genconfig()
+        with pytest.raises(KeyError):
+            CryptContext().genconfig(scheme="md5_crypt")
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.genconfig, scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.genconfig, scheme=1, category="staff")
-        self.assertRaises(TypeError, cc.genconfig, scheme=1)
+        with pytest.raises(KeyError):
+            cc.genconfig(scheme="fake")  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.genconfig(scheme=1, category="staff")
+        with pytest.raises(TypeError):
+            cc.genconfig(scheme=1)
 
         # bad category values
-        self.assertRaises(TypeError, cc.genconfig, category=1)
+        with pytest.raises(TypeError):
+            cc.genconfig(category=1)
 
     def test_42_genhash(self):
         """test genhash() method"""
@@ -1002,7 +994,8 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(["des_crypt"])
         hash = cc.hash("stub")
         for secret, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.genhash, secret, hash, **kwds)
+            with pytest.raises(TypeError):
+                cc.genhash(secret, hash, **kwds)
 
         # rejects non-string config strings
         cc = CryptContext(["des_crypt"])
@@ -1011,23 +1004,27 @@ sha512_crypt__min_rounds = 45000
                 # NOTE: as of 1.7, genhash is just wrapper for hash(),
                 #       and handles genhash(secret, None) fine.
                 continue
-            self.assertRaises(TypeError, cc.genhash, "secret", config, **kwds)
+            with pytest.raises(TypeError):
+                cc.genhash("secret", config, **kwds)
 
         # rejects config=None, even if default scheme lacks config string
         cc = CryptContext(["mysql323"])
-        self.assertRaises(TypeError, cc.genhash, "stub", None)
+        with pytest.raises(TypeError):
+            cc.genhash("stub", None)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().genhash, "secret", "hash")
+        with pytest.raises(KeyError):
+            CryptContext().genhash("secret", "hash")
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.genhash, "secret", hash, scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.genhash, "secret", hash, scheme=1)
+        with pytest.raises(KeyError):
+            cc.genhash("secret", hash, scheme="fake")  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.genhash("secret", hash, scheme=1)
 
         # bad category values
-        self.assertRaises(TypeError, cc.genconfig, "secret", hash, category=1)
+        with pytest.raises(TypeError):
+            cc.genconfig("secret", hash, category=1)
 
     def test_43_hash(
         self,
@@ -1045,18 +1042,22 @@ sha512_crypt__min_rounds = 45000
 
         # make default > max throws error if attempted
         # XXX: move this to copy() test?
-        self.assertRaises(ValueError, cc.copy, sha256_crypt__default_rounds=4000)
+        with pytest.raises(ValueError):
+            cc.copy(sha256_crypt__default_rounds=4000)
 
         # rejects non-string secrets
         cc = CryptContext(["des_crypt"])
         for secret, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.hash, secret, **kwds)
+            with pytest.raises(TypeError):
+                cc.hash(secret, **kwds)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().hash, "secret")
+        with pytest.raises(KeyError):
+            CryptContext().hash("secret")
 
         # bad category values
-        self.assertRaises(TypeError, cc.hash, "secret", category=1)
+        with pytest.raises(TypeError):
+            cc.hash("secret", category=1)
 
     def test_43_hash_legacy(self, use_16_legacy=False):
         """test hash() method -- legacy 'scheme' and settings keywords"""
@@ -1104,10 +1105,10 @@ sha512_crypt__min_rounds = 45000
         # NOTE: max rounds, etc tested in genconfig()
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.hash, "secret", scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.hash, "secret", scheme=1)
+        with pytest.raises(KeyError):
+            cc.hash("secret", scheme="fake")  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.hash("secret", scheme=1)
 
     def test_44_identify(self):
         """test identify() border cases"""
@@ -1116,9 +1117,8 @@ sha512_crypt__min_rounds = 45000
 
         # check unknown hash
         assert cc.identify("$9$232323123$1287319827") is None
-        self.assertRaises(
-            ValueError, cc.identify, "$9$232323123$1287319827", required=True
-        )
+        with pytest.raises(ValueError):
+            cc.identify("$9$232323123$1287319827", required=True)
 
         # --------------------------------------------------------------
         # border cases
@@ -1127,15 +1127,18 @@ sha512_crypt__min_rounds = 45000
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
         for hash_, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.identify, hash_, **kwds)
+            with pytest.raises(TypeError):
+                cc.identify(hash_, **kwds)
 
         # throws error without schemes
         cc = CryptContext()
         assert cc.identify("hash") is None
-        self.assertRaises(KeyError, cc.identify, "hash", required=True)
+        with pytest.raises(KeyError):
+            cc.identify("hash", required=True)
 
         # bad category values
-        self.assertRaises(TypeError, cc.identify, None, category=1)
+        with pytest.raises(TypeError):
+            cc.identify(None, category=1)
 
     def test_45_verify(self):
         """test verify() scheme kwd"""
@@ -1153,20 +1156,23 @@ sha512_crypt__min_rounds = 45000
         assert not cc.verify("notest", h, scheme="md5_crypt")
 
         # check verify using wrong alg
-        self.assertRaises(ValueError, cc.verify, "test", h, scheme="bsdi_crypt")
+        with pytest.raises(ValueError):
+            cc.verify("test", h, scheme="bsdi_crypt")
 
         # --------------------------------------------------------------
         # border cases
         # --------------------------------------------------------------
 
         # unknown hash should throw error
-        self.assertRaises(ValueError, cc.verify, "stub", "$6$232323123$1287319827")
+        with pytest.raises(ValueError):
+            cc.verify("stub", "$6$232323123$1287319827")
 
         # rejects non-string secrets
         cc = CryptContext(["des_crypt"])
         h = refhash = cc.hash("stub")
         for secret, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.verify, secret, h, **kwds)
+            with pytest.raises(TypeError):
+                cc.verify(secret, h, **kwds)
 
         # always treat hash=None as False
         assert not cc.verify(secret, None)
@@ -1176,19 +1182,24 @@ sha512_crypt__min_rounds = 45000
         for h, kwds in self.nonstring_vectors:
             if h is None:
                 continue
-            self.assertRaises(TypeError, cc.verify, "secret", h, **kwds)
+            with pytest.raises(TypeError):
+                cc.verify("secret", h, **kwds)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().verify, "secret", "hash")
+        with pytest.raises(KeyError):
+            CryptContext().verify("secret", "hash")
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.verify, "secret", refhash, scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.verify, "secret", refhash, scheme=1)
+        with pytest.raises(KeyError):
+            cc.verify(
+                "secret", refhash, scheme="fake"
+            )  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.verify("secret", refhash, scheme=1)
 
         # bad category values
-        self.assertRaises(TypeError, cc.verify, "secret", refhash, category=1)
+        with pytest.raises(TypeError):
+            cc.verify("secret", refhash, category=1)
 
     def test_46_needs_update(self):
         """test needs_update() method"""
@@ -1259,19 +1270,22 @@ sha512_crypt__min_rounds = 45000
         # rejects non-string hashes
         cc = CryptContext(["des_crypt"])
         for hash, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.needs_update, hash, **kwds)
+            with pytest.raises(TypeError):
+                cc.needs_update(hash, **kwds)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().needs_update, "hash")
+        with pytest.raises(KeyError):
+            CryptContext().needs_update("hash")
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.needs_update, refhash, scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.needs_update, refhash, scheme=1)
+        with pytest.raises(KeyError):
+            cc.needs_update(refhash, scheme="fake")  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.needs_update(refhash, scheme=1)
 
         # bad category values
-        self.assertRaises(TypeError, cc.needs_update, refhash, category=1)
+        with pytest.raises(TypeError):
+            cc.needs_update(refhash, category=1)
 
     def test_47_verify_and_update(self):
         """test verify_and_update()"""
@@ -1309,7 +1323,8 @@ sha512_crypt__min_rounds = 45000
         cc = CryptContext(["des_crypt"])
         hash = refhash = cc.hash("stub")
         for secret, kwds in self.nonstring_vectors:
-            self.assertRaises(TypeError, cc.verify_and_update, secret, hash, **kwds)
+            with pytest.raises(TypeError):
+                cc.verify_and_update(secret, hash, **kwds)
 
         # always treat hash=None as False
         assert cc.verify_and_update(secret, None) == (False, None)
@@ -1319,21 +1334,24 @@ sha512_crypt__min_rounds = 45000
         for hash, kwds in self.nonstring_vectors:
             if hash is None:
                 continue
-            self.assertRaises(TypeError, cc.verify_and_update, "secret", hash, **kwds)
+            with pytest.raises(TypeError):
+                cc.verify_and_update("secret", hash, **kwds)
 
         # throws error without schemes
-        self.assertRaises(KeyError, CryptContext().verify_and_update, "secret", "hash")
+        with pytest.raises(KeyError):
+            CryptContext().verify_and_update("secret", "hash")
 
         # bad scheme values
-        self.assertRaises(
-            KeyError, cc.verify_and_update, "secret", refhash, scheme="fake"
-        )  # XXX: should this be ValueError?
-        self.assertRaises(TypeError, cc.verify_and_update, "secret", refhash, scheme=1)
+        with pytest.raises(KeyError):
+            cc.verify_and_update(
+                "secret", refhash, scheme="fake"
+            )  # XXX: should this be ValueError?
+        with pytest.raises(TypeError):
+            cc.verify_and_update("secret", refhash, scheme=1)
 
         # bad category values
-        self.assertRaises(
-            TypeError, cc.verify_and_update, "secret", refhash, category=1
-        )
+        with pytest.raises(TypeError):
+            cc.verify_and_update("secret", refhash, category=1)
 
     def test_48_context_kwds(self):
         """hash(), verify(), and verify_and_update() -- discard unused context keywords"""
@@ -1359,11 +1377,12 @@ sha512_crypt__min_rounds = 45000
 
         # des_crypt should throw error due to unknown context keyword
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertRaises(TypeError, cc1.hash, "stub", user="root")
-        self.assertRaises(TypeError, cc1.verify, "stub", des_hash, user="root")
-        self.assertRaises(
-            TypeError, cc1.verify_and_update, "stub", des_hash, user="root"
-        )
+            with pytest.raises(TypeError):
+                cc1.hash("stub", user="root")
+        with pytest.raises(TypeError):
+            cc1.verify("stub", des_hash, user="root")
+        with pytest.raises(TypeError):
+            cc1.verify_and_update("stub", des_hash, user="root")
 
         # ------------------------------------------------------------
         # case 2: at least one contextual kwd supported by non-default hash
@@ -1383,11 +1402,12 @@ sha512_crypt__min_rounds = 45000
 
         # verify error with unknown kwd
         with pytest.deprecated_call(match=WARN_SETTINGS_ARG):
-            self.assertRaises(TypeError, cc2.hash, "stub", badkwd="root")
-        self.assertRaises(TypeError, cc2.verify, "stub", des_hash, badkwd="root")
-        self.assertRaises(
-            TypeError, cc2.verify_and_update, "stub", des_hash, badkwd="root"
-        )
+            with pytest.raises(TypeError):
+                cc2.hash("stub", badkwd="root")
+        with pytest.raises(TypeError):
+            cc2.verify("stub", des_hash, badkwd="root")
+        with pytest.raises(TypeError):
+            cc2.verify_and_update("stub", des_hash, badkwd="root")
 
         # ------------------------------------------------------------
         # case 3: at least one contextual kwd supported by default hash
@@ -1396,9 +1416,12 @@ sha512_crypt__min_rounds = 45000
         assert cc3.context_kwds == set(["user"])
 
         # postgres_md5 should have error w/o context kwd
-        self.assertRaises(TypeError, cc3.hash, "stub")
-        self.assertRaises(TypeError, cc3.verify, "stub", pg_root_hash)
-        self.assertRaises(TypeError, cc3.verify_and_update, "stub", pg_root_hash)
+        with pytest.raises(TypeError):
+            cc3.hash("stub")
+        with pytest.raises(TypeError):
+            cc3.verify("stub", pg_root_hash)
+        with pytest.raises(TypeError):
+            cc3.verify_and_update("stub", pg_root_hash)
 
         # postgres_md5 should work w/ context kwd
         assert cc3.hash("stub", user="root") == pg_root_hash
@@ -1517,10 +1540,12 @@ sha512_crypt__min_rounds = 45000
         # TODO: test default falls back to mx / mn if handler has no default.
 
         # default rounds - out of bounds
-        self.assertRaises(ValueError, cc.copy, sha256_crypt__default_rounds=1999)
+        with pytest.raises(ValueError):
+            cc.copy(sha256_crypt__default_rounds=1999)
         cc.copy(sha256_crypt__default_rounds=2000)
         cc.copy(sha256_crypt__default_rounds=3000)
-        self.assertRaises(ValueError, cc.copy, sha256_crypt__default_rounds=3001)
+        with pytest.raises(ValueError):
+            cc.copy(sha256_crypt__default_rounds=3001)
 
         # --------------------------------------------------
         # border cases
@@ -1531,31 +1556,32 @@ sha512_crypt__min_rounds = 45000
         # NOTE: as of v1.7, these are clipped w/ a warning instead...
         # self.assertRaises(ValueError, c2.copy, sha256_crypt__min_rounds=-1)
         # self.assertRaises(ValueError, c2.copy, sha256_crypt__max_rounds=-1)
-        self.assertRaises(
-            ValueError,
-            c2.copy,
-            sha256_crypt__min_rounds=2000,
-            sha256_crypt__max_rounds=1999,
-        )
+        with pytest.raises(ValueError):
+            c2.copy(
+                sha256_crypt__min_rounds=2000,
+                sha256_crypt__max_rounds=1999,
+            )
 
         # test bad values
-        self.assertRaises(ValueError, CryptContext, sha256_crypt__min_rounds="x")
-        self.assertRaises(ValueError, CryptContext, sha256_crypt__max_rounds="x")
-        self.assertRaises(ValueError, CryptContext, all__vary_rounds="x")
-        self.assertRaises(ValueError, CryptContext, sha256_crypt__default_rounds="x")
+        with pytest.raises(ValueError):
+            CryptContext(sha256_crypt__min_rounds="x")
+        with pytest.raises(ValueError):
+            CryptContext(sha256_crypt__max_rounds="x")
+        with pytest.raises(ValueError):
+            CryptContext(all__vary_rounds="x")
+        with pytest.raises(ValueError):
+            CryptContext(sha256_crypt__default_rounds="x")
 
         # test bad types rejected
         bad = datetime.datetime.now()  # picked cause can't be compared to int
-        self.assertRaises(
-            TypeError, CryptContext, "sha256_crypt", sha256_crypt__min_rounds=bad
-        )
-        self.assertRaises(
-            TypeError, CryptContext, "sha256_crypt", sha256_crypt__max_rounds=bad
-        )
-        self.assertRaises(TypeError, CryptContext, "sha256_crypt", all__vary_rounds=bad)
-        self.assertRaises(
-            TypeError, CryptContext, "sha256_crypt", sha256_crypt__default_rounds=bad
-        )
+        with pytest.raises(TypeError):
+            CryptContext("sha256_crypt", sha256_crypt__min_rounds=bad)
+        with pytest.raises(TypeError):
+            CryptContext("sha256_crypt", sha256_crypt__max_rounds=bad)
+        with pytest.raises(TypeError):
+            CryptContext("sha256_crypt", all__vary_rounds=bad)
+        with pytest.raises(TypeError):
+            CryptContext("sha256_crypt", sha256_crypt__default_rounds=bad)
 
     def test_51_linear_vary_rounds(self):
         """test linear vary rounds"""
@@ -1567,9 +1593,12 @@ sha512_crypt__min_rounds = 45000
         )
 
         # test negative
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds=-1)
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds="-1%")
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds="101%")
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds=-1)
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds="-1%")
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds="101%")
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
@@ -1606,9 +1635,12 @@ sha512_crypt__min_rounds = 45000
         )
 
         # test negative
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds=-1)
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds="-1%")
-        self.assertRaises(ValueError, cc.copy, all__vary_rounds="101%")
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds=-1)
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds="-1%")
+        with pytest.raises(ValueError):
+            cc.copy(all__vary_rounds="101%")
 
         # test static
         c2 = cc.copy(all__vary_rounds=0)
@@ -1670,7 +1702,7 @@ sha512_crypt__min_rounds = 45000
         ctx = CryptContext(schemes=[handler])
         ctx.dummy_verify()  # prime the memoized helpers
         elapsed, _ = time_call(ctx.dummy_verify)
-        self.assertAlmostEqual(elapsed, expected, delta=expected * accuracy)
+        assert elapsed == pytest.approx(expected, abs=expected * accuracy)
 
         # TODO: test dummy_verify() invoked by .verify() when hash is None,
         #       and same for .verify_and_update()
@@ -1704,18 +1736,16 @@ sha512_crypt__min_rounds = 45000
         assert getstate(ctx, "admin") == [False]
 
         # disallow auto & other deprecated schemes at same time.
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            "sha256_crypt,md5_crypt",
-            deprecated="auto,md5_crypt",
-        )
-        self.assertRaises(
-            ValueError,
-            CryptContext,
-            "sha256_crypt,md5_crypt",
-            deprecated="md5_crypt,auto",
-        )
+        with pytest.raises(ValueError):
+            CryptContext(
+                "sha256_crypt,md5_crypt",
+                deprecated="auto,md5_crypt",
+            )
+        with pytest.raises(ValueError):
+            CryptContext(
+                "sha256_crypt,md5_crypt",
+                deprecated="md5_crypt,auto",
+            )
 
     def test_disabled_hashes(self):
         """disabled hash support"""
@@ -1735,13 +1765,15 @@ sha512_crypt__min_rounds = 45000
         #
 
         # test w/o disabled hash support
-        self.assertRaisesRegex(RuntimeError, "no disabled hasher present", ctx.disable)
-        self.assertRaisesRegex(
-            RuntimeError, "no disabled hasher present", ctx.disable, h_ref
-        )
-        self.assertRaisesRegex(
-            RuntimeError, "no disabled hasher present", ctx.disable, h_other
-        )
+        err_msg = "no disabled hasher present"
+        error_context = pytest.raises(RuntimeError, match=err_msg)
+        with error_context:
+            ctx.disable()
+        with error_context:
+            ctx.disable(h_ref)
+
+        with error_context:
+            ctx.disable(h_other)
 
         # test w/ disabled hash support
         h_dis = ctx2.disable()
@@ -1761,13 +1793,17 @@ sha512_crypt__min_rounds = 45000
 
         # test w/o disabled hash support
         assert ctx.is_enabled(h_ref)
-        self.assertRaises(UnknownHashError, ctx.is_enabled, h_other)
-        self.assertRaises(UnknownHashError, ctx.is_enabled, h_dis)
-        self.assertRaises(UnknownHashError, ctx.is_enabled, h_dis_ref)
+        with pytest.raises(UnknownHashError):
+            ctx.is_enabled(h_other)
+        with pytest.raises(UnknownHashError):
+            ctx.is_enabled(h_dis)
+        with pytest.raises(UnknownHashError):
+            ctx.is_enabled(h_dis_ref)
 
         # test w/ disabled hash support
         assert ctx2.is_enabled(h_ref)
-        self.assertRaises(UnknownHashError, ctx.is_enabled, h_other)
+        with pytest.raises(UnknownHashError):
+            ctx.is_enabled(h_other)
         assert not ctx2.is_enabled(h_dis)
         assert not ctx2.is_enabled(h_dis_ref)
 
@@ -1776,21 +1812,28 @@ sha512_crypt__min_rounds = 45000
         #
 
         # test w/o disabled hash support
-        self.assertRaises(UnknownHashError, ctx.enable, "")
-        self.assertRaises(TypeError, ctx.enable, None)
+        with pytest.raises(UnknownHashError):
+            ctx.enable("")
+        with pytest.raises(TypeError):
+            ctx.enable(None)
         assert ctx.enable(h_ref) == h_ref
-        self.assertRaises(UnknownHashError, ctx.enable, h_other)
-        self.assertRaises(UnknownHashError, ctx.enable, h_dis)
-        self.assertRaises(UnknownHashError, ctx.enable, h_dis_ref)
+        with pytest.raises(UnknownHashError):
+            ctx.enable(h_other)
+        with pytest.raises(UnknownHashError):
+            ctx.enable(h_dis)
+        with pytest.raises(UnknownHashError):
+            ctx.enable(h_dis_ref)
 
         # test w/ disabled hash support
-        self.assertRaises(UnknownHashError, ctx.enable, "")
-        self.assertRaises(TypeError, ctx2.enable, None)
+        with pytest.raises(UnknownHashError):
+            ctx.enable("")
+        with pytest.raises(TypeError):
+            ctx2.enable(None)
         assert ctx2.enable(h_ref) == h_ref
-        self.assertRaises(UnknownHashError, ctx2.enable, h_other)
-        self.assertRaisesRegex(
-            ValueError, "cannot restore original hash", ctx2.enable, h_dis
-        )
+        with pytest.raises(UnknownHashError):
+            ctx2.enable(h_other)
+        with pytest.raises(ValueError, match="cannot restore original hash"):
+            ctx2.enable(h_dis)
         assert ctx2.enable(h_dis_ref) == h_ref
 
 
