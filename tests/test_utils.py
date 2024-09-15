@@ -104,10 +104,12 @@ class MiscTest(TestCase):
         assert wrapper("abc", 0) == ""
 
         # count <0
-        self.assertRaises(ValueError, wrapper, "abc", -1)
+        with pytest.raises(ValueError):
+            wrapper("abc", -1)
 
         # letters 0
-        self.assertRaises(ValueError, wrapper, "", 0)
+        with pytest.raises(ValueError):
+            wrapper("", 0)
 
         # letters 1
         assert wrapper("a", 5) == "aaaaa"
@@ -227,7 +229,8 @@ class MiscTest(TestCase):
         assert safe_crypt(to_bytes(s2), to_bytes(h2)) == h2
 
         # test rejects null chars in password
-        self.assertRaises(ValueError, safe_crypt, "\x00", h1)
+        with pytest.raises(ValueError):
+            safe_crypt("\x00", h1)
 
         # check test_crypt()
         assert test_crypt("test", h1)
@@ -240,18 +243,28 @@ class MiscTest(TestCase):
         from passlib.utils import consteq
 
         # ensure error raises for wrong types
-        self.assertRaises(TypeError, consteq, "", b"")
-        self.assertRaises(TypeError, consteq, "", 1)
-        self.assertRaises(TypeError, consteq, "", None)
+        with pytest.raises(TypeError):
+            consteq("", b"")
+        with pytest.raises(TypeError):
+            consteq("", 1)
+        with pytest.raises(TypeError):
+            consteq("", None)
 
-        self.assertRaises(TypeError, consteq, b"", "")
-        self.assertRaises(TypeError, consteq, b"", 1)
-        self.assertRaises(TypeError, consteq, b"", None)
+        with pytest.raises(TypeError):
+            consteq(b"", "")
+        with pytest.raises(TypeError):
+            consteq(b"", 1)
+        with pytest.raises(TypeError):
+            consteq(b"", None)
 
-        self.assertRaises(TypeError, consteq, None, "")
-        self.assertRaises(TypeError, consteq, None, b"")
-        self.assertRaises(TypeError, consteq, 1, "")
-        self.assertRaises(TypeError, consteq, 1, b"")
+        with pytest.raises(TypeError):
+            consteq(None, "")
+        with pytest.raises(TypeError):
+            consteq(None, b"")
+        with pytest.raises(TypeError):
+            consteq(1, "")
+        with pytest.raises(TypeError):
+            consteq(1, b"")
 
         # check equal inputs compare correctly
         for value in [
@@ -326,9 +339,12 @@ class MiscTest(TestCase):
         from passlib.utils import saslprep as sp
 
         # invalid types
-        self.assertRaises(TypeError, sp, None)
-        self.assertRaises(TypeError, sp, 1)
-        self.assertRaises(TypeError, sp, b"")
+        with pytest.raises(TypeError):
+            sp(None)
+        with pytest.raises(TypeError):
+            sp(1)
+        with pytest.raises(TypeError):
+            sp(b"")
 
         # empty strings
         assert sp("") == ""
@@ -346,39 +362,56 @@ class MiscTest(TestCase):
 
         # verify various forbidden characters
         # control chars
-        self.assertRaises(ValueError, sp, "\u0000")
-        self.assertRaises(ValueError, sp, "\u007f")
-        self.assertRaises(ValueError, sp, "\u180e")
-        self.assertRaises(ValueError, sp, "\ufff9")
+        with pytest.raises(ValueError):
+            sp("\u0000")
+        with pytest.raises(ValueError):
+            sp("\u007f")
+        with pytest.raises(ValueError):
+            sp("\u180e")
+        with pytest.raises(ValueError):
+            sp("\ufff9")
         # private use
-        self.assertRaises(ValueError, sp, "\ue000")
+        with pytest.raises(ValueError):
+            sp("\ue000")
         # non-characters
-        self.assertRaises(ValueError, sp, "\ufdd0")
+        with pytest.raises(ValueError):
+            sp("\ufdd0")
         # surrogates
-        self.assertRaises(ValueError, sp, "\ud800")
+        with pytest.raises(ValueError):
+            sp("\ud800")
         # non-plaintext chars
-        self.assertRaises(ValueError, sp, "\ufffd")
+        with pytest.raises(ValueError):
+            sp("\ufffd")
         # non-canon
-        self.assertRaises(ValueError, sp, "\u2ff0")
+        with pytest.raises(ValueError):
+            sp("\u2ff0")
         # change display properties
-        self.assertRaises(ValueError, sp, "\u200e")
-        self.assertRaises(ValueError, sp, "\u206f")
+        with pytest.raises(ValueError):
+            sp("\u200e")
+        with pytest.raises(ValueError):
+            sp("\u206f")
         # unassigned code points (as of unicode 3.2)
-        self.assertRaises(ValueError, sp, "\u0900")
-        self.assertRaises(ValueError, sp, "\ufff8")
+        with pytest.raises(ValueError):
+            sp("\u0900")
+        with pytest.raises(ValueError):
+            sp("\ufff8")
         # tagging characters
-        self.assertRaises(ValueError, sp, "\U000e0001")
+        with pytest.raises(ValueError):
+            sp("\U000e0001")
 
         # verify bidi behavior
         # if starts with R/AL -- must end with R/AL
-        self.assertRaises(ValueError, sp, "\u0627\u0031")
+        with pytest.raises(ValueError):
+            sp("\u0627\u0031")
         assert sp("ا") == "ا"
         assert sp("اب") == "اب"
         assert sp("ا1ب") == "ا1ب"
         # if starts with R/AL --  cannot contain L
-        self.assertRaises(ValueError, sp, "\u0627\u0041\u0628")
+        with pytest.raises(ValueError):
+            sp("\u0627\u0041\u0628")
         # if doesn't start with R/AL -- can contain R/AL, but L & EN allowed
-        self.assertRaises(ValueError, sp, "x\u0627z")
+        with pytest.raises(ValueError):
+            sp("x\u0627z")
         assert sp("xAz") == "xAz"
 
         # ------------------------------------------------------
@@ -391,12 +424,15 @@ class MiscTest(TestCase):
         assert sp("USER") == "USER"  # case preserved
         assert sp("ª") == "a"  # normalize to KC form
         assert sp("Ⅸ") == "IX"  # normalize to KC form
-        self.assertRaises(ValueError, sp, "\u0007")  # forbid control chars
-        self.assertRaises(ValueError, sp, "\u0627\u0031")  # invalid bidi
+        with pytest.raises(ValueError):
+            sp("\u0007")  # forbid control chars
+        with pytest.raises(ValueError):
+            sp("\u0627\u0031")  # invalid bidi
 
         # rfc 3454 section 6 examples
         # starts with RAL char, must end with RAL char
-        self.assertRaises(ValueError, sp, "\u0627\u0031")
+        with pytest.raises(ValueError):
+            sp("\u0627\u0031")
         assert sp("ا1ب") == "ا1ب"
 
     def test_splitcomma(self):
@@ -558,7 +594,8 @@ class CodecTest(TestCase):
 
         # check unicode w/ encodings
         assert to_bytes("\x00ÿ", "latin-1") == b"\x00\xff"
-        self.assertRaises(ValueError, to_bytes, "\x00\xff", "ascii")
+        with pytest.raises(ValueError):
+            to_bytes("\x00\xff", "ascii")
 
         # check bytes inputs
         assert to_bytes(b"abc") == b"abc"
@@ -572,8 +609,10 @@ class CodecTest(TestCase):
         assert to_bytes(b"\x00\xc3\xbf", "latin-1", "", "utf-8") == b"\x00\xff"
 
         # check other
-        self.assertRaises(AssertionError, to_bytes, "abc", None)
-        self.assertRaises(TypeError, to_bytes, None)
+        with pytest.raises(AssertionError):
+            to_bytes("abc", None)
+        with pytest.raises(TypeError):
+            to_bytes(None)
 
     def test_to_unicode(self):
         """test to_unicode()"""
@@ -590,11 +629,14 @@ class CodecTest(TestCase):
         assert to_unicode(b"abc") == "abc"
         assert to_unicode(b"\x00\xc3\xbf") == "\x00ÿ"
         assert to_unicode(b"\x00\xff", "latin-1") == "\x00ÿ"
-        self.assertRaises(ValueError, to_unicode, b"\x00\xff")
+        with pytest.raises(ValueError):
+            to_unicode(b"\x00\xff")
 
         # check other
-        self.assertRaises(AssertionError, to_unicode, "abc", None)
-        self.assertRaises(TypeError, to_unicode, None)
+        with pytest.raises(AssertionError):
+            to_unicode("abc", None)
+        with pytest.raises(TypeError):
+            to_unicode(None)
 
     def test_to_native_str(self):
         """test to_native_str()"""
@@ -606,7 +648,8 @@ class CodecTest(TestCase):
 
         # test invalid ascii
         assert to_native_str("à", "ascii") == "à"
-        self.assertRaises(UnicodeDecodeError, to_native_str, b"\xc3\xa0", "ascii")
+        with pytest.raises(UnicodeDecodeError):
+            to_native_str(b"\xc3\xa0", "ascii")
 
         # test latin-1
         assert to_native_str("à", "latin-1") == "à"
@@ -617,7 +660,8 @@ class CodecTest(TestCase):
         assert to_native_str(b"\xc3\xa0", "utf-8") == "à"
 
         # other types rejected
-        self.assertRaises(TypeError, to_native_str, None, "ascii")
+        with pytest.raises(TypeError):
+            to_native_str(None, "ascii")
 
     def test_is_ascii_safe(self):
         assert is_ascii_safe(b"\x00abc\x7f")
@@ -651,13 +695,16 @@ class Base64EngineTest(TestCase):
         from passlib.utils.binary import Base64Engine, AB64_CHARS
 
         # bad charmap type
-        self.assertRaises(TypeError, Base64Engine, 1)
+        with pytest.raises(TypeError):
+            Base64Engine(1)
 
         # bad charmap size
-        self.assertRaises(ValueError, Base64Engine, AB64_CHARS[:-1])
+        with pytest.raises(ValueError):
+            Base64Engine(AB64_CHARS[:-1])
 
         # dup charmap letter
-        self.assertRaises(ValueError, Base64Engine, AB64_CHARS[:-1] + "A")
+        with pytest.raises(ValueError):
+            Base64Engine(AB64_CHARS[:-1] + "A")
 
     def test_ab64_decode(self):
         """ab64_decode()"""
@@ -668,16 +715,21 @@ class Base64EngineTest(TestCase):
         assert ab64_decode("abc") == hb("69b7")
 
         # reject non-ascii unicode
-        self.assertRaises(ValueError, ab64_decode, "ab\xff")
+        with pytest.raises(ValueError):
+            ab64_decode("ab\xff")
 
         # underlying a2b_ascii treats non-base64 chars as "Incorrect padding"
-        self.assertRaises(TypeError, ab64_decode, b"ab\xff")
-        self.assertRaises(TypeError, ab64_decode, b"ab!")
-        self.assertRaises(TypeError, ab64_decode, "ab!")
+        with pytest.raises(TypeError):
+            ab64_decode(b"ab\xff")
+        with pytest.raises(TypeError):
+            ab64_decode(b"ab!")
+        with pytest.raises(TypeError):
+            ab64_decode("ab!")
 
         # insert correct padding, handle dirty padding bits
         assert ab64_decode(b"abcd") == hb("69b71d")  # 0 mod 4
-        self.assertRaises(ValueError, ab64_decode, b"abcde")  # 1 mod 4
+        with pytest.raises(ValueError):
+            ab64_decode(b"abcde")  # 1 mod 4
         assert ab64_decode(b"abcdef") == hb("69b71d79")  # 2 mod 4, dirty padding bits
         assert ab64_decode(b"abcdeQ") == hb("69b71d79")  # 2 mod 4, clean padding bits
         assert ab64_decode(b"abcdefg") == hb(
@@ -697,7 +749,8 @@ class Base64EngineTest(TestCase):
         assert ab64_encode(hb("69b7")) == b"abc"
 
         # reject unicode
-        self.assertRaises(TypeError, ab64_encode, hb("69b7").decode("latin-1"))
+        with pytest.raises(TypeError):
+            ab64_encode(hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
         assert ab64_encode(hb("69b71d")) == b"abcd"  # 0 mod 4
@@ -716,16 +769,21 @@ class Base64EngineTest(TestCase):
         assert b64s_decode("abc") == hb("69b7")
 
         # reject non-ascii unicode
-        self.assertRaises(ValueError, b64s_decode, "ab\xff")
+        with pytest.raises(ValueError):
+            b64s_decode("ab\xff")
 
         # underlying a2b_ascii treats non-base64 chars as "Incorrect padding"
-        self.assertRaises(TypeError, b64s_decode, b"ab\xff")
-        self.assertRaises(TypeError, b64s_decode, b"ab!")
-        self.assertRaises(TypeError, b64s_decode, "ab!")
+        with pytest.raises(TypeError):
+            b64s_decode(b"ab\xff")
+        with pytest.raises(TypeError):
+            b64s_decode(b"ab!")
+        with pytest.raises(TypeError):
+            b64s_decode("ab!")
 
         # insert correct padding, handle dirty padding bits
         assert b64s_decode(b"abcd") == hb("69b71d")  # 0 mod 4
-        self.assertRaises(ValueError, b64s_decode, b"abcde")  # 1 mod 4
+        with pytest.raises(ValueError):
+            b64s_decode(b"abcde")  # 1 mod 4
         assert b64s_decode(b"abcdef") == hb("69b71d79")  # 2 mod 4, dirty padding bits
         assert b64s_decode(b"abcdeQ") == hb("69b71d79")  # 2 mod 4, clean padding bits
         assert b64s_decode(b"abcdefg") == hb(
@@ -740,7 +798,8 @@ class Base64EngineTest(TestCase):
         assert b64s_encode(hb("69b7")) == b"abc"
 
         # reject unicode
-        self.assertRaises(TypeError, b64s_encode, hb("69b7").decode("latin-1"))
+        with pytest.raises(TypeError):
+            b64s_encode(hb("69b7").decode("latin-1"))
 
         # insert correct padding before decoding
         assert b64s_encode(hb("69b71d")) == b"abcd"  # 0 mod 4
@@ -783,8 +842,10 @@ class _Base64Test(TestCase):
         """test encode_bytes() with bad input"""
         engine = self.engine
         encode = engine.encode_bytes
-        self.assertRaises(TypeError, encode, "\x00")
-        self.assertRaises(TypeError, encode, None)
+        with pytest.raises(TypeError):
+            encode("\x00")
+        with pytest.raises(TypeError):
+            encode(None)
 
     def test_decode_bytes(self):
         """test decode_bytes() against reference inputs"""
@@ -826,15 +887,19 @@ class _Base64Test(TestCase):
         decode = engine.decode_bytes
 
         # wrong size (1 % 4)
-        self.assertRaises(ValueError, decode, engine.bytemap[:5])
+        with pytest.raises(ValueError):
+            decode(engine.bytemap[:5])
 
         # wrong char
         assert self.bad_byte not in engine.bytemap
-        self.assertRaises(ValueError, decode, self.bad_byte * 4)
+        with pytest.raises(ValueError):
+            decode(self.bad_byte * 4)
 
         # wrong type
-        self.assertRaises(TypeError, decode, engine.charmap[:4])
-        self.assertRaises(TypeError, decode, None)
+        with pytest.raises(TypeError):
+            decode(engine.charmap[:4])
+        with pytest.raises(TypeError):
+            decode(None)
 
     def test_codec(self):
         """test encode_bytes/decode_bytes against random data"""
@@ -899,7 +964,8 @@ class _Base64Test(TestCase):
             cdata = getrandstr(rng, engine.charmap, size).encode("ascii")
             if size & 3 == 1:
                 # should throw error
-                self.assertRaises(ValueError, check_repair_unused, cdata)
+                with pytest.raises(ValueError):
+                    check_repair_unused(cdata)
                 continue
             rdata = engine.encode_bytes(engine.decode_bytes(cdata))
             if rng.random() < 0.5:
@@ -939,7 +1005,8 @@ class _Base64Test(TestCase):
             out = engine.decode_bytes(tmp)
             assert out == result
 
-        self.assertRaises(TypeError, engine.encode_transposed_bytes, "a", [])
+        with pytest.raises(TypeError):
+            engine.encode_transposed_bytes("a", [])
 
     def test_decode_transposed_bytes(self):
         """test decode_transposed_bytes()"""
@@ -954,7 +1021,8 @@ class _Base64Test(TestCase):
         engine = self.engine
         for input, _, offsets in self.transposed_dups:
             tmp = engine.encode_bytes(input)
-            self.assertRaises(TypeError, engine.decode_transposed_bytes, tmp, offsets)
+            with pytest.raises(TypeError):
+                engine.decode_transposed_bytes(tmp, offsets)
 
     def check_int_pair(self, bits, encoded_pairs):
         """helper to check encode_intXX & decode_intXX functions"""
@@ -971,18 +1039,25 @@ class _Base64Test(TestCase):
             result = encode(value)
             assert isinstance(result, bytes)
             assert result == encoded
-        self.assertRaises(ValueError, encode, -1)
-        self.assertRaises(ValueError, encode, upper)
+        with pytest.raises(ValueError):
+            encode(-1)
+        with pytest.raises(ValueError):
+            encode(upper)
 
         # test decode func
         for value, encoded in encoded_pairs:
             assert decode(encoded) == value, "encoded %r:" % (encoded,)
         m = self.m
-        self.assertRaises(ValueError, decode, m(0) * (chars + 1))
-        self.assertRaises(ValueError, decode, m(0) * (chars - 1))
-        self.assertRaises(ValueError, decode, self.bad_byte * chars)
-        self.assertRaises(TypeError, decode, engine.charmap[0])
-        self.assertRaises(TypeError, decode, None)
+        with pytest.raises(ValueError):
+            decode(m(0) * (chars + 1))
+        with pytest.raises(ValueError):
+            decode(m(0) * (chars - 1))
+        with pytest.raises(ValueError):
+            decode(self.bad_byte * chars)
+        with pytest.raises(TypeError):
+            decode(engine.charmap[0])
+        with pytest.raises(TypeError):
+            decode(None)
 
         # do random testing.
         from passlib.utils import getrandstr

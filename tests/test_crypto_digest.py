@@ -3,6 +3,7 @@ import hashlib
 from importlib.util import find_spec
 import warnings
 
+import pytest
 
 from passlib.exc import UnknownHashError
 from tests.utils import TestCase, hb
@@ -58,7 +59,8 @@ class HashInfoTest(TestCase):
         # test string types
         assert norm_hash_name("MD4") == "md4"
         assert norm_hash_name(b"MD4") == "md4"
-        self.assertRaises(TypeError, norm_hash_name, None)
+        with pytest.raises(TypeError):
+            norm_hash_name(None)
 
         # test selected results
         for row in chain(_known_hash_names, self.norm_hash_samples):
@@ -73,9 +75,12 @@ class HashInfoTest(TestCase):
         from passlib.crypto.digest import lookup_hash
 
         # invalid/unknown names should be rejected
-        self.assertRaises(ValueError, lookup_hash, "new")
-        self.assertRaises(ValueError, lookup_hash, "__name__")
-        self.assertRaises(ValueError, lookup_hash, "sha4")
+        with pytest.raises(ValueError):
+            lookup_hash("new")
+        with pytest.raises(ValueError):
+            lookup_hash("__name__")
+        with pytest.raises(ValueError):
+            lookup_hash("sha4")
 
         # 1. should return hashlib builtin if found
         assert lookup_hash("md5") == (hashlib.md5, 16, 64)
@@ -96,7 +101,8 @@ class HashInfoTest(TestCase):
             )
 
         else:
-            self.assertRaises(ValueError, lookup_hash, "sha")
+            with pytest.raises(ValueError):
+                lookup_hash("sha")
 
         # 3. should fall back to builtin md4
         try:
@@ -121,12 +127,15 @@ class HashInfoTest(TestCase):
         from passlib.crypto.digest import lookup_hash
 
         # unknown names should be rejected by default
-        self.assertRaises(UnknownHashError, lookup_hash, "xxx256")
+        with pytest.raises(UnknownHashError):
+            lookup_hash("xxx256")
 
         # required=False should return stub record instead
         info = lookup_hash("xxx256", required=False)
         assert not info.supported
-        self.assertRaisesRegex(UnknownHashError, "unknown hash: 'xxx256'", info.const)
+
+        with pytest.raises(UnknownHashError, match="unknown hash: 'xxx256'"):
+            info.const()
         assert info.name == "xxx256"
         assert info.digest_size is None
         assert info.block_size is None
@@ -149,12 +158,14 @@ class HashInfoTest(TestCase):
         _set_mock_fips_mode()
         self.addCleanup(_set_mock_fips_mode, False)
 
-        pat = "'md5' hash disabled for fips"
-        self.assertRaisesRegex(UnknownHashError, pat, lookup_hash, "md5")
+        err_msg = "'md5' hash disabled for fips"
+        with pytest.raises(UnknownHashError, match=err_msg):
+            lookup_hash("md5")
 
         info = lookup_hash("md5", required=False)
-        assert re.search(pat, info.error_text)
-        self.assertRaisesRegex(UnknownHashError, pat, info.const)
+        assert re.search(err_msg, info.error_text)
+        with pytest.raises(UnknownHashError, match=err_msg):
+            info.const()
 
         # should use hardcoded fallback info
         assert info.digest_size == 16
@@ -189,7 +200,8 @@ class HashInfoTest(TestCase):
         assert lookup_hash(info) is info
         assert lookup_hash(info.const) is info
 
-        self.assertRaises(TypeError, lookup_hash, 123)
+        with pytest.raises(TypeError):
+            lookup_hash(123)
 
     # TODO: write full test of compile_hmac() -- currently relying on pbkdf2_hmac() tests
 
@@ -263,20 +275,28 @@ class Pbkdf1_Test(TestCase):
         helper()
 
         # salt/secret wrong type
-        self.assertRaises(TypeError, helper, secret=1)
-        self.assertRaises(TypeError, helper, salt=1)
+        with pytest.raises(TypeError):
+            helper(secret=1)
+        with pytest.raises(TypeError):
+            helper(salt=1)
 
         # non-existent hashes
-        self.assertRaises(ValueError, helper, hash="missing")
+        with pytest.raises(ValueError):
+            helper(hash="missing")
 
         # rounds < 1 and wrong type
-        self.assertRaises(ValueError, helper, rounds=0)
-        self.assertRaises(TypeError, helper, rounds="1")
+        with pytest.raises(ValueError):
+            helper(rounds=0)
+        with pytest.raises(TypeError):
+            helper(rounds="1")
 
         # keylen < 0, keylen > block_size, and wrong type
-        self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=17, hash="md5")
-        self.assertRaises(TypeError, helper, keylen="1")
+        with pytest.raises(ValueError):
+            helper(keylen=-1)
+        with pytest.raises(ValueError):
+            helper(keylen=17, hash="md5")
+        with pytest.raises(TypeError):
+            helper(keylen="1")
 
 
 # NOTE: relying on tox to verify this works under all the various backends.
@@ -621,26 +641,37 @@ class Pbkdf2Test(TestCase):
         helper()
 
         # invalid rounds
-        self.assertRaises(ValueError, helper, rounds=-1)
-        self.assertRaises(ValueError, helper, rounds=0)
-        self.assertRaises(TypeError, helper, rounds="x")
+        with pytest.raises(ValueError):
+            helper(rounds=-1)
+        with pytest.raises(ValueError):
+            helper(rounds=0)
+        with pytest.raises(TypeError):
+            helper(rounds="x")
 
         # invalid keylen
         helper(keylen=1)
-        self.assertRaises(ValueError, helper, keylen=-1)
-        self.assertRaises(ValueError, helper, keylen=0)
+        with pytest.raises(ValueError):
+            helper(keylen=-1)
+        with pytest.raises(ValueError):
+            helper(keylen=0)
         # NOTE: hashlib actually throws error for keylen>=MAX_SINT32,
         #       but pbkdf2 forbids anything > MAX_UINT32 * digest_size
-        self.assertRaises(OverflowError, helper, keylen=20 * (2**32 - 1) + 1)
-        self.assertRaises(TypeError, helper, keylen="x")
+        with pytest.raises(OverflowError):
+            helper(keylen=20 * (2**32 - 1) + 1)
+        with pytest.raises(TypeError):
+            helper(keylen="x")
 
         # invalid secret/salt type
-        self.assertRaises(TypeError, helper, salt=5)
-        self.assertRaises(TypeError, helper, secret=5)
+        with pytest.raises(TypeError):
+            helper(salt=5)
+        with pytest.raises(TypeError):
+            helper(secret=5)
 
         # invalid hash
-        self.assertRaises(ValueError, helper, digest="foo")
-        self.assertRaises(TypeError, helper, digest=5)
+        with pytest.raises(ValueError):
+            helper(digest="foo")
+        with pytest.raises(TypeError):
+            helper(digest=5)
 
     def test_default_keylen(self):
         """test keylen==None"""

@@ -1,5 +1,6 @@
 import warnings
 
+import pytest
 
 from passlib import hash
 from tests.utils import TestCase, HandlerCase
@@ -246,7 +247,8 @@ class scram_test(HandlerCase):
 
         # None -> default list
         assert parse(None, use_defaults=True) == hash.scram.default_algs
-        self.assertRaises(TypeError, parse, None)
+        with pytest.raises(TypeError):
+            parse(None)
 
         # strings should be parsed
         assert parse("sha1") == ["sha-1"]
@@ -256,28 +258,28 @@ class scram_test(HandlerCase):
         assert parse(["sha-1", "sha256"]) == ["sha-1", "sha-256"]
 
         # sha-1 required
-        self.assertRaises(ValueError, parse, ["sha-256"])
-        self.assertRaises(ValueError, parse, algs=[], use_defaults=True)
+        with pytest.raises(ValueError):
+            parse(["sha-256"])
+        with pytest.raises(ValueError):
+            parse(algs=[], use_defaults=True)
 
         # alg names must be < 10 chars
-        self.assertRaises(ValueError, parse, ["sha-1", "shaxxx-190"])
+        with pytest.raises(ValueError):
+            parse(["sha-1", "shaxxx-190"])
 
         # alg & checksum mutually exclusive.
-        self.assertRaises(
-            RuntimeError, parse, ["sha-1"], checksum={"sha-1": b"\x00" * 20}
-        )
+        with pytest.raises(RuntimeError):
+            parse(["sha-1"], checksum={"sha-1": b"\x00" * 20})
 
     def test_90_checksums(self):
         """test internal parsing of 'checksum' keyword"""
         # check non-bytes checksum values are rejected
-        self.assertRaises(
-            TypeError, self.handler, use_defaults=True, checksum={"sha-1": "X" * 20}
-        )
+        with pytest.raises(TypeError):
+            self.handler(use_defaults=True, checksum={"sha-1": "X" * 20})
 
         # check sha-1 is required
-        self.assertRaises(
-            ValueError, self.handler, use_defaults=True, checksum={"sha-256": b"X" * 32}
-        )
+        with pytest.raises(ValueError):
+            self.handler(use_defaults=True, checksum={"sha-256": b"X" * 32})
 
         # XXX: anything else that's not tested by the other code already?
 
@@ -291,13 +293,17 @@ class scram_test(HandlerCase):
         assert edi(h, "SHA1") == (s, 10, b"\x01")
         assert edi(h, "bbb") == (s, 10, b"\x02")
         assert edi(h, "ccc") == (s, 10, b"\x03")
-        self.assertRaises(KeyError, edi, h, "ddd")
+        with pytest.raises(KeyError):
+            edi(h, "ddd")
 
         # config strings should cause value error.
         c = "$scram$10$....$sha-1,bbb,ccc"
-        self.assertRaises(ValueError, edi, c, "sha-1")
-        self.assertRaises(ValueError, edi, c, "bbb")
-        self.assertRaises(ValueError, edi, c, "ddd")
+        with pytest.raises(ValueError):
+            edi(c, "sha-1")
+        with pytest.raises(ValueError):
+            edi(c, "bbb")
+        with pytest.raises(ValueError):
+            edi(c, "ddd")
 
     def test_92_extract_digest_algs(self):
         """test scram.extract_digest_algs()"""
@@ -339,10 +345,12 @@ class scram_test(HandlerCase):
             hash("IX", s1, 1000, "md5")
             == b"3\x19\x18\xc0\x1c/\xa8\xbf\xe4\xa3\xc2\x8eM\xe8od"
         )
-        self.assertRaises(ValueError, hash, "IX", s1, 1000, "sha-666")
+        with pytest.raises(ValueError):
+            hash("IX", s1, 1000, "sha-666")
 
         # check rounds
-        self.assertRaises(ValueError, hash, "IX", s1, 0, "sha-1")
+        with pytest.raises(ValueError):
+            hash("IX", s1, 0, "sha-1")
 
         # unicode salts accepted as of passlib 1.7 (previous caused TypeError)
         assert hash("IX", s1.decode("latin-1"), 1000, "sha1") == d1
@@ -364,8 +372,10 @@ class scram_test(HandlerCase):
         assert self.do_verify("\u200dó", h)
 
         # throws error if forbidden char provided
-        self.assertRaises(ValueError, self.do_encrypt, "\ufdd0")
-        self.assertRaises(ValueError, self.do_verify, "\ufdd0", h)
+        with pytest.raises(ValueError):
+            self.do_encrypt("\ufdd0")
+        with pytest.raises(ValueError):
+            self.do_verify("\ufdd0", h)
 
     def test_94_using_w_default_algs(self, param="default_algs"):
         """using() -- 'default_algs' parameter"""
@@ -450,7 +460,8 @@ class scram_test(HandlerCase):
             "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"
             "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
         )
-        self.assertRaises(ValueError, vfull, "pencil", h)
+        with pytest.raises(ValueError):
+            vfull("pencil", h)
 
         # catch padded digests.
         h = (
@@ -460,7 +471,8 @@ class scram_test(HandlerCase):
             "sha-512=lzgniLFcvglRLS0gt.C4gy.NurS3OIOVRAU1zZOV4P.qFiVFO2/"
             "edGQSu/kD1LwdX0SNV/KsPdHSwEl5qRTuZQ"
         )
-        self.assertRaises(ValueError, vfull, "pencil", h)
+        with pytest.raises(ValueError):
+            vfull("pencil", h)
 
         # catch hash containing digests belonging to diff passwords.
         # proper behavior for quick-verify (the default) is undefined,
@@ -474,5 +486,7 @@ class scram_test(HandlerCase):
         )
         assert vpart("tape", h)
         assert not vpart("pencil", h)
-        self.assertRaises(ValueError, vfull, "pencil", h)
-        self.assertRaises(ValueError, vfull, "tape", h)
+        with pytest.raises(ValueError):
+            vfull("pencil", h)
+        with pytest.raises(ValueError):
+            vfull("tape", h)

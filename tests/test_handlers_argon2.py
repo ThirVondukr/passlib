@@ -1,6 +1,7 @@
 import re
 import warnings
 
+import pytest
 
 from passlib import hash
 from tests.utils import HandlerCase, TEST_MODE
@@ -419,13 +420,12 @@ class _base_argon2_test(HandlerCase):
         #       even though it's mentioned in the format spec.
         #       we're trying to be consistent w/ this, so hashes w/ keyid should
         #       always through a NotImplementedError.
-        self.assertRaises(
-            NotImplementedError,
-            self.handler.verify,
-            "password",
-            "$argon2i$v=19$m=65536,t=2,p=4,keyid=ABCD$c29tZXNhbHQ$"
-            "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
-        )
+        with pytest.raises(NotImplementedError):
+            self.handler.verify(
+                "password",
+                "$argon2i$v=19$m=65536,t=2,p=4,keyid=ABCD$c29tZXNhbHQ$"
+                "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
+            )
 
     def test_data_parameter(self):
         # NOTE: argon2 c library doesn't support passing in a data parameter to argon2_hash();
@@ -451,7 +451,8 @@ class _base_argon2_test(HandlerCase):
             # argon2_cffi v16.1 would incorrectly return False here.
             # but v16.2 patches so it throws error on data parameter.
             # our code should detect that, and adapt it into a NotImplementedError
-            self.assertRaises(NotImplementedError, handler.verify, "password", sample1)
+            with pytest.raises(NotImplementedError):
+                handler.verify("password", sample1)
 
             # incorrectly returns sample3, dropping data parameter
             assert handler.genhash("password", sample1) == sample3
@@ -472,7 +473,8 @@ class _base_argon2_test(HandlerCase):
             # argon2_cffi v16.1 would incorrectly return True here.
             # but v16.2 patches so it throws error on data parameter.
             # our code should detect that, and adapt it into a NotImplementedError
-            self.assertRaises(NotImplementedError, handler.verify, "password", sample2)
+            with pytest.raises(NotImplementedError):
+                handler.verify("password", sample2)
 
             # incorrectly returns sample3, dropping data parameter
             assert handler.genhash("password", sample1) == sample3
@@ -487,13 +489,12 @@ class _base_argon2_test(HandlerCase):
 
     def test_keyid_and_data_parameters(self):
         # test combination of the two, just in case
-        self.assertRaises(
-            NotImplementedError,
-            self.handler.verify,
-            "stub",
-            "$argon2i$v=19$m=65536,t=2,p=4,keyid=ABCD,data=EFGH$c29tZXNhbHQ$"
-            "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
-        )
+        with pytest.raises(NotImplementedError):
+            self.handler.verify(
+                "stub",
+                "$argon2i$v=19$m=65536,t=2,p=4,keyid=ABCD,data=EFGH$c29tZXNhbHQ$"
+                "IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPwr4",
+            )
 
     def test_type_kwd(self):
         cls = self.handler
@@ -531,7 +532,8 @@ class _base_argon2_test(HandlerCase):
         handler(use_defaults=True, **kwds)
 
         # ... rejects bad type
-        self.assertRaises(ValueError, handler, type="xXx", **kwds)
+        with pytest.raises(ValueError):
+            handler(type="xXx", **kwds)
 
     def test_type_using(self):
         handler = self.handler
@@ -567,7 +569,8 @@ class _base_argon2_test(HandlerCase):
         assert effective_type(handler) == orig_type
 
         # rejects bad type
-        self.assertRaises(ValueError, handler.using, type="xXx")
+        with pytest.raises(ValueError):
+            handler.using(type="xXx")
 
         # honor 'type' alias
         subcls = handler.using(type=alt_type)

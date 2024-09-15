@@ -6,6 +6,8 @@ import struct
 import warnings
 from binascii import hexlify
 
+import pytest
+
 from passlib import exc
 from passlib.crypto import scrypt as scrypt_mod
 from passlib.utils import getrandbytes
@@ -462,7 +464,8 @@ class _CommonScryptTest(TestCase):
         # clobber backend
         scrypt_mod.backend = None
         scrypt_mod._scrypt = None
-        self.assertRaises(TypeError, scrypt_mod.scrypt, "s", "s", 2, 2, 2, 16)
+        with pytest.raises(TypeError):
+            scrypt_mod.scrypt("s", "s", 2, 2, 2, 16)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "Using builtin scrypt backend.*")
@@ -471,7 +474,8 @@ class _CommonScryptTest(TestCase):
         scrypt_mod.scrypt("s", "s", 2, 2, 2, 16)
 
         # throw error for unknown backend
-        self.assertRaises(ValueError, scrypt_mod._set_backend, "xxx")
+        with pytest.raises(ValueError):
+            scrypt_mod._set_backend("xxx")
         assert scrypt_mod.backend == self.backend
 
     def test_secret_param(self):
@@ -496,8 +500,10 @@ class _CommonScryptTest(TestCase):
         assert run_scrypt("") == "ca1399e5fae5d3b9578dcd2b1faff6e2"
 
         # reject other types
-        self.assertRaises(TypeError, run_scrypt, None)
-        self.assertRaises(TypeError, run_scrypt, 1)
+        with pytest.raises(TypeError):
+            run_scrypt(None)
+        with pytest.raises(TypeError):
+            run_scrypt(1)
 
     def test_salt_param(self):
         """'salt' parameter"""
@@ -518,8 +524,10 @@ class _CommonScryptTest(TestCase):
         assert run_scrypt(TEXT_LATIN1) == "91d056fb76fb6e9a7d1cdfffc0a16cd1"
 
         # reject other types
-        self.assertRaises(TypeError, run_scrypt, None)
-        self.assertRaises(TypeError, run_scrypt, 1)
+        with pytest.raises(TypeError):
+            run_scrypt(None)
+        with pytest.raises(TypeError):
+            run_scrypt(1)
 
     def test_n_param(self):
         """'n' (rounds) parameter"""
@@ -528,12 +536,17 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt("secret", "salt", n, 2, 2, 16))
 
         # must be > 1, and a power of 2
-        self.assertRaises(ValueError, run_scrypt, -1)
-        self.assertRaises(ValueError, run_scrypt, 0)
-        self.assertRaises(ValueError, run_scrypt, 1)
+        with pytest.raises(ValueError):
+            run_scrypt(-1)
+        with pytest.raises(ValueError):
+            run_scrypt(0)
+        with pytest.raises(ValueError):
+            run_scrypt(1)
         assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
-        self.assertRaises(ValueError, run_scrypt, 3)
-        self.assertRaises(ValueError, run_scrypt, 15)
+        with pytest.raises(ValueError):
+            run_scrypt(3)
+        with pytest.raises(ValueError):
+            run_scrypt(15)
         assert run_scrypt(16) == "0272b8fc72bc54b1159340ed99425233"
 
     def test_r_param(self):
@@ -543,15 +556,19 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt("secret", "salt", n, r, p, 16))
 
         # must be > 1
-        self.assertRaises(ValueError, run_scrypt, -1)
-        self.assertRaises(ValueError, run_scrypt, 0)
+        with pytest.raises(ValueError):
+            run_scrypt(-1)
+        with pytest.raises(ValueError):
+            run_scrypt(0)
         assert run_scrypt(1) == "3d630447d9f065363b8a79b0b3670251"
         assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
         assert run_scrypt(5) == "114f05e985a903c27237b5578e763736"
 
         # reject r*p >= 2**30
-        self.assertRaises(ValueError, run_scrypt, (1 << 30), p=1)
-        self.assertRaises(ValueError, run_scrypt, (1 << 30) / 2, p=2)
+        with pytest.raises(ValueError):
+            run_scrypt((1 << 30), p=1)
+        with pytest.raises(ValueError):
+            run_scrypt((1 << 30) / 2, p=2)
 
     def test_p_param(self):
         """'p' (parallelism) parameter"""
@@ -560,15 +577,19 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt("secret", "salt", n, r, p, 16))
 
         # must be > 1
-        self.assertRaises(ValueError, run_scrypt, -1)
-        self.assertRaises(ValueError, run_scrypt, 0)
+        with pytest.raises(ValueError):
+            run_scrypt(-1)
+        with pytest.raises(ValueError):
+            run_scrypt(0)
         assert run_scrypt(1) == "f2960ea8b7d48231fcec1b89b784a6fa"
         assert run_scrypt(2) == "dacf2bca255e2870e6636fa8c8957a66"
         assert run_scrypt(5) == "848a0eeb2b3543e7f543844d6ca79782"
 
         # reject r*p >= 2**30
-        self.assertRaises(ValueError, run_scrypt, (1 << 30), r=1)
-        self.assertRaises(ValueError, run_scrypt, (1 << 30) / 2, r=2)
+        with pytest.raises(ValueError):
+            run_scrypt((1 << 30), r=1)
+        with pytest.raises(ValueError):
+            run_scrypt((1 << 30) / 2, r=2)
 
     def test_keylen_param(self):
         """'keylen' parameter"""
@@ -578,8 +599,10 @@ class _CommonScryptTest(TestCase):
             return hexstr(scrypt_mod.scrypt("secret", "salt", 2, 2, 2, keylen))
 
         # must be > 0
-        self.assertRaises(ValueError, run_scrypt, -1)
-        self.assertRaises(ValueError, run_scrypt, 0)
+        with pytest.raises(ValueError):
+            run_scrypt(-1)
+        with pytest.raises(ValueError):
+            run_scrypt(0)
         assert run_scrypt(1) == "da"
 
         # pick random value
@@ -587,7 +610,8 @@ class _CommonScryptTest(TestCase):
         assert len(run_scrypt(ksize)) == 2 * ksize  # 2 hex chars per output
 
         # one more than upper bound
-        self.assertRaises(ValueError, run_scrypt, ((2**32) - 1) * 32 + 1)
+        with pytest.raises(ValueError):
+            run_scrypt(((2**32) - 1) * 32 + 1)
 
 
 class BuiltinScryptTest(_CommonScryptTest):
@@ -604,7 +628,8 @@ class BuiltinScryptTest(_CommonScryptTest):
 
     def test_missing_backend(self):
         """backend management -- missing backend"""
-        self.assertRaises(exc.MissingBackendError, scrypt_mod._set_backend, "scrypt")
+        with pytest.raises(exc.MissingBackendError):
+            scrypt_mod._set_backend("scrypt")
 
 
 class StdlibScryptTest(_CommonScryptTest):

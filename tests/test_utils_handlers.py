@@ -62,8 +62,10 @@ class SkeletonTest(TestCase):
         assert not d1.identify("a")
         assert not d1.identify("b")
         assert not d1.identify("c")
-        self.assertRaises(TypeError, d1.identify, None)
-        self.assertRaises(TypeError, d1.identify, 1)
+        with pytest.raises(TypeError):
+            d1.identify(None)
+        with pytest.raises(TypeError):
+            d1.identify(1)
 
         # check default genconfig method
         assert d1.genconfig() == d1.hash("")
@@ -74,8 +76,10 @@ class SkeletonTest(TestCase):
         assert not d1.verify("s", b"_b")
         assert not d1.verify("s", "_b")
         assert d1.verify("s", b"_b", flag=True)
-        self.assertRaises(ValueError, d1.verify, "s", b"_c")
-        self.assertRaises(ValueError, d1.verify, "s", "_c")
+        with pytest.raises(ValueError):
+            d1.verify("s", b"_c")
+        with pytest.raises(ValueError):
+            d1.verify("s", "_c")
 
         # check default hash method
         assert d1.hash("s") == "_a"
@@ -95,24 +99,30 @@ class SkeletonTest(TestCase):
                     raise ValueError
 
         # check fallback
-        self.assertRaises(TypeError, d1.identify, None)
-        self.assertRaises(TypeError, d1.identify, 1)
+        with pytest.raises(TypeError):
+            d1.identify(None)
+        with pytest.raises(TypeError):
+            d1.identify(1)
         assert not d1.identify("")
         assert d1.identify("a")
         assert not d1.identify("b")
 
         # check regexp
         d1._hash_regex = re.compile("@.")
-        self.assertRaises(TypeError, d1.identify, None)
-        self.assertRaises(TypeError, d1.identify, 1)
+        with pytest.raises(TypeError):
+            d1.identify(None)
+        with pytest.raises(TypeError):
+            d1.identify(1)
         assert d1.identify("@a")
         assert not d1.identify("a")
         del d1._hash_regex
 
         # check ident-based
         d1.ident = "!"
-        self.assertRaises(TypeError, d1.identify, None)
-        self.assertRaises(TypeError, d1.identify, 1)
+        with pytest.raises(TypeError):
+            d1.identify(None)
+        with pytest.raises(TypeError):
+            d1.identify(1)
         assert d1.identify("!a")
         assert not d1.identify("a")
         del d1.ident
@@ -130,20 +140,24 @@ class SkeletonTest(TestCase):
             return d1(checksum=checksum, **k).checksum
 
         # too small
-        self.assertRaises(ValueError, norm_checksum, "xxx")
+        with pytest.raises(ValueError):
+            norm_checksum("xxx")
 
         # right size
         assert norm_checksum("xxxx") == "xxxx"
         assert norm_checksum("xzxz") == "xzxz"
 
         # too large
-        self.assertRaises(ValueError, norm_checksum, "xxxxx")
+        with pytest.raises(ValueError):
+            norm_checksum("xxxxx")
 
         # wrong chars
-        self.assertRaises(ValueError, norm_checksum, "xxyx")
+        with pytest.raises(ValueError):
+            norm_checksum("xxyx")
 
         # wrong type
-        self.assertRaises(TypeError, norm_checksum, b"xxyx")
+        with pytest.raises(TypeError):
+            norm_checksum(b"xxyx")
 
         # relaxed
         # NOTE: this could be turned back on if we test _norm_checksum() directly...
@@ -168,7 +182,8 @@ class SkeletonTest(TestCase):
         assert norm_checksum(b"1234") == b"1234"
 
         # test str
-        self.assertRaises(TypeError, norm_checksum, "xxyx")
+        with pytest.raises(TypeError):
+            norm_checksum("xxyx")
 
         # NOTE: this could be turned back on if we test _norm_checksum() directly...
         # self.assertRaises(TypeError, norm_checksum, u'xxyx', relaxed=True)
@@ -199,15 +214,19 @@ class SkeletonTest(TestCase):
         salts4 = _makelang("ab", 4)
 
         # check salt=None
-        self.assertRaises(TypeError, norm_salt)
-        self.assertRaises(TypeError, norm_salt, salt=None)
+        with pytest.raises(TypeError):
+            norm_salt()
+        with pytest.raises(TypeError):
+            norm_salt(salt=None)
         assert norm_salt(use_defaults=True) in salts3
 
         # check explicit salts
         with no_warnings():
             # check too-small salts
-            self.assertRaises(ValueError, norm_salt, salt="")
-            self.assertRaises(ValueError, norm_salt, salt="a")
+            with pytest.raises(ValueError):
+                norm_salt(salt="")
+            with pytest.raises(ValueError):
+                norm_salt(salt="a")
 
             # check correct salts
             assert norm_salt(salt="ab") == "ab"
@@ -215,13 +234,16 @@ class SkeletonTest(TestCase):
             assert norm_salt(salt="abba") == "abba"
 
             # check too-large salts
-            self.assertRaises(ValueError, norm_salt, salt="aaaabb")
+            with pytest.raises(ValueError):
+                norm_salt(salt="aaaabb")
 
         # check generated salts
         with no_warnings():
             # check too-small salt size
-            self.assertRaises(ValueError, gen_salt, 0)
-            self.assertRaises(ValueError, gen_salt, 1)
+            with pytest.raises(ValueError):
+                gen_salt(0)
+            with pytest.raises(ValueError):
+                gen_salt(1)
 
             # check correct salt size
             assert gen_salt(2) in salts2
@@ -229,7 +251,8 @@ class SkeletonTest(TestCase):
             assert gen_salt(4) in salts4
 
             # check too-large salt size
-            self.assertRaises(ValueError, gen_salt, 5)
+            with pytest.raises(ValueError):
+                gen_salt(5)
 
         with pytest.warns(match="salt_size.*above max_salt_size"):
             assert gen_salt(5, relaxed=True) in salts4
@@ -258,17 +281,21 @@ class SkeletonTest(TestCase):
             return d1(**k).rounds
 
         # check rounds=None
-        self.assertRaises(TypeError, norm_rounds)
-        self.assertRaises(TypeError, norm_rounds, rounds=None)
+        with pytest.raises(TypeError):
+            norm_rounds()
+        with pytest.raises(TypeError):
+            norm_rounds(rounds=None)
         assert norm_rounds(use_defaults=True) == 2
 
         # check rounds=non int
-        self.assertRaises(TypeError, norm_rounds, rounds=1.5)
+        with pytest.raises(TypeError):
+            norm_rounds(rounds=1.5)
 
         # check explicit rounds
         with no_warnings():
             # too small
-            self.assertRaises(ValueError, norm_rounds, rounds=0)
+            with pytest.raises(ValueError):
+                norm_rounds(rounds=0)
 
             # just right
             assert norm_rounds(rounds=1) == 1
@@ -276,11 +303,13 @@ class SkeletonTest(TestCase):
             assert norm_rounds(rounds=3) == 3
 
             # too large
-            self.assertRaises(ValueError, norm_rounds, rounds=4)
+            with pytest.raises(ValueError):
+                norm_rounds(rounds=4)
 
         # check no default rounds
         d1.default_rounds = None
-        self.assertRaises(TypeError, norm_rounds, use_defaults=True)
+        with pytest.raises(TypeError):
+            norm_rounds(use_defaults=True)
 
     def test_40_backends(self):
         """test GenericHandler + HasManyBackends mixin"""
@@ -317,10 +346,14 @@ class SkeletonTest(TestCase):
                 return "b"
 
         # test no backends
-        self.assertRaises(MissingBackendError, d1.get_backend)
-        self.assertRaises(MissingBackendError, d1.set_backend)
-        self.assertRaises(MissingBackendError, d1.set_backend, "any")
-        self.assertRaises(MissingBackendError, d1.set_backend, "default")
+        with pytest.raises(MissingBackendError):
+            d1.get_backend()
+        with pytest.raises(MissingBackendError):
+            d1.set_backend()
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("any")
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("default")
         assert not d1.has_backend()
 
         # enable 'b' backend
@@ -336,7 +369,8 @@ class SkeletonTest(TestCase):
         assert obj._calc_checksum("s") == "b"
 
         # test unavailable
-        self.assertRaises(MissingBackendError, d1.set_backend, "a")
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("a")
         assert d1.has_backend("b")
         assert not d1.has_backend("a")
 
@@ -349,8 +383,10 @@ class SkeletonTest(TestCase):
         assert obj._calc_checksum("s") == "a"
 
         # test unknown backend
-        self.assertRaises(ValueError, d1.set_backend, "c")
-        self.assertRaises(ValueError, d1.has_backend, "c")
+        with pytest.raises(ValueError):
+            d1.set_backend("c")
+        with pytest.raises(ValueError):
+            d1.has_backend("c")
 
         # test error thrown if _has & _load are mixed
         d1.set_backend("b")  # switch away from 'a' so next call actually checks loader
@@ -358,7 +394,8 @@ class SkeletonTest(TestCase):
         class d2(d1):
             _has_backend_a = True
 
-        self.assertRaises(AssertionError, d2.has_backend, "a")
+        with pytest.raises(AssertionError):
+            d2.has_backend("a")
 
     def test_41_backends(self):
         """test GenericHandler + HasManyBackends mixin (deprecated api)"""
@@ -384,10 +421,14 @@ class SkeletonTest(TestCase):
                 return "b"
 
         # test no backends
-        self.assertRaises(MissingBackendError, d1.get_backend)
-        self.assertRaises(MissingBackendError, d1.set_backend)
-        self.assertRaises(MissingBackendError, d1.set_backend, "any")
-        self.assertRaises(MissingBackendError, d1.set_backend, "default")
+        with pytest.raises(MissingBackendError):
+            d1.get_backend()
+        with pytest.raises(MissingBackendError):
+            d1.set_backend()
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("any")
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("default")
         assert not d1.has_backend()
 
         # enable 'b' backend
@@ -403,7 +444,8 @@ class SkeletonTest(TestCase):
         assert obj._calc_checksum("s") == "b"
 
         # test unavailable
-        self.assertRaises(MissingBackendError, d1.set_backend, "a")
+        with pytest.raises(MissingBackendError):
+            d1.set_backend("a")
         assert d1.has_backend("b")
         assert not d1.has_backend("a")
 
@@ -416,8 +458,10 @@ class SkeletonTest(TestCase):
         assert obj._calc_checksum("s") == "a"
 
         # test unknown backend
-        self.assertRaises(ValueError, d1.set_backend, "c")
-        self.assertRaises(ValueError, d1.has_backend, "c")
+        with pytest.raises(ValueError):
+            d1.set_backend("c")
+        with pytest.raises(ValueError):
+            d1.has_backend("c")
 
     def test_50_norm_ident(self):
         """test GenericHandler + HasManyIdents"""
@@ -434,20 +478,24 @@ class SkeletonTest(TestCase):
             return d1(**k).ident
 
         # check ident=None
-        self.assertRaises(TypeError, norm_ident)
-        self.assertRaises(TypeError, norm_ident, ident=None)
+        with pytest.raises(TypeError):
+            norm_ident()
+        with pytest.raises(TypeError):
+            norm_ident(ident=None)
         assert norm_ident(use_defaults=True) == "!A"
 
         # check valid idents
         assert norm_ident(ident="!A") == "!A"
         assert norm_ident(ident="!B") == "!B"
-        self.assertRaises(ValueError, norm_ident, ident="!C")
+        with pytest.raises(ValueError):
+            norm_ident(ident="!C")
 
         # check aliases
         assert norm_ident(ident="A") == "!A"
 
         # check invalid idents
-        self.assertRaises(ValueError, norm_ident, ident="B")
+        with pytest.raises(ValueError):
+            norm_ident(ident="B")
 
         # check identify is honoring ident system
         assert d1.identify("!Axxx")
@@ -455,12 +503,15 @@ class SkeletonTest(TestCase):
         assert not d1.identify("!Cxxx")
         assert not d1.identify("A")
         assert not d1.identify("")
-        self.assertRaises(TypeError, d1.identify, None)
-        self.assertRaises(TypeError, d1.identify, 1)
+        with pytest.raises(TypeError):
+            d1.identify(None)
+        with pytest.raises(TypeError):
+            d1.identify(1)
 
         # check default_ident missing is detected.
         d1.default_ident = None
-        self.assertRaises(AssertionError, norm_ident, use_defaults=True)
+        with pytest.raises(AssertionError):
+            norm_ident(use_defaults=True)
 
     # ===================================================================
     # experimental - the following methods are not finished or tested,
@@ -653,9 +704,11 @@ class PrefixWrapperTest(TestCase):
         assert d1.genconfig() == "{XXX}1B2M2Y8AsgTpgAmY7PhCfg=="
 
         # genhash
-        self.assertRaises(TypeError, d1.genhash, "password", None)
+        with pytest.raises(TypeError):
+            d1.genhash("password", None)
         assert d1.genhash("password", dph) == dph
-        self.assertRaises(ValueError, d1.genhash, "password", lph)
+        with pytest.raises(ValueError):
+            d1.genhash("password", lph)
 
         # hash
         assert d1.hash("password") == dph
@@ -665,7 +718,8 @@ class PrefixWrapperTest(TestCase):
         assert not d1.identify(lph)
 
         # verify
-        self.assertRaises(ValueError, d1.verify, "password", lph)
+        with pytest.raises(ValueError):
+            d1.verify("password", lph)
         assert d1.verify("password", dph)
 
     def test_12_ident(self):
@@ -691,12 +745,10 @@ class PrefixWrapperTest(TestCase):
 
         # test custom ident must match
         h = uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{XXX}A")
-        self.assertRaises(
-            ValueError, uh.PrefixWrapper, "h3", "ldap_md5", "{XXX}", ident="{XY"
-        )
-        self.assertRaises(
-            ValueError, uh.PrefixWrapper, "h3", "ldap_md5", "{XXX}", ident="{XXXX"
-        )
+        with pytest.raises(ValueError):
+            uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{XY")
+        with pytest.raises(ValueError):
+            uh.PrefixWrapper("h3", "ldap_md5", "{XXX}", ident="{XXXX")
 
         # test ident_values is proxied
         h = uh.PrefixWrapper("h4", "phpass", "{XXX}")
@@ -709,7 +761,8 @@ class PrefixWrapperTest(TestCase):
         assert h.ident_values is None
 
         # ... but requires prefix
-        self.assertRaises(ValueError, uh.PrefixWrapper, "h6", "des_crypt", ident=True)
+        with pytest.raises(ValueError):
+            uh.PrefixWrapper("h6", "des_crypt", ident=True)
 
         # orig_prefix + HasManyIdent - warning
         with pytest.warns(match="orig_prefix.*may not work correctly"):
@@ -730,7 +783,8 @@ class PrefixWrapperTest(TestCase):
         # shoudl throw InvalidHashError if wrapped hash doesn't begin
         # with orig_prefix.
         h = uh.PrefixWrapper("h2", "md5_crypt", orig_prefix="$6$")
-        self.assertRaises(ValueError, h.hash, "test")
+        with pytest.raises(ValueError):
+            h.hash("test")
 
 
 # =============================================================================
@@ -799,8 +853,10 @@ class UnsaltedHashTest(HandlerCase):
     ]
 
     def test_bad_kwds(self):
-        self.assertRaises(TypeError, UnsaltedHash, salt="x")
-        self.assertRaises(TypeError, UnsaltedHash.genconfig, rounds=1)
+        with pytest.raises(TypeError):
+            UnsaltedHash(salt="x")
+        with pytest.raises(TypeError):
+            UnsaltedHash.genconfig(rounds=1)
 
 
 class SaltedHashTest(HandlerCase):
@@ -813,5 +869,7 @@ class SaltedHashTest(HandlerCase):
 
     def test_bad_kwds(self):
         stub = SaltedHash(use_defaults=True)._stub_checksum
-        self.assertRaises(TypeError, SaltedHash, checksum=stub, salt=None)
-        self.assertRaises(ValueError, SaltedHash, checksum=stub, salt="xxx")
+        with pytest.raises(TypeError):
+            SaltedHash(checksum=stub, salt=None)
+        with pytest.raises(ValueError):
+            SaltedHash(checksum=stub, salt="xxx")

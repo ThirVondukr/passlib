@@ -723,9 +723,9 @@ class TOTP(object):
             subcls.wallet = wallet
 
         if now is not None:
-            assert (
-                isinstance(now(), numeric_types) and now() >= 0
-            ), "now() function must return non-negative int/float"
+            err_msg = "now() function must return non-negative int/float"
+            assert isinstance(now(), numeric_types), err_msg
+            assert now() >= 0, err_msg
             subcls.now = staticmethod(now)
 
         return subcls

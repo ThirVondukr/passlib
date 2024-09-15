@@ -310,9 +310,9 @@ class _bcrypt_test(HandlerCase):
         # test hash() / genconfig() don't generate invalid salts anymore
         #
         def check_padding(hash):
-            assert hash.startswith(("$2a$", "$2b$")) and len(hash) >= 28, (
-                "unexpectedly malformed hash: %r" % (hash,)
-            )
+            malformed_hash_msg = "unexpectedly malformed hash: %r" % (hash,)
+            assert hash.startswith(("$2a$", "$2b$")), malformed_hash_msg
+            assert len(hash) >= 28, malformed_hash_msg
             assert hash[28] in ".Oeu", "unused bits incorrectly set in hash: %r" % (
                 hash,
             )
@@ -557,7 +557,8 @@ class _bcrypt_sha256_test(HandlerCase):
         # forbidding ident keyword, we only support "2b" for now
         handler = self.handler
         handler(use_defaults=True)
-        self.assertRaises(ValueError, handler, ident="$2y$", use_defaults=True)
+        with pytest.raises(ValueError):
+            handler(ident="$2y$", use_defaults=True)
 
     class FuzzHashGenerator(HandlerCase.FuzzHashGenerator):
         def random_rounds(self):
@@ -577,11 +578,13 @@ class _bcrypt_sha256_test(HandlerCase):
         assert subcls.version == 1
 
         # forbid unknown ver
-        self.assertRaises(ValueError, handler.using, version=999)
+        with pytest.raises(ValueError):
+            handler.using(version=999)
 
         # allow '2a' only for v1
         subcls = handler.using(version=1, ident="2a")
-        self.assertRaises(ValueError, handler.using, ident="2a")
+        with pytest.raises(ValueError):
+            handler.using(ident="2a")
 
     def test_calc_digest_v2(self):
         """

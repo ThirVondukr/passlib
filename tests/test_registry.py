@@ -5,6 +5,8 @@ from logging import getLogger
 import warnings
 import sys
 
+import pytest
+
 # site
 # pkg
 from passlib import hash, registry, exc
@@ -67,7 +69,8 @@ class RegistryTest(TestCase):
         repr(hash)
 
         # check non-existent attrs raise error
-        self.assertRaises(AttributeError, getattr, hash, "fooey")
+        with pytest.raises(AttributeError):
+            getattr(hash, "fooey")
 
         # GAE tries to set __loader__,
         # make sure that doesn't call register_crypt_handler.
@@ -90,7 +93,8 @@ class RegistryTest(TestCase):
         assert get_crypt_handler("dummy_1") is dummy_1
 
         # check storing under wrong name results in error
-        self.assertRaises(ValueError, setattr, hash, "dummy_1x", dummy_1)
+        with pytest.raises(ValueError):
+            setattr(hash, "dummy_1x", dummy_1)
 
     def test_register_crypt_handler_path(self):
         """test register_crypt_handler_path()"""
@@ -102,21 +106,18 @@ class RegistryTest(TestCase):
         assert not hasattr(hash, "dummy_0")
 
         # check invalid names are rejected
-        self.assertRaises(
-            ValueError, register_crypt_handler_path, "dummy_0", ".test_registry"
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler_path,
-            "dummy_0",
-            __name__ + ":dummy_0:xxx",
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler_path,
-            "dummy_0",
-            __name__ + ":dummy_0.xxx",
-        )
+        with pytest.raises(ValueError):
+            register_crypt_handler_path("dummy_0", ".test_registry")
+        with pytest.raises(ValueError):
+            register_crypt_handler_path(
+                "dummy_0",
+                __name__ + ":dummy_0:xxx",
+            )
+        with pytest.raises(ValueError):
+            register_crypt_handler_path(
+                "dummy_0",
+                __name__ + ":dummy_0.xxx",
+            )
 
         # try lazy load
         register_crypt_handler_path("dummy_0", __name__)
@@ -133,11 +134,13 @@ class RegistryTest(TestCase):
 
         # check lazy load w/ wrong type fails
         register_crypt_handler_path("dummy_x", __name__)
-        self.assertRaises(TypeError, get_crypt_handler, "dummy_x")
+        with pytest.raises(TypeError):
+            get_crypt_handler("dummy_x")
 
         # check lazy load w/ wrong name fails
         register_crypt_handler_path("alt_dummy_0", __name__)
-        self.assertRaises(ValueError, get_crypt_handler, "alt_dummy_0")
+        with pytest.raises(ValueError):
+            get_crypt_handler("alt_dummy_0")
         unload_handler_name("alt_dummy_0")
 
         # TODO: check lazy load which calls register_crypt_handler (warning should be issued)
@@ -155,33 +158,31 @@ class RegistryTest(TestCase):
     def test_register_crypt_handler(self):
         """test register_crypt_handler()"""
 
-        self.assertRaises(TypeError, register_crypt_handler, {})
+        with pytest.raises(TypeError):
+            register_crypt_handler({})
 
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler,
-            type("x", (uh.StaticHandler,), dict(name=None)),
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler,
-            type("x", (uh.StaticHandler,), dict(name="AB_CD")),
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler,
-            type("x", (uh.StaticHandler,), dict(name="ab-cd")),
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler,
-            type("x", (uh.StaticHandler,), dict(name="ab__cd")),
-        )
-        self.assertRaises(
-            ValueError,
-            register_crypt_handler,
-            type("x", (uh.StaticHandler,), dict(name="default")),
-        )
+        with pytest.raises(ValueError):
+            register_crypt_handler(
+                type("x", (uh.StaticHandler,), dict(name=None)),
+            )
+
+        with pytest.raises(ValueError):
+            register_crypt_handler(
+                type("x", (uh.StaticHandler,), dict(name="AB_CD")),
+            )
+
+        with pytest.raises(ValueError):
+            register_crypt_handler(
+                type("x", (uh.StaticHandler,), dict(name="ab-cd")),
+            )
+        with pytest.raises(ValueError):
+            register_crypt_handler(
+                type("x", (uh.StaticHandler,), dict(name="ab__cd")),
+            )
+        with pytest.raises(ValueError):
+            register_crypt_handler(
+                type("x", (uh.StaticHandler,), dict(name="default")),
+            )
 
         class dummy_1(uh.StaticHandler):
             name = "dummy_1"
@@ -195,7 +196,8 @@ class RegistryTest(TestCase):
         register_crypt_handler(dummy_1)
         assert get_crypt_handler("dummy_1") is dummy_1
 
-        self.assertRaises(KeyError, register_crypt_handler, dummy_1b)
+        with pytest.raises(KeyError):
+            register_crypt_handler(dummy_1b)
         assert get_crypt_handler("dummy_1") is dummy_1
 
         register_crypt_handler(dummy_1b, force=True)
@@ -210,7 +212,8 @@ class RegistryTest(TestCase):
             name = "dummy_1"
 
         # without available handler
-        self.assertRaises(KeyError, get_crypt_handler, "dummy_1")
+        with pytest.raises(KeyError):
+            get_crypt_handler("dummy_1")
         assert get_crypt_handler("dummy_1", None) is None
 
         # already loaded handler
@@ -236,7 +239,8 @@ class RegistryTest(TestCase):
 
         hash.__dict__["_fake"] = "dummy"
         for name in ["_fake", "__package__"]:
-            self.assertRaises(KeyError, get_crypt_handler, name)
+            with pytest.raises(KeyError):
+                get_crypt_handler(name)
             assert get_crypt_handler(name, None) is None
 
     def test_list_crypt_handlers(self):

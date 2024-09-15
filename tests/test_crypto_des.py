@@ -1,3 +1,5 @@
+import pytest
+
 from passlib.utils import getrandbytes
 from tests.utils import TestCase
 
@@ -62,15 +64,20 @@ class DesTest(TestCase):
             assert key3 == key1 & _KDATA_MASK
 
         # type checks
-        self.assertRaises(TypeError, expand_des_key, 1.0)
+        with pytest.raises(TypeError):
+            expand_des_key(1.0)
 
         # too large
-        self.assertRaises(ValueError, expand_des_key, INT_56_MASK + 1)
-        self.assertRaises(ValueError, expand_des_key, b"\x00" * 8)
+        with pytest.raises(ValueError):
+            expand_des_key(INT_56_MASK + 1)
+        with pytest.raises(ValueError):
+            expand_des_key(b"\x00" * 8)
 
         # too small
-        self.assertRaises(ValueError, expand_des_key, -1)
-        self.assertRaises(ValueError, expand_des_key, b"\x00" * 6)
+        with pytest.raises(ValueError):
+            expand_des_key(-1)
+        with pytest.raises(ValueError):
+            expand_des_key(b"\x00" * 6)
 
     def test_02_shrink(self):
         """shrink_des_key()"""
@@ -87,15 +94,20 @@ class DesTest(TestCase):
             assert key3 == key1
 
         # type checks
-        self.assertRaises(TypeError, shrink_des_key, 1.0)
+        with pytest.raises(TypeError):
+            shrink_des_key(1.0)
 
         # too large
-        self.assertRaises(ValueError, shrink_des_key, INT_64_MASK + 1)
-        self.assertRaises(ValueError, shrink_des_key, b"\x00" * 9)
+        with pytest.raises(ValueError):
+            shrink_des_key(INT_64_MASK + 1)
+        with pytest.raises(ValueError):
+            shrink_des_key(b"\x00" * 9)
 
         # too small
-        self.assertRaises(ValueError, shrink_des_key, -1)
-        self.assertRaises(ValueError, shrink_des_key, b"\x00" * 7)
+        with pytest.raises(ValueError):
+            shrink_des_key(-1)
+        with pytest.raises(ValueError):
+            shrink_des_key(b"\x00" * 7)
 
     def _random_parity(self, key):
         """randomize parity bits"""
@@ -145,19 +157,26 @@ class DesTest(TestCase):
 
         # check invalid keys
         stub = b"\x00" * 8
-        self.assertRaises(TypeError, des_encrypt_block, 0, stub)
-        self.assertRaises(ValueError, des_encrypt_block, b"\x00" * 6, stub)
+        with pytest.raises(TypeError):
+            des_encrypt_block(0, stub)
+        with pytest.raises(ValueError):
+            des_encrypt_block(b"\x00" * 6, stub)
 
         # check invalid input
-        self.assertRaises(TypeError, des_encrypt_block, stub, 0)
-        self.assertRaises(ValueError, des_encrypt_block, stub, b"\x00" * 7)
+        with pytest.raises(TypeError):
+            des_encrypt_block(stub, 0)
+        with pytest.raises(ValueError):
+            des_encrypt_block(stub, b"\x00" * 7)
 
         # check invalid salts
-        self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=-1)
-        self.assertRaises(ValueError, des_encrypt_block, stub, stub, salt=1 << 24)
+        with pytest.raises(ValueError):
+            des_encrypt_block(stub, stub, salt=-1)
+        with pytest.raises(ValueError):
+            des_encrypt_block(stub, stub, salt=1 << 24)
 
         # check invalid rounds
-        self.assertRaises(ValueError, des_encrypt_block, stub, stub, 0, rounds=0)
+        with pytest.raises(ValueError):
+            des_encrypt_block(stub, stub, 0, rounds=0)
 
     def test_04_encrypt_ints(self):
         """des_encrypt_int_block()"""
@@ -180,16 +199,23 @@ class DesTest(TestCase):
                 )
 
         # check invalid keys
-        self.assertRaises(TypeError, des_encrypt_int_block, b"\x00", 0)
-        self.assertRaises(ValueError, des_encrypt_int_block, -1, 0)
+        with pytest.raises(TypeError):
+            des_encrypt_int_block(b"\x00", 0)
+        with pytest.raises(ValueError):
+            des_encrypt_int_block(-1, 0)
 
         # check invalid input
-        self.assertRaises(TypeError, des_encrypt_int_block, 0, b"\x00")
-        self.assertRaises(ValueError, des_encrypt_int_block, 0, -1)
+        with pytest.raises(TypeError):
+            des_encrypt_int_block(0, b"\x00")
+        with pytest.raises(ValueError):
+            des_encrypt_int_block(0, -1)
 
         # check invalid salts
-        self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, salt=-1)
-        self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, salt=1 << 24)
+        with pytest.raises(ValueError):
+            des_encrypt_int_block(0, 0, salt=-1)
+        with pytest.raises(ValueError):
+            des_encrypt_int_block(0, 0, salt=1 << 24)
 
         # check invalid rounds
-        self.assertRaises(ValueError, des_encrypt_int_block, 0, 0, 0, rounds=0)
+        with pytest.raises(ValueError):
+            des_encrypt_int_block(0, 0, 0, rounds=0)

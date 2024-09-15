@@ -2,6 +2,8 @@ from binascii import hexlify
 import hashlib
 from unittest import skipUnless
 
+import pytest
+
 # site
 # pkg
 # module
@@ -66,7 +68,8 @@ class _Common_MD4_Test(TestCase):
 
         # reject unicode, hash should return digest of b''
         h = md4()
-        self.assertRaises(TypeError, h.update, "a")
+        with pytest.raises(TypeError):
+            h.update("a")
         assert h.hexdigest() == "31d6cfe0d16ae931b73c59d7e0c089c0"
 
     def test_md4_hexdigest(self):

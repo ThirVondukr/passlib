@@ -1,6 +1,7 @@
 import sys
 import warnings
 
+import pytest
 
 from passlib import exc, hash
 from tests.utils import (
@@ -133,9 +134,8 @@ class bigcrypt_test(HandlerCase):
     def test_90_internal(self):
         # check that _norm_checksum() also validates checksum size.
         # (current code uses regex in parser)
-        self.assertRaises(
-            ValueError, hash.bigcrypt, use_defaults=True, checksum="yh4XPJGsOZ"
-        )
+        with pytest.raises(ValueError):
+            hash.bigcrypt(use_defaults=True, checksum="yh4XPJGsOZ")
 
 
 class _bsdi_crypt_test(HandlerCase):
@@ -358,14 +358,18 @@ class fshp_test(HandlerCase):
         handler(variant=b"sha256", **kwds)
 
         # rejects None
-        self.assertRaises(TypeError, handler, variant=None, **kwds)
+        with pytest.raises(TypeError):
+            handler(variant=None, **kwds)
 
         # rejects other types
-        self.assertRaises(TypeError, handler, variant=complex(1, 1), **kwds)
+        with pytest.raises(TypeError):
+            handler(variant=complex(1, 1), **kwds)
 
         # invalid variant
-        self.assertRaises(ValueError, handler, variant="9", **kwds)
-        self.assertRaises(ValueError, handler, variant=9, **kwds)
+        with pytest.raises(ValueError):
+            handler(variant="9", **kwds)
+        with pytest.raises(ValueError):
+            handler(variant=9, **kwds)
 
 
 class hex_md4_test(HandlerCase):
@@ -413,9 +417,11 @@ class hex_md5_test(HandlerCase):
         assert not hasher.identify(ref2)
 
         # throw error if try to use it
-        pat = "'md5' hash disabled for fips"
-        self.assertRaisesRegex(UnknownHashError, pat, hasher.hash, "password")
-        self.assertRaisesRegex(UnknownHashError, pat, hasher.verify, "password", ref1)
+        err_msg = "'md5' hash disabled for fips"
+        with pytest.raises(UnknownHashError, match=err_msg):
+            hasher.hash("password")
+        with pytest.raises(UnknownHashError, match=err_msg):
+            hasher.verify("password", ref1)
 
 
 class hex_sha1_test(HandlerCase):
@@ -771,7 +777,8 @@ class lmhash_test(EncodingHandlerMixin, HandlerCase):
             secret = self.populate_context(secret, kwds)
             data = unhexlify(str_to_bascii(hashed))
             assert lmhash.raw(secret, **kwds) == data
-        self.assertRaises(TypeError, lmhash.raw, 1)
+        with pytest.raises(TypeError):
+            lmhash.raw(1)
 
 
 class _md5_crypt_test(HandlerCase):
@@ -1842,6 +1849,9 @@ class unix_disabled_test(HandlerCase):
         assert handler.using(marker="*xxx").hash("stub") == "*xxx"
 
         # reject invalid marker
-        self.assertRaises(ValueError, handler.genhash, "stub", "", marker="abc")
-        self.assertRaises(ValueError, handler.hash, "stub", marker="abc")
-        self.assertRaises(ValueError, handler.using, marker="abc")
+        with pytest.raises(ValueError):
+            handler.genhash("stub", "", marker="abc")
+        with pytest.raises(ValueError):
+            handler.hash("stub", marker="abc")
+        with pytest.raises(ValueError):
+            handler.using(marker="abc")
